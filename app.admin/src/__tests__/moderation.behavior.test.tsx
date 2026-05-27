@@ -18,8 +18,16 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { renderWithProviders, screen, waitFor } from '../test-utils';
 import userEvent from '@testing-library/user-event';
+import { Routes, Route } from 'react-router-dom';
 import Moderation from '../pages/Moderation';
 import type { Report, ReportSeverity, ReportStatus } from '@adopt-dont-shop/lib.moderation';
+
+const ModerationWithRoutes = () => (
+  <Routes>
+    <Route path='/moderation' element={<Moderation />} />
+    <Route path='/moderation/:reportId' element={<Moderation />} />
+  </Routes>
+);
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
@@ -339,23 +347,30 @@ describe('Content Moderation page', () => {
   describe('report detail modal', () => {
     it('opens the detail modal when admin clicks View Details', async () => {
       const user = userEvent.setup();
-      renderWithProviders(<Moderation />);
+      renderWithProviders(<ModerationWithRoutes />, { initialRoute: '/moderation' });
 
       const viewButtons = screen.getAllByTitle('View Details');
       await user.click(viewButtons[0]);
 
-      expect(screen.getByTestId('report-detail-modal')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId('report-detail-modal')).toBeInTheDocument();
+      });
       expect(screen.getByText('Report: Harassment Report')).toBeInTheDocument();
     });
 
     it('closes the detail modal when admin clicks Close', async () => {
       const user = userEvent.setup();
-      renderWithProviders(<Moderation />);
+      renderWithProviders(<ModerationWithRoutes />, { initialRoute: '/moderation' });
 
       await user.click(screen.getAllByTitle('View Details')[0]);
+      await waitFor(() => {
+        expect(screen.getByTestId('report-detail-modal')).toBeInTheDocument();
+      });
       await user.click(screen.getByRole('button', { name: /close/i }));
 
-      expect(screen.queryByTestId('report-detail-modal')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByTestId('report-detail-modal')).not.toBeInTheDocument();
+      });
     });
   });
 
