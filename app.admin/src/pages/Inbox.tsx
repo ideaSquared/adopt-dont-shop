@@ -95,7 +95,7 @@ const getSeverityDotClass = (severity: string): string => {
 const getDetailPath = (item: InboxItem): string => {
   switch (item.source) {
     case 'moderation':
-      return '/moderation';
+      return `/moderation/${item.id}`;
     case 'support':
       return `/support/${item.id}`;
     case 'message':

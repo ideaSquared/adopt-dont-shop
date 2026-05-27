@@ -135,6 +135,15 @@ const AdminApp: React.FC = () => {
               <Route path='/moderation/queue' element={<Navigate to='/moderation' replace />} />
               <Route path='/moderation/reports' element={<Navigate to='/moderation' replace />} />
               <Route path='/moderation/sanctions' element={<Navigate to='/moderation' replace />} />
+              {/* Deep-link to a specific report — opens its detail modal */}
+              <Route
+                path='/moderation/:reportId'
+                element={
+                  <RouteBoundary name='moderation'>
+                    <Moderation />
+                  </RouteBoundary>
+                }
+              />
 
               {/* Support System */}
               <Route path='/support' element={<Support />} />

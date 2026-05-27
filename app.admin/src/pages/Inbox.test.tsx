@@ -158,12 +158,12 @@ describe('Inbox page', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/messages?chatId=chat-1');
   });
 
-  it('navigates moderation rows to the moderation page', () => {
+  it('navigates moderation rows to the specific report deep-link', () => {
     renderWithProviders(<Inbox />);
 
     fireEvent.click(screen.getByText('Spam report on pet listing'));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/moderation');
+    expect(mockNavigate).toHaveBeenCalledWith('/moderation/report-1');
   });
 
   it('navigates support rows to the specific ticket page', () => {

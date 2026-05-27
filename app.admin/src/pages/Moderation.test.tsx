@@ -6,6 +6,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { Routes, Route } from 'react-router-dom';
 import { renderWithProviders } from '../test-utils';
 
 const resolveReportMock = vi.fn();
@@ -82,7 +83,27 @@ vi.mock('../components/moderation/ActionSelectionModal', () => ({
 }));
 
 vi.mock('../components/moderation/ReportDetailModal', () => ({
-  ReportDetailModal: () => null,
+  ReportDetailModal: ({
+    isOpen,
+    report,
+    onClose,
+  }: {
+    isOpen: boolean;
+    report: { reportId: string; title: string } | null;
+    onClose: () => void;
+  }) => {
+    if (!isOpen) {
+      return null;
+    }
+    return (
+      <div role='dialog' aria-label='Report Detail'>
+        <div data-testid='detail-report-id'>{report?.reportId}</div>
+        <button type='button' onClick={onClose} data-testid='stub-detail-close'>
+          Close
+        </button>
+      </div>
+    );
+  },
 }));
 
 vi.mock('../components/moderation/BulkModerationModal', () => ({
@@ -129,5 +150,96 @@ describe('Moderation handleActionSubmit error feedback', () => {
       expect(dismissReportMock).toHaveBeenCalled();
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
+const renderModerationAtRoute = (route: string) => {
+  return renderWithProviders(
+    <Routes>
+      <Route path='/moderation' element={<Moderation />} />
+      <Route path='/moderation/:reportId' element={<Moderation />} />
+    </Routes>,
+    { initialRoute: route }
+  );
+};
+
+describe('Moderation deep-link routing', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('opens the detail modal for the report when visiting /moderation/:reportId', async () => {
+    renderModerationAtRoute('/moderation/rep-1');
+
+    const dialog = await screen.findByRole('dialog', { name: /report detail/i });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByTestId('detail-report-id')).toHaveTextContent('rep-1');
+  });
+
+  it('does not open the modal when no reportId is in the URL', () => {
+    renderModerationAtRoute('/moderation');
+
+    expect(screen.queryByRole('dialog', { name: /report detail/i })).not.toBeInTheDocument();
+  });
+
+  it('navigates to /moderation/:reportId when a report row is clicked', async () => {
+    renderModerationAtRoute('/moderation');
+
+    expect(screen.queryByRole('dialog', { name: /report detail/i })).not.toBeInTheDocument();
+
+    // Click the row body — title text is rendered inside the row
+    fireEvent.click(screen.getByText(/spammy listing/i));
+
+    const dialog = await screen.findByRole('dialog', { name: /report detail/i });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByTestId('detail-report-id')).toHaveTextContent('rep-1');
+  });
+
+  it('closes the modal and returns to /moderation when the close handler fires', async () => {
+    renderModerationAtRoute('/moderation/rep-1');
+
+    await screen.findByRole('dialog', { name: /report detail/i });
+
+    fireEvent.click(screen.getByTestId('stub-detail-close'));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /report detail/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('preserves status filter query params when closing the modal', async () => {
+    renderModerationAtRoute('/moderation/rep-1?status=pending');
+
+    await screen.findByRole('dialog', { name: /report detail/i });
+
+    // status filter dropdown reflects the query param
+    const statusSelect = screen.getByLabelText(/status/i);
+    expect(statusSelect).toHaveValue('pending');
+
+    fireEvent.click(screen.getByTestId('stub-detail-close'));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /report detail/i })).not.toBeInTheDocument();
+    });
+
+    // After close the filter is still applied
+    expect(screen.getByLabelText(/status/i)).toHaveValue('pending');
+  });
+
+  it('redirects to /moderation and surfaces a toast when the reportId is unknown', async () => {
+    const { toast } = await import('@adopt-dont-shop/lib.components');
+
+    renderModerationAtRoute('/moderation/does-not-exist');
+
+    // No detail dialog rendered
+    expect(screen.queryByRole('dialog', { name: /report detail/i })).not.toBeInTheDocument();
+
+    // Soft toast surfaces via the global sonner-backed toast singleton
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Report not found');
+    });
+
+    // Page itself still renders (header visible — no crash)
+    expect(screen.getByRole('heading', { name: /content moderation/i })).toBeInTheDocument();
   });
 });
