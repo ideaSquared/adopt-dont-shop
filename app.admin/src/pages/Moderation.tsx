@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Input } from '@adopt-dont-shop/lib.components';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
+import { Input, toast } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiAlertTriangle, FiCheckCircle, FiEye, FiShield } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import { BulkActionToolbar } from '../components/ui';
@@ -125,12 +125,14 @@ const Moderation: React.FC = () => {
     );
   };
 
+  const { reportId } = useParams<{ reportId?: string }>();
+  const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -177,14 +179,35 @@ const Moderation: React.FC = () => {
     );
   };
 
+  // ADS deep-link: the detail modal is driven by the URL :reportId param.
+  // Look up the report once the list has loaded; if the id doesn't match
+  // any loaded report (e.g. deleted/invalid), bounce back to /moderation
+  // and surface a soft toast. While reports are still loading we wait.
+  const detailReport = useMemo<Report | null>(
+    () => (reportId ? (reports.find((r: Report) => r.reportId === reportId) ?? null) : null),
+    [reportId, reports]
+  );
+  const isDetailModalOpen = Boolean(reportId) && detailReport !== null;
+
+  useEffect(() => {
+    if (!reportId || isLoading) {
+      return;
+    }
+    if (!reports.some((r: Report) => r.reportId === reportId)) {
+      toast.error('Report not found');
+      navigate({ pathname: '/moderation', search: searchParams.toString() }, { replace: true });
+    }
+  }, [reportId, isLoading, reports, navigate, searchParams]);
+
   const handleOpenDetailModal = (report: Report) => {
-    setSelectedReport(report);
-    setIsDetailModalOpen(true);
+    navigate({
+      pathname: `/moderation/${report.reportId}`,
+      search: searchParams.toString(),
+    });
   };
 
   const handleCloseDetailModal = () => {
-    setIsDetailModalOpen(false);
-    setSelectedReport(null);
+    navigate({ pathname: '/moderation', search: searchParams.toString() });
   };
 
   const handleOpenActionModal = (report: Report) => {
@@ -531,7 +554,7 @@ const Moderation: React.FC = () => {
       <ReportDetailModal
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetailModal}
-        report={selectedReport}
+        report={detailReport}
       />
 
       <ActionSelectionModal
