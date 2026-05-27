@@ -22,11 +22,16 @@ import {
   useActiveActions,
 } from '@adopt-dont-shop/lib.moderation';
 import * as styles from './ReportDetailModal.css';
+import { ModalBreadcrumbNav, type BreadcrumbSegment } from '../modals/ModalBreadcrumbNav';
 
 export interface ReportDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   report: Report | null;
+  /** Optional list of sibling report IDs (in display order) to enable prev/next navigation. */
+  siblingIds?: ReadonlyArray<string>;
+  /** Called when prev/next is clicked, passes the target report ID. */
+  onNavigate?: (reportId: string) => void;
 }
 
 const getStatusBadgeClass = (
@@ -207,6 +212,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   isOpen,
   onClose,
   report,
+  siblingIds,
+  onNavigate,
 }) => {
   const navigate = useNavigate();
 
@@ -244,6 +251,12 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     }
   };
 
+  const breadcrumbSegments: ReadonlyArray<BreadcrumbSegment> = [
+    { label: 'Moderation', to: '/moderation' },
+    { label: getStatusLabel(report.status), to: `/moderation?status=${report.status}` },
+    { label: `Report #${report.reportId.substring(0, 8)}` },
+  ];
+
   return (
     <div
       className={clsx(styles.overlay, !isOpen && styles.overlayHidden)}
@@ -266,6 +279,12 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         </div>
 
         <div className={styles.modalBody}>
+          <ModalBreadcrumbNav
+            segments={breadcrumbSegments}
+            siblingIds={siblingIds}
+            currentId={report.reportId}
+            onNavigate={onNavigate}
+          />
           <div className={styles.section}>
             <h3 className={styles.sectionTitle}>
               <FiAlertTriangle size={16} />

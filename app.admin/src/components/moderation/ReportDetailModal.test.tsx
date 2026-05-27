@@ -12,9 +12,7 @@
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { render, screen, waitFor, within, userEvent } from '../../test-utils';
 import { ReportDetailModal } from './ReportDetailModal';
 import { openExternal } from '../../utils/openExternal';
 import type {
@@ -50,8 +48,6 @@ vi.mock('react-router-dom', async () => {
     useNavigate: () => mockNavigate,
   };
 });
-
-const renderWithRouter = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 const makeReport = (overrides: Partial<Report> = {}): Report => ({
   reportId: 'report-current',
@@ -139,7 +135,7 @@ describe('ReportDetailModal — prior history and active sanctions', () => {
       refetch: vi.fn(),
     });
 
-    renderWithRouter(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('prior-history-list')).toBeInTheDocument();
@@ -164,7 +160,7 @@ describe('ReportDetailModal — prior history and active sanctions', () => {
       refetch: vi.fn(),
     });
 
-    renderWithRouter(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
 
     expect(screen.getByTestId('active-sanctions-list')).toBeInTheDocument();
     expect(screen.getByText(/repeated rule violations/i)).toBeInTheDocument();
@@ -186,12 +182,34 @@ describe('ReportDetailModal — prior history and active sanctions', () => {
       refetch: vi.fn(),
     });
 
-    renderWithRouter(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
 
     expect(screen.queryByTestId('prior-history-list')).not.toBeInTheDocument();
     expect(screen.queryByTestId('no-prior-history')).not.toBeInTheDocument();
     expect(screen.queryByTestId('active-sanctions-list')).not.toBeInTheDocument();
     expect(screen.queryByTestId('no-active-sanctions')).not.toBeInTheDocument();
+  });
+
+  it('renders the breadcrumb header with Moderation root link', () => {
+    const current = makeReport();
+    mockUseReports.mockReturnValue({
+      data: { data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } },
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+    mockUseActiveActions.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
+
+    const moderationLink = screen.getByRole('link', { name: 'Moderation' });
+    expect(moderationLink).toHaveAttribute('href', '/moderation');
+    expect(screen.getByText(/Report #report-c/)).toBeInTheDocument();
   });
 });
 
@@ -218,7 +236,7 @@ describe('ReportDetailModal — view-in-context navigation', () => {
       reportedUserId: null,
     });
 
-    renderWithRouter(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
 
     const button = screen.getByTestId('view-entity-button');
     expect(button.getAttribute('data-view-url')).toBe(expectedRoute);
@@ -231,7 +249,7 @@ describe('ReportDetailModal — view-in-context navigation', () => {
       reportedUserId: null,
     });
 
-    renderWithRouter(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
 
     expect(screen.queryByTestId('view-entity-button')).not.toBeInTheDocument();
   });
@@ -245,7 +263,7 @@ describe('ReportDetailModal — view-in-context navigation', () => {
       reportedUserId: null,
     });
 
-    renderWithRouter(<ReportDetailModal isOpen onClose={onClose} report={report} />);
+    render(<ReportDetailModal isOpen onClose={onClose} report={report} />);
 
     await user.click(screen.getByTestId('view-entity-button'));
 
@@ -262,7 +280,7 @@ describe('ReportDetailModal — view-in-context navigation', () => {
       reportedUserId: null,
     });
 
-    renderWithRouter(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
 
     await user.click(screen.getByTestId('view-entity-button'));
 
@@ -276,7 +294,7 @@ describe('ReportDetailModal — view-in-context navigation', () => {
       reportedUserId: null,
     });
 
-    renderWithRouter(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
 
     // Sanity: the button is labelled by entity type so moderators understand the action.
     const button = screen.getByTestId('view-entity-button');
