@@ -218,6 +218,14 @@ export const itemMeta = style({
   marginTop: '0.25rem',
 });
 
+export const relatedUserEmailLink = style({
+  color: vars.colors.primary,
+  textDecoration: 'none',
+  ':hover': {
+    textDecoration: 'underline',
+  },
+});
+
 export const timestamp = style({
   fontSize: '0.875rem',
   color: vars.text.tertiary,

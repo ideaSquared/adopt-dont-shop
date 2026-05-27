@@ -5,11 +5,16 @@
  *   prior report history and active sanctions inline so a moderator has full
  *   context before acting on the current report.
  * - When the reported entity has no reportedUserId, neither section is rendered.
+ * - The "View <entity>" action navigates to the correct in-app admin route for
+ *   the reported entity type (and never opens externally for known types).
+ * - Clicking the "View <entity>" action closes the modal before navigating so
+ *   the moderator lands on the entity page, not behind the overlay.
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '../../test-utils';
+import { render, screen, waitFor, within, userEvent } from '../../test-utils';
 import { ReportDetailModal } from './ReportDetailModal';
+import { openExternal } from '../../utils/openExternal';
 import type {
   Report,
   ModeratorAction,
@@ -19,6 +24,7 @@ import type {
 
 const mockUseReports = vi.fn();
 const mockUseActiveActions = vi.fn();
+const mockNavigate = vi.fn();
 
 vi.mock('@adopt-dont-shop/lib.moderation', () => ({
   useReports: (...args: unknown[]) => mockUseReports(...args),
@@ -34,6 +40,14 @@ vi.mock('@adopt-dont-shop/lib.moderation', () => ({
 vi.mock('../../utils/openExternal', () => ({
   openExternal: vi.fn(),
 }));
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 const makeReport = (overrides: Partial<Report> = {}): Report => ({
   reportId: 'report-current',
@@ -81,10 +95,26 @@ const makeAction = (overrides: Partial<ModeratorAction> = {}): ModeratorAction =
   ...overrides,
 });
 
+const stubHooks = () => {
+  mockUseReports.mockReturnValue({
+    data: { data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } },
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  });
+  mockUseActiveActions.mockReturnValue({
+    data: [],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  });
+};
+
 describe('ReportDetailModal — prior history and active sanctions', () => {
   beforeEach(() => {
     mockUseReports.mockReset();
     mockUseActiveActions.mockReset();
+    mockNavigate.mockReset();
   });
 
   it('renders prior reports excluding the current one when reportedUserId is set', async () => {
@@ -111,8 +141,7 @@ describe('ReportDetailModal — prior history and active sanctions', () => {
       expect(screen.getByTestId('prior-history-list')).toBeInTheDocument();
     });
     expect(screen.getByText('Prior offence A')).toBeInTheDocument();
-    // Current report should not appear in history.
-    expect(screen.queryByText(/Repeated harassment of other adopters/)).toBeInTheDocument(); // title is in modal header
+    expect(screen.queryByText(/Repeated harassment of other adopters/)).toBeInTheDocument();
     expect(screen.getByTestId('no-active-sanctions')).toBeInTheDocument();
   });
 
@@ -181,5 +210,94 @@ describe('ReportDetailModal — prior history and active sanctions', () => {
     const moderationLink = screen.getByRole('link', { name: 'Moderation' });
     expect(moderationLink).toHaveAttribute('href', '/moderation');
     expect(screen.getByText(/Report #report-c/)).toBeInTheDocument();
+  });
+});
+
+describe('ReportDetailModal — view-in-context navigation', () => {
+  beforeEach(() => {
+    mockUseReports.mockReset();
+    mockUseActiveActions.mockReset();
+    mockNavigate.mockReset();
+    vi.mocked(openExternal).mockReset();
+    stubHooks();
+  });
+
+  it.each([
+    ['user', '/users/target-user-1'],
+    ['rescue', '/rescues/target-user-1'],
+    ['pet', '/pets/target-user-1'],
+    ['application', '/applications/target-user-1'],
+    ['message', '/messages?chatId=target-user-1'],
+    ['conversation', '/messages?chatId=target-user-1'],
+  ])('targets the correct in-app route for %s reports', (entityType, expectedRoute) => {
+    const report = makeReport({
+      reportedEntityType: entityType,
+      reportedEntityId: 'target-user-1',
+      reportedUserId: null,
+    });
+
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
+
+    const button = screen.getByTestId('view-entity-button');
+    expect(button.getAttribute('data-view-url')).toBe(expectedRoute);
+  });
+
+  it('does not render a view-entity button for unknown entity types', () => {
+    const report = makeReport({
+      reportedEntityType: 'something-else',
+      reportedEntityId: 'x',
+      reportedUserId: null,
+    });
+
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
+
+    expect(screen.queryByTestId('view-entity-button')).not.toBeInTheDocument();
+  });
+
+  it('closes the modal and navigates in-app when the view-entity button is clicked', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const report = makeReport({
+      reportedEntityType: 'conversation',
+      reportedEntityId: 'chat-42',
+      reportedUserId: null,
+    });
+
+    render(<ReportDetailModal isOpen onClose={onClose} report={report} />);
+
+    await user.click(screen.getByTestId('view-entity-button'));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('/messages?chatId=chat-42');
+  });
+
+  it('does not call openExternal when viewing an in-app entity', async () => {
+    const user = userEvent.setup();
+    const report = makeReport({
+      reportedEntityType: 'message',
+      reportedEntityId: 'chat-99',
+      reportedUserId: null,
+    });
+
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
+
+    await user.click(screen.getByTestId('view-entity-button'));
+
+    expect(openExternal).not.toHaveBeenCalled();
+  });
+
+  it('renders the reported-entity section so the user can find the view button by label', () => {
+    const report = makeReport({
+      reportedEntityType: 'message',
+      reportedEntityId: 'chat-1',
+      reportedUserId: null,
+    });
+
+    render(<ReportDetailModal isOpen onClose={() => undefined} report={report} />);
+
+    // Sanity: the button is labelled by entity type so moderators understand the action.
+    const button = screen.getByTestId('view-entity-button');
+    expect(within(button).getByText(/View Message/)).toBeInTheDocument();
   });
 });

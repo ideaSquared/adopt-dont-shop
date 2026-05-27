@@ -197,10 +197,14 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
                 <MessagesTab chatId={chatId} onMessageDeleted={onUpdate} />
               )}
               {activeTab === 'participants' && conversation && (
-                <ParticipantsTab participants={conversation.participants} />
+                <ParticipantsTab participants={conversation.participants} onClose={onClose} />
               )}
               {activeTab === 'details' && conversation && (
-                <DetailsTab conversation={conversation} getStatusBadge={getStatusBadge} />
+                <DetailsTab
+                  conversation={conversation}
+                  getStatusBadge={getStatusBadge}
+                  onClose={onClose}
+                />
               )}
               {activeTab === 'moderation' && conversation && (
                 <ModerationTab chat={conversation} chatId={chatId} />

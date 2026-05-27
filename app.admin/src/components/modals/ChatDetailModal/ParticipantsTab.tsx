@@ -1,10 +1,12 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import * as styles from '../ChatDetailModal.css';
 import { type Participant } from '@adopt-dont-shop/lib.chat';
 import { FiUsers } from 'react-icons/fi';
 
 type ParticipantsTabProps = {
   participants: Participant[];
+  onClose: () => void;
 };
 
 const getInitials = (name: string) =>
@@ -15,7 +17,7 @@ const getInitials = (name: string) =>
     .toUpperCase()
     .slice(0, 2);
 
-export const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ participants }) => {
+export const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ participants, onClose }) => {
   if (participants.length === 0) {
     return (
       <div className={styles.emptyState}>
@@ -31,7 +33,19 @@ export const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ participants }
         <div key={participant.id} className={styles.participantCard}>
           <div className={styles.participantAvatar}>{getInitials(participant.name)}</div>
           <div className={styles.participantInfo}>
-            <div className={styles.participantName}>{participant.name}</div>
+            <div className={styles.participantName}>
+              {participant.id ? (
+                <Link
+                  to={`/users/${participant.id}`}
+                  onClick={onClose}
+                  className={styles.entityLink}
+                >
+                  {participant.name}
+                </Link>
+              ) : (
+                participant.name
+              )}
+            </div>
             <div className={styles.participantRole}>{participant.type}</div>
           </div>
         </div>
