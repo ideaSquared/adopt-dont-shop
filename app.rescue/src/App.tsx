@@ -48,9 +48,9 @@ const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }
 function App() {
   // ADS-105: subscribe to backend analytics:invalidate events.
   useAnalyticsInvalidator();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
 
-  if (isLoading) {
+  if (isInitializing) {
     return <PageLoader />;
   }
 

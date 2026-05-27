@@ -51,14 +51,14 @@ const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }
 );
 
 const AdminApp: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
   // ADS-105: subscribe to backend analytics:invalidate events. The hook
   // is a no-op until setRealtimeAnalyticsToken is called by the auth
   // provider (which we'll wire up in a follow-up — for now this is
   // safe to mount unconditionally).
   useAnalyticsInvalidator();
 
-  if (isLoading) {
+  if (isInitializing) {
     return <PageLoader />;
   }
 
@@ -90,6 +90,13 @@ const AdminApp: React.FC = () => {
         <AdminLayout>
           <Suspense fallback={<PageLoader />}>
             <Routes>
+              {/* Auth routes are not valid for signed-in users — bounce home.
+                  This also covers the post-login transition: when the auth
+                  state flips before LoginPage's navigate() runs, the URL
+                  is still /login and would otherwise fall through to 404. */}
+              <Route path='/login' element={<Navigate to='/' replace />} />
+              <Route path='/register' element={<Navigate to='/' replace />} />
+
               {/* Main Dashboard */}
               <Route path='/' element={<Dashboard />} />
 

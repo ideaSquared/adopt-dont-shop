@@ -16,6 +16,7 @@ const authValue: AuthContextType = {
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  isInitializing: false,
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
