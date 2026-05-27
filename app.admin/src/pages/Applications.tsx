@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  Heading,
+  Text,
+  Input,
+  useToast,
+  Toast,
+  ToastContainer,
+  type ToastMessage,
+} from '@adopt-dont-shop/lib.components';
 import { FiSearch } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import { useApplications, useBulkUpdateApplications, useRescuesList } from '../hooks';
@@ -40,6 +48,9 @@ const VALID_STATUS_FILTERS: ReadonlySet<string> = new Set([
 
 const Applications: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { applicationId } = useParams<{ applicationId?: string }>();
+  const navigate = useNavigate();
+  const { toasts, showToast, hideToast } = useToast();
 
   const statusParam = searchParams.get('status');
   const statusFilter = statusParam && VALID_STATUS_FILTERS.has(statusParam) ? statusParam : 'all';
@@ -66,7 +77,6 @@ const Applications: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkApplicationActionType | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
-  const [selectedApplication, setSelectedApplication] = useState<AdminApplication | null>(null);
 
   useEffect(() => {
     setPage(1);
@@ -88,6 +98,37 @@ const Applications: React.FC = () => {
   const bulkUpdateApplications = useBulkUpdateApplications();
 
   const applications: AdminApplication[] = data?.data ?? [];
+
+  // Derive selected application from URL param + loaded list.
+  const selectedApplication: AdminApplication | null = applicationId
+    ? (applications.find(app => app.applicationId === applicationId) ?? null)
+    : null;
+
+  // If the param resolves to no application after loading completes,
+  // redirect back to the list and surface a toast.
+  useEffect(() => {
+    if (!applicationId || isLoading) {
+      return;
+    }
+    if (applications.find(app => app.applicationId === applicationId)) {
+      return;
+    }
+    const search = searchParams.toString();
+    navigate(search ? `/applications?${search}` : '/applications', { replace: true });
+    showToast('Application not found', 'error');
+  }, [applicationId, applications, isLoading, navigate, searchParams, showToast]);
+
+  const handleRowClick = (app: AdminApplication): void => {
+    const search = searchParams.toString();
+    navigate(
+      search ? `/applications/${app.applicationId}?${search}` : `/applications/${app.applicationId}`
+    );
+  };
+
+  const handleCloseDetail = (): void => {
+    const search = searchParams.toString();
+    navigate(search ? `/applications?${search}` : '/applications');
+  };
 
   const handleBulkConfirm = async (reason?: string): Promise<void> => {
     if (!bulkAction) {
@@ -269,12 +310,12 @@ const Applications: React.FC = () => {
         selectedRows={selectedRows}
         onSelectionChange={setSelectedRows}
         getRowId={app => app.applicationId}
-        onRowClick={app => setSelectedApplication(app)}
+        onRowClick={handleRowClick}
       />
 
       <ApplicationDetailModal
         isOpen={selectedApplication !== null}
-        onClose={() => setSelectedApplication(null)}
+        onClose={handleCloseDetail}
         application={selectedApplication}
       />
 
@@ -309,6 +350,12 @@ const Applications: React.FC = () => {
         isLoading={bulkUpdateApplications.isPending}
         resultSummary={bulkResult}
       />
+
+      <ToastContainer position='top-right'>
+        {toasts.map((toast: ToastMessage) => (
+          <Toast key={toast.id} {...toast} onClose={hideToast} position='top-right' />
+        ))}
+      </ToastContainer>
     </div>
   );
 };
