@@ -24,6 +24,80 @@ the operator-side steps that the compose file alone doesn't capture.
    `api.${PROD_HOSTNAME}`, `admin.${PROD_HOSTNAME}`, `rescue.${PROD_HOSTNAME}`
    pointing at the host.
 
+## Pre-launch secret rotation
+
+Run this section **before the first production deploy** and whenever a secret may
+have been compromised.
+
+### 1. Generate fresh production secrets
+
+```bash
+npm run secrets:generate
+```
+
+Copy the output into your production `.env` (or secrets manager). Each run produces
+cryptographically random values — **do not re-use values from staging or development**.
+
+The six application secrets that must be rotated for every new environment:
+
+| Variable | Purpose |
+|---|---|
+| `JWT_SECRET` | Signs short-lived access tokens |
+| `JWT_REFRESH_SECRET` | Signs long-lived refresh tokens |
+| `SESSION_SECRET` | Encrypts server-side sessions |
+| `CSRF_SECRET` | Signs CSRF tokens |
+| `ENCRYPTION_KEY` | AES-256-GCM key for PII fields (must be 64 hex chars / 32 bytes) |
+| `UPLOAD_SIGNING_SECRET` | Signs upload URLs |
+
+Regenerate `POSTGRES_PASSWORD` and `REDIS_PASSWORD` too if they carried over from a
+development or staging environment.
+
+### 2. Verify secrets are valid and distinct
+
+`validate-env.mjs` enforces that all six secrets are present, at least 32 characters
+long, not a placeholder (`CHANGE_THIS…`), and distinct from each other. Run it against
+your production env file before deploying:
+
+```bash
+# Validate a named file
+NODE_ENV=production npm run validate:env -- --env-file=.env.prod
+
+# Or with secrets already in the environment (CI)
+NODE_ENV=production npm run validate:env
+```
+
+A non-zero exit means at least one secret is missing, too short, uses a placeholder
+value, or is duplicated across secrets — fix it before proceeding.
+
+### 3. Confirm staging values are not reused
+
+`validate-env.mjs` already rejects known placeholder patterns. For an extra check,
+verify that no production secret shares a value with your staging env file:
+
+```bash
+# Any output here means a secret is shared between staging and prod — must fix.
+comm -12 \
+  <(grep -E '^(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|CSRF_SECRET|ENCRYPTION_KEY|UPLOAD_SIGNING_SECRET)=' .env.staging | sort) \
+  <(grep -E '^(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|CSRF_SECRET|ENCRYPTION_KEY|UPLOAD_SIGNING_SECRET)=' .env.prod    | sort)
+```
+
+Expected output: (empty — no shared values).
+
+### 4. Log the rotation
+
+Record the rotation date, who performed it, and the reason in your secrets manager
+or secured ops log. At minimum: `date`, `rotated_by`, `reason`.
+
+### Rotation cadence
+
+| Trigger | Action |
+|---|---|
+| Initial production launch | Full rotation of all six application secrets |
+| Quarterly (~every 90 days) | Full rotation of all six application secrets |
+| Suspected compromise | Immediate rotation of affected secret(s); full rotation if scope is unclear |
+| Team member off-boarding | Rotate any secret the person had access to |
+| Staging value detected in prod | Immediate full rotation |
+
 ## Release deploy
 
 The `service-backend-migrate` init container runs `npm run db:migrate`

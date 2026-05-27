@@ -10,6 +10,9 @@
  *  3. Diffs the active env against root /.env.example so missing or stale
  *     keys surface before deploy.
  *  4. Exits non-zero on any error so it can run as a CI gate.
+ *  5. Optional --staging-env=PATH: fails if any of the six application secrets
+ *     share a value with the staging env (prevents staging→prod secret reuse,
+ *     ADS-659).
  *
  * Keep the rule set in sync with service.backend/src/utils/validate-env.ts.
  * The two implementations validate the same secrets so operators get the same
@@ -306,13 +309,44 @@ function diffAgainstExample(env, examplePath) {
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
+// Staging-reuse check (ADS-659)
+// Fails if any of the six application secrets share a value with a staging env.
+// ---------------------------------------------------------------------------
+const SECRET_VARS = [
+  'JWT_SECRET',
+  'JWT_REFRESH_SECRET',
+  'SESSION_SECRET',
+  'CSRF_SECRET',
+  'ENCRYPTION_KEY',
+  'UPLOAD_SIGNING_SECRET',
+];
+
+function checkStagingReuse(prodEnv, stagingPath, errors) {
+  const stagingEnv = loadEnvFile(stagingPath);
+  if (!stagingEnv) {
+    log.warn(`--staging-env file not found at ${stagingPath}; skipping reuse check`);
+    return;
+  }
+  for (const key of SECRET_VARS) {
+    const prodVal = prodEnv[key];
+    const stagingVal = stagingEnv[key];
+    if (prodVal && stagingVal && prodVal === stagingVal) {
+      errors.push(
+        `${key} is identical in production and staging — rotate before deploying`
+      );
+    }
+  }
+}
+
 function parseArgs(argv) {
-  const args = { envFile: null, examplePath: null, json: false };
+  const args = { envFile: null, examplePath: null, stagingEnv: null, json: false };
   for (const arg of argv.slice(2)) {
     if (arg.startsWith('--env-file=')) {
       args.envFile = arg.slice('--env-file='.length);
     } else if (arg.startsWith('--example=')) {
       args.examplePath = arg.slice('--example='.length);
+    } else if (arg.startsWith('--staging-env=')) {
+      args.stagingEnv = arg.slice('--staging-env='.length);
     } else if (arg === '--json') {
       args.json = true;
     }
@@ -326,10 +360,12 @@ function main() {
   const examplePath = args.examplePath
     ? path.resolve(args.examplePath)
     : path.join(rootDir, '.env.example');
-
   log.title('Environment / secret validation');
   log.info(`env file:    ${envFile}`);
   log.info(`example:     ${examplePath}`);
+  if (args.stagingEnv) {
+    log.info(`staging env: ${path.resolve(args.stagingEnv)}`);
+  }
 
   const fileEnv = loadEnvFile(envFile);
   // Merge file env on top of process.env so `STATSIG_SERVER_SECRET_KEY=foo
@@ -342,6 +378,10 @@ function main() {
   }
 
   const { errors, warnings } = validate(env);
+
+  if (args.stagingEnv) {
+    checkStagingReuse(env, path.resolve(args.stagingEnv), errors);
+  }
   const { missing, examplePath: foundExample } = diffAgainstExample(env, examplePath);
 
   if (foundExample && missing.length > 0) {
