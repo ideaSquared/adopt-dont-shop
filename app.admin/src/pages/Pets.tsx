@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Heading, Text, Input, toast } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiPackage } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import { usePets, useBulkUpdatePets, useRescuesList } from '../hooks';
@@ -42,6 +42,8 @@ const VALID_PET_STATUS_FILTERS: ReadonlySet<string> = new Set([
 ]);
 
 const Pets: React.FC = () => {
+  const { petId } = useParams<{ petId?: string }>();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const statusParam = searchParams.get('status');
@@ -71,7 +73,6 @@ const Pets: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkPetActionType | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
-  const [selectedPet, setSelectedPet] = useState<AdminPet | null>(null);
 
   useEffect(() => {
     setPage(1);
@@ -94,6 +95,31 @@ const Pets: React.FC = () => {
   const bulkUpdatePets = useBulkUpdatePets();
 
   const pets: AdminPet[] = data?.data ?? [];
+
+  // ADS: Deep-link pets via /pets/:petId. Look up the active pet from the loaded
+  // list and surface a toast + redirect when an unknown id appears in the URL.
+  const selectedPet: AdminPet | null = petId ? (pets.find(p => p.petId === petId) ?? null) : null;
+
+  useEffect(() => {
+    if (!petId || isLoading) {
+      return;
+    }
+    if (pets.length === 0) {
+      return;
+    }
+    if (!pets.some(p => p.petId === petId)) {
+      toast.error('Pet not found');
+      navigate({ pathname: '/pets', search: searchParams.toString() }, { replace: true });
+    }
+  }, [petId, isLoading, pets, navigate, searchParams]);
+
+  const handleRowClick = (pet: AdminPet): void => {
+    navigate({ pathname: `/pets/${pet.petId}`, search: searchParams.toString() });
+  };
+
+  const handleDetailClose = (): void => {
+    navigate({ pathname: '/pets', search: searchParams.toString() });
+  };
 
   const handleBulkConfirm = async (reason?: string): Promise<void> => {
     if (!bulkAction) {
@@ -304,14 +330,10 @@ const Pets: React.FC = () => {
         selectedRows={selectedRows}
         onSelectionChange={setSelectedRows}
         getRowId={pet => pet.petId}
-        onRowClick={pet => setSelectedPet(pet)}
+        onRowClick={handleRowClick}
       />
 
-      <PetDetailModal
-        isOpen={selectedPet !== null}
-        onClose={() => setSelectedPet(null)}
-        pet={selectedPet}
-      />
+      <PetDetailModal isOpen={selectedPet !== null} onClose={handleDetailClose} pet={selectedPet} />
 
       <BulkConfirmationModal
         isOpen={bulkAction !== null}
