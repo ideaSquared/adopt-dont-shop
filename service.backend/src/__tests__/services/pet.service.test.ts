@@ -29,17 +29,13 @@ import {
 // `getEntityActivityLog` must hit the real implementation so the new
 // getPetActivityLog tests can read back seeded audit rows.
 vi.mock('../../services/auditLog.service', async () => {
-  const actual =
-    await vi.importActual<typeof import('../../services/auditLog.service')>(
-      '../../services/auditLog.service'
-    );
-  return {
-    ...actual,
-    AuditLogService: {
-      ...actual.AuditLogService,
-      log: vi.fn().mockResolvedValue({}),
-    },
-  };
+  const actual = await vi.importActual<typeof import('../../services/auditLog.service')>(
+    '../../services/auditLog.service'
+  );
+  actual.AuditLogService.log = vi
+    .fn()
+    .mockResolvedValue({}) as unknown as typeof actual.AuditLogService.log;
+  return actual;
 });
 
 // Import Report model for real database operations
