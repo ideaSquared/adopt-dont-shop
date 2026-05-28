@@ -1,7 +1,14 @@
 import React from 'react';
-import { Modal, Heading, Text } from '@adopt-dont-shop/lib.components';
+import {
+  EntityInspector,
+  type EntityInspectorTab,
+  Modal,
+  Spinner,
+} from '@adopt-dont-shop/lib.components';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
+import { FiPackage, FiHome, FiCalendar, FiClock, FiTag, FiArchive, FiStar } from 'react-icons/fi';
 import type { AdminPet } from '@/services/petService';
+import { useEntityActivity } from '../../hooks';
 import * as styles from './PetDetailModal.css';
 
 type PetDetailModalProps = {
@@ -17,85 +24,128 @@ const formatDate = (value?: string) => {
   return formatDisplayDate(value, { includeTime: true });
 };
 
+const getStatusBadge = (status: string, archived: boolean): React.ReactElement => {
+  if (archived) {
+    return <span className={styles.badgeNeutral}>Archived</span>;
+  }
+  switch (status) {
+    case 'available':
+      return <span className={styles.badgeSuccess}>Available</span>;
+    case 'adopted':
+      return <span className={styles.badgeInfo}>Adopted</span>;
+    case 'foster':
+      return <span className={styles.badgeWarning}>Foster</span>;
+    default:
+      return <span className={styles.badgeNeutral}>Unavailable</span>;
+  }
+};
+
+// ── Overview Tab ──────────────────────────────────────────────────
+
+const DetailField: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  value: string | null | undefined;
+  emptyText?: string;
+}> = ({ icon, label, value, emptyText = 'Not provided' }) => (
+  <div className={styles.detailItem}>
+    <div className={styles.detailLabel}>
+      {icon}
+      {label}
+    </div>
+    <div className={styles.detailValue}>
+      {value ? value : <span className={styles.emptyValue}>{emptyText}</span>}
+    </div>
+  </div>
+);
+
+const OverviewTab: React.FC<{ pet: AdminPet }> = ({ pet }) => (
+  <div className={styles.detailGrid}>
+    <DetailField icon={<FiTag />} label='ID' value={pet.petId} />
+    <DetailField icon={<FiPackage />} label='Type' value={pet.type} />
+    <DetailField icon={<FiPackage />} label='Breed' value={pet.breed} />
+    <DetailField icon={<FiTag />} label='Status' value={pet.status} />
+    <DetailField icon={<FiArchive />} label='Archived' value={pet.archived ? 'Yes' : 'No'} />
+    <DetailField icon={<FiStar />} label='Featured' value={pet.featured ? 'Yes' : 'No'} />
+    <DetailField icon={<FiHome />} label='Rescue' value={pet.rescueName ?? pet.rescueId} />
+    <DetailField icon={<FiCalendar />} label='Created' value={formatDate(pet.createdAt)} />
+    <DetailField icon={<FiClock />} label='Updated' value={formatDate(pet.updatedAt)} />
+  </div>
+);
+
+// ── Activity Tab ──────────────────────────────────────────────────
+
+const ActivityTab: React.FC<{ petId: string }> = ({ petId }) => {
+  const { data, isLoading, error } = useEntityActivity('pet', petId);
+
+  if (isLoading) {
+    return (
+      <div className={styles.activityEmpty}>
+        <Spinner size='sm' label='Loading activity' />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className={styles.activityEmpty}>Failed to load activity history.</div>;
+  }
+
+  const activities = data ?? [];
+
+  if (activities.length === 0) {
+    return <div className={styles.activityEmpty}>No activity recorded for this pet.</div>;
+  }
+
+  return (
+    <div className={styles.activityList}>
+      {activities.map(activity => (
+        <div key={activity.activityId} className={styles.activityItem}>
+          <div className={styles.activityDot} />
+          <div className={styles.activityContent}>
+            <p className={styles.activityDescription}>{activity.description}</p>
+            <p className={styles.activityMeta}>
+              {activity.activityType} &middot;{' '}
+              {new Date(activity.createdAt).toLocaleString('en-GB')}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Main Modal ────────────────────────────────────────────────────
+
 export const PetDetailModal: React.FC<PetDetailModalProps> = ({ isOpen, onClose, pet }) => {
   if (!pet) {
     return null;
   }
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Pet: ${pet.name}`}>
-      <div className={styles.container}>
-        <section>
-          <Heading level='h3'>Overview</Heading>
-          <dl className={styles.detailGrid}>
-            <dt>
-              <Text>ID</Text>
-            </dt>
-            <dd>
-              <Text>{pet.petId}</Text>
-            </dd>
-            <dt>
-              <Text>Name</Text>
-            </dt>
-            <dd>
-              <Text>{pet.name}</Text>
-            </dd>
-            <dt>
-              <Text>Type</Text>
-            </dt>
-            <dd>
-              <Text>{pet.type}</Text>
-            </dd>
-            <dt>
-              <Text>Breed</Text>
-            </dt>
-            <dd>
-              <Text>{pet.breed}</Text>
-            </dd>
-            <dt>
-              <Text>Status</Text>
-            </dt>
-            <dd>
-              <Text>{pet.status}</Text>
-            </dd>
-            <dt>
-              <Text>Archived</Text>
-            </dt>
-            <dd>
-              <Text>{pet.archived ? 'Yes' : 'No'}</Text>
-            </dd>
-            <dt>
-              <Text>Featured</Text>
-            </dt>
-            <dd>
-              <Text>{pet.featured ? 'Yes' : 'No'}</Text>
-            </dd>
-          </dl>
-        </section>
+  const tabs: EntityInspectorTab[] = [
+    { id: 'overview', label: 'Overview', content: <OverviewTab pet={pet} /> },
+    { id: 'activity', label: 'Activity', content: <ActivityTab petId={pet.petId} /> },
+  ];
 
-        <section>
-          <Heading level='h3'>Rescue</Heading>
-          <dl className={styles.detailGrid}>
-            <dt>
-              <Text>Rescue</Text>
-            </dt>
-            <dd>
-              <Text>{pet.rescueName ?? pet.rescueId}</Text>
-            </dd>
-            <dt>
-              <Text>Created</Text>
-            </dt>
-            <dd>
-              <Text>{formatDate(pet.createdAt)}</Text>
-            </dd>
-            <dt>
-              <Text>Updated</Text>
-            </dt>
-            <dd>
-              <Text>{formatDate(pet.updatedAt)}</Text>
-            </dd>
-          </dl>
-        </section>
-      </div>
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Pet: ${pet.name}`} size='lg'>
+      <EntityInspector
+        data-testid='pet-detail-panel'
+        resetTabsOnKeyChange={pet.petId}
+        tabs={tabs}
+        header={
+          <>
+            <div className={styles.avatar}>
+              <FiPackage />
+            </div>
+            <div className={styles.headerInfo}>
+              <h3 className={styles.headerName}>{pet.name}</h3>
+              <p className={styles.headerSubtitle}>
+                {pet.type} &middot; {pet.breed}
+              </p>
+            </div>
+            <div className={styles.headerBadges}>{getStatusBadge(pet.status, pet.archived)}</div>
+          </>
+        }
+      />
     </Modal>
   );
 };
