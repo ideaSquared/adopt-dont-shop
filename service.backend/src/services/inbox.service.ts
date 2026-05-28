@@ -1,5 +1,6 @@
 import { Op } from 'sequelize';
 import { z } from 'zod';
+import { escapeLikePattern } from '../utils/escape-like';
 import Report, { ReportSeverity, ReportStatus } from '../models/Report';
 import SupportTicket, { TicketPriority, TicketStatus } from '../models/SupportTicket';
 import { Chat } from '../models/Chat';
@@ -119,10 +120,12 @@ const fetchReports = async (filters: InboxFilters): Promise<ReadonlyArray<InboxI
     where.assignedModerator = filters.assignedTo;
   }
   if (filters.search) {
-    where[Op.or as unknown as string] = [
-      { title: { [Op.iLike]: `%${filters.search}%` } },
-      { description: { [Op.iLike]: `%${filters.search}%` } },
-    ];
+    Object.assign(where, {
+      [Op.or]: [
+        { title: { [Op.iLike]: `%${escapeLikePattern(filters.search)}%` } },
+        { description: { [Op.iLike]: `%${escapeLikePattern(filters.search)}%` } },
+      ],
+    });
   }
 
   const reports = await Report.findAll({
@@ -151,10 +154,12 @@ const fetchTickets = async (filters: InboxFilters): Promise<ReadonlyArray<InboxI
     where.assignedTo = filters.assignedTo;
   }
   if (filters.search) {
-    where[Op.or as unknown as string] = [
-      { subject: { [Op.iLike]: `%${filters.search}%` } },
-      { description: { [Op.iLike]: `%${filters.search}%` } },
-    ];
+    Object.assign(where, {
+      [Op.or]: [
+        { subject: { [Op.iLike]: `%${escapeLikePattern(filters.search)}%` } },
+        { description: { [Op.iLike]: `%${escapeLikePattern(filters.search)}%` } },
+      ],
+    });
   }
 
   const tickets = await SupportTicket.findAll({
