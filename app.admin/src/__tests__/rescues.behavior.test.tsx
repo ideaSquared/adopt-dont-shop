@@ -44,8 +44,8 @@ vi.mock('@/services/rescueService', () => ({
   },
 }));
 
-vi.mock('@/components/modals', () => ({
-  RescueDetailModal: ({
+vi.mock('@/components/detail', () => ({
+  RescueDetailPanel: ({
     rescueId,
     onClose,
   }: {
@@ -53,11 +53,14 @@ vi.mock('@/components/modals', () => ({
     onClose: () => void;
     onUpdate: () => void;
   }) => (
-    <div data-testid='rescue-detail-modal'>
+    <div data-testid='rescue-detail-panel'>
       <span>Detail for: {rescueId}</span>
       <button onClick={onClose}>Close</button>
     </div>
   ),
+}));
+
+vi.mock('@/components/modals', () => ({
   RescueVerificationModal: ({
     rescue,
     action,
@@ -336,7 +339,7 @@ describe('Rescue Management page', () => {
 
       await user.click(screen.getAllByTitle('View details')[0]);
 
-      expect(screen.getByTestId('rescue-detail-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('rescue-detail-panel')).toBeInTheDocument();
       expect(screen.getByText('Detail for: rescue-1')).toBeInTheDocument();
     });
 
@@ -348,7 +351,7 @@ describe('Rescue Management page', () => {
       await user.click(screen.getAllByTitle('View details')[0]);
       await user.click(screen.getByRole('button', { name: /close/i }));
 
-      expect(screen.queryByTestId('rescue-detail-modal')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('rescue-detail-panel')).not.toBeInTheDocument();
     });
   });
 

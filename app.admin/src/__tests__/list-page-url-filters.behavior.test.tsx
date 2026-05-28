@@ -82,8 +82,12 @@ vi.mock('../components/modals', () => ({
   CreateSupportTicketModal: () => null,
   UserActionsMenu: () => null,
   BulkConfirmationModal: () => null,
-  ApplicationDetailModal: () => null,
-  PetDetailModal: () => null,
+}));
+
+vi.mock('../components/detail', () => ({
+  UserDetailPanel: () => null,
+  ApplicationDetailPanel: () => null,
+  PetDetailPanel: () => null,
 }));
 
 vi.mock('../components/modals/TicketDetailModal', () => ({

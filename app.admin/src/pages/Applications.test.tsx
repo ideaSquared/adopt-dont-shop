@@ -31,24 +31,24 @@ vi.mock('../hooks', () => ({
 
 vi.mock('../components/modals', () => ({
   BulkConfirmationModal: () => null,
-  ApplicationDetailModal: ({
-    isOpen,
+}));
+
+vi.mock('../components/detail', () => ({
+  ApplicationDetailPanel: ({
     application,
     onClose,
   }: {
-    isOpen: boolean;
-    application: AdminApplication | null;
+    application: AdminApplication;
     onClose: () => void;
-  }) =>
-    isOpen && application ? (
-      <div role='dialog' aria-label='Application detail'>
-        <span data-testid='detail-application-id'>{application.applicationId}</span>
-        <span>{application.applicantName}</span>
-        <button type='button' onClick={onClose}>
-          Close detail
-        </button>
-      </div>
-    ) : null,
+  }) => (
+    <div role='dialog' aria-label='Application detail'>
+      <span data-testid='detail-application-id'>{application.applicationId}</span>
+      <span>{application.applicantName}</span>
+      <button type='button' onClick={onClose}>
+        Close detail
+      </button>
+    </div>
+  ),
 }));
 
 import Applications from './Applications';

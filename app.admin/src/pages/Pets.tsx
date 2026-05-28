@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Heading, Text, Input, toast } from '@adopt-dont-shop/lib.components';
-import { FiSearch, FiPackage } from 'react-icons/fi';
+import { FiSearch, FiPackage, FiArrowLeft } from 'react-icons/fi';
+import clsx from 'clsx';
 import { DataTable, type Column } from '../components/data';
 import { usePets, useBulkUpdatePets, useRescuesList } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
-import { BulkConfirmationModal, PetDetailModal } from '../components/modals';
+import { BulkConfirmationModal } from '../components/modals';
+import { PetDetailPanel } from '../components/detail';
 import type { AdminPet, PetStatus } from '../services/petService';
 import * as styles from './Pets.css';
 
@@ -293,47 +295,60 @@ const Pets: React.FC = () => {
         </div>
       </div>
 
-      <BulkActionToolbar
-        selectedCount={selectedRows.size}
-        totalCount={pets.length}
-        onSelectAll={() => setSelectedRows(new Set(pets.map((p: AdminPet) => p.petId)))}
-        onClearSelection={() => setSelectedRows(new Set())}
-        actions={[
-          {
-            label: 'Publish',
-            variant: 'primary',
-            onClick: () => setBulkAction('publish'),
-          },
-          {
-            label: 'Unpublish',
-            variant: 'warning',
-            onClick: () => setBulkAction('unpublish'),
-          },
-          {
-            label: 'Archive',
-            variant: 'danger',
-            onClick: () => setBulkAction('archive'),
-          },
-        ]}
-      />
+      <div className={styles.splitLayout}>
+        {/* List pane: bulk actions + table */}
+        <div className={clsx(styles.listPane, selectedPet && styles.listPaneNarrow)}>
+          <BulkActionToolbar
+            selectedCount={selectedRows.size}
+            totalCount={pets.length}
+            onSelectAll={() => setSelectedRows(new Set(pets.map((p: AdminPet) => p.petId)))}
+            onClearSelection={() => setSelectedRows(new Set())}
+            actions={[
+              {
+                label: 'Publish',
+                variant: 'primary',
+                onClick: () => setBulkAction('publish'),
+              },
+              {
+                label: 'Unpublish',
+                variant: 'warning',
+                onClick: () => setBulkAction('unpublish'),
+              },
+              {
+                label: 'Archive',
+                variant: 'danger',
+                onClick: () => setBulkAction('archive'),
+              },
+            ]}
+          />
 
-      <DataTable
-        columns={columns}
-        data={pets}
-        loading={isLoading}
-        error={error instanceof Error ? error.message : null}
-        emptyMessage='No pets found matching your criteria'
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        selectable
-        selectedRows={selectedRows}
-        onSelectionChange={setSelectedRows}
-        getRowId={pet => pet.petId}
-        onRowClick={handleRowClick}
-      />
+          <DataTable
+            columns={columns}
+            data={pets}
+            loading={isLoading}
+            error={error instanceof Error ? error.message : null}
+            emptyMessage='No pets found matching your criteria'
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            selectable
+            selectedRows={selectedRows}
+            onSelectionChange={setSelectedRows}
+            getRowId={pet => pet.petId}
+            onRowClick={handleRowClick}
+          />
+        </div>
 
-      <PetDetailModal isOpen={selectedPet !== null} onClose={handleDetailClose} pet={selectedPet} />
+        {/* Detail pane: shown when a pet is selected */}
+        {selectedPet && (
+          <div className={styles.detailPane}>
+            <button type='button' className={styles.backToList} onClick={handleDetailClose}>
+              <FiArrowLeft /> Back to list
+            </button>
+            <PetDetailPanel pet={selectedPet} onClose={handleDetailClose} />
+          </div>
+        )}
+      </div>
 
       <BulkConfirmationModal
         isOpen={bulkAction !== null}

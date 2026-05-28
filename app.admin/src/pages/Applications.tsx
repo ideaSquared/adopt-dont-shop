@@ -9,11 +9,13 @@ import {
   ToastContainer,
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
-import { FiSearch } from 'react-icons/fi';
+import { FiSearch, FiArrowLeft } from 'react-icons/fi';
+import clsx from 'clsx';
 import { DataTable, type Column } from '../components/data';
 import { useApplications, useBulkUpdateApplications, useRescuesList } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
-import { BulkConfirmationModal, ApplicationDetailModal } from '../components/modals';
+import { BulkConfirmationModal } from '../components/modals';
+import { ApplicationDetailPanel } from '../components/detail';
 import type { AdminApplication, ApplicationStatus } from '../services/applicationService';
 import * as styles from './Applications.css';
 
@@ -276,48 +278,57 @@ const Applications: React.FC = () => {
         </div>
       </div>
 
-      <BulkActionToolbar
-        selectedCount={selectedRows.size}
-        totalCount={applications.length}
-        onSelectAll={() =>
-          setSelectedRows(new Set(applications.map((a: AdminApplication) => a.applicationId)))
-        }
-        onClearSelection={() => setSelectedRows(new Set())}
-        actions={[
-          {
-            label: 'Approve',
-            variant: 'primary',
-            onClick: () => setBulkAction('approve'),
-          },
-          {
-            label: 'Reject',
-            variant: 'danger',
-            onClick: () => setBulkAction('reject'),
-          },
-        ]}
-      />
+      <div className={styles.splitLayout}>
+        {/* List pane: bulk actions + table */}
+        <div className={clsx(styles.listPane, selectedApplication && styles.listPaneNarrow)}>
+          <BulkActionToolbar
+            selectedCount={selectedRows.size}
+            totalCount={applications.length}
+            onSelectAll={() =>
+              setSelectedRows(new Set(applications.map((a: AdminApplication) => a.applicationId)))
+            }
+            onClearSelection={() => setSelectedRows(new Set())}
+            actions={[
+              {
+                label: 'Approve',
+                variant: 'primary',
+                onClick: () => setBulkAction('approve'),
+              },
+              {
+                label: 'Reject',
+                variant: 'danger',
+                onClick: () => setBulkAction('reject'),
+              },
+            ]}
+          />
 
-      <DataTable
-        columns={columns}
-        data={applications}
-        loading={isLoading}
-        error={error instanceof Error ? error.message : null}
-        emptyMessage='No applications found matching your criteria'
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        selectable
-        selectedRows={selectedRows}
-        onSelectionChange={setSelectedRows}
-        getRowId={app => app.applicationId}
-        onRowClick={handleRowClick}
-      />
+          <DataTable
+            columns={columns}
+            data={applications}
+            loading={isLoading}
+            error={error instanceof Error ? error.message : null}
+            emptyMessage='No applications found matching your criteria'
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            selectable
+            selectedRows={selectedRows}
+            onSelectionChange={setSelectedRows}
+            getRowId={app => app.applicationId}
+            onRowClick={handleRowClick}
+          />
+        </div>
 
-      <ApplicationDetailModal
-        isOpen={selectedApplication !== null}
-        onClose={handleCloseDetail}
-        application={selectedApplication}
-      />
+        {/* Detail pane: shown when an application is selected */}
+        {selectedApplication && (
+          <div className={styles.detailPane}>
+            <button type='button' className={styles.backToList} onClick={handleCloseDetail}>
+              <FiArrowLeft /> Back to list
+            </button>
+            <ApplicationDetailPanel application={selectedApplication} onClose={handleCloseDetail} />
+          </div>
+        )}
+      </div>
 
       <BulkConfirmationModal
         isOpen={bulkAction !== null}
