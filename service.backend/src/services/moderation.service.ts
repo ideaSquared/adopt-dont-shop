@@ -1,3 +1,4 @@
+import type { EntityActivity, EntityActivityFilters } from '@adopt-dont-shop/lib.types';
 import { Op, Transaction, WhereOptions } from 'sequelize';
 import ModeratorAction, { ActionSeverity, ActionType } from '../models/ModeratorAction';
 import ModerationEvidence, { EvidenceParentType, EvidenceType } from '../models/ModerationEvidence';
@@ -17,6 +18,7 @@ import {
   ForbiddenError,
 } from '../middleware/error-handler';
 import { NotificationType } from '../models/Notification';
+import { auditLogToActivity } from './audit-log-formatting';
 import { AuditLogService } from './auditLog.service';
 import { NotificationService } from './notification.service';
 import { JsonObject } from '../types/common';
@@ -347,6 +349,32 @@ class ModerationService {
     return Report.findByPk(reportId, {
       include: includeOptions,
     });
+  }
+
+  /**
+   * Paginated activity log for a single report, sourced from audit_logs.
+   * Mirrors `UserService.getUserActivityLog` — verifies the report exists,
+   * delegates to the shared entity-activity query (category='Report' is the
+   * casing moderation audit writers use), and maps rows via the canonical
+   * formatter.
+   */
+  async getReportActivityLog(
+    reportId: string,
+    filters: EntityActivityFilters = {}
+  ): Promise<EntityActivity[]> {
+    const report = await Report.findByPk(reportId, { attributes: ['reportId'] });
+    if (!report) {
+      throw new NotFoundError('Report not found');
+    }
+
+    const rows = await AuditLogService.getEntityActivityLog('Report', reportId, {
+      from: filters.from ? new Date(filters.from) : undefined,
+      to: filters.to ? new Date(filters.to) : undefined,
+      limit: filters.limit,
+      offset: filters.offset,
+    });
+
+    return rows.map(auditLogToActivity);
   }
 
   async assignReport(reportId: string, moderatorId: string, assignedBy: string): Promise<Report> {

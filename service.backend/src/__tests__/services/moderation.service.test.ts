@@ -3,9 +3,11 @@ import sequelize from '../../sequelize';
 import User, { UserStatus, UserType } from '../../models/User';
 import Report, { ReportStatus, ReportCategory, ReportSeverity } from '../../models/Report';
 import ModeratorAction, { ActionType, ActionSeverity } from '../../models/ModeratorAction';
+import { AuditLog } from '../../models/AuditLog';
 import moderationService from '../../services/moderation.service';
 import { NotificationService } from '../../services/notification.service';
 import { NotificationType } from '../../models/Notification';
+import { NotFoundError } from '../../middleware/error-handler';
 
 describe('ModerationService', () => {
   beforeEach(async () => {
@@ -153,6 +155,109 @@ describe('ModerationService', () => {
     it('should handle empty report queries gracefully', async () => {
       const reports = await Report.findAll();
       expect(reports).toHaveLength(0);
+    });
+  });
+
+  // EntityInspector activity tab — Phase 2. Moderation audit writers emit
+  // category='Report' with metadata.entityId set to the reportId, matching
+  // the contract `AuditLogService.getEntityActivityLog` queries against.
+  describe('getReportActivityLog', () => {
+    const seedReportWithAudit = async () => {
+      const reporter = await User.create({
+        email: 'reporter-activity@example.com',
+        password: 'hashedpassword',
+        firstName: 'Reporter',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const reported = await User.create({
+        email: 'reported-activity@example.com',
+        password: 'hashedpassword',
+        firstName: 'Reported',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const report = await Report.create({
+        reporterId: reporter.userId,
+        reportedEntityType: 'user',
+        reportedEntityId: reported.userId,
+        reportedUserId: reported.userId,
+        category: ReportCategory.SPAM,
+        severity: ReportSeverity.LOW,
+        title: 'Activity-log seed',
+        description: 'seed',
+        evidence: [],
+        status: ReportStatus.PENDING,
+      });
+
+      await AuditLog.create({
+        service: 'adopt-dont-shop-backend',
+        user: reporter.userId,
+        action: 'REPORT_SUBMITTED',
+        level: 'INFO',
+        timestamp: new Date('2024-03-01T10:00:00Z'),
+        metadata: { entityId: report.reportId, details: { title: report.title } },
+        category: 'Report',
+      });
+
+      await AuditLog.create({
+        service: 'adopt-dont-shop-backend',
+        user: reporter.userId,
+        action: 'REPORT_ASSIGNED',
+        level: 'INFO',
+        timestamp: new Date('2024-03-02T10:00:00Z'),
+        metadata: { entityId: report.reportId },
+        category: 'Report',
+      });
+
+      // Noise — wrong entity, must not appear in results.
+      await AuditLog.create({
+        service: 'adopt-dont-shop-backend',
+        user: reporter.userId,
+        action: 'REPORT_SUBMITTED',
+        level: 'INFO',
+        timestamp: new Date('2024-03-03T10:00:00Z'),
+        metadata: { entityId: 'some-other-report' },
+        category: 'Report',
+      });
+
+      return { report };
+    };
+
+    it('returns audit-log rows scoped to the given reportId in reverse chronological order', async () => {
+      const { report } = await seedReportWithAudit();
+
+      const activity = await moderationService.getReportActivityLog(report.reportId);
+
+      expect(activity).toHaveLength(2);
+      expect(activity.map(a => a.action)).toEqual(['REPORT_ASSIGNED', 'REPORT_SUBMITTED']);
+      // Verifies the formatter is being invoked (category preserved verbatim).
+      expect(activity[0].category).toBe('Report');
+    });
+
+    it('throws NotFoundError when the report does not exist', async () => {
+      await expect(
+        moderationService.getReportActivityLog('00000000-0000-4000-a000-000000000000')
+      ).rejects.toThrow(NotFoundError);
+    });
+
+    it('respects limit and offset pagination', async () => {
+      const { report } = await seedReportWithAudit();
+
+      const firstPage = await moderationService.getReportActivityLog(report.reportId, {
+        limit: 1,
+      });
+      expect(firstPage).toHaveLength(1);
+      expect(firstPage[0].action).toBe('REPORT_ASSIGNED');
+
+      const secondPage = await moderationService.getReportActivityLog(report.reportId, {
+        limit: 1,
+        offset: 1,
+      });
+      expect(secondPage).toHaveLength(1);
+      expect(secondPage[0].action).toBe('REPORT_SUBMITTED');
     });
   });
 

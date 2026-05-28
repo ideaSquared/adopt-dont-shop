@@ -37,6 +37,17 @@ describe('entityActivityService.getActivity', () => {
     expect(result).toEqual(sampleActivity);
   });
 
+  it('hits the moderation report route for entityType=report', async () => {
+    mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
+
+    const result = await entityActivityService.getActivity('report', 'rep-1', { limit: 25 });
+
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/admin/moderation/reports/rep-1/activity', {
+      limit: 25,
+    });
+    expect(result).toEqual(sampleActivity);
+  });
+
   it('unwraps the {success, data} envelope', async () => {
     mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
     const result = await entityActivityService.getActivity('user', 'u1');

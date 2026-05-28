@@ -105,6 +105,58 @@ router.get(
 
 /**
  * @swagger
+ * /api/v1/admin/moderation/reports/{reportId}/activity:
+ *   get:
+ *     tags: [Moderation]
+ *     summary: Get report activity log
+ *     description: Paginated chronological activity log for a report, sourced from audit logs.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: reportId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Report activity log retrieved successfully
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         description: Report not found
+ */
+router.get(
+  '/reports/:reportId/activity',
+  requirePermission(PERMISSIONS.MODERATION_REPORTS_READ),
+  generalLimiter,
+  moderationController.getReportActivityLog.bind(moderationController)
+);
+
+/**
+ * @swagger
  * /api/v1/admin/moderation/reports:
  *   post:
  *     tags: [Moderation]
