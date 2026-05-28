@@ -8,7 +8,7 @@ vi.mock('./libraryServices', () => ({
   },
 }));
 
-import { entityActivityService, EntityActivityNotSupportedError } from './entityActivityService';
+import { entityActivityService } from './entityActivityService';
 
 const sampleActivity = [
   {
@@ -84,16 +84,20 @@ describe('entityActivityService.getActivity', () => {
     expect(result).toEqual(sampleActivity);
   });
 
+  it('hits the admin support route for entityType=support_ticket', async () => {
+    mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
+
+    const result = await entityActivityService.getActivity('support_ticket', 't1', { limit: 5 });
+
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/admin/support/tickets/t1/activity', {
+      limit: 5,
+    });
+    expect(result).toEqual(sampleActivity);
+  });
+
   it('unwraps the {success, data} envelope', async () => {
     mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
     const result = await entityActivityService.getActivity('user', 'u1');
     expect(result).toBe(sampleActivity);
-  });
-
-  it('throws EntityActivityNotSupportedError for entity types not yet wired', async () => {
-    await expect(entityActivityService.getActivity('support_ticket', 'st1')).rejects.toBeInstanceOf(
-      EntityActivityNotSupportedError
-    );
-    expect(mockGet).not.toHaveBeenCalled();
   });
 });

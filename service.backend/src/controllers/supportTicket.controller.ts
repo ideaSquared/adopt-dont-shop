@@ -380,6 +380,27 @@ export class SupportTicketController {
   }
 
   /**
+   * GET /api/v1/admin/support/tickets/:ticketId/activity
+   * Get paginated audit-log activity for a support ticket.
+   */
+  static async getTicketActivityLog(req: AuthenticatedRequest, res: Response) {
+    const { ticketId } = req.params;
+    const { from, to, limit, offset } = req.query;
+
+    const activity = await SupportTicketService.getTicketActivityLog(ticketId, {
+      from: typeof from === 'string' ? from : undefined,
+      to: typeof to === 'string' ? to : undefined,
+      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      offset: typeof offset === 'string' ? Number(offset) : undefined,
+    });
+
+    res.json({
+      success: true,
+      data: activity,
+    });
+  }
+
+  /**
    * GET /api/v1/admin/support/my-tickets
    * Get tickets assigned to the current agent
    */

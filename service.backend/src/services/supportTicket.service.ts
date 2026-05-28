@@ -12,6 +12,18 @@ import { NotFoundError, BadRequestError } from '../middleware/error-handler';
 import { JsonObject } from '../types/common';
 import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
+import type { EntityActivity, EntityActivityFilters } from '@adopt-dont-shop/lib.types';
+import { AuditLogService } from './auditLog.service';
+import { auditLogToActivity } from './audit-log-formatting';
+
+/**
+ * Audit-log category for support tickets. Matches the EntityType used by the
+ * admin EntityInspector wire contract (lib.types) and the metadata.entity
+ * value seeded by 29-audit-logs. Future audit writers should call
+ * `AuditLogService.log({ entity: SUPPORT_TICKET_AUDIT_CATEGORY, ... })` so
+ * writes line up with reads.
+ */
+const SUPPORT_TICKET_AUDIT_CATEGORY = 'support_ticket';
 
 const SUPPORT_TICKET_SORT_FIELDS = [
   'createdAt',
@@ -546,6 +558,37 @@ class SupportTicketService {
       logger.error(`Error fetching tickets for user ${userId}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Get the chronological audit-log activity for a single support ticket.
+   *
+   * Verifies the ticket exists (404 otherwise), then delegates to
+   * AuditLogService.getEntityActivityLog with the canonical
+   * 'support_ticket' category. Rows are formatted via auditLogToActivity so
+   * the wire shape matches the rest of the admin EntityInspector.
+   */
+  async getTicketActivityLog(
+    ticketId: string,
+    filters: EntityActivityFilters = {}
+  ): Promise<EntityActivity[]> {
+    const ticket = await SupportTicket.findByPk(ticketId, { attributes: ['ticketId'] });
+    if (!ticket) {
+      throw new NotFoundError('Ticket not found');
+    }
+
+    const rows = await AuditLogService.getEntityActivityLog(
+      SUPPORT_TICKET_AUDIT_CATEGORY,
+      ticketId,
+      {
+        from: filters.from ? new Date(filters.from) : undefined,
+        to: filters.to ? new Date(filters.to) : undefined,
+        limit: filters.limit,
+        offset: filters.offset,
+      }
+    );
+
+    return rows.map(auditLogToActivity);
   }
 }
 

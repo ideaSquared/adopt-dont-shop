@@ -18,7 +18,7 @@ const ENTITY_ROUTE_PREFIX: Partial<Record<EntityType, string>> = {
   rescue: '/api/v1/rescues',
   chat: '/api/v1/chats',
   report: '/api/v1/admin/moderation/reports',
-  // support_ticket: '/api/v1/support/tickets',
+  support_ticket: '/api/v1/admin/support/tickets',
 };
 
 export class EntityActivityNotSupportedError extends Error {
