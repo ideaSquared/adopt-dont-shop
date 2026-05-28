@@ -100,6 +100,4 @@ describe('entityActivityService.getActivity', () => {
     const result = await entityActivityService.getActivity('user', 'u1');
     expect(result).toBe(sampleActivity);
   });
-
-
 });
