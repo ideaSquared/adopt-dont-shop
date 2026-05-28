@@ -230,12 +230,13 @@ services:
     container_name: ads_prod_admin
     restart: always
     volumes: []  # No volumes in production
+    # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
-      - "80"
+      - "8080"
     stdin_open: false
     tty: false
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80']
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -255,12 +256,13 @@ services:
     container_name: ads_prod_client
     restart: always
     volumes: []  # No volumes in production
+    # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
-      - "80"
+      - "8080"
     stdin_open: false
     tty: false
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80']
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -280,12 +282,13 @@ services:
     container_name: ads_prod_rescue
     restart: always
     volumes: []  # No volumes in production
+    # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
-      - "80"
+      - "8080"
     stdin_open: false
     tty: false
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80']
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080']
       interval: 30s
       timeout: 10s
       retries: 3

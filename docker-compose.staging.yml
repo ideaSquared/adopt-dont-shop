@@ -136,10 +136,11 @@ services:
     image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${DEPLOY_SHA:-latest}
     container_name: ads_staging_client
     restart: always
+    # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
-      - "80"
+      - "8080"
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80/']
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -150,10 +151,11 @@ services:
     image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${DEPLOY_SHA:-latest}
     container_name: ads_staging_admin
     restart: always
+    # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
-      - "80"
+      - "8080"
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80/']
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/']
       interval: 30s
       timeout: 10s
       retries: 3
@@ -164,10 +166,11 @@ services:
     image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${DEPLOY_SHA:-latest}
     container_name: ads_staging_rescue
     restart: always
+    # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
-      - "80"
+      - "8080"
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:80/']
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/']
       interval: 30s
       timeout: 10s
       retries: 3
