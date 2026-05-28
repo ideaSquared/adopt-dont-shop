@@ -26,6 +26,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css.ts}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css.ts}\"",
     "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run clean && npm run build"
   },
