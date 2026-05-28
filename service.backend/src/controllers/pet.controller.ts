@@ -615,6 +615,25 @@ export class PetController {
     });
   };
 
+  /**
+   * Get pet activity log (paginated audit-log entries).
+   * Powers the admin EntityInspector Activity tab.
+   */
+  getPetActivityLog = async (req: AuthenticatedRequest, res: Response) => {
+    const { petId } = req.params;
+    const { from, to, limit, offset } = req.query;
+    const activity = await PetService.getPetActivityLog(petId, {
+      from: typeof from === 'string' ? from : undefined,
+      to: typeof to === 'string' ? to : undefined,
+      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      offset: typeof offset === 'string' ? Number(offset) : undefined,
+    });
+    res.json({
+      success: true,
+      data: activity,
+    });
+  };
+
   // Favorite pets functionality
   addToFavorites = async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
