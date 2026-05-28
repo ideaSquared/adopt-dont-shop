@@ -37,6 +37,15 @@ describe('entityActivityService.getActivity', () => {
     expect(result).toEqual(sampleActivity);
   });
 
+  it('hits the rescue route for entityType=rescue', async () => {
+    mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
+
+    const result = await entityActivityService.getActivity('rescue', 'r1', { limit: 10 });
+
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/rescues/r1/activity', { limit: 10 });
+    expect(result).toEqual(sampleActivity);
+  });
+
   it('unwraps the {success, data} envelope', async () => {
     mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
     const result = await entityActivityService.getActivity('user', 'u1');
@@ -44,7 +53,7 @@ describe('entityActivityService.getActivity', () => {
   });
 
   it('throws EntityActivityNotSupportedError for entity types not yet wired', async () => {
-    await expect(entityActivityService.getActivity('rescue', 'r1')).rejects.toBeInstanceOf(
+    await expect(entityActivityService.getActivity('application', 'a1')).rejects.toBeInstanceOf(
       EntityActivityNotSupportedError
     );
     expect(mockGet).not.toHaveBeenCalled();
