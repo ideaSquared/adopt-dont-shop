@@ -6,6 +6,11 @@ export const container = style({
   maxWidth: '800px',
   margin: '0 auto',
   padding: '2rem',
+  '@media': {
+    '(max-width: 768px)': {
+      padding: '1rem',
+    },
+  },
 });
 
 export const header = style({

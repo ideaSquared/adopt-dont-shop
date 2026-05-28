@@ -13,7 +13,7 @@ export const AppShell: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(true);
 
   return (
-    <div className={styles.shell}>
+    <div className={`${styles.shell} ${styles.shellWithBottomNav}`}>
       <SkipLink />
       <header>
         <AppNavbar />

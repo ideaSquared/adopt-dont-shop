@@ -11,7 +11,10 @@ export const chatContainer = style({
   overflow: 'hidden',
   '@media': {
     '(max-width: 768px)': {
-      height: '100vh',
+      // Subtract the 56px sticky navbar and the 56px space the shell reserves
+      // for the fixed BottomTabBar so the message composer stays on-screen and
+      // isn't hidden behind the bottom nav.
+      height: 'calc(100vh - 112px)',
     },
   },
 });

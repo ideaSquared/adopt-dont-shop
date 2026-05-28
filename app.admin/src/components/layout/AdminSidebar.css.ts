@@ -15,7 +15,7 @@ export const sidebarContainer = recipe({
     zIndex: 100,
     borderRight: '1px solid #374151',
     overflowY: 'auto',
-    transition: 'width 0.3s ease',
+    transition: 'width 0.3s ease, transform 0.3s ease',
     selectors: {
       '&::-webkit-scrollbar': {
         width: '6px',
@@ -28,11 +28,32 @@ export const sidebarContainer = recipe({
         borderRadius: '3px',
       },
     },
+    // On phones the sidebar is a full-width drawer that slides off-canvas
+    // by default; the `mobileOpen` variant slides it back into view.
+    '@media': {
+      '(max-width: 768px)': {
+        width: '280px',
+        maxWidth: '85vw',
+        transform: 'translateX(-100%)',
+      },
+    },
   },
   variants: {
     collapsed: {
-      true: { width: '80px' },
+      // The collapsed (icon-only) rail is a desktop affordance; on phones
+      // the drawer always opens at full width regardless of this state.
+      true: { width: '80px', '@media': { '(max-width: 768px)': { width: '280px' } } },
       false: { width: '280px' },
+    },
+    mobileOpen: {
+      true: {
+        '@media': {
+          '(max-width: 768px)': {
+            transform: 'translateX(0)',
+          },
+        },
+      },
+      false: {},
     },
   },
 });
@@ -84,6 +105,35 @@ export const toggleButton = style({
     background: '#374151',
     borderColor: vars.colors.primary,
   },
+  // The collapse/expand rail is a desktop-only affordance.
+  '@media': {
+    '(max-width: 768px)': {
+      display: 'none',
+    },
+  },
+});
+
+// Drawer-close button, shown only on phones where the sidebar is off-canvas.
+export const mobileCloseButton = style({
+  background: 'transparent',
+  border: '1px solid #4b5563',
+  color: '#f9fafb',
+  padding: '0.5rem',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  display: 'none',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'all 0.2s ease',
+  ':hover': {
+    background: '#374151',
+    borderColor: vars.colors.primary,
+  },
+  '@media': {
+    '(max-width: 768px)': {
+      display: 'flex',
+    },
+  },
 });
 
 export const nav = style({
@@ -108,7 +158,7 @@ export const navSectionPadding = recipe({
   base: {},
   variants: {
     collapsed: {
-      true: { padding: '0' },
+      true: { padding: '0', '@media': { '(max-width: 768px)': { padding: '0 1rem' } } },
       false: { padding: '0 1rem' },
     },
   },
@@ -126,7 +176,7 @@ export const navSectionTitle = recipe({
   },
   variants: {
     collapsed: {
-      true: { display: 'none' },
+      true: { display: 'none', '@media': { '(max-width: 768px)': { display: 'block' } } },
       false: { display: 'block' },
     },
   },
@@ -192,6 +242,12 @@ export const styledNavLink = recipe({
       true: {
         padding: '0.75rem',
         justifyContent: 'center',
+        '@media': {
+          '(max-width: 768px)': {
+            padding: '0.75rem 1rem',
+            justifyContent: 'flex-start',
+          },
+        },
       },
       false: {
         padding: '0.75rem 1rem',
@@ -209,7 +265,7 @@ export const navLinkSpan = recipe({
   },
   variants: {
     collapsed: {
-      true: { display: 'none' },
+      true: { display: 'none', '@media': { '(max-width: 768px)': { display: 'block' } } },
       false: { display: 'block' },
     },
   },

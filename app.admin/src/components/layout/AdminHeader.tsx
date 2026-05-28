@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { FiSearch, FiBell, FiUser, FiLogOut, FiSettings, FiChevronDown } from 'react-icons/fi';
+import {
+  FiSearch,
+  FiBell,
+  FiUser,
+  FiLogOut,
+  FiSettings,
+  FiChevronDown,
+  FiMenu,
+} from 'react-icons/fi';
 import * as styles from './AdminHeader.css';
 
 interface AdminHeaderProps {
   sidebarCollapsed: boolean;
+  // Opens the off-canvas sidebar drawer on narrow viewports. The trigger is
+  // hidden on desktop where the sidebar is always visible.
+  onMobileMenuOpen?: () => void;
 }
 
-export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed }) => {
+export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed, onMobileMenuOpen }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -35,6 +46,13 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed }) =>
 
   return (
     <header className={styles.headerContainer({ sidebarCollapsed })}>
+      <button
+        className={styles.mobileMenuButton}
+        onClick={onMobileMenuOpen}
+        aria-label='Open navigation menu'
+      >
+        <FiMenu />
+      </button>
       <div className={styles.searchContainer}>
         <FiSearch className={styles.searchIcon} />
         <input

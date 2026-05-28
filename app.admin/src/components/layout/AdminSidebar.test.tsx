@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 // The global setup-tests.ts mock of @adopt-dont-shop/lib.components doesn't
 // export Logo (which AdminSidebar pulls in for the header). The previous
@@ -99,5 +100,49 @@ describe('AdminSidebar Inbox assigned-to-me badge', () => {
     renderSidebar();
 
     expect(screen.queryByTestId('inbox-my-queue-badge')).not.toBeInTheDocument();
+  });
+});
+
+describe('AdminSidebar mobile off-canvas drawer', () => {
+  it('closes the drawer when the close button is clicked', async () => {
+    mockCount.mockReturnValue(0);
+    const onMobileClose = vi.fn();
+    render(
+      <MemoryRouter>
+        <AdminSidebar
+          collapsed={false}
+          onToggle={() => undefined}
+          mobileOpen
+          onMobileClose={onMobileClose}
+        />
+      </MemoryRouter>
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close navigation menu' }));
+
+    expect(onMobileClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes the drawer after navigating to a new route', async () => {
+    mockCount.mockReturnValue(0);
+    const onMobileClose = vi.fn();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <AdminSidebar
+          collapsed={false}
+          onToggle={() => undefined}
+          mobileOpen
+          onMobileClose={onMobileClose}
+        />
+      </MemoryRouter>
+    );
+
+    // Navigating away from the current route closes the drawer; the initial
+    // mount does not, so the drawer can be opened on the current page.
+    expect(onMobileClose).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('link', { name: 'Users' }));
+
+    expect(onMobileClose).toHaveBeenCalled();
   });
 });
