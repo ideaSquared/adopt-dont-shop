@@ -13,13 +13,12 @@ import { apiService } from './libraryServices';
  */
 const ENTITY_ROUTE_PREFIX: Partial<Record<EntityType, string>> = {
   user: '/api/v1/users',
+  pet: '/api/v1/pets',
+  application: '/api/v1/applications',
+  rescue: '/api/v1/rescues',
+  chat: '/api/v1/chats',
+  report: '/api/v1/admin/moderation/reports',
   support_ticket: '/api/v1/admin/support/tickets',
-  // Phase 2 will add:
-  // rescue: '/api/v1/rescues',
-  // application: '/api/v1/applications',
-  // pet: '/api/v1/pets',
-  // report: '/api/v1/moderation/reports',
-  // chat: '/api/v1/chats',
 };
 
 export class EntityActivityNotSupportedError extends Error {

@@ -1,4 +1,5 @@
 import { Op, Transaction, WhereOptions, type Includeable } from 'sequelize';
+import type { EntityActivity, EntityActivityFilters } from '@adopt-dont-shop/lib.types';
 import {
   BadRequestError,
   NotFoundError,
@@ -6,6 +7,7 @@ import {
   ConflictError,
 } from '../middleware/error-handler';
 import { Chat, ChatParticipant, Message, User } from '../models';
+import { auditLogToActivity } from './audit-log-formatting';
 import MessageReaction from '../models/MessageReaction';
 import MessageRead from '../models/MessageRead';
 import StaffMember from '../models/StaffMember';
@@ -419,6 +421,35 @@ export class ChatService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Get the chronological activity log for a single chat.
+   *
+   * Backs the admin EntityInspector "Activity" tab. Verifies the chat
+   * exists, then delegates to AuditLogService.getEntityActivityLog with
+   * category 'Chat' — that's the casing chat audit writers use
+   * (AuditLogService.log stores `category = data.entity`). Message-level
+   * events (entity='Message') are intentionally excluded from this feed;
+   * they live under their own category and would dwarf chat-level rows.
+   */
+  static async getChatActivityLog(
+    chatId: string,
+    filters: EntityActivityFilters = {}
+  ): Promise<EntityActivity[]> {
+    const chat = await Chat.findByPk(chatId);
+    if (!chat) {
+      throw new NotFoundError('Chat not found');
+    }
+
+    const rows = await AuditLogService.getEntityActivityLog('Chat', chatId, {
+      from: filters.from ? new Date(filters.from) : undefined,
+      to: filters.to ? new Date(filters.to) : undefined,
+      limit: filters.limit,
+      offset: filters.offset,
+    });
+
+    return rows.map(auditLogToActivity);
   }
 
   /**

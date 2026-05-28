@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import clsx from 'clsx';
-import { Heading, Text, Button, Skeleton, SkeletonText } from '@adopt-dont-shop/lib.components';
+import {
+  Heading,
+  Text,
+  Button,
+  Skeleton,
+  SkeletonText,
+  Spinner,
+  EntityInspector,
+  type EntityInspectorTab,
+} from '@adopt-dont-shop/lib.components';
 import { rescueStatusLabel, type RescueStatus } from '@adopt-dont-shop/lib.types';
-import { FiX, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import type { AdminRescue, RescueStatistics } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
+import { useEntityActivity } from '../../../hooks';
 import * as styles from '../RescueDetailModal.css';
 import { OverviewTab } from './OverviewTab';
 import { ContactTab } from './ContactTab';
@@ -20,8 +29,6 @@ type RescueDetailModalProps = {
   onApprove?: (rescue: AdminRescue) => void;
   onReject?: (rescue: AdminRescue) => void;
 };
-
-type ActiveTab = 'overview' | 'contact' | 'policies' | 'staff' | 'listings' | 'plan';
 
 const formatDate = (dateString?: string): string => {
   if (!dateString) {
@@ -46,6 +53,44 @@ const getStatusBadge = (status: RescueStatus) => {
   }
 };
 
+const ActivityTab: React.FC<{ rescueId: string }> = ({ rescueId }) => {
+  const { data, isLoading, error } = useEntityActivity('rescue', rescueId);
+
+  if (isLoading) {
+    return (
+      <div className={styles.loadingSpinner}>
+        <Spinner size='sm' label='Loading activity' />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className={styles.errorMessage}>Failed to load activity history.</div>;
+  }
+
+  const activities = data ?? [];
+
+  if (activities.length === 0) {
+    return <div className={styles.loadingSpinner}>No activity recorded for this rescue.</div>;
+  }
+
+  return (
+    <div className={styles.staffList}>
+      {activities.map(activity => (
+        <div key={activity.activityId} className={styles.staffCard}>
+          <div className={styles.staffInfo}>
+            <div className={styles.staffName}>{activity.description}</div>
+            <div className={styles.staffMeta}>
+              {activity.activityType} &middot;{' '}
+              {new Date(activity.createdAt).toLocaleString('en-GB')}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   rescueId,
   onClose,
@@ -57,7 +102,6 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
   const [, setStatistics] = useState<RescueStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
 
   useEffect(() => {
     const fetchRescueDetails = async () => {
@@ -87,14 +131,28 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
     }
   };
 
-  const tabs: { id: ActiveTab; label: string }[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'contact', label: 'Contact Info' },
-    { id: 'policies', label: 'Policies' },
-    { id: 'staff', label: 'Staff' },
-    { id: 'listings', label: 'Listings' },
-    { id: 'plan', label: 'Plan' },
-  ];
+  const tabs: EntityInspectorTab[] = rescue
+    ? [
+        { id: 'overview', label: 'Overview', content: <OverviewTab rescue={rescue} /> },
+        { id: 'contact', label: 'Contact Info', content: <ContactTab rescue={rescue} /> },
+        { id: 'policies', label: 'Policies', content: <PoliciesTab rescue={rescue} /> },
+        { id: 'staff', label: 'Staff', content: <StaffTab rescueId={rescueId} /> },
+        { id: 'listings', label: 'Listings', content: <ListingsTab rescueId={rescueId} /> },
+        {
+          id: 'plan',
+          label: 'Plan',
+          content: (
+            <PlanTab
+              rescueId={rescueId}
+              rescue={rescue}
+              onUpdate={onUpdate}
+              onRescueUpdated={setRescue}
+            />
+          ),
+        },
+        { id: 'activity', label: 'Activity', content: <ActivityTab rescueId={rescueId} /> },
+      ]
+    : [];
 
   return (
     <div
@@ -104,67 +162,39 @@ export const RescueDetailModal: React.FC<RescueDetailModalProps> = ({
       role='presentation'
     >
       <div className={styles.modalContainer}>
-        <div className={styles.modalHeader}>
-          <div className={styles.headerContent}>
-            <Heading level='h2'>{rescue?.name || 'Rescue Details'}</Heading>
-            {rescue && (
-              <Text className={styles.headerSpacing}>
-                {getStatusBadge(rescue.status)} • Registered {formatDate(rescue.createdAt)}
-              </Text>
-            )}
-          </div>
-          <button className={styles.closeButton} onClick={onClose}>
-            <FiX size={20} />
-          </button>
-        </div>
-
-        <div className={styles.tabContainer}>
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              className={clsx(styles.tab, activeTab === tab.id && styles.tabActive)}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.modalBody}>
-          {loading && (
-            <div aria-label='Loading rescue details' className={styles.skeletonContent}>
-              <div className={styles.skeletonAvatarRow}>
-                <Skeleton width='4rem' height='4rem' radius='50%' />
-                <div className={styles.skeletonAvatarText}>
-                  <Skeleton height='1.25rem' width='50%' className={styles.skeletonName} />
-                  <Skeleton height='0.875rem' width='30%' />
-                </div>
+        {loading && (
+          <div aria-label='Loading rescue details' className={styles.skeletonContent}>
+            <div className={styles.skeletonAvatarRow}>
+              <Skeleton width='4rem' height='4rem' radius='50%' />
+              <div className={styles.skeletonAvatarText}>
+                <Skeleton height='1.25rem' width='50%' className={styles.skeletonName} />
+                <Skeleton height='0.875rem' width='30%' />
               </div>
-              <SkeletonText lines={4} lastLineWidth='40%' />
-              <SkeletonText lines={3} lastLineWidth='55%' />
             </div>
-          )}
+            <SkeletonText lines={4} lastLineWidth='40%' />
+            <SkeletonText lines={3} lastLineWidth='55%' />
+          </div>
+        )}
 
-          {error && <div className={styles.errorMessage}>{error}</div>}
+        {error && <div className={styles.errorMessage}>{error}</div>}
 
-          {!loading && rescue && (
-            <>
-              {activeTab === 'overview' && <OverviewTab rescue={rescue} />}
-              {activeTab === 'contact' && <ContactTab rescue={rescue} />}
-              {activeTab === 'policies' && <PoliciesTab rescue={rescue} />}
-              {activeTab === 'staff' && <StaffTab rescueId={rescueId} />}
-              {activeTab === 'listings' && <ListingsTab rescueId={rescueId} />}
-              {activeTab === 'plan' && (
-                <PlanTab
-                  rescueId={rescueId}
-                  rescue={rescue}
-                  onUpdate={onUpdate}
-                  onRescueUpdated={setRescue}
-                />
-              )}
-            </>
-          )}
-        </div>
+        {!loading && rescue && (
+          <EntityInspector
+            data-testid='rescue-detail-panel'
+            resetTabsOnKeyChange={rescue.rescueId}
+            onClose={onClose}
+            closeLabel='Close rescue details'
+            tabs={tabs}
+            header={
+              <div className={styles.headerContent}>
+                <Heading level='h2'>{rescue.name || 'Rescue Details'}</Heading>
+                <Text className={styles.headerSpacing}>
+                  {getStatusBadge(rescue.status)} &bull; Registered {formatDate(rescue.createdAt)}
+                </Text>
+              </div>
+            }
+          />
+        )}
 
         {!loading && rescue && rescue.status === 'pending' && (onApprove || onReject) && (
           <div className={styles.modalFooter}>

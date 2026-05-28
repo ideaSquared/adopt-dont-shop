@@ -1,5 +1,7 @@
 import { col, fn, literal, Op, Transaction, WhereOptions } from 'sequelize';
+import type { EntityActivity, EntityActivityFilters } from '@adopt-dont-shop/lib.types';
 import { cached, invalidateNamespace } from '../cache/redis-cache';
+import { auditLogToActivity } from './audit-log-formatting';
 import Breed from '../models/Breed';
 import Pet, { AgeGroup, PetStatus, PetType, Size } from '../models/Pet';
 import PetMedia, { PetMediaType } from '../models/PetMedia';
@@ -1344,6 +1346,33 @@ export class PetService {
       logger.error('Get pet activity failed:', error);
       throw new Error('Failed to retrieve pet activity');
     }
+  }
+
+  /**
+   * Get paginated pet activity log from audit_logs.
+   *
+   * Returns the chronological list of audit-log entries recorded against
+   * this pet (category = 'Pet', metadata.entityId = petId). Used by the
+   * admin EntityInspector Activity tab — distinct from `getPetActivity`
+   * which returns aggregate counts.
+   */
+  static async getPetActivityLog(
+    petId: string,
+    filters: EntityActivityFilters = {}
+  ): Promise<EntityActivity[]> {
+    const pet = await Pet.findByPk(petId);
+    if (!pet) {
+      throw new NotFoundError('Pet not found');
+    }
+
+    const rows = await AuditLogService.getEntityActivityLog('Pet', petId, {
+      from: filters.from ? new Date(filters.from) : undefined,
+      to: filters.to ? new Date(filters.to) : undefined,
+      limit: filters.limit,
+      offset: filters.offset,
+    });
+
+    return rows.map(auditLogToActivity);
   }
 
   /**

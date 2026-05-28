@@ -50,6 +50,8 @@ import { NotificationType } from '../models/Notification';
 import { TimelineEventType } from '../models/ApplicationTimeline';
 import { emitToUser, emitToRescue } from '../socket/socket-registry';
 import { JsonObject, JsonValue } from '../types/common';
+import type { EntityActivity, EntityActivityFilters } from '@adopt-dont-shop/lib.types';
+import { auditLogToActivity } from './audit-log-formatting';
 
 import {
   ApplicationData,
@@ -2211,6 +2213,32 @@ export class ApplicationService {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ')
     );
+  }
+
+  /**
+   * Get paginated activity log for an application, sourced from audit_logs.
+   *
+   * Audit writers in this service tag rows with `entity: 'Application'`
+   * (see AuditLogService.log — category mirrors entity), so that's the
+   * category we look up via AuditLogService.getEntityActivityLog.
+   */
+  static async getApplicationActivityLog(
+    applicationId: string,
+    filters: EntityActivityFilters = {}
+  ): Promise<EntityActivity[]> {
+    const application = await Application.findByPk(applicationId);
+    if (!application) {
+      throw new NotFoundError('Application not found');
+    }
+
+    const rows = await AuditLogService.getEntityActivityLog('Application', applicationId, {
+      from: filters.from ? new Date(filters.from) : undefined,
+      to: filters.to ? new Date(filters.to) : undefined,
+      limit: filters.limit,
+      offset: filters.offset,
+    });
+
+    return rows.map(auditLogToActivity);
   }
 }
 

@@ -93,6 +93,24 @@ export class ModerationController {
     });
   }
 
+  /**
+   * Get report activity log (paginated audit-log entries).
+   */
+  async getReportActivityLog(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const { reportId } = req.params;
+    const { from, to, limit, offset } = req.query;
+    const activity = await ModerationService.getReportActivityLog(reportId, {
+      from: typeof from === 'string' ? from : undefined,
+      to: typeof to === 'string' ? to : undefined,
+      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      offset: typeof offset === 'string' ? Number(offset) : undefined,
+    });
+    res.json({
+      success: true,
+      data: activity,
+    });
+  }
+
   async updateReportStatus(req: AuthenticatedRequest, res: Response): Promise<void> {
     const { reportId } = req.params;
     const { status, assignedModerator, resolution, resolutionNotes } = req.body;
