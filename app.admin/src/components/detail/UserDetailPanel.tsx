@@ -289,11 +289,14 @@ const EditTab: React.FC<{
           <select
             className={styles.formSelect}
             id='edit-status'
-            value={formData.status === 'active' ? 'active' : 'suspended'}
+            value={formData.status}
             onChange={e => setFormData({ ...formData, status: e.target.value as UserStatus })}
           >
             <option value='active'>Active</option>
+            <option value='inactive'>Inactive</option>
             <option value='suspended'>Suspended</option>
+            <option value='pending_verification'>Pending Verification</option>
+            <option value='deactivated'>Deactivated</option>
           </select>
         </div>
       </div>
