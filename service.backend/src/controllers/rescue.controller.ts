@@ -695,4 +695,25 @@ export class RescueController {
       data: result,
     });
   };
+
+  /**
+   * Get rescue activity log (paginated audit-log entries).
+   *
+   * Powers the EntityInspector "Activity" tab on the admin rescue detail
+   * panel.
+   */
+  getRescueActivityLog = async (req: AuthenticatedRequest, res: Response) => {
+    const { rescueId } = req.params;
+    const { from, to, limit, offset } = req.query;
+    const activity = await RescueService.getRescueActivityLog(rescueId, {
+      from: typeof from === 'string' ? from : undefined,
+      to: typeof to === 'string' ? to : undefined,
+      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      offset: typeof offset === 'string' ? Number(offset) : undefined,
+    });
+    res.status(200).json({
+      success: true,
+      data: activity,
+    });
+  };
 }

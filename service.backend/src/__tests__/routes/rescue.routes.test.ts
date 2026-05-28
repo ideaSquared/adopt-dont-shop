@@ -52,6 +52,7 @@ vi.mock('../../services/rescue.service', () => ({
     getRescuePets: vi.fn(),
     sendEmail: vi.fn(),
     suspendRescue: vi.fn(),
+    getRescueActivityLog: vi.fn(),
   },
 }));
 
@@ -466,6 +467,42 @@ describe('Rescue routes', () => {
         .send({ name: 'Anon Edit' });
 
       expect(res.status).toBe(401);
+    });
+  });
+
+  describe('GET /api/v1/rescues/:rescueId/activity (EntityInspector activity tab)', () => {
+    it('returns 422 when rescueId is not a valid UUID', async () => {
+      const res = await request(buildApp()).get('/api/v1/rescues/not-a-uuid/activity');
+      expect(res.status).toBe(422);
+    });
+
+    it('returns 401 when unauthenticated', async () => {
+      authenticateTokenMock.mockImplementation(
+        (_req: AuthenticatedRequest, res: Response, _next: NextFunction) => {
+          res.status(401).json({ error: 'Authentication required' });
+        }
+      );
+
+      const res = await request(buildApp()).get(`/api/v1/rescues/${rescueId}/activity`);
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 403 when caller lacks rescues.read permission', async () => {
+      requirePermissionMock.mockImplementation(
+        (_perm: string, _req: AuthenticatedRequest, res: Response) => {
+          res.status(403).json({ error: 'Access denied' });
+        }
+      );
+
+      const res = await request(buildApp()).get(`/api/v1/rescues/${rescueId}/activity`);
+      expect(res.status).toBe(403);
+    });
+
+    it('reaches the controller when properly authorised', async () => {
+      const res = await request(buildApp()).get(`/api/v1/rescues/${rescueId}/activity`);
+      expect(res.status).not.toBe(401);
+      expect(res.status).not.toBe(403);
+      expect(res.status).not.toBe(422);
     });
   });
 });

@@ -9,9 +9,11 @@ import { NotificationType } from '../../models/Notification';
 import { emitToRescue } from '../../socket/socket-registry';
 
 // Mock only external services
+const mockGetEntityActivityLog = vi.fn();
 vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: vi.fn().mockResolvedValue(undefined),
+    getEntityActivityLog: (...args: unknown[]) => mockGetEntityActivityLog(...args),
   },
 }));
 vi.mock('../../services/companies-house.service', () => ({
@@ -952,6 +954,90 @@ describe('RescueService - Behavioral Testing', () => {
       await rescue.destroy();
 
       await expect(RescueService.deleteRescue(rescue.rescueId, 'admin-123')).rejects.toThrow();
+    });
+  });
+
+  describe('getRescueActivityLog', () => {
+    beforeEach(() => {
+      mockGetEntityActivityLog.mockReset();
+    });
+
+    it('returns formatted activity rows for an existing rescue', async () => {
+      const rescue = await Rescue.create({
+        name: 'Activity Rescue',
+        email: 'activity@rescue.org',
+        phone: '555-0123',
+        address: '123 Main St',
+        city: 'London',
+        postcode: 'SW1A 1AA',
+        country: 'GB',
+        contactPerson: 'Jane Smith',
+        status: 'verified',
+      });
+
+      const timestamp = new Date('2024-01-15T10:30:00Z');
+      mockGetEntityActivityLog.mockResolvedValueOnce([
+        {
+          id: 42,
+          action: 'update',
+          category: 'rescue',
+          metadata: { entityId: rescue.rescueId, details: { rescueName: rescue.name } },
+          ip_address: '127.0.0.1',
+          user_agent: 'Mozilla/5.0',
+          timestamp,
+        },
+      ]);
+
+      const result = await RescueService.getRescueActivityLog(rescue.rescueId, { limit: 10 });
+
+      expect(mockGetEntityActivityLog).toHaveBeenCalledWith(
+        'rescue',
+        rescue.rescueId,
+        expect.objectContaining({ limit: 10 })
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        activityId: 42,
+        action: 'update',
+        category: 'rescue',
+        createdAt: timestamp.toISOString(),
+      });
+    });
+
+    it('throws NotFoundError when rescue does not exist', async () => {
+      await expect(
+        RescueService.getRescueActivityLog('00000000-0000-4000-8000-000000000000')
+      ).rejects.toThrow('Rescue not found');
+      expect(mockGetEntityActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('passes from/to date filters through as Date objects', async () => {
+      const rescue = await Rescue.create({
+        name: 'Filter Rescue',
+        email: 'filter@rescue.org',
+        phone: '555-0123',
+        address: '123 Main St',
+        city: 'London',
+        postcode: 'SW1A 1AA',
+        country: 'GB',
+        contactPerson: 'Jane Smith',
+        status: 'verified',
+      });
+
+      mockGetEntityActivityLog.mockResolvedValueOnce([]);
+
+      await RescueService.getRescueActivityLog(rescue.rescueId, {
+        from: '2024-01-01T00:00:00Z',
+        to: '2024-02-01T00:00:00Z',
+        offset: 20,
+      });
+
+      const callArgs = mockGetEntityActivityLog.mock.calls[0];
+      expect(callArgs[0]).toBe('rescue');
+      expect(callArgs[1]).toBe(rescue.rescueId);
+      expect(callArgs[2].from).toBeInstanceOf(Date);
+      expect(callArgs[2].to).toBeInstanceOf(Date);
+      expect(callArgs[2].offset).toBe(20);
     });
   });
 });

@@ -14,6 +14,11 @@ import { logger, loggerHelpers } from '../utils/logger';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { cached, invalidateNamespace } from '../cache/redis-cache';
 import { AuditLogService } from './auditLog.service';
+import { auditLogToActivity } from './audit-log-formatting';
+import type {
+  EntityActivity as SharedEntityActivity,
+  EntityActivityFilters,
+} from '@adopt-dont-shop/lib.types';
 import { NotificationService } from './notification.service';
 import { NotificationType } from '../models/Notification';
 import { emitToRescue } from '../socket/socket-registry';
@@ -1927,5 +1932,53 @@ export class RescueService {
     });
 
     return result;
+  }
+
+  /**
+   * Get paginated activity log for a single rescue, sourced from audit_logs.
+   *
+   * Powers the EntityInspector "Activity" tab on the admin rescue detail
+   * panel. The category passed to `getEntityActivityLog` matches what
+   * existing rescue audit writers actually emit (lower-case 'rescue' —
+   * see `rescue.service.ts` AuditLogService.log calls). Admin-side writers
+   * historically used 'Rescue' (PascalCase), so those rows may be missed
+   * until a follow-up normalises the casing.
+   */
+  static async getRescueActivityLog(
+    rescueId: string,
+    filters: EntityActivityFilters = {}
+  ): Promise<SharedEntityActivity[]> {
+    const startTime = Date.now();
+
+    try {
+      const rescue = await Rescue.findByPk(rescueId);
+      if (!rescue) {
+        throw new NotFoundError('Rescue not found');
+      }
+
+      const rows = await AuditLogService.getEntityActivityLog('rescue', rescueId, {
+        from: filters.from ? new Date(filters.from) : undefined,
+        to: filters.to ? new Date(filters.to) : undefined,
+        limit: filters.limit,
+        offset: filters.offset,
+      });
+
+      const activities = rows.map(auditLogToActivity);
+
+      loggerHelpers.logPerformance('Rescue Activity Log', {
+        duration: Date.now() - startTime,
+        rescueId,
+        rowCount: activities.length,
+      });
+
+      return activities;
+    } catch (error) {
+      logger.error('Failed to get rescue activity log:', {
+        error: error instanceof Error ? error.message : String(error),
+        rescueId,
+        duration: Date.now() - startTime,
+      });
+      throw error;
+    }
   }
 }
