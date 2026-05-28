@@ -145,7 +145,7 @@ export interface UserActivity {
 }
 
 export interface ActivityItem {
-  type: 'application' | 'chat' | 'favorite' | 'profile_update' | 'login';
+  type: 'application' | 'chat' | 'favorite' | 'profile_update' | 'login' | 'other';
   description: string;
   timestamp: Date;
   metadata?: JsonObject;

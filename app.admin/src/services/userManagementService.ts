@@ -1,5 +1,4 @@
 import type { BulkUserUpdateData } from '@adopt-dont-shop/lib.validation';
-import type { UserActivity, UserActivityFilters } from '@adopt-dont-shop/lib.types';
 import { apiService } from './libraryServices';
 import { User, PaginatedResponse } from '@/types';
 
@@ -169,25 +168,6 @@ class UserManagementService {
       );
     } catch (error) {
       console.error('❌ UserManagementService: Failed to reset user password:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get user activity log
-   */
-  async getUserActivity(
-    userId: string,
-    filters: UserActivityFilters = {}
-  ): Promise<UserActivity[]> {
-    try {
-      const response = await apiService.get<{ success: boolean; data: UserActivity[] }>(
-        `/api/v1/users/${userId}/activity`,
-        filters
-      );
-      return response.data;
-    } catch (error) {
-      console.error('❌ UserManagementService: Failed to fetch user activity:', error);
       throw error;
     }
   }

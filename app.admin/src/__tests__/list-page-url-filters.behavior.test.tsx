@@ -33,7 +33,7 @@ vi.mock('../hooks', () => ({
   useDeleteUser: () => ({ mutateAsync: vi.fn() }),
   useBulkUpdateUsers: () => mockUseBulkUpdateUsers(),
   useCreateUser: () => ({ mutateAsync: vi.fn() }),
-  useUserActivity: () => ({ data: [], isLoading: false, error: null }),
+  useEntityActivity: () => ({ data: [], isLoading: false, error: null }),
   usePets: (filters: unknown) => mockUsePets(filters),
   useBulkUpdatePets: () => mockUseBulkUpdatePets(),
 }));
