@@ -13,11 +13,115 @@ export const mainNavigation = style({
   position: 'sticky',
   top: 0,
   overflowY: 'auto',
+  '@media': {
+    // Below the md breakpoint the sidebar becomes an off-canvas drawer so it
+    // no longer eats most of the viewport. It slides in from the left when
+    // opened via the hamburger button in the mobile bar.
+    '(max-width: 768px)': {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      zIndex: 1001,
+      maxWidth: '85vw',
+      transform: 'translateX(-100%)',
+      transition: 'transform 0.25s ease',
+      boxShadow: '2px 0 12px rgba(0, 0, 0, 0.3)',
+    },
+  },
+});
+
+export const mainNavigationOpen = style({
+  '@media': {
+    '(max-width: 768px)': {
+      transform: 'translateX(0)',
+    },
+  },
+});
+
+// Slim top bar with the hamburger trigger. Only visible on mobile; the
+// drawer itself carries the branding/footer on desktop.
+export const mobileBar = style({
+  display: 'none',
+  '@media': {
+    '(max-width: 768px)': {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.75rem',
+      padding: '0.5rem 1rem',
+      position: 'sticky',
+      top: 0,
+      zIndex: 1000,
+      background: vars.colors.primaryTextEmphasis,
+      color: 'white',
+    },
+  },
+});
+
+export const mobileMenuButton = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '44px',
+  height: '44px',
+  background: 'transparent',
+  border: 'none',
+  color: 'white',
+  fontSize: '1.5rem',
+  lineHeight: 1,
+  cursor: 'pointer',
+  borderRadius: '6px',
+  ':hover': {
+    background: 'rgba(255, 255, 255, 0.1)',
+  },
+});
+
+export const mobileCloseButton = style({
+  display: 'none',
+  '@media': {
+    '(max-width: 768px)': {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '44px',
+      height: '44px',
+      background: 'transparent',
+      border: 'none',
+      color: 'white',
+      fontSize: '1.25rem',
+      lineHeight: 1,
+      cursor: 'pointer',
+      borderRadius: '6px',
+      ':hover': {
+        background: 'rgba(255, 255, 255, 0.1)',
+      },
+    },
+  },
+});
+
+export const mobileOverlay = style({
+  display: 'none',
+  '@media': {
+    '(max-width: 768px)': {
+      display: 'block',
+      position: 'fixed',
+      inset: 0,
+      zIndex: 1000,
+      background: 'rgba(0, 0, 0, 0.5)',
+    },
+  },
 });
 
 export const navHeader = style({
   padding: '2rem 1.5rem',
   borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+  '@media': {
+    '(max-width: 768px)': {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '1rem 1.5rem',
+    },
+  },
 });
 
 globalStyle(`${navHeader} h2`, {

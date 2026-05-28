@@ -91,6 +91,15 @@ export const headerContent = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
+  gap: '1rem',
+  '@media': {
+    // On narrow screens the title block and the action cluster no longer fit
+    // side by side, so stack them to avoid horizontal overflow inside the modal.
+    '(max-width: 768px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    },
+  },
 });
 
 export const headerLeft = style({
@@ -115,6 +124,9 @@ export const headerRight = style({
   display: 'flex',
   alignItems: 'center',
   gap: '0.75rem',
+  // Allow the badges and action buttons to wrap onto multiple lines rather
+  // than overflowing the modal width on small screens.
+  flexWrap: 'wrap',
 });
 
 export const statusBadge = recipe({
@@ -194,6 +206,18 @@ export const tabContainer = style({
 export const tabList = style({
   display: 'flex',
   padding: '0 1.5rem',
+  // The four tabs don't fit across a phone-width modal; allow horizontal
+  // scrolling so every tab stays reachable instead of overflowing/clipping.
+  overflowX: 'auto',
+  '@media': {
+    '(max-width: 768px)': {
+      padding: '0 0.5rem',
+    },
+  },
+});
+
+globalStyle(`${tabList} > button`, {
+  whiteSpace: 'nowrap',
 });
 
 export const tab = recipe({

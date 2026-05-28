@@ -5,6 +5,13 @@ export const appLayout = style({
   display: 'flex',
   minHeight: '100vh',
   background: vars.background.body,
+  '@media': {
+    // On mobile the sidebar is an off-canvas drawer, so the shell stacks
+    // vertically: the mobile bar sits on top of the main column.
+    '(max-width: 768px)': {
+      flexDirection: 'column',
+    },
+  },
 });
 
 export const mainColumn = style({
@@ -18,6 +25,11 @@ export const mainContent = style({
   flex: 1,
   overflow: 'auto',
   padding: '2rem',
+  '@media': {
+    '(max-width: 768px)': {
+      padding: '1rem',
+    },
+  },
 });
 
 // ADS-497 (slice 5b): minimal footer strip carrying the "Manage cookies"
