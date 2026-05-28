@@ -1433,4 +1433,65 @@ describe('ApplicationService - Business Logic', () => {
       );
     });
   });
+
+  describe('Business Rule: Application Activity Log', () => {
+    it('returns activity rows mapped from audit_logs for an existing application', async () => {
+      MockedApplication.findByPk = vi
+        .fn()
+        .mockResolvedValue(createMockApplication(ApplicationStatus.SUBMITTED));
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const auditRow = {
+        id: 42,
+        action: 'APPLICATION_SUBMITTED',
+        category: 'Application',
+        metadata: { entityId: mockApplicationId, details: { petName: 'Buddy' } },
+        ip_address: null,
+        user_agent: null,
+        timestamp: new Date('2026-01-15T12:00:00.000Z'),
+      };
+      const spy = vi
+        .spyOn(AuditLogService, 'getEntityActivityLog')
+        .mockResolvedValue([auditRow] as unknown as Awaited<
+          ReturnType<typeof AuditLogService.getEntityActivityLog>
+        >);
+
+      const result = await ApplicationService.getApplicationActivityLog(mockApplicationId, {
+        from: '2026-01-01T00:00:00Z',
+        to: '2026-02-01T00:00:00Z',
+        limit: 25,
+        offset: 5,
+      });
+
+      // Queries with the category audit writers actually use.
+      expect(spy).toHaveBeenCalledWith('Application', mockApplicationId, {
+        from: new Date('2026-01-01T00:00:00Z'),
+        to: new Date('2026-02-01T00:00:00Z'),
+        limit: 25,
+        offset: 5,
+      });
+      expect(result).toEqual([
+        {
+          activityId: 42,
+          activityType: 'application',
+          action: 'APPLICATION_SUBMITTED',
+          description: 'Submitted application for Buddy',
+          category: 'Application',
+          ipAddress: null,
+          userAgent: null,
+          createdAt: '2026-01-15T12:00:00.000Z',
+        },
+      ]);
+
+      spy.mockRestore();
+    });
+
+    it('throws NotFoundError when the application does not exist', async () => {
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(null);
+
+      await expect(ApplicationService.getApplicationActivityLog('missing-app-id')).rejects.toThrow(
+        'Application not found'
+      );
+    });
+  });
 });

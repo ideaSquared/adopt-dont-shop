@@ -357,6 +357,22 @@ export class ApplicationController extends BaseController {
     });
   };
 
+  // Get application activity log (paginated audit-log entries).
+  getApplicationActivityLog = async (req: AuthenticatedRequest, res: Response) => {
+    const { applicationId } = req.params;
+    const { from, to, limit, offset } = req.query;
+    const activity = await ApplicationService.getApplicationActivityLog(applicationId, {
+      from: typeof from === 'string' ? from : undefined,
+      to: typeof to === 'string' ? to : undefined,
+      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      offset: typeof offset === 'string' ? Number(offset) : undefined,
+    });
+    res.json({
+      success: true,
+      data: activity,
+    });
+  };
+
   // Update application
   updateApplication = async (req: AuthenticatedRequest, res: Response) => {
     const errors = validationResult(req);
