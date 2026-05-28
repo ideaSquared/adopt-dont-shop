@@ -1,0 +1,59 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)",
+    "schedule:earlyMondays",
+    ":dependencyDashboard"
+  ],
+  "labels": ["dependencies", "DevEx"],
+  "rangeStrategy": "bump",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "packageRules": [
+    {
+      "description": "Group all non-major devDependency updates",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "devDependencies (non-major)"
+    },
+    {
+      "description": "Group TypeScript ESLint packages",
+      "matchPackagePatterns": ["^@typescript-eslint/"],
+      "groupName": "typescript-eslint"
+    },
+    {
+      "description": "Group Vitest packages",
+      "matchPackagePatterns": ["^vitest$", "^@vitest/"],
+      "groupName": "vitest"
+    },
+    {
+      "description": "Group React types",
+      "matchPackageNames": ["@types/react", "@types/react-dom", "react", "react-dom"],
+      "groupName": "react"
+    },
+    {
+      "description": "Automerge minor/patch devDeps when CI is green",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    },
+    {
+      "description": "Pin GitHub Action SHAs",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security", "DevEx"],
+    "automerge": false,
+    "prPriority": 10
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on Monday"]
+  }
+}
