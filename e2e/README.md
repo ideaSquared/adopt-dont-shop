@@ -49,28 +49,111 @@ All seeded users use the password `DevPassword123!` from `service.backend/src/se
 
 Each project (`client`, `rescue`, `admin`) reuses its role's storageState. Specs that need to test login/registration itself live in the `*-anon` projects with no storageState. Cross-app journeys use the `asRole(...)` fixture to spin up a second authenticated context for a different role.
 
-## Running locally
+## Running E2E Locally
+
+End-to-end tests need the full Docker stack (backend + three React apps + Postgres + Redis) running and seeded. The commands below are the exact sequence used in development.
 
 ```bash
-# One-time
+# 1. One-time setup
 npm install
-npm run test:e2e:install         # downloads chromium
+npm run test:e2e:install                              # downloads chromium
 
-# Bring up the stack
+# 2. Bring up the stack (detached so the terminal stays free)
 npm run docker:dev:detach
-npm run db:reset                 # migrate + seed
 
-# Run the suite
-npm run test:e2e
-npm run test:e2e -- --project=client
-npm run test:e2e -- tests/client/adoption-application.spec.ts
-npm run test:e2e:ui              # interactive
-npm run test:e2e:debug           # PWDEBUG inspector
-npm run test:e2e:report          # open the HTML report
+# 3. Wait until every service is healthy
+#    Poll the four endpoints the suite depends on. The CI workflow does the
+#    same wait — see `.github/workflows/ci.yml` ("Wait for services").
+for url in \
+  http://localhost:5000/health \
+  http://localhost:3000 \
+  http://localhost:3001 \
+  http://localhost:3002; do
+  echo "Waiting for $url"
+  until curl -fsS --max-time 5 "$url" >/dev/null 2>&1; do sleep 2; done
+done
 
-# Skip global health-check / auth setup (e.g. when stack is already up)
+# 4. Migrate + seed the database
+npm run db:reset
+
+# 5. Run the suite
+npm run test:e2e                                      # full suite
+npm run test:e2e:smoke                                # @smoke subset only
+npm run test:e2e -- --project=client                  # one Playwright project
+npm run test:e2e:single -- tests/client/adoption-application.spec.ts
+npm run test:e2e:single -- tests/auth.spec.ts --headed
+
+# Skip global health-check / auth setup when the stack is already up and
+# `.auth/*.json` exists from a previous run.
 E2E_SKIP_HEALTH=1 E2E_SKIP_AUTH=1 npm run test:e2e
 ```
+
+The `test:e2e:single` script forwards all arguments straight through to Playwright in the `e2e` workspace, so any Playwright flag works (`--headed`, `--debug`, `--repeat-each=3`, `--grep "approves"`, etc.).
+
+## Debugging Failures
+
+Playwright is configured in `playwright.config.ts` to capture diagnostics automatically:
+
+| Artefact | When it's captured | Where it lands |
+| --- | --- | --- |
+| `trace.zip` | `trace: 'on-first-retry'` | `e2e/test-results/<spec>/` |
+| Screenshot | `screenshot: 'only-on-failure'` | `e2e/test-results/<spec>/` |
+| Video (`.webm`) | `video: 'retain-on-failure'` | `e2e/test-results/<spec>/` |
+| HTML report | always | `e2e/playwright-report/` |
+
+Recommended workflow when something fails:
+
+```bash
+# Interactive runner — best for iterating on a single failing spec.
+# Pick the spec from the left pane, watch it run, edit, hit re-run.
+npm run test:e2e:ui
+
+# Step through with the Playwright Inspector (pauses at each action).
+npm run test:e2e:debug
+
+# Re-open the last HTML report (failures, retries, attached traces/videos).
+npm run test:e2e:report
+
+# Open a single trace.zip in the trace viewer.
+npx playwright show-trace e2e/test-results/<spec-folder>/trace.zip
+```
+
+In CI the entire `e2e/playwright-report/` and `e2e/test-results/` directories — including traces, screenshots, and videos for any failed test — are uploaded as the `e2e-playwright-report` artefact (retained 7 days). Download it from the failing run's "Artifacts" section to debug CI-only failures locally with `npx playwright show-report e2e/playwright-report` and `npx playwright show-trace`.
+
+The CI job also emits a workflow warning listing how many tests needed retries (`retries: 2` on CI, `0` locally), so flaky tests surface without having to open the report.
+
+## Smoke vs Full Suite
+
+CI splits the suite to keep PR feedback fast while still gating `main` on the full integration set. See `.github/workflows/ci.yml` (the "Run Playwright suite" step in the `test-e2e` job):
+
+- **Pull requests** run `npm run test:e2e:smoke` — Playwright is invoked with `--grep @smoke`, executing only tests whose title contains `@smoke`. This is the critical-journey subset and currently completes in roughly 3–5 minutes.
+- **Push to `main` / `develop`** runs the full `npm run test:e2e`. This is the integration gate before deploy.
+
+Existing `@smoke` tests:
+
+- `tests/client/registration-and-login.spec.ts` — _a new adopter can register via the public API_
+- `tests/client/adoption-application.spec.ts` — _full adoption journey: submit application → rescue approves → adopter sees approval_
+
+If you want broader PR coverage, the lever is to tag more specs as `@smoke` (see below) — the workflow itself does not need to change.
+
+## Tagging tests as @smoke
+
+A `@smoke` tag is just the literal string `@smoke` anywhere in the test title. Playwright's `--grep @smoke` matches on the title, so no config changes are needed:
+
+```typescript
+test('full adoption journey: submit application → rescue approves → adopter sees approval @smoke', async ({ ... }) => {
+  // ...
+});
+```
+
+Guidance on what to tag:
+
+- **Tag** the one or two end-to-end journeys per app that, if broken, would block a release — e.g. register/login, the headline adoption flow, a rescue staff approving an application.
+- **Tag** anything that exercises a cross-cutting concern (auth, payments, notifications) that other specs implicitly depend on.
+- **Don't tag** edge cases, validation-error paths, or per-field UI behaviour — those belong in the full suite that runs on `main`.
+- **Don't tag** long-running specs (multi-minute waits, large fixtures) — the smoke suite's value is its sub-5-minute turnaround on PRs.
+
+Aim to keep the smoke suite under ~5 minutes total. If you tag a new spec, run `npm run test:e2e:smoke` locally and confirm it still fits the budget.
 
 ## Environment overrides
 
