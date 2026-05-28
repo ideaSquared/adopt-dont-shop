@@ -25,11 +25,22 @@ import {
 
 // Mock only non-database dependencies
 // Logger is already mocked in setup-tests.ts
-vi.mock('../../services/auditLog.service', () => ({
-  AuditLogService: {
-    log: vi.fn().mockResolvedValue({}),
-  },
-}));
+// `log` is stubbed to avoid extra DB rows on every PetService mutation, but
+// `getEntityActivityLog` must hit the real implementation so the new
+// getPetActivityLog tests can read back seeded audit rows.
+vi.mock('../../services/auditLog.service', async () => {
+  const actual =
+    await vi.importActual<typeof import('../../services/auditLog.service')>(
+      '../../services/auditLog.service'
+    );
+  return {
+    ...actual,
+    AuditLogService: {
+      ...actual.AuditLogService,
+      log: vi.fn().mockResolvedValue({}),
+    },
+  };
+});
 
 // Import Report model for real database operations
 import Report from '../../models/Report';
@@ -1118,6 +1129,78 @@ describe('PetService', () => {
       await expect(PetService.getPetActivity('nonexistent')).rejects.toThrow(
         'Failed to retrieve pet activity'
       );
+    });
+  });
+
+  describe('getPetActivityLog', () => {
+    let petId: string;
+
+    beforeEach(async () => {
+      petId = uniqueId('activity-log-pet');
+      await Pet.create({
+        petId,
+        name: 'Logger',
+        type: PetType.DOG,
+        status: PetStatus.AVAILABLE,
+        breed: 'Border Collie',
+        size: Size.MEDIUM,
+        ageGroup: AgeGroup.ADULT,
+        gender: Gender.MALE,
+        energyLevel: EnergyLevel.MEDIUM,
+        vaccinationStatus: VaccinationStatus.UP_TO_DATE,
+        spayNeuterStatus: SpayNeuterStatus.NEUTERED,
+        rescueId: testRescue.rescueId,
+        archived: false,
+      });
+
+      // Seed audit rows directly so the test doesn't depend on the
+      // mocked AuditLogService.log going to a real DB.
+      await AuditLog.create({
+        service: 'test',
+        user: testCallerId,
+        action: 'CREATE',
+        level: 'INFO',
+        timestamp: new Date('2026-05-01T10:00:00Z'),
+        metadata: { entity: 'Pet', entityId: petId, details: { petName: 'Logger' } },
+        category: 'Pet',
+        ip_address: null,
+        user_agent: null,
+      });
+      await AuditLog.create({
+        service: 'test',
+        user: testCallerId,
+        action: 'UPDATE',
+        level: 'INFO',
+        timestamp: new Date('2026-05-02T10:00:00Z'),
+        metadata: { entity: 'Pet', entityId: petId, details: {} },
+        category: 'Pet',
+        ip_address: null,
+        user_agent: null,
+      });
+    });
+
+    it('returns audit-log entries mapped to EntityActivity shape, newest first', async () => {
+      const result = await PetService.getPetActivityLog(petId);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].action).toBe('UPDATE');
+      expect(result[1].action).toBe('CREATE');
+      expect(result[0]).toMatchObject({
+        category: 'Pet',
+        activityType: 'other',
+      });
+      expect(typeof result[0].createdAt).toBe('string');
+      expect(typeof result[0].activityId).toBe('number');
+    });
+
+    it('respects the limit filter', async () => {
+      const result = await PetService.getPetActivityLog(petId, { limit: 1 });
+      expect(result).toHaveLength(1);
+      expect(result[0].action).toBe('UPDATE');
+    });
+
+    it('throws NotFoundError for a missing pet', async () => {
+      await expect(PetService.getPetActivityLog('nonexistent')).rejects.toThrow('Pet not found');
     });
   });
 
