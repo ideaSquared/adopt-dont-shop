@@ -239,62 +239,11 @@ export const addUserIcon = style({
   marginRight: '0.5rem',
 });
 
-// ── Split-pane layout ──────────────────────────────────────────
-
-export const splitLayout = style({
-  display: 'flex',
-  gap: '1.5rem',
-  minHeight: 0,
-  flex: 1,
-});
-
-export const listPane = style({
-  flex: 1,
-  minWidth: 0,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '1.5rem',
-  transition: 'flex 0.2s ease',
-});
-
-export const listPaneNarrow = style({
-  flex: '1 1 55%',
-  '@media': {
-    '(max-width: 1024px)': {
-      display: 'none',
-    },
-  },
-});
-
-export const detailPane = style({
-  flex: '0 0 440px',
-  minWidth: '360px',
-  maxWidth: '500px',
-  '@media': {
-    '(max-width: 1024px)': {
-      flex: '1 1 auto',
-      maxWidth: 'none',
-      minWidth: 0,
-    },
-  },
-});
-
-export const backToList = style({
-  display: 'none',
-  '@media': {
-    '(max-width: 1024px)': {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '0.375rem',
-      background: 'transparent',
-      border: `1px solid ${vars.border.color.default}`,
-      borderRadius: '8px',
-      padding: '0.375rem 0.75rem',
-      marginBottom: '0.5rem',
-      cursor: 'pointer',
-      color: vars.text.secondary,
-      fontSize: '0.8125rem',
-      fontWeight: '500',
-    },
-  },
-});
+// Split-pane layout is shared across the entity-management pages.
+export {
+  splitLayout,
+  listPane,
+  listPaneNarrow,
+  detailPane,
+  backToList,
+} from '../components/detail/splitPane.css';
