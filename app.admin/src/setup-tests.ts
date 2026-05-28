@@ -216,4 +216,63 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   }) => React.createElement('div', { role: 'status', ...props }, message),
   ToastContainer: ({ children }: { children: React.ReactNode }) =>
     React.createElement('div', { 'data-testid': 'toast-container' }, children),
+  // EntityInspector — minimal mock that renders the header, every tab as a
+  // role="tab" button, the close button (if onClose provided), and the
+  // active tab body. Mirrors the real component's a11y surface so tests
+  // that find tabs by role/name keep working.
+  EntityInspector: ({
+    header,
+    tabs,
+    defaultTabId,
+    onClose,
+    closeLabel,
+    'data-testid': testId,
+  }: {
+    header: React.ReactNode;
+    tabs: ReadonlyArray<{ id: string; label: string; content: React.ReactNode }>;
+    defaultTabId?: string;
+    onClose?: () => void;
+    closeLabel?: string;
+    'data-testid'?: string;
+  }) => {
+    const initialId =
+      defaultTabId && tabs.some(t => t.id === defaultTabId) ? defaultTabId : (tabs[0]?.id ?? null);
+    const [activeId, setActiveId] = React.useState<string | null>(initialId);
+    const active = tabs.find(t => t.id === activeId) ?? null;
+    return React.createElement(
+      'div',
+      { 'data-testid': testId },
+      React.createElement('div', { key: 'header' }, header),
+      onClose
+        ? React.createElement(
+            'button',
+            {
+              key: 'close',
+              type: 'button',
+              onClick: onClose,
+              'aria-label': closeLabel ?? 'Close inspector',
+            },
+            '✕'
+          )
+        : null,
+      React.createElement(
+        'div',
+        { key: 'tabs', role: 'tablist' },
+        ...tabs.map(t =>
+          React.createElement(
+            'button',
+            {
+              key: t.id,
+              type: 'button',
+              role: 'tab',
+              'aria-selected': t.id === activeId,
+              onClick: () => setActiveId(t.id),
+            },
+            t.label
+          )
+        )
+      ),
+      React.createElement('div', { key: 'panel', role: 'tabpanel' }, active?.content ?? null)
+    );
+  },
 }));

@@ -92,20 +92,6 @@ export const useResetUserPassword = () => {
 };
 
 /**
- * Hook to fetch user activity
- */
-export const useUserActivity = (
-  userId: string,
-  filters: Parameters<typeof userManagementService.getUserActivity>[1] = {}
-) => {
-  return useQuery({
-    queryKey: ['user-activity', userId, filters],
-    queryFn: () => userManagementService.getUserActivity(userId, filters),
-    enabled: !!userId,
-  });
-};
-
-/**
  * Hook to search users
  */
 export const useSearchUsers = (

@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Input, Spinner } from '@adopt-dont-shop/lib.components';
+import {
+  Button,
+  EntityInspector,
+  type EntityInspectorTab,
+  Input,
+  Spinner,
+} from '@adopt-dont-shop/lib.components';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import {
   FiMail,
@@ -8,7 +14,6 @@ import {
   FiClock,
   FiUser,
   FiShield,
-  FiX,
   FiPause,
   FiPlay,
   FiCheckCircle,
@@ -17,10 +22,8 @@ import {
 } from 'react-icons/fi';
 import clsx from 'clsx';
 import type { AdminUser, UserType, UserStatus } from '@/types';
-import { useUserActivity } from '../../hooks';
+import { useEntityActivity } from '../../hooks';
 import * as styles from './UserDetailPanel.css';
-
-type TabId = 'overview' | 'edit' | 'actions' | 'activity';
 
 type UserDetailPanelProps = {
   user: AdminUser;
@@ -33,13 +36,6 @@ type UserDetailPanelProps = {
   onResetPassword: (userId: string) => Promise<void>;
   onMessage: (user: AdminUser) => void;
 };
-
-const TABS: ReadonlyArray<{ id: TabId; label: string }> = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'edit', label: 'Edit' },
-  { id: 'actions', label: 'Actions' },
-  { id: 'activity', label: 'Activity' },
-];
 
 const getUserInitials = (
   firstName: string | null | undefined,
@@ -380,7 +376,7 @@ const ActionsTab: React.FC<{
 // ── Activity Tab ──────────────────────────────────────────────────
 
 const ActivityTab: React.FC<{ userId: string }> = ({ userId }) => {
-  const { data, isLoading, error } = useUserActivity(userId);
+  const { data, isLoading, error } = useEntityActivity('user', userId);
 
   if (isLoading) {
     return (
@@ -431,67 +427,49 @@ export const UserDetailPanel: React.FC<UserDetailPanelProps> = ({
   onResetPassword,
   onMessage,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
-
-  useEffect(() => {
-    setActiveTab('overview');
-  }, [user.userId]);
+  const tabs: EntityInspectorTab[] = [
+    { id: 'overview', label: 'Overview', content: <OverviewTab user={user} /> },
+    { id: 'edit', label: 'Edit', content: <EditTab user={user} onSave={onSave} /> },
+    {
+      id: 'actions',
+      label: 'Actions',
+      content: (
+        <ActionsTab
+          user={user}
+          onSuspend={onSuspend}
+          onUnsuspend={onUnsuspend}
+          onVerify={onVerify}
+          onDelete={onDelete}
+          onResetPassword={onResetPassword}
+          onMessage={onMessage}
+        />
+      ),
+    },
+    { id: 'activity', label: 'Activity', content: <ActivityTab userId={user.userId} /> },
+  ];
 
   return (
-    <div className={styles.panel} data-testid='user-detail-panel'>
-      <div className={styles.panelHeader}>
-        <div className={styles.avatar}>{getUserInitials(user.firstName, user.lastName)}</div>
-        <div className={styles.headerInfo}>
-          <h3 className={styles.headerName}>
-            {user.firstName} {user.lastName}
-          </h3>
-          <p className={styles.headerEmail}>{user.email}</p>
-        </div>
-        <div className={styles.headerBadges}>
-          {getUserTypeBadge(user.userType)}
-          {getStatusBadge(user.status, user.emailVerified ?? false)}
-        </div>
-        <button
-          type='button'
-          className={styles.closeButton}
-          onClick={onClose}
-          aria-label='Close detail panel'
-        >
-          <FiX />
-        </button>
-      </div>
-
-      <div className={styles.tabBar} role='tablist'>
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            type='button'
-            role='tab'
-            aria-selected={activeTab === tab.id}
-            className={clsx(styles.tab, activeTab === tab.id && styles.tabActive)}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className={styles.tabContent} role='tabpanel'>
-        {activeTab === 'overview' && <OverviewTab user={user} />}
-        {activeTab === 'edit' && <EditTab user={user} onSave={onSave} />}
-        {activeTab === 'actions' && (
-          <ActionsTab
-            user={user}
-            onSuspend={onSuspend}
-            onUnsuspend={onUnsuspend}
-            onVerify={onVerify}
-            onDelete={onDelete}
-            onResetPassword={onResetPassword}
-            onMessage={onMessage}
-          />
-        )}
-        {activeTab === 'activity' && <ActivityTab userId={user.userId} />}
-      </div>
-    </div>
+    <EntityInspector
+      data-testid='user-detail-panel'
+      resetTabsOnKeyChange={user.userId}
+      onClose={onClose}
+      closeLabel='Close detail panel'
+      tabs={tabs}
+      header={
+        <>
+          <div className={styles.avatar}>{getUserInitials(user.firstName, user.lastName)}</div>
+          <div className={styles.headerInfo}>
+            <h3 className={styles.headerName}>
+              {user.firstName} {user.lastName}
+            </h3>
+            <p className={styles.headerEmail}>{user.email}</p>
+          </div>
+          <div className={styles.headerBadges}>
+            {getUserTypeBadge(user.userType)}
+            {getStatusBadge(user.status, user.emailVerified ?? false)}
+          </div>
+        </>
+      }
+    />
   );
 };

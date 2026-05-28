@@ -42,7 +42,7 @@ vi.mock('../hooks', () => ({
   useBulkUpdateUsers: () => mockUseBulkUpdateUsers(),
   useBulkUpdateRescues: () => mockUseBulkUpdateRescues(),
   useCreateUser: () => mockUseCreateUser(),
-  useUserActivity: () => ({ data: [], isLoading: false, error: null }),
+  useEntityActivity: () => ({ data: [], isLoading: false, error: null }),
 }));
 
 const mockGetAll = vi.fn();

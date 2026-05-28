@@ -31,7 +31,7 @@ const mockUseVerifyUser = vi.fn();
 const mockUseDeleteUser = vi.fn();
 const mockUseBulkUpdateUsers = vi.fn();
 const mockUseCreateUser = vi.fn();
-const mockUseUserActivity = vi.fn();
+const mockUseEntityActivity = vi.fn();
 
 vi.mock('../hooks', () => ({
   useUsers: (...args: unknown[]) => mockUseUsers(...args),
@@ -41,7 +41,7 @@ vi.mock('../hooks', () => ({
   useDeleteUser: () => mockUseDeleteUser(),
   useBulkUpdateUsers: () => mockUseBulkUpdateUsers(),
   useCreateUser: () => mockUseCreateUser(),
-  useUserActivity: (...args: unknown[]) => mockUseUserActivity(...args),
+  useEntityActivity: (...args: unknown[]) => mockUseEntityActivity(...args),
 }));
 
 vi.mock('../services/libraryServices', () => ({
@@ -220,7 +220,7 @@ describe('User Management page', () => {
     mockUseDeleteUser.mockReturnValue(mockMutationResult);
     mockUseBulkUpdateUsers.mockReturnValue(mockMutationResult);
     mockUseCreateUser.mockReturnValue(mockMutationResult);
-    mockUseUserActivity.mockReturnValue({
+    mockUseEntityActivity.mockReturnValue({
       data: [],
       isLoading: false,
       error: null,

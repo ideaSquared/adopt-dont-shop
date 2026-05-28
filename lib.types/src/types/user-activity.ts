@@ -2,38 +2,21 @@
 // User activity — shared API contract between service.backend and admin app
 // ---------------------------------------------------------------------------
 //
-// Two distinct endpoints share these types:
-//   GET /api/v1/users/:userId/activity          → UserActivity[]
-//   GET /api/v1/users/:userId/activity-summary  → UserActivitySummary
+// The activity-log shape was generalised into EntityActivity (see
+// entity-activity.ts) so the admin EntityInspector can drive every
+// entity tab from one type. UserActivity / UserActivityFilters /
+// UserActivityType are kept as aliases so existing consumers keep
+// compiling — prefer the Entity* names in new code.
 //
-// Dates are wire-format ISO 8601 strings (not Date) because these types
-// describe JSON responses. Convert at the edge if you need Date objects.
+// UserActivitySummary stays user-specific because aggregate-stats shapes
+// differ per entity (a rescue summary, for example, would expose verified
+// staff count rather than messages exchanged).
 
-export type UserActivityType =
-  | 'application'
-  | 'chat'
-  | 'favorite'
-  | 'profile_update'
-  | 'login'
-  | 'other';
+import type { EntityActivity, EntityActivityFilters, EntityActivityType } from './entity-activity';
 
-export type UserActivity = {
-  activityId: number;
-  activityType: UserActivityType;
-  action: string;
-  description: string;
-  category: string;
-  ipAddress: string | null;
-  userAgent: string | null;
-  createdAt: string;
-};
-
-export type UserActivityFilters = {
-  from?: string;
-  to?: string;
-  limit?: number;
-  offset?: number;
-};
+export type UserActivityType = EntityActivityType;
+export type UserActivity = EntityActivity;
+export type UserActivityFilters = EntityActivityFilters;
 
 export type UserActivityRecentItem = {
   action: string;

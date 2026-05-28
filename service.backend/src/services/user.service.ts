@@ -3,9 +3,13 @@ import { normalizeEmail } from '@adopt-dont-shop/lib.validation';
 import type {
   UserActivity as SharedUserActivity,
   UserActivityFilters,
-  UserActivityType,
 } from '@adopt-dont-shop/lib.types';
 import { JsonObject } from '../types/common';
+import {
+  auditLogToActivity,
+  formatActivityDescription,
+  mapActionToActivityType,
+} from './audit-log-formatting';
 import { Op, QueryTypes, WhereOptions } from 'sequelize';
 import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
@@ -711,8 +715,8 @@ export class UserService {
         activeChatsCount,
         petsFavoritedCount,
         recentActivity: (recentActivity || []).map(log => ({
-          type: this.mapActionToActivityType(log.action),
-          description: this.formatActivityDescription(log.action, log.category, log.metadata),
+          type: mapActionToActivityType(log.action),
+          description: formatActivityDescription(log.action, log.category, log.metadata),
           timestamp: log.timestamp,
           metadata: log.metadata || {},
         })),
@@ -878,28 +882,6 @@ export class UserService {
   }
 
   /**
-   * Map audit log action to activity type
-   */
-  private static mapActionToActivityType(action: string): UserActivityType {
-    if (action.includes('APPLICATION')) {
-      return 'application';
-    }
-    if (action.includes('CHAT') || action.includes('MESSAGE')) {
-      return 'chat';
-    }
-    if (action.includes('FAVORITE')) {
-      return 'favorite';
-    }
-    if (action.includes('PROFILE') || action.includes('USER_UPDATE')) {
-      return 'profile_update';
-    }
-    if (action.includes('LOGIN')) {
-      return 'login';
-    }
-    return 'other';
-  }
-
-  /**
    * Get paginated user activity log from audit_logs.
    */
   static async getUserActivityLog(
@@ -944,16 +926,7 @@ export class UserService {
         ],
       });
 
-      const activities: SharedUserActivity[] = rows.map(row => ({
-        activityId: row.id,
-        activityType: this.mapActionToActivityType(row.action),
-        action: row.action,
-        description: this.formatActivityDescription(row.action, row.category, row.metadata),
-        category: row.category,
-        ipAddress: row.ip_address,
-        userAgent: row.user_agent,
-        createdAt: row.timestamp.toISOString(),
-      }));
+      const activities: SharedUserActivity[] = rows.map(auditLogToActivity);
 
       loggerHelpers.logPerformance('User Activity Log', {
         duration: Date.now() - startTime,
@@ -970,122 +943,6 @@ export class UserService {
       });
       throw error;
     }
-  }
-
-  /**
-   * Format activity description from action, entity category, and metadata.
-   *
-   * Audit rows are emitted as (action, category, metadata) where category is
-   * the entity name (PET, APPLICATION, USER, ...) and metadata.details holds
-   * arbitrary context — often a human-readable name. We compose all three so
-   * bare verbs like CREATE/UPDATE/DELETE surface their entity instead of
-   * appearing as a one-word "create" / "update" in the UI.
-   */
-  private static formatActivityDescription(
-    action: string,
-    category: string,
-    metadata?: JsonObject | null
-  ): string {
-    // High-frequency actions get bespoke phrasing.
-    const knownPhrasings: Record<string, (entity: string | undefined) => string> = {
-      APPLICATION_SUBMITTED: entity => `Submitted application for ${entity ?? 'a pet'}`,
-      APPLICATION_UPDATED: entity => `Updated application${entity ? ` for ${entity}` : ''}`,
-      APPLICATION_STATUS_UPDATED: entity =>
-        `Application status changed${entity ? ` for ${entity}` : ''}`,
-      WITHDRAW: () => 'Withdrew application',
-      USER_LOGIN: () => 'Logged into account',
-      LOGIN: () => 'Logged in',
-      LOGOUT: () => 'Logged out',
-      LOGIN_FAILED: () => 'Failed login attempt',
-      PROFILE_UPDATED: () => 'Updated profile',
-      USER_CREATED: () => 'Account created',
-      PASSWORD_RESET: () => 'Password reset',
-      PASSWORD_RESET_REQUEST: () => 'Requested password reset',
-      EMAIL_VERIFICATION: () => 'Verified email address',
-      PET_FAVORITED: entity => `Added ${entity ?? 'a pet'} to favorites`,
-      MESSAGE_SENT: () => 'Sent a message',
-      MESSAGE_READ: () => 'Read a message',
-      CHAT_CREATED: () => 'Started a new conversation',
-      FILE_UPLOAD: entity => `Uploaded ${entity ?? 'a file'}`,
-      FILE_DELETE: entity => `Deleted ${entity ?? 'a file'}`,
-      VIEW: entity => `Viewed ${entity ?? category.toLowerCase()}`,
-      TWO_FACTOR_ENABLED: () => 'Enabled two-factor authentication',
-      TWO_FACTOR_DISABLED: () => 'Disabled two-factor authentication',
-    };
-
-    const entityLabel = this.extractEntityLabel(metadata);
-    const phrasing = knownPhrasings[action];
-    if (phrasing) {
-      return phrasing(entityLabel);
-    }
-
-    // Generic fallback: combine verb + entity. Example:
-    //   action="CREATE",  category="PET",         entity="Buddy"  → "Created pet: Buddy"
-    //   action="UPDATE",  category="APPLICATION", entity=undefined → "Updated application"
-    //   action="DELETE",  category="CHAT",         entity=undefined → "Deleted chat"
-    const verb = this.actionToVerb(action);
-    const entityName = category ? category.toLowerCase().replace(/_/g, ' ') : '';
-    const base = entityName ? `${verb} ${entityName}` : verb;
-    return entityLabel ? `${base}: ${entityLabel}` : base;
-  }
-
-  /**
-   * Pull a display-friendly entity label out of metadata. Audit writers
-   * stash human-readable context under metadata.details (petName, title,
-   * name, email, ...); fall back to metadata.entityId so something
-   * recognisable surfaces even when the writer didn't include a name.
-   */
-  private static extractEntityLabel(metadata?: JsonObject | null): string | undefined {
-    if (!metadata) {
-      return undefined;
-    }
-    const details =
-      typeof metadata.details === 'object' && metadata.details !== null
-        ? (metadata.details as JsonObject)
-        : undefined;
-    const candidateKeys = ['petName', 'title', 'name', 'rescueName', 'subject', 'email'];
-    for (const key of candidateKeys) {
-      const fromDetails = details?.[key];
-      if (typeof fromDetails === 'string' && fromDetails.length > 0) {
-        return fromDetails;
-      }
-      const fromMetadata = metadata[key];
-      if (typeof fromMetadata === 'string' && fromMetadata.length > 0) {
-        return fromMetadata;
-      }
-    }
-    const entityId = metadata.entityId;
-    if (typeof entityId === 'string' && entityId.length > 0) {
-      return entityId;
-    }
-    return undefined;
-  }
-
-  /** Convert an UPPER_SNAKE action name to a past-tense verb phrase. */
-  private static actionToVerb(action: string): string {
-    const verbMap: Record<string, string> = {
-      CREATE: 'Created',
-      UPDATE: 'Updated',
-      DELETE: 'Deleted',
-      VIEW: 'Viewed',
-      UPDATE_STATUS: 'Updated status of',
-      ADD_IMAGES: 'Added images to',
-      UPDATE_IMAGES: 'Updated images on',
-      REMOVE_IMAGE: 'Removed image from',
-      BULK_OPERATION: 'Performed bulk operation on',
-      BULK_UPDATE: 'Bulk-updated',
-      SUSPEND: 'Suspended',
-      UNSUSPEND: 'Unsuspended',
-      DEACTIVATE: 'Deactivated',
-      REACTIVATE: 'Reactivated',
-    };
-    if (verbMap[action]) {
-      return verbMap[action];
-    }
-    return action
-      .toLowerCase()
-      .replace(/_/g, ' ')
-      .replace(/^./, c => c.toUpperCase());
   }
 
   /**

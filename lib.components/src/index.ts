@@ -39,6 +39,10 @@ export type {
 } from './components/layout/SplitPaneDetail';
 export { Card, CardContent, CardFooter, CardHeader } from './components/ui/Card';
 
+// Data Components
+export { EntityInspector } from './components/data/EntityInspector';
+export type { EntityInspectorProps, EntityInspectorTab } from './components/data/EntityInspector';
+
 // Form Components
 export { CheckboxInput } from './components/form/CheckboxInput';
 export { SelectInput } from './components/form/SelectInput/';

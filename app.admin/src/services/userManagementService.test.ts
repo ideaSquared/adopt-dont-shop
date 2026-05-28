@@ -220,29 +220,6 @@ describe('UserManagementService', () => {
     });
   });
 
-  describe('getUserActivity', () => {
-    it('fetches activity with filters', async () => {
-      const activities = [
-        {
-          activityId: 1,
-          activityType: 'login',
-          action: 'USER_LOGIN',
-          description: 'Logged into account',
-          category: 'AUTH',
-          ipAddress: null,
-          userAgent: null,
-          createdAt: '2024-01-01T00:00:00Z',
-        },
-      ];
-      mockGet.mockResolvedValueOnce({ success: true, data: activities });
-
-      const result = await userManagementService.getUserActivity('u1', { limit: 10 });
-
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/users/u1/activity', { limit: 10 });
-      expect(result).toEqual(activities);
-    });
-  });
-
   describe('searchUsers', () => {
     it('passes query and filters to the search endpoint', async () => {
       mockGet.mockResolvedValueOnce(paginatedUsers);
