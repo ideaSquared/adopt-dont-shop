@@ -95,6 +95,10 @@ npm run lint / lint:fix
 npm run type-check
 npm run format / format:check
 
+# Pre-push preflight (run CI-equivalent checks locally)
+npm run ci:local:quick           # fast preflight (~30s): format + lint + type-check
+npm run ci:local                 # full preflight (~3-5min): everything CI runs
+
 # Database (containers must be running)
 npm run db:migrate
 npm run db:seed
