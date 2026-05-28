@@ -11,11 +11,7 @@ import {
 } from 'react-icons/fi';
 import { openExternal } from '../../utils/openExternal';
 import clsx from 'clsx';
-import {
-  EntityInspector,
-  type EntityInspectorTab,
-  Spinner,
-} from '@adopt-dont-shop/lib.components';
+import { EntityInspector, type EntityInspectorTab, Spinner } from '@adopt-dont-shop/lib.components';
 import {
   Report,
   getSeverityLabel,
@@ -310,16 +306,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClos
         <div className={styles.infoGrid}>
           <div className={styles.infoItem}>
             <div className={styles.infoLabel}>Reported</div>
-            <div className={styles.infoValue}>
-              {new Date(report.createdAt).toLocaleString()}
-            </div>
+            <div className={styles.infoValue}>{new Date(report.createdAt).toLocaleString()}</div>
             <div className={styles.entityDetail}>{formatRelativeTime(report.createdAt)}</div>
           </div>
           <div className={styles.infoItem}>
             <div className={styles.infoLabel}>Last Updated</div>
-            <div className={styles.infoValue}>
-              {new Date(report.updatedAt).toLocaleString()}
-            </div>
+            <div className={styles.infoValue}>{new Date(report.updatedAt).toLocaleString()}</div>
             <div className={styles.entityDetail}>{formatRelativeTime(report.updatedAt)}</div>
           </div>
         </div>
@@ -511,9 +503,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     {
       id: 'overview',
       label: 'Overview',
-      content: (
-        <OverviewTab report={report} entityContext={entityContext} onClose={onClose} />
-      ),
+      content: <OverviewTab report={report} entityContext={entityContext} onClose={onClose} />,
     },
   ];
 
@@ -521,9 +511,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     tabs.push({
       id: 'context',
       label: 'Context',
-      content: (
-        <ContextTab reportedUserId={report.reportedUserId} reportId={report.reportId} />
-      ),
+      content: <ContextTab reportedUserId={report.reportedUserId} reportId={report.reportId} />,
     });
   }
 

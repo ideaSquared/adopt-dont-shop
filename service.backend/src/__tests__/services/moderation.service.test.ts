@@ -187,7 +187,7 @@ describe('ModerationService', () => {
         category: ReportCategory.SPAM,
         severity: ReportSeverity.LOW,
         title: 'Activity-log seed',
-        description: 'seed',
+        description: 'seed description for activity log test',
         evidence: [],
         status: ReportStatus.PENDING,
       });
