@@ -9,8 +9,8 @@ import {
   FiShield,
   FiClock,
 } from 'react-icons/fi';
-import { openExternal } from '../../utils/openExternal';
 import clsx from 'clsx';
+import { z } from 'zod';
 import { EntityInspector, type EntityInspectorTab, Spinner } from '@adopt-dont-shop/lib.components';
 import {
   Report,
@@ -113,16 +113,34 @@ const getEntityTypeLabel = (entityType: string): string => {
   }
 };
 
-type EntityContext = {
-  displayName?: string;
-  deleted?: boolean;
-  error?: boolean;
-  email?: string;
-  userType?: string;
-  petType?: string;
-  breed?: string;
-  city?: string;
-  country?: string;
+// The backend (moderation.service.ts#enrichReportsWithEntityContext) attaches
+// an `entityContext` field to each report at the top level. It isn't part of
+// the shared Report Zod schema, so we parse it locally to avoid a cross-package
+// schema change. Every field is optional because the backend may attach a
+// deleted/error fallback or omit fields per entity type.
+const EntityContextSchema = z
+  .object({
+    displayName: z.string().optional(),
+    deleted: z.boolean().optional(),
+    error: z.boolean().optional(),
+    email: z.string().optional(),
+    userType: z.string().optional(),
+    petType: z.string().optional(),
+    breed: z.string().optional(),
+    city: z.string().optional(),
+    country: z.string().optional(),
+  })
+  .passthrough();
+
+type EntityContext = z.infer<typeof EntityContextSchema>;
+
+const extractEntityContext = (report: Report): EntityContext | undefined => {
+  const candidate = (report as { entityContext?: unknown }).entityContext;
+  if (candidate === undefined) {
+    return undefined;
+  }
+  const parsed = EntityContextSchema.safeParse(candidate);
+  return parsed.success ? parsed.data : undefined;
 };
 
 // ── Overview Tab ──────────────────────────────────────────────────
@@ -289,7 +307,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClos
         </div>
         <button
           className={clsx(styles.viewContentButton, styles.viewContentButtonSpacing)}
-          onClick={() => openExternal(`${window.location.origin}/users/${report.reporterId}`)}
+          onClick={() => {
+            onClose();
+            navigate(`/users/${report.reporterId}`);
+          }}
         >
           <FiExternalLink size={16} />
           View Reporter Profile
@@ -479,13 +500,15 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   siblingIds,
   onNavigate,
 }) => {
+  if (!isOpen) {
+    return null;
+  }
+
   if (!report) {
     return null;
   }
 
-  const entityContext = (report as Record<string, unknown>).entityContext as
-    | EntityContext
-    | undefined;
+  const entityContext = extractEntityContext(report);
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -523,7 +546,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
 
   return (
     <div
-      className={clsx(styles.overlay, !isOpen && styles.overlayHidden)}
+      className={styles.overlay}
       onClick={handleOverlayClick}
       onKeyDown={e => e.key === 'Escape' && onClose()}
       role='presentation'
