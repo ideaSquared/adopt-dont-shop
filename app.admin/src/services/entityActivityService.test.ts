@@ -37,6 +37,24 @@ describe('entityActivityService.getActivity', () => {
     expect(result).toEqual(sampleActivity);
   });
 
+  it('hits the pets route for entityType=pet', async () => {
+    mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
+
+    const result = await entityActivityService.getActivity('pet', 'pet-1', { limit: 25 });
+
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/pets/pet-1/activity', { limit: 25 });
+    expect(result).toEqual(sampleActivity);
+  });
+
+  it('hits the application route for entityType=application', async () => {
+    mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
+
+    const result = await entityActivityService.getActivity('application', 'app-1', { limit: 25 });
+
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/applications/app-1/activity', { limit: 25 });
+    expect(result).toEqual(sampleActivity);
+  });
+
   it('hits the rescue route for entityType=rescue', async () => {
     mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
 
@@ -53,7 +71,7 @@ describe('entityActivityService.getActivity', () => {
   });
 
   it('throws EntityActivityNotSupportedError for entity types not yet wired', async () => {
-    await expect(entityActivityService.getActivity('application', 'a1')).rejects.toBeInstanceOf(
+    await expect(entityActivityService.getActivity('report', 'r1')).rejects.toBeInstanceOf(
       EntityActivityNotSupportedError
     );
     expect(mockGet).not.toHaveBeenCalled();
