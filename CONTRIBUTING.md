@@ -107,6 +107,23 @@ Every package uses **Vitest** (`vitest run`). The React apps and `lib.components
 
 Tests must cover **behaviour**, not implementation. 100% coverage is expected but tests must always be grounded in business requirements, not internal structure.
 
+### Coverage thresholds
+
+Since ADS-708, CI runs `test:coverage` (not plain `test`) across `lib.*` and `app.*` and enforces the thresholds declared in `vitest.shared.config.ts`. The baseline is **0%** so existing PRs are not blocked — the infrastructure is in place so individual packages can ratchet upward incrementally (tracked in ADS-717). To raise the bar for a single package, override the inherited thresholds in that package's `vitest.config.ts`:
+
+```typescript
+import { mergeConfig } from 'vitest/config';
+import shared from '../vitest.shared.config';
+
+export default mergeConfig(shared, {
+  test: {
+    coverage: {
+      thresholds: { statements: 80, branches: 80, functions: 80, lines: 80 },
+    },
+  },
+});
+```
+
 ## Reporting bugs / proposing features
 
 Use the issue templates in [`.github/ISSUE_TEMPLATE/`](./.github/ISSUE_TEMPLATE/):
