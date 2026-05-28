@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Logo } from '@adopt-dont-shop/lib.components';
 import * as styles from './AdminSidebar.css';
 import { useMyInboxCount } from '../../hooks/useMyInboxCount';
@@ -23,18 +23,39 @@ import {
   FiHeart,
   FiFile,
   FiInbox,
+  FiX,
 } from 'react-icons/fi';
 
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  // Off-canvas drawer state for narrow viewports. Ignored on desktop, where
+  // the sidebar is always visible (see AdminSidebar.css media queries).
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
+export const AdminSidebar: React.FC<SidebarProps> = ({
+  collapsed,
+  onToggle,
+  mobileOpen = false,
+  onMobileClose,
+}) => {
   const { count: myInboxCount } = useMyInboxCount();
+  const { pathname } = useLocation();
+  // Auto-close the off-canvas drawer after navigating to a new route on
+  // mobile. Skips the initial mount so the drawer can be opened freely.
+  const didMount = useRef(false);
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
+    }
+    onMobileClose?.();
+  }, [pathname, onMobileClose]);
 
   return (
-    <aside className={styles.sidebarContainer({ collapsed })}>
+    <aside className={styles.sidebarContainer({ collapsed, mobileOpen })}>
       <div className={styles.sidebarHeader({ collapsed })}>
         <div className={styles.logo({ collapsed })}>
           <Logo size={32} showWordmark={!collapsed} darkBg />
@@ -44,6 +65,13 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
             <FiChevronLeft size={16} />
           </button>
         )}
+        <button
+          className={styles.mobileCloseButton}
+          onClick={onMobileClose}
+          aria-label='Close navigation menu'
+        >
+          <FiX size={18} />
+        </button>
       </div>
 
       {collapsed && (

@@ -104,6 +104,11 @@ export const infoGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(2, 1fr)',
   gap: '1rem',
+  '@media': {
+    '(max-width: 480px)': {
+      gridTemplateColumns: '1fr',
+    },
+  },
 });
 
 export const infoItem = style({
