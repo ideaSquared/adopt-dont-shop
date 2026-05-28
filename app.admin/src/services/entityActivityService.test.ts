@@ -37,6 +37,17 @@ describe('entityActivityService.getActivity', () => {
     expect(result).toEqual(sampleActivity);
   });
 
+  it('hits the admin support route for entityType=support_ticket', async () => {
+    mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
+
+    const result = await entityActivityService.getActivity('support_ticket', 't1', { limit: 5 });
+
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/admin/support/tickets/t1/activity', {
+      limit: 5,
+    });
+    expect(result).toEqual(sampleActivity);
+  });
+
   it('unwraps the {success, data} envelope', async () => {
     mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
     const result = await entityActivityService.getActivity('user', 'u1');
