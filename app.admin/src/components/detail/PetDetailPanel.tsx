@@ -1,20 +1,14 @@
 import React from 'react';
-import {
-  EntityInspector,
-  type EntityInspectorTab,
-  Modal,
-  Spinner,
-} from '@adopt-dont-shop/lib.components';
+import { EntityInspector, type EntityInspectorTab, Spinner } from '@adopt-dont-shop/lib.components';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { FiPackage, FiHome, FiCalendar, FiClock, FiTag, FiArchive, FiStar } from 'react-icons/fi';
 import type { AdminPet } from '@/services/petService';
 import { useEntityActivity } from '../../hooks';
-import * as styles from './PetDetailModal.css';
+import * as styles from './PetDetailPanel.css';
 
-type PetDetailModalProps = {
-  isOpen: boolean;
+type PetDetailPanelProps = {
+  pet: AdminPet;
   onClose: () => void;
-  pet: AdminPet | null;
 };
 
 const formatDate = (value?: string) => {
@@ -114,40 +108,37 @@ const ActivityTab: React.FC<{ petId: string }> = ({ petId }) => {
   );
 };
 
-// ── Main Modal ────────────────────────────────────────────────────
+// ── Main Panel ────────────────────────────────────────────────────
 
-export const PetDetailModal: React.FC<PetDetailModalProps> = ({ isOpen, onClose, pet }) => {
-  if (!pet) {
-    return null;
-  }
+export const PetDetailPanel: React.FC<PetDetailPanelProps> = ({ pet, onClose }) => {
   const tabs: EntityInspectorTab[] = [
     { id: 'overview', label: 'Overview', content: <OverviewTab pet={pet} /> },
     { id: 'activity', label: 'Activity', content: <ActivityTab petId={pet.petId} /> },
   ];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Pet: ${pet.name}`} size='lg'>
-      <EntityInspector
-        data-testid='pet-detail-panel'
-        resetTabsOnKeyChange={pet.petId}
-        tabs={tabs}
-        header={
-          <>
-            <div className={styles.avatar}>
-              <FiPackage />
-            </div>
-            <div className={styles.headerInfo}>
-              <h3 className={styles.headerName}>{pet.name}</h3>
-              <p className={styles.headerSubtitle}>
-                {pet.type} &middot; {pet.breed}
-              </p>
-            </div>
-            <div className={styles.headerBadges}>{getStatusBadge(pet.status, pet.archived)}</div>
-          </>
-        }
-      />
-    </Modal>
+    <EntityInspector
+      data-testid='pet-detail-panel'
+      resetTabsOnKeyChange={pet.petId}
+      onClose={onClose}
+      closeLabel='Close pet detail'
+      tabs={tabs}
+      header={
+        <>
+          <div className={styles.avatar}>
+            <FiPackage />
+          </div>
+          <div className={styles.headerInfo}>
+            <h3 className={styles.headerName}>{pet.name}</h3>
+            <p className={styles.headerSubtitle}>
+              {pet.type} &middot; {pet.breed}
+            </p>
+          </div>
+          <div className={styles.headerBadges}>{getStatusBadge(pet.status, pet.archived)}</div>
+        </>
+      }
+    />
   );
 };
 
-export default PetDetailModal;
+export default PetDetailPanel;

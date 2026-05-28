@@ -131,9 +131,13 @@ vi.mock('../components/modals', () => ({
       </div>
     );
   },
-  RescueDetailModal: () => null,
   RescueVerificationModal: () => null,
   SendEmailModal: () => null,
+}));
+
+vi.mock('../components/detail', () => ({
+  UserDetailPanel: () => null,
+  RescueDetailPanel: () => null,
 }));
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────

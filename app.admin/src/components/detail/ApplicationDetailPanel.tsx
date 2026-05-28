@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Modal,
   Heading,
   Text,
   EntityInspector,
@@ -11,12 +10,11 @@ import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import type { AdminApplication } from '@/services/applicationService';
 import { useEntityActivity } from '../../hooks';
-import * as styles from './ApplicationDetailModal.css';
+import * as styles from './ApplicationDetailPanel.css';
 
-type ApplicationDetailModalProps = {
-  isOpen: boolean;
+type ApplicationDetailPanelProps = {
+  application: AdminApplication;
   onClose: () => void;
-  application: AdminApplication | null;
 };
 
 const formatDate = (value?: string) => {
@@ -156,17 +154,12 @@ const ActivityTab: React.FC<{ applicationId: string }> = ({ applicationId }) => 
   );
 };
 
-// ── Main modal ─────────────────────────────────────────────────
+// ── Main Panel ─────────────────────────────────────────────────
 
-export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
-  isOpen,
-  onClose,
+export const ApplicationDetailPanel: React.FC<ApplicationDetailPanelProps> = ({
   application,
+  onClose,
 }) => {
-  if (!application) {
-    return null;
-  }
-
   const tabs: EntityInspectorTab[] = [
     {
       id: 'overview',
@@ -181,32 +174,25 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   ];
 
   return (
-    <Modal
-      isOpen={isOpen}
+    <EntityInspector
+      data-testid='application-detail-panel'
+      resetTabsOnKeyChange={application.applicationId}
       onClose={onClose}
-      title={`Application ${application.applicationId}`}
-      showCloseButton={false}
-    >
-      <EntityInspector
-        data-testid='application-detail-panel'
-        resetTabsOnKeyChange={application.applicationId}
-        onClose={onClose}
-        closeLabel='Close application detail'
-        tabs={tabs}
-        header={
-          <div className={styles.headerInfo}>
-            <h3 className={styles.headerTitle}>
-              {application.petName || 'Application'}
-              {application.applicantName ? ` — ${application.applicantName}` : ''}
-            </h3>
-            <p className={styles.headerSubtitle}>
-              {applicationStatusLabel(application.status)} &middot; {application.applicationId}
-            </p>
-          </div>
-        }
-      />
-    </Modal>
+      closeLabel='Close application detail'
+      tabs={tabs}
+      header={
+        <div className={styles.headerInfo}>
+          <h3 className={styles.headerTitle}>
+            {application.petName || 'Application'}
+            {application.applicantName ? ` — ${application.applicantName}` : ''}
+          </h3>
+          <p className={styles.headerSubtitle}>
+            {applicationStatusLabel(application.status)} &middot; {application.applicationId}
+          </p>
+        </div>
+      }
+    />
   );
 };
 
-export default ApplicationDetailModal;
+export default ApplicationDetailPanel;

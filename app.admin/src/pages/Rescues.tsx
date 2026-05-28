@@ -10,17 +10,18 @@ import {
   FiMail,
   FiMapPin,
   FiAlertCircle,
+  FiArrowLeft,
 } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import type { AdminRescue } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';
 import { exportData, type ExportColumn } from '@/services/exportService';
 import {
-  RescueDetailModal,
   RescueVerificationModal,
   SendEmailModal,
   BulkConfirmationModal,
 } from '@/components/modals';
+import { RescueDetailPanel } from '@/components/detail';
 import { ExportButton, BulkActionToolbar } from '@/components/ui';
 import { useBulkUpdateRescues } from '@/hooks';
 import * as styles from './Rescues.css';
@@ -77,8 +78,10 @@ const Rescues: React.FC = () => {
     setCurrentPage(1);
   }, [searchQuery, statusFilter]);
 
+  // The detail pane is driven by the selected rescue id (synced with the URL).
+  const [detailRescueId, setDetailRescueId] = useState<string | null>(rescueId ?? null);
+  // selectedRescue is the target for the verification / email modals only.
   const [selectedRescue, setSelectedRescue] = useState<AdminRescue | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationAction, setVerificationAction] = useState<'approve' | 'reject'>('approve');
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -118,23 +121,14 @@ const Rescues: React.FC = () => {
     fetchRescues();
   }, [fetchRescues]);
 
+  // Keep the detail pane in sync with the URL param for deep-linking.
   useEffect(() => {
-    if (rescueId && rescues.length > 0) {
-      const rescue = rescues.find(r => r.rescueId === rescueId);
-      if (rescue) {
-        setSelectedRescue(rescue);
-        setShowDetailModal(true);
-      }
-    }
-  }, [rescueId, rescues]);
+    setDetailRescueId(rescueId ?? null);
+  }, [rescueId]);
 
   const handleViewDetails = (rescueIdParam: string): void => {
-    const rescue = rescues.find(r => r.rescueId === rescueIdParam);
-    if (rescue) {
-      setSelectedRescue(rescue);
-      setShowDetailModal(true);
-      navigate(`/rescues/${rescueIdParam}`, { replace: true });
-    }
+    setDetailRescueId(rescueIdParam);
+    navigate(`/rescues/${rescueIdParam}`, { replace: true });
   };
 
   const handleApprove = (rescue: AdminRescue): void => {
@@ -154,14 +148,17 @@ const Rescues: React.FC = () => {
     setShowEmailModal(true);
   };
 
-  const handleModalClose = (): void => {
-    setShowDetailModal(false);
-    setShowVerificationModal(false);
-    setShowEmailModal(false);
-    setSelectedRescue(null);
+  const handleCloseDetail = (): void => {
+    setDetailRescueId(null);
     if (rescueId) {
       navigate('/rescues', { replace: true });
     }
+  };
+
+  const handleModalClose = (): void => {
+    setShowVerificationModal(false);
+    setShowEmailModal(false);
+    setSelectedRescue(null);
   };
 
   const handleVerificationSuccess = (): void => {
@@ -312,79 +309,93 @@ const Rescues: React.FC = () => {
         </div>
       )}
 
-      <div className={styles.filterBar}>
-        <div className={styles.searchInputWrapper}>
-          <FiSearch />
-          <Input
-            type='text'
-            placeholder='Search by name, city, or email...'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+      <div className={styles.splitLayout}>
+        {/* List pane: filters, bulk actions, table. Collapses on mobile/tablet when a detail is open. */}
+        <div className={clsx(styles.listPane, detailRescueId && styles.listPaneNarrow)}>
+          <div className={styles.filterBar}>
+            <div className={styles.searchInputWrapper}>
+              <FiSearch />
+              <Input
+                type='text'
+                placeholder='Search by name, city, or email...'
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='rescue-status-filter'>
+                Verification Status
+              </label>
+              <select
+                id='rescue-status-filter'
+                className={styles.select}
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+              >
+                <option value='all'>All Statuses</option>
+                <option value='verified'>Verified</option>
+                <option value='pending'>Pending Review</option>
+                <option value='rejected'>Rejected</option>
+              </select>
+            </div>
+          </div>
+
+          <BulkActionToolbar
+            selectedCount={selectedRows.size}
+            totalCount={rescues.length}
+            onSelectAll={() =>
+              setSelectedRows(new Set(rescues.map((r: AdminRescue) => r.rescueId)))
+            }
+            onClearSelection={() => setSelectedRows(new Set())}
+            actions={[
+              {
+                label: 'Approve',
+                variant: 'primary',
+                onClick: () => setBulkRescueAction('approve'),
+              },
+              {
+                label: 'Suspend',
+                variant: 'danger',
+                onClick: () => setBulkRescueAction('suspend'),
+              },
+            ]}
+          />
+
+          <DataTable
+            columns={columns}
+            data={rescues}
+            loading={loading}
+            error={error}
+            emptyMessage='No rescue organizations found matching your criteria. Try adjusting your search or filters.'
+            onRowClick={rescue => handleViewDetails(rescue.rescueId)}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            selectable
+            selectedRows={selectedRows}
+            onSelectionChange={setSelectedRows}
+            getRowId={rescue => rescue.rescueId}
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='rescue-status-filter'>
-            Verification Status
-          </label>
-          <select
-            id='rescue-status-filter'
-            className={styles.select}
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-          >
-            <option value='all'>All Statuses</option>
-            <option value='verified'>Verified</option>
-            <option value='pending'>Pending Review</option>
-            <option value='rejected'>Rejected</option>
-          </select>
-        </div>
+        {/* Detail pane: shown when a rescue is selected */}
+        {detailRescueId && (
+          <div className={styles.detailPane}>
+            <button type='button' className={styles.backToList} onClick={handleCloseDetail}>
+              <FiArrowLeft /> Back to list
+            </button>
+            <RescueDetailPanel
+              rescueId={detailRescueId}
+              onClose={handleCloseDetail}
+              onUpdate={fetchRescues}
+              onApprove={handleApprove}
+              onReject={handleReject}
+              onSendEmail={handleSendEmail}
+            />
+          </div>
+        )}
       </div>
-
-      <BulkActionToolbar
-        selectedCount={selectedRows.size}
-        totalCount={rescues.length}
-        onSelectAll={() => setSelectedRows(new Set(rescues.map((r: AdminRescue) => r.rescueId)))}
-        onClearSelection={() => setSelectedRows(new Set())}
-        actions={[
-          {
-            label: 'Approve',
-            variant: 'primary',
-            onClick: () => setBulkRescueAction('approve'),
-          },
-          {
-            label: 'Suspend',
-            variant: 'danger',
-            onClick: () => setBulkRescueAction('suspend'),
-          },
-        ]}
-      />
-
-      <DataTable
-        columns={columns}
-        data={rescues}
-        loading={loading}
-        error={error}
-        emptyMessage='No rescue organizations found matching your criteria. Try adjusting your search or filters.'
-        onRowClick={rescue => handleViewDetails(rescue.rescueId)}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        selectable
-        selectedRows={selectedRows}
-        onSelectionChange={setSelectedRows}
-        getRowId={rescue => rescue.rescueId}
-      />
-
-      {showDetailModal && selectedRescue && (
-        <RescueDetailModal
-          rescueId={selectedRescue.rescueId}
-          onClose={handleModalClose}
-          onUpdate={fetchRescues}
-          onApprove={handleApprove}
-          onReject={handleReject}
-        />
-      )}
 
       {showVerificationModal && selectedRescue && (
         <RescueVerificationModal

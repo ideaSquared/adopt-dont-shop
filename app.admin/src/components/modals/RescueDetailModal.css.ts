@@ -519,3 +519,30 @@ export const successMessage = style({
   color: '#166534',
   fontSize: '0.875rem',
 });
+
+// ── Actions tab (split-pane detail panel) ─────────────────────────
+
+export const actionsSection = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '1.5rem',
+});
+
+export const actionGroup = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+  alignItems: 'flex-start',
+});
+
+export const actionGroupLabel = style({
+  fontSize: '0.6875rem',
+  fontWeight: '600',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: '#6b7280',
+});
+
+export const actionButtonIcon = style({
+  marginRight: '0.5rem',
+});

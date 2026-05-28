@@ -37,22 +37,16 @@ vi.mock('../hooks', () => ({
 
 vi.mock('../components/modals', () => ({
   BulkConfirmationModal: () => null,
-  PetDetailModal: ({
-    isOpen,
-    pet,
-    onClose,
-  }: {
-    isOpen: boolean;
-    pet: AdminPet | null;
-    onClose: () => void;
-  }) =>
-    isOpen && pet ? (
-      <div data-testid='pet-detail-modal'>
-        <span>Detail for: {pet.petId}</span>
-        <span>Name: {pet.name}</span>
-        <button onClick={onClose}>Close</button>
-      </div>
-    ) : null,
+}));
+
+vi.mock('../components/detail', () => ({
+  PetDetailPanel: ({ pet, onClose }: { pet: AdminPet; onClose: () => void }) => (
+    <div data-testid='pet-detail-panel'>
+      <span>Detail for: {pet.petId}</span>
+      <span>Name: {pet.name}</span>
+      <button onClick={onClose}>Close</button>
+    </div>
+  ),
 }));
 
 import Pets from './Pets';
@@ -138,7 +132,7 @@ describe('Pets page deep-linking', () => {
 
     renderPetsRoute('/pets/pet-2');
 
-    const modal = await screen.findByTestId('pet-detail-modal');
+    const modal = await screen.findByTestId('pet-detail-panel');
     expect(modal).toHaveTextContent('Detail for: pet-2');
     expect(modal).toHaveTextContent('Name: Luna');
   });
@@ -149,14 +143,14 @@ describe('Pets page deep-linking', () => {
 
     renderPetsRoute('/pets');
 
-    expect(screen.queryByTestId('pet-detail-modal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pet-detail-panel')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Buddy'));
 
     await waitFor(() => {
       expect(screen.getByTestId('location')).toHaveTextContent('/pets/pet-1');
     });
-    expect(await screen.findByTestId('pet-detail-modal')).toHaveTextContent('Detail for: pet-1');
+    expect(await screen.findByTestId('pet-detail-panel')).toHaveTextContent('Detail for: pet-1');
   });
 
   it('navigates back to /pets when the modal is closed, preserving filter params', async () => {
@@ -173,7 +167,7 @@ describe('Pets page deep-linking', () => {
       expect(probe).toHaveTextContent('/pets');
       expect(probe).toHaveTextContent('status=available');
     });
-    expect(screen.queryByTestId('pet-detail-modal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pet-detail-panel')).not.toBeInTheDocument();
   });
 
   it('redirects to /pets when the petId is unknown and surfaces a toast', async () => {
@@ -186,6 +180,6 @@ describe('Pets page deep-linking', () => {
       expect(screen.getByTestId('location')).toHaveTextContent('/pets');
     });
     expect(toast.error).toHaveBeenCalledWith('Pet not found');
-    expect(screen.queryByTestId('pet-detail-modal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('pet-detail-panel')).not.toBeInTheDocument();
   });
 });

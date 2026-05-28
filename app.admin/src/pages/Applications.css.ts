@@ -156,3 +156,12 @@ export const errorMessage = style({
   color: vars.colors.dangerTextEmphasis,
   fontSize: '0.875rem',
 });
+
+// Split-pane layout is shared across the entity-management pages.
+export {
+  splitLayout,
+  listPane,
+  listPaneNarrow,
+  detailPane,
+  backToList,
+} from '../components/detail/splitPane.css';
