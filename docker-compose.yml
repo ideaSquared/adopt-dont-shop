@@ -152,6 +152,7 @@ services:
 
   # Admin application - Internal rescue management
   app-admin:
+    profiles: ["admin", "full"]
     build:
       context: .
       dockerfile: Dockerfile.app.optimized
@@ -189,6 +190,7 @@ services:
 
   # Client application - Public-facing adoption portal
   app-client:
+    profiles: ["client", "full"]
     build:
       context: .
       dockerfile: Dockerfile.app.optimized
@@ -226,6 +228,7 @@ services:
 
   # Rescue application - Rescue organization portal
   app-rescue:
+    profiles: ["rescue", "full"]
     build:
       context: .
       dockerfile: Dockerfile.app.optimized
@@ -276,11 +279,22 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
+    # ADS-714: app-* services are profile-gated (client/admin/rescue/full) so
+    # devs can boot a single frontend. Mark their dependencies optional so
+    # nginx still starts under any profile combination — including the "plain"
+    # `docker compose up` case where no app services are active.
     depends_on:
-      - service-backend
-      - app-client
-      - app-admin
-      - app-rescue
+      service-backend:
+        condition: service_started
+      app-client:
+        condition: service_started
+        required: false
+      app-admin:
+        condition: service_started
+        required: false
+      app-rescue:
+        condition: service_started
+        required: false
     restart: unless-stopped
 
 # ============================================================================
