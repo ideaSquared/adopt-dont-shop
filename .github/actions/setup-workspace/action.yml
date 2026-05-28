@@ -1,0 +1,26 @@
+name: 'Setup Workspace'
+description: 'Checkout, install Node, cache and install workspace dependencies'
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'npm'
+    - name: Cache node_modules
+      id: cache-node-modules
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      with:
+        path: |
+          node_modules
+          */node_modules
+          lib.*/node_modules
+          app.*/node_modules
+          service.backend/node_modules
+          eslint-config-*/node_modules
+          e2e/node_modules
+        key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+    - name: Install workspace dependencies
+      if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm ci --prefer-offline --no-audit --no-fund
