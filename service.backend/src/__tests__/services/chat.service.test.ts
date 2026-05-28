@@ -599,7 +599,9 @@ describe('ChatService', () => {
     it('throws NotFoundError when the chat does not exist', async () => {
       (MockedChat.findByPk as vi.Mock).mockResolvedValue(null);
 
-      await expect(ChatService.getChatActivityLog('missing-chat')).rejects.toThrow('Chat not found');
+      await expect(ChatService.getChatActivityLog('missing-chat')).rejects.toThrow(
+        'Chat not found'
+      );
       expect(mockGetEntityActivityLog).not.toHaveBeenCalled();
     });
 

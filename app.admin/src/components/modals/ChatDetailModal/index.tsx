@@ -163,11 +163,7 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
       id: 'details',
       label: 'Details',
       content: conversation ? (
-        <DetailsTab
-          conversation={conversation}
-          getStatusBadge={getStatusBadge}
-          onClose={onClose}
-        />
+        <DetailsTab conversation={conversation} getStatusBadge={getStatusBadge} onClose={onClose} />
       ) : null,
     },
     {
