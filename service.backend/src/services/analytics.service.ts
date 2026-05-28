@@ -224,14 +224,14 @@ export class AnalyticsService {
       const sessionData = (await sequelize.query(
         `
         SELECT
-          user_id,
-          DATE_TRUNC('day', created_at) as session_date,
-          MIN(created_at) as first_action,
-          MAX(created_at) as last_action
+          "user" as user_id,
+          DATE_TRUNC('day', timestamp) as session_date,
+          MIN(timestamp) as first_action,
+          MAX(timestamp) as last_action
         FROM audit_logs
-        WHERE created_at BETWEEN :startDate AND :endDate
-          AND user_id IS NOT NULL
-        GROUP BY user_id, DATE_TRUNC('day', created_at)
+        WHERE timestamp BETWEEN :startDate AND :endDate
+          AND "user" IS NOT NULL
+        GROUP BY "user", DATE_TRUNC('day', timestamp)
         HAVING COUNT(*) > 1
       `,
         {
@@ -256,8 +256,8 @@ export class AnalyticsService {
           action,
           COUNT(*) as count
         FROM audit_logs
-        WHERE created_at BETWEEN :startDate AND :endDate
-          AND user_id IS NOT NULL
+        WHERE timestamp BETWEEN :startDate AND :endDate
+          AND "user" IS NOT NULL
         GROUP BY action
         ORDER BY count DESC
         LIMIT 10
@@ -482,7 +482,7 @@ export class AnalyticsService {
       // Get API request count from audit logs
       const apiRequestCount = await AuditLog.count({
         where: {
-          createdAt: {
+          timestamp: {
             [Op.between]: [defaultStartDate, defaultEndDate],
           },
         },
@@ -492,10 +492,10 @@ export class AnalyticsService {
       const responseTimeData = (await sequelize.query(
         `
         SELECT
-          AVG(CAST(details->>'response_time' AS FLOAT)) as avg_response_time
+          AVG(CAST(metadata->>'response_time' AS FLOAT)) as avg_response_time
         FROM audit_logs
-        WHERE created_at BETWEEN :startDate AND :endDate
-          AND details->>'response_time' IS NOT NULL
+        WHERE timestamp BETWEEN :startDate AND :endDate
+          AND metadata->>'response_time' IS NOT NULL
       `,
         {
           replacements: { startDate: defaultStartDate, endDate: defaultEndDate },
@@ -508,7 +508,7 @@ export class AnalyticsService {
       // Calculate error rate from failed operations
       const errorCount = await AuditLog.count({
         where: {
-          createdAt: {
+          timestamp: {
             [Op.between]: [defaultStartDate, defaultEndDate],
           },
           action: {
@@ -1014,7 +1014,7 @@ export class AnalyticsService {
             {
               model: AuditLog,
               as: 'AuditLogs',
-              where: { created_at: { [Op.gte]: lastHour } },
+              where: { timestamp: { [Op.gte]: lastHour } },
               required: true,
             },
           ],

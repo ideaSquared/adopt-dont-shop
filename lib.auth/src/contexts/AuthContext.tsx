@@ -10,6 +10,11 @@ export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  // True only during initial session rehydration on mount. Stays false
+  // during login/logout transitions so consumers can keep the login
+  // form mounted across the in-flight request — otherwise the form
+  // unmounts mid-await and its post-success navigate() never fires.
+  isInitializing: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
   register: (userData: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
@@ -62,6 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
   // C2-5: keep the latest user reference accessible inside the stable
   // onUnauthorized callback registered with apiService. We only want
   // to surface the session-expired toast for users who were actually
@@ -105,6 +111,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             setUser(parsedUser);
             initializeForAuthenticatedUser(parsedUser);
             setIsLoading(false);
+            setIsInitializing(false);
             return;
           }
         }
@@ -120,6 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             await authService.logout();
             setUser(null);
             setIsLoading(false);
+            setIsInitializing(false);
             return;
           }
 
@@ -136,6 +144,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       } finally {
         setIsLoading(false);
+        setIsInitializing(false);
       }
     };
 
@@ -429,6 +438,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     user,
     isAuthenticated: !!user,
     isLoading,
+    isInitializing,
     login,
     register,
     logout,
