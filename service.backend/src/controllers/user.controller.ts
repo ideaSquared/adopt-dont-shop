@@ -250,7 +250,7 @@ export class UserController {
   }
 
   /**
-   * Get user activity summary
+   * Get user activity summary (aggregate stats).
    */
   async getUserActivitySummary(req: AuthenticatedRequest, res: Response): Promise<void> {
     const { userId } = req.params;
@@ -258,6 +258,24 @@ export class UserController {
     res.json({
       success: true,
       data: activitySummary,
+    });
+  }
+
+  /**
+   * Get user activity log (paginated audit-log entries).
+   */
+  async getUserActivityLog(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const { userId } = req.params;
+    const { from, to, limit, offset } = req.query;
+    const activity = await UserService.getUserActivityLog(userId, {
+      from: typeof from === 'string' ? from : undefined,
+      to: typeof to === 'string' ? to : undefined,
+      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      offset: typeof offset === 'string' ? Number(offset) : undefined,
+    });
+    res.json({
+      success: true,
+      data: activity,
     });
   }
 
