@@ -836,6 +836,70 @@ router.get(
 
 /**
  * @swagger
+ * /api/v1/chats/{chatId}/activity:
+ *   get:
+ *     tags: [Messaging]
+ *     summary: Get chat activity log
+ *     description: Paginated chronological activity log for a single chat, sourced from audit logs. Backs the admin EntityInspector "Activity" tab.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: chatId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Chat activity log retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get(
+  '/:chatId/activity',
+  requirePermission(PERMISSIONS.CHAT_MODERATE),
+  generalLimiter,
+  ChatController.getChatActivityLog
+);
+
+/**
+ * @swagger
  * /api/v1/chats/{chatId}/participants:
  *   post:
  *     tags: [Messaging]

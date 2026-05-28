@@ -1,24 +1,25 @@
-import React, { useState } from 'react';
+import React from 'react';
 import * as styles from '../ChatDetailModal.css';
-import { Modal, Button, useConfirm, ConfirmDialog, toast } from '@adopt-dont-shop/lib.components';
+import {
+  Modal,
+  Button,
+  EntityInspector,
+  type EntityInspectorTab,
+  useConfirm,
+  ConfirmDialog,
+  toast,
+} from '@adopt-dont-shop/lib.components';
 import {
   useAdminChatById,
   useAdminChatMutations,
   type Conversation,
 } from '@adopt-dont-shop/lib.chat';
-import {
-  FiMessageSquare,
-  FiUsers,
-  FiInfo,
-  FiAlertTriangle,
-  FiTrash2,
-  FiArchive,
-  FiX,
-} from 'react-icons/fi';
+import { FiMessageSquare, FiTrash2, FiArchive, FiX } from 'react-icons/fi';
 import { MessagesTab } from './MessagesTab';
 import { ParticipantsTab } from './ParticipantsTab';
 import { DetailsTab } from './DetailsTab';
 import { ModerationTab } from './ModerationTab';
+import { ActivityTab } from './ActivityTab';
 import { ModalBreadcrumbNav, type BreadcrumbSegment } from '../ModalBreadcrumbNav';
 
 type ChatDetailModalProps = {
@@ -31,8 +32,6 @@ type ChatDetailModalProps = {
   /** Called when prev/next is clicked, passes the target chat ID. */
   onNavigate?: (chatId: string) => void;
 };
-
-type TabType = 'messages' | 'participants' | 'details' | 'moderation';
 
 const getStatusBadge = (status?: string) => {
   switch (status) {
@@ -55,7 +54,6 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
   siblingIds,
   onNavigate,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('messages');
   const { confirm, confirmProps } = useConfirm();
 
   const { data: chat, isLoading: chatLoading } = useAdminChatById(chatId);
@@ -135,6 +133,51 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
     { label: `Chat #${chatId.slice(-8)}` },
   ];
 
+  const header = (
+    <div className={styles.chatTitle}>
+      <FiMessageSquare />
+      Conversation Details
+      {conversation && (
+        <>
+          <span className={styles.chatId}>Chat #{conversation.id.slice(-8)}</span>
+          <div className={styles.headerBadgeRow}>{getStatusBadge(conversation.status)}</div>
+        </>
+      )}
+    </div>
+  );
+
+  const tabs: EntityInspectorTab[] = [
+    {
+      id: 'messages',
+      label: 'Messages',
+      content: <MessagesTab chatId={chatId} onMessageDeleted={onUpdate} />,
+    },
+    {
+      id: 'participants',
+      label: 'Participants',
+      content: conversation ? (
+        <ParticipantsTab participants={conversation.participants} onClose={onClose} />
+      ) : null,
+    },
+    {
+      id: 'details',
+      label: 'Details',
+      content: conversation ? (
+        <DetailsTab conversation={conversation} getStatusBadge={getStatusBadge} onClose={onClose} />
+      ) : null,
+    },
+    {
+      id: 'moderation',
+      label: 'Moderation',
+      content: conversation ? <ModerationTab chat={conversation} chatId={chatId} /> : null,
+    },
+    {
+      id: 'activity',
+      label: 'Activity',
+      content: <ActivityTab chatId={chatId} />,
+    },
+  ];
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size='xl'>
       <div className={styles.modalContent}>
@@ -144,74 +187,17 @@ export const ChatDetailModal: React.FC<ChatDetailModalProps> = ({
           currentId={chatId}
           onNavigate={onNavigate}
         />
-        <div className={styles.chatHeader}>
-          <div className={styles.chatTitle}>
-            <FiMessageSquare />
-            Conversation Details
-          </div>
-          {conversation && (
-            <>
-              <span className={styles.chatId}>Chat #{conversation.id.slice(-8)}</span>
-              <div className={styles.headerBadgeRow}>{getStatusBadge(conversation.status)}</div>
-            </>
-          )}
-        </div>
 
-        <div className={styles.tabBar}>
-          <button
-            className={styles.tab({ active: activeTab === 'messages' })}
-            onClick={() => setActiveTab('messages')}
-          >
-            <FiMessageSquare />
-            Messages
-          </button>
-          <button
-            className={styles.tab({ active: activeTab === 'participants' })}
-            onClick={() => setActiveTab('participants')}
-          >
-            <FiUsers />
-            Participants
-          </button>
-          <button
-            className={styles.tab({ active: activeTab === 'details' })}
-            onClick={() => setActiveTab('details')}
-          >
-            <FiInfo />
-            Details
-          </button>
-          <button
-            className={styles.tab({ active: activeTab === 'moderation' })}
-            onClick={() => setActiveTab('moderation')}
-          >
-            <FiAlertTriangle />
-            Moderation
-          </button>
-        </div>
-
-        <div className={styles.tabContent}>
-          {chatLoading ? (
-            <div className={styles.loadingState}>Loading...</div>
-          ) : (
-            <>
-              {activeTab === 'messages' && (
-                <MessagesTab chatId={chatId} onMessageDeleted={onUpdate} />
-              )}
-              {activeTab === 'participants' && conversation && (
-                <ParticipantsTab participants={conversation.participants} onClose={onClose} />
-              )}
-              {activeTab === 'details' && conversation && (
-                <DetailsTab
-                  conversation={conversation}
-                  getStatusBadge={getStatusBadge}
-                  onClose={onClose}
-                />
-              )}
-              {activeTab === 'moderation' && conversation && (
-                <ModerationTab chat={conversation} chatId={chatId} />
-              )}
-            </>
-          )}
-        </div>
+        {chatLoading ? (
+          <div className={styles.loadingState}>Loading...</div>
+        ) : (
+          <EntityInspector
+            data-testid='chat-detail-panel'
+            resetTabsOnKeyChange={chatId}
+            tabs={tabs}
+            header={header}
+          />
+        )}
 
         <div className={styles.actionBar}>
           <Button
