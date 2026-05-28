@@ -16,7 +16,7 @@ const ENTITY_ROUTE_PREFIX: Partial<Record<EntityType, string>> = {
   pet: '/api/v1/pets',
   application: '/api/v1/applications',
   rescue: '/api/v1/rescues',
-  // report: '/api/v1/moderation/reports',
+  report: '/api/v1/admin/moderation/reports',
   // chat: '/api/v1/chats',
   // support_ticket: '/api/v1/support/tickets',
 };

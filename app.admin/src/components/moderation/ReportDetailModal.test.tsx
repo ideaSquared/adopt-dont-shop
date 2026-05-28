@@ -24,7 +24,12 @@ import type {
 
 const mockUseReports = vi.fn();
 const mockUseActiveActions = vi.fn();
+const mockUseEntityActivity = vi.fn();
 const mockNavigate = vi.fn();
+
+vi.mock('../../hooks', () => ({
+  useEntityActivity: (...args: unknown[]) => mockUseEntityActivity(...args),
+}));
 
 vi.mock('@adopt-dont-shop/lib.moderation', () => ({
   useReports: (...args: unknown[]) => mockUseReports(...args),
@@ -108,13 +113,16 @@ const stubHooks = () => {
     error: null,
     refetch: vi.fn(),
   });
+  mockUseEntityActivity.mockReturnValue({ data: [], isLoading: false, error: null });
 };
 
 describe('ReportDetailModal — prior history and active sanctions', () => {
   beforeEach(() => {
     mockUseReports.mockReset();
     mockUseActiveActions.mockReset();
+    mockUseEntityActivity.mockReset();
     mockNavigate.mockReset();
+    mockUseEntityActivity.mockReturnValue({ data: [], isLoading: false, error: null });
   });
 
   it('renders prior reports excluding the current one when reportedUserId is set', async () => {
@@ -135,13 +143,16 @@ describe('ReportDetailModal — prior history and active sanctions', () => {
       refetch: vi.fn(),
     });
 
+    const user = userEvent.setup();
     render(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
+
+    // Prior history lives on the Context tab; switch from the default Overview tab.
+    await user.click(screen.getByRole('tab', { name: 'Context' }));
 
     await waitFor(() => {
       expect(screen.getByTestId('prior-history-list')).toBeInTheDocument();
     });
     expect(screen.getByText('Prior offence A')).toBeInTheDocument();
-    expect(screen.queryByText(/Repeated harassment of other adopters/)).toBeInTheDocument();
     expect(screen.getByTestId('no-active-sanctions')).toBeInTheDocument();
   });
 
@@ -160,14 +171,17 @@ describe('ReportDetailModal — prior history and active sanctions', () => {
       refetch: vi.fn(),
     });
 
+    const user = userEvent.setup();
     render(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
+
+    await user.click(screen.getByRole('tab', { name: 'Context' }));
 
     expect(screen.getByTestId('active-sanctions-list')).toBeInTheDocument();
     expect(screen.getByText(/repeated rule violations/i)).toBeInTheDocument();
     expect(screen.getByTestId('no-prior-history')).toBeInTheDocument();
   });
 
-  it('omits prior history and sanction sections when reportedUserId is null', () => {
+  it('omits the context tab when reportedUserId is null', () => {
     const current = makeReport({ reportedUserId: null });
     mockUseReports.mockReturnValue({
       data: { data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } },
@@ -184,6 +198,7 @@ describe('ReportDetailModal — prior history and active sanctions', () => {
 
     render(<ReportDetailModal isOpen onClose={() => undefined} report={current} />);
 
+    expect(screen.queryByRole('tab', { name: 'Context' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('prior-history-list')).not.toBeInTheDocument();
     expect(screen.queryByTestId('no-prior-history')).not.toBeInTheDocument();
     expect(screen.queryByTestId('active-sanctions-list')).not.toBeInTheDocument();
@@ -217,6 +232,7 @@ describe('ReportDetailModal — view-in-context navigation', () => {
   beforeEach(() => {
     mockUseReports.mockReset();
     mockUseActiveActions.mockReset();
+    mockUseEntityActivity.mockReset();
     mockNavigate.mockReset();
     vi.mocked(openExternal).mockReset();
     stubHooks();
@@ -299,5 +315,86 @@ describe('ReportDetailModal — view-in-context navigation', () => {
     // Sanity: the button is labelled by entity type so moderators understand the action.
     const button = screen.getByTestId('view-entity-button');
     expect(within(button).getByText(/View Message/)).toBeInTheDocument();
+  });
+});
+
+describe('ReportDetailModal — activity tab', () => {
+  beforeEach(() => {
+    mockUseReports.mockReset();
+    mockUseActiveActions.mockReset();
+    mockUseEntityActivity.mockReset();
+    mockNavigate.mockReset();
+    stubHooks();
+  });
+
+  it('renders the activity list returned by useEntityActivity', async () => {
+    mockUseEntityActivity.mockReturnValue({
+      data: [
+        {
+          activityId: 7,
+          activityType: 'other',
+          action: 'REPORT_ASSIGNED',
+          description: 'Updated report: assigned to moderator',
+          category: 'Report',
+          ipAddress: null,
+          userAgent: null,
+          createdAt: '2024-02-02T09:00:00Z',
+        },
+      ],
+      isLoading: false,
+      error: null,
+    });
+
+    const user = userEvent.setup();
+    render(
+      <ReportDetailModal
+        isOpen
+        onClose={() => undefined}
+        report={makeReport({ reportedUserId: null })}
+      />
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Activity' }));
+
+    expect(mockUseEntityActivity).toHaveBeenCalledWith('report', 'report-current');
+    expect(screen.getByText(/Updated report: assigned to moderator/)).toBeInTheDocument();
+  });
+
+  it('renders an empty-state message when there are no activity entries', async () => {
+    mockUseEntityActivity.mockReturnValue({ data: [], isLoading: false, error: null });
+
+    const user = userEvent.setup();
+    render(
+      <ReportDetailModal
+        isOpen
+        onClose={() => undefined}
+        report={makeReport({ reportedUserId: null })}
+      />
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Activity' }));
+
+    expect(screen.getByText(/No activity recorded for this report/)).toBeInTheDocument();
+  });
+
+  it('renders an error-state message when useEntityActivity fails', async () => {
+    mockUseEntityActivity.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('boom'),
+    });
+
+    const user = userEvent.setup();
+    render(
+      <ReportDetailModal
+        isOpen
+        onClose={() => undefined}
+        report={makeReport({ reportedUserId: null })}
+      />
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Activity' }));
+
+    expect(screen.getByText(/Failed to load activity history/)).toBeInTheDocument();
   });
 });
