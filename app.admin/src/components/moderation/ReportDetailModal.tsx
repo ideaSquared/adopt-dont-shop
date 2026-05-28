@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FiX,
   FiAlertTriangle,
   FiUser,
   FiCalendar,
@@ -12,6 +11,7 @@ import {
 } from 'react-icons/fi';
 import { openExternal } from '../../utils/openExternal';
 import clsx from 'clsx';
+import { EntityInspector, type EntityInspectorTab, Spinner } from '@adopt-dont-shop/lib.components';
 import {
   Report,
   getSeverityLabel,
@@ -21,6 +21,7 @@ import {
   useReports,
   useActiveActions,
 } from '@adopt-dont-shop/lib.moderation';
+import { useEntityActivity } from '../../hooks';
 import * as styles from './ReportDetailModal.css';
 import { ModalBreadcrumbNav, type BreadcrumbSegment } from '../modals/ModalBreadcrumbNav';
 
@@ -111,6 +112,215 @@ const getEntityTypeLabel = (entityType: string): string => {
       return 'Content';
   }
 };
+
+type EntityContext = {
+  displayName?: string;
+  deleted?: boolean;
+  error?: boolean;
+  email?: string;
+  userType?: string;
+  petType?: string;
+  breed?: string;
+  city?: string;
+  country?: string;
+};
+
+// ── Overview Tab ──────────────────────────────────────────────────
+
+type OverviewTabProps = {
+  report: Report;
+  entityContext: EntityContext | undefined;
+  onClose: () => void;
+};
+
+const OverviewTab: React.FC<OverviewTabProps> = ({ report, entityContext, onClose }) => {
+  const navigate = useNavigate();
+  const viewUrl = getEntityViewUrl(report.reportedEntityType, report.reportedEntityId);
+
+  const handleViewContent = () => {
+    if (viewUrl) {
+      onClose();
+      navigate(viewUrl);
+    }
+  };
+
+  return (
+    <>
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>
+          <FiAlertTriangle size={16} />
+          Report Status
+        </h3>
+        <div className={styles.infoGrid}>
+          <div className={styles.infoItem}>
+            <div className={styles.infoLabel}>Status</div>
+            <div className={styles.infoValue}>
+              <span className={styles[getStatusBadgeClass(report.status)]}>
+                {getStatusLabel(report.status)}
+              </span>
+            </div>
+          </div>
+          <div className={styles.infoItem}>
+            <div className={styles.infoLabel}>Severity</div>
+            <div className={styles.infoValue}>
+              <span className={styles[getSeverityBadgeClass(report.severity)]}>
+                {getSeverityLabel(report.severity)}
+              </span>
+            </div>
+          </div>
+          <div className={styles.infoItem}>
+            <div className={styles.infoLabel}>Category</div>
+            <div className={styles.infoValue}>{report.category}</div>
+          </div>
+          <div className={styles.infoItem}>
+            <div className={styles.infoLabel}>Report ID</div>
+            <div className={clsx(styles.infoValue, styles.monospaceId)}>
+              {report.reportId.substring(0, 8)}...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>
+          <FiFileText size={16} />
+          Description
+        </h3>
+        <div className={styles.description}>{report.description}</div>
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>
+          <FiUser size={16} />
+          Reported Entity
+        </h3>
+        <div className={styles.entityCard}>
+          <div className={styles.entityType}>{report.reportedEntityType}</div>
+          {entityContext ? (
+            <>
+              <div className={styles.entityName}>
+                {entityContext.displayName}
+                {entityContext.deleted && ' (Deleted)'}
+                {entityContext.error && ' (Error Loading)'}
+              </div>
+              {entityContext.email && (
+                <div className={styles.entityDetail}>{entityContext.email}</div>
+              )}
+              {entityContext.userType && (
+                <div className={styles.entityDetail}>Type: {entityContext.userType}</div>
+              )}
+              {entityContext.petType && (
+                <div className={styles.entityDetail}>
+                  {entityContext.petType}
+                  {entityContext.breed && ` • ${entityContext.breed}`}
+                </div>
+              )}
+              {entityContext.city && entityContext.country && (
+                <div className={styles.entityDetail}>
+                  {entityContext.city}, {entityContext.country}
+                </div>
+              )}
+              <div className={styles.entityId}>
+                <strong>ID:</strong> {report.reportedEntityId}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={styles.entityName}>Entity ID: {report.reportedEntityId}</div>
+              <div className={styles.entityDetail}>No additional context available</div>
+              <div className={styles.entityId}>
+                <strong>Full ID:</strong> {report.reportedEntityId}
+              </div>
+            </>
+          )}
+
+          {viewUrl && (
+            <>
+              <button
+                className={styles.viewContentButton}
+                onClick={handleViewContent}
+                data-testid='view-entity-button'
+                data-view-url={viewUrl}
+              >
+                <FiExternalLink size={16} />
+                View {getEntityTypeLabel(report.reportedEntityType)}
+              </button>
+              {(entityContext?.deleted || entityContext?.error) && (
+                <div className={styles.warningBox}>
+                  <FiAlertTriangle size={16} />
+                  <div>
+                    {entityContext.deleted
+                      ? 'This entity was deleted. The link may not work.'
+                      : 'There was an error loading this entity. The link may not work.'}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>
+          <FiUser size={16} />
+          Reporter Information
+        </h3>
+        <div className={styles.infoGrid}>
+          <div className={styles.infoItem}>
+            <div className={styles.infoLabel}>Reporter ID</div>
+            <div className={clsx(styles.infoValue, styles.monospaceId)}>
+              {report.reporterId.substring(0, 8)}...
+            </div>
+          </div>
+          {report.reportedUserId && (
+            <div className={styles.infoItem}>
+              <div className={styles.infoLabel}>Reported User ID</div>
+              <div className={clsx(styles.infoValue, styles.monospaceId)}>
+                {report.reportedUserId.substring(0, 8)}...
+              </div>
+            </div>
+          )}
+        </div>
+        <button
+          className={clsx(styles.viewContentButton, styles.viewContentButtonSpacing)}
+          onClick={() => openExternal(`${window.location.origin}/users/${report.reporterId}`)}
+        >
+          <FiExternalLink size={16} />
+          View Reporter Profile
+        </button>
+      </div>
+
+      <div className={styles.divider} />
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>
+          <FiCalendar size={16} />
+          Timeline
+        </h3>
+        <div className={styles.infoGrid}>
+          <div className={styles.infoItem}>
+            <div className={styles.infoLabel}>Reported</div>
+            <div className={styles.infoValue}>{new Date(report.createdAt).toLocaleString()}</div>
+            <div className={styles.entityDetail}>{formatRelativeTime(report.createdAt)}</div>
+          </div>
+          <div className={styles.infoItem}>
+            <div className={styles.infoLabel}>Last Updated</div>
+            <div className={styles.infoValue}>{new Date(report.updatedAt).toLocaleString()}</div>
+            <div className={styles.entityDetail}>{formatRelativeTime(report.updatedAt)}</div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ── Context Tab (prior history + active sanctions) ───────────────
 
 type PriorHistorySectionProps = {
   reportedUserId: string;
@@ -208,6 +418,60 @@ const ActiveSanctionsSection: React.FC<ActiveSanctionsSectionProps> = ({ reporte
   );
 };
 
+const ContextTab: React.FC<{ reportedUserId: string; reportId: string }> = ({
+  reportedUserId,
+  reportId,
+}) => (
+  <>
+    <PriorHistorySection reportedUserId={reportedUserId} currentReportId={reportId} />
+    <div className={styles.divider} />
+    <ActiveSanctionsSection reportedUserId={reportedUserId} />
+  </>
+);
+
+// ── Activity Tab ──────────────────────────────────────────────────
+
+const ActivityTab: React.FC<{ reportId: string }> = ({ reportId }) => {
+  const { data, isLoading, error } = useEntityActivity('report', reportId);
+
+  if (isLoading) {
+    return (
+      <div className={styles.activityEmpty}>
+        <Spinner size='sm' label='Loading activity' />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className={styles.activityEmpty}>Failed to load activity history.</div>;
+  }
+
+  const activities = data ?? [];
+
+  if (activities.length === 0) {
+    return <div className={styles.activityEmpty}>No activity recorded for this report.</div>;
+  }
+
+  return (
+    <div className={styles.activityList}>
+      {activities.map(activity => (
+        <div key={activity.activityId} className={styles.activityItem}>
+          <div className={styles.activityDot} />
+          <div className={styles.activityContent}>
+            <p className={styles.activityDescription}>{activity.description}</p>
+            <p className={styles.activityMeta}>
+              {activity.activityType} &middot;{' '}
+              {new Date(activity.createdAt).toLocaleString('en-GB')}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Main Modal ──────────────────────────────────────────────────
+
 export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   isOpen,
   onClose,
@@ -215,39 +479,17 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   siblingIds,
   onNavigate,
 }) => {
-  const navigate = useNavigate();
-
   if (!report) {
     return null;
   }
 
   const entityContext = (report as Record<string, unknown>).entityContext as
-    | {
-        displayName?: string;
-        deleted?: boolean;
-        error?: boolean;
-        email?: string;
-        userType?: string;
-        petType?: string;
-        breed?: string;
-        city?: string;
-        country?: string;
-      }
+    | EntityContext
     | undefined;
-  const viewUrl = getEntityViewUrl(report.reportedEntityType, report.reportedEntityId);
 
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
-    }
-  };
-
-  const handleViewContent = () => {
-    if (viewUrl) {
-      // Close the modal first so the moderator lands on the entity page
-      // instead of being trapped behind the still-open overlay.
-      onClose();
-      navigate(viewUrl);
     }
   };
 
@@ -257,6 +499,28 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     { label: `Report #${report.reportId.substring(0, 8)}` },
   ];
 
+  const tabs: EntityInspectorTab[] = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      content: <OverviewTab report={report} entityContext={entityContext} onClose={onClose} />,
+    },
+  ];
+
+  if (report.reportedUserId) {
+    tabs.push({
+      id: 'context',
+      label: 'Context',
+      content: <ContextTab reportedUserId={report.reportedUserId} reportId={report.reportId} />,
+    });
+  }
+
+  tabs.push({
+    id: 'activity',
+    label: 'Activity',
+    content: <ActivityTab reportId={report.reportId} />,
+  });
+
   return (
     <div
       className={clsx(styles.overlay, !isOpen && styles.overlayHidden)}
@@ -265,214 +529,40 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
       role='presentation'
     >
       <div className={styles.modalContainer}>
-        <div className={styles.modalHeader}>
-          <div className={styles.headerContent}>
-            <h2 className={styles.title}>{report.title}</h2>
-            <div className={styles.subtitle}>
-              <FiCalendar size={14} />
-              Reported {formatRelativeTime(report.createdAt)}
-            </div>
-          </div>
-          <button className={styles.closeButton} onClick={onClose} aria-label='Close'>
-            <FiX size={20} />
-          </button>
-        </div>
-
-        <div className={styles.modalBody}>
+        <div className={styles.breadcrumbWrap}>
           <ModalBreadcrumbNav
             segments={breadcrumbSegments}
             siblingIds={siblingIds}
             currentId={report.reportId}
             onNavigate={onNavigate}
           />
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>
-              <FiAlertTriangle size={16} />
-              Report Status
-            </h3>
-            <div className={styles.infoGrid}>
-              <div className={styles.infoItem}>
-                <div className={styles.infoLabel}>Status</div>
-                <div className={styles.infoValue}>
-                  <span className={styles[getStatusBadgeClass(report.status)]}>
-                    {getStatusLabel(report.status)}
-                  </span>
-                </div>
-              </div>
-              <div className={styles.infoItem}>
-                <div className={styles.infoLabel}>Severity</div>
-                <div className={styles.infoValue}>
-                  <span className={styles[getSeverityBadgeClass(report.severity)]}>
-                    {getSeverityLabel(report.severity)}
-                  </span>
-                </div>
-              </div>
-              <div className={styles.infoItem}>
-                <div className={styles.infoLabel}>Category</div>
-                <div className={styles.infoValue}>{report.category}</div>
-              </div>
-              <div className={styles.infoItem}>
-                <div className={styles.infoLabel}>Report ID</div>
-                <div className={clsx(styles.infoValue, styles.monospaceId)}>
-                  {report.reportId.substring(0, 8)}...
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.divider} />
-
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>
-              <FiFileText size={16} />
-              Description
-            </h3>
-            <div className={styles.description}>{report.description}</div>
-          </div>
-
-          <div className={styles.divider} />
-
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>
-              <FiUser size={16} />
-              Reported Entity
-            </h3>
-            <div className={styles.entityCard}>
-              <div className={styles.entityType}>{report.reportedEntityType}</div>
-              {entityContext ? (
-                <>
-                  <div className={styles.entityName}>
-                    {entityContext.displayName}
-                    {entityContext.deleted && ' (Deleted)'}
-                    {entityContext.error && ' (Error Loading)'}
-                  </div>
-                  {entityContext.email && (
-                    <div className={styles.entityDetail}>{entityContext.email}</div>
-                  )}
-                  {entityContext.userType && (
-                    <div className={styles.entityDetail}>Type: {entityContext.userType}</div>
-                  )}
-                  {entityContext.petType && (
-                    <div className={styles.entityDetail}>
-                      {entityContext.petType}
-                      {entityContext.breed && ` • ${entityContext.breed}`}
-                    </div>
-                  )}
-                  {entityContext.city && entityContext.country && (
-                    <div className={styles.entityDetail}>
-                      {entityContext.city}, {entityContext.country}
-                    </div>
-                  )}
-                  <div className={styles.entityId}>
-                    <strong>ID:</strong> {report.reportedEntityId}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className={styles.entityName}>Entity ID: {report.reportedEntityId}</div>
-                  <div className={styles.entityDetail}>No additional context available</div>
-                  <div className={styles.entityId}>
-                    <strong>Full ID:</strong> {report.reportedEntityId}
-                  </div>
-                </>
-              )}
-
-              {viewUrl && (
-                <>
-                  <button
-                    className={styles.viewContentButton}
-                    onClick={handleViewContent}
-                    data-testid='view-entity-button'
-                    data-view-url={viewUrl}
-                  >
-                    <FiExternalLink size={16} />
-                    View {getEntityTypeLabel(report.reportedEntityType)}
-                  </button>
-                  {(entityContext?.deleted || entityContext?.error) && (
-                    <div className={styles.warningBox}>
-                      <FiAlertTriangle size={16} />
-                      <div>
-                        {entityContext.deleted
-                          ? 'This entity was deleted. The link may not work.'
-                          : 'There was an error loading this entity. The link may not work.'}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.divider} />
-
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>
-              <FiUser size={16} />
-              Reporter Information
-            </h3>
-            <div className={styles.infoGrid}>
-              <div className={styles.infoItem}>
-                <div className={styles.infoLabel}>Reporter ID</div>
-                <div className={clsx(styles.infoValue, styles.monospaceId)}>
-                  {report.reporterId.substring(0, 8)}...
-                </div>
-              </div>
-              {report.reportedUserId && (
-                <div className={styles.infoItem}>
-                  <div className={styles.infoLabel}>Reported User ID</div>
-                  <div className={clsx(styles.infoValue, styles.monospaceId)}>
-                    {report.reportedUserId.substring(0, 8)}...
-                  </div>
-                </div>
-              )}
-            </div>
-            <button
-              className={clsx(styles.viewContentButton, styles.viewContentButtonSpacing)}
-              onClick={() => openExternal(`${window.location.origin}/users/${report.reporterId}`)}
-            >
-              <FiExternalLink size={16} />
-              View Reporter Profile
-            </button>
-          </div>
-
-          {report.reportedUserId && (
-            <>
-              <div className={styles.divider} />
-              <PriorHistorySection
-                reportedUserId={report.reportedUserId}
-                currentReportId={report.reportId}
-              />
-
-              <div className={styles.divider} />
-              <ActiveSanctionsSection reportedUserId={report.reportedUserId} />
-            </>
-          )}
-
-          <div className={styles.divider} />
-
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>
-              <FiCalendar size={16} />
-              Timeline
-            </h3>
-            <div className={styles.infoGrid}>
-              <div className={styles.infoItem}>
-                <div className={styles.infoLabel}>Reported</div>
-                <div className={styles.infoValue}>
-                  {new Date(report.createdAt).toLocaleString()}
-                </div>
-                <div className={styles.entityDetail}>{formatRelativeTime(report.createdAt)}</div>
-              </div>
-              <div className={styles.infoItem}>
-                <div className={styles.infoLabel}>Last Updated</div>
-                <div className={styles.infoValue}>
-                  {new Date(report.updatedAt).toLocaleString()}
-                </div>
-                <div className={styles.entityDetail}>{formatRelativeTime(report.updatedAt)}</div>
-              </div>
-            </div>
-          </div>
         </div>
+        <EntityInspector
+          data-testid='report-detail-inspector'
+          resetTabsOnKeyChange={report.reportId}
+          onClose={onClose}
+          closeLabel='Close report detail'
+          tabs={tabs}
+          header={
+            <>
+              <div className={styles.headerInfo}>
+                <h2 className={styles.title}>{report.title}</h2>
+                <div className={styles.subtitle}>
+                  <FiCalendar size={14} />
+                  Reported {formatRelativeTime(report.createdAt)}
+                </div>
+              </div>
+              <div className={styles.headerBadges}>
+                <span className={styles[getStatusBadgeClass(report.status)]}>
+                  {getStatusLabel(report.status)}
+                </span>
+                <span className={styles[getSeverityBadgeClass(report.severity)]}>
+                  {getSeverityLabel(report.severity)}
+                </span>
+              </div>
+            </>
+          }
+        />
       </div>
     </div>
   );
