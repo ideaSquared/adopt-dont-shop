@@ -5,6 +5,11 @@ export const pageContainer = style({
   maxWidth: '1200px',
   margin: '0 auto',
   padding: '2rem',
+  '@media': {
+    '(max-width: 768px)': {
+      padding: '1rem',
+    },
+  },
 });
 
 export const backLink = style({

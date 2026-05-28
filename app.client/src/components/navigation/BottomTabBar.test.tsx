@@ -56,9 +56,17 @@ describe('BottomTabBar', () => {
     matchPreferencesState.isLoading = false;
   });
 
-  it('does not render when the user is unauthenticated', () => {
-    const { container } = renderWithProviders(<BottomTabBar />);
-    expect(container).toBeEmptyDOMElement();
+  it('exposes only the public browse tabs when the user is unauthenticated', () => {
+    renderWithProviders(<BottomTabBar />);
+    const nav = screen.getByRole('navigation', { name: /primary/i });
+    expect(within(nav).getByRole('link', { name: /discover/i })).toHaveAttribute(
+      'href',
+      '/discover'
+    );
+    expect(within(nav).getByRole('link', { name: /search/i })).toHaveAttribute('href', '/search');
+    expect(within(nav).queryByRole('link', { name: /favorites/i })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: /messages/i })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('button', { name: /user menu/i })).not.toBeInTheDocument();
   });
 
   it('renders a navigation region with the primary tabs when authenticated', () => {
