@@ -105,6 +105,7 @@ vi.mock('../../models/Notification', () => ({
 vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: vi.fn().mockResolvedValue(undefined),
+    getEntityActivityLog: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -581,6 +582,75 @@ describe('ChatService', () => {
         expect(MockedMessage.findAndCountAll).toHaveBeenCalledWith(
           expect.objectContaining({ limit: 200, offset: 0 })
         );
+      });
+    });
+  });
+
+  describe('getChatActivityLog', () => {
+    const mockGetEntityActivityLog = AuditLogService.getEntityActivityLog as vi.MockedFunction<
+      typeof AuditLogService.getEntityActivityLog
+    >;
+
+    beforeEach(() => {
+      mockGetEntityActivityLog.mockReset();
+      mockGetEntityActivityLog.mockResolvedValue([]);
+    });
+
+    it('throws NotFoundError when the chat does not exist', async () => {
+      (MockedChat.findByPk as vi.Mock).mockResolvedValue(null);
+
+      await expect(ChatService.getChatActivityLog('missing-chat')).rejects.toThrow('Chat not found');
+      expect(mockGetEntityActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('queries audit logs scoped to category=Chat and the chat id', async () => {
+      (MockedChat.findByPk as vi.Mock).mockResolvedValue({ chat_id: 'chat-1' });
+
+      await ChatService.getChatActivityLog('chat-1', { limit: 25, offset: 10 });
+
+      expect(mockGetEntityActivityLog).toHaveBeenCalledWith('Chat', 'chat-1', {
+        from: undefined,
+        to: undefined,
+        limit: 25,
+        offset: 10,
+      });
+    });
+
+    it('parses ISO from/to filters into Date instances for the audit query', async () => {
+      (MockedChat.findByPk as vi.Mock).mockResolvedValue({ chat_id: 'chat-1' });
+
+      await ChatService.getChatActivityLog('chat-1', {
+        from: '2024-01-01T00:00:00.000Z',
+        to: '2024-02-01T00:00:00.000Z',
+      });
+
+      const call = mockGetEntityActivityLog.mock.calls[0]?.[2];
+      expect(call?.from).toEqual(new Date('2024-01-01T00:00:00.000Z'));
+      expect(call?.to).toEqual(new Date('2024-02-01T00:00:00.000Z'));
+    });
+
+    it('maps audit rows through auditLogToActivity', async () => {
+      (MockedChat.findByPk as vi.Mock).mockResolvedValue({ chat_id: 'chat-1' });
+      mockGetEntityActivityLog.mockResolvedValue([
+        {
+          id: 7,
+          action: 'CREATE',
+          category: 'Chat',
+          metadata: { entityId: 'chat-1' },
+          ip_address: null,
+          user_agent: null,
+          timestamp: new Date('2024-06-01T12:00:00.000Z'),
+        },
+      ] as unknown as Awaited<ReturnType<typeof AuditLogService.getEntityActivityLog>>);
+
+      const result = await ChatService.getChatActivityLog('chat-1');
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        activityId: 7,
+        action: 'CREATE',
+        category: 'Chat',
+        createdAt: '2024-06-01T12:00:00.000Z',
       });
     });
   });

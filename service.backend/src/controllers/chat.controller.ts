@@ -389,6 +389,24 @@ export class ChatController {
   }
 
   /**
+   * Get the activity log for a single chat (admin EntityInspector tab).
+   */
+  static async getChatActivityLog(req: AuthenticatedRequest, res: Response) {
+    const { chatId } = req.params;
+    const { from, to, limit, offset } = req.query;
+    const activity = await ChatService.getChatActivityLog(chatId, {
+      from: typeof from === 'string' ? from : undefined,
+      to: typeof to === 'string' ? to : undefined,
+      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      offset: typeof offset === 'string' ? Number(offset) : undefined,
+    });
+    res.json({
+      success: true,
+      data: activity,
+    });
+  }
+
+  /**
    * Search and list chats for the authenticated user
    */
   static async getChats(req: AuthenticatedRequest, res: Response) {

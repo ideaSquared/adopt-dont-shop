@@ -37,6 +37,15 @@ describe('entityActivityService.getActivity', () => {
     expect(result).toEqual(sampleActivity);
   });
 
+  it('hits the chat route for entityType=chat', async () => {
+    mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
+
+    const result = await entityActivityService.getActivity('chat', 'chat-1', { limit: 5 });
+
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/chats/chat-1/activity', { limit: 5 });
+    expect(result).toEqual(sampleActivity);
+  });
+
   it('unwraps the {success, data} envelope', async () => {
     mockGet.mockResolvedValueOnce({ success: true, data: sampleActivity });
     const result = await entityActivityService.getActivity('user', 'u1');
