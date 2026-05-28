@@ -202,12 +202,7 @@ describe('Application routes', () => {
       (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
     );
     requirePermissionMock.mockImplementation(
-      (
-        _perm: string,
-        _req: AuthenticatedRequest,
-        _res: Response,
-        next: NextFunction
-      ) => next()
+      (_perm: string, _req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
     );
   });
 
@@ -276,7 +271,6 @@ describe('Application routes', () => {
 
       const app = buildApp();
       for (let i = 0; i < 4; i += 1) {
-        // eslint-disable-next-line no-await-in-loop
         const res = await request(app)
           .post('/api/v1/applications')
           .send({ petId: 'pet-uuid-1', answers: {} });
@@ -292,7 +286,6 @@ describe('Application routes', () => {
       const app = buildApp();
       // First 5 pass through the daily limiter.
       for (let i = 0; i < 5; i += 1) {
-        // eslint-disable-next-line no-await-in-loop
         await request(app).post('/api/v1/applications').send({ petId: 'pet-uuid-1', answers: {} });
       }
       const res = await request(app)

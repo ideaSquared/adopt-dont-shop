@@ -1489,9 +1489,9 @@ describe('ApplicationService - Business Logic', () => {
     it('throws NotFoundError when the application does not exist', async () => {
       MockedApplication.findByPk = vi.fn().mockResolvedValue(null);
 
-      await expect(
-        ApplicationService.getApplicationActivityLog('missing-app-id')
-      ).rejects.toThrow('Application not found');
+      await expect(ApplicationService.getApplicationActivityLog('missing-app-id')).rejects.toThrow(
+        'Application not found'
+      );
     });
   });
 });
