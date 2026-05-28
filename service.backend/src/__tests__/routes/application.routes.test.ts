@@ -44,6 +44,7 @@ vi.mock('../../services/application.service', () => ({
     getApplicationFormStructure: vi.fn(),
     validateApplicationAnswers: vi.fn(),
     updateHomeVisit: vi.fn(),
+    getApplicationActivityLog: vi.fn(),
   },
   default: {
     getApplications: vi.fn(),
@@ -60,6 +61,7 @@ vi.mock('../../services/application.service', () => ({
     getApplicationFormStructure: vi.fn(),
     validateApplicationAnswers: vi.fn(),
     updateHomeVisit: vi.fn(),
+    getApplicationActivityLog: vi.fn(),
   },
 }));
 
@@ -129,6 +131,7 @@ vi.mock('../../middleware/field-permissions', () => ({
 
 const authenticateTokenMock = vi.fn();
 const requireRoleMock = vi.fn();
+const requirePermissionMock = vi.fn();
 
 vi.mock('../../middleware/auth', () => ({
   authenticateToken: (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
@@ -141,8 +144,8 @@ vi.mock('../../middleware/rbac', () => ({
     (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
       requireRoleMock(req, res, next),
   requirePermission:
-    (_perm: string) => (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
-      next(),
+    (perm: string) => (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
+      requirePermissionMock(perm, req, res, next),
 }));
 
 import applicationRouter from '../../routes/application.routes';
@@ -197,6 +200,14 @@ describe('Application routes', () => {
     );
     requireRoleMock.mockImplementation(
       (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
+    );
+    requirePermissionMock.mockImplementation(
+      (
+        _perm: string,
+        _req: AuthenticatedRequest,
+        _res: Response,
+        next: NextFunction
+      ) => next()
     );
   });
 
@@ -514,6 +525,84 @@ describe('Application routes', () => {
         .send({ status: 'cancelled', cancelled_reason: 'duplicate' });
 
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe('GET /api/v1/applications/:applicationId/activity', () => {
+    const applicationId = 'app-uuid-1';
+
+    it('returns 401 when unauthenticated', async () => {
+      authenticateTokenMock.mockImplementation((_req: AuthenticatedRequest, res: Response) => {
+        res.status(401).json({ error: 'Access token required' });
+      });
+
+      const res = await request(buildApp()).get(`/api/v1/applications/${applicationId}/activity`);
+
+      expect(res.status).toBe(401);
+      expect(ApplicationService.getApplicationActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('returns 403 when the caller lacks applications.read permission', async () => {
+      requirePermissionMock.mockImplementation(
+        (_perm: string, _req: AuthenticatedRequest, res: Response) => {
+          res.status(403).json({ error: 'Access denied' });
+        }
+      );
+
+      const res = await request(buildApp()).get(`/api/v1/applications/${applicationId}/activity`);
+
+      expect(res.status).toBe(403);
+      expect(ApplicationService.getApplicationActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('gates the route on applications.read', async () => {
+      vi.mocked(ApplicationService.getApplicationActivityLog).mockResolvedValue([]);
+
+      await request(buildApp()).get(`/api/v1/applications/${applicationId}/activity`);
+
+      expect(requirePermissionMock).toHaveBeenCalledWith(
+        'applications.read',
+        expect.anything(),
+        expect.anything(),
+        expect.any(Function)
+      );
+    });
+
+    it('delegates to ApplicationService.getApplicationActivityLog with parsed query params', async () => {
+      vi.mocked(ApplicationService.getApplicationActivityLog).mockResolvedValue([]);
+
+      const res = await request(buildApp())
+        .get(`/api/v1/applications/${applicationId}/activity`)
+        .query({ from: '2026-01-01', to: '2026-02-01', limit: '25', offset: '10' });
+
+      expect(res.status).toBe(200);
+      expect(ApplicationService.getApplicationActivityLog).toHaveBeenCalledWith(applicationId, {
+        from: '2026-01-01',
+        to: '2026-02-01',
+        limit: 25,
+        offset: 10,
+      });
+    });
+
+    it('returns the activity rows in the {success, data} envelope', async () => {
+      const activity = [
+        {
+          activityId: 7,
+          activityType: 'application' as const,
+          action: 'APPLICATION_SUBMITTED',
+          description: 'Submitted application for Rex',
+          category: 'Application',
+          ipAddress: null,
+          userAgent: null,
+          createdAt: '2026-01-15T12:00:00.000Z',
+        },
+      ];
+      vi.mocked(ApplicationService.getApplicationActivityLog).mockResolvedValue(activity);
+
+      const res = await request(buildApp()).get(`/api/v1/applications/${applicationId}/activity`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ success: true, data: activity });
     });
   });
 });
