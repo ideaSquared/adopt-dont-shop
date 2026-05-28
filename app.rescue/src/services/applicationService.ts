@@ -8,6 +8,9 @@ import type {
   ApplicationTimeline,
   ApplicationStats,
   BulkAction,
+  RawApplication,
+  RawReference,
+  RawTimelineItem,
 } from '../types/applications';
 import type { ApplicationStage } from '../types/applicationStages';
 import type { ApplicationPriority } from '@adopt-dont-shop/lib.applications';
@@ -327,17 +330,19 @@ export class RescueApplicationService {
 
       // Extract references from application data and transform them
       const references = application?.references || [];
-      return references.map((ref: any, index: number) => ({
-        id: `ref-${index}`,
-        applicationId,
-        type: ref.relationship?.toLowerCase().includes('vet') ? 'veterinarian' : 'personal',
-        contactName: ref.name,
-        contactInfo: `${ref.phone} - ${ref.email}`,
-        status: ref.status || 'pending',
-        notes: ref.notes || '',
-        completedAt: ref.contactedAt,
-        completedBy: ref.contactedBy,
-      }));
+      return references.map(
+        (ref: RawReference, index: number): ReferenceCheck => ({
+          id: `ref-${index}`,
+          applicationId,
+          type: ref.relationship?.toLowerCase().includes('vet') ? 'veterinarian' : 'personal',
+          contactName: ref.name ?? '',
+          contactInfo: `${ref.phone} - ${ref.email}`,
+          status: ref.status || 'pending',
+          notes: ref.notes || '',
+          completedAt: ref.contactedAt,
+          completedBy: ref.contactedBy,
+        })
+      );
     } catch (error) {
       console.error(`Failed to fetch references for application ${applicationId}:`, error);
       throw new Error('Failed to fetch reference checks from server');
@@ -583,29 +588,31 @@ export class RescueApplicationService {
       }
 
       // Transform timeline data to expected format
-      return timelineArray.map((item: any) => ({
-        id: item.timeline_id || item.id,
-        applicationId: item.application_id || applicationId,
-        event: item.event_type || item.event || 'Timeline Event',
-        title: item.title || item.event || 'Timeline Event',
-        description: item.description || `Timeline event: ${item.event_type}`,
-        timestamp: item.created_at || item.timestamp,
-        userId: item.created_by || item.userId,
-        userName: item.created_by_system
-          ? 'System'
-          : item.CreatedBy
-            ? `${item.CreatedBy.firstName || ''} ${item.CreatedBy.lastName || ''}`.trim() ||
-              item.CreatedBy.email ||
-              'Unknown User'
-            : item.created_by_name || item.userName || 'Unknown',
-        data: item.metadata || item.data || {},
-        eventType: item.event_type,
-        isSystemGenerated: item.created_by_system || false,
-        previousStage: item.previous_stage,
-        newStage: item.new_stage,
-        previousStatus: item.previous_status,
-        newStatus: item.new_status,
-      }));
+      return timelineArray.map(
+        (item: RawTimelineItem): ApplicationTimeline => ({
+          id: item.timeline_id || item.id || '',
+          applicationId: item.application_id || applicationId,
+          event: item.event_type || item.event || 'Timeline Event',
+          title: item.title || item.event || 'Timeline Event',
+          description: item.description || `Timeline event: ${item.event_type}`,
+          timestamp: item.created_at || item.timestamp || '',
+          userId: item.created_by || item.userId,
+          userName: item.created_by_system
+            ? 'System'
+            : item.CreatedBy
+              ? `${item.CreatedBy.firstName || ''} ${item.CreatedBy.lastName || ''}`.trim() ||
+                item.CreatedBy.email ||
+                'Unknown User'
+              : item.created_by_name || item.userName || 'Unknown',
+          data: item.metadata || item.data || {},
+          eventType: item.event_type,
+          isSystemGenerated: item.created_by_system || false,
+          previousStage: item.previous_stage,
+          newStage: item.new_stage,
+          previousStatus: item.previous_status,
+          newStatus: item.new_status,
+        })
+      );
     } catch (error) {
       // UX P0/P1 #6: previously this returned `[]` on error, which was
       // indistinguishable from a genuine empty timeline. Re-throw so the
@@ -766,7 +773,7 @@ export class RescueApplicationService {
   /**
    * Transform application data for list display
    */
-  private transformApplicationForList = (app: any): ApplicationListItem => {
+  private transformApplicationForList = (app: RawApplication): ApplicationListItem => {
     const submittedAt = new Date(app.submittedAt || new Date());
     const now = new Date();
     const daysDiff = Math.floor((now.getTime() - submittedAt.getTime()) / (1000 * 60 * 60 * 24));
@@ -781,8 +788,8 @@ export class RescueApplicationService {
       rescueId: app.rescueId,
       status: app.status,
       submittedAt: app.submittedAt,
-      createdAt: app.createdAt || app.submittedAt,
-      updatedAt: app.updatedAt || app.submittedAt,
+      createdAt: app.createdAt,
+      updatedAt: app.updatedAt,
       data: app.data,
       applicantName:
         `${app.data?.personalInfo?.firstName || 'Unknown'} ${app.data?.personalInfo?.lastName || ''}`.trim(),
@@ -802,7 +809,7 @@ export class RescueApplicationService {
   /**
    * Get application priority from backend data
    */
-  private getPriority(app: any): ApplicationPriority {
+  private getPriority(app: RawApplication): ApplicationPriority {
     // Use the actual priority field from the backend
     // Backend uses: LOW, NORMAL, HIGH, URGENT
 
@@ -820,7 +827,9 @@ export class RescueApplicationService {
   /**
    * Calculate references status based on application data
    */
-  private calculateReferencesStatus(app: any): 'pending' | 'in_progress' | 'completed' | 'failed' {
+  private calculateReferencesStatus(
+    app: RawApplication
+  ): 'pending' | 'in_progress' | 'completed' | 'failed' {
     // Simple logic based on simplified statuses
     if (app.status === 'submitted') {
       return 'pending';
@@ -838,7 +847,7 @@ export class RescueApplicationService {
    * Calculate home visit status based on application data
    */
   private calculateHomeVisitStatus(
-    app: any
+    app: RawApplication
   ): 'not_scheduled' | 'scheduled' | 'completed' | 'failed' {
     // Simple logic based on simplified statuses
     if (app.status === 'submitted') {
@@ -856,7 +865,7 @@ export class RescueApplicationService {
   /**
    * Calculate stage progress percentage based on current stage and completed steps
    */
-  private calculateStageProgress(app: any): number {
+  private calculateStageProgress(app: RawApplication): number {
     const stage = app.stage || 'PENDING';
 
     // Base progress by stage
