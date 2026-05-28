@@ -209,78 +209,78 @@ const Applications: React.FC = () => {
         <div className={styles.errorMessage}>Failed to load applications: {error.message}</div>
       )}
 
-      <div className={styles.filterBar}>
-        <div className={styles.searchInputWrapper}>
-          <FiSearch />
-          <Input
-            type='text'
-            placeholder='Search by applicant name or email...'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='apps-status-filter'>
-            Status
-          </label>
-          <select
-            id='apps-status-filter'
-            className={styles.select}
-            value={statusFilter}
-            onChange={e => setFilterParam('status', e.target.value)}
-          >
-            <option value='all'>All Statuses</option>
-            <option value='submitted'>Submitted</option>
-            <option value='approved'>Approved</option>
-            <option value='rejected'>Rejected</option>
-            <option value='withdrawn'>Withdrawn</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='apps-type-filter'>
-            Pet Type
-          </label>
-          <select
-            id='apps-type-filter'
-            className={styles.select}
-            value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
-          >
-            <option value='all'>All Types</option>
-            <option value='dog'>Dog</option>
-            <option value='cat'>Cat</option>
-            <option value='rabbit'>Rabbit</option>
-            <option value='bird'>Bird</option>
-            <option value='reptile'>Reptile</option>
-            <option value='other'>Other</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='apps-rescue-filter'>
-            Rescue
-          </label>
-          <select
-            id='apps-rescue-filter'
-            className={styles.select}
-            value={rescueFilter}
-            onChange={e => setRescueFilter(e.target.value)}
-          >
-            <option value='all'>All Rescues</option>
-            {rescuesList?.data.map(rescue => (
-              <option key={rescue.rescueId} value={rescue.rescueId}>
-                {rescue.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
       <div className={styles.splitLayout}>
-        {/* List pane: bulk actions + table */}
+        {/* List pane: filters, bulk actions, table. Collapses on mobile/tablet when a detail is open. */}
         <div className={clsx(styles.listPane, selectedApplication && styles.listPaneNarrow)}>
+          <div className={styles.filterBar}>
+            <div className={styles.searchInputWrapper}>
+              <FiSearch />
+              <Input
+                type='text'
+                placeholder='Search by applicant name or email...'
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='apps-status-filter'>
+                Status
+              </label>
+              <select
+                id='apps-status-filter'
+                className={styles.select}
+                value={statusFilter}
+                onChange={e => setFilterParam('status', e.target.value)}
+              >
+                <option value='all'>All Statuses</option>
+                <option value='submitted'>Submitted</option>
+                <option value='approved'>Approved</option>
+                <option value='rejected'>Rejected</option>
+                <option value='withdrawn'>Withdrawn</option>
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='apps-type-filter'>
+                Pet Type
+              </label>
+              <select
+                id='apps-type-filter'
+                className={styles.select}
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+              >
+                <option value='all'>All Types</option>
+                <option value='dog'>Dog</option>
+                <option value='cat'>Cat</option>
+                <option value='rabbit'>Rabbit</option>
+                <option value='bird'>Bird</option>
+                <option value='reptile'>Reptile</option>
+                <option value='other'>Other</option>
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='apps-rescue-filter'>
+                Rescue
+              </label>
+              <select
+                id='apps-rescue-filter'
+                className={styles.select}
+                value={rescueFilter}
+                onChange={e => setRescueFilter(e.target.value)}
+              >
+                <option value='all'>All Rescues</option>
+                {rescuesList?.data.map(rescue => (
+                  <option key={rescue.rescueId} value={rescue.rescueId}>
+                    {rescue.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <BulkActionToolbar
             selectedCount={selectedRows.size}
             totalCount={applications.length}

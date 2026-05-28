@@ -309,38 +309,38 @@ const Rescues: React.FC = () => {
         </div>
       )}
 
-      <div className={styles.filterBar}>
-        <div className={styles.searchInputWrapper}>
-          <FiSearch />
-          <Input
-            type='text'
-            placeholder='Search by name, city, or email...'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='rescue-status-filter'>
-            Verification Status
-          </label>
-          <select
-            id='rescue-status-filter'
-            className={styles.select}
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-          >
-            <option value='all'>All Statuses</option>
-            <option value='verified'>Verified</option>
-            <option value='pending'>Pending Review</option>
-            <option value='rejected'>Rejected</option>
-          </select>
-        </div>
-      </div>
-
       <div className={styles.splitLayout}>
-        {/* List pane: bulk actions + table */}
+        {/* List pane: filters, bulk actions, table. Collapses on mobile/tablet when a detail is open. */}
         <div className={clsx(styles.listPane, detailRescueId && styles.listPaneNarrow)}>
+          <div className={styles.filterBar}>
+            <div className={styles.searchInputWrapper}>
+              <FiSearch />
+              <Input
+                type='text'
+                placeholder='Search by name, city, or email...'
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='rescue-status-filter'>
+                Verification Status
+              </label>
+              <select
+                id='rescue-status-filter'
+                className={styles.select}
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+              >
+                <option value='all'>All Statuses</option>
+                <option value='verified'>Verified</option>
+                <option value='pending'>Pending Review</option>
+                <option value='rejected'>Rejected</option>
+              </select>
+            </div>
+          </div>
+
           <BulkActionToolbar
             selectedCount={selectedRows.size}
             totalCount={rescues.length}

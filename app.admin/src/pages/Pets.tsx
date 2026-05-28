@@ -213,91 +213,91 @@ const Pets: React.FC = () => {
         <div className={styles.errorMessage}>Failed to load pets: {error.message}</div>
       )}
 
-      <div className={styles.filterBar}>
-        <div className={styles.searchInputWrapper}>
-          <FiSearch />
-          <Input
-            type='text'
-            placeholder='Search by name or breed...'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='pets-status-filter'>
-            Status
-          </label>
-          <select
-            id='pets-status-filter'
-            className={styles.select}
-            value={statusFilter}
-            onChange={e => setFilterParam('status', e.target.value)}
-          >
-            <option value='all'>All Statuses</option>
-            <option value='available'>Available</option>
-            <option value='adopted'>Adopted</option>
-            <option value='foster'>Foster</option>
-            <option value='not_available'>Unavailable</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='pets-type-filter'>
-            Type
-          </label>
-          <select
-            id='pets-type-filter'
-            className={styles.select}
-            value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
-          >
-            <option value='all'>All Types</option>
-            <option value='dog'>Dog</option>
-            <option value='cat'>Cat</option>
-            <option value='rabbit'>Rabbit</option>
-            <option value='bird'>Bird</option>
-            <option value='reptile'>Reptile</option>
-            <option value='other'>Other</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='pets-rescue-filter'>
-            Rescue
-          </label>
-          <select
-            id='pets-rescue-filter'
-            className={styles.select}
-            value={rescueFilter}
-            onChange={e => setRescueFilter(e.target.value)}
-          >
-            <option value='all'>All Rescues</option>
-            {rescuesList?.data.map(rescue => (
-              <option key={rescue.rescueId} value={rescue.rescueId}>
-                {rescue.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='pets-archived-toggle'>
-            <input
-              id='pets-archived-toggle'
-              type='checkbox'
-              checked={includeArchived}
-              onChange={e => setIncludeArchived(e.target.checked)}
-              className={styles.checkboxSpacing}
-            />
-            Show archived
-          </label>
-        </div>
-      </div>
-
       <div className={styles.splitLayout}>
-        {/* List pane: bulk actions + table */}
+        {/* List pane: filters, bulk actions, table. Collapses on mobile/tablet when a detail is open. */}
         <div className={clsx(styles.listPane, selectedPet && styles.listPaneNarrow)}>
+          <div className={styles.filterBar}>
+            <div className={styles.searchInputWrapper}>
+              <FiSearch />
+              <Input
+                type='text'
+                placeholder='Search by name or breed...'
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='pets-status-filter'>
+                Status
+              </label>
+              <select
+                id='pets-status-filter'
+                className={styles.select}
+                value={statusFilter}
+                onChange={e => setFilterParam('status', e.target.value)}
+              >
+                <option value='all'>All Statuses</option>
+                <option value='available'>Available</option>
+                <option value='adopted'>Adopted</option>
+                <option value='foster'>Foster</option>
+                <option value='not_available'>Unavailable</option>
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='pets-type-filter'>
+                Type
+              </label>
+              <select
+                id='pets-type-filter'
+                className={styles.select}
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+              >
+                <option value='all'>All Types</option>
+                <option value='dog'>Dog</option>
+                <option value='cat'>Cat</option>
+                <option value='rabbit'>Rabbit</option>
+                <option value='bird'>Bird</option>
+                <option value='reptile'>Reptile</option>
+                <option value='other'>Other</option>
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='pets-rescue-filter'>
+                Rescue
+              </label>
+              <select
+                id='pets-rescue-filter'
+                className={styles.select}
+                value={rescueFilter}
+                onChange={e => setRescueFilter(e.target.value)}
+              >
+                <option value='all'>All Rescues</option>
+                {rescuesList?.data.map(rescue => (
+                  <option key={rescue.rescueId} value={rescue.rescueId}>
+                    {rescue.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='pets-archived-toggle'>
+                <input
+                  id='pets-archived-toggle'
+                  type='checkbox'
+                  checked={includeArchived}
+                  onChange={e => setIncludeArchived(e.target.checked)}
+                  className={styles.checkboxSpacing}
+                />
+                Show archived
+              </label>
+            </div>
+          </div>
+
           <BulkActionToolbar
             selectedCount={selectedRows.size}
             totalCount={pets.length}
