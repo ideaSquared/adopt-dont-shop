@@ -240,14 +240,7 @@ describe('TicketDetailModal — EntityInspector tabs', () => {
 
   it('submits a reply via onReply when the response form is submitted', async () => {
     const onReply = vi.fn().mockResolvedValue(undefined);
-    render(
-      <TicketDetailModal
-        isOpen
-        onClose={vi.fn()}
-        ticket={makeTicket()}
-        onReply={onReply}
-      />
-    );
+    render(<TicketDetailModal isOpen onClose={vi.fn()} ticket={makeTicket()} onReply={onReply} />);
 
     await userEvent.click(screen.getByRole('tab', { name: /responses/i }));
     await userEvent.type(

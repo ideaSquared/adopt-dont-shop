@@ -36,9 +36,7 @@ vi.mock('../../middleware/idempotency', () => ({
 }));
 
 vi.mock('../../middleware/zod-validate', () => ({
-  validateBody:
-    () => (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
-      next(),
+  validateBody: () => (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
 }));
 
 const authenticateTokenMock = vi.fn();
@@ -88,9 +86,7 @@ describe('GET /api/v1/admin/support/tickets/:ticketId/activity', () => {
       res.status(401).json({ error: 'Access token required' });
     });
 
-    const res = await request(buildApp()).get(
-      '/api/v1/admin/support/tickets/ticket-001/activity'
-    );
+    const res = await request(buildApp()).get('/api/v1/admin/support/tickets/ticket-001/activity');
     expect(res.status).toBe(401);
   });
 
@@ -99,9 +95,7 @@ describe('GET /api/v1/admin/support/tickets/:ticketId/activity', () => {
       res.status(403).json({ error: 'Forbidden' });
     });
 
-    const res = await request(buildApp()).get(
-      '/api/v1/admin/support/tickets/ticket-001/activity'
-    );
+    const res = await request(buildApp()).get('/api/v1/admin/support/tickets/ticket-001/activity');
     expect(res.status).toBe(403);
   });
 

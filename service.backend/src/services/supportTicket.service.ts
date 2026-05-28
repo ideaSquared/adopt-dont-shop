@@ -12,10 +12,7 @@ import { NotFoundError, BadRequestError } from '../middleware/error-handler';
 import { JsonObject } from '../types/common';
 import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
-import type {
-  EntityActivity,
-  EntityActivityFilters,
-} from '@adopt-dont-shop/lib.types';
+import type { EntityActivity, EntityActivityFilters } from '@adopt-dont-shop/lib.types';
 import { AuditLogService } from './auditLog.service';
 import { auditLogToActivity } from './audit-log-formatting';
 

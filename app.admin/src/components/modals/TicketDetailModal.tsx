@@ -221,7 +221,9 @@ const ResponsesTab: React.FC<{
                       </span>
                     )}
                   </div>
-                  <div className={styles.responseTime}>{formatRelativeTime(response.createdAt)}</div>
+                  <div className={styles.responseTime}>
+                    {formatRelativeTime(response.createdAt)}
+                  </div>
                 </div>
               </div>
               <div className={styles.responseContent}>{response.content}</div>

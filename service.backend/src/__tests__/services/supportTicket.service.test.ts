@@ -683,9 +683,9 @@ describe('SupportTicketService', () => {
     it('throws NotFoundError when the ticket does not exist', async () => {
       MockedSupportTicket.findByPk.mockResolvedValue(null);
 
-      await expect(
-        supportTicketService.getTicketActivityLog('missing-ticket')
-      ).rejects.toThrow('Ticket not found');
+      await expect(supportTicketService.getTicketActivityLog('missing-ticket')).rejects.toThrow(
+        'Ticket not found'
+      );
       expect(MockedAuditLogService.getEntityActivityLog).not.toHaveBeenCalled();
     });
 
