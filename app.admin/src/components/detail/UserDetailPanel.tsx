@@ -403,13 +403,13 @@ const ActivityTab: React.FC<{ userId: string }> = ({ userId }) => {
   return (
     <div className={styles.activityList}>
       {activities.map(activity => (
-        <div key={activity.activity_id} className={styles.activityItem}>
+        <div key={activity.activityId} className={styles.activityItem}>
           <div className={styles.activityDot} />
           <div className={styles.activityContent}>
             <p className={styles.activityDescription}>{activity.description}</p>
             <p className={styles.activityMeta}>
-              {activity.activity_type} &middot;{' '}
-              {new Date(activity.created_at).toLocaleString('en-GB')}
+              {activity.activityType} &middot;{' '}
+              {new Date(activity.createdAt).toLocaleString('en-GB')}
             </p>
           </div>
         </div>

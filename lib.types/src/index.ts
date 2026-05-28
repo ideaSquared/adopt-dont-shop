@@ -31,3 +31,6 @@ export * from './types/domain-status';
 
 // Common utility types (sort, date range, service config)
 export * from './types/common';
+
+// User activity (admin user detail panel — activity log + summary)
+export * from './types/user-activity';

@@ -1,4 +1,5 @@
 import type { BulkUserUpdateData } from '@adopt-dont-shop/lib.validation';
+import type { UserActivity, UserActivityFilters } from '@adopt-dont-shop/lib.types';
 import { apiService } from './libraryServices';
 import { User, PaginatedResponse } from '@/types';
 
@@ -177,27 +178,14 @@ class UserManagementService {
    */
   async getUserActivity(
     userId: string,
-    filters: { from?: string; to?: string; limit?: number } = {}
-  ): Promise<
-    Array<{
-      activity_id: string;
-      activity_type: string;
-      description: string;
-      ip_address?: string;
-      user_agent?: string;
-      created_at: string;
-    }>
-  > {
+    filters: UserActivityFilters = {}
+  ): Promise<UserActivity[]> {
     try {
-      const response = await apiService.get(`/api/v1/admin/users/${userId}/activity`, filters);
-      return response as Array<{
-        activity_id: string;
-        activity_type: string;
-        description: string;
-        ip_address?: string;
-        user_agent?: string;
-        created_at: string;
-      }>;
+      const response = await apiService.get<{ success: boolean; data: UserActivity[] }>(
+        `/api/v1/users/${userId}/activity`,
+        filters
+      );
+      return response.data;
     } catch (error) {
       console.error('❌ UserManagementService: Failed to fetch user activity:', error);
       throw error;
