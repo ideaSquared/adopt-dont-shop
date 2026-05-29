@@ -21,6 +21,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import Users from '../pages/Users';
 import type { AdminUser } from '../types/user';
+import { apiService } from '../services/libraryServices';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
@@ -145,6 +146,30 @@ const mockAdminUsers: AdminUser[] = [
     lastLogin: null,
     createdAt: '2024-01-03T00:00:00Z',
     updatedAt: '2024-01-03T00:00:00Z',
+  },
+  {
+    userId: 'user-4',
+    email: 'alice.pending@example.com',
+    firstName: 'Alice',
+    lastName: 'Pending',
+    userType: 'adopter',
+    status: 'pending_verification',
+    emailVerified: false,
+    phoneNumber: null,
+    phoneVerified: false,
+    profileImageUrl: null,
+    bio: null,
+    country: null,
+    city: null,
+    addressLine1: null,
+    addressLine2: null,
+    postalCode: null,
+    rescueId: null,
+    rescueName: null,
+    lastLoginAt: null,
+    lastLogin: null,
+    createdAt: '2024-01-04T00:00:00Z',
+    updatedAt: '2024-01-04T00:00:00Z',
   },
 ];
 
@@ -579,6 +604,31 @@ describe('User Management page', () => {
       await user.click(screen.getByRole('tab', { name: 'Activity' }));
 
       expect(screen.getByText('No activity recorded for this user.')).toBeInTheDocument();
+    });
+
+    it('shows Pending Verification in status dropdown for a pending_verification user', async () => {
+      const user = userEvent.setup();
+      setupSuccessfulLoad(mockAdminUsers);
+      renderUsersPage('/users/user-4');
+
+      await user.click(screen.getByRole('tab', { name: 'Edit' }));
+
+      expect(screen.getByDisplayValue('Pending Verification')).toBeInTheDocument();
+    });
+
+    it('does not call the API when saving the edit form without changing any fields for a pending_verification user', async () => {
+      const user = userEvent.setup();
+      vi.mocked(apiService.patch).mockClear();
+      setupSuccessfulLoad(mockAdminUsers);
+      renderUsersPage('/users/user-4');
+
+      await user.click(screen.getByRole('tab', { name: 'Edit' }));
+      await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Saved')).toBeInTheDocument();
+      });
+      expect(apiService.patch).not.toHaveBeenCalled();
     });
   });
 });
