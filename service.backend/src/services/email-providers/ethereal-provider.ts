@@ -26,7 +26,9 @@ export class EtherealProvider extends BaseEmailProvider {
       // Create test account
       this.testAccount = await nodemailer.createTestAccount();
 
-      // Create transporter
+      // Create transporter. The connection/greeting/socket timeouts cap how
+      // long a hung SMTP server can stall a send — without them a single
+      // unresponsive connection blocks the email queue processor indefinitely.
       this.transporter = nodemailer.createTransport({
         host: 'smtp.ethereal.email',
         port: 587,
@@ -35,6 +37,9 @@ export class EtherealProvider extends BaseEmailProvider {
           user: this.testAccount.user,
           pass: this.testAccount.pass,
         },
+        connectionTimeout: 10_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 10_000,
       });
 
       logger.info('Ethereal Email Provider initialized', {

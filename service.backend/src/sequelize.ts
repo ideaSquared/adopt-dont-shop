@@ -83,8 +83,7 @@ export const logEffectiveDbConfig = (
   timeouts: TimeoutConfig,
   sslMode: DbSslMode = 'disable',
   log: (message: string) => void = msg => {
-    // eslint-disable-next-line no-console
-    console.log(msg);
+    logger.debug(msg);
   }
 ): void => {
   log(

@@ -81,7 +81,8 @@ export class MessageReadStatusService {
       // Get updated unread count for this chat
       const unreadCount = await this.getUnreadCount(message.chat_id, userId);
 
-      // Log the read action
+      // Log the read action — pair with the open transaction so it rolls
+      // back atomically if the surrounding work fails.
       await AuditLogService.log({
         action: 'MESSAGE_READ',
         entity: 'MESSAGE',
@@ -92,6 +93,7 @@ export class MessageReadStatusService {
           read_at: new Date().toISOString(),
           unread_count: unreadCount,
         },
+        transaction: t,
       });
 
       const result: ReadStatusUpdate = {
@@ -238,10 +240,15 @@ export class MessageReadStatusService {
    */
   static async getUnreadCount(chatId: string, userId: string): Promise<number> {
     try {
-      const result = await Message.findAll({
+      // Count in SQL via a LEFT JOIN on this user's read records, keeping only
+      // rows with no matching read (`$Reads.user_id$ IS NULL`). Counting in the
+      // DB avoids loading every message row into Node memory. `distinct` +
+      // `col` ensures the join doesn't inflate the count.
+      return await Message.count({
         where: {
           chat_id: chatId,
           sender_id: { [Op.ne]: userId },
+          '$Reads.user_id$': null,
         },
         include: [
           {
@@ -249,14 +256,12 @@ export class MessageReadStatusService {
             as: 'Reads',
             where: { user_id: userId },
             required: false,
+            attributes: [],
           },
         ],
+        distinct: true,
+        col: 'message_id',
       });
-
-      return result.filter(message => {
-        const reads = (message as Message & { Reads?: MessageRead[] }).Reads;
-        return !reads?.length;
-      }).length;
     } catch (error) {
       logger.error('Error getting unread count:', error);
       throw new Error('Failed to get unread message count');
@@ -287,11 +292,15 @@ export class MessageReadStatusService {
         return [];
       }
 
-      // Get all messages that could be unread
-      const messages = await Message.findAll({
+      // Aggregate per chat in SQL: count unread messages (no read record for
+      // this user) and capture the most recent unread message id/time. Grouping
+      // in the DB keeps the result set bounded to one row per chat instead of
+      // loading every message into Node memory.
+      const rows = await Message.findAll({
         where: {
           chat_id: { [Op.in]: chatIds },
           sender_id: { [Op.ne]: userId },
+          '$Reads.user_id$': null,
         },
         include: [
           {
@@ -299,37 +308,40 @@ export class MessageReadStatusService {
             as: 'Reads',
             where: { user_id: userId },
             required: false,
+            attributes: [],
           },
         ],
-        order: [
-          ['chat_id', 'ASC'],
-          ['created_at', 'DESC'],
+        attributes: [
+          'chat_id',
+          [sequelize.fn('COUNT', sequelize.col('message_id')), 'unread_count'],
+          [sequelize.fn('MAX', sequelize.col('Message.created_at')), 'last_message_time'],
         ],
+        group: ['Message.chat_id'],
+        raw: true,
       });
 
-      // Count unread messages per chat and get last message info
-      const chatUnreadCounts = new Map<string, UnreadCountResult>();
+      const aggregates = rows as unknown as Array<{
+        chat_id: string;
+        unread_count: number | string;
+        last_message_time: Date | string | null;
+      }>;
 
-      messages.forEach(message => {
-        const chatId = message.chat_id;
-        const isUnread = !(message as Message & { Reads?: MessageRead[] }).Reads?.length;
-
-        if (!chatUnreadCounts.has(chatId)) {
-          chatUnreadCounts.set(chatId, {
-            chat_id: chatId,
-            unread_count: 0,
-            last_message_id: message.message_id,
-            last_message_time: message.created_at,
-          });
-        }
-
-        const chatInfo = chatUnreadCounts.get(chatId)!;
-        if (isUnread) {
-          chatInfo.unread_count += 1;
-        }
-      });
-
-      return Array.from(chatUnreadCounts.values()).filter(result => result.unread_count > 0);
+      return aggregates
+        .map(row => {
+          const count =
+            typeof row.unread_count === 'string'
+              ? parseInt(row.unread_count, 10)
+              : row.unread_count;
+          const lastTime = row.last_message_time;
+          const result: UnreadCountResult = {
+            chat_id: row.chat_id,
+            unread_count: count,
+            last_message_time:
+              lastTime === null || lastTime === undefined ? undefined : new Date(lastTime),
+          };
+          return result;
+        })
+        .filter(result => result.unread_count > 0);
     } catch (error) {
       logger.error('Error getting unread messages:', error);
       throw new Error('Failed to get unread messages');
@@ -415,10 +427,20 @@ export class MessageReadStatusService {
     last_read_time?: Date;
   }> {
     try {
-      const messages = await Message.findAll({
+      // Total messages from other senders in this chat — counted in SQL.
+      const totalMessages = await Message.count({
         where: {
           chat_id: chatId,
           sender_id: { [Op.ne]: userId },
+        },
+      });
+
+      // Unread = messages from other senders with no read record for this user.
+      const unreadMessages = await Message.count({
+        where: {
+          chat_id: chatId,
+          sender_id: { [Op.ne]: userId },
+          '$Reads.user_id$': null,
         },
         include: [
           {
@@ -426,24 +448,28 @@ export class MessageReadStatusService {
             as: 'Reads',
             where: { user_id: userId },
             required: false,
+            attributes: [],
           },
         ],
-        order: [['created_at', 'ASC']],
+        distinct: true,
+        col: 'message_id',
       });
 
-      const totalMessages = messages.length;
-      const unreadMessages = messages.filter(
-        msg => !(msg as Message & { Reads?: MessageRead[] }).Reads?.length
-      ).length;
       const readPercentage =
         totalMessages > 0 ? ((totalMessages - unreadMessages) / totalMessages) * 100 : 0;
 
-      // Find last read message - simplified approach
+      // Find last read message in this chat for the user.
       const readStatuses = await MessageRead.findAll({
-        where: {
-          message_id: { [Op.in]: messages.map(m => m.message_id) },
-          user_id: userId,
-        },
+        where: { user_id: userId },
+        include: [
+          {
+            model: Message,
+            as: 'Message',
+            where: { chat_id: chatId },
+            attributes: [],
+            required: true,
+          },
+        ],
         order: [['read_at', 'DESC']],
         limit: 1,
         attributes: ['message_id', 'read_at'],

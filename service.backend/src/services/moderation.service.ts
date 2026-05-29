@@ -194,7 +194,9 @@ class ModerationService {
       logger.info(`Report submitted: ${report.reportId} by user ${reporterId}`);
       return report;
     } catch (error) {
-      await transaction.rollback();
+      // Guard the rollback so a rollback failure can't mask the original
+      // error that triggered it — the caller must see the real cause.
+      await transaction.rollback().catch(() => undefined);
       logger.error('Error submitting report:', error);
       throw error;
     }
@@ -422,7 +424,9 @@ class ModerationService {
 
       return report;
     } catch (error) {
-      await transaction.rollback();
+      // Guard the rollback so a rollback failure can't mask the original
+      // error that triggered it — the caller must see the real cause.
+      await transaction.rollback().catch(() => undefined);
       throw error;
     }
   }
@@ -562,7 +566,9 @@ class ModerationService {
       logger.info(`Moderation action taken: ${action.actionId} by ${moderatorId}`);
       return action;
     } catch (error) {
-      await transaction.rollback();
+      // Guard the rollback so a rollback failure can't mask the original
+      // error that triggered it — the caller must see the real cause.
+      await transaction.rollback().catch(() => undefined);
       logger.error('Error taking moderation action:', error);
       throw error;
     }
@@ -607,7 +613,9 @@ class ModerationService {
 
       return action;
     } catch (error) {
-      await transaction.rollback();
+      // Guard the rollback so a rollback failure can't mask the original
+      // error that triggered it — the caller must see the real cause.
+      await transaction.rollback().catch(() => undefined);
       throw error;
     }
   }
@@ -840,7 +848,9 @@ class ModerationService {
       logger.info(`Report ${reportId} escalated by ${escalatedBy} to ${escalatedTo}`);
       return report;
     } catch (error) {
-      await transaction.rollback();
+      // Guard the rollback so a rollback failure can't mask the original
+      // error that triggered it — the caller must see the real cause.
+      await transaction.rollback().catch(() => undefined);
       logger.error('Error escalating report:', error);
       throw error;
     }
@@ -1066,7 +1076,9 @@ class ModerationService {
       // so the admin UI can rely on a uniform contract.
       return { success: true, updated, failedIds: [] };
     } catch (error) {
-      await transaction.rollback();
+      // Guard the rollback so a rollback failure can't mask the original
+      // error that triggered it — the caller must see the real cause.
+      await transaction.rollback().catch(() => undefined);
       logger.error('Error in bulk update:', error);
       throw error;
     }

@@ -206,6 +206,10 @@ interface TypingUser {
   firstName: string;
   lastName: string;
   timestamp: Date;
+  // Handle for the 5s auto-clear timer. Stored so a fresh typing event can
+  // cancel the previous timer instead of leaking it (each keystroke would
+  // otherwise schedule an orphaned setTimeout).
+  clearTimer?: ReturnType<typeof setTimeout>;
 }
 
 // Store user presence and typing status
@@ -1053,10 +1057,12 @@ export class SocketHandlers {
     if (presence) {
       presence.socketIds = presence.socketIds.filter(id => id !== socketId);
 
-      // If no more active sockets, mark as offline
+      // No more active sockets: drop the entry entirely rather than leaving an
+      // offline tombstone. The map previously only ever grew (one entry per
+      // user who ever connected); a missing entry already reads as offline via
+      // isUserOnline.
       if (presence.socketIds.length === 0) {
-        presence.status = 'offline';
-        presence.lastSeen = new Date();
+        userPresence.delete(userId);
       }
     }
   }
@@ -1089,12 +1095,20 @@ export class SocketHandlers {
     }
 
     const chatTyping = typingUsers.get(chatId)!;
-    chatTyping.set(typingUser.userId, typingUser);
+
+    // Cancel any in-flight auto-clear timer for this user so rapid typing
+    // events don't accumulate orphaned timers.
+    const existing = chatTyping.get(typingUser.userId);
+    if (existing?.clearTimer) {
+      clearTimeout(existing.clearTimer);
+    }
 
     // Auto-clear typing indicator after 5 seconds
-    setTimeout(() => {
+    typingUser.clearTimer = setTimeout(() => {
       this.clearTypingIndicator(chatId, typingUser.userId);
     }, 5000);
+
+    chatTyping.set(typingUser.userId, typingUser);
   }
 
   /**
@@ -1103,6 +1117,10 @@ export class SocketHandlers {
   private clearTypingIndicator(chatId: string, userId: string) {
     const chatTyping = typingUsers.get(chatId);
     if (chatTyping) {
+      const existing = chatTyping.get(userId);
+      if (existing?.clearTimer) {
+        clearTimeout(existing.clearTimer);
+      }
       chatTyping.delete(userId);
 
       if (chatTyping.size === 0) {

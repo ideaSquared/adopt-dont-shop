@@ -817,71 +817,137 @@ const startServer = async () => {
         logger.info(`🛡️  Rate limiting is ACTIVE for production`);
       }
     });
-
-    // Graceful shutdown
-    // Without an explicit process.exit(), Socket.IO connections + timers keep
-    // the event loop alive after server.close(), so dumb-init eventually
-    // SIGKILLs the container. We exit cleanly after draining, with a 10s
-    // force-exit fallback for stuck connections. [ADS-395]
-    let shuttingDown = false;
-    const gracefulShutdown = (signal: string) => {
-      if (shuttingDown) {
-        return;
-      }
-      shuttingDown = true;
-      logger.info(`Received ${signal}. Starting graceful shutdown...`);
-
-      const forceExitTimer = setTimeout(() => {
-        logger.error('Graceful shutdown timed out after 10s — forcing exit.');
-        // eslint-disable-next-line no-process-exit -- shutdown handler must terminate the process; throwing would just bubble back into the same handler
-        process.exit(1);
-      }, 10_000);
-      forceExitTimer.unref();
-
-      server.close(async () => {
-        logger.info('HTTP server closed.');
-        try {
-          const { messageBroker } = await import('./services/messageBroker.service');
-          await messageBroker.disconnect();
-          logger.info('Message broker disconnected.');
-          await sequelize.close();
-          logger.info('Database connection closed.');
-          logger.info('Graceful shutdown completed.');
-          // eslint-disable-next-line no-process-exit -- shutdown completed cleanly; exit 0 so the orchestrator records success
-          process.exit(0);
-        } catch (error) {
-          logger.error('Error during graceful shutdown:', error);
-          // eslint-disable-next-line no-process-exit -- shutdown failure must terminate non-zero; throwing here would only re-enter the handler
-          process.exit(1);
-        }
-      });
-    };
-
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   } catch (error) {
     logger.error('Failed to start server:', error);
     throw error; // Don't use process.exit in production-ready code
   }
 };
 
-// Handle unhandled promise rejections
+// Graceful shutdown
+// Without an explicit process.exit(), Socket.IO connections + timers keep
+// the event loop alive after server.close(), so dumb-init eventually
+// SIGKILLs the container. We exit cleanly after draining, with a 10s
+// force-exit fallback for stuck connections. [ADS-395]
+//
+// Hoisted to module scope so the uncaughtException / unhandledRejection
+// handlers below can trigger the same clean drain instead of re-throwing
+// (which would bypass shutdown and produce a double-stack crash). The
+// `shuttingDown` guard makes repeated invocations idempotent.
+let shuttingDown = false;
+const gracefulShutdown = (signal: string) => {
+  if (shuttingDown) {
+    return;
+  }
+  shuttingDown = true;
+  logger.info(`Received ${signal}. Starting graceful shutdown...`);
+
+  const forceExitTimer = setTimeout(() => {
+    logger.error('Graceful shutdown timed out after 10s — forcing exit.');
+    // eslint-disable-next-line no-process-exit -- shutdown handler must terminate the process; throwing would just bubble back into the same handler
+    process.exit(1);
+  }, 10_000);
+  forceExitTimer.unref();
+
+  server.close(async () => {
+    logger.info('HTTP server closed.');
+    try {
+      // Stop background workers, the email queue processor and Socket.IO
+      // BEFORE closing the DB so their in-flight work can drain against a
+      // live connection, and so their timers/connections stop keeping the
+      // event loop alive ahead of the 10s force-exit fallback.
+      await stopBackgroundProcessing();
+
+      io.close();
+      logger.info('Socket.IO server closed.');
+
+      const { messageBroker } = await import('./services/messageBroker.service');
+      await messageBroker.disconnect();
+      logger.info('Message broker disconnected.');
+      await sequelize.close();
+      logger.info('Database connection closed.');
+      logger.info('Graceful shutdown completed.');
+      // eslint-disable-next-line no-process-exit -- shutdown completed cleanly; exit 0 so the orchestrator records success
+      process.exit(0);
+    } catch (error) {
+      logger.error('Error during graceful shutdown:', error);
+      // eslint-disable-next-line no-process-exit -- shutdown failure must terminate non-zero; throwing here would only re-enter the handler
+      process.exit(1);
+    }
+  });
+};
+
+// Stop all BullMQ workers and the email queue processor. Each call is
+// wrapped so one failing teardown can't abort the rest of the drain.
+const stopBackgroundProcessing = async (): Promise<void> => {
+  const stop = async (name: string, fn: () => void | Promise<void>): Promise<void> => {
+    try {
+      await fn();
+    } catch (err) {
+      logger.warn(`Failed to stop ${name} during shutdown`, {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
+  await Promise.all([
+    stop('reports worker', async () => {
+      const { stopReportsWorker } = await import('./workers/reports.worker');
+      await stopReportsWorker();
+    }),
+    stop('retention worker', async () => {
+      const { stopRetentionWorker } = await import('./jobs/retention.job');
+      await stopRetentionWorker();
+    }),
+    stop('match digest worker', async () => {
+      const { stopMatchDigestWorker } = await import('./jobs/match-digest.job');
+      await stopMatchDigestWorker();
+    }),
+    stop('weekly digest worker', async () => {
+      const { stopWeeklyDigestWorker } = await import('./jobs/weekly-digest.job');
+      await stopWeeklyDigestWorker();
+    }),
+    stop('revoked-tokens purge worker', async () => {
+      const { stopRevokedTokensPurgeWorker } = await import('./jobs/revoked-tokens-purge.job');
+      await stopRevokedTokensPurgeWorker();
+    }),
+    stop('legal reminder worker', async () => {
+      const { stopLegalReminderWorker } = await import('./workers/legal-reminder.worker');
+      await stopLegalReminderWorker();
+    }),
+    stop('email queue processor', async () => {
+      const EmailService = (await import('./services/email.service')).default;
+      EmailService.stopQueueProcessor();
+    }),
+  ]);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Handle unhandled promise rejections — log then drain via the same
+// graceful shutdown path. Re-throwing here previously bypassed
+// gracefulShutdown and surfaced as a separate uncaught exception
+// (double-stack crash), so the container never drained cleanly.
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Promise rejection at:', promise, 'reason:', reason);
-  // In production, you might want to gracefully shutdown instead
   if (process.env.NODE_ENV === 'production') {
     logger.error('Shutting down due to unhandled promise rejection');
-    throw new Error(`Unhandled Promise rejection: ${reason}`);
+    gracefulShutdown('unhandledRejection');
   }
 });
 
-// Handle uncaught exceptions
+// Handle uncaught exceptions — log then drain cleanly rather than
+// re-throwing (which bypassed shutdown entirely).
 process.on('uncaughtException', error => {
   logger.error('Uncaught Exception:', error);
-  throw error;
+  gracefulShutdown('uncaughtException');
 });
 
 // Start the server
-startServer();
+startServer().catch(err => {
+  logger.error('Fatal startup error', { err });
+  // eslint-disable-next-line no-process-exit -- startup failed before the server is listening; nothing to drain, exit non-zero so the orchestrator restarts us
+  process.exit(1);
+});
 
 export default app;

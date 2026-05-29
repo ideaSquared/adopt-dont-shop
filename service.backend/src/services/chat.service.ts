@@ -1221,27 +1221,28 @@ export class ChatService {
       await this.requireChatParticipant(chatId, userId, false, userRescueId);
 
       // "Unread for user" = chat messages not authored by user that
-      // have no matching MessageRead row (plan 2.1). The eager-load
-      // surfaces only the user's own read row via the where clause,
-      // so missing Reads ⇔ unread.
-      const messages = await Message.findAll({
+      // have no matching MessageRead row (plan 2.1). Counted in SQL via a
+      // LEFT JOIN keeping only rows where the user's read record is absent
+      // (`$Reads.user_id$ IS NULL`), so we never load message rows into
+      // Node memory just to count them.
+      return await Message.count({
         where: {
           chat_id: chatId,
           sender_id: { [Op.ne]: userId },
+          '$Reads.user_id$': null,
         },
-        attributes: ['message_id'],
         include: [
           {
             model: MessageRead,
             as: 'Reads',
             where: { user_id: userId },
             required: false,
+            attributes: [],
           },
         ],
+        distinct: true,
+        col: 'message_id',
       });
-
-      return messages.filter(msg => !(msg as Message & { Reads?: MessageRead[] }).Reads?.length)
-        .length;
     } catch (error) {
       logger.error('Error getting unread count:', error);
       throw error;
