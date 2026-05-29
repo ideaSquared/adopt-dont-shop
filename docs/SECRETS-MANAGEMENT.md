@@ -114,91 +114,84 @@ ENCRYPTION_KEY=64_CHAR_HEX_STRING_FOR_ENCRYPTION
 
 ## Docker Secrets
 
-For production deployments using Docker Swarm, use Docker secrets instead of environment variables.
+Production deployments use file-based Docker secrets (plain Compose v2, not Swarm). Each secret is a small file written to `./secrets/<name>` on the host by the deploy workflow immediately before `docker compose up -d`. Compose reads the file path from the `file:` key in `docker-compose.prod.yml` and mounts the content at `/run/secrets/<name>` inside the container.
 
-### Why Docker Secrets?
+### Why File-Based Secrets?
 
 - ✅ Never stored in container images
-- ✅ Encrypted at rest and in transit
-- ✅ Only available to services that need them
 - ✅ Not visible in `docker inspect`
-- ✅ Automatically mounted as files in `/run/secrets/`
+- ✅ Automatically mounted at `/run/secrets/<name>` — same path as Swarm secrets
+- ✅ Compatible with plain `docker compose up -d` (no Swarm infrastructure required)
+- ✅ Secret files are removed from disk after `docker compose up -d` completes
 
-### Creating Docker Secrets
+### How the Deploy Workflow Materializes Secrets
+
+The `deploy.yml` and `rollback.yml` workflows pass the 8 production secrets via the `env:` block of the `appleboy/ssh-action` step (never interpolated into the script text). On the server, before `docker compose up -d`, the script writes each secret file using `printf '%s'` (no trailing newline):
 
 ```bash
-# Create secrets from files
-echo "my-strong-password" | docker secret create postgres_password -
-echo "my-jwt-secret" | docker secret create jwt_secret -
-echo "my-redis-password" | docker secret create redis_password -
-
-# Or from existing .env file (for batch creation)
-docker secret create postgres_password /path/to/postgres_password.txt
+mkdir -p secrets && chmod 700 secrets
+printf '%s' "$SECRET_JWT_SECRET"            > secrets/jwt_secret
+printf '%s' "$SECRET_JWT_REFRESH_SECRET"    > secrets/jwt_refresh_secret
+printf '%s' "$SECRET_SESSION_SECRET"        > secrets/session_secret
+printf '%s' "$SECRET_CSRF_SECRET"           > secrets/csrf_secret
+printf '%s' "$SECRET_ENCRYPTION_KEY"        > secrets/encryption_key
+printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET" > secrets/upload_signing_secret
+printf '%s' "$SECRET_DB_PASSWORD"           > secrets/db_password
+printf '%s' "$SECRET_REDIS_PASSWORD"        > secrets/redis_password
+chmod 600 secrets/*
+# ... docker compose up -d ...
+rm -f secrets/*
 ```
 
-### Using Docker Secrets in Compose
+The `secrets/` directory is gitignored and must never be committed.
 
-Update `docker-compose.prod.yml`:
+### Compose Configuration (`docker-compose.prod.yml`)
 
 ```yaml
-services:
-  database:
-    secrets:
-      - postgres_password
-    environment:
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-
-  service-backend:
-    secrets:
-      - postgres_password
-      - jwt_secret
-      - redis_password
-    environment:
-      DB_PASSWORD_FILE: /run/secrets/postgres_password
-      JWT_SECRET_FILE: /run/secrets/jwt_secret
-      REDIS_PASSWORD_FILE: /run/secrets/redis_password
-
 secrets:
-  postgres_password:
-    external: true
   jwt_secret:
-    external: true
+    file: ./secrets/jwt_secret
+  jwt_refresh_secret:
+    file: ./secrets/jwt_refresh_secret
+  session_secret:
+    file: ./secrets/session_secret
+  csrf_secret:
+    file: ./secrets/csrf_secret
+  encryption_key:
+    file: ./secrets/encryption_key
+  upload_signing_secret:
+    file: ./secrets/upload_signing_secret
+  db_password:
+    file: ./secrets/db_password
   redis_password:
-    external: true
+    file: ./secrets/redis_password
 ```
+
+Each service that needs a secret lists it under its own `secrets:` key; Compose mounts the file content at `/run/secrets/<name>`.
 
 ### Application Code for Docker Secrets
 
-Your application needs to read secrets from files:
+The backend reads secrets via `readSecretOrEnv()` in `config/env.ts`, which checks `/run/secrets/<name>` first and falls back to the environment variable of the same name:
 
 ```typescript
-// utils/secrets.ts
-import fs from 'fs';
-import path from 'path';
+// Reads /run/secrets/<name> if it exists, otherwise falls back to process.env[envVar]
+const jwtSecret = readSecretOrEnv('jwt_secret', 'JWT_SECRET');
+const dbPassword = readSecretOrEnv('db_password', 'DB_PASSWORD');
+```
 
-export function getSecret(secretName: string, envVar: string): string {
-  // Try to read from Docker secret file first
-  const secretFile = process.env[`${envVar}_FILE`];
-  if (secretFile) {
-    try {
-      return fs.readFileSync(secretFile, 'utf8').trim();
-    } catch (error) {
-      console.warn(`Failed to read secret from ${secretFile}:`, error);
-    }
-  }
+### Manual Provisioning (without the deploy workflow)
 
-  // Fall back to environment variable
-  const value = process.env[envVar];
-  if (!value) {
-    throw new Error(`Secret ${envVar} not found in environment or file`);
-  }
-
-  return value;
-}
-
-// Usage
-const dbPassword = getSecret('DB_PASSWORD', 'DB_PASSWORD');
-const jwtSecret = getSecret('JWT_SECRET', 'JWT_SECRET');
+```bash
+mkdir -p secrets && chmod 700 secrets
+printf '%s' "$(openssl rand -base64 32)"  > secrets/jwt_secret
+printf '%s' "$(openssl rand -base64 32)"  > secrets/jwt_refresh_secret
+printf '%s' "$(openssl rand -base64 32)"  > secrets/session_secret
+printf '%s' "$(openssl rand -base64 32)"  > secrets/csrf_secret
+printf '%s' "$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")" > secrets/encryption_key
+printf '%s' "$(openssl rand -base64 32)"  > secrets/upload_signing_secret
+printf '%s' "$(openssl rand -base64 32)"  > secrets/db_password
+printf '%s' "$(openssl rand -base64 32)"  > secrets/redis_password
+chmod 600 secrets/*
 ```
 
 ## External Secrets Management
@@ -360,9 +353,15 @@ POSTGRES_PASSWORD=xxx JWT_SECRET=xxx docker compose up -d
 docker compose --env-file .env.prod up -d
 ```
 
-**Method 3: Docker Secrets (Recommended for Production)**
+**Method 3: File-Based Docker Secrets (Used in Production)**
 ```bash
-docker stack deploy -c docker-compose.yml -c docker-compose.prod.yml adopt-dont-shop
+# Write secret files, then bring up the stack (deploy workflow does this automatically)
+mkdir -p secrets && chmod 700 secrets
+printf '%s' "$JWT_SECRET" > secrets/jwt_secret
+# ... (repeat for all 8 secrets) ...
+chmod 600 secrets/*
+docker compose -f docker-compose.prod.yml --env-file .env up -d
+rm -f secrets/*
 ```
 
 **Method 4: External Secrets Manager (Enterprise)**
@@ -411,18 +410,19 @@ docker compose up -d
 
 ### Docker Secrets Not Found
 
-**Cause:** Secret not created in Docker Swarm.
+**Cause:** Secret file missing from `./secrets/<name>` on the host before `docker compose up -d` was called.
 
 **Solution:**
 ```bash
-# List existing secrets
-docker secret ls
+# Check whether the secrets directory exists and contains the expected files
+ls -la secrets/
 
-# Create missing secret
-echo "password" | docker secret create postgres_password -
+# Re-materialize the missing file (replace with actual secret value)
+printf '%s' "actual-secret-value" > secrets/jwt_secret
+chmod 600 secrets/jwt_secret
 
-# Redeploy stack
-docker stack deploy -c docker-compose.yml adopt-dont-shop
+# Restart the affected service
+docker compose -f docker-compose.prod.yml --env-file .env up -d service-backend
 ```
 
 ## Additional Resources

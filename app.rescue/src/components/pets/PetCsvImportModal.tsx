@@ -75,15 +75,19 @@ const PetCsvImportModal: React.FC<Props> = ({ isOpen, rescueId, onClose, onImpor
   };
 
   const handleFile = async (file: File) => {
-    const text = await file.text();
-    const result = parseCsv(text);
-    if (result.headers.length === 0 || result.rows.length === 0) {
-      toast.error('CSV is empty or could not be parsed');
-      return;
+    try {
+      const text = await file.text();
+      const result = parseCsv(text);
+      if (result.headers.length === 0 || result.rows.length === 0) {
+        toast.error('CSV is empty or could not be parsed');
+        return;
+      }
+      setParsed(result);
+      setMapping(autoMapColumns(result.headers));
+      setStep('map');
+    } catch {
+      toast.error('Could not read file');
     }
-    setParsed(result);
-    setMapping(autoMapColumns(result.headers));
-    setStep('map');
   };
 
   const validatedRows = useMemo<ValidatedRow[]>(() => {

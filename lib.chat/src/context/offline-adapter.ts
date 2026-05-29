@@ -42,7 +42,7 @@ export type OfflineAdapter = {
   removeOfflineStateListener: (listener: OfflineStateListener) => void;
   queueMessageForOffline: (conversationId: string, content: string) => string;
   forceSync: () => Promise<void>;
-  setSyncCallback: (callback: OfflineSyncCallback) => void;
+  setSyncCallback: (callback: OfflineSyncCallback | null) => void;
   removeQueuedMessage: (id: string) => void;
   removeQueuedAction: (id: string) => void;
 };

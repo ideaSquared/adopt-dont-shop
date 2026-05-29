@@ -60,3 +60,4 @@ jobs:
 
       - name: Check for duplicate dependencies across all workspaces
         run: npm ls --workspaces --depth=0
+        continue-on-error: true

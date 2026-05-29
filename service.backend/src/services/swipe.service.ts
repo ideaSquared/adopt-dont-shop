@@ -2,6 +2,7 @@ import sequelize from '../sequelize';
 import { JsonObject } from '../types/common';
 import { NotFoundError } from '../middleware/error-handler';
 import { logger } from '../utils/logger';
+import { generateUuidV7 } from '../utils/uuid';
 
 interface SessionLengthResult {
   avg_session_length: number;
@@ -49,24 +50,7 @@ interface UserPreference {
 
 type PreferencesByType = Record<string, Array<{ value: string; score: number }>>;
 
-/**
- * Memoised guard so the legacy lazy table-creation fallback runs at most
- * once per process instead of on every swipe. The canonical `swipe_actions`
- * table is owned by migration `00-baseline-052-swipe-actions.ts`; this
- * fallback only exists for environments that record swipes before migrations
- * have run. It is NEVER invoked from the production request path (the
- * controller constructs SwipeService with skipTableCreation defaulting to
- * false, but the DDL now fires once and is cached, not per-request).
- */
-let swipeTableEnsured: Promise<void> | null = null;
-
 export class SwipeService {
-  private skipTableCreation: boolean = false;
-
-  constructor(skipTableCreation = false) {
-    this.skipTableCreation = skipTableCreation;
-  }
-
   /**
    * Record a swipe action
    */
@@ -78,17 +62,17 @@ export class SwipeService {
         sessionId: swipeAction.sessionId,
       });
 
-      // Ensure swipe_actions table exists exactly once per process (skipped
-      // entirely in tests). No DDL is issued on the hot path after the first
-      // call — see the swipeTableEnsured memo above.
-      if (!this.skipTableCreation) {
-        await this.ensureSwipeActionsTableOnce();
-      }
-
+      // The `swipe_actions` table is owned by migration
+      // `00-baseline-052-swipe-actions.ts` (matching the SwipeAction model);
+      // no runtime DDL is issued here.
       // Insert swipe action into database
+      // `swipe_action_id` is the NOT NULL UUID primary key with no DB-side
+      // default (see the migration/model); the model normally generates it
+      // in JS, but a raw INSERT bypasses that, so we generate it here.
       await sequelize.query(
         `
         INSERT INTO swipe_actions (
+          swipe_action_id,
           action,
           pet_id,
           session_id,
@@ -97,6 +81,7 @@ export class SwipeService {
           created_at,
           updated_at
         ) VALUES (
+          :swipeActionId,
           :action,
           :petId,
           :sessionId,
@@ -108,6 +93,7 @@ export class SwipeService {
       `,
         {
           replacements: {
+            swipeActionId: generateUuidV7(),
             action: swipeAction.action,
             petId: swipeAction.petId,
             sessionId: swipeAction.sessionId,
@@ -138,54 +124,6 @@ export class SwipeService {
     } catch (error) {
       logger.error('Error recording swipe action', { error, swipeAction });
       throw new Error('Failed to record swipe action');
-    }
-  }
-
-  /**
-   * Run the lazy table-creation fallback at most once per process, caching
-   * the in-flight/resolved promise so concurrent swipes share a single DDL
-   * attempt instead of each issuing CREATE TABLE/INDEX statements.
-   */
-  private async ensureSwipeActionsTableOnce(): Promise<void> {
-    if (!swipeTableEnsured) {
-      swipeTableEnsured = this.ensureSwipeActionsTable();
-    }
-    return swipeTableEnsured;
-  }
-
-  /**
-   * Ensure the swipe_actions table exists
-   */
-  private async ensureSwipeActionsTable(): Promise<void> {
-    try {
-      await sequelize.query(`
-        CREATE TABLE IF NOT EXISTS swipe_actions (
-          id SERIAL PRIMARY KEY,
-          action VARCHAR(20) NOT NULL CHECK (action IN ('like', 'pass', 'super_like', 'info')),
-          pet_id VARCHAR(255) NOT NULL,
-          session_id VARCHAR(255) NOT NULL,
-          user_id VARCHAR(255),
-          timestamp TIMESTAMP NOT NULL,
-          created_at TIMESTAMP DEFAULT NOW(),
-          updated_at TIMESTAMP DEFAULT NOW()
-        )
-      `);
-
-      // Create indexes separately (PostgreSQL syntax)
-      await sequelize.query(`
-        CREATE INDEX IF NOT EXISTS idx_swipe_pet_id ON swipe_actions (pet_id)
-      `);
-      await sequelize.query(`
-        CREATE INDEX IF NOT EXISTS idx_swipe_session_id ON swipe_actions (session_id)
-      `);
-      await sequelize.query(`
-        CREATE INDEX IF NOT EXISTS idx_swipe_user_id ON swipe_actions (user_id)
-      `);
-      await sequelize.query(`
-        CREATE INDEX IF NOT EXISTS idx_swipe_timestamp ON swipe_actions (timestamp)
-      `);
-    } catch (error) {
-      logger.warn('Could not create swipe_actions table, it may already exist', { error });
     }
   }
 

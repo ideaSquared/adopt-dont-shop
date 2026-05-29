@@ -85,6 +85,45 @@ describe('PermissionsService', () => {
     });
   });
 
+  describe('permissions cache', () => {
+    it('does not grow the cache beyond MAX_PERMISSIONS_CACHE_SIZE (500) entries', async () => {
+      const mockPermissions: Permission[] = ['pets.read'];
+      mockApiService.get = vi.fn().mockResolvedValue({ permissions: mockPermissions });
+
+      // Populate 501 distinct user entries — the cache should stay at 500
+      for (let i = 0; i < 501; i++) {
+        await service.getUserPermissions(`user-${i}`, true);
+      }
+
+      // Access the private cache via bracket notation (test-only)
+      const cache = (service as unknown as { permissionsCache: Map<string, unknown> })
+        .permissionsCache;
+      expect(cache.size).toBeLessThanOrEqual(500);
+    });
+
+    it('evicts the oldest entry (insertion-order LRU) when the cache is full', async () => {
+      const mockPermissions: Permission[] = ['pets.read'];
+      mockApiService.get = vi.fn().mockResolvedValue({ permissions: mockPermissions });
+
+      // Fill cache to exactly 500 entries
+      for (let i = 0; i < 500; i++) {
+        await service.getUserPermissions(`user-${i}`, true);
+      }
+
+      const cache = (service as unknown as { permissionsCache: Map<string, unknown> })
+        .permissionsCache;
+      expect(cache.size).toBe(500);
+      expect(cache.has('user-0')).toBe(true);
+
+      // Adding one more must evict user-0 (oldest)
+      await service.getUserPermissions('user-500', true);
+
+      expect(cache.size).toBe(500);
+      expect(cache.has('user-0')).toBe(false);
+      expect(cache.has('user-500')).toBe(true);
+    });
+  });
+
   describe('healthCheck', () => {
     it('should return true when API is healthy', async () => {
       mockApiService.get = vi.fn().mockResolvedValue({});

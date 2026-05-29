@@ -416,29 +416,37 @@ networks:
 # written to disk and invisible to `docker inspect`. The backend reads these
 # via readSecretOrEnv() (config/env.ts) with env-var fallback.
 #
-# Create each secret on the Docker Swarm host:
-#   openssl rand -base64 32 | docker secret create jwt_secret -
-#   openssl rand -base64 32 | docker secret create jwt_refresh_secret -
-#   openssl rand -base64 32 | docker secret create session_secret -
-#   openssl rand -base64 32 | docker secret create csrf_secret -
-#   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" | docker secret create encryption_key -
-#   openssl rand -base64 32 | docker secret create upload_signing_secret -
-#   openssl rand -base64 32 | docker secret create db_password -
-#   openssl rand -base64 32 | docker secret create redis_password -
+# Secret files are written to ./secrets/<name> on the host by the deploy
+# workflow (deploy.yml) before `docker compose up -d` is called. Each file
+# contains only the raw secret value (no trailing newline). They are
+# chmod 600 and owned by the deploy user. The deploy workflow removes them
+# after `up -d` completes. Do NOT commit the secrets/ directory.
+#
+# To provision manually:
+#   mkdir -p secrets && chmod 700 secrets
+#   printf '%s' "$(openssl rand -base64 32)" > secrets/jwt_secret
+#   printf '%s' "$(openssl rand -base64 32)" > secrets/jwt_refresh_secret
+#   printf '%s' "$(openssl rand -base64 32)" > secrets/session_secret
+#   printf '%s' "$(openssl rand -base64 32)" > secrets/csrf_secret
+#   printf '%s' "$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")" > secrets/encryption_key
+#   printf '%s' "$(openssl rand -base64 32)" > secrets/upload_signing_secret
+#   printf '%s' "$(openssl rand -base64 32)" > secrets/db_password
+#   printf '%s' "$(openssl rand -base64 32)" > secrets/redis_password
+#   chmod 600 secrets/*
 secrets:
   jwt_secret:
-    external: true
+    file: ./secrets/jwt_secret
   jwt_refresh_secret:
-    external: true
+    file: ./secrets/jwt_refresh_secret
   session_secret:
-    external: true
+    file: ./secrets/session_secret
   csrf_secret:
-    external: true
+    file: ./secrets/csrf_secret
   encryption_key:
-    external: true
+    file: ./secrets/encryption_key
   upload_signing_secret:
-    external: true
+    file: ./secrets/upload_signing_secret
   db_password:
-    external: true
+    file: ./secrets/db_password
   redis_password:
-    external: true
+    file: ./secrets/redis_password

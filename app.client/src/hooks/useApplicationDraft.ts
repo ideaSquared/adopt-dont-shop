@@ -101,14 +101,23 @@ export const useApplicationDraft = (petId: string | undefined): UseApplicationDr
     };
   }, [petId]);
 
-  // Flush pending debounce on unmount.
+  // Flush pending debounced save on unmount so the user's last edit is not lost.
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      const payload = pendingRef.current;
+      if (payload && petId) {
+        pendingRef.current = null;
+        // Fire-and-forget: we cannot await here and must not setState after
+        // unmount, so we call the API directly rather than going through
+        // performSave (which calls setSaveStatus).
+        void apiService.put(draftUrl(petId), { answers: payload });
       }
     };
-  }, []);
+  }, [petId]);
 
   const performSave = useCallback(
     async (answers: Record<string, unknown>) => {

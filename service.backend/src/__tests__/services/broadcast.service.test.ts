@@ -258,6 +258,56 @@ describe('BroadcastService', () => {
     });
   });
 
+  describe('bounded, batched fan-out', () => {
+    it('writes in-app rows via bulkCreate rather than per-user create', async () => {
+      const cohorts = await seedCohorts();
+      const bulkSpy = vi.spyOn(Notification, 'bulkCreate');
+      const createSpy = vi.spyOn(Notification, 'create');
+
+      await BroadcastService.broadcast({
+        audience: 'all',
+        title: 'Batched',
+        body: 'Body',
+        channels: [NotificationChannel.IN_APP],
+        initiatedBy: cohorts.staffId,
+      });
+
+      expect(bulkSpy).toHaveBeenCalled();
+      expect(createSpy).not.toHaveBeenCalled();
+      // Still one row per recipient overall.
+      expect(await Notification.count()).toBe(4);
+
+      bulkSpy.mockRestore();
+      createSpy.mockRestore();
+    });
+
+    it('pages the audience query (limit/offset) instead of loading every id at once', async () => {
+      const cohorts = await seedCohorts();
+      const findAllSpy = vi.spyOn(User, 'findAll');
+
+      await BroadcastService.broadcast({
+        audience: 'all',
+        title: 'Paged',
+        body: 'Body',
+        channels: [NotificationChannel.IN_APP],
+        initiatedBy: cohorts.staffId,
+      });
+
+      // The active-user query must be paged: every User.findAll for the
+      // audience carries a bounded limit and an offset.
+      const audienceCalls = findAllSpy.mock.calls.filter(
+        ([opts]) => opts !== undefined && 'limit' in opts && 'offset' in opts
+      );
+      expect(audienceCalls.length).toBeGreaterThan(0);
+      for (const [opts] of audienceCalls) {
+        expect(typeof opts?.limit).toBe('number');
+        expect(typeof opts?.offset).toBe('number');
+      }
+
+      findAllSpy.mockRestore();
+    });
+  });
+
   describe('previewAudienceCount', () => {
     it('returns the active user count without writing anything', async () => {
       const cohorts = await seedCohorts();

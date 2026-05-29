@@ -455,6 +455,48 @@ describe('AnalyticsService', () => {
         })
       );
     });
+
+    it('caps the queue at MAX_QUEUE_SIZE (1000) by dropping the oldest event when a new one is pushed', async () => {
+      // Fill the queue to capacity
+      for (let i = 0; i < 1000; i++) {
+        await service.trackEvent({ category: 'filler', action: `action-${i}` });
+      }
+      // The queue should be exactly 1000 events
+      expect(service['eventQueue']).toHaveLength(1000);
+      // The oldest event is action-0
+      expect(service['eventQueue'][0].action).toBe('action-0');
+
+      // Push one more — the oldest should be evicted
+      await service.trackEvent({ category: 'new', action: 'overflow' });
+
+      expect(service['eventQueue']).toHaveLength(1000);
+      // action-0 was dropped; now the first entry is action-1
+      expect(service['eventQueue'][0].action).toBe('action-1');
+      expect(service['eventQueue'][999].action).toBe('overflow');
+    });
+
+    it('re-queues failed events but keeps the queue bounded at MAX_QUEUE_SIZE', async () => {
+      // Confirm that pushing past MAX_QUEUE_SIZE (1000) via trackEvent stays capped
+      service['eventQueue'] = [];
+      for (let i = 0; i < 1050; i++) {
+        await service.trackEvent({ category: 'overflow', action: `ov-${i}` });
+      }
+      // Even after 1050 pushes the queue must not exceed MAX_QUEUE_SIZE
+      expect(service['eventQueue'].length).toBeLessThanOrEqual(1000);
+    });
+
+    it('discards re-queued events older than 5 minutes so permanently-failing events are not retried forever', async () => {
+      // Track an event then backdate it to simulate a stale event
+      await service.trackEvent({ category: 'stale', action: 'old-action' });
+      service['eventQueue'][0].timestamp = new Date(Date.now() - 6 * 60 * 1000);
+
+      // Manually call the private flush (avoids setInterval timer conflicts)
+      mockApiService.post.mockRejectedValueOnce(new Error('Network error'));
+      await service['flushEventQueue']();
+
+      // The stale event should have been discarded during re-queue
+      expect(service['eventQueue'].every((e) => e.action !== 'old-action')).toBe(true);
+    });
   });
 
   describe('error handling', () => {

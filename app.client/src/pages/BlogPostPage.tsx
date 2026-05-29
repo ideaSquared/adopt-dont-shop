@@ -22,11 +22,27 @@ export const BlogPostPage: React.FC = () => {
     if (!slug) {
       return;
     }
+    let cancelled = false;
     cmsPublicService
       .getBlogPost(slug)
-      .then(setPost)
-      .catch(() => navigate('/blog', { replace: true }))
-      .finally(() => setLoading(false));
+      .then(result => {
+        if (!cancelled) {
+          setPost(result);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          navigate('/blog', { replace: true });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [slug, navigate]);
 
   if (loading) {

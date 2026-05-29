@@ -114,6 +114,39 @@ describe('Toast', () => {
 
     expect(screen.getByText(customMessage)).toBeInTheDocument();
   });
+
+  it('does not call onClose after unmount when the component is removed mid-exit-animation', () => {
+    // Regression: before the fix the 200ms exit timer was not cleared on
+    // unmount, so onClose could fire against an already-unmounted host.
+    const handleClose = vi.fn();
+    const { unmount } = renderWithTheme(
+      <Toast {...mockToast} onClose={handleClose} autoClose duration={3000} />
+    );
+
+    // Advance past the auto-close duration so the exit animation timer starts
+    vi.advanceTimersByTime(3000);
+
+    // Unmount before the 200ms animation timer fires
+    unmount();
+
+    // Advancing past the animation window should not trigger onClose
+    vi.advanceTimersByTime(200);
+    expect(handleClose).not.toHaveBeenCalled();
+  });
+
+  it('does not call onClose after unmount when the user clicks close mid-animation', () => {
+    const handleClose = vi.fn();
+    const { unmount } = renderWithTheme(<Toast {...mockToast} onClose={handleClose} />);
+
+    const closeButton = screen.getByLabelText('Close notification');
+    fireEvent.click(closeButton);
+
+    // Unmount before the 200ms animation completes
+    unmount();
+
+    vi.advanceTimersByTime(200);
+    expect(handleClose).not.toHaveBeenCalled();
+  });
 });
 
 describe('ToastContainer', () => {
