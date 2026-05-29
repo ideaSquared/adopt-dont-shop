@@ -20,6 +20,7 @@ vi.mock('../../utils/logger', () => ({
 }));
 
 vi.mock('../../config/env', () => ({
+  isProductionLike: () => false,
   env: {
     JWT_SECRET: 'test-secret-min-32-characters-long-12345',
     JWT_REFRESH_SECRET: 'test-refresh-secret-min-32-chars-12345',
