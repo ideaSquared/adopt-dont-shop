@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Input } from '@adopt-dont-shop/lib.components';
+import { Input, toast } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { FiSearch, FiUserPlus, FiUser } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
@@ -11,6 +11,7 @@ import {
   type InboxFilters,
   type InboxSource,
 } from '../hooks/useInbox';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import * as styles from './Inbox.css';
 
 const formatRelativeTime = (iso: string): string => {
@@ -142,9 +143,13 @@ const Inbox: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
 
+  // ADS-697: debounce the search input so we don't fire an API call on every
+  // keystroke — only the settled value participates in the query key.
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
+
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, sourceFilter, severityFilter, statusFilter, myQueueActive]);
+  }, [debouncedSearchQuery, sourceFilter, severityFilter, statusFilter, myQueueActive]);
 
   const filters = useMemo((): InboxFilters => {
     const f: InboxFilters = {
@@ -162,14 +167,14 @@ const Inbox: React.FC = () => {
     if (statusFilter !== 'all') {
       f.status = statusFilter;
     }
-    if (searchQuery) {
-      f.search = searchQuery;
+    if (debouncedSearchQuery) {
+      f.search = debouncedSearchQuery;
     }
     if (myQueueActive && user) {
       f.assignedTo = user.userId;
     }
     return f;
-  }, [sourceFilter, severityFilter, statusFilter, searchQuery, page, myQueueActive, user]);
+  }, [sourceFilter, severityFilter, statusFilter, debouncedSearchQuery, page, myQueueActive, user]);
 
   const { data: inboxData, isLoading, error } = useInbox(filters);
   const items = inboxData?.data ?? [];
@@ -180,11 +185,23 @@ const Inbox: React.FC = () => {
     if (!user) {
       return;
     }
-    assignMutation.mutate({
-      itemId: item.id,
-      source: item.source,
-      assignedTo: user.userId,
-    });
+    assignMutation.mutate(
+      {
+        itemId: item.id,
+        source: item.source,
+        assignedTo: user.userId,
+      },
+      {
+        // ADS-697: surface assign success/failure so users get explicit feedback
+        // instead of relying on the optimistic table update alone.
+        onSuccess: () => {
+          toast.success('Item assigned to you');
+        },
+        onError: () => {
+          toast.error('Failed to assign item. Please try again.');
+        },
+      }
+    );
   };
 
   const handleRowClick = (item: InboxItem) => {

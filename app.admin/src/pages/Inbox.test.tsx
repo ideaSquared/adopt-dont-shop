@@ -1,6 +1,7 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { fireEvent, screen, act } from '@testing-library/react';
+import { toast } from '@adopt-dont-shop/lib.components';
 import { renderWithProviders } from '../test-utils';
 import type { InboxFilters } from '../hooks/useInbox';
 
@@ -134,11 +135,17 @@ describe('Inbox page', () => {
     const assignButtons = screen.getAllByTitle('Assign to me');
     fireEvent.click(assignButtons[0]);
 
-    expect(mockAssignMutate).toHaveBeenCalledWith({
-      itemId: 'report-1',
-      source: 'moderation',
-      assignedTo: 'admin-user-1',
-    });
+    expect(mockAssignMutate).toHaveBeenCalledWith(
+      {
+        itemId: 'report-1',
+        source: 'moderation',
+        assignedTo: 'admin-user-1',
+      },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      })
+    );
   });
 
   it('allows filtering by source', () => {
@@ -230,6 +237,66 @@ describe('Inbox page', () => {
       expect(chip).toHaveAttribute('aria-pressed', 'false');
       const lastCall = mockUseInbox.mock.calls.at(-1);
       expect(lastCall?.[0]?.assignedTo).toBeUndefined();
+    });
+  });
+
+  // ADS-697: search input must not fire an API call on every keystroke and
+  // assign failures must surface to the user rather than fail silently.
+  describe('search debouncing', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('does not pass the search term to useInbox until the user stops typing', () => {
+      renderWithProviders(<Inbox />);
+
+      const searchInput = screen.getByPlaceholderText('Search across all items...');
+
+      act(() => {
+        fireEvent.change(searchInput, { target: { value: 'spam' } });
+      });
+
+      // Immediately after typing, the query must still be running against the
+      // previous (empty) search term — no API hit per keystroke.
+      const immediateCall = mockUseInbox.mock.calls.at(-1);
+      expect(immediateCall?.[0]?.search).toBeUndefined();
+
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      const debouncedCall = mockUseInbox.mock.calls.at(-1);
+      expect(debouncedCall?.[0]?.search).toBe('spam');
+    });
+  });
+
+  describe('assign mutation feedback', () => {
+    it('shows a success toast when the assign mutation succeeds', () => {
+      renderWithProviders(<Inbox />);
+
+      const assignButtons = screen.getAllByTitle('Assign to me');
+      fireEvent.click(assignButtons[0]);
+
+      const options = mockAssignMutate.mock.calls.at(-1)?.[1];
+      options?.onSuccess?.();
+
+      expect(toast.success).toHaveBeenCalledWith('Item assigned to you');
+    });
+
+    it('shows an error toast when the assign mutation fails', () => {
+      renderWithProviders(<Inbox />);
+
+      const assignButtons = screen.getAllByTitle('Assign to me');
+      fireEvent.click(assignButtons[0]);
+
+      const options = mockAssignMutate.mock.calls.at(-1)?.[1];
+      options?.onError?.(new Error('boom'));
+
+      expect(toast.error).toHaveBeenCalledWith('Failed to assign item. Please try again.');
     });
   });
 });
