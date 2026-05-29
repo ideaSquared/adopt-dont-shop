@@ -216,8 +216,15 @@ RUN --mount=type=cache,target=/app/.turbo \
 # ============================================================================
 # PRODUCTION STAGE - Minimal Nginx image for static assets
 # ============================================================================
-FROM nginx:1.31-alpine AS production
+# Uses the unprivileged nginx image (runs as UID 101, listens on 8080) so the
+# container does not run as root. [ADS-701]
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS production
 ARG APP_NAME
+
+# Privileged setup (package upgrade, suid strip, config write). The base image
+# drops back to the `nginx` user via the trailing USER directive below before
+# the runtime stage starts. [ADS-701]
+USER root
 
 # Install security updates
 # hadolint ignore=DL3018
@@ -260,7 +267,7 @@ http { \
                application/wasm; \
     \
     server { \
-        listen 80; \
+        listen 8080; \
         server_name _; \
         root /usr/share/nginx/html; \
         index index.html; \
@@ -298,12 +305,15 @@ http { \
     } \
 }' > /etc/nginx/nginx.conf
 
+# Drop back to the unprivileged nginx user (UID 101) for runtime. [ADS-701]
+USER nginx
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost/health || exit 1
+    CMD wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1
 
-# Expose port
-EXPOSE 80
+# Expose port (unprivileged nginx listens on 8080, not 80) [ADS-701]
+EXPOSE 8080
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
