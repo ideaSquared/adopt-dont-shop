@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const LOCATION_CACHE_KEY = 'user_geolocation';
 const LOCATION_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -64,6 +64,15 @@ export const useGeolocation = () => {
     };
   });
 
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setState(prev => ({
@@ -78,6 +87,9 @@ export const useGeolocation = () => {
 
     navigator.geolocation.getCurrentPosition(
       position => {
+        if (!mountedRef.current) {
+          return;
+        }
         const { latitude, longitude } = position.coords;
         saveCachedLocation(latitude, longitude);
         setState({
@@ -88,6 +100,9 @@ export const useGeolocation = () => {
         });
       },
       err => {
+        if (!mountedRef.current) {
+          return;
+        }
         const errorMessage =
           err.code === err.PERMISSION_DENIED
             ? 'Location access was denied. You can enter your location manually.'

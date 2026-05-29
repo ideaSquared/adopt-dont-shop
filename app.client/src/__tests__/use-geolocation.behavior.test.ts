@@ -231,4 +231,92 @@ describe('useGeolocation hook', () => {
       expect(localStorage.getItem(LOCATION_CACHE_KEY)).toBeNull();
     });
   });
+
+  describe('unmount guard', () => {
+    it('does not call setState after unmount when the geolocation success callback fires late', () => {
+      // Simulate a slow geolocation response that resolves after unmount.
+      let capturedSuccessCallback!: PositionCallback;
+      const getCurrentPosition = vi.fn((success: PositionCallback) => {
+        // Capture but do NOT call yet — simulates the 10s timeout
+        capturedSuccessCallback = success;
+      });
+      Object.defineProperty(navigator, 'geolocation', {
+        value: { getCurrentPosition },
+        writable: true,
+        configurable: true,
+      });
+
+      const { result, unmount } = renderHook(() => useGeolocation());
+
+      act(() => {
+        result.current.requestLocation();
+      });
+
+      // Hook is still in 'loading' state
+      expect(result.current.status).toBe('loading');
+
+      // Unmount the hook before the geolocation callback fires
+      unmount();
+
+      // Fire the success callback after unmount — the mounted guard must
+      // suppress the setState call. We assert that no error is thrown and
+      // that the hook's last known status (captured before unmount) was
+      // 'loading', not 'granted'.
+      act(() => {
+        capturedSuccessCallback({
+          coords: {
+            latitude: 51.5074,
+            longitude: -0.1278,
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+          },
+          timestamp: Date.now(),
+        });
+      });
+
+      // No assertions on result.current after unmount — we are verifying the
+      // absence of a React "Can't perform a state update on an unmounted
+      // component" warning (which would cause the test to fail in strict mode).
+    });
+
+    it('does not call setState after unmount when the geolocation error callback fires late', () => {
+      let capturedErrorCallback!: PositionErrorCallback;
+      const getCurrentPosition = vi.fn(
+        (_success: PositionCallback, error: PositionErrorCallback) => {
+          capturedErrorCallback = error;
+        }
+      );
+      Object.defineProperty(navigator, 'geolocation', {
+        value: { getCurrentPosition },
+        writable: true,
+        configurable: true,
+      });
+
+      const { result, unmount } = renderHook(() => useGeolocation());
+
+      act(() => {
+        result.current.requestLocation();
+      });
+
+      expect(result.current.status).toBe('loading');
+
+      unmount();
+
+      // Fire the error callback after unmount — no setState should occur
+      act(() => {
+        capturedErrorCallback({
+          code: 3, // TIMEOUT
+          message: 'Timeout',
+          PERMISSION_DENIED: 1,
+          POSITION_UNAVAILABLE: 2,
+          TIMEOUT: 3,
+        });
+      });
+
+      // Absence of errors / warnings is the passing condition.
+    });
+  });
 });
