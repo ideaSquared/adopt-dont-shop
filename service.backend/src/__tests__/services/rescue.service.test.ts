@@ -755,6 +755,75 @@ describe('RescueService - Behavioral Testing', () => {
     });
   });
 
+  describe('updateStaffMember', () => {
+    it('should update staff member title successfully', async () => {
+      const rescue = await Rescue.create({
+        name: 'Test Rescue',
+        email: 'test@rescue.org',
+        phone: '555-0123',
+        address: '123 Main St',
+        city: 'London',
+        postcode: 'SW1A 1AA',
+        country: 'GB',
+        contactPerson: 'Jane Smith',
+        status: 'verified',
+      });
+
+      await StaffMember.create({
+        rescueId: rescue.rescueId,
+        userId: 'user-123',
+        title: 'Volunteer',
+        addedBy: 'admin-123',
+      });
+
+      await RescueService.updateStaffMember(
+        rescue.rescueId,
+        'user-123',
+        { title: 'Coordinator' },
+        'admin-123'
+      );
+
+      const updated = await StaffMember.findOne({
+        where: { rescueId: rescue.rescueId, userId: 'user-123' },
+      });
+      expect(updated?.title).toBe('Coordinator');
+    });
+
+    it('should throw error when rescue not found', async () => {
+      await expect(
+        RescueService.updateStaffMember(
+          'nonexistent-id',
+          'user-123',
+          { title: 'Coordinator' },
+          'admin-123'
+        )
+      ).rejects.toThrow('Rescue not found');
+    });
+
+    it('should throw error when staff member not found', async () => {
+      const rescue = await Rescue.create({
+        name: 'Test Rescue',
+        email: 'test@rescue.org',
+        phone: '555-0123',
+        address: '123 Main St',
+        city: 'London',
+        postcode: 'SW1A 1AA',
+        country: 'GB',
+        contactPerson: 'Jane Smith',
+        status: 'verified',
+      });
+
+      await expect(
+        RescueService.updateStaffMember(
+          rescue.rescueId,
+          'user-123',
+          { title: 'Coordinator' },
+          'admin-123'
+        )
+      ).rejects.toThrow('Staff member not found');
+    });
+  });
+
   describe('getRescueStatistics', () => {
     it('should get rescue statistics successfully', async () => {
       const rescue = await Rescue.create({

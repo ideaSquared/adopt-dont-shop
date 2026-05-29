@@ -1457,7 +1457,7 @@ export class RescueService {
 
     try {
       // Verify rescue exists
-      const rescue = await Rescue.findByPk(rescueId);
+      const rescue = await Rescue.findByPk(rescueId, { transaction });
       if (!rescue) {
         throw new NotFoundError('Rescue not found');
       }
@@ -1466,6 +1466,7 @@ export class RescueService {
       const staffMember = await StaffMember.findOne({
         where: { rescueId, userId },
         include: [{ model: User, as: 'user' }],
+        transaction,
       });
 
       if (!staffMember) {
