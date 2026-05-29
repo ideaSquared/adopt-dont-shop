@@ -88,8 +88,8 @@ export function ChatWindow({ onBack }: ChatWindowProps) {
       await sendMessage(messageText.trim(), attachments);
       setMessageText('');
     } catch (err) {
-      console.error('Failed to send message:', err);
-
+      // Do not log message content — let the ChatProvider's error state
+      // surface the failure to the UI via the `error` value from useChat().
       if (activeConversation) {
         logEvent('chat_message_error', 1, {
           conversation_id: activeConversation.id.toString(),

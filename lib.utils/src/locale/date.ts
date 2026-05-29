@@ -6,6 +6,7 @@
 import { format, formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { enGB } from 'date-fns/locale';
 import { LOCALE_CONFIG } from './config';
+import { logFormatError } from './log';
 
 /**
  * Format a date to UK format: DD/MM/YYYY
@@ -20,7 +21,7 @@ export function formatDate(date: Date | string | number): string {
     }
     return format(dateObj, LOCALE_CONFIG.dateFormat, { locale: enGB });
   } catch (error) {
-    console.error('Error formatting date:', error);
+    logFormatError('Error formatting date:', error);
     return 'Invalid date';
   }
 }
@@ -38,7 +39,7 @@ export function formatDateTime(date: Date | string | number): string {
     }
     return format(dateObj, LOCALE_CONFIG.dateTimeFormat, { locale: enGB });
   } catch (error) {
-    console.error('Error formatting date-time:', error);
+    logFormatError('Error formatting date-time:', error);
     return 'Invalid date';
   }
 }
@@ -56,7 +57,7 @@ export function formatTime(date: Date | string | number): string {
     }
     return format(dateObj, LOCALE_CONFIG.timeFormat, { locale: enGB });
   } catch (error) {
-    console.error('Error formatting time:', error);
+    logFormatError('Error formatting time:', error);
     return 'Invalid time';
   }
 }
@@ -77,7 +78,7 @@ export function formatRelativeDate(date: Date | string | number): string {
       locale: enGB,
     });
   } catch (error) {
-    console.error('Error formatting relative date:', error);
+    logFormatError('Error formatting relative date:', error);
     return 'Invalid date';
   }
 }
@@ -105,7 +106,7 @@ export function formatDisplayDate(
     const pattern = options?.includeTime ? 'd MMM yyyy, HH:mm' : 'd MMM yyyy';
     return format(dateObj, pattern, { locale: enGB });
   } catch (error) {
-    console.error('Error formatting display date:', error);
+    logFormatError('Error formatting display date:', error);
     return 'Invalid date';
   }
 }
@@ -124,7 +125,7 @@ export function formatCustomDate(date: Date | string | number, formatString: str
     }
     return format(dateObj, formatString, { locale: enGB });
   } catch (error) {
-    console.error('Error formatting custom date:', error);
+    logFormatError('Error formatting custom date:', error);
     return 'Invalid date';
   }
 }

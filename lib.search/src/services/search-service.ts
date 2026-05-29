@@ -36,6 +36,7 @@ export class SearchService {
   private cache: Map<string, SearchCacheEntry>;
   private metrics: SearchMetrics;
   private API_BASE_URL = '/api/v1/search';
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
   // Cache configuration
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -432,10 +433,11 @@ export class SearchService {
   }
 
   /**
-   * Start automatic cache cleanup
+   * Start automatic cache cleanup.
+   * The interval handle is stored so destroy() can clear it.
    */
   private startCacheCleanup(): void {
-    setInterval(() => {
+    this.cleanupTimer = setInterval(() => {
       const now = Date.now();
       const expiredKeys = Array.from(this.cache.entries())
         .filter(([, entry]) => now > entry.expiresAt)
@@ -443,5 +445,16 @@ export class SearchService {
 
       expiredKeys.forEach((key) => this.cache.delete(key));
     }, 60000); // Run every minute
+  }
+
+  /**
+   * Stop the cache cleanup interval and release resources.
+   * Call this when the service instance is no longer needed.
+   */
+  public destroy(): void {
+    if (this.cleanupTimer !== null) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
   }
 }

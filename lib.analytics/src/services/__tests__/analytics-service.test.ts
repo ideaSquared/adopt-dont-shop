@@ -525,6 +525,37 @@ describe('AnalyticsService', () => {
       expect(newSessionId).not.toBe(originalSessionId);
       expect(newSessionId).toMatch(/^session_\d+_[a-z0-9]+$/);
     });
+
+    it('destroy() restores original history methods and removes the popstate listener', () => {
+      const originalPushState = window.history.pushState;
+      const originalReplaceState = window.history.replaceState;
+
+      const trackingService = new AnalyticsService({ autoTrackPageViews: true });
+
+      // After construction, pushState/replaceState should be wrapped.
+      expect(window.history.pushState).not.toBe(originalPushState);
+      expect(window.history.replaceState).not.toBe(originalReplaceState);
+
+      // Verify popstate is handled by adding a spy before destroy.
+      const popstateSpy = vi.fn();
+      window.addEventListener('popstate', popstateSpy);
+
+      // Dispatch a popstate; the analytics listener + our spy both fire.
+      window.dispatchEvent(new PopStateEvent('popstate'));
+
+      trackingService.destroy();
+
+      // After destroy, originals are restored.
+      expect(window.history.pushState).toBe(originalPushState);
+      expect(window.history.replaceState).toBe(originalReplaceState);
+
+      // The analytics popstate listener is removed; only our own spy fires.
+      popstateSpy.mockClear();
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      expect(popstateSpy).toHaveBeenCalledTimes(1); // only our listener
+
+      window.removeEventListener('popstate', popstateSpy);
+    });
   });
 
   describe('consent gating', () => {

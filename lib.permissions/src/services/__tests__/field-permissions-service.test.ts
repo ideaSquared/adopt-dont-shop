@@ -465,4 +465,47 @@ describe('FieldPermissionsService', () => {
       );
     });
   });
+
+  describe('getFieldPermissions — fail closed', () => {
+    it('returns records when the API returns a valid { data: [...] } shape', async () => {
+      const record = {
+        field_permission_id: 1,
+        resource: 'users',
+        field_name: 'email',
+        role: 'adopter',
+        access_level: 'read',
+        created_at: '2024-01-01',
+        updated_at: '2024-01-01',
+      };
+      mockApiService.get = vi.fn().mockResolvedValue({ data: [record] });
+
+      const result = await service.getFieldPermissions('users');
+
+      expect(result).toEqual([record]);
+    });
+
+    it('re-throws when the API call fails (does not swallow auth errors)', async () => {
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('Unauthorized'));
+
+      await expect(service.getFieldPermissions('users')).rejects.toThrow('Unauthorized');
+    });
+
+    it('throws when the response shape is not { data: [...] }', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({ permissions: [] });
+
+      await expect(service.getFieldPermissions('users')).rejects.toThrow(
+        'unexpected response shape'
+      );
+    });
+
+    it('throws when a record is missing required fields (field_name / access_level)', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({
+        data: [{ resource: 'users', role: 'admin' }], // no field_name or access_level
+      });
+
+      await expect(service.getFieldPermissions('users')).rejects.toThrow(
+        'unexpected response shape'
+      );
+    });
+  });
 });

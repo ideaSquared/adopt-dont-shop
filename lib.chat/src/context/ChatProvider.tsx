@@ -139,8 +139,7 @@ export function ChatProvider({
 
     return () => {
       chatService.offConnectionStatusChange(listener);
-      // ChatService has no offConnectionError helper; clearing is not
-      // critical because the listener body is a stable setState.
+      chatService.offConnectionError(errorListener);
     };
   }, [chatService]);
 
@@ -541,7 +540,9 @@ export function ChatProvider({
       try {
         await chatService.markAsRead(conversationId);
       } catch (err) {
-        console.error('Failed to mark as read:', err);
+        if (import.meta.env?.DEV) {
+          console.error('Failed to mark as read:', err);
+        }
       }
     },
     [chatService]
@@ -606,11 +607,10 @@ export function ChatProvider({
         (r) => r.userId === user.userId && r.emoji === emoji
       );
 
-      const op = hasReacted
-        ? chatService.removeReaction(activeConversation.id, messageId, emoji)
-        : chatService.addReaction(activeConversation.id, messageId, emoji);
-      op.catch((err) => console.error('Failed to toggle reaction:', err));
+      // Capture the pre-optimistic reactions so we can roll back on failure.
+      const previousReactions = targetMessage?.reactions ?? [];
 
+      // Apply optimistic update immediately.
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id !== messageId) {
@@ -632,6 +632,17 @@ export function ChatProvider({
           };
         })
       );
+
+      const op = hasReacted
+        ? chatService.removeReaction(activeConversation.id, messageId, emoji)
+        : chatService.addReaction(activeConversation.id, messageId, emoji);
+
+      op.catch(() => {
+        // Roll back to the pre-optimistic state on failure.
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === messageId ? { ...msg, reactions: previousReactions } : msg))
+        );
+      });
     },
     [activeConversation, chatService, messages, user]
   );
@@ -665,7 +676,9 @@ export function ChatProvider({
     try {
       await offlineAdapter.forceSync();
     } catch (err) {
-      console.error('Failed to force sync offline data:', err);
+      if (import.meta.env?.DEV) {
+        console.error('Failed to force sync offline data:', err);
+      }
       setError('Failed to sync offline messages');
     }
   }, [isOnline, offlineAdapter]);
@@ -692,7 +705,9 @@ export function ChatProvider({
             await chatService.sendMessage(message.conversationId, message.content);
             offlineAdapter.removeQueuedMessage(message.id);
           } catch (err) {
-            console.error('Failed to sync queued message:', err);
+            if (import.meta.env?.DEV) {
+              console.error('Failed to sync queued message:', err);
+            }
           }
         }
         for (const action of pendingActions) {
@@ -706,7 +721,9 @@ export function ChatProvider({
             }
             offlineAdapter.removeQueuedAction(action.id);
           } catch (err) {
-            console.error('Failed to sync queued action:', err);
+            if (import.meta.env?.DEV) {
+              console.error('Failed to sync queued action:', err);
+            }
           }
         }
       }

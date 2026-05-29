@@ -206,6 +206,31 @@ describe('ChatService', () => {
       // Listener should not be called after removal
       expect(listener).not.toHaveBeenCalled();
     });
+
+    it('offConnectionError removes a previously registered error listener', () => {
+      const errorListener = vi.fn();
+
+      service.onConnectionError(errorListener);
+      service.offConnectionError(errorListener);
+
+      service.simulateError(new Error('Test error'));
+
+      expect(errorListener).not.toHaveBeenCalled();
+    });
+
+    it('offConnectionError only removes the specified listener, leaving others intact', () => {
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
+
+      service.onConnectionError(listener1);
+      service.onConnectionError(listener2);
+      service.offConnectionError(listener1);
+
+      service.simulateError(new Error('Test error'));
+
+      expect(listener1).not.toHaveBeenCalled();
+      expect(listener2).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Socket.IO connection - reconnection with exponential backoff', () => {

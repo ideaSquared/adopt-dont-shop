@@ -16,7 +16,7 @@ vi.mock('@statsig/react-bindings', () => ({
   StatsigContext: { _statsigContextMarker: true },
 }));
 
-import { useFeatureGate } from './useFeatureGate';
+import { useFeatureGate, _warnedGatesForTesting } from './useFeatureGate';
 
 describe('useFeatureGate', () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -24,6 +24,8 @@ describe('useFeatureGate', () => {
   beforeEach(() => {
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mockUseContext.mockReset();
+    // Reset the dedupe set so each test starts clean.
+    _warnedGatesForTesting.clear();
   });
 
   afterEach(() => {
@@ -47,5 +49,27 @@ describe('useFeatureGate', () => {
 
     expect(useFeatureGate('any_gate')).toEqual({ value: false });
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('any_gate'));
+  });
+
+  it('warns at most once per gate name even across multiple renders', () => {
+    mockUseContext.mockReturnValue({ client: null });
+
+    useFeatureGate('deduped_gate');
+    useFeatureGate('deduped_gate');
+    useFeatureGate('deduped_gate');
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('warns independently for different gate names', () => {
+    mockUseContext.mockReturnValue({ client: null });
+
+    useFeatureGate('gate_a');
+    useFeatureGate('gate_b');
+    useFeatureGate('gate_a'); // should not warn again
+
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('gate_a'));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('gate_b'));
   });
 });

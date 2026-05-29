@@ -100,12 +100,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           if (devUser) {
             const parsedUser = JSON.parse(devUser);
 
-            // Ensure dev user has a mock token
-            const existingToken = localStorage.getItem('accessToken');
+            // Ensure dev user has a mock token (namespaced to avoid
+            // colliding with prod cleanup paths that watch STORAGE_KEYS).
+            const existingToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
             if (!existingToken || !existingToken.startsWith('dev-token-')) {
               const mockToken = `dev-token-${parsedUser.userId}-${Date.now()}`;
-              localStorage.setItem('accessToken', mockToken);
-              localStorage.setItem('authToken', mockToken);
+              localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, mockToken);
+              localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, mockToken);
             }
 
             setUser(parsedUser);
@@ -436,11 +437,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const setDevUser = (devUser: User) => {
     if (import.meta.env?.DEV) {
       setUser(devUser);
-      // Store dev user in localStorage for persistence across refreshes
+      // Store dev user in localStorage for persistence across refreshes.
+      // Tokens use the __dev_* namespace so prod cleanup code (which
+      // watches STORAGE_KEYS.AUTH_TOKEN / STORAGE_KEYS.ACCESS_TOKEN)
+      // handles them correctly without touching real prod entries.
       localStorage.setItem('dev_user', JSON.stringify(devUser));
       const mockToken = `dev-token-${devUser.userId}-${Date.now()}`;
-      localStorage.setItem('accessToken', mockToken);
-      localStorage.setItem('authToken', mockToken);
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, mockToken);
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, mockToken);
     }
   };
 

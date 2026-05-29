@@ -11,6 +11,7 @@ import {
   TwoFactorDisableResponse,
   TwoFactorBackupCodesResponse,
   STORAGE_KEYS,
+  StoredUserSchema,
 } from '../types';
 
 // ✅ INDUSTRY STANDARD: Centralized API path constants
@@ -91,7 +92,12 @@ export class AuthService {
   }
 
   /**
-   * Get current user from localStorage
+   * Get current user from localStorage.
+   *
+   * Validates the stored value against StoredUserSchema before returning it.
+   * If the value is missing, unparseable, or fails schema validation the
+   * corrupted entry is removed and null is returned so callers can't
+   * accidentally treat an invalid PII blob as a live user.
    */
   getCurrentUser(): User | null {
     const userStr = localStorage.getItem(STORAGE_KEYS.USER);
@@ -99,12 +105,23 @@ export class AuthService {
       return null;
     }
 
+    let parsed: unknown;
     try {
-      return JSON.parse(userStr);
-    } catch (error) {
-      console.error('Error parsing user data:', error);
+      parsed = JSON.parse(userStr);
+    } catch {
+      localStorage.removeItem(STORAGE_KEYS.USER);
       return null;
     }
+
+    const result = StoredUserSchema.safeParse(parsed);
+    if (!result.success) {
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      return null;
+    }
+
+    // The stored value passed schema validation; cast to the full User type
+    // (additional optional fields are preserved by JSON.parse above).
+    return parsed as User;
   }
 
   /**

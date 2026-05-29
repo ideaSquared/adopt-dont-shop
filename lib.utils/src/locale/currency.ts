@@ -4,6 +4,7 @@
  */
 
 import { LOCALE_CONFIG } from './config';
+import { logFormatError } from './log';
 
 /**
  * Format a number as UK currency (GBP)
@@ -20,7 +21,7 @@ export function formatCurrency(amount: number, options?: Intl.NumberFormatOption
     });
     return formatter.format(amount);
   } catch (error) {
-    console.error('Error formatting currency:', error);
+    logFormatError('Error formatting currency:', error);
     return `${LOCALE_CONFIG.currencySymbol}${amount.toFixed(2)}`;
   }
 }
@@ -51,7 +52,7 @@ export function formatNumber(amount: number, decimals: number = 2): string {
     });
     return formatter.format(amount);
   } catch (error) {
-    console.error('Error formatting number:', error);
+    logFormatError('Error formatting number:', error);
     return amount.toFixed(decimals);
   }
 }

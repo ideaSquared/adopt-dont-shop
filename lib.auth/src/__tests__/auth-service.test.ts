@@ -179,6 +179,36 @@ describe('AuthService', () => {
 
       expect(user).toBeNull();
     });
+
+    it('should return null and remove the key when stored value is not valid JSON', () => {
+      mockLocalStorage.getItem.mockReturnValue('not-json{{{');
+
+      const user = authService.getCurrentUser();
+
+      expect(user).toBeNull();
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
+    });
+
+    it('should return null and remove the key when stored value is missing required fields', () => {
+      // Missing email, firstName, etc.
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify({ userId: '123' }));
+
+      const user = authService.getCurrentUser();
+
+      expect(user).toBeNull();
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
+    });
+
+    it('should return null and remove the key when stored value has wrong field types', () => {
+      // emailVerified should be boolean, not string
+      const corrupt = { ...mockUser, emailVerified: 'yes' };
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(corrupt));
+
+      const user = authService.getCurrentUser();
+
+      expect(user).toBeNull();
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
+    });
   });
 
   describe('isAuthenticated', () => {
