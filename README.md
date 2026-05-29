@@ -172,6 +172,7 @@ make history               # list recent commits to pick a rollback target
 ## Documentation
 
 - [docs/DOCKER.md](./docs/DOCKER.md) — Docker infrastructure deep dive
+- [docs/dependency-graph.md](./docs/dependency-graph.md) — Turbo dependency graph generator and layered architecture guide
 - [docs/README.md](./docs/README.md) — full documentation index
 - [docs/libraries/](./docs/libraries/) — per-library reference
 - [service.backend/README.md](./service.backend/README.md) — backend service
