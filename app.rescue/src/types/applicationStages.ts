@@ -33,7 +33,7 @@ export interface StageAction {
   stage: ApplicationStage;
   nextStage?: ApplicationStage;
   requiresInput?: boolean;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 // Updated Application interface for stage-based workflow
@@ -80,7 +80,7 @@ export interface ApplicationWithStages {
   homeVisits?: ApplicationHomeVisit[];
 
   // Application data
-  answers: Record<string, any>;
+  answers: Record<string, unknown>;
   priority?: 'low' | 'normal' | 'high' | 'urgent';
   tags?: string[];
 }

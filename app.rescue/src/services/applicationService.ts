@@ -16,6 +16,57 @@ import type { ApplicationStage } from '../types/applicationStages';
 import type { ApplicationPriority } from '@adopt-dont-shop/lib.applications';
 
 /**
+ * Envelope returned by the list endpoint when the backend wraps results.
+ * The transformer tolerates `applications`, `data`, or a bare array.
+ */
+type RawApplicationsListResponse = {
+  applications?: RawApplication[];
+  data?: RawApplication[];
+  total?: number;
+  count?: number;
+  page?: number;
+  currentPage?: number;
+  totalPages?: number;
+  limit?: number;
+};
+
+/**
+ * Envelope returned by single-application endpoints where the payload may
+ * be wrapped under `data`.
+ */
+type RawApplicationEnvelope = RawApplication & { data?: RawApplication };
+
+/**
+ * Envelope returned by the timeline list endpoint.
+ */
+type RawTimelineResponse = {
+  timeline?: RawTimelineItem[];
+  data?: RawTimelineItem[];
+};
+
+/**
+ * Shape of the timeline statistics endpoint response.
+ */
+type TimelineStatsResponse = {
+  totalEvents?: number;
+  lastActivity?: string;
+  eventTypeCounts?: Record<string, number>;
+};
+
+/**
+ * Legacy snake_case fields the backend may still emit on the application
+ * payload — only consulted by the home-visit fallback path below when the
+ * dedicated home-visits endpoint isn't available.
+ */
+type LegacyApplicationFields = {
+  home_visit_notes?: string;
+  submitted_at?: string;
+  actioned_by?: string;
+  decision_at?: string;
+  reviewed_at?: string;
+};
+
+/**
  * ADS-642: translate a StageAction (e.g. START_REVIEW, REJECT) into the
  * `updates` payload accepted by the bulk-update endpoint. Single-row
  * stage transitions reuse the same backend route as bulk transitions —
@@ -117,28 +168,33 @@ export class RescueApplicationService {
       params.append('limit', Math.min(limit, 100).toString()); // Backend max is 100
       params.append('_cacheBust', Date.now().toString()); // Force fresh data, no cache
 
-      const response = await this.apiService.get<any>(`/api/v1/applications?${params}`);
+      const response = await this.apiService.get<RawApplication[] | RawApplicationsListResponse>(
+        `/api/v1/applications?${params}`
+      );
 
       // Handle different response structures
-      let applicationsArray = [];
+      let applicationsArray: RawApplication[] = [];
+      let envelope: RawApplicationsListResponse = {};
       if (Array.isArray(response)) {
         // Direct array response
         applicationsArray = response;
-      } else if (response && response.applications && Array.isArray(response.applications)) {
+      } else if (response && Array.isArray(response.applications)) {
         // Wrapped in applications property
         applicationsArray = response.applications;
-      } else if (response && response.data && Array.isArray(response.data)) {
+        envelope = response;
+      } else if (response && Array.isArray(response.data)) {
         // Wrapped in data property
         applicationsArray = response.data;
+        envelope = response;
       }
 
       return {
         applications: applicationsArray.map(this.transformApplicationForList) || [],
-        total: response.total || response.count || applicationsArray.length,
-        page: response.page || response.currentPage || 1,
+        total: envelope.total || envelope.count || applicationsArray.length,
+        page: envelope.page || envelope.currentPage || 1,
         totalPages:
-          response.totalPages ||
-          Math.ceil((response.total || applicationsArray.length) / (response.limit || 25)),
+          envelope.totalPages ||
+          Math.ceil((envelope.total || applicationsArray.length) / (envelope.limit || 25)),
       };
     } catch (error) {
       console.error('Failed to fetch applications:', error);
@@ -151,7 +207,9 @@ export class RescueApplicationService {
    */
   async getApplicationById(id: string) {
     try {
-      const response = await this.apiService.get<any>(`/api/v1/applications/${id}`);
+      const response = await this.apiService.get<RawApplicationEnvelope>(
+        `/api/v1/applications/${id}`
+      );
       return response.data || response; // Extract data field from API response wrapper
     } catch (error) {
       console.error(`Failed to fetch application ${id}:`, error);
@@ -271,11 +329,14 @@ export class RescueApplicationService {
         }
       }
 
-      const response = await this.apiService.patch<any>(`/api/v1/applications/${id}/status`, {
-        status: normalizedStatus,
-        notes,
-        timestamp: new Date().toISOString(),
-      });
+      const response = await this.apiService.patch<RawApplicationEnvelope>(
+        `/api/v1/applications/${id}/status`,
+        {
+          status: normalizedStatus,
+          notes,
+          timestamp: new Date().toISOString(),
+        }
+      );
       return response.data || response; // Extract data field from API response wrapper
     } catch (error) {
       console.error(`Failed to update application status for ${id}:`, error);
@@ -295,10 +356,13 @@ export class RescueApplicationService {
   async transitionStage(id: string, stageAction: string, nextStage?: string, notes?: string) {
     const updates = buildSingleStageTransitionUpdates(stageAction, nextStage, notes);
     try {
-      const response = await this.apiService.patch<any>('/api/v1/applications/bulk-update', {
-        applicationIds: [id],
-        updates,
-      });
+      const response = await this.apiService.patch<RawApplicationEnvelope>(
+        '/api/v1/applications/bulk-update',
+        {
+          applicationIds: [id],
+          updates,
+        }
+      );
       return response.data || response; // Extract data field from API response wrapper
     } catch (error) {
       console.error(`Failed to transition stage for application ${id}:`, error);
@@ -311,7 +375,9 @@ export class RescueApplicationService {
    */
   async getApplicationStats(): Promise<ApplicationStats> {
     try {
-      const response = await this.apiService.get<any>('/api/v1/applications/statistics');
+      const response = await this.apiService.get<ApplicationStats>(
+        '/api/v1/applications/statistics'
+      );
       return response;
     } catch (error) {
       console.error('Failed to fetch application stats:', error);
@@ -325,7 +391,9 @@ export class RescueApplicationService {
   async getReferenceChecks(applicationId: string): Promise<ReferenceCheck[]> {
     try {
       // References are part of the main application data
-      const response = await this.apiService.get<any>(`/api/v1/applications/${applicationId}`);
+      const response = await this.apiService.get<RawApplicationEnvelope>(
+        `/api/v1/applications/${applicationId}`
+      );
       const application = response.data || response; // Extract data field from API response wrapper
 
       // Extract references from application data and transform them
@@ -360,7 +428,7 @@ export class RescueApplicationService {
   ) {
     try {
       // Use the new referenceId parameter instead of extracting reference_index
-      const response = await this.apiService.patch<any>(
+      const response = await this.apiService.patch<unknown>(
         `/api/v1/applications/${applicationId}/references`,
         {
           referenceId, // Send the reference ID directly
@@ -405,7 +473,9 @@ export class RescueApplicationService {
 
       // Fallback: Check if there are home_visit_notes in the application data
       try {
-        const application = await this.apiService.get<any>(`/api/v1/applications/${applicationId}`);
+        const application = await this.apiService.get<RawApplication & LegacyApplicationFields>(
+          `/api/v1/applications/${applicationId}`
+        );
 
         if (application?.home_visit_notes && application.home_visit_notes.trim()) {
           // Convert existing home_visit_notes to a HomeVisit object
@@ -569,12 +639,12 @@ export class RescueApplicationService {
    */
   async getApplicationTimeline(applicationId: string): Promise<ApplicationTimeline[]> {
     try {
-      const response = await this.apiService.get<any>(
+      const response = await this.apiService.get<RawTimelineItem[] | RawTimelineResponse>(
         `/api/v1/applications/${applicationId}/timeline`
       );
 
       // Handle different possible response formats
-      let timelineArray = [];
+      let timelineArray: RawTimelineItem[] = [];
 
       if (Array.isArray(response)) {
         timelineArray = response;
@@ -629,10 +699,10 @@ export class RescueApplicationService {
     applicationId: string,
     event: string,
     description: string,
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ) {
     try {
-      const response = await this.apiService.post<any>(
+      const response = await this.apiService.post<unknown>(
         `/api/v1/applications/${applicationId}/timeline/events`,
         {
           event_type: event,
@@ -652,9 +722,9 @@ export class RescueApplicationService {
   /**
    * Get timeline statistics for an application
    */
-  async getApplicationTimelineStats(applicationId: string): Promise<any> {
+  async getApplicationTimelineStats(applicationId: string): Promise<TimelineStatsResponse> {
     try {
-      const response = await this.apiService.get<any>(
+      const response = await this.apiService.get<TimelineStatsResponse>(
         `/api/v1/applications/${applicationId}/timeline/stats`
       );
 
@@ -670,7 +740,7 @@ export class RescueApplicationService {
    */
   async addTimelineNote(applicationId: string, title: string, content: string, noteType?: string) {
     try {
-      const response = await this.apiService.post<any>(
+      const response = await this.apiService.post<unknown>(
         `/api/v1/applications/${applicationId}/timeline/notes`,
         {
           title,
@@ -706,7 +776,7 @@ export class RescueApplicationService {
         },
       };
 
-      const response = await this.apiService.patch<any>(
+      const response = await this.apiService.patch<unknown>(
         '/api/v1/applications/bulk-update',
         bulkUpdate
       );

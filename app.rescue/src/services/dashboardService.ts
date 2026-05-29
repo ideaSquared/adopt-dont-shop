@@ -5,6 +5,44 @@
 import { apiService, notificationsService } from './libraryServices';
 import { RescueDashboardData, RecentActivity, DashboardNotification } from '../types/dashboard';
 
+type RawActivity = {
+  id: string;
+  timestamp: string;
+  type: string;
+  title?: string;
+  description?: string;
+  metadata?: {
+    petId?: string;
+    applicationId?: string;
+  };
+};
+
+type RawDashboardData = {
+  totalApplications?: number;
+  pendingApplications?: number;
+  adoptedPets?: number;
+  totalAnimals?: number;
+  availableForAdoption?: number;
+  recentAdoptions?: number;
+  averageRating?: number;
+  averageTimeToAdoption?: number;
+  monthlyAdoptions?: RescueDashboardData['monthlyAdoptions'];
+  petStatusDistribution?: RescueDashboardData['petStatusDistribution'];
+  petTypeDistribution?: RescueDashboardData['petTypeDistribution'];
+  recentActivity?: RawActivity[];
+};
+
+type RawNotification = {
+  id: string;
+  title?: string;
+  message?: string;
+  body?: string;
+  createdAt: string;
+  category?: string;
+  status?: string;
+  actionUrl?: string;
+};
+
 export class DashboardService {
   /**
    * Generate monthly adoptions estimate based on recent adoptions
@@ -38,7 +76,7 @@ export class DashboardService {
     try {
       const response = await apiService.get<{
         success: boolean;
-        data: any;
+        data: RawDashboardData;
         message: string;
       }>('/api/v1/dashboard/rescue');
 
@@ -92,20 +130,22 @@ export class DashboardService {
     try {
       const response = await apiService.get<{
         success: boolean;
-        data: any;
+        data: RawDashboardData;
         message: string;
       }>('/api/v1/dashboard/rescue');
 
       const activities = response.data.recentActivity || [];
 
-      return activities.map((activity: any) => ({
-        id: activity.id,
-        timestamp: new Date(activity.timestamp),
-        type: activity.type as RecentActivity['type'],
-        message: activity.description || activity.title,
-        petId: activity.metadata?.petId,
-        applicationId: activity.metadata?.applicationId,
-      }));
+      return activities.map(
+        (activity): RecentActivity => ({
+          id: activity.id,
+          timestamp: new Date(activity.timestamp),
+          type: activity.type as RecentActivity['type'],
+          message: activity.description || activity.title || '',
+          petId: activity.metadata?.petId,
+          applicationId: activity.metadata?.applicationId,
+        })
+      );
     } catch (error) {
       console.error('Failed to fetch recent activities:', error);
       // Return empty array on error since this is not critical
@@ -133,15 +173,17 @@ export class DashboardService {
       });
 
       // Transform notifications to DashboardNotification format
-      return response.data.map((notification: any) => ({
-        id: notification.id,
-        title: notification.title || 'Notification',
-        message: notification.message || notification.body || '',
-        timestamp: new Date(notification.createdAt),
-        type: (notification.category || 'info') as DashboardNotification['type'],
-        read: notification.status === 'read',
-        actionUrl: notification.actionUrl,
-      }));
+      return (response.data as RawNotification[]).map(
+        (notification): DashboardNotification => ({
+          id: notification.id,
+          title: notification.title || 'Notification',
+          message: notification.message || notification.body || '',
+          timestamp: new Date(notification.createdAt),
+          type: (notification.category || 'info') as DashboardNotification['type'],
+          read: notification.status === 'read',
+          actionUrl: notification.actionUrl,
+        })
+      );
     } catch (error) {
       console.error('Failed to fetch dashboard notifications:', error);
       // Return empty array on error since this is not critical

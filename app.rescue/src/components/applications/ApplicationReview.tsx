@@ -1966,14 +1966,16 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                               </span>
                             </div>
                             <p className={styles.timelineDescription}>
-                              {event.event === 'status_change' && event.data?.newStatus
+                              {event.event === 'status_change' &&
+                              typeof event.data?.newStatus === 'string'
                                 ? `Status changed to: ${formatStatusName(event.data.newStatus)}`
                                 : event.description}
                             </p>
                             {event.data && Object.keys(event.data).length > 0 && (
                               <div className={styles.timelineData}>
                                 <strong>Additional Details:</strong>
-                                {event.data.oldStatus && event.data.newStatus ? (
+                                {typeof event.data.oldStatus === 'string' &&
+                                typeof event.data.newStatus === 'string' ? (
                                   <div className={styles.statusChangeBlock}>
                                     <span className={styles.oldStatusText}>
                                       From: {formatStatusName(event.data.oldStatus)}
@@ -1982,7 +1984,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                                     <span className={styles.newStatusText}>
                                       To: {formatStatusName(event.data.newStatus)}
                                     </span>
-                                    {event.data.notes && (
+                                    {typeof event.data.notes === 'string' && (
                                       <>
                                         <br />
                                         <span className={styles.notesText}>

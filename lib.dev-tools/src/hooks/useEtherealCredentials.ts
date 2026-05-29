@@ -20,9 +20,9 @@ export const useEtherealCredentials = () => {
     // Only fetch in development mode
     if (
       typeof window !== 'undefined' &&
-      (window as any).location &&
-      ((window as any).location.hostname === 'localhost' ||
-        (window as any).location.hostname === '127.0.0.1' ||
+      window.location &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
         process.env.NODE_ENV === 'development')
     ) {
       const fetchCredentials = async () => {
