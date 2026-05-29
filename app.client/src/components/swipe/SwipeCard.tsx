@@ -538,7 +538,7 @@ export const SwipeCard: React.FC<SwipeCardProps> = ({
         <div className={styles.promptIcon}>🐾</div>
         <h3 className={styles.promptTitle}>Join to Start Swiping!</h3>
         <p className={styles.promptText}>
-          Create an account to like pets, save favorites, and find your perfect companion.
+          Create an account to like pets, save favorites, and find a companion.
         </p>
         <button className={styles.promptButton} onClick={() => onSwipe('like', pet.petId)}>
           Sign Up to Continue

@@ -3,6 +3,23 @@
  * This module ensures all required environment variables are present and typed correctly
  */
 
+import fs from 'fs';
+
+/**
+ * ADS-675: Read a secret from a Docker secret file at /run/secrets/<name>
+ * before falling back to the corresponding environment variable. This lets
+ * the backend run unchanged in both Docker Swarm/Compose (file-mounted
+ * secrets) and plain env-var setups.
+ */
+const readSecretOrEnv = (name: string): string | undefined => {
+  const secretPath = `/run/secrets/${name.toLowerCase()}`;
+  try {
+    return fs.readFileSync(secretPath, 'utf8').trim();
+  } catch {
+    return process.env[name];
+  }
+};
+
 type RequiredEnvVars = {
   JWT_SECRET: string;
   JWT_REFRESH_SECRET: string;
@@ -120,12 +137,12 @@ const validateEnv = (): ValidatedEnv => {
   const missing: string[] = [];
   const invalid: string[] = [];
 
-  const jwtSecret = process.env.JWT_SECRET;
-  const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
-  const sessionSecret = process.env.SESSION_SECRET;
-  const csrfSecret = process.env.CSRF_SECRET;
-  const encryptionKey = process.env.ENCRYPTION_KEY;
-  const uploadSigningSecret = process.env.UPLOAD_SIGNING_SECRET;
+  const jwtSecret = readSecretOrEnv('JWT_SECRET');
+  const jwtRefreshSecret = readSecretOrEnv('JWT_REFRESH_SECRET');
+  const sessionSecret = readSecretOrEnv('SESSION_SECRET');
+  const csrfSecret = readSecretOrEnv('CSRF_SECRET');
+  const encryptionKey = readSecretOrEnv('ENCRYPTION_KEY');
+  const uploadSigningSecret = readSecretOrEnv('UPLOAD_SIGNING_SECRET');
   const jwtReportShareSecret = process.env.JWT_REPORT_SHARE_SECRET;
 
   const MIN_SECRET_LENGTH = 32;
@@ -315,7 +332,7 @@ const validateEnv = (): ValidatedEnv => {
     TEST_DB_NAME: process.env.TEST_DB_NAME,
     PROD_DB_NAME: process.env.PROD_DB_NAME,
     DB_USERNAME: process.env.DB_USERNAME,
-    DB_PASSWORD: process.env.DB_PASSWORD,
+    DB_PASSWORD: readSecretOrEnv('DB_PASSWORD'),
     DB_HOST: process.env.DB_HOST,
     DB_PORT: process.env.DB_PORT,
     NODE_ENV: process.env.NODE_ENV as 'development' | 'test' | 'production' | undefined,

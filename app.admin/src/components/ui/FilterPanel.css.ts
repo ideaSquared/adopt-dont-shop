@@ -83,7 +83,7 @@ export const select = style({
   backgroundRepeat: 'no-repeat',
   backgroundPosition: 'right 0.75rem center',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
     boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
@@ -103,7 +103,7 @@ export const input = style({
   fontSize: '0.875rem',
   color: '#111827',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
     boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,

@@ -27,8 +27,11 @@ vi.mock('@/services/rescueService', () => ({
   },
 }));
 
+vi.mock('@/components/detail', () => ({
+  RescueDetailPanel: () => null,
+}));
+
 vi.mock('@/components/modals', () => ({
-  RescueDetailModal: () => null,
   RescueVerificationModal: () => null,
   SendEmailModal: () => null,
   BulkConfirmationModal: () => null,

@@ -1,3 +1,4 @@
+import type { EntityActivity, EntityActivityFilters } from '@adopt-dont-shop/lib.types';
 import { Op, Transaction, WhereOptions } from 'sequelize';
 import ModeratorAction, { ActionSeverity, ActionType } from '../models/ModeratorAction';
 import ModerationEvidence, { EvidenceParentType, EvidenceType } from '../models/ModerationEvidence';
@@ -9,7 +10,17 @@ import Pet from '../models/Pet';
 import Rescue from '../models/Rescue';
 import sequelize from '../sequelize';
 import logger from '../utils/logger';
+import {
+  ApiError,
+  NotFoundError,
+  ConflictError,
+  BadRequestError,
+  ForbiddenError,
+} from '../middleware/error-handler';
+import { NotificationType } from '../models/Notification';
+import { auditLogToActivity } from './audit-log-formatting';
 import { AuditLogService } from './auditLog.service';
+import { NotificationService } from './notification.service';
 import { JsonObject } from '../types/common';
 import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
@@ -110,7 +121,7 @@ class ModerationService {
       });
 
       if (existingReport) {
-        throw new Error('You have already submitted a report for this content');
+        throw new ConflictError('You have already submitted a report for this content');
       }
 
       // Evidence rows live in moderation_evidence (plan 2.1) — pull
@@ -340,17 +351,43 @@ class ModerationService {
     });
   }
 
+  /**
+   * Paginated activity log for a single report, sourced from audit_logs.
+   * Mirrors `UserService.getUserActivityLog` — verifies the report exists,
+   * delegates to the shared entity-activity query (category='Report' is the
+   * casing moderation audit writers use), and maps rows via the canonical
+   * formatter.
+   */
+  async getReportActivityLog(
+    reportId: string,
+    filters: EntityActivityFilters = {}
+  ): Promise<EntityActivity[]> {
+    const report = await Report.findByPk(reportId, { attributes: ['reportId'] });
+    if (!report) {
+      throw new NotFoundError('Report not found');
+    }
+
+    const rows = await AuditLogService.getEntityActivityLog('Report', reportId, {
+      from: filters.from ? new Date(filters.from) : undefined,
+      to: filters.to ? new Date(filters.to) : undefined,
+      limit: filters.limit,
+      offset: filters.offset,
+    });
+
+    return rows.map(auditLogToActivity);
+  }
+
   async assignReport(reportId: string, moderatorId: string, assignedBy: string): Promise<Report> {
     const transaction = await sequelize.transaction();
 
     try {
       const report = await Report.findByPk(reportId, { transaction });
       if (!report) {
-        throw new Error('Report not found');
+        throw new NotFoundError('Report not found');
       }
 
       if (report.status !== ReportStatus.PENDING) {
-        throw new Error('Report cannot be assigned in its current status');
+        throw new ConflictError('Report cannot be assigned in its current status');
       }
 
       const previousStatus = report.status;
@@ -431,6 +468,13 @@ class ModerationService {
       }
 
       // Update related report if provided
+      // ADS C4-2: capture (reporterId, resolution) so we can notify the
+      // reporter once the transaction commits.
+      let resolvedReportContext: {
+        reportId: string;
+        reporterId: string;
+        resolution: 'resolved' | 'dismissed';
+      } | null = null;
       if (actionData.reportId) {
         const report = await Report.findByPk(actionData.reportId, { transaction });
         if (report) {
@@ -460,10 +504,48 @@ class ModerationService {
             },
             { transaction }
           );
+          if (report.reporterId) {
+            resolvedReportContext = {
+              reportId: report.reportId,
+              reporterId: report.reporterId,
+              resolution: newStatus === ReportStatus.DISMISSED ? 'dismissed' : 'resolved',
+            };
+          }
         }
       }
 
       await transaction.commit();
+
+      // ADS C4-2: notify reporter after commit so a notification failure
+      // never rolls back the moderation outcome.
+      if (resolvedReportContext) {
+        await this.notifyReporterOfResolution({
+          ...resolvedReportContext,
+          resolutionNotes: actionData.description,
+        });
+      }
+
+      // ADS C4-4: notify the sanctioned user (the target of the action) so
+      // they have an in-app record next time they're online. Sanctions
+      // cover warnings, suspensions, bans, and account restrictions —
+      // anything that meaningfully changes how the user can use the
+      // platform. Best-effort: notification failures don't roll back.
+      const SANCTION_ACTIONS: ActionType[] = [
+        ActionType.WARNING_ISSUED,
+        ActionType.USER_SUSPENDED,
+        ActionType.USER_BANNED,
+        ActionType.ACCOUNT_RESTRICTED,
+      ];
+      if (actionData.targetUserId && SANCTION_ACTIONS.includes(actionData.actionType)) {
+        await this.notifySanctionedUser({
+          userId: actionData.targetUserId,
+          actionId: action.actionId,
+          actionType: actionData.actionType,
+          reason: actionData.reason,
+          description: actionData.description,
+          expiresAt: action.expiresAt,
+        });
+      }
 
       await AuditLogService.log({
         userId: moderatorId,
@@ -496,11 +578,11 @@ class ModerationService {
     try {
       const action = await ModeratorAction.findByPk(actionId, { transaction });
       if (!action) {
-        throw new Error('Moderation action not found');
+        throw new NotFoundError('Moderation action not found');
       }
 
       if (!action.canBeReversed()) {
-        throw new Error('This action cannot be reversed');
+        throw new ConflictError('This action cannot be reversed');
       }
 
       await action.update(
@@ -707,11 +789,11 @@ class ModerationService {
     try {
       const report = await Report.findByPk(reportId, { transaction });
       if (!report) {
-        throw new Error('Report not found');
+        throw new NotFoundError('Report not found');
       }
 
       if (![ReportStatus.PENDING, ReportStatus.UNDER_REVIEW].includes(report.status)) {
-        throw new Error('Report cannot be escalated in its current status');
+        throw new ConflictError('Report cannot be escalated in its current status');
       }
 
       const previousStatus = report.status;
@@ -736,6 +818,16 @@ class ModerationService {
       );
 
       await transaction.commit();
+
+      // ADS C4-2: notify the reporter that their report has been escalated.
+      if (report.reporterId) {
+        await this.notifyReporterOfResolution({
+          reportId,
+          reporterId: report.reporterId,
+          resolution: 'escalated',
+          resolutionNotes: reason,
+        });
+      }
 
       await AuditLogService.log({
         userId: escalatedBy,
@@ -762,7 +854,7 @@ class ModerationService {
     assignTo?: string;
     escalateTo?: string;
     escalationReason?: string;
-  }): Promise<{ success: boolean; updated: number }> {
+  }): Promise<{ success: boolean; updated: number; failedIds: string[] }> {
     const {
       reportIds,
       action,
@@ -774,21 +866,31 @@ class ModerationService {
     } = options;
 
     if (!reportIds || reportIds.length === 0) {
-      throw new Error('Report IDs are required');
+      throw new BadRequestError('Report IDs are required');
     }
 
     const transaction = await sequelize.transaction();
 
     try {
       let updated = 0;
+      const updatedReportIds: string[] = [];
+      // ADS C4-2: collect reporter notification context for resolve / dismiss /
+      // escalate actions. Sent after commit so a notification failure can't
+      // roll back the moderation work.
+      const reporterNotifications: Array<{
+        reportId: string;
+        reporterId: string;
+        resolution: 'resolved' | 'dismissed' | 'escalated';
+      }> = [];
 
       for (const reportId of reportIds) {
         const report = await Report.findByPk(reportId, { transaction });
         if (!report) {
-          throw new Error(`Report ${reportId} not found`);
+          throw new NotFoundError(`Report ${reportId} not found`);
         }
 
         const previousStatus = report.status;
+        let didUpdate = false;
         switch (action) {
           case 'resolve':
             if ([ReportStatus.UNDER_REVIEW, ReportStatus.ESCALATED].includes(report.status)) {
@@ -810,7 +912,14 @@ class ModerationService {
                 },
                 { transaction }
               );
-              updated++;
+              didUpdate = true;
+              if (report.reporterId) {
+                reporterNotifications.push({
+                  reportId: report.reportId,
+                  reporterId: report.reporterId,
+                  resolution: 'resolved',
+                });
+              }
             }
             break;
 
@@ -834,13 +943,20 @@ class ModerationService {
                 },
                 { transaction }
               );
-              updated++;
+              didUpdate = true;
+              if (report.reporterId) {
+                reporterNotifications.push({
+                  reportId: report.reportId,
+                  reporterId: report.reporterId,
+                  resolution: 'dismissed',
+                });
+              }
             }
             break;
 
           case 'assign':
             if (!assignTo) {
-              throw new Error('assignTo is required for assign action');
+              throw new BadRequestError('assignTo is required for assign action');
             }
             if (report.status === ReportStatus.PENDING) {
               await report.update(
@@ -861,13 +977,13 @@ class ModerationService {
                 },
                 { transaction }
               );
-              updated++;
+              didUpdate = true;
             }
             break;
 
           case 'escalate':
             if (!escalateTo) {
-              throw new Error('escalateTo is required for escalate action');
+              throw new BadRequestError('escalateTo is required for escalate action');
             }
             if ([ReportStatus.PENDING, ReportStatus.UNDER_REVIEW].includes(report.status)) {
               await report.update(
@@ -889,35 +1005,168 @@ class ModerationService {
                 },
                 { transaction }
               );
-              updated++;
+              didUpdate = true;
+              if (report.reporterId) {
+                reporterNotifications.push({
+                  reportId: report.reportId,
+                  reporterId: report.reporterId,
+                  resolution: 'escalated',
+                });
+              }
             }
             break;
+        }
+
+        if (didUpdate) {
+          updated++;
+          updatedReportIds.push(report.reportId);
         }
       }
 
       await transaction.commit();
 
-      await AuditLogService.log({
-        userId: moderatorId,
-        action: 'BULK_REPORTS_UPDATE',
-        entity: 'Report',
-        entityId: 'bulk',
-        details: {
-          action,
-          reportCount: reportIds.length,
-          updatedCount: updated,
-        },
-      });
+      // ADS C4-2: notify each reporter of their report's outcome. Run after
+      // commit and serially-awaited; createNotification has its own internal
+      // try/catch so one failure won't abort the rest.
+      for (const notif of reporterNotifications) {
+        await this.notifyReporterOfResolution({
+          ...notif,
+          resolutionNotes: action === 'escalate' ? escalationReason : resolutionNotes,
+        });
+      }
+
+      // Write one audit log row per affected report so each handled report
+      // has a discrete entry, even when actioned via a bulk operation.
+      await Promise.all(
+        updatedReportIds.map(affectedReportId =>
+          AuditLogService.log({
+            userId: moderatorId,
+            action: 'REPORT_BULK_HANDLED',
+            entity: 'Report',
+            entityId: affectedReportId,
+            details: {
+              action,
+              ...(resolutionNotes !== undefined && { resolutionNotes }),
+              ...(assignTo !== undefined && { assignTo }),
+              ...(escalateTo !== undefined && { escalateTo }),
+              ...(escalationReason !== undefined && { escalationReason }),
+              bulkBatchSize: reportIds.length,
+            },
+          })
+        )
+      );
 
       logger.info(
         `Bulk ${action} completed: ${updated} of ${reportIds.length} reports updated by ${moderatorId}`
       );
 
-      return { success: true, updated };
+      // The moderation bulk update is atomic — the whole batch commits or
+      // rolls back, so `failedIds` is always empty on the returned (success)
+      // path. Kept for parity with the other bulk-endpoint response shapes
+      // so the admin UI can rely on a uniform contract.
+      return { success: true, updated, failedIds: [] };
     } catch (error) {
       await transaction.rollback();
       logger.error('Error in bulk update:', error);
       throw error;
+    }
+  }
+
+  /**
+   * ADS C4-2: Notify a reporter that their report reached a resolution
+   * (resolved / dismissed / escalated). Best-effort: failures must not
+   * affect the moderation outcome — the action has already committed.
+   *
+   * Uses NotificationType.MODERATION_REPORT_RESOLVED (added by
+   * migration 08-add-notification-c4-enum-values). The `data.reportId`
+   * and `data.resolution` discriminators stay in place so UI consumers
+   * that already parse them continue to work.
+   */
+  private async notifyReporterOfResolution(params: {
+    reportId: string;
+    reporterId: string;
+    resolution: 'resolved' | 'dismissed' | 'escalated';
+    resolutionNotes?: string;
+  }): Promise<void> {
+    const { reportId, reporterId, resolution, resolutionNotes } = params;
+    const titles: Record<typeof resolution, string> = {
+      resolved: 'Your report was resolved',
+      dismissed: 'Your report was dismissed',
+      escalated: 'Your report was escalated',
+    };
+    const messages: Record<typeof resolution, string> = {
+      resolved: 'A moderator resolved your report.',
+      dismissed: 'A moderator reviewed your report and took no further action.',
+      escalated: 'We escalated your report for further review.',
+    };
+    try {
+      await NotificationService.createNotification({
+        userId: reporterId,
+        type: NotificationType.MODERATION_REPORT_RESOLVED,
+        title: titles[resolution],
+        message: messages[resolution],
+        data: {
+          reportId,
+          resolution,
+          ...(resolutionNotes !== undefined ? { resolutionNotes } : {}),
+        },
+      });
+    } catch (error) {
+      logger.warn('Failed to notify reporter of resolution', {
+        reportId,
+        reporterId,
+        resolution,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * ADS C4-4: Notify a user that a moderation sanction was applied to
+   * their account (warning, suspension, ban, restriction). Best-effort:
+   * the sanction itself has already committed.
+   *
+   * Uses NotificationType.USER_SANCTIONED (added by migration
+   * 08-add-notification-c4-enum-values). The `data.actionType`
+   * discriminator stays in place so UI consumers can still pick an
+   * appropriate icon / copy.
+   */
+  private async notifySanctionedUser(params: {
+    userId: string;
+    actionId: string;
+    actionType: ActionType;
+    reason: string;
+    description?: string;
+    expiresAt?: Date;
+  }): Promise<void> {
+    const { userId, actionId, actionType, reason, description, expiresAt } = params;
+    const titles: Record<string, string> = {
+      [ActionType.WARNING_ISSUED]: 'A moderator issued you a warning',
+      [ActionType.USER_SUSPENDED]: 'We suspended your account',
+      [ActionType.USER_BANNED]: 'We banned your account',
+      [ActionType.ACCOUNT_RESTRICTED]: 'We restricted your account',
+    };
+    try {
+      await NotificationService.createNotification({
+        userId,
+        type: NotificationType.USER_SANCTIONED,
+        title: titles[actionType] ?? 'A moderation action was taken on your account',
+        message: description ?? reason,
+        data: {
+          actionId,
+          actionType,
+          reason,
+          ...(description !== undefined ? { description } : {}),
+          ...(expiresAt !== undefined ? { expiresAt: expiresAt.toISOString() } : {}),
+        },
+      });
+    } catch (error) {
+      logger.warn('Failed to notify sanctioned user', {
+        userId,
+        actionId,
+        actionType,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -978,10 +1227,8 @@ class ModerationService {
         where: {
           targetUserId: userId,
           isActive: true,
-          // Sequelize 7 narrows `[Op.is]` to `null` only; passing `null`
-          // directly emits the same `IS NULL` SQL.
-          expiresAt: { [Op.is]: null },
-        },
+          expiresAt: null,
+        } as WhereOptions,
         order: [['createdAt', 'DESC']],
       }),
       ModeratorAction.findAll({
@@ -989,7 +1236,7 @@ class ModerationService {
           targetUserId: userId,
           isActive: true,
           expiresAt: { [Op.gt]: new Date() },
-        },
+        } as WhereOptions,
         order: [['createdAt', 'DESC']],
       }),
     ]);
@@ -997,6 +1244,68 @@ class ModerationService {
     return [...neverExpiringActions, ...futureExpiringActions].sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
     );
+  }
+
+  /**
+   * ADS C4-5: Return sanctions that should appear in the dismissible
+   * banner for `userId`. Active, owned by this user, not yet
+   * acknowledged, and not expired. The set is the SANCTION_ACTIONS
+   * subset of moderator actions (warnings / suspensions / bans /
+   * restrictions) — informational notices the user should see until
+   * they dismiss them.
+   */
+  async getActiveSanctionsForUser(userId: string): Promise<ModeratorAction[]> {
+    const SANCTION_ACTIONS: ActionType[] = [
+      ActionType.WARNING_ISSUED,
+      ActionType.USER_SUSPENDED,
+      ActionType.USER_BANNED,
+      ActionType.ACCOUNT_RESTRICTED,
+    ];
+    const [neverExpiring, futureExpiring] = await Promise.all([
+      ModeratorAction.findAll({
+        where: {
+          targetUserId: userId,
+          isActive: true,
+          actionType: { [Op.in]: SANCTION_ACTIONS },
+          acknowledgedAt: null,
+          expiresAt: null,
+        } as WhereOptions,
+        order: [['createdAt', 'DESC']],
+      }),
+      ModeratorAction.findAll({
+        where: {
+          targetUserId: userId,
+          isActive: true,
+          actionType: { [Op.in]: SANCTION_ACTIONS },
+          acknowledgedAt: null,
+          expiresAt: { [Op.gt]: new Date() },
+        } as WhereOptions,
+        order: [['createdAt', 'DESC']],
+      }),
+    ]);
+    return [...neverExpiring, ...futureExpiring].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    );
+  }
+
+  /**
+   * ADS C4-5: Mark a sanction as acknowledged by its target user. Throws
+   * NotFoundError if the action does not exist; throws ForbiddenError if
+   * the caller is not the sanction's target_user. Idempotent — a second
+   * call leaves `acknowledged_at` at its original value.
+   */
+  async acknowledgeSanction(userId: string, actionId: string): Promise<void> {
+    const action = await ModeratorAction.findByPk(actionId);
+    if (!action) {
+      throw new ApiError(404, 'Sanction not found');
+    }
+    if (action.targetUserId !== userId) {
+      throw new ApiError(403, 'Forbidden');
+    }
+    if (action.acknowledgedAt) {
+      return;
+    }
+    await action.update({ acknowledgedAt: new Date() });
   }
 
   async expireActions(): Promise<number> {

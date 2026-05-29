@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import * as styles from '../RescueDetailModal.css';
-import { Button, DateTime, ConfirmDialog, useConfirm } from '@adopt-dont-shop/lib.components';
-import { Skeleton, SkeletonText } from '../../ui/Skeleton';
+import {
+  Button,
+  DateTime,
+  ConfirmDialog,
+  useConfirm,
+  Skeleton,
+} from '@adopt-dont-shop/lib.components';
 import { FiUserPlus, FiUserMinus, FiCheck, FiClock, FiX } from 'react-icons/fi';
 import type { StaffMember, StaffInvitation, InviteStaffPayload } from '@/types/rescue';
 import { rescueService } from '@/services/rescueService';

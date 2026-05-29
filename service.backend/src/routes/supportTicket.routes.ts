@@ -1,10 +1,23 @@
 import express from 'express';
+import { z } from 'zod';
 import { SupportTicketController } from '../controllers/supportTicket.controller';
 import { authenticateToken } from '../middleware/auth';
 import { idempotency } from '../middleware/idempotency';
 import { requirePermission } from '../middleware/rbac';
 import { PERMISSIONS } from '../types/rbac';
 import { generalLimiter } from '../middleware/rate-limiter';
+import { validateBody } from '../middleware/zod-validate';
+import { TicketStatus, TicketPriority, TicketCategory } from '../models/SupportTicket';
+
+const UpdateTicketSchema = z.object({
+  status: z.nativeEnum(TicketStatus).optional(),
+  priority: z.nativeEnum(TicketPriority).optional(),
+  category: z.nativeEnum(TicketCategory).optional(),
+  assignedTo: z.string().uuid().optional(),
+  tags: z.array(z.string()).optional(),
+  internalNotes: z.string().optional(),
+  dueDate: z.string().datetime().optional(),
+});
 
 const router = express.Router();
 
@@ -215,6 +228,7 @@ router.patch(
   '/tickets/:ticketId',
   requirePermission(PERMISSIONS.SUPPORT_TICKET_UPDATE),
   generalLimiter,
+  validateBody(UpdateTicketSchema),
   SupportTicketController.updateTicket
 );
 
@@ -355,6 +369,58 @@ router.get(
   requirePermission(PERMISSIONS.SUPPORT_TICKET_READ),
   generalLimiter,
   SupportTicketController.getTicketMessages
+);
+
+/**
+ * @swagger
+ * /api/v1/admin/support/tickets/{ticketId}/activity:
+ *   get:
+ *     tags: [Support Tickets]
+ *     summary: Get support ticket activity log
+ *     description: Paginated chronological activity log for a support ticket, sourced from audit logs.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: ticketId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Ticket activity retrieved successfully
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         description: Ticket not found
+ */
+router.get(
+  '/tickets/:ticketId/activity',
+  requirePermission(PERMISSIONS.SUPPORT_TICKET_READ),
+  generalLimiter,
+  SupportTicketController.getTicketActivityLog
 );
 
 export default router;

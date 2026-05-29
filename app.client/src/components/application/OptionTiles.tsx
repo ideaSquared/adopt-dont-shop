@@ -9,6 +9,10 @@ type Props = {
   onChange: (value: string | undefined) => void;
   iconFor: (option: string) => string;
   hasError?: boolean;
+  // UX P2 F: forwarded by QuestionField when isRequired so the radiogroup
+  // announces "required" to screen readers.
+  isRequired?: boolean;
+  ariaLabel?: string;
 };
 
 export const OptionTiles: React.FC<Props> = ({
@@ -18,8 +22,15 @@ export const OptionTiles: React.FC<Props> = ({
   onChange,
   iconFor,
   hasError = false,
+  isRequired = false,
+  ariaLabel,
 }) => (
-  <div className={styles.grid} role='radiogroup'>
+  <div
+    className={styles.grid}
+    role='radiogroup'
+    aria-required={isRequired ? true : undefined}
+    aria-label={ariaLabel}
+  >
     {options.map(option => {
       const selected = value === option;
       return (

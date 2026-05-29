@@ -35,6 +35,9 @@ export const overlay = recipe({
     animationName: fadeIn,
     animationDuration: '0.3s',
     animationTimingFunction: 'ease-out',
+    '@media': {
+      '(prefers-reduced-motion: reduce)': { animation: 'none' },
+    },
   },
   variants: {
     show: {
@@ -66,6 +69,7 @@ export const modalContent = style({
       padding: '2rem',
       margin: '1rem',
     },
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
   },
 });
 
@@ -103,6 +107,9 @@ export const swipeIcon = style({
   animationDuration: '3s',
   animationTimingFunction: 'ease-in-out',
   animationIterationCount: 'infinite',
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
 });
 
 export const title = style({

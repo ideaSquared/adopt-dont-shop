@@ -13,31 +13,27 @@ on:
     # Mondays at 06:00 UTC. Aligns with the Dependabot weekly schedule so
     # security review happens in the same window.
     - cron: '0 6 * * 1'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.language }})
+    name: CodeQL
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       security-events: write
       actions: read
 
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [javascript-typescript]
-
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@68bde559dea0fdcac2102bfdf6230c5f70eb485e  # v4.35.4
+        uses: github/codeql-action/init@7211b7c8077ea37d8641b6271f6a365a22a5fbfa  # v4.36.0
         with:
-          languages: ${{ matrix.language }}
+          languages: javascript-typescript
           # security-extended adds queries beyond the default set; this is
           # the recommended config for production code.
           queries: security-extended
@@ -46,6 +42,6 @@ jobs:
           config-file: ./.github/codeql/codeql-config.yml
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@68bde559dea0fdcac2102bfdf6230c5f70eb485e  # v4.35.4
+        uses: github/codeql-action/analyze@7211b7c8077ea37d8641b6271f6a365a22a5fbfa  # v4.36.0
         with:
-          category: '/language:${{ matrix.language }}'
+          category: '/language:javascript-typescript'

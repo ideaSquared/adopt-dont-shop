@@ -67,6 +67,9 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
   };
 
   return (
+    // UX P2 I: the backdrop is a click-target convenience, not an interactive
+    // control — the accessible close affordance is the ✕ button below.
+    // role="presentation" matches the sibling modal patterns.
     <div
       className={styles.formOverlay}
       onClick={e => {
@@ -75,9 +78,7 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
         }
       }}
       onKeyDown={e => e.key === 'Escape' && onCancel()}
-      role="button"
-      tabIndex={-1}
-      aria-label="Close modal"
+      role="presentation"
     >
       <div className={styles.formModal}>
         <div className={styles.modalHeader}>
@@ -106,6 +107,7 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
               placeholder="staff@example.com"
               disabled={loading}
               required
+              aria-required={true}
             />
             {errors.email && <span className={styles.formError}>{errors.email}</span>}
             <small className={styles.formHelp}>
@@ -135,8 +137,8 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
             <div className={styles.infoSection}>
               <h4>📧 How invitations work:</h4>
               <ul>
-                <li>An invitation email will be sent to the provided address</li>
-                <li>The recipient will receive a secure link to create their account</li>
+                <li>We send an invitation email to the provided address</li>
+                <li>The recipient gets a secure link to create their account</li>
                 <li>The invitation is valid for 7 days</li>
                 <li>They'll be automatically added to your rescue team after signing up</li>
               </ul>

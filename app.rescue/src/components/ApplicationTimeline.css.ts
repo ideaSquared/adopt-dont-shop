@@ -134,7 +134,7 @@ export const noteInput = style({
   borderRadius: '0.375rem',
   fontSize: '0.875rem',
   resize: 'vertical',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
@@ -146,7 +146,7 @@ export const noteTypeSelect = style({
   border: '1px solid #d1d5db',
   borderRadius: '0.375rem',
   fontSize: '0.875rem',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',

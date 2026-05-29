@@ -66,6 +66,12 @@ export const loadingSpinner = style({
   },
 });
 
+globalStyle(`${loadingSpinner}::after`, {
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
+});
+
 export const resendSection = style({
   textAlign: 'center',
   marginTop: '1.5rem',

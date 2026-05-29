@@ -90,7 +90,7 @@ export const formInput = recipe({
     fontSize: '1rem',
     transition: 'border-color 0.2s ease',
     boxSizing: 'border-box',
-    ':focus': {
+    ':focus-visible': {
       outline: 'none',
     },
     ':disabled': {

@@ -31,10 +31,14 @@ export const floatingContainer = recipe({
     animationName: slideUp,
     animationDuration: '0.5s',
     animationTimingFunction: 'ease-out',
+    // Desktop-only floating CTA. On mobile the "Discover" action is already
+    // surfaced as the first tab in BottomTabBar, so we hide this nudge to
+    // avoid duplication and to keep clear of the bottom nav.
     '@media': {
       '(max-width: 768px)': {
         display: 'none',
       },
+      '(prefers-reduced-motion: reduce)': { animation: 'none' },
     },
   },
   variants: {
@@ -78,6 +82,7 @@ export const calloutBubbleBase = style({
       maxWidth: '160px',
       padding: '0.875rem 1.25rem',
     },
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
   },
 });
 
@@ -112,15 +117,17 @@ export const calloutBubble = recipe({
 
 export const closeButton = style({
   position: 'absolute',
-  top: '0.5rem',
-  right: '0.5rem',
-  background: 'none',
+  top: '-0.5rem',
+  right: '-0.5rem',
+  background: 'transparent',
   border: 'none',
   color: '#999',
   cursor: 'pointer',
   padding: 0,
-  width: '20px',
-  height: '20px',
+  // WCAG 2.5.5 AA: 44x44 minimum touch target. Visible icon stays small;
+  // tap area is enlarged via min dimensions on a transparent background.
+  minWidth: '44px',
+  minHeight: '44px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -156,6 +163,7 @@ export const floatingButton = style({
       width: '56px',
       height: '56px',
     },
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
   },
 });
 

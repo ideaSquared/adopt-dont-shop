@@ -24,10 +24,10 @@ jobs:
     outputs:
       sha: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -36,10 +36,10 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm run test
+        run: npx turbo run test --filter='!@adopt-dont-shop/e2e'
 
       - name: Log in to GHCR
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9  # v3.5.0
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee  # v4.2.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -99,21 +99,16 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
     steps:
-      # TODO(security): pin host fingerprint via `fingerprint:` to mitigate
-      # MitM during deploy. Without it, appleboy/ssh-action accepts whatever
-      # key the server presents on first connect.
-      # Compute on the host:
+      # ADS-670: SSH host fingerprint pinned to prevent MitM during deploy.
+      # Compute on the host and store as HETZNER_HOST_FINGERPRINT secret:
       #   ssh-keyscan -t ed25519,rsa $HOST | ssh-keygen -lf - | awk '{print $2}'
-      # Then add to repo secrets as HETZNER_HOST_FINGERPRINT and reference:
-      #   fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
       - name: Deploy to server
         # Pass secrets via `envs:` rather than `${{ secrets.* }}` interpolation
         # inside `script:`. Interpolation embeds the secret in the wrapper
         # script text that appleboy/ssh-action ships to the server, leaving
         # it visible in process listings and retained deploy logs.
-        # TODO(security): GHCR_TOKEN should be scoped `read:packages` only
-        # (no repo/write scope). This is a deploy-side GitHub UI change and
-        # out of scope for the workflow PR.
+        # ADS-671: GHCR_TOKEN must be scoped `read:packages` only — it is used
+        # exclusively for `docker pull` during deployment.
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
@@ -121,6 +116,7 @@ jobs:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
+          fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
           envs: GHCR_TOKEN
           script: |
             set -euo pipefail

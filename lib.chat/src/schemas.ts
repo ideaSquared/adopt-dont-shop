@@ -59,6 +59,12 @@ export const MessageSchema = z.object({
   senderRescueName: z.string().nullable().optional(),
   content: z.string(),
   timestamp: z.string(),
+  // Per-chat monotonic sequence assigned server-side under a per-chat
+  // lock (service.backend migration 08). Always sort message lists by
+  // this — Socket.IO arrivals can race the REST response, and timestamp
+  // alone is only millisecond-resolution. Optional so older clients /
+  // unsent optimistic bubbles (which have no sequence yet) still parse.
+  sequence: z.number().optional(),
   type: z.enum(['text', 'image', 'file', 'system']),
   status: MessageDeliveryStatusSchema,
   attachments: z.array(MessageAttachmentSchema).optional(),

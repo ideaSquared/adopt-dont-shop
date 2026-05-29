@@ -17,7 +17,7 @@ const emailTemplateData = [
         </div>
         <div style="padding: 30px;">
           <p>Dear {{firstName}},</p>
-          <p>Thank you for joining our community of animal lovers! We're excited to help you find your perfect companion.</p>
+          <p>Thank you for joining our community of animal lovers. We're here to help you find a companion.</p>
           <p>Here's what you can do next:</p>
           <ul>
             <li>Browse available pets in your area</li>
@@ -28,8 +28,8 @@ const emailTemplateData = [
           <div style="text-align: center; margin: 30px 0;">
             <a href="{{baseUrl}}/pets" style="background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px;">Start Browsing Pets</a>
           </div>
-          <p>If you have any questions, our support team is here to help!</p>
-          <p>Happy pet hunting! 🐕🐱</p>
+          <p>If you have any questions, our support team is here to help.</p>
+          <p>Happy browsing! 🐕🐱</p>
           <p>The Adopt Don't Shop Team</p>
         </div>
       </div>
@@ -39,7 +39,7 @@ const emailTemplateData = [
       
       Dear {{firstName}},
       
-      Thank you for joining our community of animal lovers! We're excited to help you find your perfect companion.
+      Thank you for joining our community of animal lovers. We're here to help you find a companion.
       
       Here's what you can do next:
       - Browse available pets in your area
@@ -49,9 +49,9 @@ const emailTemplateData = [
       
       Visit {{baseUrl}}/pets to start browsing pets.
       
-      If you have any questions, our support team is here to help!
-      
-      Happy pet hunting!
+      If you have any questions, our support team is here to help.
+
+      Happy browsing!
       The Adopt Don't Shop Team
     `,
     category: TemplateCategory.WELCOME,
@@ -146,17 +146,17 @@ const emailTemplateData = [
     templateId: '597a7fb1-18b3-418f-a067-29042288d737',
     name: 'Application Approved',
     type: TemplateType.NOTIFICATION,
-    subject: '🎉 Great News! Your Application for {{petName}} is Approved!',
+    subject: '🎉 Your Application for {{petName}} is Approved',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center;">
           <h1>🎉 Congratulations!</h1>
-          <h2>Your application has been approved!</h2>
+          <h2>We approved your application.</h2>
         </div>
         <div style="padding: 30px;">
           <p>Dear {{applicantName}},</p>
-          <p>We are thrilled to let you know that your application to adopt <strong>{{petName}}</strong> has been approved!</p>
-          <p>{{petName}} is excited to meet you and potentially become part of your family. Here are the next steps:</p>
+          <p>Good news — we approved your application to adopt <strong>{{petName}}</strong>.</p>
+          <p>{{petName}} is waiting to meet you. Here are the next steps:</p>
           <ol>
             <li><strong>Schedule a Meet & Greet</strong> - Contact us to arrange a meeting with {{petName}}</li>
             <li><strong>Bring Required Items</strong> - We'll provide you with a list of what to bring</li>
@@ -171,20 +171,20 @@ const emailTemplateData = [
           <div style="text-align: center; margin: 30px 0;">
             <a href="{{baseUrl}}/applications/{{applicationId}}" style="background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px;">View Application Details</a>
           </div>
-          <p>We can't wait to see {{petName}} find their forever home with you!</p>
-          <p>Congratulations and thank you for choosing to adopt!</p>
+          <p>We look forward to seeing {{petName}} settle in with you.</p>
+          <p>Congratulations, and thank you for choosing to adopt.</p>
           <p>{{rescueName}} Team</p>
         </div>
       </div>
     `,
     textContent: `
-      🎉 Congratulations! Your application has been approved!
-      
+      🎉 Congratulations! We approved your application.
+
       Dear {{applicantName}},
-      
-      We are thrilled to let you know that your application to adopt {{petName}} has been approved!
-      
-      {{petName}} is excited to meet you and potentially become part of your family.
+
+      Good news — we approved your application to adopt {{petName}}.
+
+      {{petName}} is waiting to meet you.
       
       Next steps:
       1. Schedule a Meet & Greet - Contact us to arrange a meeting with {{petName}}
@@ -198,9 +198,9 @@ const emailTemplateData = [
       
       View application details: {{baseUrl}}/applications/{{applicationId}}
       
-      We can't wait to see {{petName}} find their forever home with you!
-      
-      Congratulations and thank you for choosing to adopt!
+      We look forward to seeing {{petName}} settle in with you.
+
+      Congratulations, and thank you for choosing to adopt.
       {{rescueName}} Team
     `,
     category: TemplateCategory.APPLICATION_UPDATE,
@@ -235,8 +235,8 @@ const emailTemplateData = [
             <p><strong>Reason:</strong> {{rejectionReason}}</p>
           </div>
           {{/if}}
-          <p>Please don't be discouraged! This decision is not a reflection of you as a person, but rather our commitment to finding the perfect match for each pet's unique needs.</p>
-          <p>We encourage you to:</p>
+          <p>This decision reflects our matching process, not you as a person. Every pet has specific needs, and the right fit matters.</p>
+          <p>What to do next:</p>
           <ul>
             <li>Browse our other available pets who might be a better fit</li>
             <li>Consider visiting us to meet pets in person</li>
@@ -246,7 +246,7 @@ const emailTemplateData = [
           <div style="text-align: center; margin: 30px 0;">
             <a href="{{baseUrl}}/pets" style="background-color: #FF9800; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px;">Browse Other Pets</a>
           </div>
-          <p>Thank you for choosing to adopt, and we hope to help you find your perfect companion soon!</p>
+          <p>Thank you for choosing to adopt. We hope to help you find the right companion.</p>
           <p>{{rescueName}} Team</p>
         </div>
       </div>
@@ -262,9 +262,9 @@ const emailTemplateData = [
       Reason: {{rejectionReason}}
       {{/if}}
       
-      Please don't be discouraged! This decision is not a reflection of you as a person, but rather our commitment to finding the perfect match for each pet's unique needs.
-      
-      We encourage you to:
+      This decision reflects our matching process, not you as a person. Every pet has specific needs, and the right fit matters.
+
+      What to do next:
       - Browse our other available pets who might be a better fit
       - Consider visiting us to meet pets in person
       - Stay connected for future pet arrivals
@@ -272,7 +272,7 @@ const emailTemplateData = [
       
       Browse other pets: {{baseUrl}}/pets
       
-      Thank you for choosing to adopt, and we hope to help you find your perfect companion soon!
+      Thank you for choosing to adopt. We hope to help you find the right companion.
       
       {{rescueName}} Team
     `,
@@ -309,7 +309,7 @@ const emailTemplateData = [
           <div style="text-align: center; margin: 30px 0;">
             <a href="{{baseUrl}}/chat/{{chatId}}" style="background-color: #9C27B0; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px;">Read Full Message</a>
           </div>
-          <p>Stay connected and don't miss any important updates about your adoption journey!</p>
+          <p>Stay connected and don't miss any important updates about your adoption journey.</p>
           <p>The Adopt Don't Shop Team</p>
         </div>
       </div>
@@ -325,7 +325,7 @@ const emailTemplateData = [
       
       Read the full message: {{baseUrl}}/chat/{{chatId}}
       
-      Stay connected and don't miss any important updates about your adoption journey!
+      Stay connected and don't miss any important updates about your adoption journey.
       
       The Adopt Don't Shop Team
     `,
@@ -355,7 +355,7 @@ const emailTemplateData = [
         </div>
         <div style="padding: 30px;">
           <p>Dear {{rescueName}},</p>
-          <p>Thank you for joining our platform! We're thrilled to have you as part of our community dedicated to finding loving homes for rescue animals.</p>
+          <p>Thank you for joining our platform. We're glad to have you as part of our community dedicated to finding loving homes for rescue animals.</p>
           <h3 style="color: #4CAF50;">What You Can Do Now:</h3>
           <ul style="line-height: 1.8;">
             <li><strong>Add Your Pets</strong> - List available animals for adoption</li>
@@ -365,7 +365,7 @@ const emailTemplateData = [
           <div style="text-align: center; margin: 30px 0;">
             <a href="{{baseUrl}}/rescue/dashboard" style="background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px;">Go to Dashboard</a>
           </div>
-          <p>Together, we're making a difference!</p>
+          <p>Together, we're making a difference.</p>
           <p>The Adopt Don't Shop Team</p>
         </div>
       </div>
@@ -393,7 +393,7 @@ Thank you for joining!`,
     templateId: '9f766dcb-3d50-44f4-ae97-deef82b66f91',
     name: 'Rescue Verification Approved',
     type: TemplateType.TRANSACTIONAL,
-    subject: '🎉 {{rescueName}} Has Been Verified!',
+    subject: '🎉 {{rescueName}} is now verified',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #4CAF50; color: white; padding: 30px; text-align: center;">
@@ -401,7 +401,7 @@ Thank you for joining!`,
         </div>
         <div style="padding: 30px;">
           <p>Dear {{rescueName}},</p>
-          <p><strong>Great news!</strong> Your rescue has been verified on Adopt Don't Shop.</p>
+          <p><strong>Good news</strong> — we verified your rescue on Adopt Don't Shop.</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="{{baseUrl}}/rescue/pets/new" style="background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px;">Add Your First Pet</a>
           </div>
@@ -409,7 +409,7 @@ Thank you for joining!`,
         </div>
       </div>
     `,
-    textContent: `Congratulations! Your rescue has been verified.`,
+    textContent: `Congratulations — we verified your rescue.`,
     category: TemplateCategory.RESCUE_VERIFICATION,
     status: TemplateStatus.ACTIVE,
     variables: [],
@@ -472,7 +472,7 @@ Thank you for joining!`,
         <div style="background-color: white; padding: 40px; margin: 20px 0;">
           <p style="font-size: 16px; line-height: 1.6; color: #333;">Dear {{firstName}},</p>
           <p style="font-size: 16px; line-height: 1.6; color: #333;">
-            Thank you for joining Adopt Don't Shop! To complete your registration and start your journey to find the perfect companion, please verify your email address.
+            Thank you for joining Adopt Don't Shop. To complete your registration and start your adoption journey, please verify your email address.
           </p>
           <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 25px 0;">
             <p style="margin: 0; font-size: 14px; color: #856404;">
@@ -506,7 +506,7 @@ Thank you for joining!`,
             <li>Connect with rescue organizations</li>
           </ul>
           <p style="font-size: 16px; line-height: 1.6; color: #333; margin-top: 30px;">
-            We're excited to help you find your perfect companion! 🐕🐱
+            We're here to help you find a companion. 🐕🐱
           </p>
           <p style="font-size: 16px; line-height: 1.6; color: #333;">
             Best regards,<br>
@@ -528,7 +528,7 @@ Thank you for joining!`,
 
       Dear {{firstName}},
 
-      Thank you for joining Adopt Don't Shop! To complete your registration and start your journey to find the perfect companion, please verify your email address.
+      Thank you for joining Adopt Don't Shop. To complete your registration and start your adoption journey, please verify your email address.
 
       ⏰ IMPORTANT: This verification link will expire in 24 hours.
 
@@ -544,7 +544,7 @@ Thank you for joining!`,
       Didn't create an account?
       If you didn't sign up for Adopt Don't Shop, you can safely ignore this email. No account will be created without verification.
 
-      We're excited to help you find your perfect companion!
+      We're here to help you find a companion.
 
       Best regards,
       The Adopt Don't Shop Team
@@ -588,7 +588,7 @@ Thank you for joining!`,
           </p>
           <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 25px 0;">
             <p style="margin: 0; font-size: 14px; color: #856404;">
-              <strong>Your verification link will expire soon!</strong> Click the button below to verify your email now.
+              <strong>Your verification link will expire soon.</strong> Click the button below to verify your email now.
             </p>
           </div>
           <div style="text-align: center; margin: 35px 0;">
@@ -624,7 +624,7 @@ Thank you for joining!`,
 
       We noticed you haven't verified your email address yet. Verification is required to access all features and start your adoption journey.
 
-      ⚠️ Your verification link will expire soon! Click the link below to verify your email now.
+      ⚠️ Your verification link will expire soon. Click the link below to verify your email now.
 
       {{verificationUrl}}
 

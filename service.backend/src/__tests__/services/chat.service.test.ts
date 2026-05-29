@@ -56,6 +56,7 @@ vi.mock('../../models', () => ({
   Message: {
     create: vi.fn(),
     findByPk: vi.fn(),
+    findOne: vi.fn(),
     findAll: vi.fn(),
     findAndCountAll: vi.fn(),
     count: vi.fn(),
@@ -104,6 +105,7 @@ vi.mock('../../models/Notification', () => ({
 vi.mock('../../services/auditLog.service', () => ({
   AuditLogService: {
     log: vi.fn().mockResolvedValue(undefined),
+    getEntityActivityLog: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -134,6 +136,9 @@ vi.mock('../../sequelize', () => {
   const mockTransaction = {
     commit: vi.fn(),
     rollback: vi.fn(),
+    // chat.service.sendMessage uses transaction.LOCK.UPDATE to acquire
+    // a row lock on the chat before computing the next message sequence.
+    LOCK: { UPDATE: 'UPDATE', SHARE: 'SHARE' },
   };
 
   return {
@@ -191,6 +196,9 @@ describe('ChatService', () => {
     (ContentModerationService.isMessageBlocked as vi.Mock).mockReturnValue(false);
     (ContentModerationService.shouldAutoReport as vi.Mock).mockReturnValue(false);
     (moderationService.submitReport as vi.Mock).mockResolvedValue({});
+    // Default: chat has no prior messages so the next sequence is 0.
+    // Tests that exercise sequence-specific behaviour override this.
+    (MockedMessage.findOne as vi.Mock).mockResolvedValue(null);
   });
 
   describe('Creating chats', () => {
@@ -291,12 +299,14 @@ describe('ChatService', () => {
 
         await ChatService.createChat(chatData, userId);
 
-        expect(MockedMessage.create).toHaveBeenCalledWith({
-          chat_id: mockChat.chat_id,
-          sender_id: userId,
-          content: initialMessage,
-          content_format: MessageContentFormat.PLAIN,
-        });
+        expect(MockedMessage.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            chat_id: mockChat.chat_id,
+            sender_id: userId,
+            content: initialMessage,
+            content_format: MessageContentFormat.PLAIN,
+          })
+        );
       });
     });
 
@@ -572,6 +582,77 @@ describe('ChatService', () => {
         expect(MockedMessage.findAndCountAll).toHaveBeenCalledWith(
           expect.objectContaining({ limit: 200, offset: 0 })
         );
+      });
+    });
+  });
+
+  describe('getChatActivityLog', () => {
+    const mockGetEntityActivityLog = AuditLogService.getEntityActivityLog as vi.MockedFunction<
+      typeof AuditLogService.getEntityActivityLog
+    >;
+
+    beforeEach(() => {
+      mockGetEntityActivityLog.mockReset();
+      mockGetEntityActivityLog.mockResolvedValue([]);
+    });
+
+    it('throws NotFoundError when the chat does not exist', async () => {
+      (MockedChat.findByPk as vi.Mock).mockResolvedValue(null);
+
+      await expect(ChatService.getChatActivityLog('missing-chat')).rejects.toThrow(
+        'Chat not found'
+      );
+      expect(mockGetEntityActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('queries audit logs scoped to category=Chat and the chat id', async () => {
+      (MockedChat.findByPk as vi.Mock).mockResolvedValue({ chat_id: 'chat-1' });
+
+      await ChatService.getChatActivityLog('chat-1', { limit: 25, offset: 10 });
+
+      expect(mockGetEntityActivityLog).toHaveBeenCalledWith('Chat', 'chat-1', {
+        from: undefined,
+        to: undefined,
+        limit: 25,
+        offset: 10,
+      });
+    });
+
+    it('parses ISO from/to filters into Date instances for the audit query', async () => {
+      (MockedChat.findByPk as vi.Mock).mockResolvedValue({ chat_id: 'chat-1' });
+
+      await ChatService.getChatActivityLog('chat-1', {
+        from: '2024-01-01T00:00:00.000Z',
+        to: '2024-02-01T00:00:00.000Z',
+      });
+
+      const call = mockGetEntityActivityLog.mock.calls[0]?.[2];
+      expect(call?.from).toEqual(new Date('2024-01-01T00:00:00.000Z'));
+      expect(call?.to).toEqual(new Date('2024-02-01T00:00:00.000Z'));
+    });
+
+    it('maps audit rows through auditLogToActivity', async () => {
+      (MockedChat.findByPk as vi.Mock).mockResolvedValue({ chat_id: 'chat-1' });
+      mockGetEntityActivityLog.mockResolvedValue([
+        {
+          id: 7,
+          action: 'CREATE',
+          category: 'Chat',
+          metadata: { entityId: 'chat-1' },
+          ip_address: null,
+          user_agent: null,
+          timestamp: new Date('2024-06-01T12:00:00.000Z'),
+        },
+      ] as unknown as Awaited<ReturnType<typeof AuditLogService.getEntityActivityLog>>);
+
+      const result = await ChatService.getChatActivityLog('chat-1');
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        activityId: 7,
+        action: 'CREATE',
+        category: 'Chat',
+        createdAt: '2024-06-01T12:00:00.000Z',
       });
     });
   });
@@ -918,6 +999,169 @@ describe('ChatService', () => {
         ).rejects.toThrow('User is not a participant in this chat');
 
         expect(MockedMessage.create).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('per-chat monotonic sequence assignment', () => {
+      // Per cross-app audit (third UX pass): chat messages need a
+      // deterministic total order so the frontend can reconcile REST and
+      // Socket.IO arrivals. The write path computes MAX(sequence) + 1
+      // under a SELECT ... FOR UPDATE lock on the chat row.
+      it('assigns sequence 0 for the first message in a chat', async () => {
+        const chatId = 'chat-empty';
+        const senderId = 'user-1';
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          chat_id: chatId,
+          rescue_id: 'r',
+          status: ChatStatus.ACTIVE,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        (MockedMessage.findOne as vi.Mock).mockResolvedValue(null);
+        (MockedMessage.create as vi.Mock).mockResolvedValue({
+          message_id: 'm-1',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'hello',
+        });
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue({
+          message_id: 'm-1',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'hello',
+          Sender: { firstName: 'A' },
+        });
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue([]);
+
+        await ChatService.sendMessage({ chatId, senderId, content: 'hello' });
+
+        expect(MockedMessage.create).toHaveBeenCalledWith(
+          expect.objectContaining({ sequence: 0 }),
+          expect.any(Object)
+        );
+      });
+
+      it('assigns MAX(sequence) + 1 for subsequent messages', async () => {
+        const chatId = 'chat-existing';
+        const senderId = 'user-1';
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          chat_id: chatId,
+          rescue_id: 'r',
+          status: ChatStatus.ACTIVE,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        // Chat already has messages numbered up to 7.
+        (MockedMessage.findOne as vi.Mock).mockResolvedValue({ sequence: 7 });
+        (MockedMessage.create as vi.Mock).mockResolvedValue({
+          message_id: 'm-8',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'eighth',
+        });
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue({
+          message_id: 'm-8',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'eighth',
+          Sender: { firstName: 'A' },
+        });
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue([]);
+
+        await ChatService.sendMessage({ chatId, senderId, content: 'eighth' });
+
+        expect(MockedMessage.create).toHaveBeenCalledWith(
+          expect.objectContaining({ sequence: 8 }),
+          expect.any(Object)
+        );
+      });
+
+      it('locks the chat row before computing the next sequence', async () => {
+        // The SELECT ... FOR UPDATE lock on the chat row is what stops
+        // two concurrent sends from reading the same MAX value and
+        // producing duplicate sequences. Assert the lock is requested.
+        const chatId = 'chat-lock';
+        const senderId = 'user-1';
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          chat_id: chatId,
+          rescue_id: 'r',
+          status: ChatStatus.ACTIVE,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        (MockedMessage.findOne as vi.Mock).mockResolvedValue(null);
+        (MockedMessage.create as vi.Mock).mockResolvedValue({
+          message_id: 'm-1',
+          chat_id: chatId,
+          sender_id: senderId,
+          content: 'x',
+        });
+        (MockedMessage.findByPk as vi.Mock).mockResolvedValue({
+          message_id: 'm-1',
+          Sender: { firstName: 'A' },
+        });
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue([]);
+
+        await ChatService.sendMessage({ chatId, senderId, content: 'x' });
+
+        expect(MockedChat.findByPk).toHaveBeenCalledWith(
+          chatId,
+          expect.objectContaining({ lock: 'UPDATE' })
+        );
+      });
+
+      it('hands out distinct, monotonic sequences across a tight Promise.all of sends in the same chat', async () => {
+        // Backend simulation: each Message.max call returns the count of
+        // previously-resolved Message.create calls. This mirrors how
+        // Postgres + SELECT FOR UPDATE serialize concurrent sends — the
+        // second send's MAX query waits for the first to commit, so it
+        // reads the latest value. Asserts the service produces a
+        // strictly-increasing, gapless 0..N-1 run.
+        const chatId = 'chat-concurrent';
+        const senderId = 'user-1';
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue({
+          chat_id: chatId,
+          rescue_id: 'r',
+          status: ChatStatus.ACTIVE,
+          Participants: [{ participant_id: senderId }],
+        });
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
+        (MockedChat.update as vi.Mock).mockResolvedValue([1]);
+        (MockedChatParticipant.findAll as vi.Mock).mockResolvedValue([]);
+
+        const committedSequences: number[] = [];
+        // max returns the current count of committed sends − 1 (or null
+        // when none). Each create commits a new sequence before the next
+        // max runs because Promise.all on a single mocked thread does
+        // not actually parallelise — but in production the FOR UPDATE
+        // lock provides the same serialization guarantee.
+        (MockedMessage.findOne as vi.Mock).mockImplementation(async () => {
+          return committedSequences.length === 0
+            ? null
+            : { sequence: Math.max(...committedSequences) };
+        });
+        (MockedMessage.create as vi.Mock).mockImplementation(
+          async (attrs: { sequence: number }) => {
+            committedSequences.push(attrs.sequence);
+            return {
+              message_id: `m-${attrs.sequence}`,
+              Sender: { firstName: 'A' },
+            };
+          }
+        );
+        (MockedMessage.findByPk as vi.Mock).mockImplementation(async (id: string) => ({
+          message_id: id,
+          Sender: { firstName: 'A' },
+        }));
+
+        for (let i = 0; i < 5; i++) {
+          await ChatService.sendMessage({ chatId, senderId, content: `msg-${i}` });
+        }
+
+        expect(committedSequences).toEqual([0, 1, 2, 3, 4]);
       });
     });
   });

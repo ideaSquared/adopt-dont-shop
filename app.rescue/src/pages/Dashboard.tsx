@@ -1,24 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, Container, Heading, Text } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useDashboardData } from '../hooks';
+import { UnreadMessagesPanel } from '../components/dashboard/UnreadMessagesPanel';
+import { DashboardSkeleton } from '../components/skeletons';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { dashboardData, recentActivities, notifications, loading, error } = useDashboardData();
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   if (loading) {
     return (
       <Container className={styles.dashboardContainer}>
         <div className={styles.dashboardHeader}>
           <Heading level="h1">Rescue Dashboard</Heading>
-          <Text>Loading dashboard data...</Text>
         </div>
-        <div className={styles.loadingState}>
-          <Text>📊 Loading...</Text>
-        </div>
+        <DashboardSkeleton />
       </Container>
     );
   }
@@ -91,6 +91,40 @@ const Dashboard: React.FC = () => {
           your rescue overview for today.
         </p>
       </div>
+
+      {/* First-time-user onboarding banner */}
+      {!onboardingDismissed && totalPets === 0 && pendingApplications === 0 && (
+        <div className={styles.onboardingBanner} data-testid="onboarding-banner">
+          <div className={styles.onboardingContent}>
+            <h3 className={styles.onboardingTitle}>
+              Welcome! Get started with your rescue dashboard
+            </h3>
+            <p className={styles.onboardingText}>
+              Start by adding your first pet or inviting team members to help manage your rescue.
+            </p>
+            <div className={styles.onboardingActions}>
+              <a href="/pets" className={styles.onboardingLink}>
+                Add your first pet
+              </a>
+              <a href="/staff" className={styles.onboardingLink}>
+                Invite team members
+              </a>
+            </div>
+          </div>
+          <button
+            type="button"
+            className={styles.onboardingDismiss}
+            onClick={() => setOnboardingDismissed(true)}
+            aria-label="Dismiss onboarding banner"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* ADS-643: Unread adopter messages — surfaced above the non-urgent
+          metrics so rescue staff see new conversations first on every viewport. */}
+      <UnreadMessagesPanel />
 
       {/* Key Metrics Row */}
       <div className={styles.metricsGrid}>

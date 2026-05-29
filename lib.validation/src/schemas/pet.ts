@@ -1,56 +1,30 @@
 import { z } from 'zod';
-import type { PetId, RescueId } from '@adopt-dont-shop/lib.types';
+import {
+  PET_STATUSES,
+  PET_TYPES,
+  PET_GENDERS,
+  PET_SIZES,
+  PET_AGE_GROUPS,
+  PET_ENERGY_LEVELS,
+  type PetId,
+  type RescueId,
+} from '@adopt-dont-shop/lib.types';
 import { boundedRecord } from './bounded-record';
+import { BulkOperationFailedIdsSchema } from './bulk-response';
 
-/**
- * Canonical Zod schemas for the Pet domain.
- *
- * Same role as schemas/user.ts: one source of truth for Pet-shaped data,
- * used by service.backend request validation and (over time) the
- * frontend forms in app.rescue / app.admin / app.client.
- *
- * The values mirror the enums and validators in
- * service.backend/src/models/Pet.ts. Rule of thumb: if you're tempted
- * to add a check here, it should also exist on the model — and vice
- * versa.
- */
-// ----- Enums (match the values exported from Pet.ts) ---------------------
+// ----- Enums (canonical values from lib.types) ---------------------------
 
-export const PetStatusSchema = z.enum([
-  'available',
-  'pending',
-  'adopted',
-  'foster',
-  'medical_hold',
-  'behavioral_hold',
-  'not_available',
-  'deceased',
-]);
-export type PetStatusValue = z.infer<typeof PetStatusSchema>;
+export const PetStatusSchema = z.enum(PET_STATUSES);
 
-export const PetTypeSchema = z.enum([
-  'dog',
-  'cat',
-  'rabbit',
-  'bird',
-  'reptile',
-  'small_mammal',
-  'fish',
-  'other',
-]);
-export type PetTypeValue = z.infer<typeof PetTypeSchema>;
+export const PetTypeSchema = z.enum(PET_TYPES);
 
-export const GenderSchema = z.enum(['male', 'female', 'unknown']);
-export type GenderValue = z.infer<typeof GenderSchema>;
+export const GenderSchema = z.enum(PET_GENDERS);
 
-export const SizeSchema = z.enum(['extra_small', 'small', 'medium', 'large', 'extra_large']);
-export type SizeValue = z.infer<typeof SizeSchema>;
+export const SizeSchema = z.enum(PET_SIZES);
 
-export const AgeGroupSchema = z.enum(['baby', 'young', 'adult', 'senior']);
-export type AgeGroupValue = z.infer<typeof AgeGroupSchema>;
+export const AgeGroupSchema = z.enum(PET_AGE_GROUPS);
 
-export const EnergyLevelSchema = z.enum(['low', 'medium', 'high', 'very_high']);
-export type EnergyLevelValue = z.infer<typeof EnergyLevelSchema>;
+export const EnergyLevelSchema = z.enum(PET_ENERGY_LEVELS);
 
 export const VaccinationStatusSchema = z.enum([
   'up_to_date',
@@ -76,7 +50,12 @@ export const PetIdSchema = z
 // RescueIdSchema lives in schemas/rescue.ts — Pet uses RescueId only
 // for FK references in shapes below.
 
-const PetNameSchema = z.string().trim().min(1, 'Name is required').max(100);
+const stripHtmlTags = (val: string) => val.replace(/[<>]/g, '');
+const PetNameSchema = z
+  .string()
+  .trim()
+  .transform(stripHtmlTags)
+  .pipe(z.string().min(1, 'Name is required').max(100));
 const BreedSchema = z.string().trim().min(1).max(100);
 const ColorSchema = z.string().trim().min(1).max(100);
 
@@ -310,6 +289,27 @@ export const BulkPetOperationRequestSchema = z.object({
   reason: z.string().trim().max(500).optional(),
 });
 export type BulkPetOperationRequest = z.infer<typeof BulkPetOperationRequestSchema>;
+
+/**
+ * Response shape for POST /api/v1/pets/bulk-update. `failedIds` is
+ * always present (may be empty) so the admin UI can offer per-item
+ * retry.
+ */
+export const BulkPetOperationResponseSchema = z
+  .object({
+    successCount: z.number().int().nonnegative(),
+    failedCount: z.number().int().nonnegative(),
+    errors: z
+      .array(
+        z.object({
+          petId: z.string(),
+          error: z.string(),
+        })
+      )
+      .optional(),
+  })
+  .merge(BulkOperationFailedIdsSchema);
+export type BulkPetOperationResponse = z.infer<typeof BulkPetOperationResponseSchema>;
 
 // ----- Read / model shape ------------------------------------------------
 

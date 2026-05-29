@@ -1,32 +1,7 @@
-/**
- * Configuration options for InvitationsService
- */
-export interface InvitationsServiceConfig {
-  /**
-   * API base URL
-   */
-  apiUrl?: string;
+import type { ServiceConfig, ServiceOptions } from '@adopt-dont-shop/lib.types';
 
-  /**
-   * Enable debug logging
-   */
-  debug?: boolean;
-}
-
-/**
- * Options for InvitationsService operations
- */
-export interface InvitationsServiceOptions {
-  /**
-   * Timeout in milliseconds
-   */
-  timeout?: number;
-
-  /**
-   * Custom metadata
-   */
-  metadata?: Record<string, unknown>;
-}
+export type InvitationsServiceConfig = ServiceConfig;
+export type InvitationsServiceOptions = ServiceOptions;
 
 /**
  * Payload for sending an invitation
@@ -38,10 +13,18 @@ export interface InvitationPayload {
 
 /**
  * Invitation details (public - no auth)
+ *
+ * C2-4: `rescueName`, `invitedByName`, and `role` are surfaced so the
+ * AcceptInvitation page can give the invitee context about who invited
+ * them and where to. All three are optional to remain backward-
+ * compatible with older backend deployments that don't return them.
  */
 export interface InvitationDetails {
   email: string;
   expiresAt: string;
+  rescueName?: string | null;
+  invitedByName?: string | null;
+  role?: string | null;
 }
 
 /**

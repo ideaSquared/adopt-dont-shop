@@ -26,6 +26,7 @@ interface ActionSelectionModalProps {
   onSubmit: (data: ActionSelectionData) => void;
   reportTitle: string;
   isLoading?: boolean;
+  error?: string | null;
 }
 
 const actionTypeLabels: Record<ActionType, string> = {
@@ -39,13 +40,13 @@ const actionTypeLabels: Record<ActionType, string> = {
 };
 
 const actionTypeDescriptions: Record<ActionType, string> = {
-  no_action: 'Report will be dismissed without any action taken',
-  warning_issued: 'User will receive a formal warning',
-  content_removed: 'The reported content will be removed from the platform',
-  user_suspended: 'User account will be temporarily suspended',
-  user_banned: 'User account will be permanently banned',
-  account_restricted: 'User will have limited access to certain features',
-  content_flagged: 'Content will be flagged for senior moderator review',
+  no_action: 'Dismiss report without taking action',
+  warning_issued: 'Issue a formal warning to the user',
+  content_removed: 'Remove the reported content from the platform',
+  user_suspended: 'Temporarily suspend the user account',
+  user_banned: 'Permanently ban the user account',
+  account_restricted: 'Limit user access to certain features',
+  content_flagged: 'Flag content for senior moderator review',
 };
 
 export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
@@ -54,6 +55,7 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
   onSubmit,
   reportTitle,
   isLoading = false,
+  error = null,
 }) => {
   const [actionType, setActionType] = useState<ActionType>('no_action');
   const [reason, setReason] = useState('');
@@ -114,6 +116,12 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
               <div className={styles.reportText}>{reportTitle}</div>
             </div>
 
+            {error && (
+              <div className={styles.inlineError} role='alert'>
+                {error}
+              </div>
+            )}
+
             <div className={styles.formGroup}>
               <label className={styles.label} htmlFor='actionType'>
                 Action Type *
@@ -167,6 +175,7 @@ export const ActionSelectionModal: React.FC<ActionSelectionModalProps> = ({
                 placeholder='Explain why this action is being taken. This will be shown to the user.'
                 disabled={isLoading}
                 required
+                aria-required={true}
               />
               <p className={styles.helpText}>This message will be visible to the affected user</p>
             </div>

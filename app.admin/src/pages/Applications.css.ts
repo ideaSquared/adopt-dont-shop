@@ -81,7 +81,7 @@ export const select = style({
   ':hover': {
     borderColor: vars.text.muted,
   },
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
@@ -156,3 +156,12 @@ export const errorMessage = style({
   color: vars.colors.dangerTextEmphasis,
   fontSize: '0.875rem',
 });
+
+// Split-pane layout is shared across the entity-management pages.
+export {
+  splitLayout,
+  listPane,
+  listPaneNarrow,
+  detailPane,
+  backToList,
+} from '../components/detail/splitPane.css';

@@ -12,10 +12,12 @@ import {
   ConfirmDialog,
   Input,
   Modal,
-  Spinner,
   toast,
   useConfirm,
 } from '@adopt-dont-shop/lib.components';
+import { ApplicationCardSkeletonList } from '@/components/skeletons';
+import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as styles from './ProfilePage.css';
@@ -274,11 +276,7 @@ export const ProfilePage: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    return formatDisplayDate(dateString);
   };
 
   const renderProfileTab = () => (
@@ -318,7 +316,7 @@ export const ProfilePage: React.FC = () => {
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>Preferred Contact</span>
                   <span className={styles.infoValue}>
-                    {user.preferredContactMethod || 'Not specified'}
+                    {user.preferredContactMethod || 'Not provided'}
                   </span>
                 </div>
                 <div className={styles.infoItem}>
@@ -372,9 +370,7 @@ export const ProfilePage: React.FC = () => {
           <p>As a {user?.userType}, you don&apos;t submit adoption applications.</p>
         </div>
       ) : isLoading ? (
-        <div className={styles.loadingContainer}>
-          <Spinner />
-        </div>
+        <ApplicationCardSkeletonList count={3} />
       ) : applications.length === 0 ? (
         <div className={styles.centeredEmpty}>
           <p>You haven&apos;t submitted any adoption applications yet.</p>
@@ -404,7 +400,7 @@ export const ProfilePage: React.FC = () => {
                       : 'default') as 'submitted' | 'approved' | 'rejected' | 'default',
                   })}
                 >
-                  {application.status.replace('_', ' ')}
+                  {applicationStatusLabel(application.status)}
                 </span>
                 <div className={styles.smallTopGap}>
                   <Button

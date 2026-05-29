@@ -36,6 +36,10 @@ export const userName = style({
   fontSize: '1.25rem',
   fontWeight: '600',
   color: '#111827',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  maxWidth: '100%',
 });
 
 export const userEmail = style({

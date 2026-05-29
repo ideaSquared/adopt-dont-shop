@@ -5,7 +5,8 @@ import { useSearchFilters } from '@/hooks/useSearchFilters';
 import { useStatsig } from '@/hooks/useStatsig';
 import { useFeatureGate } from '@adopt-dont-shop/lib.feature-flags';
 import { petService, PaginatedResponse, Pet } from '@/services';
-import { Button, Container, SelectInput, Spinner } from '@adopt-dont-shop/lib.components';
+import { Button, Container, SelectInput } from '@adopt-dont-shop/lib.components';
+import { PetCardSkeletonGrid } from '@/components/skeletons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import * as styles from './SearchPage.css';
@@ -142,7 +143,7 @@ export const SearchPage: React.FC = () => {
       });
     } catch (err) {
       console.error('Search error details:', err);
-      setError('Failed to load pets. Please try again.');
+      setError('Something went wrong loading results. Please check your connection and try again.');
       setPets([]);
       setPagination(null);
 
@@ -190,10 +191,10 @@ export const SearchPage: React.FC = () => {
   return (
     <Container className={styles.searchContainer}>
       <div className={styles.searchHeader}>
-        <h1>Find Your Perfect Pet</h1>
+        <h1>Find Your Next Pet</h1>
         <p>
-          Search through thousands of loving pets waiting for their forever homes. Use the filters
-          below to find exactly what you&apos;re looking for.
+          Browse adoptable pets from verified rescues. Use the filters below to find exactly what
+          you&apos;re looking for.
         </p>
       </div>
 
@@ -227,19 +228,19 @@ export const SearchPage: React.FC = () => {
         </div>
 
         {isLoading ? (
-          <div className={styles.loadingContainer}>
-            <Spinner size='lg' />
+          <div className={styles.petGrid}>
+            <PetCardSkeletonGrid count={8} />
           </div>
         ) : error ? (
           <div className={styles.emptyState}>
-            <h3>Oops! Something went wrong</h3>
+            <h3>Unable to load results</h3>
             <p>{error}</p>
-            <Button onClick={loadPets}>Try Again</Button>
+            <Button onClick={loadPets}>Retry</Button>
           </div>
         ) : !pets || pets.length === 0 ? (
           <div className={styles.emptyState}>
-            <h3>No pets found</h3>
-            <p>Try adjusting your search criteria or clearing some filters to see more results.</p>
+            <h3>No pets match your filters</h3>
+            <p>Try broadening your search by removing some filters or using different keywords.</p>
             {hasActiveFilters && <Button onClick={handleClearAll}>Clear All Filters</Button>}
           </div>
         ) : (
@@ -258,7 +259,8 @@ export const SearchPage: React.FC = () => {
         {pagination && pagination.totalPages > 1 && (
           <div className={styles.pagination}>
             <div className='page-info'>
-              Page {pagination.page} of {pagination.totalPages}({pagination.total} total pets)
+              Showing page {pagination.page} of {pagination.totalPages} &mdash; {pagination.total}{' '}
+              pets
             </div>
 
             <div className='page-controls'>

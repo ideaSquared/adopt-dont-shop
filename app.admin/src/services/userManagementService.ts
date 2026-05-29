@@ -1,3 +1,4 @@
+import type { BulkUserUpdateData } from '@adopt-dont-shop/lib.validation';
 import { apiService } from './libraryServices';
 import { User, PaginatedResponse } from '@/types';
 
@@ -172,38 +173,6 @@ class UserManagementService {
   }
 
   /**
-   * Get user activity log
-   */
-  async getUserActivity(
-    userId: string,
-    filters: { from?: string; to?: string; limit?: number } = {}
-  ): Promise<
-    Array<{
-      activity_id: string;
-      activity_type: string;
-      description: string;
-      ip_address?: string;
-      user_agent?: string;
-      created_at: string;
-    }>
-  > {
-    try {
-      const response = await apiService.get(`/api/v1/admin/users/${userId}/activity`, filters);
-      return response as Array<{
-        activity_id: string;
-        activity_type: string;
-        description: string;
-        ip_address?: string;
-        user_agent?: string;
-        created_at: string;
-      }>;
-    } catch (error) {
-      console.error('❌ UserManagementService: Failed to fetch user activity:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Search users
    */
   async searchUsers(query: string, filters: UserFilters = {}): Promise<PaginatedResponse<User>> {
@@ -232,15 +201,25 @@ class UserManagementService {
 
   /**
    * Bulk update users
+   *
+   * Hits the backend bulk endpoint (`POST /api/v1/users/bulk-update`) with the
+   * shape defined by `BulkUserUpdateRequestSchema` in lib.validation:
+   * `{ userIds, updateData, reason }`. The backend's `updateData` schema is
+   * strict — only `status` is accepted — so callers translate UI-level intent
+   * (activate/deactivate) into a `status` value here.
    */
   async bulkUpdateUsers(
     userIds: string[],
-    updates: { userType?: string; is_active?: boolean }
+    updateData: BulkUserUpdateData,
+    reason?: string
   ): Promise<{ success: number; failed: number }> {
     try {
-      return await apiService.patch('/api/v1/admin/users/bulk-update', {
-        user_ids: userIds,
-        updates,
+      // ADS-651: forward the operator-supplied reason so the backend
+      // bulk endpoint can persist it against each affected user's audit row.
+      return await apiService.post('/api/v1/users/bulk-update', {
+        userIds,
+        updateData,
+        reason,
       });
     } catch (error) {
       console.error('❌ UserManagementService: Failed to bulk update users:', error);

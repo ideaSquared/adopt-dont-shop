@@ -1,5 +1,5 @@
 import { ReactNode, lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { PermissionsProvider } from '@/contexts/PermissionsContext';
@@ -44,11 +44,8 @@ const FavoritesPage = lazy(() =>
 const TopPicksPage = lazy(() =>
   import('@/pages/TopPicksPage').then(m => ({ default: m.TopPicksPage }))
 );
-const MatchOnboardingPage = lazy(() =>
-  import('@/pages/MatchOnboardingPage').then(m => ({ default: m.MatchOnboardingPage }))
-);
-const OnboardingQuizPage = lazy(() =>
-  import('@/pages/OnboardingQuizPage').then(m => ({ default: m.OnboardingQuizPage }))
+const OnboardingWizardPage = lazy(() =>
+  import('@/pages/OnboardingWizardPage').then(m => ({ default: m.OnboardingWizardPage }))
 );
 const NotificationsPage = lazy(() =>
   import('@/pages/NotificationsPage').then(m => ({ default: m.NotificationsPage }))
@@ -154,8 +151,15 @@ function App() {
                       <Route path='/profile' element={<ProfilePage />} />
                       <Route path='/favorites' element={<FavoritesPage />} />
                       <Route path='/match/top-picks' element={<TopPicksPage />} />
-                      <Route path='/match/onboarding' element={<MatchOnboardingPage />} />
-                      <Route path='/onboarding/quiz' element={<OnboardingQuizPage />} />
+                      <Route path='/onboarding' element={<OnboardingWizardPage />} />
+                      <Route
+                        path='/match/onboarding'
+                        element={<Navigate to='/onboarding' replace />}
+                      />
+                      <Route
+                        path='/onboarding/quiz'
+                        element={<Navigate to='/onboarding' replace />}
+                      />
                       <Route path='/notifications' element={<NotificationsPage />} />
                       <Route
                         path='/chat'

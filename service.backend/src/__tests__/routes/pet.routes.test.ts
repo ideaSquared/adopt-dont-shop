@@ -63,6 +63,7 @@ vi.mock('../../services/pet.service', () => ({
     getRecentPets: vi.fn(),
     getPetTypes: vi.fn(),
     getPetBreedsByType: vi.fn(),
+    getPetActivityLog: vi.fn(),
   },
 }));
 
@@ -257,6 +258,30 @@ describe('Pet routes', () => {
       const res = await request(buildApp()).get('/api/v1/pets/featured');
       expect(res.status).not.toBe(401);
       expect(res.status).not.toBe(403);
+    });
+  });
+
+  describe('GET /api/v1/pets/:petId/activity', () => {
+    const petId = '6f3b4d2c-1111-4222-8333-444455556666';
+
+    it('returns 401 when unauthenticated', async () => {
+      authenticateTokenMock.mockImplementation((_req: AuthenticatedRequest, res: Response) => {
+        res.status(401).json({ error: 'Access token required' });
+      });
+
+      const res = await request(buildApp()).get(`/api/v1/pets/${petId}/activity`);
+      expect(res.status).toBe(401);
+    });
+
+    it('returns 403 when user lacks pets.read permission', async () => {
+      requirePermissionMock.mockImplementation(
+        (_perm: string, _req: AuthenticatedRequest, res: Response) => {
+          res.status(403).json({ error: 'Access denied' });
+        }
+      );
+
+      const res = await request(buildApp()).get(`/api/v1/pets/${petId}/activity`);
+      expect(res.status).toBe(403);
     });
   });
 });

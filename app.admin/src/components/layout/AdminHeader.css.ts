@@ -16,13 +16,51 @@ export const headerContainer = recipe({
     right: 0,
     zIndex: 90,
     transition: 'left 0.3s ease',
+    gap: '1rem',
+    // On phones the sidebar is off-canvas, so the header spans the full
+    // width and the hamburger trigger replaces the desktop offset.
+    '@media': {
+      '(max-width: 768px)': {
+        left: 0,
+        padding: '0 1rem',
+      },
+    },
   },
   variants: {
     sidebarCollapsed: {
-      true: { left: '80px' },
-      false: { left: '280px' },
+      true: { left: '80px', '@media': { '(max-width: 768px)': { left: 0 } } },
+      false: { left: '280px', '@media': { '(max-width: 768px)': { left: 0 } } },
     },
   },
+});
+
+// Hamburger trigger for the off-canvas sidebar drawer. Hidden on desktop,
+// where the sidebar is always visible.
+export const mobileMenuButton = style({
+  background: 'transparent',
+  border: '1px solid #d1d5db',
+  padding: '0.625rem',
+  borderRadius: '8px',
+  cursor: 'pointer',
+  color: '#6b7280',
+  alignItems: 'center',
+  justifyContent: 'center',
+  transition: 'all 0.2s ease',
+  display: 'none',
+  ':hover': {
+    background: '#f9fafb',
+    borderColor: vars.colors.primary,
+    color: vars.colors.primaryHover,
+  },
+  '@media': {
+    '(max-width: 768px)': {
+      display: 'flex',
+    },
+  },
+});
+
+globalStyle(`${mobileMenuButton} svg`, {
+  fontSize: '1.25rem',
 });
 
 export const searchContainer = style({
@@ -39,7 +77,7 @@ export const searchInput = style({
   fontSize: '0.875rem',
   background: '#f9fafb',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
     background: '#ffffff',
@@ -149,6 +187,12 @@ export const userInfo = style({
   flexDirection: 'column',
   alignItems: 'flex-start',
   textAlign: 'left',
+  // The name/role labels are dropped on phones; the avatar alone is enough.
+  '@media': {
+    '(max-width: 480px)': {
+      display: 'none',
+    },
+  },
 });
 
 export const userName = style({

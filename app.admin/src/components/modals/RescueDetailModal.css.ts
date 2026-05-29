@@ -41,8 +41,9 @@ export const closeButton = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: '36px',
-  height: '36px',
+  // WCAG 2.5.5 AA: 44x44 minimum touch target.
+  minWidth: '44px',
+  minHeight: '44px',
   border: 'none',
   borderRadius: '8px',
   background: '#f3f4f6',
@@ -241,6 +242,10 @@ export const staffName = style({
   fontWeight: '600',
   color: '#111827',
   fontSize: '0.9375rem',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  maxWidth: '100%',
 });
 
 export const staffEmail = style({
@@ -325,7 +330,7 @@ export const input = style({
   fontSize: '0.875rem',
   color: '#111827',
   background: '#ffffff',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
@@ -497,6 +502,14 @@ export const skeletonName = style({
   marginBottom: '0.5rem',
 });
 
+export const modalFooter = style({
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: '0.75rem',
+  padding: '1.25rem 1.5rem',
+  borderTop: '1px solid #e5e7eb',
+});
+
 export const successMessage = style({
   padding: '0.75rem',
   marginBottom: '1rem',
@@ -505,4 +518,31 @@ export const successMessage = style({
   borderRadius: '0.375rem',
   color: '#166534',
   fontSize: '0.875rem',
+});
+
+// ── Actions tab (split-pane detail panel) ─────────────────────────
+
+export const actionsSection = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '1.5rem',
+});
+
+export const actionGroup = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+  alignItems: 'flex-start',
+});
+
+export const actionGroupLabel = style({
+  fontSize: '0.6875rem',
+  fontWeight: '600',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: '#6b7280',
+});
+
+export const actionButtonIcon = style({
+  marginRight: '0.5rem',
 });

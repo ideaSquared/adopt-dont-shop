@@ -9,6 +9,7 @@ import User from '../models/User';
 import UserNotificationPrefs from '../models/UserNotificationPrefs';
 import { JsonObject, WhereClause } from '../types/common';
 import logger, { loggerHelpers } from '../utils/logger';
+import { NotFoundError } from '../middleware/error-handler';
 import { AuditLogService } from './auditLog.service';
 import { NotificationChannelService } from './notificationChannelService';
 import { smsService } from './sms.service';
@@ -99,7 +100,7 @@ export class NotificationService {
       // Only show active (non-expired) notifications
       const whereWithOr: WhereOptions = {
         ...whereClause,
-        [Op.or]: [{ expires_at: { [Op.is]: null } }, { expires_at: { [Op.gt]: new Date() } }],
+        [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: new Date() } }],
       };
 
       const orderClause = [[sortBy, sortOrder]];
@@ -347,7 +348,7 @@ export class NotificationService {
       );
 
       if (affectedRows === 0) {
-        throw new Error('Notification not found or access denied');
+        throw new NotFoundError('Notification not found or access denied');
       }
 
       // Log the action
@@ -444,7 +445,7 @@ export class NotificationService {
       );
 
       if (affectedRows === 0) {
-        throw new Error('Notification not found or access denied');
+        throw new NotFoundError('Notification not found or access denied');
       }
 
       // Log the action
@@ -483,7 +484,7 @@ export class NotificationService {
         user_id: userId,
         read_at: null,
         deleted_at: null,
-        [Op.or]: [{ expires_at: { [Op.is]: null } }, { expires_at: { [Op.gt]: new Date() } }],
+        [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: new Date() } }],
       };
 
       const count = await Notification.count({
@@ -518,7 +519,7 @@ export class NotificationService {
     try {
       const user = await User.findByPk(userId, { attributes: ['userId'] });
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // The afterCreate hook on User auto-creates this row, so it should
@@ -560,7 +561,7 @@ export class NotificationService {
       const user = await User.findByPk(userId, { transaction });
 
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const [prefs] = await UserNotificationPrefs.findOrCreate({

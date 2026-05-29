@@ -217,7 +217,7 @@ export const fieldMask = (
         resource,
         role,
       });
-      res.status(500).json({ error: 'Field permission check failed' });
+      res.status(403).json({ error: 'Field permission check failed' });
       return;
     }
 
@@ -363,8 +363,8 @@ export const fieldMask = (
         logger.error('Field masking middleware error — failing closed', { error, resource, role });
         // Fail closed: sending the unmasked body risks exposing restricted fields.
         // Use originalJson directly (not the overridden res.json) to avoid recursion.
-        res.status(500);
-        return originalJson({ error: 'Internal server error' });
+        res.status(403);
+        return originalJson({ error: 'Field permission check failed' });
       }
     } as Response['json'];
 
@@ -442,7 +442,7 @@ export const fieldWriteGuard = (
       next();
     } catch (error) {
       logger.error('Field write guard middleware error', { error, resource, role });
-      res.status(500).json({ error: 'Field permission check failed' });
+      res.status(403).json({ error: 'Field permission check failed' });
     }
   };
 };

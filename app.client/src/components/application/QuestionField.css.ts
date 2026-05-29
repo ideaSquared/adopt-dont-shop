@@ -34,6 +34,10 @@ const baseInputStyle = {
   boxSizing: 'border-box' as const,
   outline: 'none',
   transition: 'border-color 0.15s',
+  ':focus-visible': {
+    outline: `2px solid ${vars.colors.primary}`,
+    outlineOffset: '2px',
+  },
 };
 
 export const input = recipe({

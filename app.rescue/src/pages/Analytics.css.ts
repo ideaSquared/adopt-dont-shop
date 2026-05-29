@@ -73,7 +73,7 @@ export const filterSelect = style({
     '&:hover': {
       borderColor: vars.colors.info,
     },
-    '&:focus': {
+    '&:focus-visible': {
       outline: 'none',
       borderColor: vars.colors.info,
       boxShadow: `0 0 0 3px ${vars.colors.infoBgSubtle}`,
@@ -200,4 +200,150 @@ export const breedCount = style({
   fontSize: '1.5rem',
   fontWeight: 700,
   color: '#3B82F6',
+});
+
+// Email report modal styles (matches InviteStaffModal pattern)
+export const emailModalOverlay = style({
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: 'rgba(0, 0, 0, 0.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 1000,
+  padding: '2rem',
+});
+
+export const emailModalContent = style({
+  background: 'white',
+  borderRadius: '12px',
+  maxWidth: '480px',
+  width: '100%',
+  boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
+});
+
+export const emailModalHeader = style({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '1.5rem 1.5rem 1rem 1.5rem',
+  borderBottom: '1px solid #e9ecef',
+});
+
+export const emailModalTitle = style({
+  margin: 0,
+  fontWeight: 600,
+  color: '#333',
+});
+
+export const emailModalCloseButton = style({
+  background: 'none',
+  border: 'none',
+  fontSize: '1.5rem',
+  color: '#666',
+  cursor: 'pointer',
+  padding: '0.5rem',
+  borderRadius: '50%',
+  transition: 'all 0.2s ease',
+  ':hover': {
+    background: '#f5f5f5',
+    color: '#333',
+  },
+  ':disabled': {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+  },
+});
+
+export const emailModalForm = style({
+  padding: '1.5rem',
+});
+
+export const emailModalFormGroup = style({
+  marginBottom: '1.5rem',
+});
+
+export const emailModalLabel = style({
+  display: 'block',
+  marginBottom: '0.5rem',
+  fontWeight: 600,
+  color: '#333',
+});
+
+export const emailModalInput = style({
+  width: '100%',
+  padding: '0.75rem 1rem',
+  borderRadius: '8px',
+  fontSize: '1rem',
+  border: '2px solid #e9ecef',
+  boxSizing: 'border-box',
+  transition: 'border-color 0.2s ease',
+  ':focus': {
+    outline: 'none',
+    borderColor: '#1976d2',
+  },
+  ':disabled': {
+    backgroundColor: '#f8f9fa',
+    color: '#6c757d',
+  },
+});
+
+export const emailModalError = style({
+  display: 'block',
+  color: '#dc3545',
+  fontSize: '0.875rem',
+  marginTop: '0.25rem',
+});
+
+export const emailModalActions = style({
+  display: 'flex',
+  gap: '1rem',
+  justifyContent: 'flex-end',
+  paddingTop: '1rem',
+  borderTop: '1px solid #e9ecef',
+});
+
+export const emailModalCancelButton = style({
+  padding: '0.75rem 1.5rem',
+  border: '1px solid #dee2e6',
+  borderRadius: '8px',
+  fontSize: '1rem',
+  fontWeight: 500,
+  cursor: 'pointer',
+  background: '#f8f9fa',
+  color: '#495057',
+  transition: 'all 0.2s ease',
+  selectors: {
+    '&:hover:not(:disabled)': {
+      background: '#e9ecef',
+    },
+  },
+  ':disabled': {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+  },
+});
+
+export const emailModalSubmitButton = style({
+  padding: '0.75rem 1.5rem',
+  border: 'none',
+  borderRadius: '8px',
+  fontSize: '1rem',
+  fontWeight: 500,
+  cursor: 'pointer',
+  background: '#1976d2',
+  color: 'white',
+  transition: 'all 0.2s ease',
+  selectors: {
+    '&:hover:not(:disabled)': {
+      background: '#1565c0',
+    },
+  },
+  ':disabled': {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+  },
 });

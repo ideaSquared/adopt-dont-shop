@@ -9,7 +9,9 @@ import UserRole from '../models/UserRole';
 import EmailTemplateService from './email-template.service';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { logger } from '../utils/logger';
+import { NotFoundError, ConflictError, BadRequestError } from '../middleware/error-handler';
 import { hashToken } from '../utils/secrets';
+import { EmailLinkType, resolveEmailLinkBase } from '../utils/email-url';
 
 export class InvitationService {
   /**
@@ -23,6 +25,14 @@ export class InvitationService {
           used: false,
           expiration: { [Op.gt]: new Date() },
         },
+        include: [
+          {
+            model: Rescue,
+            as: 'rescue',
+            attributes: ['rescueId', 'name'],
+            required: false,
+          },
+        ],
       });
 
       return invitation;
@@ -47,7 +57,7 @@ export class InvitationService {
       // Check if rescue exists
       const rescue = await Rescue.findByPk(rescueId, { transaction });
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       // Check if email is already associated with this rescue
@@ -64,7 +74,7 @@ export class InvitationService {
       });
 
       if (existingStaff) {
-        throw new Error('User is already a staff member of this rescue');
+        throw new ConflictError('User is already a staff member of this rescue');
       }
 
       // Check for existing pending invitation
@@ -79,7 +89,7 @@ export class InvitationService {
       });
 
       if (existingInvitation) {
-        throw new Error('A pending invitation already exists for this email');
+        throw new ConflictError('A pending invitation already exists for this email');
       }
 
       // Generate secure token
@@ -103,7 +113,7 @@ export class InvitationService {
 
       // Send invitation email
       try {
-        const invitationUrl = `${process.env.RESCUE_FRONTEND_URL || 'http://localhost:3002'}/accept-invitation?token=${token}`;
+        const invitationUrl = `${resolveEmailLinkBase(EmailLinkType.RESCUE_INVITATION)}/accept-invitation?token=${token}`;
 
         await EmailTemplateService.sendStaffInvitation({
           recipientEmail: email,
@@ -171,11 +181,11 @@ export class InvitationService {
       });
 
       if (!invitation) {
-        throw new Error('Invitation not found or expired');
+        throw new NotFoundError('Invitation not found or expired');
       }
 
       if (invitation.used) {
-        throw new Error('This invitation has already been used');
+        throw new ConflictError('This invitation has already been used');
       }
 
       // Check if user with this email already exists
@@ -185,7 +195,7 @@ export class InvitationService {
       });
 
       if (existingUser) {
-        throw new Error('An account with this email already exists');
+        throw new ConflictError('An account with this email already exists');
       }
 
       // Generate unique user ID
@@ -345,7 +355,7 @@ export class InvitationService {
       });
 
       if (!invitation) {
-        throw new Error('Invitation not found or already expired');
+        throw new NotFoundError('Invitation not found or already expired');
       }
 
       // Mark as expired to effectively cancel it

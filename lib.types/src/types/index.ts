@@ -188,8 +188,14 @@ export interface ErrorResponse {
 
 /**
  * Paginated response interface
+ *
+ * The minimal contract is `data` + `pagination`. Some API responses also
+ * include `success`/`message`/`timestamp` (inherited from BaseResponse);
+ * these are declared optional so both lightweight list endpoints and full
+ * envelope responses satisfy the type.
  */
-export interface PaginatedResponse<T> extends BaseResponse<T[]> {
+export interface PaginatedResponse<T> {
+  data: T[];
   pagination: {
     page: number;
     limit: number;
@@ -198,6 +204,9 @@ export interface PaginatedResponse<T> extends BaseResponse<T[]> {
     hasNext: boolean;
     hasPrev: boolean;
   };
+  success?: boolean;
+  message?: string;
+  timestamp?: string;
 }
 
 /**

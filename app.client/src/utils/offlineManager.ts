@@ -37,8 +37,8 @@ class OfflineManager {
   private pendingActions: QueuedAction[] = [];
   private syncCallback: SyncCallback | null = null;
   private listeners: OfflineStateChangeListener[] = [];
-  private syncInterval: NodeJS.Timeout | null = null;
-  private connectionCheckInterval: NodeJS.Timeout | null = null;
+  private syncInterval: ReturnType<typeof setTimeout> | null = null;
+  private connectionCheckInterval: ReturnType<typeof setTimeout> | null = null;
   private consecutiveFailures: number = 0;
 
   constructor() {

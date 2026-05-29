@@ -94,136 +94,83 @@ export class UserController {
    * Get user by ID
    */
   async getUserById(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { userId } = req.params;
-      const requestingUserId = req.user!.userId;
-      const requestingUserType = req.user!.userType as UserType;
+    const { userId } = req.params;
+    const requestingUserId = req.user!.userId;
+    const requestingUserType = req.user!.userType as UserType;
 
-      // Check if user can see private data
-      const canSeePrivateData = UserService.canUserSeePrivateData(
-        requestingUserId,
-        userId,
-        requestingUserType
-      );
+    // Check if user can see private data
+    const canSeePrivateData = UserService.canUserSeePrivateData(
+      requestingUserId,
+      userId,
+      requestingUserType
+    );
 
-      const user = await UserService.getUserById(userId);
+    const user = await UserService.getUserById(userId);
 
-      if (!user) {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      if (!canSeePrivateData) {
-        // Return limited public data only
-        const publicUser = {
-          userId: user.userId,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          profileImageUrl: user.profileImageUrl,
-          bio: user.bio,
-          createdAt: user.createdAt,
-        };
-        res.json(publicUser);
-        return;
-      }
-
-      res.json(user);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Get user by ID failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      res.status(500).json({ error: 'Failed to get user' });
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
     }
+
+    if (!canSeePrivateData) {
+      // Return limited public data only
+      const publicUser = {
+        userId: user.userId,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImageUrl: user.profileImageUrl,
+        bio: user.bio,
+        createdAt: user.createdAt,
+      };
+      res.json(publicUser);
+      return;
+    }
+
+    res.json(user);
   }
 
   /**
    * Update user profile
    */
   async updateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { userId } = req.params;
-      const updateData = req.body;
-      const requestingUserId = req.user!.userId;
-      const requestingUserType = req.user!.userType as UserType;
+    const { userId } = req.params;
+    const updateData = req.body;
+    const requestingUserId = req.user!.userId;
+    const requestingUserType = req.user!.userType as UserType;
 
-      // Check permissions
-      if (requestingUserId !== userId && requestingUserType !== UserType.ADMIN) {
-        res.status(403).json({ error: "Cannot update another user's profile" });
-        return;
-      }
-
-      const updatedUser = await UserService.updateUserProfile(userId, updateData);
-      res.json(updatedUser);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Update user failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      res.status(500).json({ error: 'Failed to update user' });
+    // Check permissions
+    if (requestingUserId !== userId && requestingUserType !== UserType.ADMIN) {
+      res.status(403).json({ error: "Cannot update another user's profile" });
+      return;
     }
+
+    const updatedUser = await UserService.updateUserProfile(userId, updateData);
+    res.json(updatedUser);
   }
 
   /**
    * Deactivate user account
    */
   async deactivateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { userId } = req.params;
-      const requestingUserId = req.user!.userId;
+    const { userId } = req.params;
+    const requestingUserId = req.user!.userId;
 
-      // Prevent self-deactivation
-      UserService.validateUserOperation(requestingUserId, userId, 'deactivate');
+    // Prevent self-deactivation
+    UserService.validateUserOperation(requestingUserId, userId, 'deactivate');
 
-      const result = await UserService.deactivateUser(userId, requestingUserId);
-      res.json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Deactivate user failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      if (errorMessage.includes('Cannot deactivate')) {
-        res.status(400).json({ error: errorMessage });
-        return;
-      }
-
-      res.status(500).json({ error: 'Failed to deactivate user' });
-    }
+    const result = await UserService.deactivateUser(userId, requestingUserId);
+    res.json(result);
   }
 
   /**
    * Activate user account
    */
   async activateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { userId } = req.params;
-      const requestingUserId = req.user!.userId;
+    const { userId } = req.params;
+    const requestingUserId = req.user!.userId;
 
-      const result = await UserService.reactivateUser(userId, requestingUserId);
-      res.json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Activate user failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      res.status(500).json({ error: 'Failed to activate user' });
-    }
+    const result = await UserService.reactivateUser(userId, requestingUserId);
+    res.json(result);
   }
 
   /**
@@ -241,29 +188,17 @@ export class UserController {
    * Bulk update users
    */
   async bulkUpdateUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { userIds, updateData } = req.body;
-      const requestingUserId = req.user!.userId;
+    const { userIds, updateData, reason } = req.body;
+    const requestingUserId = req.user!.userId;
 
-      // Prevent including own account in bulk operations
-      UserService.validateBulkOperation(requestingUserId, userIds, 'update');
+    // Prevent including own account in bulk operations
+    UserService.validateBulkOperation(requestingUserId, userIds, 'update');
 
-      const result = await UserService.bulkUpdateUsers(
-        [{ userIds, updates: updateData }],
-        requestingUserId
-      );
-      res.json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Bulk update users failed:', error);
-
-      if (errorMessage.includes('Cannot include your own account')) {
-        res.status(400).json({ error: errorMessage });
-        return;
-      }
-
-      res.status(500).json({ error: 'Failed to bulk update users' });
-    }
+    const result = await UserService.bulkUpdateUsers(
+      [{ userIds, updates: updateData, reason }],
+      requestingUserId
+    );
+    res.json(result);
   }
 
   /**
@@ -315,108 +250,64 @@ export class UserController {
   }
 
   /**
-   * Get user activity summary
+   * Get user activity summary (aggregate stats).
    */
   async getUserActivitySummary(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { userId } = req.params;
-      const activitySummary = await UserService.getUserActivitySummary(userId);
-      res.json({
-        success: true,
-        data: activitySummary,
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Get user activity summary failed:', error);
+    const { userId } = req.params;
+    const activitySummary = await UserService.getUserActivitySummary(userId);
+    res.json({
+      success: true,
+      data: activitySummary,
+    });
+  }
 
-      if (errorMessage === 'User not found') {
-        res.status(404).json({
-          success: false,
-          error: 'User not found',
-        });
-        return;
-      }
-
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get user activity summary',
-      });
-    }
+  /**
+   * Get user activity log (paginated audit-log entries).
+   */
+  async getUserActivityLog(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const { userId } = req.params;
+    const { from, to, limit, offset } = req.query;
+    const activity = await UserService.getUserActivityLog(userId, {
+      from: typeof from === 'string' ? from : undefined,
+      to: typeof to === 'string' ? to : undefined,
+      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      offset: typeof offset === 'string' ? Number(offset) : undefined,
+    });
+    res.json({
+      success: true,
+      data: activity,
+    });
   }
 
   /**
    * Update user role
    */
   async updateUserRole(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { userId } = req.params;
-      const { userType } = req.body;
-      const adminUserId = req.user!.userId;
+    const { userId } = req.params;
+    const { userType } = req.body;
+    const adminUserId = req.user!.userId;
 
-      const updatedUser = await UserService.updateUserRole(userId, userType, adminUserId);
-      res.json({
-        success: true,
-        data: updatedUser,
-        message: 'User role updated successfully',
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Update user role failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({
-          success: false,
-          error: 'User not found',
-        });
-        return;
-      }
-
-      if (errorMessage.includes('Cannot change role')) {
-        res.status(400).json({
-          success: false,
-          error: errorMessage,
-        });
-        return;
-      }
-
-      res.status(500).json({
-        success: false,
-        error: 'Failed to update user role',
-      });
-    }
+    const updatedUser = await UserService.updateUserRole(userId, userType, adminUserId);
+    res.json({
+      success: true,
+      data: updatedUser,
+      message: 'User role updated successfully',
+    });
   }
 
   /**
    * Reactivate user account
    */
   async reactivateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const { userId } = req.params;
-      const requestingUserId = req.user!.userId;
+    const { userId } = req.params;
+    const requestingUserId = req.user!.userId;
 
-      const result = await UserService.reactivateUser(userId, requestingUserId);
-      res.json({
-        success: true,
-        data: result,
-        message: 'User reactivated successfully',
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Reactivate user failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({
-          success: false,
-          error: 'User not found',
-        });
-        return;
-      }
-
-      res.status(500).json({
-        success: false,
-        error: 'Failed to reactivate user',
-      });
-    }
+    const result = await UserService.reactivateUser(userId, requestingUserId);
+    res.json({
+      success: true,
+      data: result,
+      message: 'User reactivated successfully',
+    });
   }
 
   /**
@@ -432,62 +323,48 @@ export class UserController {
     const startTime = Date.now();
     const userId = req.user!.userId;
 
-    try {
-      const { password, twoFactorToken, reason } = req.body ?? {};
+    const { password, twoFactorToken, reason } = req.body ?? {};
 
-      if (typeof password !== 'string' || password.length === 0) {
-        return res.status(401).json({ error: 'Password is required' });
-      }
-
-      const user = await User.findByPk(userId);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      try {
-        await AuthService.verifyStepUpCredentials(user, password, twoFactorToken);
-      } catch (verifyError) {
-        const message = verifyError instanceof Error ? verifyError.message : 'Invalid credentials';
-        loggerHelpers.logSecurity('Account deletion step-up auth failed', {
-          userId,
-          reason: message,
-        });
-        return res.status(401).json({ error: message });
-      }
-
-      const accessToken =
-        req.cookies?.[ACCESS_TOKEN_COOKIE] || req.headers.authorization?.replace(/^Bearer\s+/i, '');
-      const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE];
-
-      // Revoke tokens before destroying the user so any race with a parallel
-      // request sees the revocation. AuthService.logout is best-effort and
-      // does not throw on missing/invalid tokens.
-      await AuthService.logout(refreshToken, accessToken, userId, req.ip, req.get('user-agent'));
-
-      await UserService.deleteAccount(userId, reason);
-
-      res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
-      res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
-
-      logger.info('User account deleted', { userId, duration: Date.now() - startTime });
-
-      return res.json({
-        success: true,
-        message: 'Account deleted successfully',
-      });
-    } catch (error) {
-      logger.error('Error deleting account:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId,
-        duration: Date.now() - startTime,
-      });
-
-      if (error instanceof Error && error.message === 'User not found') {
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      return res.status(500).json({ error: 'Failed to delete account' });
+    if (typeof password !== 'string' || password.length === 0) {
+      return res.status(401).json({ error: 'Password is required' });
     }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    try {
+      await AuthService.verifyStepUpCredentials(user, password, twoFactorToken);
+    } catch (verifyError) {
+      const message = verifyError instanceof Error ? verifyError.message : 'Invalid credentials';
+      loggerHelpers.logSecurity('Account deletion step-up auth failed', {
+        userId,
+        reason: message,
+      });
+      return res.status(401).json({ error: message });
+    }
+
+    const accessToken =
+      req.cookies?.[ACCESS_TOKEN_COOKIE] || req.headers.authorization?.replace(/^Bearer\s+/i, '');
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE];
+
+    // Revoke tokens before destroying the user so any race with a parallel
+    // request sees the revocation. AuthService.logout is best-effort and
+    // does not throw on missing/invalid tokens.
+    await AuthService.logout(refreshToken, accessToken, userId, req.ip, req.get('user-agent'));
+
+    await UserService.deleteAccount(userId, reason);
+
+    res.clearCookie(ACCESS_TOKEN_COOKIE, ACCESS_TOKEN_COOKIE_OPTIONS);
+    res.clearCookie(REFRESH_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE_OPTIONS);
+
+    logger.info('User account deleted', { userId, duration: Date.now() - startTime });
+
+    return res.json({
+      success: true,
+      message: 'Account deleted successfully',
+    });
   }
 
   /**
@@ -498,36 +375,18 @@ export class UserController {
     const startTime = Date.now();
     const { userId } = req.params;
 
-    try {
-      const userPermissions = await UserService.getUserPermissions(userId);
+    const userPermissions = await UserService.getUserPermissions(userId);
 
-      logger.info('User permissions retrieved', {
-        userId,
-        permissionCount: userPermissions.length,
-        duration: Date.now() - startTime,
-      });
+    logger.info('User permissions retrieved', {
+      userId,
+      permissionCount: userPermissions.length,
+      duration: Date.now() - startTime,
+    });
 
-      return res.json({
-        success: true,
-        permissions: userPermissions,
-      });
-    } catch (error) {
-      logger.error('Error getting user permissions:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId,
-        duration: Date.now() - startTime,
-      });
-
-      if (error instanceof Error && error.message === 'User not found') {
-        return res.status(404).json({
-          error: 'User not found',
-        });
-      }
-
-      return res.status(500).json({
-        error: 'Failed to get user permissions',
-      });
-    }
+    return res.json({
+      success: true,
+      permissions: userPermissions,
+    });
   }
 
   /**

@@ -36,12 +36,22 @@ import User, { UserType } from '../models/User';
 import sequelize from '../sequelize';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import {
+  BadRequestError,
+  NotFoundError,
+  ConflictError,
+  ForbiddenError,
+  UnprocessableError,
+} from '../middleware/error-handler';
 import ApplicationTimelineService from './applicationTimeline.service';
 import emailService from './email.service';
 import { NotificationService } from './notification.service';
 import { NotificationType } from '../models/Notification';
 import { TimelineEventType } from '../models/ApplicationTimeline';
+import { emitToUser, emitToRescue } from '../socket/socket-registry';
 import { JsonObject, JsonValue } from '../types/common';
+import type { EntityActivity, EntityActivityFilters } from '@adopt-dont-shop/lib.types';
+import { auditLogToActivity } from './audit-log-formatting';
 
 import {
   ApplicationData,
@@ -296,17 +306,17 @@ export class ApplicationService {
       // Validate user exists (outside transaction — read-only, no race risk)
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
-      return await sequelize.transaction(async t => {
+      const result = await sequelize.transaction(async t => {
         // Lock the pet row to prevent concurrent applications racing on status
         const pet = await Pet.findByPk(applicationData.petId, {
           transaction: t,
           lock: t.LOCK.UPDATE,
         });
         if (!pet) {
-          throw new Error('Pet not found');
+          throw new NotFoundError('Pet not found');
         }
 
         // A13: applications may only be submitted to a verified rescue.
@@ -315,11 +325,11 @@ export class ApplicationService {
         // closes the loop for any caller that hits the API directly.
         const rescue = await Rescue.findByPk(pet.rescueId, { transaction: t });
         if (!rescue || rescue.status !== 'verified') {
-          throw new Error('Cannot interact with unverified rescue');
+          throw new ForbiddenError('Cannot interact with unverified rescue');
         }
 
         if (pet.status !== 'available') {
-          throw new Error('Pet is not available for adoption');
+          throw new ConflictError('Pet is not available for adoption');
         }
 
         // Check for existing active application for this pet by this user
@@ -335,7 +345,7 @@ export class ApplicationService {
         });
 
         if (existingApplication) {
-          throw new Error('You already have an active application for this pet');
+          throw new ConflictError('You already have an active application for this pet');
         }
 
         // Validate answers against required questions
@@ -345,7 +355,7 @@ export class ApplicationService {
         );
 
         if (!validationResult.is_valid) {
-          throw new Error(
+          throw new UnprocessableError(
             `Application validation failed: ${validationResult.errors.map(e => e.message).join(', ')}`
           );
         }
@@ -474,12 +484,22 @@ export class ApplicationService {
           answers: incomingAnswers,
         };
       });
+
+      // ADS C4-6: notify the rescue's live application list that a new
+      // submission landed so the rescue dashboard can refetch immediately.
+      if (result.rescueId && result.applicationId) {
+        emitToRescue(result.rescueId, 'application_created', {
+          applicationId: result.applicationId,
+        });
+      }
+
+      return result;
     } catch (error) {
       // Race condition safety net: if two concurrent requests both pass the
       // pre-flight findOne check, the DB unique index rejects the second
       // INSERT. Map that to the same user-facing error as the pre-flight guard.
       if (error instanceof UniqueConstraintError) {
-        throw new Error('You already have an active application for this pet');
+        throw new ConflictError('You already have an active application for this pet');
       }
 
       logger.error('Failed to create application:', {
@@ -559,7 +579,7 @@ export class ApplicationService {
       // Check permissions
       if (userId && userType !== UserType.ADMIN && userType !== UserType.MODERATOR) {
         if (userType === UserType.ADOPTER && application.userId !== userId) {
-          throw new Error('Access denied');
+          throw new ForbiddenError('Access denied');
         }
         if (userType === UserType.RESCUE_STAFF) {
           const StaffMember = (await import('../models/StaffMember')).default;
@@ -568,7 +588,7 @@ export class ApplicationService {
             attributes: ['rescueId'],
           });
           if (!membership || membership.rescueId !== application.rescueId) {
-            throw new Error('Access denied');
+            throw new ForbiddenError('Access denied');
           }
         }
       }
@@ -634,9 +654,7 @@ export class ApplicationService {
         });
 
         if (!staffMember?.rescueId) {
-          throw Object.assign(new Error('Unable to determine rescue for staff user'), {
-            statusCode: 403,
-          });
+          throw new ForbiddenError('Unable to determine rescue for staff user');
         }
 
         staffRescueIdOverride = staffMember.rescueId;
@@ -725,15 +743,11 @@ export class ApplicationService {
 
       // Boolean field filtering
       if (filters.hasInterviewNotes !== undefined) {
-        whereConditions.interviewNotes = filters.hasInterviewNotes
-          ? { [Op.not]: null }
-          : { [Op.is]: null };
+        whereConditions.interviewNotes = filters.hasInterviewNotes ? { [Op.not]: null } : null;
       }
 
       if (filters.hasHomeVisitNotes !== undefined) {
-        whereConditions.homeVisitNotes = filters.hasHomeVisitNotes
-          ? { [Op.not]: null }
-          : { [Op.is]: null };
+        whereConditions.homeVisitNotes = filters.hasHomeVisitNotes ? { [Op.not]: null } : null;
       }
 
       // ADS-575: pet-type / pet-breed filters. Both are matched
@@ -889,17 +903,17 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Check permissions - only owner can update their own applications
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       // Validate that application can be updated (only submitted applications can be updated)
       if (application.status !== ApplicationStatus.SUBMITTED) {
-        throw new Error('Application cannot be updated once processed');
+        throw new ConflictError('Application cannot be updated once processed');
       }
 
       // Answers and references live in their typed tables (plan 2.1)
@@ -1031,18 +1045,18 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Check permissions
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       // In simplified workflow, applications are submitted upon creation
       // This method is kept for API compatibility but does nothing
       if (application.status !== ApplicationStatus.SUBMITTED) {
-        throw new Error('Application is not in a valid state');
+        throw new ConflictError('Application is not in a valid state');
       }
 
       // Validate application completeness — answers live in the typed
@@ -1055,7 +1069,7 @@ export class ApplicationService {
       );
 
       if (!validationResult.is_valid) {
-        throw new Error(
+        throw new UnprocessableError(
           `Application is incomplete: ${validationResult.errors.map(e => e.message).join(', ')}`
         );
       }
@@ -1100,7 +1114,7 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // ADS-234: enforce rescue ownership. The route already checks the
@@ -1118,15 +1132,15 @@ export class ApplicationService {
           where: { userId: actionedBy, isVerified: true },
         });
         if (!membership || membership.rescueId !== application.rescueId) {
-          throw Object.assign(new Error('Access denied: application belongs to another rescue'), {
-            statusCode: 403,
-          });
+          throw new ForbiddenError('Access denied: application belongs to another rescue');
         }
       }
 
       // Validate status transition
       if (!application.canTransitionTo(statusUpdate.status)) {
-        throw new Error(`Cannot transition from ${application.status} to ${statusUpdate.status}`);
+        throw new ConflictError(
+          `Cannot transition from ${application.status} to ${statusUpdate.status}`
+        );
       }
 
       const previousStatus = application.status;
@@ -1225,6 +1239,23 @@ export class ApplicationService {
       }
 
       await application.reload();
+
+      // ADS C4-5: push the status change to the applicant's personal
+      // user:{id} room so an open ApplicationDashboard / Match flow
+      // doesn't have to wait for the 60s poll.
+      emitToUser(application.userId, 'application_status_changed', {
+        applicationId,
+        status: application.status,
+        stage: application.stage,
+        updatedAt: application.updatedAt,
+      });
+
+      // ADS C4-6: also broadcast to the rescue's live application list so
+      // staff dashboards refetch without polling.
+      emitToRescue(application.rescueId, 'application_updated', {
+        applicationId,
+      });
+
       return {
         ...(application.toJSON() as ApplicationData),
         answers: await loadAnswersJson(applicationId),
@@ -1323,17 +1354,17 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Check permissions
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       // Validate application can be withdrawn
       if (!application.isInProgress()) {
-        throw new Error('Application cannot be withdrawn in current status');
+        throw new ConflictError('Application cannot be withdrawn in current status');
       }
 
       const previousStatus = application.status;
@@ -1400,12 +1431,12 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Check permissions
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       const newDocument = {
@@ -1474,11 +1505,11 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       const documentIndex = application.documents.findIndex(
@@ -1486,7 +1517,7 @@ export class ApplicationService {
       );
 
       if (documentIndex === -1) {
-        throw new Error('Document not found');
+        throw new NotFoundError('Document not found');
       }
 
       const removedDoc = application.documents[documentIndex];
@@ -1522,7 +1553,7 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Determine the reference index to update
@@ -1531,14 +1562,14 @@ export class ApplicationService {
       if (referenceUpdate.referenceId) {
         // ID-based approach
         if (!referenceUpdate.referenceId.startsWith('ref-')) {
-          throw new Error(
+          throw new BadRequestError(
             `Invalid reference ID format: ${referenceUpdate.referenceId}. Expected format: ref-X`
           );
         }
 
         const indexFromId = parseInt(referenceUpdate.referenceId.split('-')[1], 10);
         if (isNaN(indexFromId)) {
-          throw new Error(
+          throw new BadRequestError(
             `Could not extract reference index from ID: ${referenceUpdate.referenceId}`
           );
         }
@@ -1547,7 +1578,7 @@ export class ApplicationService {
         // Fallback index-based approach
         referenceIndex = referenceUpdate.reference_index;
       } else {
-        throw new Error('Either referenceId or reference_index must be provided');
+        throw new BadRequestError('Either referenceId or reference_index must be provided');
       }
 
       // References live in the application_references typed table now
@@ -1902,61 +1933,52 @@ export class ApplicationService {
     bulkUpdate: BulkApplicationUpdate,
     userId: string
   ): Promise<BulkApplicationResult> {
-    try {
-      const results: BulkApplicationResult = {
-        successCount: 0,
-        failureCount: 0,
-        successes: [],
-        failures: [],
-      };
+    const { applicationIds, updates } = bulkUpdate;
 
-      for (const applicationId of bulkUpdate.applicationIds) {
-        try {
-          // Per-item transaction: the application update and the
-          // accompanying audit-log row commit or roll back together,
-          // so the failure counts in the response match the real DB
-          // state — no more "audit logged success but DB unchanged"
-          // (or vice versa) on partial failure.
-          await sequelize.transaction(async tx => {
-            const application = await Application.findByPk(applicationId, { transaction: tx });
-            if (!application) {
-              // Throw to skip success-side bookkeeping; caught below
-              // and recorded as a failure with this exact message.
-              throw new Error('Application not found');
-            }
+    // Atomic semantics: the whole batch commits or rolls back together.
+    // If any requested ID is missing, or any audit-log write fails, the
+    // outer transaction rolls back and no application is updated.
+    return sequelize.transaction(async tx => {
+      const applications = await Application.findAll({
+        where: { applicationId: { [Op.in]: applicationIds } },
+        transaction: tx,
+      });
 
-            await application.update(bulkUpdate.updates, { transaction: tx });
+      if (applications.length !== applicationIds.length) {
+        const foundIds = new Set(applications.map(a => a.applicationId));
+        const missing = applicationIds.find(id => !foundIds.has(id));
+        throw new NotFoundError(`Application not found: ${missing}`);
+      }
 
-            await AuditLogService.log({
-              action: 'BULK_UPDATE',
-              entity: 'Application',
-              entityId: applicationId,
-              details: { updates: bulkUpdate.updates, bulk_operation: true },
-              userId,
-              transaction: tx,
-            });
-          });
-          results.successes.push(applicationId);
-          results.successCount++;
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          results.failures.push({ applicationId: applicationId, error: errorMessage });
-          results.failureCount++;
-        }
+      await Application.update(updates, {
+        where: { applicationId: { [Op.in]: applicationIds } },
+        transaction: tx,
+      });
+
+      for (const application of applications) {
+        await AuditLogService.log({
+          action: 'BULK_UPDATE',
+          entity: 'Application',
+          entityId: application.applicationId,
+          // ADS-651: persist the operator's reason on each affected
+          // application's audit row so the trail tells you *why*.
+          details: {
+            updates,
+            bulk_operation: true,
+            reason: bulkUpdate.reason ?? null,
+          },
+          userId,
+          transaction: tx,
+        });
       }
 
       logger.info('Bulk application update completed', {
-        totalRequested: bulkUpdate.applicationIds.length,
-        successCount: results.successCount,
-        failureCount: results.failureCount,
+        updatedCount: applications.length,
         userId,
       });
 
-      return results;
-    } catch (error) {
-      logger.error('Bulk update applications failed:', error);
-      throw new Error('Failed to perform bulk update');
-    }
+      return { updatedCount: applications.length, failedIds: [] };
+    });
   }
 
   /**
@@ -2086,12 +2108,12 @@ export class ApplicationService {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
-        throw new Error('Application not found');
+        throw new NotFoundError('Application not found');
       }
 
       // Check permissions
       if (application.userId !== userId) {
-        throw new Error('Access denied');
+        throw new ForbiddenError('Access denied');
       }
 
       await application.destroy();
@@ -2191,6 +2213,32 @@ export class ApplicationService {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ')
     );
+  }
+
+  /**
+   * Get paginated activity log for an application, sourced from audit_logs.
+   *
+   * Audit writers in this service tag rows with `entity: 'Application'`
+   * (see AuditLogService.log — category mirrors entity), so that's the
+   * category we look up via AuditLogService.getEntityActivityLog.
+   */
+  static async getApplicationActivityLog(
+    applicationId: string,
+    filters: EntityActivityFilters = {}
+  ): Promise<EntityActivity[]> {
+    const application = await Application.findByPk(applicationId);
+    if (!application) {
+      throw new NotFoundError('Application not found');
+    }
+
+    const rows = await AuditLogService.getEntityActivityLog('Application', applicationId, {
+      from: filters.from ? new Date(filters.from) : undefined,
+      to: filters.to ? new Date(filters.to) : undefined,
+      limit: filters.limit,
+      offset: filters.offset,
+    });
+
+    return rows.map(auditLogToActivity);
   }
 }
 

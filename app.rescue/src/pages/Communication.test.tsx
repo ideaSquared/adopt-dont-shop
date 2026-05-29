@@ -14,6 +14,7 @@
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { Conversation } from '@adopt-dont-shop/lib.chat';
 
 type ConfirmOptions = {
@@ -173,12 +174,18 @@ const setupHooks = (opts: BuildOptions = {}) => {
   mockedUseChat.mockReturnValue({
     conversations: opts.conversations ?? [],
     activeConversation: opts.activeConversation ?? null,
+    setActiveConversation: vi.fn(),
     updateConversationStatus,
   });
   return { updateConversationStatus };
 };
 
-const renderPage = () => render(<Communication />);
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <Communication />
+    </MemoryRouter>
+  );
 
 describe('Communication page - ADS-583 mark resolved', () => {
   beforeEach(() => {

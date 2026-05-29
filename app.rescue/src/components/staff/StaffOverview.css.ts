@@ -1,9 +1,4 @@
-import { globalStyle, style, keyframes } from '@vanilla-extract/css';
-
-const loading = keyframes({
-  '0%': { backgroundPosition: '200% 0' },
-  '100%': { backgroundPosition: '-200% 0' },
-});
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const overviewContainer = style({
   marginBottom: '2rem',
@@ -154,14 +149,6 @@ export const overviewSkeleton = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
   gap: '1rem',
-});
-
-export const skeletonCard = style({
-  height: '100px',
-  background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
-  backgroundSize: '200% 100%',
-  animation: `${loading} 1.5s infinite`,
-  borderRadius: '12px',
 });
 
 export const emptyContainer = style({

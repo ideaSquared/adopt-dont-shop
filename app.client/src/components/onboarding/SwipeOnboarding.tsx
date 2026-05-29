@@ -40,13 +40,14 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
   }
 
   return (
+    // UX P2 I: backdrop is a click-target convenience, not an interactive
+    // control — the accessible close affordance is the ✕ button inside.
     <div
       className={styles.overlay({ show: true })}
       onClick={handleClose}
-      role='button'
-      tabIndex={0}
+      role='presentation'
       onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+        if (e.key === 'Escape') {
           handleClose();
         }
       }}
@@ -62,10 +63,10 @@ export const SwipeOnboarding: React.FC<SwipeOnboardingProps> = ({ onClose }) => 
           </div>
         </div>
 
-        <div className={styles.title}>Meet Your New Favorite Feature!</div>
+        <div className={styles.title}>Meet Your New Favorite Feature</div>
         <div className={styles.subtitle}>
-          Swipe through adorable pets and find your perfect match in seconds. It&apos;s fast, fun,
-          and incredibly effective!
+          Swipe through adoptable pets matched to your preferences. It&apos;s fast, fun, and a
+          better way to browse.
         </div>
 
         <div className={styles.features}>

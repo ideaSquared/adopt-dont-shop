@@ -1,28 +1,12 @@
 import { z } from 'zod';
-import type { RescueId } from '@adopt-dont-shop/lib.types';
+import { RESCUE_STATUSES, type RescueId } from '@adopt-dont-shop/lib.types';
 import { boundedRecord } from './bounded-record';
-
-/**
- * Canonical Zod schemas for the Rescue domain.
- *
- * Same role as schemas/user.ts and schemas/pet.ts: one source of truth
- * for Rescue-shaped data, used by service.backend request validation
- * and (over time) the rescue / admin frontends.
- *
- * The values mirror the validators in service.backend/src/models/Rescue.ts
- * and the express-validator chains in service.backend/src/routes/rescue.routes.ts.
- */
+import { BulkOperationFailedIdsSchema } from './bulk-response';
+import { StrongPasswordSchema, EmailSchema as UserEmailSchema } from './user';
 
 // ----- Enums --------------------------------------------------------------
 
-export const RescueStatusSchema = z.enum([
-  'pending',
-  'verified',
-  'suspended',
-  'inactive',
-  'rejected',
-]);
-export type RescueStatusValue = z.infer<typeof RescueStatusSchema>;
+export const RescueStatusSchema = z.enum(RESCUE_STATUSES);
 
 // ----- Primitives ---------------------------------------------------------
 
@@ -188,6 +172,38 @@ export const RescueCreateRequestSchema = z.object({
 export type RescueCreateRequest = z.infer<typeof RescueCreateRequestSchema>;
 
 /**
+ * POST /api/v1/rescues/register — public rescue registration.
+ *
+ * Combines owner account fields (from the user schema) with rescue
+ * organisation fields. `confirmPassword` is validated client-side;
+ * the backend only receives `password`.
+ */
+const OwnerNameSchema = z.string().trim().min(1, 'Required').max(100);
+
+export const RescueRegistrationRequestSchema = z.object({
+  // Owner account fields
+  firstName: OwnerNameSchema,
+  lastName: OwnerNameSchema,
+  email: UserEmailSchema,
+  password: StrongPasswordSchema,
+
+  // Organisation fields (same as RescueCreateRequestSchema)
+  name: NameSchema,
+  rescueEmail: EmailSchema,
+  phone: UkPhoneNumberSchema.optional(),
+  address: AddressSchema,
+  city: CitySchema,
+  county: CountySchema.optional(),
+  postcode: UkPostcodeSchema,
+  country: CountryCodeSchema,
+  website: WebsiteSchema.optional(),
+  description: DescriptionSchema.optional(),
+  companiesHouseNumber: CompaniesHouseNumberSchema.optional(),
+  charityRegistrationNumber: CharityRegistrationNumberSchema.optional(),
+});
+export type RescueRegistrationRequest = z.infer<typeof RescueRegistrationRequestSchema>;
+
+/**
  * PUT/PATCH /api/v1/rescues/:rescueId — same fields, all optional.
  * Status and verification fields are privilege-sensitive and must never be
  * updated via this schema. .strip() silently drops any unknown keys so that
@@ -285,6 +301,27 @@ export const RescueBulkUpdateRequestSchema = z.object({
   reason: ReasonSchema.optional(),
 });
 export type RescueBulkUpdateRequest = z.infer<typeof RescueBulkUpdateRequestSchema>;
+
+/**
+ * Response shape for POST /api/v1/rescues/bulk-update. `failedIds`
+ * is always present (may be empty) so the admin UI can offer
+ * per-item retry.
+ */
+export const RescueBulkUpdateResponseSchema = z
+  .object({
+    successCount: z.number().int().nonnegative(),
+    failedCount: z.number().int().nonnegative(),
+    errors: z
+      .array(
+        z.object({
+          rescueId: z.string(),
+          error: z.string(),
+        })
+      )
+      .optional(),
+  })
+  .merge(BulkOperationFailedIdsSchema);
+export type RescueBulkUpdateResponse = z.infer<typeof RescueBulkUpdateResponseSchema>;
 
 // ----- Read / model shape ------------------------------------------------
 

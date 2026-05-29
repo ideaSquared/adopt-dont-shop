@@ -1,16 +1,11 @@
 import { z } from 'zod';
+import { RESCUE_STATUSES, RESCUE_TYPES } from '@adopt-dont-shop/lib.types';
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 
-export const RescueStatusSchema = z.enum([
-  'pending',
-  'verified',
-  'suspended',
-  'inactive',
-  'rejected',
-]);
+export const RescueStatusSchema = z.enum(RESCUE_STATUSES);
 
-export const RescueTypeSchema = z.enum(['individual', 'organization']);
+export const RescueTypeSchema = z.enum(RESCUE_TYPES);
 
 export const VerificationSourceSchema = z.enum(['companies_house', 'charity_commission', 'manual']);
 
@@ -178,8 +173,7 @@ export const AdoptionPolicyResponseSchema = z.object({
 
 // ── Inferred types ─────────────────────────────────────────────────────────────
 
-export type RescueStatus = z.infer<typeof RescueStatusSchema>;
-export type RescueType = z.infer<typeof RescueTypeSchema>;
+export type { RescueStatus, RescueType } from '@adopt-dont-shop/lib.types';
 export type VerificationSource = z.infer<typeof VerificationSourceSchema>;
 export type RescueLocation = z.infer<typeof RescueLocationSchema>;
 export type AdoptionPolicy = z.infer<typeof AdoptionPolicySchema>;

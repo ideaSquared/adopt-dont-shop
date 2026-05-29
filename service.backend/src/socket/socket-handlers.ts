@@ -11,7 +11,13 @@ import { ChatService } from '../services/chat.service';
 import { HealthCheckService } from '../services/health-check.service';
 import { getMessageBroker } from '../services/messageBroker.service';
 import { setAnalyticsIo } from './analytics-emitter';
-import { setLiveIo, getLiveIo } from './socket-registry';
+import {
+  isUserAtConnectionCap,
+  registerUserSocket,
+  setLiveIo,
+  getLiveIo,
+  unregisterUserSocket,
+} from './socket-registry';
 import { checkRateLimit, releaseSocket } from '../middleware/socket-rate-limit';
 import { JsonObject } from '../types/common';
 import { verifyAccessToken } from '../utils/jwt';
@@ -20,6 +26,34 @@ import { logger } from '../utils/logger';
 // Re-export so existing callers that imported disconnectAllSockets
 // from this module keep working.
 export { disconnectAllSockets } from './socket-registry';
+
+/**
+ * Extracts the access token from a Socket.IO handshake. Checks, in order:
+ *   1. socket.handshake.auth.token  (legacy explicit pass)
+ *   2. Authorization: Bearer <token> header
+ *   3. accessToken httpOnly cookie (browsers send cookies with the WS upgrade)
+ */
+const extractSocketToken = (socket: Socket): string | null => {
+  const authToken = socket.handshake.auth?.token as string | undefined;
+  if (authToken) {
+    return authToken;
+  }
+
+  const bearer = socket.handshake.headers.authorization?.split(' ')[1];
+  if (bearer) {
+    return bearer;
+  }
+
+  const cookieStr = socket.handshake.headers.cookie;
+  if (cookieStr) {
+    const match = cookieStr.split(';').find(p => p.trim().startsWith('accessToken='));
+    if (match) {
+      return match.trim().slice('accessToken='.length);
+    }
+  }
+
+  return null;
+};
 
 // Track active connections for health monitoring
 let activeConnections = 0;
@@ -243,8 +277,7 @@ export class SocketHandlers {
   private setupMiddleware() {
     this.io.use(async (socket: AuthenticatedSocket, next) => {
       try {
-        const token =
-          socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+        const token = extractSocketToken(socket);
 
         if (!token) {
           return next(new Error('Authentication token required'));
@@ -272,6 +305,20 @@ export class SocketHandlers {
           return next(new Error('Account is not eligible'));
         }
 
+        // Cap concurrent connections per user to prevent file-
+        // descriptor exhaustion (DoS) from a single account. Five
+        // covers laptop + phone + spare device with reconnect
+        // headroom; legitimate clients should never exceed this.
+        // Registered on the way IN (not in the `connection` handler)
+        // so a flood of handshakes can't slip past the gate before
+        // the per-socket connect logic runs.
+        if (isUserAtConnectionCap(decoded.userId)) {
+          logger.warn(
+            `Socket connection cap reached for user ${decoded.userId}; rejecting handshake`
+          );
+          return next(new Error('Too many concurrent connections'));
+        }
+
         socket.userId = decoded.userId;
         socket.authJti = decoded.jti;
         socket.userType = authState.userType;
@@ -295,8 +342,7 @@ export class SocketHandlers {
    */
   private installPerEventRevalidation(socket: AuthenticatedSocket) {
     socket.use((_event, next) => {
-      const token =
-        socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+      const token = extractSocketToken(socket);
 
       if (!token) {
         socket.disconnect(true);
@@ -375,6 +421,12 @@ export class SocketHandlers {
       activeConnections++;
       HealthCheckService.updateActiveConnections(activeConnections);
 
+      // Per-user connection cap bookkeeping (paired with the gate in
+      // setupMiddleware). Unregister happens in the disconnect handler.
+      if (socket.userId) {
+        registerUserSocket(socket.userId, socket.id);
+      }
+
       logger.info(
         `User ${socket.userId} connected with socket ${socket.id} (Total: ${activeConnections})`
       );
@@ -394,6 +446,11 @@ export class SocketHandlers {
       // a stale token can't keep platform-room access after a demote.
       if (socket.rescueId) {
         socket.join(`analytics:rescue:${socket.rescueId}`);
+        // ADS C4-3 / C4-6: general-purpose rescue room used for non-
+        // analytics events (rescue verification, application list
+        // updates). Kept separate from the analytics room so the
+        // analytics-emitter debounce can't drop fan-out for live data.
+        socket.join(`rescue:${socket.rescueId}`);
       }
       if (socket.role === 'super_admin' || socket.role === 'admin' || socket.role === 'moderator') {
         socket.join('analytics:platform');
@@ -433,7 +490,7 @@ export class SocketHandlers {
     // Join chat room
     socket.on('join_chat', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'join_chat')) {
+        if (await checkRateLimit(socket, 'join_chat')) {
           return;
         }
         const parsed = JoinChatSchema.safeParse(data);
@@ -463,7 +520,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'join_chat',
           message: 'Failed to join chat',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -471,7 +527,7 @@ export class SocketHandlers {
     // Leave chat room
     socket.on('leave_chat', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'leave_chat')) {
+        if (await checkRateLimit(socket, 'leave_chat')) {
           return;
         }
         const parsed = LeaveChatSchema.safeParse(data);
@@ -499,7 +555,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'leave_chat',
           message: 'Failed to leave chat',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -509,7 +564,7 @@ export class SocketHandlers {
       'message_sent_notification',
       async (data: { messageId: string; conversationId: string; tempId: string }) => {
         try {
-          if (checkRateLimit(socket, 'message_sent_notification')) {
+          if (await checkRateLimit(socket, 'message_sent_notification')) {
             return;
           }
           const { messageId, conversationId, tempId } = data;
@@ -534,7 +589,6 @@ export class SocketHandlers {
           socket.emit('error', {
             event: 'message_sent_notification',
             message: 'Failed to send notification',
-            error: error instanceof Error ? error.message : 'Unknown error',
           });
         }
       }
@@ -543,7 +597,7 @@ export class SocketHandlers {
     // Send message (DEPRECATED - API should be used instead)
     socket.on('send_message', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'send_message')) {
+        if (await checkRateLimit(socket, 'send_message')) {
           return;
         }
         const parsed = SendMessageSchema.safeParse(data);
@@ -601,7 +655,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'send_message',
           message: 'Failed to send message',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -609,7 +662,7 @@ export class SocketHandlers {
     // Mark messages as read
     socket.on('mark_as_read', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'mark_as_read')) {
+        if (await checkRateLimit(socket, 'mark_as_read')) {
           return;
         }
         const parsed = MarkAsReadSchema.safeParse(data);
@@ -635,7 +688,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'mark_as_read',
           message: 'Failed to mark messages as read',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -643,7 +695,7 @@ export class SocketHandlers {
     // Add reaction to message
     socket.on('add_reaction', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'add_reaction')) {
+        if (await checkRateLimit(socket, 'add_reaction')) {
           return;
         }
         const parsed = ReactionSchema.safeParse(data);
@@ -677,7 +729,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'add_reaction',
           message: 'Failed to add reaction',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -685,7 +736,7 @@ export class SocketHandlers {
     // Remove reaction from message
     socket.on('remove_reaction', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'remove_reaction')) {
+        if (await checkRateLimit(socket, 'remove_reaction')) {
           return;
         }
         const parsed = ReactionSchema.safeParse(data);
@@ -717,7 +768,6 @@ export class SocketHandlers {
         socket.emit('error', {
           event: 'remove_reaction',
           message: 'Failed to remove reaction',
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -730,7 +780,7 @@ export class SocketHandlers {
     // User started typing
     socket.on('typing_start', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'typing_start')) {
+        if (await checkRateLimit(socket, 'typing_start')) {
           return;
         }
         const parsed = TypingStartSchema.safeParse(data);
@@ -763,7 +813,7 @@ export class SocketHandlers {
     // User stopped typing
     socket.on('typing_stop', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'typing_stop')) {
+        if (await checkRateLimit(socket, 'typing_stop')) {
           return;
         }
         const parsed = TypingStopSchema.safeParse(data);
@@ -806,7 +856,7 @@ export class SocketHandlers {
     // we don't leak existence by returning "denied" vs "offline".
     socket.on('get_presence', async (data: unknown) => {
       try {
-        if (checkRateLimit(socket, 'get_presence')) {
+        if (await checkRateLimit(socket, 'get_presence')) {
           return;
         }
         const parsed = GetPresenceSchema.safeParse(data);
@@ -849,8 +899,8 @@ export class SocketHandlers {
     });
 
     // User updates their presence status
-    socket.on('update_presence', (data: { status: 'online' | 'away' }) => {
-      if (checkRateLimit(socket, 'update_presence')) {
+    socket.on('update_presence', async (data: { status: 'online' | 'away' }) => {
+      if (await checkRateLimit(socket, 'update_presence')) {
         return;
       }
       const { status } = data;
@@ -865,7 +915,7 @@ export class SocketHandlers {
    * Setup disconnect handler
    */
   private setupDisconnectHandler(socket: AuthenticatedSocket) {
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       // Track disconnection for health monitoring
       activeConnections = Math.max(0, activeConnections - 1);
       HealthCheckService.updateActiveConnections(activeConnections);
@@ -873,6 +923,11 @@ export class SocketHandlers {
       logger.info(
         `User ${socket.userId} disconnected (socket ${socket.id}) (Total: ${activeConnections})`
       );
+
+      // Release the per-user connection-cap slot.
+      if (socket.userId) {
+        unregisterUserSocket(socket.userId, socket.id);
+      }
 
       // Update user presence
       this.handleUserDisconnect(socket.userId!, socket.id);
@@ -883,7 +938,7 @@ export class SocketHandlers {
       // Release per-socket rate-limit state. For authenticated
       // sockets the limiter keeps the bucket alive across reconnects
       // (and GCs it on idle); for anonymous sockets it's dropped now.
-      releaseSocket(socket);
+      await releaseSocket(socket);
 
       // ADS-597: stop the auth-refresh timer so it doesn't leak past the
       // socket lifetime.

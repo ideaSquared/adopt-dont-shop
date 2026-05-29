@@ -40,7 +40,7 @@ export const input = style({
   borderRadius: '8px',
   fontSize: '0.875rem',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px #dbeafe',
@@ -56,7 +56,7 @@ export const textArea = style({
   resize: 'vertical',
   fontFamily: 'inherit',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px #dbeafe',
@@ -71,7 +71,7 @@ export const select = style({
   background: 'white',
   cursor: 'pointer',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
     boxShadow: '0 0 0 3px #dbeafe',
@@ -119,7 +119,7 @@ export const button = recipe({
     fontWeight: '500',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    ':focus': {
+    ':focus-visible': {
       outline: 'none',
       boxShadow: '0 0 0 3px #dbeafe',
     },

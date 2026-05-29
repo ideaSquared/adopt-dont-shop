@@ -43,6 +43,8 @@ vi.mock('../../services/application.service', () => ({
     getApplicationHistory: vi.fn(),
     getApplicationFormStructure: vi.fn(),
     validateApplicationAnswers: vi.fn(),
+    updateHomeVisit: vi.fn(),
+    getApplicationActivityLog: vi.fn(),
   },
   default: {
     getApplications: vi.fn(),
@@ -58,6 +60,8 @@ vi.mock('../../services/application.service', () => ({
     getApplicationHistory: vi.fn(),
     getApplicationFormStructure: vi.fn(),
     validateApplicationAnswers: vi.fn(),
+    updateHomeVisit: vi.fn(),
+    getApplicationActivityLog: vi.fn(),
   },
 }));
 
@@ -127,6 +131,7 @@ vi.mock('../../middleware/field-permissions', () => ({
 
 const authenticateTokenMock = vi.fn();
 const requireRoleMock = vi.fn();
+const requirePermissionMock = vi.fn();
 
 vi.mock('../../middleware/auth', () => ({
   authenticateToken: (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
@@ -139,8 +144,8 @@ vi.mock('../../middleware/rbac', () => ({
     (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
       requireRoleMock(req, res, next),
   requirePermission:
-    (_perm: string) => (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
-      next(),
+    (perm: string) => (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
+      requirePermissionMock(perm, req, res, next),
 }));
 
 import applicationRouter from '../../routes/application.routes';
@@ -195,6 +200,9 @@ describe('Application routes', () => {
     );
     requireRoleMock.mockImplementation(
       (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
+    );
+    requirePermissionMock.mockImplementation(
+      (_perm: string, _req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
     );
   });
 
@@ -263,7 +271,6 @@ describe('Application routes', () => {
 
       const app = buildApp();
       for (let i = 0; i < 4; i += 1) {
-        // eslint-disable-next-line no-await-in-loop
         const res = await request(app)
           .post('/api/v1/applications')
           .send({ petId: 'pet-uuid-1', answers: {} });
@@ -279,7 +286,6 @@ describe('Application routes', () => {
       const app = buildApp();
       // First 5 pass through the daily limiter.
       for (let i = 0; i < 5; i += 1) {
-        // eslint-disable-next-line no-await-in-loop
         await request(app).post('/api/v1/applications').send({ petId: 'pet-uuid-1', answers: {} });
       }
       const res = await request(app)
@@ -446,6 +452,150 @@ describe('Application routes', () => {
 
       expect(res.status).toBe(200);
       expect(ApplicationService.getApplicationStatistics).toHaveBeenCalledWith('rescue-B');
+    });
+  });
+
+  describe('PUT /api/v1/applications/:applicationId/home-visits/:visitId', () => {
+    const applicationId = '11111111-1111-1111-1111-111111111111';
+    const visitId = '22222222-2222-2222-2222-222222222222';
+
+    beforeEach(() => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = mockRescueStaffUser as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+      vi.mocked(ApplicationService.updateHomeVisit).mockResolvedValue({
+        id: visitId,
+      } as unknown as Awaited<ReturnType<typeof ApplicationService.updateHomeVisit>>);
+    });
+
+    it('translates snake_case body fields to camelCase before calling the service', async () => {
+      const res = await request(buildApp())
+        .put(`/api/v1/applications/${applicationId}/home-visits/${visitId}`)
+        .send({
+          scheduled_date: '2026-06-01',
+          scheduled_time: '14:00',
+          assigned_staff: 'staff-uuid-1',
+          notes: 'bring paperwork',
+          outcome: 'approved',
+          outcome_notes: 'all good',
+          reschedule_reason: 'weather',
+          cancelled_reason: 'no-show',
+          status: 'completed',
+        });
+
+      expect(res.status).toBe(200);
+      expect(ApplicationService.updateHomeVisit).toHaveBeenCalledTimes(1);
+      const [passedApplicationId, , passedUpdate, passedActor] = vi.mocked(
+        ApplicationService.updateHomeVisit
+      ).mock.calls[0];
+      expect(passedApplicationId).toBe(applicationId);
+      expect(passedActor).toBe(mockRescueStaffUser.userId);
+      expect(passedUpdate).toMatchObject({
+        scheduledDate: '2026-06-01',
+        scheduledTime: '14:00',
+        assignedStaff: 'staff-uuid-1',
+        notes: 'bring paperwork',
+        outcome: 'approved',
+        outcomeNotes: 'all good',
+        rescheduleReason: 'weather',
+        cancelledReason: 'no-show',
+        status: 'completed',
+      });
+      // Service must NOT receive snake_case keys it would silently ignore.
+      expect(passedUpdate).not.toHaveProperty('scheduled_date');
+      expect(passedUpdate).not.toHaveProperty('reschedule_reason');
+      expect(passedUpdate).not.toHaveProperty('cancelled_reason');
+    });
+
+    it('returns 404 when the service reports the visit was not found', async () => {
+      vi.mocked(ApplicationService.updateHomeVisit).mockResolvedValue(null);
+
+      const res = await request(buildApp())
+        .put(`/api/v1/applications/${applicationId}/home-visits/${visitId}`)
+        .send({ status: 'cancelled', cancelled_reason: 'duplicate' });
+
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('GET /api/v1/applications/:applicationId/activity', () => {
+    const applicationId = 'app-uuid-1';
+
+    it('returns 401 when unauthenticated', async () => {
+      authenticateTokenMock.mockImplementation((_req: AuthenticatedRequest, res: Response) => {
+        res.status(401).json({ error: 'Access token required' });
+      });
+
+      const res = await request(buildApp()).get(`/api/v1/applications/${applicationId}/activity`);
+
+      expect(res.status).toBe(401);
+      expect(ApplicationService.getApplicationActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('returns 403 when the caller lacks applications.read permission', async () => {
+      requirePermissionMock.mockImplementation(
+        (_perm: string, _req: AuthenticatedRequest, res: Response) => {
+          res.status(403).json({ error: 'Access denied' });
+        }
+      );
+
+      const res = await request(buildApp()).get(`/api/v1/applications/${applicationId}/activity`);
+
+      expect(res.status).toBe(403);
+      expect(ApplicationService.getApplicationActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('gates the route on applications.read', async () => {
+      vi.mocked(ApplicationService.getApplicationActivityLog).mockResolvedValue([]);
+
+      await request(buildApp()).get(`/api/v1/applications/${applicationId}/activity`);
+
+      expect(requirePermissionMock).toHaveBeenCalledWith(
+        'applications.read',
+        expect.anything(),
+        expect.anything(),
+        expect.any(Function)
+      );
+    });
+
+    it('delegates to ApplicationService.getApplicationActivityLog with parsed query params', async () => {
+      vi.mocked(ApplicationService.getApplicationActivityLog).mockResolvedValue([]);
+
+      const res = await request(buildApp())
+        .get(`/api/v1/applications/${applicationId}/activity`)
+        .query({ from: '2026-01-01', to: '2026-02-01', limit: '25', offset: '10' });
+
+      expect(res.status).toBe(200);
+      expect(ApplicationService.getApplicationActivityLog).toHaveBeenCalledWith(applicationId, {
+        from: '2026-01-01',
+        to: '2026-02-01',
+        limit: 25,
+        offset: 10,
+      });
+    });
+
+    it('returns the activity rows in the {success, data} envelope', async () => {
+      const activity = [
+        {
+          activityId: 7,
+          activityType: 'application' as const,
+          action: 'APPLICATION_SUBMITTED',
+          description: 'Submitted application for Rex',
+          category: 'Application',
+          ipAddress: null,
+          userAgent: null,
+          createdAt: '2026-01-15T12:00:00.000Z',
+        },
+      ];
+      vi.mocked(ApplicationService.getApplicationActivityLog).mockResolvedValue(activity);
+
+      const res = await request(buildApp()).get(`/api/v1/applications/${applicationId}/activity`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ success: true, data: activity });
     });
   });
 });

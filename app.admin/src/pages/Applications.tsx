@@ -1,10 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
-import { FiSearch } from 'react-icons/fi';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  Heading,
+  Text,
+  Input,
+  useToast,
+  Toast,
+  ToastContainer,
+  type ToastMessage,
+} from '@adopt-dont-shop/lib.components';
+import { FiSearch, FiArrowLeft } from 'react-icons/fi';
+import clsx from 'clsx';
 import { DataTable, type Column } from '../components/data';
 import { useApplications, useBulkUpdateApplications, useRescuesList } from '../hooks';
 import { BulkActionToolbar } from '../components/ui';
-import { BulkConfirmationModal, ApplicationDetailModal } from '../components/modals';
+import { BulkConfirmationModal } from '../components/modals';
+import { ApplicationDetailPanel } from '../components/detail';
 import type { AdminApplication, ApplicationStatus } from '../services/applicationService';
 import * as styles from './Applications.css';
 
@@ -30,16 +41,44 @@ const formatDate = (dateString: string) =>
     year: 'numeric',
   });
 
+const VALID_STATUS_FILTERS: ReadonlySet<string> = new Set([
+  'submitted',
+  'approved',
+  'rejected',
+  'withdrawn',
+]);
+
 const Applications: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { applicationId } = useParams<{ applicationId?: string }>();
+  const navigate = useNavigate();
+  const { toasts, showToast, hideToast } = useToast();
+
+  const statusParam = searchParams.get('status');
+  const statusFilter = statusParam && VALID_STATUS_FILTERS.has(statusParam) ? statusParam : 'all';
+
+  const setFilterParam = (key: string, value: string) => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (value && value !== 'all') {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [rescueFilter, setRescueFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkApplicationActionType | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
-  const [selectedApplication, setSelectedApplication] = useState<AdminApplication | null>(null);
 
   useEffect(() => {
     setPage(1);
@@ -62,6 +101,37 @@ const Applications: React.FC = () => {
 
   const applications: AdminApplication[] = data?.data ?? [];
 
+  // Derive selected application from URL param + loaded list.
+  const selectedApplication: AdminApplication | null = applicationId
+    ? (applications.find(app => app.applicationId === applicationId) ?? null)
+    : null;
+
+  // If the param resolves to no application after loading completes,
+  // redirect back to the list and surface a toast.
+  useEffect(() => {
+    if (!applicationId || isLoading) {
+      return;
+    }
+    if (applications.find(app => app.applicationId === applicationId)) {
+      return;
+    }
+    const search = searchParams.toString();
+    navigate(search ? `/applications?${search}` : '/applications', { replace: true });
+    showToast('Application not found', 'error');
+  }, [applicationId, applications, isLoading, navigate, searchParams, showToast]);
+
+  const handleRowClick = (app: AdminApplication): void => {
+    const search = searchParams.toString();
+    navigate(
+      search ? `/applications/${app.applicationId}?${search}` : `/applications/${app.applicationId}`
+    );
+  };
+
+  const handleCloseDetail = (): void => {
+    const search = searchParams.toString();
+    navigate(search ? `/applications?${search}` : '/applications');
+  };
+
   const handleBulkConfirm = async (reason?: string): Promise<void> => {
     if (!bulkAction) {
       return;
@@ -74,7 +144,10 @@ const Applications: React.FC = () => {
       reason,
     });
 
-    setBulkResult({ succeeded: result.successCount, failed: result.failureCount });
+    // Atomic semantics (ADS-666): the service either updates every
+    // selected application or throws, so any returned result means
+    // the full batch committed. No partial-success branch.
+    setBulkResult({ succeeded: result.updatedCount, failed: 0 });
     setSelectedRows(new Set());
   };
 
@@ -136,136 +209,164 @@ const Applications: React.FC = () => {
         <div className={styles.errorMessage}>Failed to load applications: {error.message}</div>
       )}
 
-      <div className={styles.filterBar}>
-        <div className={styles.searchInputWrapper}>
-          <FiSearch />
-          <Input
-            type='text'
-            placeholder='Search by applicant name or email...'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+      <div className={styles.splitLayout}>
+        {/* List pane: filters, bulk actions, table. Collapses on mobile/tablet when a detail is open. */}
+        <div className={clsx(styles.listPane, selectedApplication && styles.listPaneNarrow)}>
+          <div className={styles.filterBar}>
+            <div className={styles.searchInputWrapper}>
+              <FiSearch />
+              <Input
+                type='text'
+                placeholder='Search by applicant name or email...'
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='apps-status-filter'>
+                Status
+              </label>
+              <select
+                id='apps-status-filter'
+                className={styles.select}
+                value={statusFilter}
+                onChange={e => setFilterParam('status', e.target.value)}
+              >
+                <option value='all'>All Statuses</option>
+                <option value='submitted'>Submitted</option>
+                <option value='approved'>Approved</option>
+                <option value='rejected'>Rejected</option>
+                <option value='withdrawn'>Withdrawn</option>
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='apps-type-filter'>
+                Pet Type
+              </label>
+              <select
+                id='apps-type-filter'
+                className={styles.select}
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+              >
+                <option value='all'>All Types</option>
+                <option value='dog'>Dog</option>
+                <option value='cat'>Cat</option>
+                <option value='rabbit'>Rabbit</option>
+                <option value='bird'>Bird</option>
+                <option value='reptile'>Reptile</option>
+                <option value='other'>Other</option>
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='apps-rescue-filter'>
+                Rescue
+              </label>
+              <select
+                id='apps-rescue-filter'
+                className={styles.select}
+                value={rescueFilter}
+                onChange={e => setRescueFilter(e.target.value)}
+              >
+                <option value='all'>All Rescues</option>
+                {rescuesList?.data.map(rescue => (
+                  <option key={rescue.rescueId} value={rescue.rescueId}>
+                    {rescue.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <BulkActionToolbar
+            selectedCount={selectedRows.size}
+            totalCount={applications.length}
+            onSelectAll={() =>
+              setSelectedRows(new Set(applications.map((a: AdminApplication) => a.applicationId)))
+            }
+            onClearSelection={() => setSelectedRows(new Set())}
+            actions={[
+              {
+                label: 'Approve',
+                variant: 'primary',
+                onClick: () => setBulkAction('approve'),
+              },
+              {
+                label: 'Reject',
+                variant: 'danger',
+                onClick: () => setBulkAction('reject'),
+              },
+            ]}
+          />
+
+          <DataTable
+            columns={columns}
+            data={applications}
+            loading={isLoading}
+            error={error instanceof Error ? error.message : null}
+            emptyMessage='No applications found matching your criteria'
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            selectable
+            selectedRows={selectedRows}
+            onSelectionChange={setSelectedRows}
+            getRowId={app => app.applicationId}
+            onRowClick={handleRowClick}
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='apps-status-filter'>
-            Status
-          </label>
-          <select
-            id='apps-status-filter'
-            className={styles.select}
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-          >
-            <option value='all'>All Statuses</option>
-            <option value='submitted'>Submitted</option>
-            <option value='approved'>Approved</option>
-            <option value='rejected'>Rejected</option>
-            <option value='withdrawn'>Withdrawn</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='apps-type-filter'>
-            Pet Type
-          </label>
-          <select
-            id='apps-type-filter'
-            className={styles.select}
-            value={typeFilter}
-            onChange={e => setTypeFilter(e.target.value)}
-          >
-            <option value='all'>All Types</option>
-            <option value='dog'>Dog</option>
-            <option value='cat'>Cat</option>
-            <option value='rabbit'>Rabbit</option>
-            <option value='bird'>Bird</option>
-            <option value='reptile'>Reptile</option>
-            <option value='other'>Other</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='apps-rescue-filter'>
-            Rescue
-          </label>
-          <select
-            id='apps-rescue-filter'
-            className={styles.select}
-            value={rescueFilter}
-            onChange={e => setRescueFilter(e.target.value)}
-          >
-            <option value='all'>All Rescues</option>
-            {rescuesList?.data.map(rescue => (
-              <option key={rescue.rescueId} value={rescue.rescueId}>
-                {rescue.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Detail pane: shown when an application is selected */}
+        {selectedApplication && (
+          <div className={styles.detailPane}>
+            <button type='button' className={styles.backToList} onClick={handleCloseDetail}>
+              <FiArrowLeft /> Back to list
+            </button>
+            <ApplicationDetailPanel application={selectedApplication} onClose={handleCloseDetail} />
+          </div>
+        )}
       </div>
-
-      <BulkActionToolbar
-        selectedCount={selectedRows.size}
-        totalCount={applications.length}
-        onSelectAll={() =>
-          setSelectedRows(new Set(applications.map((a: AdminApplication) => a.applicationId)))
-        }
-        onClearSelection={() => setSelectedRows(new Set())}
-        actions={[
-          {
-            label: 'Approve',
-            variant: 'primary',
-            onClick: () => setBulkAction('approve'),
-          },
-          {
-            label: 'Reject',
-            variant: 'danger',
-            onClick: () => setBulkAction('reject'),
-          },
-        ]}
-      />
-
-      <DataTable
-        columns={columns}
-        data={applications}
-        loading={isLoading}
-        emptyMessage='No applications found matching your criteria'
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        selectable
-        selectedRows={selectedRows}
-        onSelectionChange={setSelectedRows}
-        getRowId={app => app.applicationId}
-        onRowClick={app => setSelectedApplication(app)}
-      />
-
-      <ApplicationDetailModal
-        isOpen={selectedApplication !== null}
-        onClose={() => setSelectedApplication(null)}
-        application={selectedApplication}
-      />
 
       <BulkConfirmationModal
         isOpen={bulkAction !== null}
         onClose={handleBulkModalClose}
         onConfirm={handleBulkConfirm}
-        title={bulkAction === 'approve' ? 'Approve Applications' : 'Reject Applications'}
-        description={
-          bulkAction === 'approve'
-            ? 'Approve the selected adoption applications.'
-            : 'Reject the selected adoption applications. Applicants will be notified.'
-        }
+        title={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} application${count !== 1 ? 's' : ''}`;
+          return bulkAction === 'approve' ? `Approve ${noun}?` : `Reject ${noun}?`;
+        })()}
+        description={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} adoption application${count !== 1 ? 's' : ''}`;
+          if (bulkAction === 'approve') {
+            return `This will approve ${noun}. Applicants will be notified of the decision.`;
+          }
+          return `This will reject ${noun}. Applicants will be notified of the decision.`;
+        })()}
         selectedCount={selectedRows.size}
         confirmLabel={bulkAction === 'approve' ? 'Approve Applications' : 'Reject Applications'}
         variant={bulkAction === 'reject' ? 'danger' : 'info'}
-        requireReason={bulkAction === 'reject'}
-        reasonLabel='Rejection reason'
-        reasonPlaceholder='Explain why these applications are being rejected...'
+        // ADS-651: every bulk state-change records a reason in the audit log.
+        requireReason
+        reasonLabel={bulkAction === 'approve' ? 'Reason for approval' : 'Reason for rejection'}
+        reasonPlaceholder={
+          bulkAction === 'approve'
+            ? 'Explain why these applications are being approved...'
+            : 'Explain why these applications are being rejected...'
+        }
         isLoading={bulkUpdateApplications.isPending}
         resultSummary={bulkResult}
       />
+
+      <ToastContainer position='top-right'>
+        {toasts.map((toast: ToastMessage) => (
+          <Toast key={toast.id} {...toast} onClose={hideToast} position='top-right' />
+        ))}
+      </ToastContainer>
     </div>
   );
 };

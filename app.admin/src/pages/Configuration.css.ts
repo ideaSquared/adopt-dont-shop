@@ -11,6 +11,12 @@ export const configGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))',
   gap: '1.5rem',
+  // The 500px minimum overflows phones; drop to a single full-width column.
+  '@media': {
+    '(max-width: 768px)': {
+      gridTemplateColumns: '1fr',
+    },
+  },
 });
 
 export const sectionCard = style({

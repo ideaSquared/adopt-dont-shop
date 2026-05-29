@@ -68,6 +68,7 @@ vi.mock('../../middleware/rbac', () => ({
 
 import adminRouter from '../../routes/admin.routes';
 import { sendReacceptanceReminder } from '../../services/legal-reminder.service';
+import { NotFoundError, UnprocessableError } from '../../middleware/error-handler';
 
 const mockSend = vi.mocked(sendReacceptanceReminder);
 
@@ -192,7 +193,7 @@ describe('POST /api/v1/admin/legal/send-reacceptance-reminder', () => {
   });
 
   it('returns 404 when the target user does not exist', async () => {
-    mockSend.mockRejectedValue(new Error('User not found'));
+    mockSend.mockRejectedValue(new NotFoundError('User not found'));
 
     const res = await request(buildApp())
       .post('/api/v1/admin/legal/send-reacceptance-reminder')
@@ -203,7 +204,7 @@ describe('POST /api/v1/admin/legal/send-reacceptance-reminder', () => {
   });
 
   it('returns 422 when the target user has no email on file', async () => {
-    mockSend.mockRejectedValue(new Error('User has no email address on file'));
+    mockSend.mockRejectedValue(new UnprocessableError('User has no email address on file'));
 
     const res = await request(buildApp())
       .post('/api/v1/admin/legal/send-reacceptance-reminder')

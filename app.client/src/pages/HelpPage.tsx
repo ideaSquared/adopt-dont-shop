@@ -1,22 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Spinner } from '@adopt-dont-shop/lib.components';
+import { Button, Container, Spinner } from '@adopt-dont-shop/lib.components';
 import { cmsPublicService, type PublicContent } from '@/services/cmsService';
 import * as styles from './HelpPage.css';
 
 export const HelpPage: React.FC = () => {
   const [articles, setArticles] = useState<PublicContent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadArticles = useCallback(() => {
+    setLoading(true);
+    setError(null);
     cmsPublicService
       .listHelpArticles()
       .then(result => {
         setArticles(result.content);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setError('We couldn’t load help articles. Please try again.');
+        setLoading(false);
+      });
   }, []);
+
+  useEffect(() => {
+    loadArticles();
+  }, [loadArticles]);
 
   return (
     <Container className={styles.pageContainer}>
@@ -28,6 +38,11 @@ export const HelpPage: React.FC = () => {
       {loading ? (
         <div className={styles.spinnerWrapper}>
           <Spinner size='lg' label='Loading articles' />
+        </div>
+      ) : error ? (
+        <div className={styles.emptyState} role='alert'>
+          <p>{error}</p>
+          <Button onClick={loadArticles}>Try Again</Button>
         </div>
       ) : articles.length === 0 ? (
         <div className={styles.emptyState}>No help articles yet — check back soon!</div>

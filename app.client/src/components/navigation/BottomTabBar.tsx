@@ -1,9 +1,10 @@
 import React from 'react';
-import { MdChat, MdFavoriteBorder, MdOutlineSearch, MdSwipe } from 'react-icons/md';
+import { MdChat, MdFavoriteBorder, MdOutlineSearch, MdStarBorder, MdSwipe } from 'react-icons/md';
 import { Link, useLocation } from 'react-router-dom';
 import { Badge } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useChat } from '@/contexts/ChatContext';
+import { useMatchPreferences } from '@/hooks/useMatchPreferences';
 import { NavUserMenu } from './NavUserMenu';
 import * as styles from './BottomTabBar.css';
 
@@ -17,23 +18,34 @@ type TabDef = {
 export const BottomTabBar: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const { unreadMessageCount } = useChat();
+  const { hasPreferences } = useMatchPreferences();
   const location = useLocation();
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  const tabs: TabDef[] = [
-    { to: '/discover', label: 'Discover', icon: <MdSwipe aria-hidden='true' /> },
-    { to: '/search', label: 'Search', icon: <MdOutlineSearch aria-hidden='true' /> },
-    { to: '/favorites', label: 'Favorites', icon: <MdFavoriteBorder aria-hidden='true' /> },
-    {
-      to: '/chat',
-      label: 'Messages',
-      icon: <MdChat aria-hidden='true' />,
-      badge: unreadMessageCount,
-    },
-  ];
+  // Anonymous visitors can still browse the public /discover and /search
+  // surfaces, so the mobile bottom bar exposes those entry points. The
+  // personalised tabs (Top Picks, Favorites, Messages, account menu) only
+  // appear once authenticated.
+  const tabs: TabDef[] = isAuthenticated
+    ? [
+        { to: '/discover', label: 'Discover', icon: <MdSwipe aria-hidden='true' /> },
+        { to: '/search', label: 'Search', icon: <MdOutlineSearch aria-hidden='true' /> },
+        {
+          to: hasPreferences ? '/match/top-picks' : '/onboarding',
+          label: 'Top Picks',
+          icon: <MdStarBorder aria-hidden='true' />,
+        },
+        { to: '/favorites', label: 'Favorites', icon: <MdFavoriteBorder aria-hidden='true' /> },
+        {
+          to: '/chat',
+          label: 'Messages',
+          icon: <MdChat aria-hidden='true' />,
+          badge: unreadMessageCount,
+        },
+      ]
+    : [
+        { to: '/discover', label: 'Discover', icon: <MdSwipe aria-hidden='true' /> },
+        { to: '/search', label: 'Search', icon: <MdOutlineSearch aria-hidden='true' /> },
+      ];
 
   const isActive = (to: string) =>
     location.pathname === to || location.pathname.startsWith(`${to}/`);
@@ -66,9 +78,11 @@ export const BottomTabBar: React.FC = () => {
             </li>
           );
         })}
-        <li className={styles.meTab}>
-          <NavUserMenu />
-        </li>
+        {isAuthenticated && (
+          <li className={styles.meTab}>
+            <NavUserMenu />
+          </li>
+        )}
       </ul>
     </nav>
   );

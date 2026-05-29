@@ -23,6 +23,9 @@ export const celebration = style({
   animationName: slideUp,
   animationDuration: '0.4s',
   animationTimingFunction: 'ease-out',
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
 });
 
 export const headline = style({
@@ -56,6 +59,9 @@ export const photoFrame = style({
   animationDuration: '2s',
   animationIterationCount: 'infinite',
   animationTimingFunction: 'ease-in-out',
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
 });
 
 export const photo = style({

@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, Container, Button, Text, Heading, toast } from '@adopt-dont-shop/lib.components';
-import { Pet, PetStatus, petManagementService } from '@adopt-dont-shop/lib.pets';
+import { PetListSkeleton } from '../components/skeletons';
+import {
+  Pet,
+  PetCreateData,
+  PetStatus,
+  PetUpdateData,
+  petManagementService,
+} from '@adopt-dont-shop/lib.pets';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { apiService } from '@adopt-dont-shop/lib.api';
 import PetGrid from '../components/pets/PetGrid';
@@ -9,6 +16,7 @@ import PetFilters from '../components/pets/PetFilters.tsx';
 import PetFormModal from '../components/pets/PetFormModal.tsx';
 import PetStatusFilter from '../components/pets/PetStatusFilter.tsx';
 import PetCsvImportModal from '../components/pets/PetCsvImportModal.tsx';
+import PetBulkActionBar, { type PetBulkAction } from '../components/pets/PetBulkActionBar.tsx';
 import * as styles from './PetManagement.css';
 
 interface PetStats {
@@ -53,7 +61,7 @@ const PetManagement: React.FC = () => {
       // Refresh the user data
       await refreshUser();
       setShowRescueSetup(false);
-      toast.success('Demo rescue created successfully! You can now manage pets.');
+      toast.success('Demo rescue created. You can now manage pets.');
     } catch (error) {
       console.error('Error creating demo rescue:', error);
       toast.error('Failed to create demo rescue. Please check the console for details.', {
@@ -64,11 +72,38 @@ const PetManagement: React.FC = () => {
     }
   };
 
+  const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
   // ADS-644: cross-linking. When deep-linked via /pets?petId=... we use the
   // petId as the search filter so the matching pet card surfaces immediately.
-  const [searchParams] = useSearchParams();
-  const initialPetId = searchParams.get('petId');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Filter state is driven by URL search params so refresh/back preserves it.
+  const statusFilter = (searchParams.get('status') ?? 'all') as PetStatus | 'all';
+  const searchFilter = searchParams.get('search') ?? searchParams.get('petId') ?? '';
+  const typeFilter = searchParams.get('type') ?? '';
+  const sizeFilter = searchParams.get('size') ?? '';
+  const breedFilter = searchParams.get('breed') ?? '';
+  const ageGroupFilter = searchParams.get('ageGroup') ?? '';
+  const genderFilter = searchParams.get('gender') ?? '';
+
+  const setFilterParam = (key: string, value: string) => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (value && value !== 'all') {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        // Reset to page 1 when filters change
+        next.delete('page');
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
   const [pets, setPets] = useState<Pet[]>([]);
   const [stats, setStats] = useState<PetStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,22 +112,24 @@ const PetManagement: React.FC = () => {
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
 
-  // Filter states
-  const [statusFilter, setStatusFilter] = useState<PetStatus | 'all'>('all');
-  const [searchFilter, setSearchFilter] = useState(initialPetId ?? '');
-  const [typeFilter, setTypeFilter] = useState<string>('');
-  const [sizeFilter, setSizeFilter] = useState<string>('');
-  const [breedFilter, setBreedFilter] = useState<string>('');
-  const [ageGroupFilter, setAgeGroupFilter] = useState<string>('');
-  const [genderFilter, setGenderFilter] = useState<string>('');
-
   // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  const currentPage = Number(searchParams.get('page') ?? '1');
   const [totalPages, setTotalPages] = useState(1);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
 
   const [showRescueSetup, setShowRescueSetup] = useState(false);
+
+  // ADS-646: bulk selection state. We hold the set of selected pet IDs at
+  // the page level so the toolbar and grid share one source of truth. The
+  // result summary is shown inline after a bulk write finishes (success +
+  // failure counts) and cleared once the user clears the selection.
+  const [selectedPetIds, setSelectedPetIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{
+    successCount: number;
+    failedCount: number;
+  } | null>(null);
 
   const fetchPets = async () => {
     try {
@@ -135,7 +172,6 @@ const PetManagement: React.FC = () => {
       const response = await petManagementService.getMyRescuePets(filters);
 
       setPets(response.pets);
-      setCurrentPage(response.pagination.page);
       setTotalPages(response.pagination.totalPages);
       setHasNext(response.pagination.hasNext);
       setHasPrev(response.pagination.hasPrev);
@@ -236,21 +272,74 @@ const PetManagement: React.FC = () => {
     }
   };
 
-  const handleSearch = (searchTerm: string) => {
-    setSearchFilter(searchTerm);
-    setCurrentPage(1); // Reset to first page
+  const handleToggleSelectPet = (petId: string) => {
+    setSelectedPetIds(prev => {
+      const next = new Set(prev);
+      if (next.has(petId)) {
+        next.delete(petId);
+      } else {
+        next.add(petId);
+      }
+      return next;
+    });
+    // A fresh selection invalidates any previous bulk-result banner.
+    setBulkResult(null);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedPetIds(new Set());
+    setBulkResult(null);
+  };
+
+  const handleBulkAction = async (action: PetBulkAction) => {
+    const ids = Array.from(selectedPetIds);
+    if (ids.length === 0) {
+      return;
+    }
+    setBulkBusy(true);
+    try {
+      const result =
+        action.type === 'status'
+          ? await petManagementService.bulkUpdatePetStatus(ids, action.status)
+          : await petManagementService.bulkArchivePets(ids);
+      setBulkResult({ successCount: result.successCount, failedCount: result.failedCount });
+      setSelectedPetIds(new Set());
+      await fetchPets();
+      await fetchStats();
+      if (result.failedCount === 0) {
+        toast.success(`Bulk action applied to ${result.successCount} pets`);
+      } else {
+        toast.info(`Bulk action: ${result.successCount} succeeded, ${result.failedCount} failed`);
+      }
+    } catch (err) {
+      console.error('Bulk action failed:', err);
+      const message = err instanceof Error ? err.message : 'Bulk action failed';
+      toast.error(message);
+    } finally {
+      setBulkBusy(false);
+    }
   };
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (page > 1) {
+          next.set('page', String(page));
+        } else {
+          next.delete('page');
+        }
+        return next;
+      },
+      { replace: true }
+    );
   };
 
   if (loading && pets.length === 0) {
     return (
       <Container className={styles.pageContainer}>
-        <div className={styles.loadingContainer}>
-          <Text>Loading pets...</Text>
-        </div>
+        <Heading level="h1">Pet Management</Heading>
+        <PetListSkeleton />
       </Container>
     );
   }
@@ -292,15 +381,7 @@ const PetManagement: React.FC = () => {
             <Button variant="primary" onClick={handleCreateDemoRescue} disabled={loading}>
               {loading ? 'Creating...' : 'Create Demo Rescue (Dev)'}
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                // Navigate to rescue creation form
-                toast.info(
-                  'Full rescue registration coming soon. For now, please use the backend API.'
-                );
-              }}
-            >
+            <Button variant="outline" onClick={() => navigate('/register-rescue')}>
               Register New Rescue
             </Button>
           </div>
@@ -386,7 +467,7 @@ const PetManagement: React.FC = () => {
                   : {}
               }
               onStatusChange={status => {
-                setStatusFilter(status as any);
+                setFilterParam('status', status);
               }}
             />
           </div>
@@ -402,39 +483,23 @@ const PetManagement: React.FC = () => {
                 gender: genderFilter,
               }}
               onFilterChange={(key, value) => {
-                if (key === 'search') {
-                  handleSearch(value);
-                }
-                if (key === 'type') {
-                  setTypeFilter(value);
-                }
-                if (key === 'status') {
-                  setStatusFilter(value as any);
-                }
-                if (key === 'size') {
-                  setSizeFilter(value);
-                }
-                if (key === 'breed') {
-                  setBreedFilter(value);
-                }
-                if (key === 'ageGroup') {
-                  setAgeGroupFilter(value);
-                }
-                if (key === 'gender') {
-                  setGenderFilter(value);
-                }
+                setFilterParam(key, value);
               }}
               onClearFilters={() => {
-                setSearchFilter('');
-                setTypeFilter('');
-                setStatusFilter('all');
-                setSizeFilter('');
-                setBreedFilter('');
-                setAgeGroupFilter('');
-                setGenderFilter('');
-              }}
-              onApplyFilters={() => {
-                // Filters are applied immediately in this implementation
+                setSearchParams(
+                  prev => {
+                    const next = new URLSearchParams(prev);
+                    // Keep petId if it was the original deep-link param
+                    const keepKeys = new Set(['petId']);
+                    for (const key of [...next.keys()]) {
+                      if (!keepKeys.has(key)) {
+                        next.delete(key);
+                      }
+                    }
+                    return next;
+                  },
+                  { replace: true }
+                );
               }}
             />
           </div>
@@ -455,6 +520,15 @@ const PetManagement: React.FC = () => {
           </div>
         )}
 
+        {/* Bulk action bar (ADS-646) — only renders while a selection is active. */}
+        <PetBulkActionBar
+          selectedCount={selectedPetIds.size}
+          onClearSelection={handleClearSelection}
+          onBulkAction={handleBulkAction}
+          busy={bulkBusy}
+          resultSummary={bulkResult}
+        />
+
         {/* Pet Grid */}
         <div className={styles.mainContent}>
           <PetGrid
@@ -463,6 +537,10 @@ const PetManagement: React.FC = () => {
             onStatusChange={handleStatusChange}
             onEditPet={handleEditPet}
             onDeletePet={handleDeletePet}
+            selectedPetIds={selectedPetIds}
+            onToggleSelectPet={handleToggleSelectPet}
+            onOpenCsvImport={user?.rescueId ? () => setShowCsvImport(true) : undefined}
+            onAddPet={() => setShowAddModal(true)}
             pagination={{
               currentPage,
               totalPages,
@@ -499,9 +577,9 @@ const PetManagement: React.FC = () => {
           onSubmit={async data => {
             try {
               if (editingPet) {
-                await petManagementService.updatePet(editingPet.pet_id, data as any);
+                await petManagementService.updatePet(editingPet.pet_id, data as PetUpdateData);
               } else {
-                await petManagementService.createPet(data as any);
+                await petManagementService.createPet(data as PetCreateData);
               }
               handlePetSaved();
               // ADS-125

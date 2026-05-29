@@ -1,7 +1,6 @@
 import { Response } from 'express';
 import SecurityService from '../services/security.service';
 import { IpRuleType } from '../models/IpRule';
-import { logger } from '../utils/logger';
 import { AuthenticatedRequest } from '../types/auth';
 
 export class SecurityController {
@@ -25,20 +24,9 @@ export class SecurityController {
   }
 
   static async revokeSession(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { sessionId } = req.params;
-      const result = await SecurityService.revokeSession(sessionId, req.user!.userId);
-      return res.json({ success: true, data: result });
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Session not found') {
-        return res.status(404).json({ error: error.message });
-      }
-      logger.error('Error revoking session:', error);
-      return res.status(500).json({
-        error: 'Failed to revoke session',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    const { sessionId } = req.params;
+    const result = await SecurityService.revokeSession(sessionId, req.user!.userId);
+    return res.json({ success: true, data: result });
   }
 
   static async revokeAllUserSessions(req: AuthenticatedRequest, res: Response) {
@@ -72,89 +60,45 @@ export class SecurityController {
   }
 
   static async createIpRule(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { type, cidr, label, expiresAt } = req.body as {
-        type?: string;
-        cidr?: string;
-        label?: string;
-        expiresAt?: string | null;
-      };
-      if (type !== IpRuleType.ALLOW && type !== IpRuleType.BLOCK) {
-        return res.status(400).json({ error: 'type must be "allow" or "block"' });
-      }
-      if (!cidr || typeof cidr !== 'string') {
-        return res.status(400).json({ error: 'cidr is required' });
-      }
-      const rule = await SecurityService.createIpRule({
-        type,
-        cidr,
-        label: label ?? null,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
-        actorId: req.user!.userId,
-      });
-      return res.status(201).json({ success: true, data: rule });
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Invalid CIDR or IP address') {
-        return res.status(400).json({ error: error.message });
-      }
-      logger.error('Error creating IP rule:', error);
-      return res.status(500).json({
-        error: 'Failed to create IP rule',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
+    const { type, cidr, label, expiresAt } = req.body as {
+      type?: string;
+      cidr?: string;
+      label?: string;
+      expiresAt?: string | null;
+    };
+    if (type !== IpRuleType.ALLOW && type !== IpRuleType.BLOCK) {
+      return res.status(400).json({ error: 'type must be "allow" or "block"' });
     }
+    if (!cidr || typeof cidr !== 'string') {
+      return res.status(400).json({ error: 'cidr is required' });
+    }
+    const rule = await SecurityService.createIpRule({
+      type,
+      cidr,
+      label: label ?? null,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
+      actorId: req.user!.userId,
+    });
+    return res.status(201).json({ success: true, data: rule });
   }
 
   static async deleteIpRule(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ipRuleId } = req.params;
-      await SecurityService.deleteIpRule(ipRuleId, req.user!.userId);
-      return res.status(204).send();
-    } catch (error) {
-      if (error instanceof Error && error.message === 'IP rule not found') {
-        return res.status(404).json({ error: error.message });
-      }
-      logger.error('Error deleting IP rule:', error);
-      return res.status(500).json({
-        error: 'Failed to delete IP rule',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    const { ipRuleId } = req.params;
+    await SecurityService.deleteIpRule(ipRuleId, req.user!.userId);
+    return res.status(204).send();
   }
 
   static async unlockAccount(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { userId } = req.params;
-      const result = await SecurityService.unlockAccount(userId, req.user!.userId);
-      return res.json({ success: true, data: result });
-    } catch (error) {
-      if (error instanceof Error && error.message === 'User not found') {
-        return res.status(404).json({ error: error.message });
-      }
-      logger.error('Error unlocking account:', error);
-      return res.status(500).json({
-        error: 'Failed to unlock account',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    const { userId } = req.params;
+    const result = await SecurityService.unlockAccount(userId, req.user!.userId);
+    return res.json({ success: true, data: result });
   }
 
   static async forceLockAccount(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { userId } = req.params;
-      const { reason } = req.body as { reason?: string };
-      await SecurityService.forceLockAccount(userId, req.user!.userId, reason ?? null);
-      return res.json({ success: true });
-    } catch (error) {
-      if (error instanceof Error && error.message === 'User not found') {
-        return res.status(404).json({ error: error.message });
-      }
-      logger.error('Error force-locking account:', error);
-      return res.status(500).json({
-        error: 'Failed to lock account',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
+    const { userId } = req.params;
+    const { reason } = req.body as { reason?: string };
+    await SecurityService.forceLockAccount(userId, req.user!.userId, reason ?? null);
+    return res.json({ success: true });
   }
 
   static async getLoginHistory(req: AuthenticatedRequest, res: Response) {

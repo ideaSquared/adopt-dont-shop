@@ -128,6 +128,7 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
             onChange={e => setSubject(e.target.value)}
             placeholder='Enter ticket subject'
             required
+            aria-required={true}
             disabled={isSubmitting}
           />
         </div>
@@ -144,6 +145,7 @@ export const CreateSupportTicketModal: React.FC<CreateSupportTicketModalProps> =
             onChange={e => setDescription(e.target.value)}
             placeholder='Describe the issue or request...'
             required
+            aria-required={true}
             disabled={isSubmitting}
             minLength={10}
             maxLength={10000}

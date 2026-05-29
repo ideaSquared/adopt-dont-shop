@@ -19,6 +19,7 @@ import {
   type ReportWidget,
 } from '../schemas/reports.schema';
 import { logger } from '../utils/logger';
+import { NotFoundError, ForbiddenError, BadRequestError } from '../middleware/error-handler';
 import { JsonObject } from '../types/common';
 
 /**
@@ -33,22 +34,6 @@ import { JsonObject } from '../types/common';
  * returns the rescueId scope it ran with so cache keys / shares stay
  * consistent.
  */
-
-export class ForbiddenError extends Error {
-  public readonly status = 403;
-  constructor(message = 'Forbidden') {
-    super(message);
-    this.name = 'ForbiddenError';
-  }
-}
-
-export class NotFoundError extends Error {
-  public readonly status = 404;
-  constructor(message = 'Not found') {
-    super(message);
-    this.name = 'NotFoundError';
-  }
-}
 
 export type ExecuteContext = {
   /** scope: 'platform' for platform-wide reports, otherwise the rescueId. */
@@ -366,7 +351,7 @@ export const ReportsService = {
   }): Promise<{ share: ReportShare; token?: string }> {
     if (args.type === ReportShareType.USER) {
       if (!args.sharedWithUserId) {
-        throw new Error('sharedWithUserId is required for user shares');
+        throw new BadRequestError('sharedWithUserId is required for user shares');
       }
       const [share] = await ReportShare.findOrCreate({
         where: {
@@ -399,7 +384,7 @@ export const ReportsService = {
       throw new Error('JWT_REPORT_SHARE_SECRET is not configured — token sharing disabled');
     }
     if (!args.expiresAt) {
-      throw new Error('expiresAt is required for token shares');
+      throw new BadRequestError('expiresAt is required for token shares');
     }
     const jti = randomUUID();
     const tokenHash = createHash('sha256').update(jti).digest('hex');

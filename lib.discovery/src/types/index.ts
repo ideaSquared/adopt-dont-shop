@@ -1,42 +1,7 @@
-/**
- * Configuration options for DiscoveryService
- */
-export interface DiscoveryServiceConfig {
-  /**
-   * API base URL
-   */
-  apiUrl?: string;
+import type { ServiceConfig, ServiceOptions } from '@adopt-dont-shop/lib.types';
 
-  /**
-   * Enable debug logging
-   */
-  debug?: boolean;
-
-  /**
-   * Custom headers to include with requests
-   */
-  headers?: Record<string, string>;
-}
-
-/**
- * Options for DiscoveryService operations
- */
-export interface DiscoveryServiceOptions {
-  /**
-   * Timeout in milliseconds
-   */
-  timeout?: number;
-
-  /**
-   * Whether to use caching
-   */
-  useCache?: boolean;
-
-  /**
-   * Custom metadata
-   */
-  metadata?: Record<string, unknown>;
-}
+export type DiscoveryServiceConfig = ServiceConfig;
+export type DiscoveryServiceOptions = ServiceOptions;
 
 // ADS-262: response envelopes are owned by @adopt-dont-shop/lib.types.
 export type { BaseResponse, ErrorResponse, PaginatedResponse } from '@adopt-dont-shop/lib.types';

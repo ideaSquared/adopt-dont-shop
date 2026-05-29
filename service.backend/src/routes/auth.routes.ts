@@ -4,6 +4,9 @@ import { authenticateToken } from '../middleware/auth';
 import { enforceIpRules } from '../middleware/ip-rules';
 import {
   loginIpLimiter,
+  passwordResetEmailLimiter,
+  passwordResetIpLimiter,
+  passwordResetTokenLimiter,
   registrationEmailLimiter,
   registrationIpLimiter,
 } from '../middleware/auth-rate-limit';
@@ -305,7 +308,8 @@ router.post('/refresh-token', authLimiter, AuthController.refreshToken);
  */
 router.post(
   '/forgot-password',
-  passwordResetLimiter,
+  passwordResetIpLimiter,
+  passwordResetEmailLimiter,
   authValidation.forgotPassword,
   AuthController.requestPasswordReset
 );
@@ -357,7 +361,7 @@ router.post(
  */
 router.post(
   '/reset-password',
-  passwordResetLimiter,
+  passwordResetTokenLimiter,
   authValidation.resetPassword,
   AuthController.confirmPasswordReset
 );
@@ -581,6 +585,13 @@ router.post(
   authValidation.confirmTwoFactorRecovery,
   AuthController.confirmTwoFactorRecovery
 );
+
+// ADS C4-5: dismissible sanction banner — list + acknowledge endpoints
+// power a top-of-page banner across all 3 apps so users have a
+// persistent notice of any active warnings / suspensions until they
+// dismiss them per-sanction.
+router.get('/sanctions/active', authenticateToken, AuthController.getActiveSanctions);
+router.post('/sanctions/:id/acknowledge', authenticateToken, AuthController.acknowledgeSanction);
 
 // Two-Factor Authentication routes
 router.post('/2fa/setup', authenticateToken, twoFactorLimiter, AuthController.twoFactorSetup);

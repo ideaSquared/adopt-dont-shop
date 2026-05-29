@@ -167,10 +167,12 @@ describe('ChatService', () => {
       expect(errorCallback).toHaveBeenCalled();
     });
 
-    it('should not attempt connection without authentication token', () => {
+    it('should connect without an explicit token (httpOnly cookie provides auth)', () => {
+      // Empty / omitted token is no longer an error — the browser sends the
+      // httpOnly accessToken cookie with the WebSocket upgrade automatically.
       expect(() => {
-        service.connect('user-123', '');
-      }).toThrow();
+        service.connect('user-123');
+      }).not.toThrow();
     });
 
     it('should not attempt connection without user ID', () => {

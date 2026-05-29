@@ -52,8 +52,7 @@ Server layout (single CPX42):
 | `.github/workflows/deploy.yml` | Build → push → deploy workflow |
 | `.github/workflows/rollback.yml` | Redeploy a previous SHA |
 | `Makefile` | CLI commands (`make staging`, `make prod`, `make rollback`) |
-| `service.backend/.sequelizerc` | Points sequelize-cli to dist/ in prod |
-| `service.backend/sequelize-config.js` | DB connection config for migrations |
+| `service.backend/src/migrations/runner.ts` | Custom Umzug migration runner |
 
 ---
 
@@ -206,9 +205,9 @@ Auto-renewal handled by certbot container in gateway stack (renews every 12h via
 
 ### Migrations
 
-- `sequelize-cli` is in production dependencies
-- `.sequelizerc` points to `dist/migrations/` when `NODE_ENV=production`
-- Deploy workflow runs `npm run migrate` after health check passes
+- Migrations use a custom Umzug runner (`service.backend/src/migrations/runner.ts`)
+- `sequelize-cli` is **not** installed — use `npm run db:migrate` / `npm run db:migrate:undo`
+- Deploy workflow runs `npm run db:migrate` after health check passes
 
 ### First deploy — baseline
 

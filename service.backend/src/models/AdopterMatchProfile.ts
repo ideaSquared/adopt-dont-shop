@@ -42,6 +42,7 @@ interface AdopterMatchProfileAttributes {
   last_notified_at: Date | null;
   inferred_prefs: InferredPrefs;
   prefs_updated_at: Date | null;
+  allergies: string | null;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -61,6 +62,7 @@ interface AdopterMatchProfileCreationAttributes extends Optional<
   | 'last_notified_at'
   | 'inferred_prefs'
   | 'prefs_updated_at'
+  | 'allergies'
   | 'created_at'
   | 'updated_at'
 > {}
@@ -83,6 +85,7 @@ class AdopterMatchProfile
   public last_notified_at!: Date | null;
   public inferred_prefs!: InferredPrefs;
   public prefs_updated_at!: Date | null;
+  public allergies!: string | null;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
 }
@@ -125,6 +128,7 @@ AdopterMatchProfile.init(
     last_notified_at: { type: DataTypes.DATE, allowNull: true },
     inferred_prefs: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
     prefs_updated_at: { type: DataTypes.DATE, allowNull: true },
+    allergies: { type: DataTypes.STRING, allowNull: true, defaultValue: null },
     ...auditColumns,
   },
   withAuditHooks({

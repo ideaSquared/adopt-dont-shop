@@ -28,7 +28,7 @@ export const SubmissionSuccess: React.FC<SubmissionSuccessProps> = ({
     <ul className={styles.nextSteps}>
       <li className={styles.nextStepItem}>
         We&apos;ve emailed a confirmation to <strong>{email}</strong> — keep an eye on your inbox
-        (and the spam folder, just in case).
+        (and the spam folder too).
       </li>
       <li className={styles.nextStepItem}>
         {rescueName} typically responds within a few days. If they need more information

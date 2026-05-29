@@ -51,11 +51,19 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
   onSubmit,
   uploadImage = (file: File) => apiService.uploadImage(file),
 }) => {
+  // ADS-646: minimal required fields to publish a pet are name + type +
+  // gender + size. Everything else (breed, colour, descriptions, behaviour
+  // flags, photos) is editable post-publish from the same modal. The
+  // backend's PetCreateRequestSchema (lib.validation/src/schemas/pet.ts)
+  // also requires ageGroup; we default it to 'adult' here so staff can
+  // publish without having to think about it. They can refine the value
+  // later from the same modal.
   const [formData, setFormData] = useState<PetCreateData>({
     name: '',
     type: 'dog',
     breed: '',
     rescueId: '', // Will be set when submitting
+    ageGroup: 'adult',
     ageYears: 0,
     ageMonths: 0,
     gender: 'male',
@@ -101,6 +109,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
         type: pet.type ?? 'dog',
         breed: pet.breed ?? '',
         rescueId: pet.rescue_id ?? '',
+        ageGroup: pet.age_group ?? 'adult',
         secondaryBreed: pet.secondary_breed,
         ageYears: pet.age_years,
         ageMonths: pet.age_months,
@@ -146,6 +155,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
         type: 'dog',
         breed: '',
         rescueId: '',
+        ageGroup: 'adult',
         ageYears: 0,
         ageMonths: 0,
         gender: 'male',
@@ -178,20 +188,12 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
+    // ADS-646: only Name is required at the form level — backend additionally
+    // requires type / gender / size / ageGroup, all of which the selects
+    // default to sensible values. Everything else (breed, colour, descriptions,
+    // behaviour flags, photos) is captured here but editable post-publish.
     if (!formData.name.trim()) {
       newErrors.name = 'Pet name is required';
-    }
-
-    if (!formData.breed.trim()) {
-      newErrors.breed = 'Breed is required';
-    }
-
-    if (!formData.color.trim()) {
-      newErrors.color = 'Color is required';
-    }
-
-    if (!formData.shortDescription?.trim()) {
-      newErrors.shortDescription = 'Short description is required';
     }
 
     if (
@@ -343,6 +345,15 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
       return;
     }
 
+    // UX P0/P1 #10: if any uploads errored, block submit and let the user
+    // either retry or remove the failed entries explicitly. Previously we
+    // silently dropped errored uploads, which made it look like the form
+    // had saved fewer photos than the user thought.
+    if (images.some(img => img.status === 'error')) {
+      setImageError('Some images failed to upload. Remove or retry them before saving.');
+      return;
+    }
+
     // Only finalised uploads contribute to the submit payload — uploading /
     // errored slots are dropped silently (the user sees them as not-yet-
     // attached in the preview).
@@ -386,6 +397,14 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
       <Card className={styles.modalContent} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
         <h2>{pet ? 'Edit Pet' : 'Add New Pet'}</h2>
 
+        {!pet && (
+          <p className={styles.minimalFieldsHint}>
+            Only the pet&apos;s name is required to publish — type, gender, size and age group
+            default to sensible values. You can fill in breed, photos, descriptions and behaviour
+            details now or after publishing.
+          </p>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className={styles.formGrid}>
             <div className={styles.formGroup()}>
@@ -416,7 +435,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
             </div>
 
             <div className={styles.formGroup()}>
-              <label htmlFor="breed">Primary Breed *</label>
+              <label htmlFor="breed">Primary Breed</label>
               <input
                 id="breed"
                 type="text"
@@ -464,6 +483,20 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
             </div>
 
             <div className={styles.formGroup()}>
+              <label htmlFor="ageGroup">Age Group</label>
+              <select
+                id="ageGroup"
+                value={formData.ageGroup ?? 'adult'}
+                onChange={e => handleInputChange('ageGroup', e.target.value)}
+              >
+                <option value="baby">Baby</option>
+                <option value="young">Young</option>
+                <option value="adult">Adult</option>
+                <option value="senior">Senior</option>
+              </select>
+            </div>
+
+            <div className={styles.formGroup()}>
               <label htmlFor="gender">Gender *</label>
               <select
                 id="gender"
@@ -490,7 +523,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
             </div>
 
             <div className={styles.formGroup()}>
-              <label htmlFor="color">Color *</label>
+              <label htmlFor="color">Color</label>
               <input
                 id="color"
                 type="text"
@@ -522,7 +555,7 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
             </div>
 
             <div className={styles.formGroup({ fullWidth: true })}>
-              <label htmlFor="shortDescription">Short Description *</label>
+              <label htmlFor="shortDescription">Short Description</label>
               <textarea
                 id="shortDescription"
                 value={formData.shortDescription || ''}
@@ -621,6 +654,24 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
                             aria-label={`Make primary: ${img.filename}`}
                           >
                             Make primary
+                          </button>
+                          {/* Keyboard-accessible reorder controls — the drag handlers
+                              above are mouse-only, so AT users need explicit buttons. */}
+                          <button
+                            type="button"
+                            onClick={() => reorderImages(index, index - 1)}
+                            disabled={index === 0 || img.status !== 'uploaded'}
+                            aria-label={`Move up: ${img.filename}`}
+                          >
+                            Move up
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => reorderImages(index, index + 1)}
+                            disabled={index === images.length - 1 || img.status !== 'uploaded'}
+                            aria-label={`Move down: ${img.filename}`}
+                          >
+                            Move down
                           </button>
                           <button
                             type="button"
@@ -748,7 +799,11 @@ const PetFormModal: React.FC<PetFormModalProps> = ({
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isSubmitting || !formData.name.trim()}
+            >
               {isSubmitting ? 'Saving...' : pet ? 'Update Pet' : 'Add Pet'}
             </Button>
           </div>

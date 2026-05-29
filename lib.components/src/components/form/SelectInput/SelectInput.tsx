@@ -228,6 +228,7 @@ export const SelectInput = ({
             ref={ref}
             className={trigger({ size, state: actualState, disabled, fullWidth })}
             aria-label={label}
+            aria-required={required ? true : undefined}
           >
             {renderValue()}
             <div className={iconRow}>

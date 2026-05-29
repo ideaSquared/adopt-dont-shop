@@ -37,6 +37,13 @@ vi.mock('@adopt-dont-shop/lib.api', () => ({
   },
 }));
 
+// C2-5: stub the toast bridge so the session-expired notification is
+// observable without dragging in sonner's real toast machinery.
+const mockToastError = vi.hoisted(() => vi.fn());
+vi.mock('@adopt-dont-shop/lib.components', () => ({
+  toast: { error: mockToastError },
+}));
+
 // Imported AFTER vi.mock so the mocks are wired in.
 import { AuthProvider } from './AuthContext';
 import { useAuth } from '../hooks/useAuth';
@@ -454,5 +461,81 @@ describe('AuthProvider cross-tab logout synchronization', () => {
 
     expect(states[states.length - 1]?.userId).toBe(adopterUser.userId);
     expect(mockAuthService.clearTokens).not.toHaveBeenCalled();
+  });
+});
+
+// C2-5: surface a toast when a 401 fires for an authenticated user so
+// the session-expired redirect doesn't appear to come out of nowhere.
+describe('AuthProvider session-expiry toast [C2-5]', () => {
+  beforeEach(() => {
+    mockAuthService.getCurrentUser.mockReturnValue(adopterUser);
+    mockAuthService.isAuthenticated.mockReturnValue(true);
+    mockAuthService.getProfile.mockResolvedValue(adopterUser);
+    mockAuthService.clearTokens.mockReset();
+    mockToastError.mockClear();
+    window.localStorage.clear();
+  });
+
+  // Grab the latest onUnauthorized callback the provider registered.
+  const getOnUnauthorized = (): (() => void) | undefined => {
+    const updateConfigMock = vi.mocked(mockedApiService.updateConfig);
+    for (let i = updateConfigMock.mock.calls.length - 1; i >= 0; i--) {
+      const arg = updateConfigMock.mock.calls[i][0];
+      if (arg && typeof arg.onUnauthorized === 'function') {
+        return arg.onUnauthorized;
+      }
+    }
+    return undefined;
+  };
+
+  it('shows the session-expired toast when a 401 fires for a signed-in user', async () => {
+    const states: Array<User | null> = [];
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <AuthProbe onState={(u) => states.push(u)} />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(states[states.length - 1]?.userId).toBe(adopterUser.userId);
+    });
+
+    const onUnauthorized = getOnUnauthorized();
+    expect(onUnauthorized).toBeDefined();
+
+    await act(async () => {
+      onUnauthorized?.();
+    });
+
+    expect(mockToastError).toHaveBeenCalledWith('Your session has expired. Please log in again.');
+    expect(mockAuthService.clearTokens).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(states[states.length - 1]).toBeNull();
+    });
+  });
+
+  it('does not show the toast when a 401 fires before the user is signed in', async () => {
+    mockAuthService.getCurrentUser.mockReturnValue(null);
+    mockAuthService.isAuthenticated.mockReturnValue(false);
+    mockAuthService.getProfile.mockResolvedValue(null);
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <></>
+      </AuthProvider>
+    );
+
+    // Wait for the rehydrate effect (which would set user) to finish.
+    await waitFor(() => {
+      expect(getOnUnauthorized()).toBeDefined();
+    });
+
+    const onUnauthorized = getOnUnauthorized();
+    await act(async () => {
+      onUnauthorized?.();
+    });
+
+    expect(mockToastError).not.toHaveBeenCalled();
   });
 });

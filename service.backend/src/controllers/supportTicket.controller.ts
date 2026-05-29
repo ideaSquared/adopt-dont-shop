@@ -5,7 +5,6 @@ import SupportTicket, {
   TicketPriority,
   TicketCategory,
 } from '../models/SupportTicket';
-import { logger } from '../utils/logger';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/api';
 
@@ -201,29 +200,14 @@ export class SupportTicketController {
    * Get a single support ticket by ID
    */
   static async getTicketById(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
+    const { ticketId } = req.params;
 
-      const ticket = await SupportTicketService.getTicketById(ticketId);
+    const ticket = await SupportTicketService.getTicketById(ticketId);
 
-      res.json({
-        success: true,
-        data: serializeTicket(ticket),
-      });
-    } catch (error: unknown) {
-      logger.error('Error in getTicketById:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
-          success: false,
-          error: 'Ticket not found',
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Failed to fetch support ticket',
-        });
-      }
-    }
+    res.json({
+      success: true,
+      data: serializeTicket(ticket),
+    });
   }
 
   /**
@@ -274,30 +258,15 @@ export class SupportTicketController {
    * Update a support ticket
    */
   static async updateTicket(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
-      const updates = req.body;
+    const { ticketId } = req.params;
+    const updates = req.body;
 
-      const ticket = await SupportTicketService.updateTicket(ticketId, updates);
+    const ticket = await SupportTicketService.updateTicket(ticketId, updates);
 
-      res.json({
-        success: true,
-        data: serializeTicket(ticket),
-      });
-    } catch (error: unknown) {
-      logger.error('Error in updateTicket:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
-          success: false,
-          error: 'Ticket not found',
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Failed to update support ticket',
-        });
-      }
-    }
+    res.json({
+      success: true,
+      data: serializeTicket(ticket),
+    });
   }
 
   /**
@@ -305,38 +274,23 @@ export class SupportTicketController {
    * Assign a ticket to an agent
    */
   static async assignTicket(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
-      const { assignedTo } = req.body;
+    const { ticketId } = req.params;
+    const { assignedTo } = req.body;
 
-      if (!assignedTo) {
-        return res.status(400).json({
-          success: false,
-          error: 'assignedTo is required',
-        });
-      }
-
-      const ticket = await SupportTicketService.assignTicket(ticketId, assignedTo);
-
-      res.json({
-        success: true,
-        data: serializeTicket(ticket),
-        message: 'Ticket assigned successfully',
+    if (!assignedTo) {
+      return res.status(400).json({
+        success: false,
+        error: 'assignedTo is required',
       });
-    } catch (error: unknown) {
-      logger.error('Error in assignTicket:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
-          success: false,
-          error: 'Ticket not found',
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Failed to assign ticket',
-        });
-      }
     }
+
+    const ticket = await SupportTicketService.assignTicket(ticketId, assignedTo);
+
+    res.json({
+      success: true,
+      data: serializeTicket(ticket),
+      message: 'Ticket assigned successfully',
+    });
   }
 
   /**
@@ -344,45 +298,30 @@ export class SupportTicketController {
    * Add a response to a ticket
    */
   static async addResponse(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
-      const { content, attachments, isInternal } = req.body;
-      const responderId = req.user?.userId;
+    const { ticketId } = req.params;
+    const { content, attachments, isInternal } = req.body;
+    const responderId = req.user?.userId;
 
-      if (!content) {
-        return res.status(400).json({
-          success: false,
-          error: 'Response content is required',
-        });
-      }
-
-      const ticket = await SupportTicketService.addResponse(ticketId, {
-        responderId: responderId!,
-        responderType: 'staff',
-        content: RichTextProcessingService.sanitize(content),
-        attachments,
-        isInternal: isInternal || false,
+    if (!content) {
+      return res.status(400).json({
+        success: false,
+        error: 'Response content is required',
       });
-
-      res.json({
-        success: true,
-        data: serializeTicket(ticket),
-        message: 'Response added successfully',
-      });
-    } catch (error: unknown) {
-      logger.error('Error in addResponse:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
-          success: false,
-          error: 'Ticket not found',
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Failed to add response',
-        });
-      }
     }
+
+    const ticket = await SupportTicketService.addResponse(ticketId, {
+      responderId: responderId!,
+      responderType: 'staff',
+      content: RichTextProcessingService.sanitize(content),
+      attachments,
+      isInternal: isInternal || false,
+    });
+
+    res.json({
+      success: true,
+      data: serializeTicket(ticket),
+      message: 'Response added successfully',
+    });
   }
 
   /**
@@ -390,38 +329,23 @@ export class SupportTicketController {
    * Escalate a ticket
    */
   static async escalateTicket(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
-      const { escalatedTo, reason } = req.body;
+    const { ticketId } = req.params;
+    const { escalatedTo, reason } = req.body;
 
-      if (!escalatedTo || !reason) {
-        return res.status(400).json({
-          success: false,
-          error: 'escalatedTo and reason are required',
-        });
-      }
-
-      const ticket = await SupportTicketService.escalateTicket(ticketId, escalatedTo, reason);
-
-      res.json({
-        success: true,
-        data: serializeTicket(ticket),
-        message: 'Ticket escalated successfully',
+    if (!escalatedTo || !reason) {
+      return res.status(400).json({
+        success: false,
+        error: 'escalatedTo and reason are required',
       });
-    } catch (error: unknown) {
-      logger.error('Error in escalateTicket:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
-          success: false,
-          error: 'Ticket not found',
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Failed to escalate ticket',
-        });
-      }
     }
+
+    const ticket = await SupportTicketService.escalateTicket(ticketId, escalatedTo, reason);
+
+    res.json({
+      success: true,
+      data: serializeTicket(ticket),
+      message: 'Ticket escalated successfully',
+    });
   }
 
   /**
@@ -429,32 +353,17 @@ export class SupportTicketController {
    * Get all messages/responses for a ticket
    */
   static async getTicketMessages(req: AuthenticatedRequest, res: Response) {
-    try {
-      const { ticketId } = req.params;
+    const { ticketId } = req.params;
 
-      const ticket = await SupportTicketService.getTicketById(ticketId);
+    const ticket = await SupportTicketService.getTicketById(ticketId);
 
-      res.json({
-        success: true,
-        data: {
-          ticketId: ticket.ticketId,
-          messages: ticket.Responses || ticket.responses || [],
-        },
-      });
-    } catch (error: unknown) {
-      logger.error('Error in getTicketMessages:', error);
-      if (error instanceof Error && error.message === 'Ticket not found') {
-        res.status(404).json({
-          success: false,
-          error: 'Ticket not found',
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Failed to fetch ticket messages',
-        });
-      }
-    }
+    res.json({
+      success: true,
+      data: {
+        ticketId: ticket.ticketId,
+        messages: ticket.Responses || ticket.responses || [],
+      },
+    });
   }
 
   /**
@@ -467,6 +376,27 @@ export class SupportTicketController {
     res.json({
       success: true,
       data: stats,
+    });
+  }
+
+  /**
+   * GET /api/v1/admin/support/tickets/:ticketId/activity
+   * Get paginated audit-log activity for a support ticket.
+   */
+  static async getTicketActivityLog(req: AuthenticatedRequest, res: Response) {
+    const { ticketId } = req.params;
+    const { from, to, limit, offset } = req.query;
+
+    const activity = await SupportTicketService.getTicketActivityLog(ticketId, {
+      from: typeof from === 'string' ? from : undefined,
+      to: typeof to === 'string' ? to : undefined,
+      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      offset: typeof offset === 'string' ? Number(offset) : undefined,
+    });
+
+    res.json({
+      success: true,
+      data: activity,
     });
   }
 

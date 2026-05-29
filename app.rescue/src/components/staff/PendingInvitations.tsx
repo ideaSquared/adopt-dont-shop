@@ -1,5 +1,6 @@
 import React from 'react';
 import { PendingInvitation } from '@adopt-dont-shop/lib.invitations';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PendingInvitations.css';
 
 interface PendingInvitationsProps {
@@ -33,12 +34,7 @@ const PendingInvitations: React.FC<PendingInvitationsProps> = ({
   };
 
   const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    return formatDisplayDate(dateString);
   };
 
   if (loading) {

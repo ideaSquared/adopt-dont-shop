@@ -160,6 +160,10 @@ export const ageInput = style({
   ':focus': {
     borderColor: vars.colors.primary,
   },
+  ':focus-visible': {
+    outline: `2px solid ${vars.colors.primary}`,
+    outlineOffset: '2px',
+  },
 });
 
 export const ageInputNarrow = style({
@@ -174,6 +178,10 @@ export const ageInputNarrow = style({
   textAlign: 'center',
   ':focus': {
     borderColor: vars.colors.primary,
+  },
+  ':focus-visible': {
+    outline: `2px solid ${vars.colors.primary}`,
+    outlineOffset: '2px',
   },
 });
 

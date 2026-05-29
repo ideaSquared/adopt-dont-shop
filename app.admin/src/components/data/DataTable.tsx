@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import * as styles from './DataTable.css';
 import {
   FiChevronUp,
@@ -8,7 +9,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from 'react-icons/fi';
-import { SkeletonTableRow } from '../ui/Skeleton';
+import { SkeletonTableRow } from '@adopt-dont-shop/lib.components';
 
 export interface Column<T> {
   id: string;
@@ -23,6 +24,12 @@ export interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
   loading?: boolean;
+  /**
+   * ADS UX P0/P1 #5: when set, the table body renders an error banner row
+   * instead of the empty-state row so the user can tell load failure apart
+   * from a genuinely empty result set.
+   */
+  error?: string | null;
   emptyMessage?: string;
   onRowClick?: (row: T) => void;
   // Pagination
@@ -47,6 +54,7 @@ export function DataTable<T extends object>({
   columns,
   data,
   loading = false,
+  error = null,
   emptyMessage = 'No data available',
   onRowClick,
   currentPage = 1,
@@ -60,21 +68,38 @@ export function DataTable<T extends object>({
   onSelectionChange,
   getRowId = (_row: T) => String(Math.random()),
 }: DataTableProps<T>) {
-  const [localSort, setLocalSort] = useState<{ column: string; direction: 'asc' | 'desc' } | null>(
-    null
-  );
+  // When no controlled onSort is provided, persist sort state in URL
+  // query params so it survives pagination and page refreshes.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSortColumn = searchParams.get('sortBy') ?? undefined;
+  const urlSortDirection = (searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc') as
+    | 'asc'
+    | 'desc';
+
+  // Effective sort: controlled props take precedence, then URL params
+  const effectiveSortColumn = sortColumn ?? urlSortColumn;
+  const effectiveSortDirection = sortColumn
+    ? sortDirection
+    : urlSortColumn
+      ? urlSortDirection
+      : sortDirection;
 
   const handleSort = (columnId: string) => {
     const newDirection =
-      (sortColumn || localSort?.column) === columnId &&
-      (sortDirection || localSort?.direction) === 'asc'
-        ? 'desc'
-        : 'asc';
+      effectiveSortColumn === columnId && effectiveSortDirection === 'asc' ? 'desc' : 'asc';
 
     if (onSort) {
       onSort(columnId, newDirection);
     } else {
-      setLocalSort({ column: columnId, direction: newDirection });
+      setSearchParams(
+        prev => {
+          const next = new URLSearchParams(prev);
+          next.set('sortBy', columnId);
+          next.set('sortOrder', newDirection);
+          return next;
+        },
+        { replace: true }
+      );
     }
   };
 
@@ -138,8 +163,8 @@ export function DataTable<T extends object>({
                 </th>
               )}
               {columns.map(column => {
-                const activeColumn = sortColumn || localSort?.column;
-                const activeDirection = sortDirection || localSort?.direction;
+                const activeColumn = effectiveSortColumn;
+                const activeDirection = effectiveSortDirection;
                 const isSortActive = activeColumn === column.id;
                 const ariaSort = column.sortable
                   ? isSortActive
@@ -186,6 +211,12 @@ export function DataTable<T extends object>({
               Array.from({ length: SKELETON_ROW_COUNT }, (_, i) => (
                 <SkeletonTableRow key={i} columnCount={columns.length} hasCheckbox={selectable} />
               ))
+            ) : error ? (
+              <tr className={styles.emptyRow}>
+                <td colSpan={columns.length + (selectable ? 1 : 0)}>
+                  <div role='alert'>{error}</div>
+                </td>
+              </tr>
             ) : data.length === 0 ? (
               <tr className={styles.emptyRow}>
                 <td colSpan={columns.length + (selectable ? 1 : 0)}>{emptyMessage}</td>
@@ -267,6 +298,7 @@ export function DataTable<T extends object>({
                   key={pageNum}
                   className={styles.pageButton({ active: currentPage === pageNum })}
                   onClick={() => onPageChange(pageNum)}
+                  aria-current={currentPage === pageNum ? 'page' : undefined}
                 >
                   {pageNum}
                 </button>

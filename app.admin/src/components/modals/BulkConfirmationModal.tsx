@@ -1,7 +1,14 @@
 import React, { useId, useRef, useEffect, useState } from 'react';
 import * as styles from './BulkConfirmationModal.css';
 import { Button } from '@adopt-dont-shop/lib.components';
-import { FiAlertTriangle, FiCheckCircle, FiInfo, FiX } from 'react-icons/fi';
+import {
+  FiAlertTriangle,
+  FiCheckCircle,
+  FiChevronDown,
+  FiChevronRight,
+  FiInfo,
+  FiX,
+} from 'react-icons/fi';
 
 export type BulkConfirmationVariant = 'danger' | 'warning' | 'info';
 
@@ -19,6 +26,9 @@ type BulkConfirmationModalProps = {
   reasonPlaceholder?: string;
   isLoading?: boolean;
   resultSummary?: { succeeded: number; failed: number } | null;
+  failedIds?: ReadonlyArray<string>;
+  onRetryFailed?: () => void | Promise<void>;
+  onRetry?: () => void | Promise<void>;
 };
 
 const variantIcon: Record<BulkConfirmationVariant, React.ReactNode> = {
@@ -41,8 +51,12 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
   reasonPlaceholder = 'Enter reason...',
   isLoading = false,
   resultSummary,
+  failedIds,
+  onRetryFailed,
+  onRetry,
 }) => {
   const [reason, setReason] = useState('');
+  const [failedIdsExpanded, setFailedIdsExpanded] = useState(false);
   const titleId = useId();
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -114,11 +128,41 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
 
         <div className={styles.modalBody}>
           {resultSummary ? (
-            <div className={styles.resultBanner({ hasFailures: resultSummary.failed > 0 })}>
-              <FiCheckCircle className={styles.resultIcon} />
-              {resultSummary.succeeded} succeeded
-              {resultSummary.failed > 0 && `, ${resultSummary.failed} failed`}
-            </div>
+            <>
+              <div className={styles.resultBanner({ hasFailures: resultSummary.failed > 0 })}>
+                <FiCheckCircle className={styles.resultIcon} />
+                {resultSummary.succeeded} succeeded
+                {resultSummary.failed > 0 && `, ${resultSummary.failed} failed`}
+              </div>
+              {resultSummary.failed > 0 && (
+                <p className={styles.failureGuidance}>
+                  Some items couldn&apos;t be updated. Close this dialog and check the table for
+                  per-row status, or try the action again.
+                </p>
+              )}
+              {failedIds && failedIds.length > 0 && (
+                <div className={styles.failedIdsSection}>
+                  <button
+                    type='button'
+                    className={styles.failedIdsToggle}
+                    onClick={() => setFailedIdsExpanded(prev => !prev)}
+                    aria-expanded={failedIdsExpanded}
+                  >
+                    {failedIdsExpanded ? <FiChevronDown /> : <FiChevronRight />}
+                    {failedIds.length} failed item{failedIds.length !== 1 ? 's' : ''}
+                  </button>
+                  {failedIdsExpanded && (
+                    <ul className={styles.failedIdsList}>
+                      {failedIds.map(id => (
+                        <li key={id} className={styles.failedIdItem}>
+                          {id}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <>
               <p className={styles.description}>{description}</p>
@@ -147,9 +191,21 @@ export const BulkConfirmationModal: React.FC<BulkConfirmationModalProps> = ({
 
         <div className={styles.modalFooter}>
           {resultSummary ? (
-            <Button variant='primary' onClick={onClose}>
-              Done
-            </Button>
+            <>
+              {resultSummary.failed > 0 && onRetryFailed && failedIds && failedIds.length > 0 && (
+                <Button variant='outline' onClick={onRetryFailed} disabled={isLoading}>
+                  {isLoading ? 'Retrying...' : 'Retry failed only'}
+                </Button>
+              )}
+              {resultSummary.failed > 0 && onRetry && (
+                <Button variant='outline' onClick={onRetry} disabled={isLoading}>
+                  {isLoading ? 'Retrying...' : 'Try again'}
+                </Button>
+              )}
+              <Button variant='primary' onClick={onClose}>
+                Done
+              </Button>
+            </>
           ) : (
             <>
               <Button variant='outline' onClick={onClose} disabled={isLoading}>

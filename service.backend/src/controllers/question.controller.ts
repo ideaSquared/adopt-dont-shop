@@ -132,14 +132,8 @@ export class QuestionController {
 
     const { rescueId } = req.params;
 
-    try {
-      const question = await QuestionService.createQuestion(rescueId, req.body);
-      res.status(201).json({ success: true, question });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create question';
-      const status = message.includes('must have') || message.includes('cannot') ? 400 : 500;
-      res.status(status).json({ success: false, error: message });
-    }
+    const question = await QuestionService.createQuestion(rescueId, req.body);
+    res.status(201).json({ success: true, question });
   }
 
   async updateQuestion(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -149,14 +143,8 @@ export class QuestionController {
 
     const { rescueId, questionId } = req.params;
 
-    try {
-      const question = await QuestionService.updateQuestion(questionId, rescueId, req.body);
-      res.status(200).json({ success: true, question });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update question';
-      const status = message === 'Question not found' ? 404 : 500;
-      res.status(status).json({ success: false, error: message });
-    }
+    const question = await QuestionService.updateQuestion(questionId, rescueId, req.body);
+    res.status(200).json({ success: true, question });
   }
 
   async deleteQuestion(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -166,14 +154,8 @@ export class QuestionController {
 
     const { rescueId, questionId } = req.params;
 
-    try {
-      await QuestionService.deleteQuestion(questionId, rescueId);
-      res.status(200).json({ success: true, message: 'Question deleted successfully' });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete question';
-      const status = message === 'Question not found' ? 404 : 500;
-      res.status(status).json({ success: false, error: message });
-    }
+    await QuestionService.deleteQuestion(questionId, rescueId);
+    res.status(200).json({ success: true, message: 'Question deleted successfully' });
   }
 
   async reorderQuestions(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -183,14 +165,8 @@ export class QuestionController {
 
     const { rescueId } = req.params;
 
-    try {
-      await QuestionService.reorderQuestions(rescueId, req.body.questions);
-      res.status(200).json({ success: true, message: 'Questions reordered successfully' });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to reorder questions';
-      const status = message.includes('not found') ? 404 : 500;
-      res.status(status).json({ success: false, error: message });
-    }
+    await QuestionService.reorderQuestions(rescueId, req.body.questions);
+    res.status(200).json({ success: true, message: 'Questions reordered successfully' });
   }
 }
 

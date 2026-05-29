@@ -42,6 +42,7 @@ const PROFILE_FIELDS = [
   'open_to_special_needs',
   'notify_new_matches',
   'min_notification_score',
+  'allergies',
 ] as const;
 
 export class MatchController {
@@ -56,6 +57,7 @@ export class MatchController {
     body('open_to_special_needs').optional().isBoolean(),
     body('notify_new_matches').optional().isBoolean(),
     body('min_notification_score').optional().isInt({ min: 0, max: 100 }),
+    body('allergies').optional({ values: 'null' }).isString(),
   ];
 
   static validateTopPicks = [query('limit').optional().isInt({ min: 1, max: 50 })];
@@ -85,7 +87,7 @@ export class MatchController {
     }
 
     const [profile] = await AdopterMatchProfile.upsert(
-      payload as unknown as Parameters<typeof AdopterMatchProfile.upsert>[0]
+      payload as unknown as AdopterMatchProfile['_creationAttributes']
     );
 
     res.status(200).json({ success: true, data: profile });
@@ -141,16 +143,25 @@ export class MatchController {
 
       res.status(200).json({
         success: true,
-        data: top.map(({ pet, score, reasons }) => ({
-          petId: pet.petId,
-          name: pet.name,
-          type: pet.type,
-          ageGroup: pet.ageGroup,
-          size: pet.size,
-          score,
-          reasons,
-          rescueName: (pet as Pet & { Rescue?: { name: string } }).Rescue?.name ?? 'Unknown Rescue',
-        })),
+        data: top.map(({ pet, score, reasons }) => {
+          const media = (pet as Pet & { Media?: PetMedia[] }).Media ?? [];
+          const primaryImage =
+            media.find(m => m.is_primary) ??
+            [...media].sort((a, b) => a.order_index - b.order_index)[0];
+          return {
+            petId: pet.petId,
+            name: pet.name,
+            type: pet.type,
+            ageGroup: pet.ageGroup,
+            size: pet.size,
+            score,
+            reasons,
+            rescueName:
+              (pet as Pet & { Rescue?: { name: string } }).Rescue?.name ?? 'Unknown Rescue',
+            breedName: (pet as Pet & { Breed?: { name: string } }).Breed?.name ?? null,
+            photoUrl: primaryImage?.thumbnail_url ?? primaryImage?.url ?? null,
+          };
+        }),
       });
     } catch (err) {
       logger.error('match.top-picks failed', {

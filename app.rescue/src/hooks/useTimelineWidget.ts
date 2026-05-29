@@ -185,7 +185,15 @@ export function useBulkTimelineSummaries({
 
     try {
       setError(null);
-      const data = await apiService.post<any>('/api/applications/timeline/bulk-stats', {
+      type BulkStatsEntry = {
+        totalEvents?: number;
+        lastActivity?: string;
+        eventTypeCounts?: Record<string, number>;
+      };
+
+      const data = await apiService.post<{
+        summaries: Record<string, BulkStatsEntry>;
+      }>('/api/applications/timeline/bulk-stats', {
         applicationIds,
         recentThresholdHours,
       });
@@ -197,16 +205,15 @@ export function useBulkTimelineSummaries({
       const transformedSummaries: BulkTimelineSummary = {};
 
       for (const [appId, stats] of Object.entries(data.summaries)) {
-        const statsData = stats as any;
-        const lastActivity = statsData.lastActivity ? new Date(statsData.lastActivity) : null;
+        const lastActivity = stats.lastActivity ? new Date(stats.lastActivity) : null;
         const hasRecentActivity = lastActivity ? lastActivity > recentThreshold : false;
 
         transformedSummaries[appId] = {
-          totalEvents: statsData.totalEvents || 0,
+          totalEvents: stats.totalEvents || 0,
           lastActivity,
           hasRecentActivity,
-          stageChangeCount: statsData.eventTypeCounts?.stage_change || 0,
-          noteCount: statsData.eventTypeCounts?.note_added || 0,
+          stageChangeCount: stats.eventTypeCounts?.stage_change || 0,
+          noteCount: stats.eventTypeCounts?.note_added || 0,
         };
       }
 

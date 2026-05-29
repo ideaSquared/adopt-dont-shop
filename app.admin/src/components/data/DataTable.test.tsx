@@ -108,3 +108,57 @@ describe('DataTable accessibility', () => {
     });
   });
 });
+
+describe('DataTable pagination accessibility (UX P2 C)', () => {
+  it('marks the current page button with aria-current="page"', () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        currentPage={2}
+        totalPages={5}
+        onPageChange={vi.fn()}
+      />
+    );
+    const currentPageButton = screen.getByRole('button', { name: '2' });
+    expect(currentPageButton).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('does not mark non-current page buttons with aria-current', () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        currentPage={2}
+        totalPages={5}
+        onPageChange={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('button', { name: '1' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('button', { name: '3' })).not.toHaveAttribute('aria-current');
+  });
+});
+
+describe('DataTable load-state differentiation', () => {
+  it('renders skeleton rows when loading', () => {
+    render(<DataTable columns={columns} data={[]} loading />);
+    // Loading skeletons replace the empty/error rows.
+    expect(screen.queryByText(/no data available/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('renders the error banner when error is set, even if data is empty', () => {
+    render(
+      <DataTable columns={columns} data={[]} error='Failed to load rescues.' emptyMessage='None' />
+    );
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent(/failed to load rescues/i);
+    expect(screen.queryByText(/^none$/i)).not.toBeInTheDocument();
+  });
+
+  it('renders the empty message when not loading, no error, and no data', () => {
+    render(<DataTable columns={columns} data={[]} emptyMessage='Nothing here yet.' />);
+    expect(screen.getByText(/nothing here yet\./i)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});

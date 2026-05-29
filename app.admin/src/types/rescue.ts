@@ -4,7 +4,7 @@
  * These extend the basic types with admin-specific fields and functionality
  */
 
-import type { Rescue, RescueStatus, AdoptionPolicy } from '@adopt-dont-shop/lib.rescue';
+import type { Rescue, RescueStatus } from '@adopt-dont-shop/lib.rescue';
 import type { RescuePlan, PlanLimits } from '@adopt-dont-shop/lib.types';
 
 /**
@@ -121,17 +121,9 @@ export interface RescueEmailPayload {
 }
 
 /**
- * Paginated response for list operations
+ * Paginated response re-exported from canonical source
  */
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
-}
+export type { PaginatedResponse } from '@adopt-dont-shop/lib.types';
 
 /**
  * Options for fetching a rescue

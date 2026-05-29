@@ -29,6 +29,27 @@ export const emptyState = style({
   gridColumn: '1 / -1',
 });
 
+// ADS-646: empty-state CTAs sit side-by-side ("Add" + "Import CSV") with a
+// follow-up hint link to the importer docs. Keeps the two onboarding paths
+// equally discoverable.
+export const emptyStateActions = style({
+  display: 'flex',
+  justifyContent: 'center',
+  gap: '0.75rem',
+  flexWrap: 'wrap',
+});
+
+export const emptyStateCsvHint = style({
+  marginTop: '1rem',
+  fontSize: '0.875rem',
+  color: '#6b7280',
+});
+
+export const emptyStateCsvLink = style({
+  color: '#2563eb',
+  textDecoration: 'underline',
+});
+
 globalStyle(`${emptyState} .empty-icon`, {
   fontSize: '3rem',
   marginBottom: '1rem',

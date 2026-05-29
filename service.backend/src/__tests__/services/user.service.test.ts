@@ -542,7 +542,12 @@ describe('UserService', () => {
 
       const result = await UserService.bulkUpdateUsers(updates, admin.userId);
 
-      expect(result).toBe(2);
+      expect(result).toMatchObject({
+        success: 2,
+        failed: 0,
+        failedIds: [],
+      });
+      expect(result.results).toHaveLength(2);
 
       // Verify in database
       const updatedUser1 = await User.findByPk(user1.userId);
@@ -640,6 +645,162 @@ describe('UserService', () => {
       await expect(UserService.bulkUpdateUsers(updates, admin.userId)).rejects.toThrow(
         'Only super_admin can assign super_admin role'
       );
+    });
+
+    // ADS-651: bulk state-change reasons must be captured per affected user
+    // so the audit trail explains *why* every row changed.
+    it('records the operator-supplied reason on each affected user audit row', async () => {
+      const userA = await User.create({
+        email: 'bulk-reason-a@example.com',
+        password: 'hashedpassword',
+        firstName: 'A',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const userB = await User.create({
+        email: 'bulk-reason-b@example.com',
+        password: 'hashedpassword',
+        firstName: 'B',
+        lastName: 'User',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-reason@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'Reason',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      const reason = 'Policy violation cleanup — Q1 2026';
+      const updates: BulkUserUpdateData[] = [
+        {
+          userIds: [userA.userId, userB.userId],
+          updates: { status: UserStatus.INACTIVE },
+          reason,
+        },
+      ];
+
+      await UserService.bulkUpdateUsers(updates, admin.userId);
+
+      const auditCalls = (AuditLogService.log as ReturnType<typeof vi.fn>).mock.calls.map(
+        c => c[0]
+      );
+      const bulkCalls = auditCalls.filter(c => c.action === 'BULK_UPDATE' && c.entity === 'User');
+
+      expect(bulkCalls).toHaveLength(2);
+      expect(bulkCalls.map(c => c.entityId).sort()).toEqual([userA.userId, userB.userId].sort());
+      bulkCalls.forEach(call => {
+        expect(call.details).toMatchObject({ reason, bulk_operation: true });
+      });
+    });
+
+    it('records reason as null when none is supplied', async () => {
+      const user = await User.create({
+        email: 'bulk-noreason@example.com',
+        password: 'hashedpassword',
+        firstName: 'No',
+        lastName: 'Reason',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-noreason@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'NoReason',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      await UserService.bulkUpdateUsers(
+        [{ userIds: [user.userId], updates: { firstName: 'Renamed' } }],
+        admin.userId
+      );
+
+      const auditCalls = (AuditLogService.log as ReturnType<typeof vi.fn>).mock.calls.map(
+        c => c[0]
+      );
+      const bulkCall = auditCalls.find(
+        c => c.action === 'BULK_UPDATE' && c.entityId === user.userId
+      );
+      expect(bulkCall).toBeDefined();
+      expect(bulkCall?.details).toMatchObject({ reason: null });
+    });
+
+    // Per-item retry UI relies on `failedIds` so the operator can re-run
+    // only the rows that failed. Mixed-outcome batches must report the
+    // exact subset that failed, plus a per-id result list.
+    it('returns failedIds and per-id results when some updates fail', async () => {
+      const user = await User.create({
+        email: 'bulk-mixed-success@example.com',
+        password: 'hashedpassword',
+        firstName: 'Mixed',
+        lastName: 'Success',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-mixed@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'Mixed',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      // Use a uuid-shaped id that has no corresponding row so the
+      // per-id update affects 0 rows and the service marks it failed.
+      const missingId = '00000000-0000-0000-0000-000000000000';
+      const updates: BulkUserUpdateData[] = [
+        {
+          userIds: [user.userId, missingId],
+          updates: { status: UserStatus.INACTIVE },
+        },
+      ];
+
+      const result = await UserService.bulkUpdateUsers(updates, admin.userId);
+
+      expect(result.success).toBe(1);
+      expect(result.failed).toBe(1);
+      expect(result.failedIds).toEqual([missingId]);
+      expect(result.results).toHaveLength(2);
+      const successEntry = result.results.find(r => r.id === user.userId);
+      const failureEntry = result.results.find(r => r.id === missingId);
+      expect(successEntry).toMatchObject({ success: true });
+      expect(failureEntry).toMatchObject({ success: false });
+      expect(failureEntry?.error).toBeTruthy();
+    });
+
+    it('returns an empty failedIds array when every update succeeds', async () => {
+      const user = await User.create({
+        email: 'bulk-all-success@example.com',
+        password: 'hashedpassword',
+        firstName: 'All',
+        lastName: 'Success',
+        userType: UserType.ADOPTER,
+        status: UserStatus.ACTIVE,
+      });
+      const admin = await User.create({
+        email: 'admin-all-success@example.com',
+        password: 'hashedpassword',
+        firstName: 'Admin',
+        lastName: 'AllSuccess',
+        userType: UserType.ADMIN,
+        status: UserStatus.ACTIVE,
+      });
+
+      const result = await UserService.bulkUpdateUsers(
+        [{ userIds: [user.userId], updates: { status: UserStatus.INACTIVE } }],
+        admin.userId
+      );
+
+      expect(result.failedIds).toEqual([]);
+      expect(result.success).toBe(1);
+      expect(result.failed).toBe(0);
     });
   });
 

@@ -14,6 +14,13 @@ export type ModalProps = {
   size?: ModalSize;
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
+  /**
+   * Whether pressing Escape closes the modal. Defaults to `true`.
+   *
+   * Only set to `false` for blocking modals that require explicit user
+   * action (e.g. LegalReacceptanceModal). Passing `!isSubmitting` is
+   * fine to prevent close during async operations.
+   */
   closeOnEscape?: boolean;
   className?: string;
   'data-testid'?: string;
@@ -45,6 +52,7 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const isInitialOpen = useRef(false);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
 
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
@@ -61,10 +69,12 @@ export const Modal: React.FC<ModalProps> = ({
 
       if (!isInitialOpen.current) {
         isInitialOpen.current = true;
+        const activeElement = document.activeElement;
+        previouslyFocused.current = activeElement instanceof HTMLElement ? activeElement : null;
         setTimeout(() => {
           if (modalRef.current) {
             const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-              'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+              'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"]), [role="button"]:not([disabled]), [role="menuitem"]:not([disabled])'
             );
             if (focusable.length > 0) {
               focusable[0].focus();
@@ -84,6 +94,13 @@ export const Modal: React.FC<ModalProps> = ({
         }
       };
     } else {
+      if (isInitialOpen.current) {
+        const toFocus = previouslyFocused.current;
+        if (toFocus && document.body.contains(toFocus)) {
+          toFocus.focus();
+        }
+        previouslyFocused.current = null;
+      }
       isInitialOpen.current = false;
     }
   }, [isOpen, closeOnEscape, handleEscape]);
@@ -101,7 +118,7 @@ export const Modal: React.FC<ModalProps> = ({
     }
     if (event.key === 'Tab' && modalRef.current) {
       const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"]), [role="button"]:not([disabled]), [role="menuitem"]:not([disabled])'
       );
       if (focusable.length === 0) {
         return;

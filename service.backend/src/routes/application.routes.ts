@@ -3,7 +3,7 @@ import { ApplicationController } from '../controllers/application.controller';
 import { authenticateToken } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import { idempotency } from '../middleware/idempotency';
-import { requireRole } from '../middleware/rbac';
+import { requirePermission, requireRole } from '../middleware/rbac';
 import { uploadLimiter } from '../middleware/rate-limiter';
 import {
   applicationCreateDailyLimiter,
@@ -12,6 +12,7 @@ import {
 import { enforceUploadMime } from '../middleware/upload-mime-guard';
 import { handleValidationErrors } from '../middleware/validation';
 import { UserType } from '../models/User';
+import { PERMISSIONS } from '../types';
 import { applicationDocumentUpload } from '../services/file-upload.service';
 import applicationTimelineRoutes from './applicationTimeline.routes';
 import { applicationValidation } from '../validation/application.validation';
@@ -1214,6 +1215,91 @@ router.get(
   '/:applicationId/history',
   ApplicationController.validateApplicationId,
   applicationController.getApplicationHistory
+);
+
+/**
+ * @swagger
+ * /api/v1/applications/{applicationId}/activity:
+ *   get:
+ *     tags: [Application Management]
+ *     summary: Get application activity log
+ *     description: Paginated chronological activity log for an application, sourced from audit logs.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: applicationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Application activity log retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       activityId:
+ *                         type: integer
+ *                       activityType:
+ *                         type: string
+ *                       action:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *                       ipAddress:
+ *                         type: string
+ *                         nullable: true
+ *                       userAgent:
+ *                         type: string
+ *                         nullable: true
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get(
+  '/:applicationId/activity',
+  requirePermission(PERMISSIONS.APPLICATION_READ),
+  ApplicationController.validateApplicationId,
+  applicationController.getApplicationActivityLog
 );
 
 router.post(

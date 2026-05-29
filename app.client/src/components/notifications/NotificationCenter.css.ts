@@ -47,7 +47,7 @@ export const filterSelect = style({
   background: vars.background.body,
   color: vars.text.primary,
   fontSize: '0.875rem',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
   },

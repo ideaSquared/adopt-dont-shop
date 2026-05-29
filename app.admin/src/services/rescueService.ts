@@ -11,7 +11,6 @@
  * - Clear error handling
  */
 
-import { RescueService as LibRescueService } from '@adopt-dont-shop/lib.rescue';
 import { apiService } from './libraryServices';
 import type {
   AdminRescue,
@@ -74,12 +73,7 @@ const buildQueryParams = (filters: AdminRescueFilters): Record<string, string> =
  * Admin Rescue Service Class
  */
 class AdminRescueService {
-  private libRescueService: LibRescueService;
   private baseUrl = '/api/v1/rescues';
-
-  constructor() {
-    this.libRescueService = new LibRescueService(apiService);
-  }
 
   /**
    * Fetch all rescues with pagination and filtering
@@ -94,7 +88,8 @@ class AdminRescueService {
         page: number;
         limit: number;
         total: number;
-        pages: number;
+        pages?: number;
+        totalPages?: number;
       };
     }>(this.baseUrl, params);
 
@@ -102,9 +97,17 @@ class AdminRescueService {
       throw new Error('Failed to fetch rescues');
     }
 
+    const totalPages = response.pagination.totalPages ?? response.pagination.pages ?? 1;
     return {
       data: response.data,
-      pagination: response.pagination,
+      pagination: {
+        page: response.pagination.page,
+        limit: response.pagination.limit,
+        total: response.pagination.total,
+        totalPages,
+        hasNext: response.pagination.page < totalPages,
+        hasPrev: response.pagination.page > 1,
+      },
     };
   }
 
@@ -190,7 +193,8 @@ class AdminRescueService {
         page: number;
         limit: number;
         total: number;
-        pages: number;
+        pages?: number;
+        totalPages?: number;
       };
     }>(`${this.baseUrl}/${rescueId}/staff`, params);
 
@@ -198,9 +202,17 @@ class AdminRescueService {
       throw new Error('Failed to fetch staff members');
     }
 
+    const totalPages = response.pagination.totalPages ?? response.pagination.pages ?? 1;
     return {
       data: response.data,
-      pagination: response.pagination,
+      pagination: {
+        page: response.pagination.page,
+        limit: response.pagination.limit,
+        total: response.pagination.total,
+        totalPages,
+        hasNext: response.pagination.page < totalPages,
+        hasPrev: response.pagination.page > 1,
+      },
     };
   }
 

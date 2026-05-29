@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import clsx from 'clsx';
-import { Card, ConfirmDialog, toast, useConfirm } from '@adopt-dont-shop/lib.components';
+import {
+  Card,
+  ConfirmDialog,
+  SkeletonCard,
+  toast,
+  useConfirm,
+} from '@adopt-dont-shop/lib.components';
 import { FiCalendar, FiPlus } from 'react-icons/fi';
 import * as styles from './Events.css';
 
@@ -354,11 +360,11 @@ const Events: React.FC = () => {
 
       <div className={styles.contentArea}>
         {loading ? (
-          <Card>
-            <div className={styles.loadingState}>
-              <p>Loading events...</p>
-            </div>
-          </Card>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {Array.from({ length: 3 }, (_, i) => (
+              <SkeletonCard key={i} lines={3} />
+            ))}
+          </div>
         ) : filteredEvents.length === 0 && !loading ? (
           <Card>
             <div className={styles.emptyState}>

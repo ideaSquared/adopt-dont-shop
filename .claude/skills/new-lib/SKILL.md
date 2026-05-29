@@ -32,9 +32,8 @@ The script creates `lib.<name>/` containing:
 lib.<name>/
 ├── package.json          # @adopt-dont-shop/lib.<name>
 ├── tsconfig.json
-├── jest.config.js
-├── .eslintrc.js
-├── .prettierrc
+├── vitest.config.ts
+├── eslint.config.js
 └── src/
     ├── index.ts          # Public exports
     ├── types/

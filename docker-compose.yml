@@ -56,7 +56,7 @@ services:
       dockerfile: ./service.backend/Dockerfile
       target: development
     ports:
-      - '5000:5000'
+      - '127.0.0.1:5000:5000'
     volumes:
       - ./service.backend:/app/service.backend
       - ./lib.types:/app/lib.types
@@ -159,7 +159,7 @@ services:
       args:
         APP_NAME: app.admin
     ports:
-      - '3001:3000'
+      - '127.0.0.1:3001:3000'
     volumes:
       # Single workspace mount - npm workspace handles library resolution
       - .:/app
@@ -196,7 +196,7 @@ services:
       args:
         APP_NAME: app.client
     ports:
-      - '3000:3000'
+      - '127.0.0.1:3000:3000'
     volumes:
       # Single workspace mount - npm workspace handles library resolution
       - .:/app
@@ -233,7 +233,7 @@ services:
       args:
         APP_NAME: app.rescue
     ports:
-      - '3002:3000'
+      - '127.0.0.1:3002:3000'
     volumes:
       # Single workspace mount - npm workspace handles library resolution
       - .:/app

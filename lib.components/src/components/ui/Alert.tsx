@@ -86,10 +86,19 @@ export const Alert: React.FC<AlertProps> = ({
 }) => {
   const displayIcon = icon ?? (showIcon ? defaultIcons[variant] : null);
 
+  // C2-7: explicit aria-live so screen readers announce async error /
+  // warning alerts when they appear (the role="alert" default is
+  // sufficient on most engines but a handful of AT/browser pairings
+  // miss the announcement without the explicit attribute). 'polite'
+  // for success/info so they don't interrupt the user mid-task.
+  const ariaLive: 'assertive' | 'polite' =
+    variant === 'error' || variant === 'warning' ? 'assertive' : 'polite';
+
   return (
     <div
       className={clsx(styles.alertContainer({ variant, size }), className)}
       role='alert'
+      aria-live={ariaLive}
       data-testid={dataTestId}
     >
       {displayIcon && (

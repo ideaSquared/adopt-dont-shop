@@ -49,8 +49,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className={styles.errorContainer} role='alert'>
           <h2 className={styles.errorTitle}>Something went wrong</h2>
           <p className={styles.errorMessage}>
-            We&apos;re sorry, but something unexpected happened. Please try again or contact support
-            if the problem persists.
+            Something unexpected happened. Try again or contact support if the problem persists.
           </p>
           {import.meta.env.DEV && this.state.error && (
             <details className={styles.errorDetails}>

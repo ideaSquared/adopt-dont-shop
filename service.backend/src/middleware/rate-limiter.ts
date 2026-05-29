@@ -196,9 +196,9 @@ export const loginEmailLimiter =
         standardHeaders: true,
         legacyHeaders: false,
         handler: (req, res) => {
-          logger.warn(
-            `Login email rate limit exceeded for: ${(req.body as Record<string, string> | undefined)?.email}`
-          );
+          logger.warn('Login email rate limit exceeded', {
+            ip: req.ip,
+          });
           res.status(429).json({
             error: 'Too many login attempts for this account, please try again later.',
             retryAfter: 900,
@@ -248,6 +248,16 @@ export const searchLimiter = buildRouteLimiter(15 * 60 * 1000, 30, 'SEARCH', 900
 // These run pre-aggregations and stream large response bodies.
 export const reportLimiter = buildRouteLimiter(15 * 60 * 1000, 10, 'REPORT', 900);
 
+// ADS-641: rescue registration — 5 / hour / IP. Public endpoint, so
+// a tighter window discourages automated registration spam while still
+// being generous enough for a human filling in the form.
+export const rescueRegistrationLimiter = buildRouteLimiter(
+  60 * 60 * 1000,
+  5,
+  'RESCUE_REGISTRATION',
+  3600
+);
+
 // ADS-107: per-admin system-wide broadcast limiter. Coarse audiences
 // (all, all-rescues, all-adopters, all-staff) make this disproportionately
 // expensive — 10 / minute / admin keeps an over-eager admin from flooding
@@ -295,9 +305,9 @@ export const emailResendLimiter =
         standardHeaders: true,
         legacyHeaders: false,
         handler: (req, res) => {
-          logger.warn(
-            `Email resend rate limit exceeded for IP: ${req.ip}, email: ${(req.body as Record<string, string> | undefined)?.email}`
-          );
+          logger.warn('Email resend rate limit exceeded', {
+            ip: req.ip,
+          });
           res.status(429).json({
             error: 'Too many verification email requests. Please try again later.',
             retryAfter: 3600,

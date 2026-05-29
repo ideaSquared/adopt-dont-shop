@@ -72,11 +72,10 @@ class ErrorBoundary extends Component<Props, State> {
               </svg>
             </div>
 
-            <h1 className={styles.errorTitle}>Oops! Something went wrong</h1>
+            <h1 className={styles.errorTitle}>Something went wrong</h1>
 
             <p className={styles.errorMessage}>
-              We&apos;re sorry, but something unexpected happened. Don&apos;t worry, your data is
-              safe.
+              Something unexpected happened. Try again or reload the page.
             </p>
 
             <div className={styles.buttonContainer}>

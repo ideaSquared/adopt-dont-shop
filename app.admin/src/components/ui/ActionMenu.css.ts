@@ -25,7 +25,7 @@ export const triggerButton = style({
     borderColor: '#9ca3af',
     color: '#374151',
   },
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
   },

@@ -152,6 +152,7 @@ export const TextArea = ({
           placeholder={placeholder}
           disabled={disabled}
           required={required}
+          aria-required={required ? true : undefined}
           readOnly={readOnly}
           rows={autoResize ? minRows : rows}
           maxLength={maxLength}

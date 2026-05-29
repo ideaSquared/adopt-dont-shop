@@ -208,7 +208,7 @@ export const authenticateToken = async (
       return;
     }
 
-    res.status(500).json({ error: 'Authentication error' });
+    res.status(401).json({ error: 'Authentication failed' });
   }
 };
 
@@ -307,7 +307,7 @@ export const requireRole = (requiredRoles: string | string[]) => {
         userId: req.user?.userId,
         ip: req.ip,
       });
-      res.status(500).json({ error: 'Authorization error' });
+      res.status(403).json({ error: 'Authorization check failed' });
     }
   };
 };
@@ -367,6 +367,6 @@ export const requireEmailVerification = (
       userId: req.user?.userId,
       ip: req.ip,
     });
-    res.status(500).json({ error: 'Verification check error' });
+    res.status(403).json({ error: 'Email verification check failed' });
   }
 };

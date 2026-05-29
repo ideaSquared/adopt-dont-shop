@@ -1,33 +1,21 @@
 import { z } from 'zod';
-import type { UserId } from '@adopt-dont-shop/lib.types';
+import { USER_STATUSES, type UserId, type UserRole } from '@adopt-dont-shop/lib.types';
 import { isSingleScriptLocalPart, normalizeEmail } from '../normalize-email';
+import { BulkOperationFailedIdsSchema } from './bulk-response';
 
-/**
- * Canonical Zod schemas for the User domain.
- *
- * One source of truth for User-shaped data, used by:
- *  - service.backend request validation (replacing express-validator)
- *  - service.backend Sequelize beforeValidate cross-check
- *  - frontend forms via lib.auth (LoginForm, RegisterForm, ProfileForm)
- *
- * The schema definitions deliberately match the Sequelize column-level
- * validators in service.backend/src/models/User.ts. Drift between the
- * two is what we're trying to eliminate.
- */
+// ----- Enums (canonical values from lib.types) ---------------------------
 
-// ----- Enums (match the values exported from User.ts) ---------------------
+export const UserStatusSchema = z.enum(USER_STATUSES);
 
-export const UserStatusSchema = z.enum([
-  'active',
-  'inactive',
-  'suspended',
-  'pending_verification',
-  'deactivated',
-]);
-export type UserStatusValue = z.infer<typeof UserStatusSchema>;
-
-export const UserTypeSchema = z.enum(['adopter', 'rescue_staff', 'admin', 'moderator']);
-export type UserTypeValue = z.infer<typeof UserTypeSchema>;
+const USER_TYPES = [
+  'adopter',
+  'rescue_staff',
+  'admin',
+  'moderator',
+  'super_admin',
+  'support_agent',
+] as const satisfies readonly UserRole[];
+export const UserTypeSchema = z.enum(USER_TYPES);
 
 // ----- Primitives ---------------------------------------------------------
 
@@ -67,8 +55,7 @@ export const EmailSchema = z
 
 /**
  * Strong password — 8+ chars, must contain lowercase, uppercase, digit,
- * and one of @$!%*?&. Matches the regex used today in
- * auth.controller.validateRegister.
+ * and at least one non-alphanumeric character (any special character).
  */
 export const StrongPasswordSchema = z
   .string()
@@ -77,7 +64,7 @@ export const StrongPasswordSchema = z
   .regex(/[a-z]/, 'Password must contain a lowercase letter')
   .regex(/[A-Z]/, 'Password must contain an uppercase letter')
   .regex(/\d/, 'Password must contain a digit')
-  .regex(/[@$!%*?&]/, 'Password must contain a special character (@$!%*?&)');
+  .regex(/[^a-zA-Z0-9]/, 'Password must contain a special character');
 
 /**
  * Phone number — 10–20 digits after light normalization (whitespace and
@@ -95,7 +82,8 @@ export const PhoneNumberSchema = z
       .max(20, 'Phone number must be at most 20 digits')
   );
 
-const NameSchema = z.string().trim().min(1).max(100);
+const stripHtmlTags = (val: string) => val.replace(/[<>]/g, '');
+const NameSchema = z.string().trim().transform(stripHtmlTags).pipe(z.string().min(1).max(100));
 
 // ----- Profile / read shape ----------------------------------------------
 
@@ -235,5 +223,25 @@ export const BulkUserUpdateRequestSchema = z.object({
     .min(1, 'At least one user ID is required')
     .max(100, 'Cannot update more than 100 users at a time'),
   updateData: BulkUserUpdateDataSchema,
+  // ADS-651: capture the operator's reason for the bulk state change so it
+  // can be surfaced in the audit log alongside the per-user update list.
+  reason: z.string().trim().min(1, 'Reason is required').max(500).optional(),
 });
 export type BulkUserUpdateRequest = z.infer<typeof BulkUserUpdateRequestSchema>;
+
+/**
+ * Response shape for POST /api/v1/users/bulk-update.
+ *
+ * Aggregate counts (`success`, `failed`) are kept for backward
+ * compatibility with existing callers. `failedIds` is always present
+ * (may be empty) so the admin UI can light up per-item retry without
+ * re-fetching to diff the input. `results` is optional finer-grained
+ * detail.
+ */
+export const BulkUserUpdateResponseSchema = z
+  .object({
+    success: z.number().int().nonnegative(),
+    failed: z.number().int().nonnegative(),
+  })
+  .merge(BulkOperationFailedIdsSchema);
+export type BulkUserUpdateResponse = z.infer<typeof BulkUserUpdateResponseSchema>;

@@ -32,6 +32,17 @@ export default defineConfig({
         'src/**/*.spec.tsx',
         'src/index.ts',
       ],
+      // ADS-708: baseline coverage thresholds. Starts at 0% so today's PRs
+      // are not blocked — infrastructure is now in place for per-package
+      // ratcheting (ADS-717). Individual packages may override these in
+      // their own vitest.config.ts by setting test.coverage.thresholds.
+      thresholds: {
+        statements: 0,
+        branches: 0,
+        functions: 0,
+        lines: 0,
+        autoUpdate: false,
+      },
     },
   },
 });

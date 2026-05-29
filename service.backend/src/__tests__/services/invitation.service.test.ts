@@ -234,6 +234,36 @@ describe('InvitationService', () => {
           })
         );
       });
+
+      it('should build the invitation URL from the rescue app origin (per-role resolver)', async () => {
+        // Rescue invitations are a typed email — the resolver must pin
+        // them to RESCUE_FRONTEND_URL regardless of the recipient's role.
+        const originalRescueUrl = process.env.RESCUE_FRONTEND_URL;
+        const originalClientUrl = process.env.FRONTEND_URL;
+        process.env.FRONTEND_URL = 'http://localhost:3000';
+        process.env.RESCUE_FRONTEND_URL = 'http://localhost:3002';
+
+        try {
+          MockedRescue.findByPk = vi.fn().mockResolvedValue(buildRescue());
+          MockedStaffMember.findOne = vi.fn().mockResolvedValue(null);
+          MockedInvitation.findOne = vi.fn().mockResolvedValue(null);
+          MockedInvitation.create = vi.fn().mockResolvedValue(buildInvitation());
+
+          await InvitationService.inviteStaffMember(
+            'rescue-001',
+            'staff@example.com',
+            'Volunteer',
+            'admin-user-id'
+          );
+
+          const call = (MockedEmailTemplateService.sendStaffInvitation as vi.Mock).mock.calls[0][0];
+          expect(call.invitationUrl).toMatch(/^http:\/\/localhost:3002\/accept-invitation\?token=/);
+          expect(call.invitationUrl).not.toContain('localhost:3000');
+        } finally {
+          process.env.RESCUE_FRONTEND_URL = originalRescueUrl;
+          process.env.FRONTEND_URL = originalClientUrl;
+        }
+      });
     });
 
     describe('when the email send fails', () => {

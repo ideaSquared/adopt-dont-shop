@@ -1,16 +1,20 @@
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { petService, Pet } from '@/services';
-import { Alert, Container, Spinner } from '@adopt-dont-shop/lib.components';
+import { Alert, Container } from '@adopt-dont-shop/lib.components';
+import { PetCardSkeletonGrid } from '@/components/skeletons';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PetCard } from '../components/PetCard';
+import { useFavorites } from '../contexts/FavoritesContext';
 import * as styles from './FavoritesPage.css';
 
 export const FavoritesPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
+  const favoritesContext = useFavorites();
   const [favorites, setFavorites] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -36,10 +40,27 @@ export const FavoritesPage: React.FC = () => {
     fetchFavorites();
   }, [isAuthenticated]);
 
+  // ADS UX P0 #1: when an un-favorite API call fails, PetCard keeps the pet
+  // in its internal state and surfaces the failure via FavoritesContext.error.
+  // Mirror that here so the rendered list never drifts ahead of the server:
+  // we only remove from local state on a successful toggle (handled below),
+  // and we surface the context error so the user knows the toggle didn't
+  // stick.
+  useEffect(() => {
+    if (favoritesContext.error) {
+      setActionError(favoritesContext.error);
+    }
+  }, [favoritesContext.error]);
+
   const handleFavoriteToggle = async (petId: string, isFavorite: boolean) => {
     if (!isFavorite) {
-      // Pet was removed from favorites, update the list
+      // PetCard only fires this callback after the remove API call has
+      // resolved successfully, so removing from local state here is safe.
+      // If the underlying call had failed, the callback would not fire and
+      // the pet would stay in the list (with FavoritesContext.error
+      // surfacing the failure via the effect above).
       setFavorites(prev => prev.filter(pet => pet.pet_id !== petId));
+      setActionError(null);
     }
   };
 
@@ -48,7 +69,7 @@ export const FavoritesPage: React.FC = () => {
     return (
       <Container className={styles.pageContainer}>
         <div className={styles.loginPrompt}>
-          <h2>🔐 Login Required</h2>
+          <h2>Login Required</h2>
           <p>
             Please log in to view your favorite pets. Your favorites will be saved across all your
             devices.
@@ -64,7 +85,7 @@ export const FavoritesPage: React.FC = () => {
   return (
     <Container className={styles.pageContainer}>
       <div className={styles.header}>
-        <h1>❤️ Your Favorite Pets</h1>
+        <h1>Your Favorite Pets</h1>
         <p>
           Keep track of the pets that caught your heart. Your favorites are saved and synced across
           all your devices.
@@ -95,8 +116,8 @@ export const FavoritesPage: React.FC = () => {
 
       {/* Loading state */}
       {loading && (
-        <div className={styles.loadingContainer}>
-          <Spinner size='lg' />
+        <div className={styles.petGrid}>
+          <PetCardSkeletonGrid count={6} />
         </div>
       )}
 
@@ -104,6 +125,13 @@ export const FavoritesPage: React.FC = () => {
       {error && (
         <Alert variant='error' className={styles.errorAlert}>
           {error}
+        </Alert>
+      )}
+
+      {/* Action error (e.g. an un-favorite call failed) */}
+      {actionError && !error && (
+        <Alert variant='error' className={styles.errorAlert}>
+          {actionError}
         </Alert>
       )}
 
@@ -125,7 +153,6 @@ export const FavoritesPage: React.FC = () => {
       {/* Empty state */}
       {!loading && !error && favorites.length === 0 && (
         <div className={styles.emptyState}>
-          <span className='emoji'>💔</span>
           <h2>No favorites yet</h2>
           <p>
             You haven&apos;t saved any pets to your favorites yet. Start exploring to find pets that
@@ -133,10 +160,10 @@ export const FavoritesPage: React.FC = () => {
           </p>
           <div className={styles.ctaButtonRow}>
             <Link to='/discover' className={styles.ctaButton}>
-              🔍 Start Swiping
+              Start Swiping
             </Link>
             <Link to='/search' className={`${styles.ctaButton} ${styles.ctaButtonGreen}`}>
-              📋 Browse All Pets
+              Browse All Pets
             </Link>
           </div>
         </div>

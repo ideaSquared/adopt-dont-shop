@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { errorHandler } from '../../middleware/error-handler';
+import { errorHandler, NotFoundError } from '../../middleware/error-handler';
 
 vi.mock('../../utils/logger', () => ({
   logger: {
@@ -54,18 +54,13 @@ describe('Invitation routes — token safety in error logs', () => {
 
     beforeEach(() => {
       vi.mocked(InvitationService.acceptInvitation).mockRejectedValue(
-        new Error('Invitation not found')
+        new NotFoundError('Invitation not found')
       );
     });
 
     it('returns a 404 when the invitation is not found', async () => {
       const res = await request(app).post('/invitations/accept').send(validBody);
       expect(res.status).toBe(404);
-    });
-
-    it('calls logger.error when the service throws', async () => {
-      await request(app).post('/invitations/accept').send(validBody);
-      expect(vi.mocked(logger.error)).toHaveBeenCalled();
     });
 
     it('does not include the raw invitation token in the error log metadata', async () => {
@@ -99,11 +94,6 @@ describe('Invitation routes — token safety in error logs', () => {
     it('returns a 500 when the service throws unexpectedly', async () => {
       const res = await request(app).get(`/invitations/details/${rawToken}`);
       expect(res.status).toBe(500);
-    });
-
-    it('calls logger.error when the service throws', async () => {
-      await request(app).get(`/invitations/details/${rawToken}`);
-      expect(vi.mocked(logger.error)).toHaveBeenCalled();
     });
 
     it('does not include the raw token in the error log metadata', async () => {

@@ -8,16 +8,20 @@
  * - Error state shown when the API fails
  * - Admin can filter users by type and status
  * - Admin can search for users
- * - Admin can open user detail by clicking a row
- * - Admin can open edit modal and send message modal
- * - Admin can perform actions: suspend, unsuspend, verify, delete
+ * - Admin can open user detail panel by clicking a row
+ * - Admin can perform actions from the detail panel: suspend, unsuspend
  */
 
+import React from 'react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { renderWithProviders, screen, waitFor } from '../test-utils';
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from '@adopt-dont-shop/lib.components';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import Users from '../pages/Users';
 import type { AdminUser } from '../types/user';
+import { apiService } from '../services/libraryServices';
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
@@ -28,6 +32,7 @@ const mockUseVerifyUser = vi.fn();
 const mockUseDeleteUser = vi.fn();
 const mockUseBulkUpdateUsers = vi.fn();
 const mockUseCreateUser = vi.fn();
+const mockUseEntityActivity = vi.fn();
 
 vi.mock('../hooks', () => ({
   useUsers: (...args: unknown[]) => mockUseUsers(...args),
@@ -37,6 +42,7 @@ vi.mock('../hooks', () => ({
   useDeleteUser: () => mockUseDeleteUser(),
   useBulkUpdateUsers: () => mockUseBulkUpdateUsers(),
   useCreateUser: () => mockUseCreateUser(),
+  useEntityActivity: (...args: unknown[]) => mockUseEntityActivity(...args),
 }));
 
 vi.mock('../services/libraryServices', () => ({
@@ -50,33 +56,6 @@ vi.mock('../services/libraryServices', () => ({
 vi.mock('../components/modals', () => ({
   AddUserModal: () => null,
   BulkConfirmationModal: () => null,
-  UserDetailModal: ({
-    isOpen,
-    user,
-  }: {
-    isOpen: boolean;
-    onClose: () => void;
-    user: AdminUser | null;
-  }) =>
-    isOpen && user ? (
-      <div data-testid='user-detail-modal'>
-        <span>Detail: {user.email}</span>
-      </div>
-    ) : null,
-  EditUserModal: ({
-    isOpen,
-    user,
-  }: {
-    isOpen: boolean;
-    onClose: () => void;
-    user: AdminUser | null;
-    onSave: () => void;
-  }) =>
-    isOpen && user ? (
-      <div data-testid='edit-user-modal'>
-        <span>Edit: {user.email}</span>
-      </div>
-    ) : null,
   CreateSupportTicketModal: ({
     isOpen,
     user,
@@ -91,30 +70,6 @@ vi.mock('../components/modals', () => ({
         <span>Ticket for: {user.email}</span>
       </div>
     ) : null,
-  UserActionsMenu: ({
-    user,
-    onSuspend,
-    onUnsuspend,
-  }: {
-    user: AdminUser;
-    onSuspend: (userId: string, reason?: string) => Promise<void>;
-    onUnsuspend: (userId: string) => Promise<void>;
-    onVerify: (userId: string) => Promise<void>;
-    onDelete: (userId: string, reason?: string) => Promise<void>;
-  }) => (
-    <div>
-      <button data-testid={`actions-${user.userId}`}>Actions</button>
-      <button
-        data-testid={`suspend-${user.userId}`}
-        onClick={() => onSuspend(user.userId, 'test reason')}
-      >
-        Suspend
-      </button>
-      <button data-testid={`unsuspend-${user.userId}`} onClick={() => onUnsuspend(user.userId)}>
-        Unsuspend
-      </button>
-    </div>
-  ),
 }));
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -192,12 +147,37 @@ const mockAdminUsers: AdminUser[] = [
     createdAt: '2024-01-03T00:00:00Z',
     updatedAt: '2024-01-03T00:00:00Z',
   },
+  {
+    userId: 'user-4',
+    email: 'alice.pending@example.com',
+    firstName: 'Alice',
+    lastName: 'Pending',
+    userType: 'adopter',
+    status: 'pending_verification',
+    emailVerified: false,
+    phoneNumber: null,
+    phoneVerified: false,
+    profileImageUrl: null,
+    bio: null,
+    country: null,
+    city: null,
+    addressLine1: null,
+    addressLine2: null,
+    postalCode: null,
+    rescueId: null,
+    rescueName: null,
+    lastLoginAt: null,
+    lastLogin: null,
+    createdAt: '2024-01-04T00:00:00Z',
+    updatedAt: '2024-01-04T00:00:00Z',
+  },
 ];
 
 const mockMutationResult = {
   mutateAsync: vi.fn().mockResolvedValue({}),
   mutate: vi.fn(),
   isLoading: false,
+  isPending: false,
   isError: false,
   isSuccess: false,
   reset: vi.fn(),
@@ -232,6 +212,28 @@ const setupErrorState = (message = 'Network error') => {
   });
 };
 
+const renderUsersPage = (initialRoute = '/users') => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[initialRoute]}>
+        <ThemeProvider>
+          <Routes>
+            <Route path='/users' element={<Users />} />
+            <Route path='/users/:userId' element={<Users />} />
+          </Routes>
+        </ThemeProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+};
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('User Management page', () => {
@@ -243,43 +245,47 @@ describe('User Management page', () => {
     mockUseDeleteUser.mockReturnValue(mockMutationResult);
     mockUseBulkUpdateUsers.mockReturnValue(mockMutationResult);
     mockUseCreateUser.mockReturnValue(mockMutationResult);
+    mockUseEntityActivity.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
   });
 
   describe('page structure', () => {
     it('shows the User Management heading', () => {
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.getByText('User Management')).toBeInTheDocument();
     });
 
     it('shows the page description', () => {
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.getByText('Manage all platform users and permissions')).toBeInTheDocument();
     });
 
     it('shows the Export button', () => {
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.getByRole('button', { name: /export/i })).toBeInTheDocument();
     });
 
     it('shows the Add User button', () => {
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.getByRole('button', { name: /add user/i })).toBeInTheDocument();
     });
 
     it('shows the search input', () => {
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.getByPlaceholderText(/search by name or email/i)).toBeInTheDocument();
     });
 
     it('shows the User Type filter', () => {
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.getByText('User Type')).toBeInTheDocument();
       expect(screen.getByDisplayValue('All Types')).toBeInTheDocument();
     });
 
     it('shows the Status filter', () => {
-      renderWithProviders(<Users />);
-      // "Status" appears as both a filter label and a column header
+      renderUsersPage();
       const statusLabels = screen.getAllByText('Status');
       expect(statusLabels.length).toBeGreaterThan(0);
       expect(screen.getByDisplayValue('All Statuses')).toBeInTheDocument();
@@ -289,14 +295,14 @@ describe('User Management page', () => {
   describe('loading state', () => {
     it('shows skeleton rows while fetching users', () => {
       setupLoadingState();
-      const { container } = renderWithProviders(<Users />);
+      const { container } = renderUsersPage();
       const skeletonRows = container.querySelectorAll('[data-testid="skeleton-row"]');
       expect(skeletonRows.length).toBeGreaterThan(0);
     });
 
     it('does not show user data while loading', () => {
       setupLoadingState();
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.queryByText('john.doe@example.com')).not.toBeInTheDocument();
     });
   });
@@ -304,81 +310,80 @@ describe('User Management page', () => {
   describe('error state', () => {
     it('shows a failure message when the API returns an error', () => {
       setupErrorState('Failed to connect to server');
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.getByText('Failed to load users')).toBeInTheDocument();
     });
 
     it('shows the specific error message', () => {
       setupErrorState('Failed to connect to server');
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.getByText('Failed to connect to server')).toBeInTheDocument();
     });
   });
 
   describe('displaying users', () => {
     it('renders user names in the table', () => {
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.getByText('John Doe')).toBeInTheDocument();
       expect(screen.getByText('Jane Smith')).toBeInTheDocument();
     });
 
     it('renders user emails in the table', () => {
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.getByText('john.doe@example.com')).toBeInTheDocument();
       expect(screen.getByText('jane.smith@example.com')).toBeInTheDocument();
     });
 
     it('shows the Adopter badge for adopter users', () => {
-      renderWithProviders(<Users />);
-      // "Adopter" appears as badge and also in the filter dropdown
+      renderUsersPage();
       const adopterLabels = screen.getAllByText('Adopter');
       expect(adopterLabels.length).toBeGreaterThan(0);
     });
 
     it('shows the Rescue Staff badge for rescue staff users', () => {
-      renderWithProviders(<Users />);
-      // "Rescue Staff" appears as badge and also in the filter dropdown
+      renderUsersPage();
       const rescueStaffLabels = screen.getAllByText('Rescue Staff');
       expect(rescueStaffLabels.length).toBeGreaterThan(0);
     });
 
     it('shows the Active status badge for active users', () => {
-      renderWithProviders(<Users />);
+      renderUsersPage();
       const activeBadges = screen.getAllByText('Active');
       expect(activeBadges.length).toBeGreaterThan(0);
     });
 
     it('shows the Suspended status badge for suspended users', () => {
-      renderWithProviders(<Users />);
-      // "Suspended" appears as badge and also in the status filter dropdown
+      renderUsersPage();
       const suspendedLabels = screen.getAllByText('Suspended');
       expect(suspendedLabels.length).toBeGreaterThan(0);
     });
 
     it('shows the rescue name for rescue staff', () => {
-      renderWithProviders(<Users />);
+      renderUsersPage();
       expect(screen.getByText('Happy Paws')).toBeInTheDocument();
     });
 
     it('shows a dash when user has no rescue', () => {
-      renderWithProviders(<Users />);
+      renderUsersPage();
       const dashCells = screen.getAllByText('-');
       expect(dashCells.length).toBeGreaterThan(0);
     });
 
     it('shows the table column headers', () => {
-      renderWithProviders(<Users />);
-      // Column headers are among the visible text elements
+      renderUsersPage();
       expect(screen.getAllByText('User').length).toBeGreaterThan(0);
       expect(screen.getByText('Type')).toBeInTheDocument();
-      // "Status" appears as both column header and filter label
       expect(screen.getAllByText('Status').length).toBeGreaterThan(0);
     });
 
     it('shows an empty message when no users match', () => {
       setupSuccessfulLoad([]);
-      renderWithProviders(<Users />);
-      expect(screen.getByText('No users found matching your criteria')).toBeInTheDocument();
+      renderUsersPage();
+      expect(
+        screen.getByText(
+          'No users found matching your criteria. Try adjusting your search or filters.'
+        )
+      ).toBeInTheDocument();
     });
   });
 
@@ -397,7 +402,7 @@ describe('User Management page', () => {
         refetch: vi.fn(),
       }));
 
-      renderWithProviders(<Users />);
+      renderUsersPage();
 
       await user.selectOptions(screen.getByDisplayValue('All Types'), 'adopter');
 
@@ -421,7 +426,7 @@ describe('User Management page', () => {
         refetch: vi.fn(),
       }));
 
-      renderWithProviders(<Users />);
+      renderUsersPage();
 
       await user.selectOptions(screen.getByDisplayValue('All Statuses'), 'suspended');
 
@@ -432,59 +437,40 @@ describe('User Management page', () => {
     });
   });
 
-  describe('user detail modal', () => {
-    it('opens the detail modal when admin clicks on a user row', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<Users />);
-
-      await user.click(screen.getByText('john.doe@example.com'));
-
-      expect(screen.getByTestId('user-detail-modal')).toBeInTheDocument();
-      expect(screen.getByText('Detail: john.doe@example.com')).toBeInTheDocument();
-    });
-  });
-
-  describe('user action buttons', () => {
-    it('renders action buttons for each user row', () => {
-      renderWithProviders(<Users />);
-      // Each user row has its own edit/message buttons
-      const editButtons = screen.getAllByTitle('Edit user');
-      expect(editButtons.length).toBe(mockAdminUsers.length);
-      const messageButtons = screen.getAllByTitle('Send message');
-      expect(messageButtons.length).toBe(mockAdminUsers.length);
+  describe('split-pane detail panel', () => {
+    it('does not show the detail panel when no user is selected', () => {
+      renderUsersPage();
+      expect(screen.queryByTestId('user-detail-panel')).not.toBeInTheDocument();
     });
 
-    it('opens edit modal when admin clicks Edit on a user', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<Users />);
+    it('shows the detail panel when navigated to a user URL', () => {
+      renderUsersPage('/users/user-1');
 
-      const editButtons = screen.getAllByTitle('Edit user');
-      await user.click(editButtons[0]);
-
-      expect(screen.getByTestId('edit-user-modal')).toBeInTheDocument();
+      const panel = screen.getByTestId('user-detail-panel');
+      expect(panel).toBeInTheDocument();
+      // Panel header shows the user name
+      expect(panel).toHaveTextContent('John Doe');
     });
 
-    it('opens support ticket modal when admin clicks Send message', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(<Users />);
+    it('shows the close button on the detail panel', () => {
+      renderUsersPage('/users/user-1');
 
-      const messageButtons = screen.getAllByTitle('Send message');
-      await user.click(messageButtons[0]);
-
-      expect(screen.getByTestId('support-ticket-modal')).toBeInTheDocument();
+      expect(screen.getByLabelText('Close detail panel')).toBeInTheDocument();
     });
   });
 
   describe('suspension feedback messages', () => {
-    it('shows a success message when a user is suspended successfully', async () => {
+    it('shows a success message when a user is suspended via the panel', async () => {
       const user = userEvent.setup();
       mockUseSuspendUser.mockReturnValue({
         ...mockMutationResult,
         mutateAsync: vi.fn().mockResolvedValue({}),
       });
-      renderWithProviders(<Users />);
 
-      await user.click(screen.getByTestId('suspend-user-1'));
+      renderUsersPage('/users/user-1');
+
+      await user.click(screen.getByRole('tab', { name: 'Actions' }));
+      await user.click(screen.getByText('Suspend User'));
 
       await waitFor(() => {
         expect(screen.getByText('User suspended successfully')).toBeInTheDocument();
@@ -497,9 +483,11 @@ describe('User Management page', () => {
         ...mockMutationResult,
         mutateAsync: vi.fn().mockRejectedValue(new Error('Permission denied')),
       });
-      renderWithProviders(<Users />);
 
-      await user.click(screen.getByTestId('suspend-user-1'));
+      renderUsersPage('/users/user-1');
+
+      await user.click(screen.getByRole('tab', { name: 'Actions' }));
+      await user.click(screen.getByText('Suspend User'));
 
       await waitFor(() => {
         expect(screen.getByText('Failed to suspend user — Permission denied')).toBeInTheDocument();
@@ -512,24 +500,28 @@ describe('User Management page', () => {
         ...mockMutationResult,
         mutateAsync: vi.fn().mockRejectedValue('unknown error'),
       });
-      renderWithProviders(<Users />);
 
-      await user.click(screen.getByTestId('suspend-user-1'));
+      renderUsersPage('/users/user-1');
+
+      await user.click(screen.getByRole('tab', { name: 'Actions' }));
+      await user.click(screen.getByText('Suspend User'));
 
       await waitFor(() => {
         expect(screen.getByText('Failed to suspend user — please try again')).toBeInTheDocument();
       });
     });
 
-    it('shows a success message when a user is unsuspended successfully', async () => {
+    it('shows a success message when a user is unsuspended via the panel', async () => {
       const user = userEvent.setup();
       mockUseUnsuspendUser.mockReturnValue({
         ...mockMutationResult,
         mutateAsync: vi.fn().mockResolvedValue({}),
       });
-      renderWithProviders(<Users />);
 
-      await user.click(screen.getByTestId('unsuspend-user-3'));
+      renderUsersPage('/users/user-3');
+
+      await user.click(screen.getByRole('tab', { name: 'Actions' }));
+      await user.click(screen.getByText('Unsuspend User'));
 
       await waitFor(() => {
         expect(screen.getByText('User unsuspended successfully')).toBeInTheDocument();
@@ -542,9 +534,11 @@ describe('User Management page', () => {
         ...mockMutationResult,
         mutateAsync: vi.fn().mockRejectedValue(new Error('Server unavailable')),
       });
-      renderWithProviders(<Users />);
 
-      await user.click(screen.getByTestId('unsuspend-user-3'));
+      renderUsersPage('/users/user-3');
+
+      await user.click(screen.getByRole('tab', { name: 'Actions' }));
+      await user.click(screen.getByText('Unsuspend User'));
 
       await waitFor(() => {
         expect(
@@ -559,13 +553,82 @@ describe('User Management page', () => {
         ...mockMutationResult,
         mutateAsync: vi.fn().mockRejectedValue('unknown error'),
       });
-      renderWithProviders(<Users />);
 
-      await user.click(screen.getByTestId('unsuspend-user-3'));
+      renderUsersPage('/users/user-3');
+
+      await user.click(screen.getByRole('tab', { name: 'Actions' }));
+      await user.click(screen.getByText('Unsuspend User'));
 
       await waitFor(() => {
         expect(screen.getByText('Failed to unsuspend user — please try again')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('detail panel tabs', () => {
+    it('shows Overview tab by default with user details', () => {
+      renderUsersPage('/users/user-1');
+
+      expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
+    it('shows Edit tab with form fields when clicked', async () => {
+      const user = userEvent.setup();
+      renderUsersPage('/users/user-1');
+
+      await user.click(screen.getByRole('tab', { name: 'Edit' }));
+
+      expect(screen.getByLabelText('First Name')).toBeInTheDocument();
+      expect(screen.getByLabelText('Last Name')).toBeInTheDocument();
+      expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    });
+
+    it('shows Actions tab with action buttons when clicked', async () => {
+      const user = userEvent.setup();
+      renderUsersPage('/users/user-1');
+
+      await user.click(screen.getByRole('tab', { name: 'Actions' }));
+
+      expect(screen.getByText('Suspend User')).toBeInTheDocument();
+      expect(screen.getByText('Reset Password')).toBeInTheDocument();
+      expect(screen.getByText('Delete User')).toBeInTheDocument();
+    });
+
+    it('shows Activity tab when clicked', async () => {
+      const user = userEvent.setup();
+      renderUsersPage('/users/user-1');
+
+      await user.click(screen.getByRole('tab', { name: 'Activity' }));
+
+      expect(screen.getByText('No activity recorded for this user.')).toBeInTheDocument();
+    });
+
+    it('shows Pending Verification in status dropdown for a pending_verification user', async () => {
+      const user = userEvent.setup();
+      setupSuccessfulLoad(mockAdminUsers);
+      renderUsersPage('/users/user-4');
+
+      await user.click(screen.getByRole('tab', { name: 'Edit' }));
+
+      expect(screen.getByDisplayValue('Pending Verification')).toBeInTheDocument();
+    });
+
+    it('does not call the API when saving the edit form without changing any fields for a pending_verification user', async () => {
+      const user = userEvent.setup();
+      vi.mocked(apiService.patch).mockClear();
+      setupSuccessfulLoad(mockAdminUsers);
+      renderUsersPage('/users/user-4');
+
+      await user.click(screen.getByRole('tab', { name: 'Edit' }));
+      await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Saved')).toBeInTheDocument();
+      });
+      expect(apiService.patch).not.toHaveBeenCalled();
     });
   });
 });

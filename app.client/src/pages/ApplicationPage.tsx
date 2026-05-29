@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Alert, Button, Spinner, toast } from '@adopt-dont-shop/lib.components';
 import * as styles from './ApplicationPage.css';
@@ -8,7 +8,10 @@ import type { CategoryGroup } from '@/components/application/ApplicationForm';
 import { DraftRestoreBanner } from '@/components/application/DraftRestoreBanner';
 import type { Question } from '@/components/application/QuestionField';
 import { SubmissionSuccess } from '@/components/application/SubmissionSuccess';
-import { useAutoSave } from '@/hooks/use-auto-save';
+// Backend-synced draft replaces the legacy localStorage-backed useAutoSave —
+// drafts are persisted via PUT /api/v1/applications/drafts/:petId so the user
+// can resume on any device.
+import { useApplicationDraft } from '@/hooks/useApplicationDraft';
 import { petService, apiService, type Pet } from '@/services';
 import { applicationProfileService } from '@/services/applicationProfileService';
 import {
@@ -57,7 +60,7 @@ const MACRO_STEPS: readonly MacroStepDef[] = [
     id: 'this_pet',
     title: 'About {petName} ❤️',
     description: petName =>
-      `Last bit! Just a few questions about ${petName ?? 'this pet'} and we're done.`,
+      `Last bit — a few questions about ${petName ?? 'this pet'} and we're done.`,
     categories: ['final_acknowledgments'],
   },
 ];
@@ -189,12 +192,12 @@ export const ApplicationPage: React.FC = () => {
   // their previous answers, or opt out by starting over. `null` = undecided
   // (banner showing); 'resume'/'startOver' = decided and banner hidden.
   const [draftDecision, setDraftDecision] = useState<'resume' | 'startOver' | null>(null);
+  // ADS-535: model hook rejects SUBMITTED rows without this flag set true.
+  // Captured on the review step (or QuickApply submit area), not as a question.
+  const [referencesConsented, setReferencesConsented] = useState(false);
 
   const { saveStatus, lastSaved, scheduleSave, saveNow, clearDraft, loadedDraft } =
-    useAutoSave<Record<string, unknown>>(petId);
-
-  const currentStepRef = useRef(currentStep);
-  currentStepRef.current = currentStep;
+    useApplicationDraft(petId);
 
   const loadData = useCallback(async () => {
     if (!petId) {
@@ -247,18 +250,18 @@ export const ApplicationPage: React.FC = () => {
     if (!loadedDraft) {
       return;
     }
-    setAnswers(loadedDraft.applicationData);
-    setCurrentStep(loadedDraft.currentStep);
-    // A restored draft implies mid-flow editing — use the guided view so the
-    // saved `currentStep` makes sense, and drop the badge state since the
-    // draft reflects the user's own typed answers.
+    setAnswers(loadedDraft.answers);
+    // Backend drafts only persist answers (not step) — last-write-wins means
+    // every device sees the same answers, so the resumed user starts the
+    // guided flow at step 1 with their answers already filled in.
+    setCurrentStep(1);
     setPrefilledKeys(new Set());
     setViewMode('guided');
     setDraftDecision('resume');
   }, [loadedDraft]);
 
   const handleStartOver = useCallback(() => {
-    clearDraft();
+    void clearDraft();
     setDraftDecision('startOver');
   }, [clearDraft]);
 
@@ -277,7 +280,7 @@ export const ApplicationPage: React.FC = () => {
     (updated: Record<string, unknown>) => {
       const normalised = applyConditionalDefaults(updated);
       setAnswers(normalised);
-      scheduleSave(normalised, currentStepRef.current);
+      scheduleSave(normalised);
     },
     [scheduleSave]
   );
@@ -286,7 +289,7 @@ export const ApplicationPage: React.FC = () => {
     (updatedAnswers: Record<string, unknown>) => {
       const normalised = applyConditionalDefaults(updatedAnswers);
       setAnswers(normalised);
-      scheduleSave(normalised, currentStepRef.current);
+      scheduleSave(normalised);
       setCurrentStep(prev => prev + 1);
     },
     [scheduleSave]
@@ -316,6 +319,7 @@ export const ApplicationPage: React.FC = () => {
         {
           petId: pet.pet_id,
           answers,
+          referencesConsented,
         }
       );
 
@@ -337,7 +341,7 @@ export const ApplicationPage: React.FC = () => {
           });
       }
 
-      clearDraft();
+      void clearDraft();
       setSubmittedApplicationId(result.data.applicationId);
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -437,7 +441,7 @@ export const ApplicationPage: React.FC = () => {
 
       {loadedDraft && draftDecision === null && (
         <DraftRestoreBanner
-          savedAt={new Date(loadedDraft.savedAt)}
+          savedAt={new Date(loadedDraft.updatedAt)}
           onResume={handleResumeDraft}
           onStartOver={handleStartOver}
         />
@@ -463,6 +467,8 @@ export const ApplicationPage: React.FC = () => {
           onSwitchToGuided={() => setViewMode('guided')}
           isSubmitting={isSubmitting}
           saveStatus={saveStatus}
+          referencesConsented={referencesConsented}
+          onReferencesConsentChange={setReferencesConsented}
         />
       ) : (
         <>
@@ -491,6 +497,8 @@ export const ApplicationPage: React.FC = () => {
               isSubmitting={isSubmitting}
               saveStatus={saveStatus}
               lastSaved={lastSaved}
+              referencesConsented={referencesConsented}
+              onReferencesConsentChange={setReferencesConsented}
             />
           ) : (
             <Alert variant='error' title='No questions available'>

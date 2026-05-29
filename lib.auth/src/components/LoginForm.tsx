@@ -132,6 +132,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 value={formData.email}
                 onChange={handleChange}
                 error={fieldErrors.email}
+                autoComplete="username"
                 required
               />
             </div>
@@ -145,6 +146,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 value={formData.password}
                 onChange={handleChange}
                 error={fieldErrors.password}
+                autoComplete="current-password"
                 required
               />
               {showForgotPassword && onForgotPassword && (
@@ -176,10 +178,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               className={styles.tokenInput}
               type="text"
               inputMode="numeric"
-              maxLength={8}
+              maxLength={16}
               placeholder="000000"
               value={twoFactorToken}
-              onChange={(e) => setTwoFactorToken(e.target.value.replace(/[^a-fA-F0-9]/g, ''))}
+              onChange={(e) => setTwoFactorToken(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+              autoComplete="one-time-code"
               autoFocus
             />
             <button className={styles.backLink} type="button" onClick={handleBack}>
@@ -192,7 +195,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           type="submit"
           size="lg"
           variant="primary"
-          disabled={isLoading || (needs2FA && twoFactorToken.length < 6)}
+          disabled={
+            isLoading ||
+            (!needs2FA && (!formData.email || !formData.password)) ||
+            (needs2FA && twoFactorToken.length < 6)
+          }
           style={{ width: '100%' }}
         >
           {isLoading ? 'Signing In...' : needs2FA ? 'Verify' : 'Sign In'}

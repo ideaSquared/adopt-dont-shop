@@ -480,7 +480,7 @@ if (config.nodeEnv === 'development') {
                 <h5 style="color: #495057; margin-bottom: 10px;">🔑 Login Credentials</h5>
                 <div style="background: white; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">
                   <div><strong>Username:</strong> <code>${emailProviderInfo.user}</code></div>
-                  <div style="margin-top: 5px;"><strong>Password:</strong> <code>${emailProviderInfo.password}</code></div>
+                  <div style="margin-top: 5px; color: #6c757d;">Password available in server logs</div>
                 </div>
               </div>
               <div>
@@ -1251,9 +1251,10 @@ if (config.nodeEnv === 'development') {
       });
     }
 
+    const { password: _password, ...safeInfo } = providerInfo;
     res.json({
       provider: 'ethereal',
-      ...providerInfo,
+      ...safeInfo,
       loginUrl: 'https://ethereal.email/login',
       messagesUrl: 'https://ethereal.email/messages',
     });

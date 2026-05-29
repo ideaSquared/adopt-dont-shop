@@ -1,6 +1,3 @@
-// Modern component library exports for Adopt Don't Shop
-// Testing hot reload functionality - if you see this change, hot reload is working!
-
 // Theme exports
 export { darkTheme, lightTheme, normalTheme } from './styles/theme';
 export type { Theme, ThemeMode } from './styles/theme';
@@ -29,6 +26,7 @@ export { Button } from './components/ui/Button';
 export { default as DateTime } from './components/ui/DateTime/DateTime';
 export { Heading } from './components/ui/Heading';
 export { DotSpinner, Spinner } from './components/ui/Spinner';
+export { Skeleton, SkeletonCard, SkeletonTableRow, SkeletonText } from './components/ui/Skeleton';
 export { Text } from './components/ui/Text';
 
 // Layout Components
@@ -41,12 +39,17 @@ export type {
 } from './components/layout/SplitPaneDetail';
 export { Card, CardContent, CardFooter, CardHeader } from './components/ui/Card';
 
-// Form Components - commenting out problematic ones for now
+// Data Components
+export { EntityInspector } from './components/data/EntityInspector';
+export type { EntityInspectorProps, EntityInspectorTab } from './components/data/EntityInspector';
+
+// Form Components
 export { CheckboxInput } from './components/form/CheckboxInput';
-// export { default as CountrySelectInput } from './components/form/CountrySelectInput';
 export { SelectInput } from './components/form/SelectInput/';
 export type { SelectOption } from './components/form/SelectInput/';
 export { TextArea } from './components/form/TextArea';
+// `TextInput` is deprecated — prefer `Input`. Still exported for existing
+// consumers; do not add new call sites.
 export { TextInput } from './components/form/TextInput';
 export { Input } from './components/ui/Input';
 export { FormField, FormRow, FormSection } from './components/form/FormField';
@@ -68,17 +71,11 @@ export { Footer } from './components/navigation/Footer';
 export { Header } from './components/navigation/Header';
 export { Navbar } from './components/navigation/Navbar';
 
-// Data Display Components - commenting out for now
-// export { Table } from './components/data/Table';
-
 // Form components
 export * from './components/form/FileUpload';
-// export * from './components/form/RadioInput';
 
-// UI components - commenting out problematic ones
+// UI components
 export * from './components/ui/EmptyState';
-// export * from './components/ui/Pagination';
-// export * from './components/ui/ProgressBar';
 export { Toast, ToastContainer } from './components/ui/Toast';
 export type { ToastContainerProps, ToastPosition, ToastProps } from './components/ui/Toast';
 
@@ -86,7 +83,7 @@ export type { ToastContainerProps, ToastPosition, ToastProps } from './component
 export { Toaster, toast } from './components/ui/Toaster';
 export type { ToasterProps } from './components/ui/Toaster';
 
-// Types - only export working ones
+// Types
 export type {
   AlertProps,
   AlertVariant,
@@ -155,3 +152,11 @@ export type { ProgressiveImageProps } from './components/ui/ProgressiveImage';
 // PWA install prompt
 export { InstallPwaBanner } from './components/ui/InstallPwaBanner';
 export type { InstallPwaBannerProps } from './components/ui/InstallPwaBanner';
+
+// Dismissible sanction banner (ADS C4-5)
+export { SanctionBanner } from './components/ui/SanctionBanner';
+export type { ActiveSanction, SanctionBannerProps } from './components/ui/SanctionBanner';
+
+// A11y primitives
+export { SkipLink } from './components/ui/SkipLink';
+export type { SkipLinkProps } from './components/ui/SkipLink';

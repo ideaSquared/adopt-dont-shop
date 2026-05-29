@@ -37,7 +37,7 @@ export const searchInput = style({
   borderRadius: '8px',
   fontSize: '1rem',
   transition: 'border-color 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#1976d2',
   },
@@ -49,7 +49,7 @@ export const filterSelect = style({
   borderRadius: '8px',
   fontSize: '1rem',
   transition: 'border-color 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#1976d2',
   },

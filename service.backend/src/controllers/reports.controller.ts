@@ -1,7 +1,8 @@
 import { Response } from 'express';
 import { BaseController } from './base.controller';
 import { AuthenticatedRequest } from '../types/auth';
-import { ReportsService, ForbiddenError, NotFoundError } from '../services/reports.service';
+import { ReportsService } from '../services/reports.service';
+import { ApiError } from '../middleware/error-handler';
 import { ScheduledReportFormat, ScheduledReportStatus } from '../models/ScheduledReport';
 import { ReportSharePermission, ReportShareType } from '../models/ReportShare';
 import { enqueueScheduleRepeat, removeScheduleRepeat } from '../workers/reports.worker';
@@ -71,8 +72,8 @@ class ReportsControllerImpl extends BaseController {
       }
       return this.sendSuccess(res, report);
     } catch (err) {
-      if (err instanceof NotFoundError) {
-        return this.sendNotFound(res, 'Report');
+      if (err instanceof ApiError) {
+        return this.sendError(res, err.message, err.statusCode);
       }
       throw err;
     }
@@ -146,8 +147,8 @@ class ReportsControllerImpl extends BaseController {
       });
       return this.sendSuccess(res, report, 'Report updated');
     } catch (err) {
-      if (err instanceof NotFoundError) {
-        return this.sendNotFound(res, 'Report');
+      if (err instanceof ApiError) {
+        return this.sendError(res, err.message, err.statusCode);
       }
       throw err;
     }
@@ -165,8 +166,8 @@ class ReportsControllerImpl extends BaseController {
       await ReportsService.deleteReport(req.params.id);
       return this.sendSuccess(res, { deleted: true }, 'Report deleted');
     } catch (err) {
-      if (err instanceof NotFoundError) {
-        return this.sendNotFound(res, 'Report');
+      if (err instanceof ApiError) {
+        return this.sendError(res, err.message, err.statusCode);
       }
       throw err;
     }
@@ -195,8 +196,8 @@ class ReportsControllerImpl extends BaseController {
       });
       return this.sendSuccess(res, executed);
     } catch (err) {
-      if (err instanceof NotFoundError) {
-        return this.sendNotFound(res, 'Report');
+      if (err instanceof ApiError) {
+        return this.sendError(res, err.message, err.statusCode);
       }
       throw err;
     }
@@ -281,8 +282,8 @@ class ReportsControllerImpl extends BaseController {
       }
       return this.sendSuccess(res, schedule, 'Schedule upserted');
     } catch (err) {
-      if (err instanceof NotFoundError) {
-        return this.sendNotFound(res, 'Report');
+      if (err instanceof ApiError) {
+        return this.sendError(res, err.message, err.statusCode);
       }
       throw err;
     }
@@ -297,8 +298,8 @@ class ReportsControllerImpl extends BaseController {
       await removeScheduleRepeat(schedule);
       return this.sendSuccess(res, { deleted: true }, 'Schedule deleted');
     } catch (err) {
-      if (err instanceof NotFoundError) {
-        return this.sendNotFound(res, 'Schedule');
+      if (err instanceof ApiError) {
+        return this.sendError(res, err.message, err.statusCode);
       }
       throw err;
     }
@@ -334,8 +335,8 @@ class ReportsControllerImpl extends BaseController {
       });
       return this.sendSuccess(res, result, 'Share created', 201);
     } catch (err) {
-      if (err instanceof NotFoundError) {
-        return this.sendNotFound(res, 'Report');
+      if (err instanceof ApiError) {
+        return this.sendError(res, err.message, err.statusCode);
       }
       throw err;
     }
@@ -349,8 +350,8 @@ class ReportsControllerImpl extends BaseController {
       const share = await ReportsService.revokeShare(req.params.shareId);
       return this.sendSuccess(res, share, 'Share revoked');
     } catch (err) {
-      if (err instanceof NotFoundError) {
-        return this.sendNotFound(res, 'Share');
+      if (err instanceof ApiError) {
+        return this.sendError(res, err.message, err.statusCode);
       }
       throw err;
     }
@@ -377,8 +378,8 @@ class ReportsControllerImpl extends BaseController {
         data: executed,
       });
     } catch (err) {
-      if (err instanceof ForbiddenError) {
-        return this.sendForbidden(res, err.message);
+      if (err instanceof ApiError) {
+        return this.sendError(res, err.message, err.statusCode);
       }
       throw err;
     }

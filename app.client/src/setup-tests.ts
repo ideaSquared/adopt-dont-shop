@@ -86,6 +86,45 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
   Spinner: () => React.createElement('div', { 'aria-label': 'loading' }),
+  Skeleton: ({ width, height, radius, className, style, ...props }: Record<string, unknown>) =>
+    React.createElement('div', {
+      'aria-hidden': 'true',
+      style: { width, height, borderRadius: radius, ...((style as React.CSSProperties) ?? {}) },
+      ...props,
+    }),
+  SkeletonText: ({ lines = 3 }: { lines?: number }) =>
+    React.createElement(
+      'div',
+      { 'aria-hidden': 'true' },
+      ...Array.from({ length: lines as number }, (_, i) => React.createElement('div', { key: i }))
+    ),
+  SkeletonTableRow: ({
+    columnCount,
+    hasCheckbox,
+  }: {
+    columnCount: number;
+    hasCheckbox?: boolean;
+  }) =>
+    React.createElement(
+      'tr',
+      { 'aria-hidden': 'true', 'data-testid': 'skeleton-row' },
+      hasCheckbox ? React.createElement('td', { key: 'cb' }) : null,
+      ...Array.from({ length: columnCount as number }, (_, i) =>
+        React.createElement('td', { key: i })
+      )
+    ),
+  SkeletonCard: ({ lines = 3, showAvatar }: { lines?: number; showAvatar?: boolean }) =>
+    React.createElement(
+      'div',
+      { 'aria-hidden': 'true' },
+      showAvatar ? React.createElement('div', { key: 'avatar' }) : null,
+      React.createElement(
+        'div',
+        { key: 'text' },
+        ...Array.from({ length: lines as number }, (_, i) => React.createElement('div', { key: i }))
+      )
+    ),
+  MatchReasonChips: () => React.createElement('div', { 'data-testid': 'match-reason-chips' }),
   Alert: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', { role: 'alert', ...props }, children),
   Badge: ({
@@ -164,6 +203,15 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   }: React.ComponentPropsWithoutRef<'footer'> & { extraLinks?: React.ReactNode }) =>
     React.createElement('footer', props, children, extraLinks),
   InstallPwaBanner: () => null,
+  // ADS C4-5: rendered by SanctionBannerHost; tests don't exercise sanctions.
+  SanctionBanner: () => null,
+  SkipLink: ({
+    href = '#main-content',
+    children = 'Skip to main content',
+  }: {
+    href?: string;
+    children?: React.ReactNode;
+  }) => React.createElement('a', { href }, children),
   TextInput: ({
     label,
     id,

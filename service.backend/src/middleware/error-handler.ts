@@ -16,6 +16,42 @@ export class ApiError extends Error {
   }
 }
 
+export class BadRequestError extends ApiError {
+  constructor(message: string) {
+    super(400, message);
+  }
+}
+
+export class UnauthorizedError extends ApiError {
+  constructor(message: string) {
+    super(401, message);
+  }
+}
+
+export class ForbiddenError extends ApiError {
+  constructor(message: string) {
+    super(403, message);
+  }
+}
+
+export class NotFoundError extends ApiError {
+  constructor(message: string) {
+    super(404, message);
+  }
+}
+
+export class ConflictError extends ApiError {
+  constructor(message: string) {
+    super(409, message);
+  }
+}
+
+export class UnprocessableError extends ApiError {
+  constructor(message: string) {
+    super(422, message);
+  }
+}
+
 // Error handler middleware
 export const errorHandler = (
   err: Error | ApiError,
@@ -102,12 +138,12 @@ export const errorHandler = (
     });
   }
 
-  // Default server error
+  // Default server error — never leak err.message to the client; it may
+  // contain SQL fragments, internal paths, or other sensitive details.
   return res.status(500).json({
     status: 'error',
-    message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message,
+    message: 'Internal server error',
     code: 500,
-    // Include stack trace in development
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    ...(process.env.NODE_ENV === 'development' && { detail: err.message, stack: err.stack }),
   });
 };

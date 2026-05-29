@@ -24,38 +24,30 @@ export class UploadController {
 
     const userId = req.user!.userId;
 
-    try {
-      const result = await FileUploadService.uploadFile(req.file, 'pets', {
-        uploadedBy: userId,
-        purpose: 'staged-image',
-      });
+    const result = await FileUploadService.uploadFile(req.file, 'pets', {
+      uploadedBy: userId,
+      purpose: 'staged-image',
+    });
 
-      if (!result.success || !result.upload) {
-        logger.error('Staged image upload failed: service returned no upload record');
-        return res.status(500).json({ error: 'Failed to store uploaded file' });
-      }
-
-      const { upload } = result;
-      // Return a sanitised display filename rather than the raw
-      // original_filename. The staged image flow's response payload is
-      // echoed by the client into downstream contexts (chat messages, pet
-      // listings) visible to other users, so an adopter uploading
-      // `Jane_Doe_Passport_123456789.pdf` would otherwise leak PII to
-      // every viewer. The DB retains the original_filename for the
-      // uploader's own UI and support tooling.
-      return res.status(200).json({
-        url: upload.url,
-        thumbnail_url: upload.thumbnail_url ?? upload.url,
-        original_filename: sanitizeDisplayFilename(upload.original_filename),
-        size_bytes: upload.file_size,
-        content_type: upload.mime_type,
-      });
-    } catch (error) {
-      logger.error('Staged image upload failed', {
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+    if (!result.success || !result.upload) {
+      logger.error('Staged image upload failed: service returned no upload record');
       return res.status(500).json({ error: 'Failed to store uploaded file' });
     }
+
+    const { upload } = result;
+    // Return a sanitised display filename rather than the raw
+    // original_filename. The staged image flow's response payload is
+    // echoed by the client into downstream contexts (chat messages, pet
+    // listings) visible to other users, so an adopter uploading
+    // `Jane_Doe_Passport_123456789.pdf` would otherwise leak PII to
+    // every viewer. The DB retains the original_filename for the
+    // uploader's own UI and support tooling.
+    return res.status(200).json({
+      url: upload.url,
+      thumbnail_url: upload.thumbnail_url ?? upload.url,
+      original_filename: sanitizeDisplayFilename(upload.original_filename),
+      size_bytes: upload.file_size,
+      content_type: upload.mime_type,
+    });
   }
 }

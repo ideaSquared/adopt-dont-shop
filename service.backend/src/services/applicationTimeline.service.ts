@@ -193,7 +193,7 @@ export class ApplicationTimelineService {
     metadata?: Record<string, unknown>
   ): Promise<ApplicationTimeline> {
     const title = `Application ${decision}`;
-    const description = reason || `Application has been ${decision}`;
+    const description = reason || `Application ${decision}`;
 
     return this.createEvent({
       application_id,
@@ -272,10 +272,10 @@ export class ApplicationTimelineService {
     const descriptions: Record<ApplicationStage, string> = {
       [ApplicationStage.PENDING]: 'Application is now pending initial review',
       [ApplicationStage.REVIEWING]: 'Application is under active review',
-      [ApplicationStage.VISITING]: 'Home visit has been scheduled',
-      [ApplicationStage.DECIDING]: 'Application is in final decision phase',
-      [ApplicationStage.RESOLVED]: 'Application has been completed',
-      [ApplicationStage.WITHDRAWN]: 'Application has been withdrawn',
+      [ApplicationStage.VISITING]: 'Home visit scheduled',
+      [ApplicationStage.DECIDING]: 'Application moved to final decision',
+      [ApplicationStage.RESOLVED]: 'Application completed',
+      [ApplicationStage.WITHDRAWN]: 'Application withdrawn',
     };
 
     return descriptions[new_stage] || `Application moved to ${new_stage} stage`;

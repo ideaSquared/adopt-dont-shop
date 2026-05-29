@@ -18,7 +18,6 @@ import {
   type ConnectionQuality,
 } from '@adopt-dont-shop/lib.chat';
 import {
-  authService,
   chatService,
   type Conversation as LibConversation,
   type Message as LibMessage,
@@ -87,7 +86,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const { checkGate, logEvent } = useStatsig();
   const offlineAdapter = useMemo(() => buildOfflineAdapter(), []);
-  const tokenProvider = useMemo(() => () => authService.getToken(), []);
 
   const featureFlags = useMemo<FeatureFlagsAdapter>(
     () => ({
@@ -120,7 +118,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       chatService={chatService}
       user={chatUser}
       isAuthenticated={isAuthenticated}
-      tokenProvider={tokenProvider}
       offlineAdapter={offlineAdapter}
       featureFlags={featureFlags}
       resolveFileUrl={resolveFileUrl}

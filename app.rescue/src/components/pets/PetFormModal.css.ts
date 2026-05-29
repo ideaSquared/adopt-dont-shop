@@ -30,6 +30,20 @@ globalStyle(`${modalContent} h2`, {
   fontWeight: '600',
 });
 
+// ADS-646: small banner above the form explaining that only the name is
+// required up-front. Keeps the form approachable for new staff without
+// hiding the optional fields.
+export const minimalFieldsHint = style({
+  background: '#eff6ff',
+  border: '1px solid #bfdbfe',
+  color: '#1e40af',
+  padding: '0.75rem 1rem',
+  borderRadius: '0.5rem',
+  marginBottom: '1.25rem',
+  fontSize: '0.875rem',
+  lineHeight: 1.5,
+});
+
 export const formGrid = style({
   display: 'grid',
   gridTemplateColumns: '1fr 1fr',

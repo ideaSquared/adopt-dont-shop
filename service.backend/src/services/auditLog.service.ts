@@ -147,6 +147,80 @@ export class AuditLogService {
   }
 
   /**
+   * Get target-based activity for a single entity instance.
+   *
+   * Audit rows store the affected entity as `category` (entity type, e.g.
+   * 'PET') and stash its primary key inside the JSON `metadata.entityId`
+   * field. This query returns the chronological list of actions taken
+   * AGAINST a given entity instance — distinct from
+   * `getLogsByUser` (which asks "what did this user do?").
+   *
+   * JSON extraction is dialect-specific:
+   *   Postgres: `metadata->>'entityId' = :entityId`
+   *   SQLite:   `json_extract(metadata, '$.entityId') = :entityId`
+   *
+   * Used by the admin EntityInspector Activity tab across rescues, pets,
+   * applications, reports, chats, support_tickets.
+   */
+  static async getEntityActivityLog(
+    entityType: string,
+    entityId: string,
+    options: {
+      from?: Date;
+      to?: Date;
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<AuditLog[]> {
+    const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
+    const offset = Math.max(options.offset ?? 0, 0);
+
+    const dialect = sequelize.getDialect();
+    const jsonExtract =
+      dialect === 'postgres' ? `metadata->>'entityId'` : `json_extract(metadata, '$.entityId')`;
+
+    const where: WhereOptions = {
+      category: entityType,
+      [Op.and]: [sequelize.where(sequelize.literal(jsonExtract), entityId)],
+    };
+    if (options.from || options.to) {
+      const range: { [Op.gte]?: Date; [Op.lte]?: Date } = {};
+      if (options.from) {
+        range[Op.gte] = options.from;
+      }
+      if (options.to) {
+        range[Op.lte] = options.to;
+      }
+      (where as { timestamp?: typeof range }).timestamp = range;
+    }
+
+    try {
+      return await AuditLog.findAll({
+        where,
+        order: [['timestamp', 'DESC']],
+        limit,
+        offset,
+        attributes: [
+          'id',
+          'action',
+          'category',
+          'metadata',
+          'ip_address',
+          'user_agent',
+          'timestamp',
+        ],
+      });
+    } catch (error) {
+      logger.error('Failed to get entity activity log:', {
+        error: error instanceof Error ? error.message : String(error),
+        entityType,
+        entityId,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Clean up old logs (data retention).
    *
    * ADS-508: audit_logs is append-only at both the database and Sequelize

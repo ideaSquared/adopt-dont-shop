@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import type { BulkUserUpdateData } from '@adopt-dont-shop/lib.validation';
 import { userManagementService } from '../services/userManagementService';
 
 // Re-export UserFilters type for convenience
@@ -91,20 +92,6 @@ export const useResetUserPassword = () => {
 };
 
 /**
- * Hook to fetch user activity
- */
-export const useUserActivity = (
-  userId: string,
-  filters: Parameters<typeof userManagementService.getUserActivity>[1] = {}
-) => {
-  return useQuery({
-    queryKey: ['user-activity', userId, filters],
-    queryFn: () => userManagementService.getUserActivity(userId, filters),
-    enabled: !!userId,
-  });
-};
-
-/**
  * Hook to search users
  */
 export const useSearchUsers = (
@@ -139,11 +126,13 @@ export const useBulkUpdateUsers = () => {
   return useMutation({
     mutationFn: ({
       userIds,
-      updates,
+      updateData,
+      reason,
     }: {
       userIds: string[];
-      updates: { userType?: string; is_active?: boolean };
-    }) => userManagementService.bulkUpdateUsers(userIds, updates),
+      updateData: BulkUserUpdateData;
+      reason?: string;
+    }) => userManagementService.bulkUpdateUsers(userIds, updateData, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },

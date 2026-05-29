@@ -100,7 +100,7 @@ export const textArea = style({
   color: '#111827',
   resize: 'vertical',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',

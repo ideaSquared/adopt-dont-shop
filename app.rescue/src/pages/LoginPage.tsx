@@ -33,8 +33,8 @@ const LoginPage = () => {
         helperText={
           <div className={styles.helperText}>
             <strong>Rescue Staff Only:</strong> This app is for rescue organization staff. <br />
-            Pet adopters should use the <strong>Client App</strong> (port 3000) <br />
-            System admins should use the <strong>Admin App</strong> (port 3001)
+            Pet adopters should use the <strong>Client App</strong>. <br />
+            System admins should use the <strong>Admin App</strong>.
           </div>
         }
       />

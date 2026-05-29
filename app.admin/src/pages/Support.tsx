@@ -1,5 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  Heading,
+  Text,
+  Input,
+  useToast,
+  Toast,
+  ToastContainer,
+  type ToastMessage,
+} from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiMessageSquare, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import {
@@ -52,13 +61,45 @@ const getPriorityBadgeClass = (level: string): string => {
   }
 };
 
+const VALID_TICKET_STATUSES: ReadonlySet<string> = new Set([
+  'open',
+  'in_progress',
+  'waiting_for_user',
+  'resolved',
+  'closed',
+  'escalated',
+]);
+
 const Support: React.FC = () => {
+  const { ticketId } = useParams<{ ticketId?: string }>();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const statusParam = searchParams.get('status');
+  const statusFilter: TicketStatus | 'all' =
+    statusParam && VALID_TICKET_STATUSES.has(statusParam) ? (statusParam as TicketStatus) : 'all';
+
+  const setFilterParam = (key: string, value: string) => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (value && value !== 'all') {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<TicketCategory | 'all'>('all');
   const [page, setPage] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const { toasts, showToast, hideToast } = useToast();
 
   useEffect(() => {
     setPage(1);
@@ -111,6 +152,45 @@ const Support: React.FC = () => {
   const tickets = ticketsData?.data || [];
   const totalPages = ticketsData?.pagination?.totalPages ?? 1;
   const loading = ticketsLoading;
+
+  const ticketSiblingIds = useMemo(() => tickets.map(t => t.ticketId), [tickets]);
+
+  // Preserve current filter query params (e.g. ?status=open) when navigating
+  // between the list and a ticket detail.
+  const searchSuffix = searchParams.toString() ? `?${searchParams.toString()}` : '';
+
+  // Sync the URL :ticketId param with the modal's selected ticket.
+  // When the list has loaded and the id is unknown, redirect to /support
+  // with a toast so the user understands why nothing opened.
+  useEffect(() => {
+    if (!ticketId) {
+      setSelectedTicket(null);
+      return;
+    }
+    if (ticketsLoading) {
+      return;
+    }
+    const match = tickets.find(t => t.ticketId === ticketId);
+    if (match) {
+      setSelectedTicket(match);
+      return;
+    }
+    showToast('Ticket not found', 'error');
+    navigate(`/support${searchSuffix}`, { replace: true });
+  }, [ticketId, ticketsLoading, tickets, navigate, searchSuffix, showToast]);
+
+  const handleRowClick = (ticket: SupportTicket) => {
+    navigate(`/support/${ticket.ticketId}${searchSuffix}`);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedTicket(null);
+    navigate(`/support${searchSuffix}`);
+  };
+
+  const handleNavigateTicket = (nextTicketId: string) => {
+    navigate(`/support/${nextTicketId}${searchSuffix}`);
+  };
 
   // Stats from API
   const stats = {
@@ -290,7 +370,7 @@ const Support: React.FC = () => {
             id='support-status-filter'
             className={styles.select}
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value as TicketStatus | 'all')}
+            onChange={e => setFilterParam('status', e.target.value)}
           >
             <option value='all'>All Statuses</option>
             <option value='open'>Open</option>
@@ -355,7 +435,7 @@ const Support: React.FC = () => {
         data={tickets}
         loading={loading}
         emptyMessage='No support tickets found matching your criteria'
-        onRowClick={ticket => setSelectedTicket(ticket)}
+        onRowClick={handleRowClick}
         currentPage={page}
         totalPages={totalPages}
         onPageChange={setPage}
@@ -364,10 +444,18 @@ const Support: React.FC = () => {
 
       <TicketDetailModal
         isOpen={!!selectedTicket}
-        onClose={() => setSelectedTicket(null)}
+        onClose={handleCloseModal}
         ticket={selectedTicket}
         onReply={handleReply}
+        siblingIds={ticketSiblingIds}
+        onNavigate={handleNavigateTicket}
       />
+
+      <ToastContainer position='top-right'>
+        {toasts.map((toast: ToastMessage) => (
+          <Toast key={toast.id} {...toast} onClose={hideToast} position='top-right' />
+        ))}
+      </ToastContainer>
     </div>
   );
 };

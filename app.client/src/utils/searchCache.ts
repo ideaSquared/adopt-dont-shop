@@ -43,7 +43,7 @@ class SearchCache {
   private readonly ttl: number; // Time to live in milliseconds
   private readonly maxSize: number;
   private readonly cleanupInterval: number;
-  private cleanupTimer?: NodeJS.Timeout;
+  private cleanupTimer?: ReturnType<typeof setTimeout>;
 
   constructor(ttl = 5 * 60 * 1000, maxSize = 200) {
     // 5 minutes TTL, 200 max items

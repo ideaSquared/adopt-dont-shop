@@ -2,13 +2,15 @@
  * Admin-specific type definitions
  */
 
+import type { UserRole } from '@adopt-dont-shop/lib.types';
+
 // User Management Types
 export type AdminUser = {
   userId: string;
   email: string;
   firstName: string;
   lastName: string;
-  userType: 'admin' | 'moderator' | 'rescue_staff' | 'adopter';
+  userType: UserRole;
   status: 'active' | 'suspended' | 'pending';
   createdAt: string;
   lastLogin?: string;
@@ -32,7 +34,7 @@ export type UserUpdatePayload = {
   lastName?: string;
   email?: string;
   phoneNumber?: string;
-  userType?: 'admin' | 'moderator' | 'rescue_staff' | 'adopter';
+  userType?: UserRole;
   status?: 'active' | 'suspended' | 'pending';
 };
 

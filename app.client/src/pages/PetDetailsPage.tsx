@@ -4,6 +4,7 @@ import { useChat } from '@/contexts/ChatContext';
 import { useStatsig } from '@/hooks/useStatsig';
 import { petService, Pet } from '@/services';
 import { Badge, Button, Card, toast } from '@adopt-dont-shop/lib.components';
+import { PetDetailSkeleton } from '@/components/skeletons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { resolveFileUrl } from '../utils/fileUtils';
@@ -96,16 +97,20 @@ const renderContactCta = ({
       </Link>
     );
   }
+  // ADS-639: signed-in users get a secondary outline-variant button so
+  // the "Apply to Adopt" CTA above remains the single primary action.
+  // The copy reframes contact as a question before applying rather than
+  // a parallel adoption pathway.
   return (
     <Button
       className={styles.contactButton}
-      variant='primary'
-      size='lg'
+      variant='outline'
+      size='md'
       onClick={onContactClick}
       disabled={isUnverified}
       title={isUnverified ? verificationTooltip : undefined}
     >
-      Contact Rescue
+      Ask a question before applying
     </Button>
   );
 };
@@ -473,7 +478,7 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
   if (loading) {
     return (
       <div className={styles.pageContainer}>
-        <div className={styles.loadingContainer}>Loading pet details...</div>
+        <PetDetailSkeleton />
       </div>
     );
   }
@@ -615,14 +620,10 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                 <span className='label'>Gender</span>
                 <span className='value'>{pet.gender}</span>
               </div>
-              {pet.location && (
+              {pet.rescue?.location && (
                 <div className='info-item'>
                   <span className='label'>Location</span>
-                  <span className='value'>
-                    {pet.location.coordinates
-                      ? `${pet.location.coordinates[1]}, ${pet.location.coordinates[0]}`
-                      : 'Not specified'}
-                  </span>
+                  <span className='value'>{pet.rescue.location}</span>
                 </div>
               )}
             </div>
@@ -662,15 +663,6 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                         petId: pet.pet_id,
                         onApplyClick: handleApplyClick,
                       })}
-                    {pet.rescue_id && (
-                      <Link
-                        className={`${styles.actionLink} ${styles.actionLinkOutline}`}
-                        to={`/rescues/${pet.rescue_id}`}
-                        onClick={handleRescueProfileClick}
-                      >
-                        View Rescue Profile
-                      </Link>
-                    )}
                     {pet.rescue_id &&
                       renderContactCta({
                         isAuthenticated,
@@ -679,6 +671,21 @@ export const PetDetailsPage: React.FC<PetDetailsPageProps> = () => {
                         petId: pet.pet_id,
                         onContactClick: handleContactRescue,
                       })}
+                    {/*
+                      ADS-639: tertiary "View Rescue Profile" inline link.
+                      Only shown to signed-in users — ADS-638's signed-out
+                      block deliberately limits itself to the two sign-in
+                      CTAs and is out of scope for the new hierarchy.
+                    */}
+                    {pet.rescue_id && isAuthenticated && (
+                      <Link
+                        className={styles.tertiaryLink}
+                        to={`/rescues/${pet.rescue_id}`}
+                        onClick={handleRescueProfileClick}
+                      >
+                        View Rescue Profile
+                      </Link>
+                    )}
                   </div>
                 </>
               );

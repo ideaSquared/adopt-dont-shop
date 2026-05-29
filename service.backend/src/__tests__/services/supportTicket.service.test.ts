@@ -72,6 +72,13 @@ vi.mock('../../sequelize', () => ({
   },
 }));
 
+vi.mock('../../services/auditLog.service', () => ({
+  AuditLogService: {
+    log: vi.fn(),
+    getEntityActivityLog: vi.fn(),
+  },
+}));
+
 import SupportTicket, {
   TicketStatus,
   TicketPriority,
@@ -79,6 +86,12 @@ import SupportTicket, {
 } from '../../models/SupportTicket';
 import SupportTicketResponse from '../../models/SupportTicketResponse';
 import supportTicketService from '../../services/supportTicket.service';
+import { AuditLogService } from '../../services/auditLog.service';
+
+const MockedAuditLogService = AuditLogService as unknown as {
+  log: ReturnType<typeof vi.fn>;
+  getEntityActivityLog: ReturnType<typeof vi.fn>;
+};
 
 const MockedSupportTicket = SupportTicket as unknown as {
   create: ReturnType<typeof vi.fn>;
@@ -663,6 +676,75 @@ describe('SupportTicketService', () => {
       // confirming that null-dueDate tickets are not included in the overdue count
       // (the service delegates this to the DB query which excludes null dueDates via Op.lt)
       expect(stats.overdueTickets).toBe(0);
+    });
+  });
+
+  describe('getTicketActivityLog()', () => {
+    it('throws NotFoundError when the ticket does not exist', async () => {
+      MockedSupportTicket.findByPk.mockResolvedValue(null);
+
+      await expect(supportTicketService.getTicketActivityLog('missing-ticket')).rejects.toThrow(
+        'Ticket not found'
+      );
+      expect(MockedAuditLogService.getEntityActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('queries audit logs scoped to the support_ticket category and ticket id', async () => {
+      MockedSupportTicket.findByPk.mockResolvedValue(buildMockTicket());
+      MockedAuditLogService.getEntityActivityLog.mockResolvedValue([]);
+
+      await supportTicketService.getTicketActivityLog('ticket-001', { limit: 25, offset: 5 });
+
+      expect(MockedAuditLogService.getEntityActivityLog).toHaveBeenCalledWith(
+        'support_ticket',
+        'ticket-001',
+        expect.objectContaining({ limit: 25, offset: 5 })
+      );
+    });
+
+    it('passes date-range filters through as Date objects', async () => {
+      MockedSupportTicket.findByPk.mockResolvedValue(buildMockTicket());
+      MockedAuditLogService.getEntityActivityLog.mockResolvedValue([]);
+
+      await supportTicketService.getTicketActivityLog('ticket-001', {
+        from: '2024-01-01T00:00:00Z',
+        to: '2024-02-01T00:00:00Z',
+      });
+
+      expect(MockedAuditLogService.getEntityActivityLog).toHaveBeenCalledWith(
+        'support_ticket',
+        'ticket-001',
+        expect.objectContaining({
+          from: new Date('2024-01-01T00:00:00Z'),
+          to: new Date('2024-02-01T00:00:00Z'),
+        })
+      );
+    });
+
+    it('returns audit rows formatted via auditLogToActivity', async () => {
+      MockedSupportTicket.findByPk.mockResolvedValue(buildMockTicket());
+      MockedAuditLogService.getEntityActivityLog.mockResolvedValue([
+        {
+          id: 42,
+          action: 'UPDATE',
+          category: 'support_ticket',
+          metadata: { entityId: 'ticket-001', details: { subject: 'Cannot log in' } },
+          ip_address: null,
+          user_agent: null,
+          timestamp: new Date('2024-02-01T10:00:00Z'),
+        },
+      ]);
+
+      const result = await supportTicketService.getTicketActivityLog('ticket-001');
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        activityId: 42,
+        action: 'UPDATE',
+        category: 'support_ticket',
+        createdAt: '2024-02-01T10:00:00.000Z',
+      });
+      expect(result[0].description).toContain('Cannot log in');
     });
   });
 });

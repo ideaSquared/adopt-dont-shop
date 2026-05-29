@@ -65,6 +65,10 @@ export interface FrontendApplication {
   userId: string;
   rescueId: string;
   status: ApplicationStatus;
+  // ADS C4 (follow-up to PR #676): expose the workflow stage to clients so
+  // adopters can see e.g. "Home visit scheduled" while status is still
+  // 'submitted'. Optional because legacy/test fixtures may omit it.
+  stage?: string;
   submittedAt?: string;
   reviewedAt?: string;
   reviewedBy?: string;
@@ -275,13 +279,16 @@ export interface BulkApplicationUpdate {
     notes?: string;
     actionedBy?: string;
   };
+  // ADS-651: operator reason recorded in the per-application audit log.
+  reason?: string;
 }
 
 export interface BulkApplicationResult {
-  successCount: number;
-  failureCount: number;
-  successes: string[];
-  failures: Array<{ applicationId: string; error: string }>;
+  updatedCount: number;
+  // The application bulk update is atomic — the whole batch commits or
+  // rolls back, so `failedIds` is always empty on the returned (success)
+  // path. Kept for parity with the other bulk-endpoint response shapes.
+  failedIds: string[];
 }
 
 // Workflow and Business Logic Types

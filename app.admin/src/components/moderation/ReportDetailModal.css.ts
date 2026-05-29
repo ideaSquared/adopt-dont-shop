@@ -24,7 +24,9 @@ export const modalContainer = style({
   maxWidth: '700px',
   width: '100%',
   maxHeight: '90vh',
-  overflowY: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
   boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
 });
 
@@ -102,6 +104,11 @@ export const infoGrid = style({
   display: 'grid',
   gridTemplateColumns: 'repeat(2, 1fr)',
   gap: '1rem',
+  '@media': {
+    '(max-width: 480px)': {
+      gridTemplateColumns: '1fr',
+    },
+  },
 });
 
 export const infoItem = style({
@@ -273,4 +280,152 @@ export const monospaceId = style({
 
 export const viewContentButtonSpacing = style({
   marginTop: '1rem',
+});
+
+export const historyList = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+});
+
+export const historyItem = style({
+  background: '#f9fafb',
+  border: '1px solid #e5e7eb',
+  borderRadius: '8px',
+  padding: '0.75rem 1rem',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.25rem',
+});
+
+export const historyItemHeader = style({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: '0.5rem',
+});
+
+export const historyItemTitle = style({
+  fontSize: '0.875rem',
+  fontWeight: '600',
+  color: '#111827',
+});
+
+export const historyItemMeta = style({
+  fontSize: '0.75rem',
+  color: '#6b7280',
+});
+
+export const historyEmpty = style({
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  fontStyle: 'italic',
+});
+
+export const sanctionList = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+});
+
+export const sanctionItem = style({
+  background: '#fef3c7',
+  border: '1px solid #fbbf24',
+  borderRadius: '8px',
+  padding: '0.75rem 1rem',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.25rem',
+});
+
+export const sanctionItemHeader = style({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: '0.5rem',
+});
+
+export const sanctionItemType = style({
+  fontSize: '0.875rem',
+  fontWeight: '600',
+  color: '#92400e',
+});
+
+export const sanctionItemReason = style({
+  fontSize: '0.75rem',
+  color: '#374151',
+});
+
+// ── EntityInspector header slot ─────────────────────────────────
+
+export const headerInfo = style({
+  flex: 1,
+  minWidth: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.25rem',
+});
+
+export const headerBadges = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  flexShrink: 0,
+});
+
+export const breadcrumbWrap = style({
+  padding: '0.75rem 1.25rem 0',
+});
+
+// ── Activity tab ────────────────────────────────────────────────
+
+export const activityList = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.75rem',
+});
+
+export const activityItem = style({
+  display: 'flex',
+  gap: '0.75rem',
+  padding: '0.625rem 0',
+  borderBottom: '1px solid #e5e7eb',
+  selectors: {
+    '&:last-child': {
+      borderBottom: 'none',
+    },
+  },
+});
+
+export const activityDot = style({
+  width: '8px',
+  height: '8px',
+  borderRadius: '50%',
+  background: '#3b82f6',
+  marginTop: '0.375rem',
+  flexShrink: 0,
+});
+
+export const activityContent = style({
+  flex: 1,
+  minWidth: 0,
+});
+
+export const activityDescription = style({
+  fontSize: '0.8125rem',
+  color: '#111827',
+  margin: 0,
+});
+
+export const activityMeta = style({
+  fontSize: '0.75rem',
+  color: '#6b7280',
+  margin: '0.125rem 0 0 0',
+});
+
+export const activityEmpty = style({
+  padding: '2rem 1rem',
+  textAlign: 'center',
+  color: '#6b7280',
+  fontSize: '0.875rem',
 });

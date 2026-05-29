@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Button } from '@adopt-dont-shop/lib.components';
-import type { SaveStatus } from '@/hooks/use-auto-save';
+import type { SaveStatus } from '@/hooks/useApplicationDraft';
 import type { Pet } from '@/services';
 import { QuestionCategoryStep } from './QuestionCategoryStep';
 import type { Question } from './QuestionField';
@@ -31,6 +31,8 @@ type ApplicationFormProps = {
   isSubmitting: boolean;
   saveStatus: SaveStatus;
   lastSaved: Date | null;
+  referencesConsented: boolean;
+  onReferencesConsentChange: (consented: boolean) => void;
 };
 
 const formatLastSaved = (date: Date): string => {
@@ -111,10 +113,12 @@ const formatAnswerValue = (value: unknown): string => {
   return String(value);
 };
 
-const ReviewStep: React.FC<{ categories: CategoryGroup[]; answers: Record<string, unknown> }> = ({
-  categories,
-  answers,
-}) => (
+const ReviewStep: React.FC<{
+  categories: CategoryGroup[];
+  answers: Record<string, unknown>;
+  referencesConsented: boolean;
+  onReferencesConsentChange: (consented: boolean) => void;
+}> = ({ categories, answers, referencesConsented, onReferencesConsentChange }) => (
   <div className={styles.reviewContainer}>
     <h2 className={styles.reviewTitle}>One last look 👀</h2>
     <p className={styles.reviewDescription}>
@@ -144,6 +148,19 @@ const ReviewStep: React.FC<{ categories: CategoryGroup[]; answers: Record<string
         </div>
       );
     })}
+    <div className={styles.reviewCategory}>
+      <label className={styles.reviewItem} style={{ alignItems: 'flex-start', gap: '0.5rem' }}>
+        <input
+          type='checkbox'
+          checked={referencesConsented}
+          onChange={e => onReferencesConsentChange(e.target.checked)}
+          aria-required='true'
+        />
+        <span className={styles.reviewLabel}>
+          I confirm my references have agreed to be contacted about this application.
+        </span>
+      </label>
+    </div>
   </div>
 );
 
@@ -161,6 +178,8 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
   isSubmitting,
   saveStatus,
   lastSaved,
+  referencesConsented,
+  onReferencesConsentChange,
 }) => {
   const totalSteps = categories.length + 1;
   const isFirstStep = currentStep === 1;
@@ -168,7 +187,14 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
   const renderStep = () => {
     if (isReviewStep) {
-      return <ReviewStep categories={categories} answers={answers} />;
+      return (
+        <ReviewStep
+          categories={categories}
+          answers={answers}
+          referencesConsented={referencesConsented}
+          onReferencesConsentChange={onReferencesConsentChange}
+        />
+      );
     }
 
     const categoryGroup = categories[currentStep - 1];
@@ -220,7 +246,7 @@ export const ApplicationForm: React.FC<ApplicationFormProps> = ({
             <Button
               variant='primary'
               onClick={onSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !referencesConsented}
               isLoading={isSubmitting}
             >
               Send my application 💌

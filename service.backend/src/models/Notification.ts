@@ -22,6 +22,11 @@ export enum NotificationType {
   STAFF_ASSIGNMENT = 'staff_assignment',
   PET_UPDATE = 'pet_update',
   FOLLOW_UP = 'follow_up',
+  // ADS C4: dedicated values for the rescue/moderation flows that
+  // originally landed under SYSTEM_ANNOUNCEMENT in PR #676.
+  RESCUE_VERIFIED = 'rescue_verified',
+  MODERATION_REPORT_RESOLVED = 'moderation_report_resolved',
+  USER_SANCTIONED = 'user_sanctioned',
 }
 
 // Notification channel enum

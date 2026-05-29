@@ -30,6 +30,12 @@ export type TextInputProps = {
   ref?: React.Ref<HTMLInputElement>;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>;
 
+/**
+ * @deprecated Use `Input` from `@adopt-dont-shop/lib.components` instead.
+ * `TextInput` duplicates `Input`'s feature surface; new code should consume
+ * `Input`. Existing call sites are left untouched and will be migrated in a
+ * follow-up sweep.
+ */
 export const TextInput = ({
   label,
   placeholder,
@@ -67,6 +73,7 @@ export const TextInput = ({
       defaultValue={defaultValue}
       disabled={disabled}
       required={required}
+      aria-required={required ? true : undefined}
       readOnly={readOnly}
       data-testid={dataTestId}
       aria-invalid={effectiveState === 'error'}

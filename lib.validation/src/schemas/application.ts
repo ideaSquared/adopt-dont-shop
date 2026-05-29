@@ -1,38 +1,21 @@
 import { z } from 'zod';
-import type { ApplicationId, PetId } from '@adopt-dont-shop/lib.types';
+import {
+  APPLICATION_STATUSES,
+  APPLICATION_STAGES,
+  APPLICATION_PRIORITIES,
+  type ApplicationId,
+  type PetId,
+} from '@adopt-dont-shop/lib.types';
 import { boundedRecord } from './bounded-record';
-
-/**
- * Canonical Zod schemas for the Application domain.
- *
- * Final entity in the Phase 3 Zod rollout. Same role as
- * schemas/user.ts, schemas/pet.ts, and schemas/rescue.ts: one source
- * of truth for Application-shaped data, used by service.backend
- * request validation and (over time) the application-related forms in
- * app.client / app.rescue.
- *
- * Values mirror the enums and validators in
- * service.backend/src/models/Application.ts and the express-validator
- * chains in service.backend/src/controllers/application.controller.ts.
- */
+import { BulkOperationFailedIdsSchema } from './bulk-response';
 
 // ----- Enums --------------------------------------------------------------
 
-export const ApplicationStatusSchema = z.enum(['submitted', 'approved', 'rejected', 'withdrawn']);
-export type ApplicationStatusValue = z.infer<typeof ApplicationStatusSchema>;
+export const ApplicationStatusSchema = z.enum(APPLICATION_STATUSES);
 
-export const ApplicationPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
-export type ApplicationPriorityValue = z.infer<typeof ApplicationPrioritySchema>;
+export const ApplicationPrioritySchema = z.enum(APPLICATION_PRIORITIES);
 
-export const ApplicationStageSchema = z.enum([
-  'pending',
-  'reviewing',
-  'visiting',
-  'deciding',
-  'resolved',
-  'withdrawn',
-]);
-export type ApplicationStageValue = z.infer<typeof ApplicationStageSchema>;
+export const ApplicationStageSchema = z.enum(APPLICATION_STAGES);
 
 export const ApplicationOutcomeSchema = z.enum(['approved', 'rejected', 'withdrawn']);
 export type ApplicationOutcomeValue = z.infer<typeof ApplicationOutcomeSchema>;
@@ -277,6 +260,12 @@ export type ApplicationSearchQuery = z.infer<typeof ApplicationSearchQuerySchema
  * POST /api/v1/applications/bulk — staff-side bulk update. The
  * controller accepts an `applicationIds` array plus an `updates`
  * record; we mirror that here.
+ *
+ * ADS-642: `stage`, `finalOutcome`, `rejectionReason`, `withdrawalReason`
+ * are accepted so the rescue queue's stage-aware bulk actions
+ * ("Move to next stage", bulk reject with shared reason, etc.) can
+ * persist their changes through the same endpoint instead of needing
+ * a parallel route.
  */
 export const ApplicationBulkUpdateRequestSchema = z.object({
   applicationIds: z
@@ -286,12 +275,34 @@ export const ApplicationBulkUpdateRequestSchema = z.object({
     .object({
       status: ApplicationStatusSchema.optional(),
       priority: ApplicationPrioritySchema.optional(),
+      stage: ApplicationStageSchema.optional(),
+      finalOutcome: ApplicationOutcomeSchema.optional(),
+      rejectionReason: NotesSchema.optional(),
+      withdrawalReason: NotesSchema.optional(),
       tags: z.array(TagSchema).max(20).optional(),
       notes: NotesSchema.optional(),
     })
     .refine((v) => Object.keys(v).length > 0, 'updates must contain at least one field to apply'),
+  // ADS-651: operator-supplied reason captured in the audit log for every
+  // application touched by the bulk update.
+  reason: z.string().trim().min(1, 'Reason is required').max(500).optional(),
 });
 export type ApplicationBulkUpdateRequest = z.infer<typeof ApplicationBulkUpdateRequestSchema>;
+
+/**
+ * Response shape for POST /api/v1/applications/bulk-update.
+ *
+ * The application bulk update is atomic — the whole batch commits or
+ * rolls back, so `failedIds` is always empty when the call returns
+ * successfully. Kept in the schema for parity with the other bulk
+ * endpoints so frontend consumers can rely on a uniform shape.
+ */
+export const ApplicationBulkUpdateResponseSchema = z
+  .object({
+    updatedCount: z.number().int().nonnegative(),
+  })
+  .merge(BulkOperationFailedIdsSchema);
+export type ApplicationBulkUpdateResponse = z.infer<typeof ApplicationBulkUpdateResponseSchema>;
 
 // ----- Read / model shape -----------------------------------------------
 
@@ -337,3 +348,29 @@ export type ApplicationProfile = z.infer<typeof ApplicationProfileSchema>;
  */
 export const ApplicationModelShapeSchema = ApplicationProfileSchema.partial();
 export type ApplicationModelShape = z.infer<typeof ApplicationModelShapeSchema>;
+
+// ----- Application drafts -----------------------------------------------
+
+/**
+ * Backend-synced application drafts (replacement for the legacy
+ * localStorage-only flow). Last-write-wins semantics: every PUT
+ * overwrites the entire `answers` blob for the (user, pet) pair.
+ *
+ * `answers` reuses the same caps as the create/update payloads so a
+ * draft can't carry a shape the submit endpoint would refuse.
+ */
+export const ApplicationDraftSchema = z.object({
+  petId: z
+    .string()
+    .min(1)
+    .transform((v) => v as PetId),
+  answers: ApplicationAnswersSchema,
+  updatedAt: z.coerce.date(),
+  expiresAt: z.coerce.date().nullable().optional(),
+});
+export type ApplicationDraft = z.infer<typeof ApplicationDraftSchema>;
+
+export const ApplicationDraftUpsertRequestSchema = z.object({
+  answers: ApplicationAnswersSchema,
+});
+export type ApplicationDraftUpsertRequest = z.infer<typeof ApplicationDraftUpsertRequestSchema>;

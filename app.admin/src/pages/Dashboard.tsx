@@ -1,7 +1,11 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import clsx from 'clsx';
-import { EmptyState, Heading, Stack, Text } from '@adopt-dont-shop/lib.components';
-import { usePlatformMetrics } from '../hooks';
+import { Heading, Stack, Text } from '@adopt-dont-shop/lib.components';
+import { useReports } from '@adopt-dont-shop/lib.moderation';
+import { useTickets, formatRelativeTime } from '@adopt-dont-shop/lib.support-tickets';
+import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
+import { usePlatformMetrics, useApplications } from '../hooks';
 import * as styles from './Dashboard.css';
 
 const formatNumber = (n: number): string => n.toLocaleString();
@@ -15,16 +19,52 @@ const formatGrowthLabel = (current: number, previous: number, label: string): st
   return `${sign}${pct}% from last month`;
 };
 
+type MetricTone = 'positive' | 'neutral' | 'negative';
+
 type MetricDefinition = {
   icon: string;
   label: string;
   value: string;
   change: string;
-  positive: boolean;
+  tone: MetricTone;
+  href: string;
 };
+
+// Minimal local row shapes used by the attention panel. We can't rely on
+// types from `@adopt-dont-shop/lib.moderation` / `lib.support-tickets`
+// resolving at this app's `tsc --noEmit` step (libs are only built when
+// `build` is run with `^build`), so this keeps strict-mode happy without
+// reaching for `any`.
+type AttentionReport = { reportId: string; title: string };
+type AttentionTicket = { ticketId: string; subject: string; updatedAt: Date | string };
 
 const Dashboard: React.FC = () => {
   const { data, isLoading, isError, error } = usePlatformMetrics();
+
+  // Attention panel data sources — each uses the existing list endpoints
+  // with sort+limit query params (no dedicated top-N endpoints yet).
+  const { data: criticalReportsData } = useReports({
+    status: 'pending',
+    severity: 'critical',
+    page: 1,
+    limit: 3,
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
+  });
+
+  const { data: oldestPendingApp } = useApplications({
+    status: 'submitted',
+    page: 1,
+    limit: 1,
+  });
+
+  const { data: escalatedTicketsData } = useTickets({
+    status: 'escalated',
+    page: 1,
+    limit: 3,
+    sortBy: 'updatedAt',
+    sortOrder: 'desc',
+  });
 
   const metrics: MetricDefinition[] = data
     ? [
@@ -37,45 +77,55 @@ const Dashboard: React.FC = () => {
             0,
             `${formatNumber(data.users.newThisMonth)} new this month`
           ),
-          positive: data.users.newThisMonth >= 0,
+          tone: data.users.newThisMonth >= 0 ? 'positive' : 'negative',
+          href: '/users',
         },
         {
           icon: '🏠',
           label: 'Active Rescues',
           value: formatNumber(data.rescues.verified),
           change: `${formatNumber(data.rescues.pending)} pending verification`,
-          positive: data.rescues.pending === 0,
+          tone: 'neutral',
+          href: '/rescues?status=verified',
         },
         {
           icon: '🐾',
           label: 'Pets Listed',
           value: formatNumber(data.pets.available),
           change: `${formatNumber(data.pets.total)} total pets`,
-          positive: true,
+          tone: 'positive',
+          href: '/pets?status=available',
         },
         {
           icon: '❤️',
           label: 'Adoptions (30d)',
           value: formatNumber(data.pets.adopted),
           change: `${formatNumber(data.applications.approved)} applications approved`,
-          positive: data.pets.adopted > 0,
+          tone: data.pets.adopted > 0 ? 'positive' : 'neutral',
+          href: '/pets?status=adopted',
         },
         {
           icon: '📋',
           label: 'Pending Applications',
           value: formatNumber(data.applications.pending),
           change: `${formatNumber(data.applications.total)} total this month`,
-          positive: data.applications.pending === 0,
+          tone: 'neutral',
+          href: '/applications?status=submitted',
         },
         {
           icon: '🎫',
           label: 'New Users (30d)',
           value: formatNumber(data.users.newThisMonth),
           change: `${formatNumber(data.users.active)} active users`,
-          positive: data.users.newThisMonth > 0,
+          tone: data.users.newThisMonth > 0 ? 'positive' : 'neutral',
+          href: '/users',
         },
       ]
     : [];
+
+  const criticalReports = criticalReportsData?.data ?? [];
+  const oldestApplication = oldestPendingApp?.data?.[0];
+  const escalatedTickets = escalatedTicketsData?.data ?? [];
 
   return (
     <Stack spacing='xl' className={styles.dashboardContainer}>
@@ -104,7 +154,12 @@ const Dashboard: React.FC = () => {
               </div>
             ))
           : metrics.map(metric => (
-              <div key={metric.label} className={styles.metricCard}>
+              <Link
+                key={metric.label}
+                to={metric.href}
+                className={styles.metricCard}
+                aria-label={`View ${metric.label}`}
+              >
                 <div className={styles.metricHeader}>
                   <span>{metric.icon}</span>
                   <div className={styles.metricLabel}>{metric.label}</div>
@@ -112,20 +167,92 @@ const Dashboard: React.FC = () => {
                 <div className={styles.metricValue}>{metric.value}</div>
                 <div
                   className={
-                    metric.positive ? styles.metricChangePositive : styles.metricChangeNegative
+                    metric.tone === 'positive'
+                      ? styles.metricChangePositive
+                      : metric.tone === 'negative'
+                        ? styles.metricChangeNegative
+                        : styles.metricChangeNeutral
                   }
                 >
                   {metric.change}
                 </div>
-              </div>
+              </Link>
             ))}
       </div>
 
-      <EmptyState
-        title='More widgets coming soon'
-        description='Recent activity, charts, and alerts will appear here.'
-        variant='loading'
-      />
+      <section className={styles.attentionPanel} aria-label='Needs your attention'>
+        <Heading level='h2'>Needs your attention</Heading>
+
+        <div className={styles.attentionSection}>
+          <div className={styles.attentionSectionHeader}>
+            <h3 className={styles.attentionSectionTitle}>Critical moderation reports</h3>
+            <Link
+              to='/moderation?status=pending&severity=critical'
+              className={styles.attentionLink}
+            >
+              View all
+            </Link>
+          </div>
+          {criticalReports.length === 0 ? (
+            <p className={styles.attentionEmpty}>No critical reports awaiting review.</p>
+          ) : (
+            <ul className={styles.attentionList}>
+              {criticalReports.map((report: AttentionReport) => (
+                <li key={report.reportId} className={styles.attentionItem}>
+                  <Link to='/moderation?status=pending&severity=critical'>{report.title}</Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className={styles.attentionSection}>
+          <div className={styles.attentionSectionHeader}>
+            <h3 className={styles.attentionSectionTitle}>Oldest pending application</h3>
+            <Link to='/applications?status=submitted' className={styles.attentionLink}>
+              View all
+            </Link>
+          </div>
+          {!oldestApplication ? (
+            <p className={styles.attentionEmpty}>No pending applications.</p>
+          ) : (
+            <ul className={styles.attentionList}>
+              <li className={styles.attentionItem}>
+                <Link to='/applications?status=submitted'>
+                  {oldestApplication.applicantName || 'Unknown applicant'} —{' '}
+                  {oldestApplication.petName}
+                </Link>
+                <span className={styles.attentionMeta}>
+                  Submitted {formatDisplayDate(oldestApplication.createdAt)}
+                </span>
+              </li>
+            </ul>
+          )}
+        </div>
+
+        <div className={styles.attentionSection}>
+          <div className={styles.attentionSectionHeader}>
+            <h3 className={styles.attentionSectionTitle}>Escalated support tickets</h3>
+            <Link to='/support?status=escalated' className={styles.attentionLink}>
+              View all
+            </Link>
+          </div>
+          {escalatedTickets.length === 0 ? (
+            <p className={styles.attentionEmpty}>No escalated tickets.</p>
+          ) : (
+            <ul className={styles.attentionList}>
+              {escalatedTickets.map((ticket: AttentionTicket) => (
+                <li key={ticket.ticketId} className={styles.attentionItem}>
+                  <Link to='/support?status=escalated'>{ticket.subject}</Link>
+                  <span className={styles.attentionMeta}>
+                    Updated {formatRelativeTime(ticket.updatedAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
     </Stack>
   );
 };

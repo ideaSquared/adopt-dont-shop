@@ -1,7 +1,8 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Logo } from '@adopt-dont-shop/lib.components';
 import * as styles from './AdminSidebar.css';
+import { useMyInboxCount } from '../../hooks/useMyInboxCount';
 import {
   FiHome,
   FiUsers,
@@ -21,16 +22,40 @@ import {
   FiSend,
   FiHeart,
   FiFile,
+  FiInbox,
+  FiX,
 } from 'react-icons/fi';
 
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  // Off-canvas drawer state for narrow viewports. Ignored on desktop, where
+  // the sidebar is always visible (see AdminSidebar.css media queries).
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
+export const AdminSidebar: React.FC<SidebarProps> = ({
+  collapsed,
+  onToggle,
+  mobileOpen = false,
+  onMobileClose,
+}) => {
+  const { count: myInboxCount } = useMyInboxCount();
+  const { pathname } = useLocation();
+  // Auto-close the off-canvas drawer after navigating to a new route on
+  // mobile. Skips the initial mount so the drawer can be opened freely.
+  const didMount = useRef(false);
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return;
+    }
+    onMobileClose?.();
+  }, [pathname, onMobileClose]);
+
   return (
-    <aside className={styles.sidebarContainer({ collapsed })}>
+    <aside className={styles.sidebarContainer({ collapsed, mobileOpen })}>
       <div className={styles.sidebarHeader({ collapsed })}>
         <div className={styles.logo({ collapsed })}>
           <Logo size={32} showWordmark={!collapsed} darkBg />
@@ -40,6 +65,13 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
             <FiChevronLeft size={16} />
           </button>
         )}
+        <button
+          className={styles.mobileCloseButton}
+          onClick={onMobileClose}
+          aria-label='Close navigation menu'
+        >
+          <FiX size={18} />
+        </button>
       </div>
 
       {collapsed && (
@@ -130,6 +162,24 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
         >
           <div className={styles.navSectionTitle({ collapsed })}>Safety &amp; Support</div>
           <NavLink
+            to='/inbox'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiInbox />
+            <span className={styles.navLinkSpan({ collapsed })}>Inbox</span>
+            {!collapsed && myInboxCount > 0 && (
+              <span
+                className={styles.navBadge}
+                aria-label={`${myInboxCount} items assigned to you`}
+                data-testid='inbox-my-queue-badge'
+              >
+                {myInboxCount}
+              </span>
+            )}
+          </NavLink>
+          <NavLink
             to='/moderation'
             className={({ isActive }) =>
               styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
@@ -175,7 +225,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
         >
           <div className={styles.navSectionTitle({ collapsed })}>Content</div>
           <NavLink
-            to='/content'
+            to='/content-management'
             className={({ isActive }) =>
               styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
             }
@@ -187,38 +237,11 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
 
         <div className={styles.navDivider({ collapsed })} />
 
-        {/* System Section */}
+        {/* System Section — ordered by frequency-of-use (ADS-652) */}
         <div
           className={`${styles.navSection({ collapsed })} ${styles.navSectionPadding({ collapsed })}`}
         >
           <div className={styles.navSectionTitle({ collapsed })}>System</div>
-          <NavLink
-            to='/configuration'
-            className={({ isActive }) =>
-              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
-            }
-          >
-            <FiSettings />
-            <span className={styles.navLinkSpan({ collapsed })}>Configuration</span>
-          </NavLink>
-          <NavLink
-            to='/field-permissions'
-            className={({ isActive }) =>
-              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
-            }
-          >
-            <FiSliders />
-            <span className={styles.navLinkSpan({ collapsed })}>Field Permissions</span>
-          </NavLink>
-          <NavLink
-            to='/privacy-tools'
-            className={({ isActive }) =>
-              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
-            }
-          >
-            <FiShield />
-            <span className={styles.navLinkSpan({ collapsed })}>Privacy Tools</span>
-          </NavLink>
           <NavLink
             to='/audit'
             className={({ isActive }) =>
@@ -236,6 +259,33 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) =>
           >
             <FiShield />
             <span className={styles.navLinkSpan({ collapsed })}>Security Center</span>
+          </NavLink>
+          <NavLink
+            to='/privacy-tools'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiLock />
+            <span className={styles.navLinkSpan({ collapsed })}>Privacy Tools</span>
+          </NavLink>
+          <NavLink
+            to='/configuration'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiSettings />
+            <span className={styles.navLinkSpan({ collapsed })}>Configuration</span>
+          </NavLink>
+          <NavLink
+            to='/field-permissions'
+            className={({ isActive }) =>
+              styles.styledNavLink({ collapsed }) + (isActive ? ' active' : '')
+            }
+          >
+            <FiSliders />
+            <span className={styles.navLinkSpan({ collapsed })}>Field Permissions</span>
           </NavLink>
           <NavLink
             to='/reports'

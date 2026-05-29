@@ -25,7 +25,9 @@ import UserPrivacyPrefs from '../models/UserPrivacyPrefs';
 import { AuditLogService } from './auditLog.service';
 import { FileUploadService } from './file-upload.service';
 import { NotificationService } from './notification.service';
+import { AuditLog, withAuditMutationAllowed } from '../models/AuditLog';
 import { logger } from '../utils/logger';
+import { NotFoundError, ConflictError } from '../middleware/error-handler';
 
 /**
  * GDPR data subject rights — erasure (Art. 17) and export (Art. 15/20).
@@ -146,7 +148,7 @@ export const GdprService = {
     return sequelize.transaction(async (tx: Transaction) => {
       const user = await User.findByPk(userId, { transaction: tx, paranoid: false });
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const pendingAt = new Date();
@@ -233,7 +235,7 @@ export const GdprService = {
           paranoid: false,
         });
         if (!user) {
-          throw new Error('User not found');
+          throw new NotFoundError('User not found');
         }
 
         if (user.email.endsWith(`@${ANON_EMAIL_DOMAIN}`)) {
@@ -319,6 +321,22 @@ export const GdprService = {
         // staff side. The user is no longer reachable via the User row,
         // and Sender lookups now return the tombstoned name.
 
+        // GDPR Art. 17: scrub the denormalised email snapshot from this
+        // user's audit-log rows. The user-FK link is preserved so
+        // forensics still resolve via userId, but the PII string is
+        // wiped. AuditLog has DB-level immutability (Postgres trigger +
+        // SQLite hook); the explicit `withAuditMutationAllowed` opt-in
+        // is required for retention-class writes.
+        const auditScrub: Record<string, unknown> = {
+          user_email_snapshot: null,
+        };
+        await withAuditMutationAllowed(() =>
+          AuditLog.update(auditScrub, {
+            where: { user: userId },
+            transaction: tx,
+          })
+        );
+
         await AuditLogService.log({
           action: 'USER_ANONYMIZED',
           entity: 'User',
@@ -375,11 +393,11 @@ export const GdprService = {
     return sequelize.transaction(async (tx: Transaction) => {
       const user = await User.findByPk(userId, { transaction: tx, paranoid: false });
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       if (user.email.endsWith(`@${ANON_EMAIL_DOMAIN}`)) {
-        throw new Error('User already anonymized — cannot cancel erasure');
+        throw new ConflictError('User already anonymized — cannot cancel erasure');
       }
 
       const restorePayload: Record<string, unknown> = {
@@ -585,7 +603,7 @@ export const GdprService = {
         paranoid: false,
       });
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       const alreadyArchived =

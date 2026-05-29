@@ -249,6 +249,7 @@ describe('GdprService', () => {
           sender_id: user.userId,
           content: 'This is my real message content',
           content_format: 'plain',
+          sequence: 0,
           attachments: '[]',
           created_at: new Date(),
           updated_at: new Date(),
@@ -287,6 +288,39 @@ describe('GdprService', () => {
       const reloadedMessage = await Message.findByPk(messageId);
       expect(reloadedMessage).not.toBeNull();
       expect(reloadedMessage!.content).toBe('[message removed at user request]');
+    });
+
+    it('scrubs user_email_snapshot from prior audit-log rows to honour GDPR Art. 17', async () => {
+      const user = await seedUser();
+      // Seed an audit row that captures the original email snapshot, as
+      // any historical action would have done.
+      await AuditLog.create({
+        service: 'test',
+        action: 'USER_VIEWED',
+        entity: 'User',
+        entityId: user.userId,
+        level: 'INFO',
+        user: user.userId,
+        user_email_snapshot: user.email,
+      } as never);
+
+      const before = await AuditLog.findOne({
+        where: { user: user.userId, action: 'USER_VIEWED' },
+      });
+      expect(before).not.toBeNull();
+      expect(before!.user_email_snapshot).toBe(user.email);
+
+      await GdprService.requestErasure(user.userId);
+      await GdprService.executeAnonymization(user.userId);
+
+      // Snapshot column wiped on every audit row referencing this user.
+      const after = await AuditLog.findOne({
+        where: { user: user.userId, action: 'USER_VIEWED' },
+      });
+      expect(after).not.toBeNull();
+      expect(after!.user_email_snapshot).toBeNull();
+      // The FK link itself is preserved so forensics still resolve.
+      expect(after!.user).toBe(user.userId);
     });
 
     it('is idempotent — second run returns anonymized:false and does not write another audit row', async () => {
@@ -350,6 +384,7 @@ describe('GdprService', () => {
         url: '/uploads/chat/doc.pdf',
       };
 
+      let seqCounter = 0;
       const buildMessage = (suffix: string, attachments: (typeof attachmentA)[]) => ({
         message_id: `${Date.now().toString(16)}-${suffix}-4${suffix}-a${suffix}-${Math.random()
           .toString(16)
@@ -360,6 +395,7 @@ describe('GdprService', () => {
         content: `msg ${suffix}`,
         content_format: 'plain',
         attachments: JSON.stringify(attachments),
+        sequence: seqCounter++,
         created_at: new Date(),
         updated_at: new Date(),
       });
@@ -422,6 +458,7 @@ describe('GdprService', () => {
           sender_id: user.userId,
           content: 'msg',
           content_format: 'plain',
+          sequence: 0,
           attachments: JSON.stringify([
             {
               attachment_id: 'missing-file-1',

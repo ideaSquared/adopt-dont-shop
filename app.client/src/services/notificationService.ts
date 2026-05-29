@@ -63,7 +63,7 @@ class NotificationService {
   private static instance: NotificationService;
   private unreadCountCallbacks: ((count: number) => void)[] = [];
   private notificationCallbacks: ((notification: Notification) => void)[] = [];
-  private pollingInterval: NodeJS.Timeout | null = null;
+  private pollingInterval: ReturnType<typeof setTimeout> | null = null;
 
   static getInstance(): NotificationService {
     if (!NotificationService.instance) {

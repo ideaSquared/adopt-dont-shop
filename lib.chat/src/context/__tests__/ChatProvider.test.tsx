@@ -53,7 +53,6 @@ const TestConsumer = ({ onRender }: { onRender: (h: Harness) => void }) => {
 type Harness2 = {
   chatService: ChatService;
   connectSpy: ReturnType<typeof vi.spyOn>;
-  tokenProvider: ReturnType<typeof vi.fn>;
   getConversationsMock: ReturnType<typeof vi.fn>;
 };
 
@@ -71,53 +70,43 @@ const buildHarness = (initialConversations: Conversation[] = [buildConversation(
   const getConversationsMock = vi.fn().mockResolvedValue(initialConversations);
   vi.spyOn(chatService, 'getConversations').mockImplementation(getConversationsMock);
 
-  const tokenProvider = vi.fn(() => 'test-token');
-
-  return { chatService, connectSpy, tokenProvider, getConversationsMock };
+  return { chatService, connectSpy, getConversationsMock };
 };
 
 describe('ChatProvider', () => {
   it('does not connect when the user is not authenticated', () => {
-    const { chatService, connectSpy, tokenProvider } = buildHarness();
+    const { chatService, connectSpy } = buildHarness();
     const onRender = vi.fn();
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={null}
-        isAuthenticated={false}
-        tokenProvider={tokenProvider}
-      >
+      <ChatProvider chatService={chatService} user={null} isAuthenticated={false}>
         <TestConsumer onRender={onRender} />
       </ChatProvider>
     );
 
     expect(connectSpy).not.toHaveBeenCalled();
-    expect(tokenProvider).not.toHaveBeenCalled();
   });
 
-  it('connects with the token from tokenProvider when authenticated', async () => {
-    const { chatService, connectSpy, tokenProvider, getConversationsMock } = buildHarness();
+  it('connects when authenticated', async () => {
+    const { chatService, connectSpy, getConversationsMock } = buildHarness();
 
     render(
       <ChatProvider
         chatService={chatService}
         user={{ userId: 'user-1', firstName: 'Alice' }}
         isAuthenticated
-        tokenProvider={tokenProvider}
       >
         <TestConsumer onRender={vi.fn()} />
       </ChatProvider>
     );
 
-    await waitFor(() => expect(connectSpy).toHaveBeenCalledWith('user-1', 'test-token'));
-    expect(tokenProvider).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(connectSpy).toHaveBeenCalledWith('user-1'));
     await waitFor(() => expect(getConversationsMock).toHaveBeenCalled());
   });
 
   it('appends incoming messages for the active conversation without bumping unread count', async () => {
     const conversation = buildConversation({ id: 'chat-1', unreadCount: 0 });
-    const { chatService, tokenProvider } = buildHarness([conversation]);
+    const { chatService } = buildHarness([conversation]);
 
     let latest: Harness | null = null;
     const onRender = (h: Harness) => {
@@ -154,7 +143,6 @@ describe('ChatProvider', () => {
         chatService={chatService}
         user={{ userId: 'user-1', firstName: 'Alice' }}
         isAuthenticated
-        tokenProvider={tokenProvider}
       >
         <ActiveSetter />
         <TestConsumer onRender={onRender} />
@@ -174,10 +162,77 @@ describe('ChatProvider', () => {
     expect(latest?.unreadMessageCount).toBe(0);
   });
 
+  it('orders incoming messages by server sequence even when they arrive out of order', async () => {
+    // Socket.IO has no ordering guarantee across two messages emitted in
+    // quick succession — they can land on the client in reverse order
+    // under transient network reordering. The provider sorts by the
+    // per-chat server sequence (migration 08) so the visible list always
+    // reflects the canonical send order.
+    const conversation = buildConversation({ id: 'chat-1', unreadCount: 0 });
+    const { chatService } = buildHarness([conversation]);
+
+    let latest: Harness | null = null;
+    const onRender = (h: Harness) => {
+      latest = h;
+    };
+
+    const ActiveSetter = () => {
+      const ctx = useChat();
+      useEffect(() => {
+        if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
+          ctx.setActiveConversation(ctx.conversations[0]);
+        }
+      }, [ctx]);
+      return null;
+    };
+
+    vi.spyOn(chatService, 'getMessages').mockResolvedValue({
+      data: [],
+      success: true,
+      timestamp: '2026-01-01T00:00:00Z',
+      pagination: {
+        page: 1,
+        limit: 50,
+        total: 0,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      },
+    });
+    vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
+
+    render(
+      <ChatProvider
+        chatService={chatService}
+        user={{ userId: 'user-1', firstName: 'Alice' }}
+        isAuthenticated
+      >
+        <ActiveSetter />
+        <TestConsumer onRender={onRender} />
+      </ChatProvider>
+    );
+
+    await waitFor(() => expect(latest?.conversations).toHaveLength(1));
+
+    // Emit sequence 2 BEFORE sequence 0 and 1 to simulate the race.
+    const second = buildMessage({ id: 'msg-b', content: 'second', sequence: 1 });
+    const third = buildMessage({ id: 'msg-c', content: 'third', sequence: 2 });
+    const first = buildMessage({ id: 'msg-a', content: 'first', sequence: 0 });
+
+    await act(async () => {
+      chatService.simulateIncomingMessage(third);
+      chatService.simulateIncomingMessage(first);
+      chatService.simulateIncomingMessage(second);
+    });
+
+    await waitFor(() => expect(latest?.messages).toHaveLength(3));
+    expect(latest?.messages.map((m) => m.id)).toEqual(['msg-a', 'msg-b', 'msg-c']);
+  });
+
   it('bumps unread count for incoming messages to a non-active conversation', async () => {
     const active = buildConversation({ id: 'chat-1' });
     const other = buildConversation({ id: 'chat-2' });
-    const { chatService, tokenProvider } = buildHarness([active, other]);
+    const { chatService } = buildHarness([active, other]);
 
     let latest: Harness | null = null;
     const onRender = (h: Harness) => {
@@ -185,12 +240,7 @@ describe('ChatProvider', () => {
     };
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-        tokenProvider={tokenProvider}
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <TestConsumer onRender={onRender} />
       </ChatProvider>
     );
@@ -206,16 +256,11 @@ describe('ChatProvider', () => {
   });
 
   it('registers typing users when ChatService emits a typing indicator', async () => {
-    const { chatService, tokenProvider } = buildHarness();
+    const { chatService } = buildHarness();
 
     let latest: Harness | null = null;
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-        tokenProvider={tokenProvider}
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <TestConsumer onRender={(h) => (latest = h)} />
       </ChatProvider>
     );
@@ -248,14 +293,9 @@ describe('ChatProvider', () => {
   });
 
   it('renders the consumer tree', () => {
-    const { chatService, tokenProvider } = buildHarness();
+    const { chatService } = buildHarness();
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={null}
-        isAuthenticated={false}
-        tokenProvider={tokenProvider}
-      >
+      <ChatProvider chatService={chatService} user={null} isAuthenticated={false}>
         <TestConsumer onRender={vi.fn()} />
       </ChatProvider>
     );
@@ -264,7 +304,7 @@ describe('ChatProvider', () => {
 
   it('optimistically clears unreadCount when markAsRead is called', async () => {
     const conv = buildConversation({ id: 'chat-1', unreadCount: 3 });
-    const { chatService, tokenProvider } = buildHarness([conv]);
+    const { chatService } = buildHarness([conv]);
 
     const markSpy = vi.spyOn(chatService, 'markAsRead').mockImplementation(
       // Hold the promise open so we can assert the optimistic update
@@ -284,12 +324,7 @@ describe('ChatProvider', () => {
     };
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-        tokenProvider={tokenProvider}
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <Caller />
         <TestConsumer onRender={(h) => (latest = h)} />
       </ChatProvider>
@@ -304,34 +339,12 @@ describe('ChatProvider', () => {
     expect(latest?.unreadMessageCount).toBe(0);
   });
 
-  it('surfaces a clear error when the tokenProvider returns null at connect time', async () => {
-    const { chatService } = buildHarness();
-    const connectSpy = vi.spyOn(chatService, 'connect');
-    const nullTokenProvider = vi.fn(() => null);
-
-    render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-        tokenProvider={nullTokenProvider}
-      >
-        <TestConsumer onRender={vi.fn()} />
-      </ChatProvider>
-    );
-
-    // connect() must not be called when the token is missing — otherwise
-    // ChatService would throw and we'd swallow the error.
-    await waitFor(() => expect(nullTokenProvider).toHaveBeenCalled());
-    expect(connectSpy).not.toHaveBeenCalled();
-  });
-
   it("appends the sender's own message to the stream after sendMessage resolves", async () => {
     // User journey: I type a message and hit send, I immediately see my
     // own bubble in the message stream and the conversation's lastMessage
     // updates.
     const conv = buildConversation({ id: 'chat-1' });
-    const { chatService, tokenProvider } = buildHarness([conv]);
+    const { chatService } = buildHarness([conv]);
 
     const sent = buildMessage({
       id: 'msg-sent',
@@ -369,7 +382,6 @@ describe('ChatProvider', () => {
         chatService={chatService}
         user={{ userId: 'user-1', firstName: 'Alice' }}
         isAuthenticated
-        tokenProvider={tokenProvider}
       >
         <Caller />
         <TestConsumer onRender={(h) => (latest = h)} />
@@ -383,7 +395,7 @@ describe('ChatProvider', () => {
   it('prepends a newly started conversation to the list', async () => {
     // User journey: I click "Contact rescue" on a pet and the new chat
     // appears at the top of my Conversations list without refreshing.
-    const { chatService, tokenProvider, getConversationsMock } = buildHarness([]);
+    const { chatService, getConversationsMock } = buildHarness([]);
     // The initial conversation fetch resolves after the startConversation
     // prepend in this test; hold it open so it doesn't race-overwrite the
     // optimistic list.
@@ -410,12 +422,7 @@ describe('ChatProvider', () => {
     };
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-        tokenProvider={tokenProvider}
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <Caller />
         <TestConsumer onRender={(h) => (latest = h)} />
       </ChatProvider>
@@ -437,16 +444,11 @@ describe('ChatProvider', () => {
     // work correctly while fake timers are in effect.
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      const { chatService, tokenProvider } = buildHarness();
+      const { chatService } = buildHarness();
 
       let latest: Harness | null = null;
       render(
-        <ChatProvider
-          chatService={chatService}
-          user={{ userId: 'user-1' }}
-          isAuthenticated
-          tokenProvider={tokenProvider}
-        >
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <TestConsumer onRender={(h) => (latest = h)} />
         </ChatProvider>
       );
@@ -483,7 +485,7 @@ describe('ChatProvider', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const conv = buildConversation({ id: 'chat-1' });
-      const { chatService, tokenProvider } = buildHarness([conv]);
+      const { chatService } = buildHarness([conv]);
 
       const sendSpy = vi
         .spyOn(chatService, 'sendMessage')
@@ -519,7 +521,6 @@ describe('ChatProvider', () => {
           chatService={chatService}
           user={{ userId: 'user-1', firstName: 'Alice' }}
           isAuthenticated
-          tokenProvider={tokenProvider}
         >
           <Caller />
           <TestConsumer onRender={(h) => (latest = h)} />
@@ -559,7 +560,7 @@ describe('ChatProvider', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const conv = buildConversation({ id: 'chat-1' });
-      const { chatService, tokenProvider } = buildHarness([conv]);
+      const { chatService } = buildHarness([conv]);
 
       const sendSpy = vi
         .spyOn(chatService, 'sendMessage')
@@ -597,7 +598,6 @@ describe('ChatProvider', () => {
           chatService={chatService}
           user={{ userId: 'user-1', firstName: 'Alice' }}
           isAuthenticated
-          tokenProvider={tokenProvider}
         >
           <Caller />
           <TestConsumer onRender={(h) => (latest = h)} />
@@ -632,7 +632,7 @@ describe('ChatProvider', () => {
     // provider holds the message locally, surfaces it as `sending`, then
     // flushes through to the server once the socket reaches `connected`.
     const conv = buildConversation({ id: 'chat-1' });
-    const { chatService, connectSpy, tokenProvider } = buildHarness([conv]);
+    const { chatService, connectSpy } = buildHarness([conv]);
 
     // Override the default harness behaviour: keep the socket
     // disconnected on connect() so the send queues into the reconnect
@@ -679,7 +679,6 @@ describe('ChatProvider', () => {
         chatService={chatService}
         user={{ userId: 'user-1', firstName: 'Alice' }}
         isAuthenticated
-        tokenProvider={tokenProvider}
       >
         <Caller />
         <TestConsumer onRender={(h) => (latest = h)} />
@@ -706,7 +705,7 @@ describe('ChatProvider', () => {
     // User journey: I scroll to the top of the message stream and older
     // messages are fetched and appear above the ones I was already seeing.
     const conv = buildConversation({ id: 'chat-1' });
-    const { chatService, tokenProvider } = buildHarness([conv]);
+    const { chatService } = buildHarness([conv]);
 
     // First page needs to fill MESSAGES_PAGE_SIZE (50) otherwise the
     // provider treats it as "no more pages" and loadMoreMessages
@@ -753,12 +752,7 @@ describe('ChatProvider', () => {
     };
 
     render(
-      <ChatProvider
-        chatService={chatService}
-        user={{ userId: 'user-1' }}
-        isAuthenticated
-        tokenProvider={tokenProvider}
-      >
+      <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
         <Caller />
         <TestConsumer onRender={(h) => (latest = h)} />
       </ChatProvider>
@@ -777,7 +771,7 @@ describe('ChatProvider', () => {
   describe('updateConversationStatus + auto-reopen', () => {
     it('optimistically updates the local conversation status and calls the service', async () => {
       const conv = buildConversation({ id: 'chat-1', status: 'active' });
-      const { chatService, tokenProvider } = buildHarness([conv]);
+      const { chatService } = buildHarness([conv]);
       const updateSpy = vi
         .spyOn(chatService, 'updateConversationStatus')
         .mockResolvedValue({ ...conv, status: 'archived' });
@@ -789,12 +783,7 @@ describe('ChatProvider', () => {
       };
 
       render(
-        <ChatProvider
-          chatService={chatService}
-          user={{ userId: 'user-1' }}
-          isAuthenticated
-          tokenProvider={tokenProvider}
-        >
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <Capture />
         </ChatProvider>
       );
@@ -811,7 +800,7 @@ describe('ChatProvider', () => {
 
     it('reverts the optimistic status change when the service call fails', async () => {
       const conv = buildConversation({ id: 'chat-1', status: 'active' });
-      const { chatService, tokenProvider } = buildHarness([conv]);
+      const { chatService } = buildHarness([conv]);
       vi.spyOn(chatService, 'updateConversationStatus').mockRejectedValue(new Error('nope'));
 
       let ctxRef: ReturnType<typeof useChat> | null = null;
@@ -821,12 +810,7 @@ describe('ChatProvider', () => {
       };
 
       render(
-        <ChatProvider
-          chatService={chatService}
-          user={{ userId: 'user-1' }}
-          isAuthenticated
-          tokenProvider={tokenProvider}
-        >
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <Capture />
         </ChatProvider>
       );
@@ -844,7 +828,7 @@ describe('ChatProvider', () => {
 
     it('reopens an archived conversation when another participant sends a message', async () => {
       const conv = buildConversation({ id: 'chat-1', status: 'archived' });
-      const { chatService, tokenProvider } = buildHarness([conv]);
+      const { chatService } = buildHarness([conv]);
 
       let ctxRef: ReturnType<typeof useChat> | null = null;
       const Capture = () => {
@@ -853,12 +837,7 @@ describe('ChatProvider', () => {
       };
 
       render(
-        <ChatProvider
-          chatService={chatService}
-          user={{ userId: 'user-1' }}
-          isAuthenticated
-          tokenProvider={tokenProvider}
-        >
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <Capture />
         </ChatProvider>
       );
@@ -880,7 +859,7 @@ describe('ChatProvider', () => {
 
     it('does not reopen when the resolver themselves replies to a resolved conversation', async () => {
       const conv = buildConversation({ id: 'chat-1', status: 'archived' });
-      const { chatService, tokenProvider } = buildHarness([conv]);
+      const { chatService } = buildHarness([conv]);
 
       let ctxRef: ReturnType<typeof useChat> | null = null;
       const Capture = () => {
@@ -889,12 +868,7 @@ describe('ChatProvider', () => {
       };
 
       render(
-        <ChatProvider
-          chatService={chatService}
-          user={{ userId: 'user-1' }}
-          isAuthenticated
-          tokenProvider={tokenProvider}
-        >
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
           <Capture />
         </ChatProvider>
       );

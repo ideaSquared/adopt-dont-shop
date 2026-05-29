@@ -1,4 +1,5 @@
 import { Op, WhereOptions } from 'sequelize';
+import { NotFoundError, BadRequestError } from '../middleware/error-handler';
 import { config } from '../config';
 import EmailPreference, { EmailFrequency, NotificationType } from '../models/EmailPreference';
 import EmailQueue, { EmailPriority, EmailStatus, EmailType } from '../models/EmailQueue';
@@ -283,7 +284,7 @@ class EmailService {
     try {
       const template = await EmailTemplate.findByPk(templateId);
       if (!template) {
-        throw new Error('Template not found');
+        throw new NotFoundError('Template not found');
       }
 
       // Create new version if content changed (plan 5.4 — version
@@ -412,7 +413,7 @@ class EmailService {
     try {
       const template = await EmailTemplate.findByPk(templateId);
       if (!template) {
-        throw new Error('Template not found');
+        throw new NotFoundError('Template not found');
       }
 
       await template.destroy();
@@ -460,18 +461,20 @@ class EmailService {
       if (options.templateId) {
         const template = await this.getTemplate(options.templateId);
         if (!template) {
-          throw new Error('Template not found');
+          throw new NotFoundError('Template not found');
         }
 
         if (!template.isActive()) {
-          throw new Error('Template is not active');
+          throw new BadRequestError('Template is not active');
         }
 
         // Validate template data
         if (options.templateData) {
           const validation = template.validateVariables(options.templateData);
           if (!validation.valid) {
-            throw new Error(`Template validation failed: ${validation.errors.join(', ')}`);
+            throw new BadRequestError(
+              `Template validation failed: ${validation.errors.join(', ')}`
+            );
           }
         }
 
@@ -486,7 +489,7 @@ class EmailService {
       }
 
       if (!subject || !htmlContent) {
-        throw new Error('Subject and HTML content are required');
+        throw new BadRequestError('Subject and HTML content are required');
       }
 
       // Check user email preferences
@@ -494,7 +497,7 @@ class EmailService {
         const canSend = await this.checkEmailPreferences(options.userId, options.type as EmailType);
         if (!canSend) {
           logger.info(`Email blocked by user preferences: ${options.userId}`);
-          throw new Error('User has disabled this type of email');
+          throw new BadRequestError('User has disabled this type of email');
         }
       }
 
@@ -504,7 +507,7 @@ class EmailService {
       // NOT be stripped — legitimate line breaks belong there.
 
       // Create email queue entry
-      const email = await EmailQueue.create({
+      const emailDefaults = {
         templateId: options.templateId,
         fromEmail: stripHeaderField(
           options.fromEmail || process.env.DEFAULT_FROM_EMAIL || 'noreply@adoptdontshop.com'
@@ -530,7 +533,34 @@ class EmailService {
         campaignId: options.campaignId,
         tags: options.tags || [],
         metadata: options.metadata || {},
-      });
+        idempotencyKey: options.idempotencyKey ?? null,
+      };
+
+      // Pass-10 W3: opt-in idempotency. When the caller supplies an
+      // idempotencyKey, use findOrCreate so a retry that re-runs the same
+      // send is a no-op rather than a duplicate queue row. Callers that
+      // don't supply a key (transactional emails, password resets,
+      // notifications) go through the plain create path so the unique
+      // index never fires.
+      let email: EmailQueue;
+      let alreadyQueued = false;
+      if (options.idempotencyKey) {
+        const [row, created] = await EmailQueue.findOrCreate({
+          where: { idempotencyKey: options.idempotencyKey },
+          defaults: emailDefaults,
+        });
+        email = row;
+        alreadyQueued = !created;
+        if (alreadyQueued) {
+          logger.info('Skipping duplicate email send — idempotency key already used', {
+            emailId: email.emailId,
+            idempotencyKey: options.idempotencyKey,
+          });
+          return email.emailId;
+        }
+      } else {
+        email = await EmailQueue.create(emailDefaults);
+      }
 
       await AuditLogService.log({
         action: 'EMAIL_QUEUED',
@@ -902,7 +932,7 @@ class EmailService {
     try {
       const preference = await EmailPreference.findOne({ where: { userId } });
       if (!preference) {
-        throw new Error('Email preferences not found');
+        throw new NotFoundError('Email preferences not found');
       }
 
       await preference.update(updates);
@@ -929,7 +959,7 @@ class EmailService {
         where: { unsubscribeToken: token },
       });
       if (!preference) {
-        throw new Error('Invalid or expired unsubscribe token');
+        throw new BadRequestError('Invalid or expired unsubscribe token');
       }
 
       if (type) {
@@ -972,7 +1002,7 @@ class EmailService {
   public async rotateUnsubscribeToken(userId: string): Promise<string> {
     const preference = await EmailPreference.findOne({ where: { userId } });
     if (!preference) {
-      throw new Error('Email preferences not found');
+      throw new NotFoundError('Email preferences not found');
     }
     const fresh = EmailPreference.generateUnsubscribeToken();
     await preference.update({ unsubscribeToken: fresh });

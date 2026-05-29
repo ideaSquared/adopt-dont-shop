@@ -1121,11 +1121,11 @@ router.put(
 
 /**
  * @swagger
- * /api/v1/users/{userId}/activity:
+ * /api/v1/users/{userId}/activity-summary:
  *   get:
  *     tags: [User Management]
  *     summary: Get user activity summary
- *     description: Get user's activity history and statistics. Users can view their own activity, admins can view any.
+ *     description: Get aggregate stats and recent activity for a user. Users can view their own, admins can view any.
  *     security:
  *       - bearerAuth: []
  *       - cookieAuth: []
@@ -1139,7 +1139,7 @@ router.put(
  *         description: User ID
  *     responses:
  *       200:
- *         description: User activity retrieved successfully
+ *         description: User activity summary retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -1147,34 +1147,105 @@ router.put(
  *               properties:
  *                 success:
  *                   type: boolean
- *                   example: true
- *                 activity:
+ *                 data:
  *                   type: object
  *                   properties:
- *                     applicationsSubmitted:
+ *                     applicationsCount:
  *                       type: integer
- *                       example: 5
- *                     favoritePets:
+ *                     activeChatsCount:
  *                       type: integer
- *                       example: 12
- *                     messagesExchanged:
+ *                     petsFavoritedCount:
  *                       type: integer
- *                       example: 34
- *                     lastLogin:
- *                       type: string
- *                       format: date-time
- *                     recentActions:
+ *                     recentActivity:
  *                       type: array
  *                       items:
  *                         type: object
- *                         properties:
- *                           action:
- *                             type: string
- *                           timestamp:
- *                             type: string
- *                             format: date-time
- *                           details:
- *                             type: string
+ *                     stats:
+ *                       type: object
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get(
+  '/:userId/activity-summary',
+  requirePermissionOrOwnership(PERMISSIONS.USER_READ, 'userId'),
+  UserController.getUserActivitySummary
+);
+
+/**
+ * @swagger
+ * /api/v1/users/{userId}/activity:
+ *   get:
+ *     tags: [User Management]
+ *     summary: Get user activity log
+ *     description: Paginated chronological activity log for a user, sourced from audit logs. Users can view their own, admins can view any.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: User activity log retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       activityId:
+ *                         type: integer
+ *                       activityType:
+ *                         type: string
+ *                       action:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *                       ipAddress:
+ *                         type: string
+ *                         nullable: true
+ *                       userAgent:
+ *                         type: string
+ *                         nullable: true
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -1185,7 +1256,7 @@ router.put(
 router.get(
   '/:userId/activity',
   requirePermissionOrOwnership(PERMISSIONS.USER_READ, 'userId'),
-  UserController.getUserActivitySummary
+  UserController.getUserActivityLog
 );
 
 /**

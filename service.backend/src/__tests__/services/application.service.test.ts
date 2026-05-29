@@ -24,7 +24,16 @@ vi.mock('../../services/email.service', () => ({
   },
 }));
 
+// ADS C4-5 / C4-6: capture socket emits without requiring a live IO server.
+vi.mock('../../socket/socket-registry', () => ({
+  emitToUser: vi.fn(),
+  emitToRescue: vi.fn(),
+  emitAuthRoleChanged: vi.fn(),
+  disconnectAllSockets: vi.fn(),
+}));
+
 import { ApplicationService } from '../../services/application.service';
+import { emitToUser, emitToRescue } from '../../socket/socket-registry';
 import Application, { ApplicationStatus, ApplicationPriority } from '../../models/Application';
 import ApplicationAnswer from '../../models/ApplicationAnswer';
 import ApplicationReferenceModel from '../../models/ApplicationReference';
@@ -203,6 +212,29 @@ describe('ApplicationService - Business Logic', () => {
       expect(result).toBeDefined();
     });
 
+    // ADS C4-6: when an application is created, the rescue's live
+    // application list should see an `application_created` event so the
+    // rescue dashboard can refetch without waiting for a poll.
+    it('emits application_created to the rescue after successful creation', async () => {
+      const mockUser = createMockUser();
+      const mockPet = createMockPet();
+      const mockApplication = createMockApplication();
+      const request = createValidApplicationRequest();
+
+      MockedUser.findByPk = vi.fn().mockResolvedValue(mockUser);
+      MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
+      MockedApplication.findOne = vi.fn().mockResolvedValue(null);
+      MockedApplication.create = vi.fn().mockResolvedValue(mockApplication);
+
+      await ApplicationService.createApplication(request, mockUserId);
+
+      expect(vi.mocked(emitToRescue)).toHaveBeenCalledWith(
+        mockRescueId,
+        'application_created',
+        expect.objectContaining({ applicationId: mockApplicationId })
+      );
+    });
+
     it('prevents duplicate applications for same pet', async () => {
       // Given: User already has an application for this pet
       const mockUser = createMockUser();
@@ -315,6 +347,53 @@ describe('ApplicationService - Business Logic', () => {
           toStatus: ApplicationStatus.APPROVED,
           transitionedBy: 'rescue-staff-123',
         })
+      );
+    });
+
+    // ADS C4-5: after a status update commits, the applicant's personal
+    // user:{id} socket room receives an `application_status_changed`
+    // event so any open client refreshes immediately instead of waiting
+    // up to 60s for the next poll.
+    it('emits application_status_changed to the applicant after a status update', async () => {
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
+
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+
+      await ApplicationService.updateApplicationStatus(
+        mockApplicationId,
+        { status: ApplicationStatus.APPROVED, actionedBy: 'rescue-staff-123' },
+        'rescue-staff-123'
+      );
+
+      expect(vi.mocked(emitToUser)).toHaveBeenCalledWith(
+        mockUserId,
+        'application_status_changed',
+        expect.objectContaining({
+          applicationId: mockApplicationId,
+        })
+      );
+    });
+
+    // ADS C4-6: on a status update, the rescue's live application list
+    // also receives an `application_updated` event so staff dashboards
+    // refetch without polling.
+    it('emits application_updated to the rescue after a status update', async () => {
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
+
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+
+      await ApplicationService.updateApplicationStatus(
+        mockApplicationId,
+        { status: ApplicationStatus.APPROVED, actionedBy: 'rescue-staff-123' },
+        'rescue-staff-123'
+      );
+
+      expect(vi.mocked(emitToRescue)).toHaveBeenCalledWith(
+        mockRescueId,
+        'application_updated',
+        expect.objectContaining({ applicationId: mockApplicationId })
       );
     });
 
@@ -1157,110 +1236,166 @@ describe('ApplicationService - Business Logic', () => {
 
   describe('Business Rule: Bulk Update Atomicity', () => {
     /**
-     * Per-iteration transactionality: when the audit-log write fails
-     * for a particular item, the application update for that item
-     * must roll back too, so the response's success/failure counts
-     * match the real DB state. Previously, a successful update
-     * followed by a failed audit insert was counted as a failure but
-     * left the update committed.
+     * Atomic all-or-nothing semantics (ADS-666): the entire batch
+     * commits in a single transaction, or nothing commits. There is
+     * no partial-success surface — callers either get a count of
+     * updated rows or an error.
      */
-    it('rolls back the DB write for an item whose audit-log write fails', async () => {
-      const goodId1 = 'app-good-1';
-      const goodId2 = 'app-good-2';
-      const badId = 'app-audit-fail';
-
-      const goodApp1 = createMockApplication(ApplicationStatus.SUBMITTED, {
-        applicationId: goodId1,
-      });
-      const goodApp2 = createMockApplication(ApplicationStatus.SUBMITTED, {
-        applicationId: goodId2,
-      });
-      const badApp = createMockApplication(ApplicationStatus.SUBMITTED, {
-        applicationId: badId,
-      });
-
-      MockedApplication.findByPk = vi.fn().mockImplementation(async (id: string) => {
-        if (id === goodId1) return goodApp1;
-        if (id === goodId2) return goodApp2;
-        if (id === badId) return badApp;
-        return null;
-      });
-
-      const { AuditLogService } = await import('../../services/auditLog.service');
-      const logSpy = vi
-        .spyOn(AuditLogService, 'log')
-        .mockImplementation(async (data: { entityId: string }) => {
-          if (data.entityId === badId) {
-            throw new Error('audit insert blocked');
-          }
-          return undefined as never;
-        });
-
-      const result = await ApplicationService.bulkUpdateApplications(
-        {
-          applicationIds: [goodId1, badId, goodId2],
-          updates: { priority: ApplicationPriority.HIGH },
-        },
-        'staff-123'
+    it('updates all applications and writes one audit row per row when every id resolves', async () => {
+      const ids = ['app-a', 'app-b', 'app-c'];
+      const apps = ids.map(applicationId =>
+        createMockApplication(ApplicationStatus.SUBMITTED, { applicationId })
       );
 
-      // Counts must match the real outcome: 2 fully-committed
-      // updates, 1 rolled-back failure.
-      expect(result.successCount).toBe(2);
-      expect(result.failureCount).toBe(1);
-      expect(result.successes).toEqual([goodId1, goodId2]);
-      expect(result.failures[0]).toMatchObject({ applicationId: badId });
-
-      // Exactly one audit-log attempt per item — successes get one
-      // call each, the failed item gets one attempt that throws.
-      const auditCallsByEntity = logSpy.mock.calls.map(([data]) => data.entityId);
-      expect(auditCallsByEntity).toEqual([goodId1, badId, goodId2]);
-
-      // The application.update must have been rolled back for the
-      // failed item — assert update was attempted (the model would
-      // have applied it) but the surrounding transaction will revert
-      // it. Because Application here is a mock, "rollback" means the
-      // tx wrapper threw and the bulk loop counted it as a failure
-      // (no mutation persisted in real DB).
-      expect(badApp.update).toHaveBeenCalled();
-
-      logSpy.mockRestore();
-    });
-
-    it('returns 404-style failure for missing applications without writing audit', async () => {
-      const presentId = 'app-present';
-      const missingId = 'app-missing';
-      const presentApp = createMockApplication(ApplicationStatus.SUBMITTED, {
-        applicationId: presentId,
-      });
-
-      MockedApplication.findByPk = vi.fn().mockImplementation(async (id: string) => {
-        if (id === presentId) return presentApp;
-        return null;
-      });
+      MockedApplication.findAll = vi.fn().mockResolvedValue(apps as never);
+      MockedApplication.update = vi.fn().mockResolvedValue([ids.length] as never);
 
       const { AuditLogService } = await import('../../services/auditLog.service');
       const logSpy = vi.spyOn(AuditLogService, 'log').mockResolvedValue(undefined as never);
 
       const result = await ApplicationService.bulkUpdateApplications(
         {
-          applicationIds: [presentId, missingId],
+          applicationIds: ids,
           updates: { priority: ApplicationPriority.HIGH },
         },
         'staff-123'
       );
 
-      expect(result.successCount).toBe(1);
-      expect(result.failureCount).toBe(1);
-      expect(result.successes).toEqual([presentId]);
-      expect(result.failures[0]).toMatchObject({
-        applicationId: missingId,
-        error: 'Application not found',
+      expect(result).toEqual({ updatedCount: 3, failedIds: [] });
+      expect(MockedApplication.update).toHaveBeenCalledTimes(1);
+
+      const auditedIds = logSpy.mock.calls.map(([data]) => data.entityId);
+      expect(auditedIds).toEqual(ids);
+
+      logSpy.mockRestore();
+    });
+
+    it('throws NotFoundError and commits no updates or audit rows when an id is missing', async () => {
+      const presentId = 'app-present';
+      const missingId = 'app-missing';
+      const presentApp = createMockApplication(ApplicationStatus.SUBMITTED, {
+        applicationId: presentId,
       });
 
-      // Audit only fires for the row that actually exists.
+      MockedApplication.findAll = vi.fn().mockResolvedValue([presentApp] as never);
+      MockedApplication.update = vi.fn().mockResolvedValue([0] as never);
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const logSpy = vi.spyOn(AuditLogService, 'log').mockResolvedValue(undefined as never);
+
+      await expect(
+        ApplicationService.bulkUpdateApplications(
+          {
+            applicationIds: [presentId, missingId],
+            updates: { priority: ApplicationPriority.HIGH },
+          },
+          'staff-123'
+        )
+      ).rejects.toThrow(/Application not found/);
+
+      // No bulk update issued, no audit rows written — the whole
+      // batch was rejected before either side-effect ran.
+      expect(MockedApplication.update).not.toHaveBeenCalled();
+      expect(logSpy).not.toHaveBeenCalled();
+
+      logSpy.mockRestore();
+    });
+
+    it('rolls back the whole batch when an audit-log write fails mid-iteration', async () => {
+      const ids = ['app-a', 'app-b', 'app-c'];
+      const apps = ids.map(applicationId =>
+        createMockApplication(ApplicationStatus.SUBMITTED, { applicationId })
+      );
+
+      MockedApplication.findAll = vi.fn().mockResolvedValue(apps as never);
+      MockedApplication.update = vi.fn().mockResolvedValue([ids.length] as never);
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const logSpy = vi
+        .spyOn(AuditLogService, 'log')
+        .mockImplementation(async (data: { entityId: string }) => {
+          if (data.entityId === 'app-b') {
+            throw new Error('audit insert blocked');
+          }
+          return undefined as never;
+        });
+
+      await expect(
+        ApplicationService.bulkUpdateApplications(
+          {
+            applicationIds: ids,
+            updates: { priority: ApplicationPriority.HIGH },
+          },
+          'staff-123'
+        )
+      ).rejects.toThrow(/audit insert blocked/);
+
+      // The bulk update WHERE IN ran, but because the outer
+      // transaction throws on the failing audit row, the entire
+      // batch — both the update and any audit rows already written —
+      // is rolled back by Sequelize. The behavioural guarantee is
+      // that the service threw rather than returning a partial-success
+      // result.
+      logSpy.mockRestore();
+    });
+
+    // ADS-651: operator reason must be persisted on each application's
+    // audit row so the trail explains *why* every bulk-updated
+    // application changed state.
+    it('persists the operator-supplied reason on every per-application audit row', async () => {
+      const idA = 'app-reason-a';
+      const idB = 'app-reason-b';
+      const apps = [idA, idB].map(applicationId =>
+        createMockApplication(ApplicationStatus.SUBMITTED, { applicationId })
+      );
+
+      MockedApplication.findAll = vi.fn().mockResolvedValue(apps as never);
+      MockedApplication.update = vi.fn().mockResolvedValue([apps.length] as never);
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const logSpy = vi.spyOn(AuditLogService, 'log').mockResolvedValue(undefined as never);
+
+      const reason = 'Reviewed in weekly committee meeting';
+      await ApplicationService.bulkUpdateApplications(
+        {
+          applicationIds: [idA, idB],
+          updates: { status: ApplicationStatus.REJECTED },
+          reason,
+        },
+        'staff-123'
+      );
+
+      const detailsPerEntity = new Map<string, Record<string, unknown>>();
+      logSpy.mock.calls.forEach(([data]) => {
+        detailsPerEntity.set(data.entityId as string, data.details as Record<string, unknown>);
+      });
+
+      expect(detailsPerEntity.get(idA)).toMatchObject({ reason, bulk_operation: true });
+      expect(detailsPerEntity.get(idB)).toMatchObject({ reason, bulk_operation: true });
+
+      logSpy.mockRestore();
+    });
+
+    it('records reason as null when none is supplied', async () => {
+      const id = 'app-noreason';
+      const app = createMockApplication(ApplicationStatus.SUBMITTED, { applicationId: id });
+      MockedApplication.findAll = vi.fn().mockResolvedValue([app] as never);
+      MockedApplication.update = vi.fn().mockResolvedValue([1] as never);
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const logSpy = vi.spyOn(AuditLogService, 'log').mockResolvedValue(undefined as never);
+
+      await ApplicationService.bulkUpdateApplications(
+        {
+          applicationIds: [id],
+          updates: { priority: ApplicationPriority.HIGH },
+        },
+        'staff-123'
+      );
+
       expect(logSpy).toHaveBeenCalledTimes(1);
-      expect(logSpy.mock.calls[0][0].entityId).toBe(presentId);
+      const [call] = logSpy.mock.calls;
+      expect(call[0].details).toMatchObject({ reason: null, bulk_operation: true });
 
       logSpy.mockRestore();
     });
@@ -1295,6 +1430,67 @@ describe('ApplicationService - Business Logic', () => {
       // When & Then: Error is propagated
       await expect(ApplicationService.createApplication(request, mockUserId)).rejects.toThrow(
         'Database error'
+      );
+    });
+  });
+
+  describe('Business Rule: Application Activity Log', () => {
+    it('returns activity rows mapped from audit_logs for an existing application', async () => {
+      MockedApplication.findByPk = vi
+        .fn()
+        .mockResolvedValue(createMockApplication(ApplicationStatus.SUBMITTED));
+
+      const { AuditLogService } = await import('../../services/auditLog.service');
+      const auditRow = {
+        id: 42,
+        action: 'APPLICATION_SUBMITTED',
+        category: 'Application',
+        metadata: { entityId: mockApplicationId, details: { petName: 'Buddy' } },
+        ip_address: null,
+        user_agent: null,
+        timestamp: new Date('2026-01-15T12:00:00.000Z'),
+      };
+      const spy = vi
+        .spyOn(AuditLogService, 'getEntityActivityLog')
+        .mockResolvedValue([auditRow] as unknown as Awaited<
+          ReturnType<typeof AuditLogService.getEntityActivityLog>
+        >);
+
+      const result = await ApplicationService.getApplicationActivityLog(mockApplicationId, {
+        from: '2026-01-01T00:00:00Z',
+        to: '2026-02-01T00:00:00Z',
+        limit: 25,
+        offset: 5,
+      });
+
+      // Queries with the category audit writers actually use.
+      expect(spy).toHaveBeenCalledWith('Application', mockApplicationId, {
+        from: new Date('2026-01-01T00:00:00Z'),
+        to: new Date('2026-02-01T00:00:00Z'),
+        limit: 25,
+        offset: 5,
+      });
+      expect(result).toEqual([
+        {
+          activityId: 42,
+          activityType: 'application',
+          action: 'APPLICATION_SUBMITTED',
+          description: 'Submitted application for Buddy',
+          category: 'Application',
+          ipAddress: null,
+          userAgent: null,
+          createdAt: '2026-01-15T12:00:00.000Z',
+        },
+      ]);
+
+      spy.mockRestore();
+    });
+
+    it('throws NotFoundError when the application does not exist', async () => {
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(null);
+
+      await expect(ApplicationService.getApplicationActivityLog('missing-app-id')).rejects.toThrow(
+        'Application not found'
       );
     });
   });

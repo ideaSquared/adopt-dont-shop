@@ -118,9 +118,56 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   Modal: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
   Spinner: () => React.createElement('div', { 'aria-label': 'loading' }),
+  Skeleton: ({ width, height, radius, className, style, ...props }: Record<string, unknown>) =>
+    React.createElement('div', {
+      'aria-hidden': 'true',
+      style: { width, height, borderRadius: radius, ...((style as React.CSSProperties) ?? {}) },
+      ...props,
+    }),
+  SkeletonText: ({ lines = 3 }: { lines?: number }) =>
+    React.createElement(
+      'div',
+      { 'aria-hidden': 'true' },
+      ...Array.from({ length: lines as number }, (_, i) => React.createElement('div', { key: i }))
+    ),
+  SkeletonTableRow: ({
+    columnCount,
+    hasCheckbox,
+  }: {
+    columnCount: number;
+    hasCheckbox?: boolean;
+  }) =>
+    React.createElement(
+      'tr',
+      { 'aria-hidden': 'true', 'data-testid': 'skeleton-row' },
+      hasCheckbox ? React.createElement('td', { key: 'cb' }) : null,
+      ...Array.from({ length: columnCount as number }, (_, i) =>
+        React.createElement('td', { key: i })
+      )
+    ),
+  SkeletonCard: ({ lines = 3, showAvatar }: { lines?: number; showAvatar?: boolean }) =>
+    React.createElement(
+      'div',
+      { 'aria-hidden': 'true' },
+      showAvatar ? React.createElement('div', { key: 'avatar' }) : null,
+      React.createElement(
+        'div',
+        { key: 'text' },
+        ...Array.from({ length: lines as number }, (_, i) => React.createElement('div', { key: i }))
+      )
+    ),
   DateTime: ({ value }: { value: string }) => React.createElement('span', null, value),
   ConfirmDialog: ({ children, ...props }: React.ComponentPropsWithoutRef<'div'>) =>
     React.createElement('div', props, children),
+  SkipLink: ({
+    href = '#main-content',
+    children = 'Skip to main content',
+  }: {
+    href?: string;
+    children?: React.ReactNode;
+  }) => React.createElement('a', { href }, children),
+  // ADS C4-5: rendered by SanctionBannerHost; tests don't exercise sanctions.
+  SanctionBanner: () => null,
   // ADS-585: useConfirm mock returns both `confirm` and `confirmProps` so tests
   // covering pages that spread `confirmProps` into ConfirmDialog don't crash.
   useConfirm: () => ({
@@ -169,4 +216,63 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   }) => React.createElement('div', { role: 'status', ...props }, message),
   ToastContainer: ({ children }: { children: React.ReactNode }) =>
     React.createElement('div', { 'data-testid': 'toast-container' }, children),
+  // EntityInspector — minimal mock that renders the header, every tab as a
+  // role="tab" button, the close button (if onClose provided), and the
+  // active tab body. Mirrors the real component's a11y surface so tests
+  // that find tabs by role/name keep working.
+  EntityInspector: ({
+    header,
+    tabs,
+    defaultTabId,
+    onClose,
+    closeLabel,
+    'data-testid': testId,
+  }: {
+    header: React.ReactNode;
+    tabs: ReadonlyArray<{ id: string; label: string; content: React.ReactNode }>;
+    defaultTabId?: string;
+    onClose?: () => void;
+    closeLabel?: string;
+    'data-testid'?: string;
+  }) => {
+    const initialId =
+      defaultTabId && tabs.some(t => t.id === defaultTabId) ? defaultTabId : (tabs[0]?.id ?? null);
+    const [activeId, setActiveId] = React.useState<string | null>(initialId);
+    const active = tabs.find(t => t.id === activeId) ?? null;
+    return React.createElement(
+      'div',
+      { 'data-testid': testId },
+      React.createElement('div', { key: 'header' }, header),
+      onClose
+        ? React.createElement(
+            'button',
+            {
+              key: 'close',
+              type: 'button',
+              onClick: onClose,
+              'aria-label': closeLabel ?? 'Close inspector',
+            },
+            '✕'
+          )
+        : null,
+      React.createElement(
+        'div',
+        { key: 'tabs', role: 'tablist' },
+        ...tabs.map(t =>
+          React.createElement(
+            'button',
+            {
+              key: t.id,
+              type: 'button',
+              role: 'tab',
+              'aria-selected': t.id === activeId,
+              onClick: () => setActiveId(t.id),
+            },
+            t.label
+          )
+        )
+      ),
+      React.createElement('div', { key: 'panel', role: 'tabpanel' }, active?.content ?? null)
+    );
+  },
 }));

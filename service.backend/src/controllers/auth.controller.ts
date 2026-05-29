@@ -11,6 +11,7 @@ import {
   UpdateProfileRequestSchema,
 } from '@adopt-dont-shop/lib.validation';
 import AuthService from '../services/auth.service';
+import ModerationService from '../services/moderation.service';
 import { UserService } from '../services/user.service';
 import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
@@ -82,36 +83,20 @@ export class AuthController {
    * Login user
    */
   async login(req: Request, res: Response): Promise<void> {
-    try {
-      const result = await AuthService.login(req.body, req.ip, req.get('user-agent'));
+    const result = await AuthService.login(req.body, req.ip, req.get('user-agent'));
 
-      res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
-      res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
+    res.cookie(REFRESH_TOKEN_COOKIE, result.refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+    res.cookie(ACCESS_TOKEN_COOKIE, result.token, ACCESS_TOKEN_COOKIE_OPTIONS);
 
-      // ADS-547: rotate the CSRF session identifier on the auth state
-      // transition (covers both password-only and 2FA-gated logins —
-      // AuthService.login performs the 2FA check inline before returning a
-      // token) so an attacker who pre-planted a session cookie on the
-      // victim's browser cannot reuse the bound CSRF token post-login.
-      rotateCsrfSessionCookie(res);
+    // ADS-547: rotate the CSRF session identifier on the auth state
+    // transition (covers both password-only and 2FA-gated logins —
+    // AuthService.login performs the 2FA check inline before returning a
+    // token) so an attacker who pre-planted a session cookie on the
+    // victim's browser cannot reuse the bound CSRF token post-login.
+    rotateCsrfSessionCookie(res);
 
-      const { refreshToken: _, ...responseBody } = result;
-      res.json(responseBody);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Login failed:', error);
-
-      if (
-        errorMessage.includes('Invalid credentials') ||
-        errorMessage.includes('Please verify your email') ||
-        errorMessage.includes('Account is temporarily locked')
-      ) {
-        res.status(401).json({ error: errorMessage });
-        return;
-      }
-
-      res.status(400).json({ error: errorMessage });
-    }
+    const { refreshToken: _, ...responseBody } = result;
+    res.json(responseBody);
   }
 
   /**
@@ -182,47 +167,23 @@ export class AuthController {
    * Confirm password reset
    */
   async confirmPasswordReset(req: Request, res: Response): Promise<void> {
-    try {
-      const authService = new AuthService();
-      const result = await authService.confirmPasswordReset(req.body);
-      res.json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Password reset confirmation failed:', error);
-
-      if (errorMessage.includes('Invalid or expired')) {
-        res.status(400).json({ error: errorMessage });
-        return;
-      }
-
-      res.status(500).json({ error: 'Failed to reset password' });
-    }
+    const authService = new AuthService();
+    const result = await authService.confirmPasswordReset(req.body);
+    res.json(result);
   }
 
   /**
    * Verify email address
    */
   async verifyEmail(req: Request, res: Response): Promise<void> {
-    try {
-      const { token } = req.body as { token?: string };
-      if (!token) {
-        res.status(400).json({ error: 'Verification token is required' });
-        return;
-      }
-      const authService = new AuthService();
-      const result = await authService.verifyEmail(token);
-      res.json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Email verification failed:', error);
-
-      if (errorMessage.includes('Invalid or expired')) {
-        res.status(400).json({ error: errorMessage });
-        return;
-      }
-
-      res.status(500).json({ error: 'Failed to verify email' });
+    const { token } = req.body as { token?: string };
+    if (!token) {
+      res.status(400).json({ error: 'Verification token is required' });
+      return;
     }
+    const authService = new AuthService();
+    const result = await authService.verifyEmail(token);
+    res.json(result);
   }
 
   /**
@@ -241,6 +202,38 @@ export class AuthController {
   async getCurrentUser(req: AuthenticatedRequest, res: Response): Promise<void> {
     // Simply return the authenticated user from the request
     res.json(req.user);
+  }
+
+  /**
+   * ADS C4-5: Return the caller's unacknowledged, active sanctions so
+   * the in-app banner can render them at the top of every page.
+   */
+  async getActiveSanctions(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const userId = req.user!.userId;
+    const sanctions = await ModerationService.getActiveSanctionsForUser(userId);
+    res.json({
+      sanctions: sanctions.map(s => ({
+        id: s.actionId,
+        type: s.actionType,
+        reason: s.reason,
+        severity: s.severity,
+        expiresAt: s.expiresAt ? s.expiresAt.toISOString() : null,
+        acknowledgedAt: s.acknowledgedAt ? s.acknowledgedAt.toISOString() : null,
+      })),
+    });
+  }
+
+  /**
+   * ADS C4-5: Mark a sanction as acknowledged by the caller. The service
+   * enforces ownership (target_user_id must match) — returns 204 on
+   * success, 403 if the sanction belongs to another user, 404 if it
+   * doesn't exist.
+   */
+  async acknowledgeSanction(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const userId = req.user!.userId;
+    const { id } = req.params;
+    await ModerationService.acknowledgeSanction(userId, id);
+    res.status(204).send();
   }
 
   /**
@@ -271,29 +264,13 @@ export class AuthController {
    * Enable 2FA after verifying the setup token
    */
   async twoFactorEnable(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const { token } = req.body;
+    const userId = req.user!.userId;
+    const { token } = req.body;
 
-      // ADS-599: secret is no longer accepted from the client; the
-      // pending secret stored at twoFactorSetup time is used.
-      const result = await AuthService.enableTwoFactor(userId, token);
-      res.json({ success: true, backupCodes: result.backupCodes });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('2FA enable failed:', error);
-
-      if (
-        errorMessage.includes('Invalid verification code') ||
-        errorMessage.includes('setup has not been initiated') ||
-        errorMessage.includes('setup has expired')
-      ) {
-        res.status(400).json({ error: errorMessage });
-        return;
-      }
-
-      res.status(500).json({ error: 'Failed to enable two-factor authentication' });
-    }
+    // ADS-599: secret is no longer accepted from the client; the
+    // pending secret stored at twoFactorSetup time is used.
+    const result = await AuthService.enableTwoFactor(userId, token);
+    res.json({ success: true, backupCodes: result.backupCodes });
   }
 
   /**
@@ -404,44 +381,20 @@ export class AuthController {
    * the user a heads-up so they can react if the recovery wasn't theirs.
    */
   async confirmTwoFactorRecovery(req: Request, res: Response): Promise<void> {
-    try {
-      const authService = new AuthService();
-      const result = await authService.confirmTwoFactorRecovery(req.body);
-      res.json(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('2FA recovery confirmation failed:', error);
-
-      if (errorMessage.includes('Invalid or expired')) {
-        res.status(400).json({ error: errorMessage });
-        return;
-      }
-
-      res.status(500).json({ error: 'Failed to confirm two-factor recovery' });
-    }
+    const authService = new AuthService();
+    const result = await authService.confirmTwoFactorRecovery(req.body);
+    res.json(result);
   }
 
   /**
    * Update current user profile
    */
   async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.userId;
-      const updateData = req.body;
+    const userId = req.user!.userId;
+    const updateData = req.body;
 
-      const updatedUser = await UserService.updateUserProfile(userId, updateData);
-      res.json(updatedUser);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Update profile failed:', error);
-
-      if (errorMessage === 'User not found') {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      res.status(500).json({ error: 'Failed to update profile' });
-    }
+    const updatedUser = await UserService.updateUserProfile(userId, updateData);
+    res.json(updatedUser);
   }
 }
 

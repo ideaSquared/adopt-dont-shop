@@ -306,6 +306,59 @@ router.get('/search', generalLimiter, ChatController.searchConversations);
 
 /**
  * @swagger
+ * /api/v1/chats/analytics:
+ *   get:
+ *     tags: [Messaging]
+ *     summary: Get chat analytics
+ *     description: Get analytics and statistics for chat usage (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Analytics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalChats:
+ *                       type: integer
+ *                       example: 1250
+ *                     totalMessages:
+ *                       type: integer
+ *                       example: 15680
+ *                     activeChats:
+ *                       type: integer
+ *                       example: 342
+ *                     averageMessagesPerChat:
+ *                       type: number
+ *                       example: 12.5
+ *                     messageGrowthRate:
+ *                       type: number
+ *                       example: 0.15
+ *                     userEngagement:
+ *                       type: number
+ *                       example: 0.78
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+router.get(
+  '/analytics',
+  requirePermission(PERMISSIONS.CHAT_ANALYTICS_READ),
+  generalLimiter,
+  ChatController.getChatAnalytics
+);
+
+/**
+ * @swagger
  * /api/v1/chats/{chatId}:
  *   get:
  *     tags: [Messaging]
@@ -783,6 +836,70 @@ router.get(
 
 /**
  * @swagger
+ * /api/v1/chats/{chatId}/activity:
+ *   get:
+ *     tags: [Messaging]
+ *     summary: Get chat activity log
+ *     description: Paginated chronological activity log for a single chat, sourced from audit logs. Backs the admin EntityInspector "Activity" tab.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: chatId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Chat activity log retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get(
+  '/:chatId/activity',
+  requirePermission(PERMISSIONS.CHAT_MODERATE),
+  generalLimiter,
+  ChatController.getChatActivityLog
+);
+
+/**
+ * @swagger
  * /api/v1/chats/{chatId}/participants:
  *   post:
  *     tags: [Messaging]
@@ -971,59 +1088,6 @@ router.delete(
   chatValidation.removeReaction,
   handleValidationErrors,
   ChatController.removeReaction
-);
-
-/**
- * @swagger
- * /api/v1/chats/analytics:
- *   get:
- *     tags: [Messaging]
- *     summary: Get chat analytics
- *     description: Get analytics and statistics for chat usage (admin only)
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Analytics retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     totalChats:
- *                       type: integer
- *                       example: 1250
- *                     totalMessages:
- *                       type: integer
- *                       example: 15680
- *                     activeChats:
- *                       type: integer
- *                       example: 342
- *                     averageMessagesPerChat:
- *                       type: number
- *                       example: 12.5
- *                     messageGrowthRate:
- *                       type: number
- *                       example: 0.15
- *                     userEngagement:
- *                       type: number
- *                       example: 0.78
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         $ref: '#/components/responses/ForbiddenError'
- */
-router.get(
-  '/analytics',
-  requirePermission(PERMISSIONS.CHAT_ANALYTICS_READ),
-  generalLimiter,
-  ChatController.getChatAnalytics
 );
 
 /**

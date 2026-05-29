@@ -1,4 +1,4 @@
-# @adopt-dont-shop/lib-{{LIB_NAME}}
+# @adopt-dont-shop/lib.{{LIB_NAME}}
 
 {{LIB_DESCRIPTION}}
 
@@ -6,12 +6,12 @@
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib-{{LIB_NAME}}
+npm install @adopt-dont-shop/lib.{{LIB_NAME}}
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-{{LIB_NAME}}": "workspace:*"
+    "@adopt-dont-shop/lib.{{LIB_NAME}}": "*"
   }
 }
 ```
@@ -19,10 +19,10 @@ npm install @adopt-dont-shop/lib-{{LIB_NAME}}
 ## 🚀 Quick Start
 
 ```typescript
-import { {{SERVICE_NAME}}, {{SERVICE_NAME}}Config } from '@adopt-dont-shop/lib-{{LIB_NAME}}';
+import { {{SERVICE_NAME}}, {{SERVICE_NAME}}Config } from '@adopt-dont-shop/lib.{{LIB_NAME}}';
 
 // Using the singleton instance
-import { {{LIB_NAME}}Service } from '@adopt-dont-shop/lib-{{LIB_NAME}}';
+import { {{LIB_NAME}}Service } from '@adopt-dont-shop/lib.{{LIB_NAME}}';
 
 // Basic usage
 const result = await {{LIB_NAME}}Service.exampleMethod({ test: 'data' });
@@ -44,16 +44,15 @@ const customResult = await customService.exampleMethod({ custom: 'data' });
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `apiUrl` | `string` | `process.env.VITE_API_URL` | Base API URL |
+| `apiUrl` | `string` | `process.env.VITE_API_BASE_URL` | Base API URL |
 | `debug` | `boolean` | `process.env.NODE_ENV === 'development'` | Enable debug logging |
 | `headers` | `Record<string, string>` | `{}` | Custom headers for requests |
 
 ### Environment Variables
 
 ```bash
-# API Configuration
-VITE_API_URL=http://localhost:5000
-REACT_APP_API_URL=http://localhost:5000
+# API Configuration (Vite apps use VITE_ prefix)
+VITE_API_BASE_URL=http://localhost:5000
 
 # Development
 NODE_ENV=development
@@ -132,7 +131,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-{{LIB_NAME}}": "workspace:*"
+    "@adopt-dont-shop/lib.{{LIB_NAME}}": "*"
   }
 }
 ```
@@ -140,7 +139,7 @@ const isHealthy = await service.healthCheck();
 2. **Import and use:**
 ```typescript
 // src/services/index.ts
-export { {{LIB_NAME}}Service } from '@adopt-dont-shop/lib-{{LIB_NAME}}';
+export { {{LIB_NAME}}Service } from '@adopt-dont-shop/lib.{{LIB_NAME}}';
 
 // In your component
 import { {{LIB_NAME}}Service } from '@/services';
@@ -173,7 +172,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-{{LIB_NAME}}": "workspace:*"
+    "@adopt-dont-shop/lib.{{LIB_NAME}}": "*"
   }
 }
 ```
@@ -181,7 +180,7 @@ function MyComponent() {
 2. **Import and use:**
 ```typescript
 // src/services/{{LIB_NAME}}.service.ts
-import { {{SERVICE_NAME}} } from '@adopt-dont-shop/lib-{{LIB_NAME}}';
+import { {{SERVICE_NAME}} } from '@adopt-dont-shop/lib.{{LIB_NAME}}';
 
 export const {{CAMEL_CASE_NAME}}Service = new {{SERVICE_NAME}}({
   apiUrl: process.env.API_URL,
@@ -201,23 +200,9 @@ app.get('/api/{{LIB_NAME}}/example', async (req, res) => {
 });
 ```
 
-## 🐳 Standalone Development
+## 🐳 Docker Integration
 
-### Docker Compose for Library Testing
-
-For isolated library development and testing:
-
-```bash
-# Build and run the library in isolation
-docker compose -f docker-compose.lib.yml up lib-{{LIB_NAME}}
-
-# Run tests in Docker
-docker compose -f docker-compose.lib.yml run lib-{{LIB_NAME}}-test
-```
-
-### Integration with Apps
-
-Libraries are automatically available to apps through the optimized workspace pattern in `Dockerfile.app.optimized`. No additional configuration needed - just add the dependency to your app's package.json.
+Libraries are automatically available to apps through the optimized workspace pattern in `Dockerfile.app.optimized`. No additional configuration needed — just add the dependency to your app's `package.json` and run `npm install` at the repo root.
 
 ## 🧪 Testing
 
@@ -287,8 +272,6 @@ lib.{{LIB_NAME}}/
 │   │   └── index.ts                  # TypeScript type definitions
 │   └── index.ts                      # Main entry point
 ├── dist/                             # Built output (generated)
-├── docker-compose.lib.yml           # Standalone development
-├── Dockerfile                       # Standalone container build
 ├── vitest.config.ts                 # Vitest test configuration
 ├── package.json                     # Package configuration
 ├── tsconfig.json                    # TypeScript configuration
@@ -304,7 +287,7 @@ lib.{{LIB_NAME}}/
 ```typescript
 import { apiService } from '@adopt-dont-shop/lib.api';
 import { authService } from '@adopt-dont-shop/lib.auth';
-import { {{LIB_NAME}}Service } from '@adopt-dont-shop/lib-{{LIB_NAME}}';
+import { {{LIB_NAME}}Service } from '@adopt-dont-shop/lib.{{LIB_NAME}}';
 
 // Configure with shared dependencies
 {{LIB_NAME}}Service.updateConfig({
@@ -318,7 +301,7 @@ import { {{LIB_NAME}}Service } from '@adopt-dont-shop/lib-{{LIB_NAME}}';
 ### Error Handling
 
 ```typescript
-import { {{LIB_NAME}}Service, ErrorResponse } from '@adopt-dont-shop/lib-{{LIB_NAME}}';
+import { {{LIB_NAME}}Service, ErrorResponse } from '@adopt-dont-shop/lib.{{LIB_NAME}}';
 
 try {
   const result = await {{LIB_NAME}}Service.exampleMethod(data);
@@ -351,7 +334,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib-{{LIB_NAME}}": "workspace:*"
+    "@adopt-dont-shop/lib.{{LIB_NAME}}": "*"
   }
 }
 ```

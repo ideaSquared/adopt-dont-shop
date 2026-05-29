@@ -13,6 +13,39 @@ import type { ApplicationStage } from '../types/applicationStages';
 import type { ApplicationPriority } from '@adopt-dont-shop/lib.applications';
 
 /**
+ * ADS-642: translate a StageAction (e.g. START_REVIEW, REJECT) into the
+ * `updates` payload accepted by the bulk-update endpoint. Single-row
+ * stage transitions reuse the same backend route as bulk transitions —
+ * there is no dedicated stage-transition route.
+ */
+const buildSingleStageTransitionUpdates = (
+  stageAction: string,
+  nextStage: string | undefined,
+  notes: string | undefined
+): Record<string, unknown> => {
+  if (stageAction === 'REJECT') {
+    return {
+      status: 'rejected',
+      stage: 'resolved',
+      finalOutcome: 'rejected',
+      rejectionReason: notes,
+    };
+  }
+  if (stageAction === 'WITHDRAW') {
+    return {
+      status: 'withdrawn',
+      stage: 'withdrawn',
+      finalOutcome: 'withdrawn',
+      withdrawalReason: notes,
+    };
+  }
+  if (!nextStage) {
+    throw new Error(`Stage action ${stageAction} requires a nextStage`);
+  }
+  return { stage: nextStage.toLowerCase() };
+};
+
+/**
  * Application Service for Rescue App
  * Uses the configured API service with authentication
  */
@@ -248,21 +281,21 @@ export class RescueApplicationService {
   }
 
   /**
-   * Transition application to a new stage using the 5-stage workflow system
-   * @param id Application ID
-   * @param stageAction The stage action to perform (from STAGE_ACTIONS)
-   * @param notes Optional notes about the transition
+   * Transition application to a new stage using the 5-stage workflow system.
+   *
+   * ADS-642: single-row transitions go through the bulk-update endpoint
+   * (there is no dedicated stage-transition route on the backend). We
+   * translate the StageAction's nextStage / terminal outcome into the same
+   * `updates` shape `performBulkUpdates` builds, then dispatch a one-item
+   * batch.
    */
-  async transitionStage(id: string, stageAction: string, notes?: string) {
+  async transitionStage(id: string, stageAction: string, nextStage?: string, notes?: string) {
+    const updates = buildSingleStageTransitionUpdates(stageAction, nextStage, notes);
     try {
-      const response = await this.apiService.post<any>(
-        `/api/v1/applications/${id}/stage-transition`,
-        {
-          action: stageAction,
-          notes,
-          timestamp: new Date().toISOString(),
-        }
-      );
+      const response = await this.apiService.patch<any>('/api/v1/applications/bulk-update', {
+        applicationIds: [id],
+        updates,
+      });
       return response.data || response; // Extract data field from API response wrapper
     } catch (error) {
       console.error(`Failed to transition stage for application ${id}:`, error);
@@ -396,8 +429,14 @@ export class RescueApplicationService {
 
         return [];
       } catch (fallbackError) {
+        // UX P2 G: previously returned `[]` here, which was indistinguishable
+        // from "no home visits scheduled" — the UI rendered an empty section
+        // even when the entire request had failed. Re-throw so the consuming
+        // hook can surface an inline error.
         console.error('Error fetching application data for home visit fallback:', fallbackError);
-        return [];
+        throw fallbackError instanceof Error
+          ? fallbackError
+          : new Error('Failed to load home visits');
       }
     }
   }
@@ -433,8 +472,9 @@ export class RescueApplicationService {
       }
 
       // Fallback for direct HomeVisit response (backward compatibility)
-      if ((response as any).id || (response as any).scheduledDate) {
-        return response as unknown as HomeVisit;
+      const fallback = response as unknown as Record<string, unknown>;
+      if (fallback.id || fallback.scheduledDate) {
+        return fallback as unknown as HomeVisit;
       }
 
       throw new Error('Invalid response format from server');
@@ -454,7 +494,7 @@ export class RescueApplicationService {
   ): Promise<HomeVisit> {
     try {
       // Convert camelCase to snake_case for API
-      const apiData: Record<string, any> = {};
+      const apiData: Record<string, unknown> = {};
 
       if (updateData.status) {
         apiData.status = updateData.status;
@@ -507,8 +547,9 @@ export class RescueApplicationService {
       }
 
       // Fallback for direct HomeVisit response (backward compatibility)
-      if ((response as any).id || (response as any).scheduledDate) {
-        return response as unknown as HomeVisit;
+      const fallback = response as unknown as Record<string, unknown>;
+      if (fallback.id || fallback.scheduledDate) {
+        return fallback as unknown as HomeVisit;
       }
 
       throw new Error('Invalid response format from server');
@@ -566,11 +607,11 @@ export class RescueApplicationService {
         newStatus: item.new_status,
       }));
     } catch (error) {
+      // UX P0/P1 #6: previously this returned `[]` on error, which was
+      // indistinguishable from a genuine empty timeline. Re-throw so the
+      // caller can render an error state instead of a silent empty list.
       console.error(`Failed to fetch timeline for application ${applicationId}:`, error);
-
-      // Return empty array instead of throwing to prevent UI crashes
-      console.warn('Returning empty timeline array due to API error');
-      return [];
+      throw error instanceof Error ? error : new Error('Failed to load application timeline');
     }
   }
 
@@ -667,6 +708,59 @@ export class RescueApplicationService {
       console.error('Failed to perform bulk action:', error);
       throw new Error('Failed to perform bulk action on server');
     }
+  }
+
+  /**
+   * ADS-642: dispatch a set of per-application bulk updates. Each group
+   * shares one `updates` payload (e.g. all rows advancing to REVIEWING
+   * vs. all rows advancing to VISITING), so the bulk-update endpoint
+   * still does the heavy lifting and we only fan out by distinct
+   * payload shape. Returns an aggregate {successCount, failureCount}
+   * matching the existing single-action response shape.
+   */
+  async performBulkUpdates(
+    groups: ReadonlyArray<{ applicationIds: string[]; updates: Record<string, unknown> }>
+  ): Promise<{
+    successCount: number;
+    failureCount: number;
+    failures: Array<{ applicationId: string; error: string }>;
+  }> {
+    let successCount = 0;
+    let failureCount = 0;
+    const failures: Array<{ applicationId: string; error: string }> = [];
+    for (const group of groups) {
+      if (group.applicationIds.length === 0) {
+        continue;
+      }
+      try {
+        const response = await this.apiService.patch<{
+          data?: {
+            successCount?: number;
+            failureCount?: number;
+            failures?: Array<{ applicationId: string; error: string }>;
+          };
+          successCount?: number;
+          failureCount?: number;
+          failures?: Array<{ applicationId: string; error: string }>;
+        }>('/api/v1/applications/bulk-update', {
+          applicationIds: group.applicationIds,
+          updates: group.updates,
+        });
+        const payload = response.data || response;
+        successCount += payload.successCount ?? group.applicationIds.length;
+        failureCount += payload.failureCount ?? 0;
+        if (payload.failures) {
+          failures.push(...payload.failures);
+        }
+      } catch (error) {
+        failureCount += group.applicationIds.length;
+        const message = error instanceof Error ? error.message : 'Bulk update failed';
+        for (const id of group.applicationIds) {
+          failures.push({ applicationId: id, error: message });
+        }
+      }
+    }
+    return { successCount, failureCount, failures };
   }
 
   /**

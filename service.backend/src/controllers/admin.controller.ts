@@ -87,71 +87,53 @@ export class AdminController {
   static async performUserAction(req: AuthenticatedRequest, res: Response) {
     const startTime = Date.now();
 
-    try {
-      const { userId } = req.params;
-      const { action, reason, status } = req.body;
-      const adminId = req.user!.userId;
+    const { userId } = req.params;
+    const { action, reason, status } = req.body;
+    const adminId = req.user!.userId;
 
-      // Validation
-      if (!action) {
-        return res.status(400).json({
-          error: 'Action is required',
-        });
-      }
-
-      let result;
-      switch (action) {
-        case 'suspend':
-          result = await AdminService.suspendUser(userId, adminId, reason);
-          break;
-        case 'unsuspend':
-          result = await AdminService.unsuspendUser(userId, adminId);
-          break;
-        case 'verify':
-          result = await AdminService.verifyUser(userId, adminId);
-          break;
-        case 'update_status':
-          if (!status) {
-            return res.status(400).json({
-              error: 'Status is required for update_status action',
-            });
-          }
-          result = await AdminService.updateUserStatus(userId, status, adminId);
-          break;
-        case 'delete':
-          await AdminService.deleteUser(userId, adminId, reason);
-          result = { success: true };
-          break;
-        default:
-          return res.status(400).json({
-            error: 'Invalid action specified',
-          });
-      }
-
-      loggerHelpers.logRequest(req, res, Date.now() - startTime);
-
-      res.json({
-        success: true,
-        data: result,
-        message: `User ${action} successful`,
-      });
-    } catch (error) {
-      logger.error('Error performing user action:', {
-        error: error instanceof Error ? error.message : String(error),
-        action: req.body.action,
-        userId: req.params.userId,
-        duration: Date.now() - startTime,
-      });
-      if (error instanceof Error && error.message === 'User not found') {
-        return res.status(404).json({
-          error: 'User not found',
-        });
-      }
-      res.status(500).json({
-        error: 'Failed to perform user action',
-        message: error instanceof Error ? error.message : 'Unknown error',
+    // Validation
+    if (!action) {
+      return res.status(400).json({
+        error: 'Action is required',
       });
     }
+
+    let result;
+    switch (action) {
+      case 'suspend':
+        result = await AdminService.suspendUser(userId, adminId, reason);
+        break;
+      case 'unsuspend':
+        result = await AdminService.unsuspendUser(userId, adminId);
+        break;
+      case 'verify':
+        result = await AdminService.verifyUser(userId, adminId);
+        break;
+      case 'update_status':
+        if (!status) {
+          return res.status(400).json({
+            error: 'Status is required for update_status action',
+          });
+        }
+        result = await AdminService.updateUserStatus(userId, status, adminId);
+        break;
+      case 'delete':
+        await AdminService.deleteUser(userId, adminId, reason);
+        result = { success: true };
+        break;
+      default:
+        return res.status(400).json({
+          error: 'Invalid action specified',
+        });
+    }
+
+    loggerHelpers.logRequest(req, res, Date.now() - startTime);
+
+    res.json({
+      success: true,
+      data: result,
+      message: `User ${action} successful`,
+    });
   }
 
   /**
@@ -385,7 +367,6 @@ export class AdminController {
       if (!res.headersSent) {
         res.status(500).json({
           error: 'Failed to export data',
-          message: error instanceof Error ? error.message : 'Unknown error',
         });
       } else {
         res.end();

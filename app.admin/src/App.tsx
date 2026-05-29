@@ -26,6 +26,7 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const Configuration = lazy(() => import('./pages/Configuration'));
 const Audit = lazy(() => import('./pages/Audit'));
 const Messages = lazy(() => import('./pages/Messages'));
+const Inbox = lazy(() => import('./pages/Inbox'));
 const Reports = lazy(() => import('./pages/Reports'));
 const ReportBuilderPage = lazy(() => import('./pages/ReportBuilderPage'));
 const ReportViewPage = lazy(() => import('./pages/ReportViewPage'));
@@ -35,6 +36,7 @@ const FieldPermissions = lazy(() => import('./pages/FieldPermissions'));
 const ContentManagement = lazy(() => import('./pages/ContentManagement'));
 const BroadcastNotifications = lazy(() => import('./pages/BroadcastNotifications'));
 const PrivacyTools = lazy(() => import('./pages/PrivacyTools'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 const PageLoader = () => (
   <div className={styles.pageLoader}>
@@ -49,14 +51,14 @@ const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }
 );
 
 const AdminApp: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
   // ADS-105: subscribe to backend analytics:invalidate events. The hook
   // is a no-op until setRealtimeAnalyticsToken is called by the auth
   // provider (which we'll wire up in a follow-up — for now this is
   // safe to mount unconditionally).
   useAnalyticsInvalidator();
 
-  if (isLoading) {
+  if (isInitializing) {
     return <PageLoader />;
   }
 
@@ -88,6 +90,13 @@ const AdminApp: React.FC = () => {
         <AdminLayout>
           <Suspense fallback={<PageLoader />}>
             <Routes>
+              {/* Auth routes are not valid for signed-in users — bounce home.
+                  This also covers the post-login transition: when the auth
+                  state flips before LoginPage's navigate() runs, the URL
+                  is still /login and would otherwise fall through to 404. */}
+              <Route path='/login' element={<Navigate to='/' replace />} />
+              <Route path='/register' element={<Navigate to='/' replace />} />
+
               {/* Main Dashboard */}
               <Route path='/' element={<Dashboard />} />
 
@@ -110,6 +119,16 @@ const AdminApp: React.FC = () => {
               <Route path='/applications' element={<Applications />} />
               <Route path='/applications/:applicationId' element={<Applications />} />
 
+              {/* Triage Inbox (ADS-649) */}
+              <Route
+                path='/inbox'
+                element={
+                  <RouteBoundary name='inbox'>
+                    <Inbox />
+                  </RouteBoundary>
+                }
+              />
+
               {/* Content Moderation & Safety — wrapped in a route-level boundary */}
               <Route
                 path='/moderation'
@@ -123,6 +142,15 @@ const AdminApp: React.FC = () => {
               <Route path='/moderation/queue' element={<Navigate to='/moderation' replace />} />
               <Route path='/moderation/reports' element={<Navigate to='/moderation' replace />} />
               <Route path='/moderation/sanctions' element={<Navigate to='/moderation' replace />} />
+              {/* Deep-link to a specific report — opens its detail modal */}
+              <Route
+                path='/moderation/:reportId'
+                element={
+                  <RouteBoundary name='moderation'>
+                    <Moderation />
+                  </RouteBoundary>
+                }
+              />
 
               {/* Support System */}
               <Route path='/support' element={<Support />} />
@@ -160,7 +188,7 @@ const AdminApp: React.FC = () => {
               <Route path='/configuration/questions' element={<Configuration />} />
 
               {/* Content Management */}
-              <Route path='/content' element={<ContentManagement />} />
+              <Route path='/content-management' element={<ContentManagement />} />
 
               {/* Field-Level Permissions */}
               <Route path='/field-permissions' element={<FieldPermissions />} />
@@ -178,8 +206,8 @@ const AdminApp: React.FC = () => {
               <Route path='/security' element={<SecurityCenter />} />
               <Route path='/security/:tab' element={<SecurityCenter />} />
 
-              {/* Catch-all redirect */}
-              <Route path='*' element={<Navigate to='/' replace />} />
+              {/* Catch-all 404 */}
+              <Route path='*' element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </AdminLayout>

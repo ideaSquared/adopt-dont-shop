@@ -1,5 +1,7 @@
 import { col, fn, literal, Op, Transaction, WhereOptions } from 'sequelize';
+import type { EntityActivity, EntityActivityFilters } from '@adopt-dont-shop/lib.types';
 import { cached, invalidateNamespace } from '../cache/redis-cache';
+import { auditLogToActivity } from './audit-log-formatting';
 import Breed from '../models/Breed';
 import Pet, { AgeGroup, PetStatus, PetType, Size } from '../models/Pet';
 import PetMedia, { PetMediaType } from '../models/PetMedia';
@@ -31,6 +33,7 @@ import {
   PetStatusUpdate,
   PetUpdateData,
 } from '../types/pet';
+import { BadRequestError, NotFoundError, ConflictError } from '../middleware/error-handler';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import User, { UserType } from '../models/User';
@@ -1044,7 +1047,7 @@ export class PetService {
     try {
       const pet = await Pet.findByPk(petId);
       if (!pet) {
-        throw new Error('Pet not found');
+        throw new NotFoundError('Pet not found');
       }
 
       // Existing image count drives the default order_index for the
@@ -1159,7 +1162,7 @@ export class PetService {
       });
 
       if (deleted === 0) {
-        throw new Error('Image not found');
+        throw new NotFoundError('Image not found');
       }
 
       // Log image removal
@@ -1316,7 +1319,7 @@ export class PetService {
     try {
       const pet = await Pet.findByPk(petId);
       if (!pet) {
-        throw new Error('Pet not found');
+        throw new NotFoundError('Pet not found');
       }
 
       // Calculate days since posted
@@ -1343,6 +1346,33 @@ export class PetService {
       logger.error('Get pet activity failed:', error);
       throw new Error('Failed to retrieve pet activity');
     }
+  }
+
+  /**
+   * Get paginated pet activity log from audit_logs.
+   *
+   * Returns the chronological list of audit-log entries recorded against
+   * this pet (category = 'Pet', metadata.entityId = petId). Used by the
+   * admin EntityInspector Activity tab — distinct from `getPetActivity`
+   * which returns aggregate counts.
+   */
+  static async getPetActivityLog(
+    petId: string,
+    filters: EntityActivityFilters = {}
+  ): Promise<EntityActivity[]> {
+    const pet = await Pet.findByPk(petId);
+    if (!pet) {
+      throw new NotFoundError('Pet not found');
+    }
+
+    const rows = await AuditLogService.getEntityActivityLog('Pet', petId, {
+      from: filters.from ? new Date(filters.from) : undefined,
+      to: filters.to ? new Date(filters.to) : undefined,
+      limit: filters.limit,
+      offset: filters.offset,
+    });
+
+    return rows.map(auditLogToActivity);
   }
 
   /**
@@ -1400,6 +1430,8 @@ export class PetService {
         successCount: 0,
         failedCount: 0,
         errors: [],
+        failedIds: [],
+        results: [],
       };
 
       for (const petId of petIds) {
@@ -1447,16 +1479,17 @@ export class PetService {
                 await this.deletePet(petId, updatedBy, reason, tx);
                 break;
               default:
-                throw new Error(`Unknown operation: ${operationType}`);
+                throw new BadRequestError(`Unknown operation: ${operationType}`);
             }
           });
           results.successCount++;
+          results.results.push({ id: petId, success: true });
         } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
           results.failedCount++;
-          results.errors.push({
-            petId,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
+          results.errors.push({ petId, error: message });
+          results.failedIds.push(petId);
+          results.results.push({ id: petId, success: false, error: message });
         }
       }
 
@@ -1803,7 +1836,7 @@ export class PetService {
       // Check if pet exists
       const pet = await Pet.findByPk(petId);
       if (!pet) {
-        throw new Error('Pet not found');
+        throw new NotFoundError('Pet not found');
       }
 
       // Check if already favorited (including soft-deleted records)
@@ -1814,7 +1847,7 @@ export class PetService {
 
       if (existingFavorite && !existingFavorite.deletedAt) {
         // Already favorited and not soft-deleted
-        throw new Error('Pet is already in favorites');
+        throw new ConflictError('Pet is already in favorites');
       }
 
       if (existingFavorite && existingFavorite.deletedAt) {
@@ -1843,7 +1876,7 @@ export class PetService {
       });
 
       if (!favorite) {
-        throw new Error('Pet is not in favorites');
+        throw new ConflictError('Pet is not in favorites');
       }
 
       await favorite.destroy();
@@ -1959,7 +1992,7 @@ export class PetService {
 
       // Validate pet type
       if (!Object.values(PetType).includes(validType as PetType)) {
-        throw new Error(`Invalid pet type: ${type}`);
+        throw new BadRequestError(`Invalid pet type: ${type}`);
       }
 
       const breeds = await Breed.findAll({
@@ -2006,7 +2039,7 @@ export class PetService {
       // First get the reference pet
       const referencePet = await Pet.findByPk(petId);
       if (!referencePet) {
-        throw new Error('Pet not found');
+        throw new NotFoundError('Pet not found');
       }
 
       // Plan 2.4 — breed is an FK; "same breed" is now an FK
@@ -2076,7 +2109,7 @@ export class PetService {
       // Verify pet exists
       const pet = await Pet.findByPk(petId);
       if (!pet) {
-        throw new Error('Pet not found');
+        throw new NotFoundError('Pet not found');
       }
 
       // Create the report. Evidence (if any) lives in moderation_evidence

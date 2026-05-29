@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Heading,
   Text,
@@ -10,7 +10,8 @@ import {
   ToastContainer,
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
-import { FiSearch, FiUserPlus, FiEdit2, FiMail } from 'react-icons/fi';
+import { FiSearch, FiUserPlus, FiArrowLeft } from 'react-icons/fi';
+import clsx from 'clsx';
 import { DataTable, type Column } from '../components/data';
 import {
   useUsers,
@@ -26,13 +27,11 @@ import { exportData, type ExportColumn } from '../services/exportService';
 import { userManagementService } from '../services/userManagementService';
 import { ExportButton, BulkActionToolbar } from '../components/ui';
 import {
-  UserDetailModal,
-  EditUserModal,
   AddUserModal,
   CreateSupportTicketModal,
-  UserActionsMenu,
   BulkConfirmationModal,
 } from '../components/modals';
+import { UserDetailPanel } from '../components/detail';
 import * as styles from './Users.css';
 
 type BulkActionType = 'activate' | 'deactivate' | 'delete';
@@ -85,30 +84,41 @@ const getStatusBadgeLabel = (status: string, emailVerified: boolean): string => 
   return 'Active';
 };
 
+const VALID_USER_STATUS_FILTERS: ReadonlySet<string> = new Set(['active', 'suspended', 'pending']);
+
 const Users: React.FC = () => {
   const { userId } = useParams<{ userId?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialStatusParam = searchParams.get('status');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [userTypeFilter, setUserTypeFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(
+    initialStatusParam && VALID_USER_STATUS_FILTERS.has(initialStatusParam)
+      ? initialStatusParam
+      : 'all'
+  );
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     setPage(1);
   }, [searchQuery, userTypeFilter, statusFilter]);
 
-  // Modal state
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  // Modal state (only for add user and support ticket - detail/edit moved to panel)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+  const [messageUser, setMessageUser] = useState<AdminUser | null>(null);
 
   // Bulk selection state
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<BulkActionType | null>(null);
   const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  const [bulkFailedIds, setBulkFailedIds] = useState<string[]>([]);
+  const [lastBulkSubmission, setLastBulkSubmission] = useState<{
+    userIds: string[];
+    reason?: string;
+  } | null>(null);
   const bulkUpdateUsers = useBulkUpdateUsers();
 
   const { data, isLoading, error, refetch } = useUsers({
@@ -119,7 +129,7 @@ const Users: React.FC = () => {
     limit: 20,
   });
 
-  const totalPages = data?.pagination?.pages ?? data?.pagination?.totalPages ?? 1;
+  const totalPages = data?.pagination?.totalPages ?? 1;
 
   const suspendUser = useSuspendUser();
   const unsuspendUser = useUnsuspendUser();
@@ -128,41 +138,21 @@ const Users: React.FC = () => {
   const createUser = useCreateUser();
   const { toasts, showToast, hideToast } = useToast();
 
-  // Load user from URL parameter
-  useEffect(() => {
-    if (userId && data?.data) {
-      const user = data.data.find((u: AdminUser) => u.userId === userId);
-      if (user) {
-        setSelectedUser(user);
-        setIsDetailModalOpen(true);
-      }
-    }
-  }, [userId, data?.data]);
+  // Derive selected user from URL param + data
+  const selectedUser: AdminUser | null =
+    userId && data?.data ? (data.data.find((u: AdminUser) => u.userId === userId) ?? null) : null;
 
-  // Handler functions
   const handleRowClick = (user: AdminUser) => {
-    setSelectedUser(user);
-    setIsDetailModalOpen(true);
-    // Update URL to reflect selected user
     navigate(`/users/${user.userId}`, { replace: true });
   };
 
-  const handleCloseDetailModal = () => {
-    setIsDetailModalOpen(false);
-    // Clear URL parameter when closing modal
-    if (userId) {
-      navigate('/users', { replace: true });
-    }
+  const handleCloseDetail = () => {
+    navigate('/users', { replace: true });
   };
 
-  const handleEditUser = (user: AdminUser) => {
-    setSelectedUser(user);
-    setIsEditModalOpen(true);
-  };
-
-  const handleSaveUser = async (userId: string, updates: Partial<AdminUser>) => {
+  const handleSaveUser = async (id: string, updates: Partial<AdminUser>) => {
     try {
-      await apiService.patch(`/api/v1/admin/users/${userId}`, updates);
+      await apiService.patch(`/api/v1/admin/users/${id}`, updates);
       await refetch();
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to update user');
@@ -170,7 +160,7 @@ const Users: React.FC = () => {
   };
 
   const handleMessageUser = (user: AdminUser) => {
-    setSelectedUser(user);
+    setMessageUser(user);
     setIsMessageModalOpen(true);
   };
 
@@ -184,7 +174,6 @@ const Users: React.FC = () => {
     priority: string;
   }) => {
     try {
-      // Transform field names from frontend to backend
       const backendTicketData = {
         userId: ticketData.customerId,
         userEmail: ticketData.customerEmail,
@@ -201,9 +190,9 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleSuspendUser = async (userId: string, reason?: string) => {
+  const handleSuspendUser = async (id: string, reason?: string) => {
     try {
-      await suspendUser.mutateAsync({ userId, reason });
+      await suspendUser.mutateAsync({ userId: id, reason });
       showToast('User suspended successfully', 'success');
     } catch (err) {
       const errorReason = err instanceof Error ? err.message : undefined;
@@ -216,9 +205,9 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleUnsuspendUser = async (userId: string) => {
+  const handleUnsuspendUser = async (id: string) => {
     try {
-      await unsuspendUser.mutateAsync(userId);
+      await unsuspendUser.mutateAsync(id);
       showToast('User unsuspended successfully', 'success');
     } catch (err) {
       const errorReason = err instanceof Error ? err.message : undefined;
@@ -231,68 +220,123 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleVerifyUser = async (userId: string) => {
+  const handleVerifyUser = async (id: string) => {
     try {
-      await verifyUser.mutateAsync(userId);
+      await verifyUser.mutateAsync(id);
+      showToast('User verified successfully', 'success');
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to verify user');
     }
   };
 
-  const handleDeleteUser = async (userId: string, reason?: string) => {
+  const handleDeleteUser = async (id: string, reason?: string) => {
     try {
-      await deleteUser.mutateAsync({ userId, reason });
+      await deleteUser.mutateAsync({ userId: id, reason });
+      showToast('User deleted', 'success');
+      handleCloseDetail();
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to delete user');
     }
   };
 
-  const handleResetPassword = async (userId: string) => {
+  const handleResetPassword = async (id: string) => {
     try {
-      await userManagementService.resetUserPassword(userId);
+      await userManagementService.resetUserPassword(id);
       showToast('Password reset triggered', 'success');
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to reset password');
     }
   };
 
+  const runBulkAction = async (
+    action: BulkActionType,
+    userIds: string[],
+    reason?: string
+  ): Promise<{ succeeded: number; failed: number; failedIds: string[] }> => {
+    let result: {
+      successCount?: number;
+      failedCount?: number;
+      success?: number;
+      failed?: number;
+      failedIds?: string[];
+    };
+
+    if (action === 'activate') {
+      result = await bulkUpdateUsers.mutateAsync({
+        userIds,
+        updateData: { status: 'active' },
+        reason,
+      });
+    } else if (action === 'deactivate') {
+      result = await bulkUpdateUsers.mutateAsync({
+        userIds,
+        updateData: { status: 'inactive' },
+        reason,
+      });
+    } else {
+      const outcomes = await Promise.all(
+        userIds.map(id =>
+          deleteUser
+            .mutateAsync({ userId: id, reason })
+            .then(() => id)
+            .catch(() => null)
+        )
+      );
+      const deletedFailedIds = userIds.filter((_, i) => outcomes[i] === null);
+      result = {
+        successCount: outcomes.filter(r => r !== null).length,
+        failedCount: deletedFailedIds.length,
+        failedIds: deletedFailedIds,
+      };
+    }
+
+    return {
+      succeeded: result.successCount ?? result.success ?? 0,
+      failed: result.failedCount ?? result.failed ?? 0,
+      failedIds: result.failedIds ?? [],
+    };
+  };
+
   const handleBulkConfirm = async (reason?: string) => {
     if (!bulkAction) {
       return;
     }
-
     const userIds = Array.from(selectedRows);
-    let result: { successCount?: number; failedCount?: number; success?: number; failed?: number };
-
-    if (bulkAction === 'activate') {
-      result = await bulkUpdateUsers.mutateAsync({
-        userIds,
-        updates: { is_active: true },
-      });
-    } else if (bulkAction === 'deactivate') {
-      result = await bulkUpdateUsers.mutateAsync({
-        userIds,
-        updates: { is_active: false },
-      });
-    } else {
-      result = await Promise.all(
-        userIds.map(id => deleteUser.mutateAsync({ userId: id, reason }).catch(() => null))
-      ).then(results => ({
-        successCount: results.filter(r => r !== null).length,
-        failedCount: results.filter(r => r === null).length,
-      }));
-    }
-
-    setBulkResult({
-      succeeded: result.successCount ?? result.success ?? 0,
-      failed: result.failedCount ?? result.failed ?? 0,
-    });
+    const summary = await runBulkAction(bulkAction, userIds, reason);
+    setBulkResult({ succeeded: summary.succeeded, failed: summary.failed });
+    setBulkFailedIds(summary.failedIds);
+    setLastBulkSubmission({ userIds, reason });
     setSelectedRows(new Set());
+  };
+
+  const handleBulkRetry = async () => {
+    if (!bulkAction || !lastBulkSubmission) {
+      return;
+    }
+    const summary = await runBulkAction(
+      bulkAction,
+      lastBulkSubmission.userIds,
+      lastBulkSubmission.reason
+    );
+    setBulkResult({ succeeded: summary.succeeded, failed: summary.failed });
+    setBulkFailedIds(summary.failedIds);
+  };
+
+  const handleBulkRetryFailed = async () => {
+    if (!bulkAction || bulkFailedIds.length === 0) {
+      return;
+    }
+    const reason = lastBulkSubmission?.reason;
+    const summary = await runBulkAction(bulkAction, bulkFailedIds, reason);
+    setBulkResult({ succeeded: summary.succeeded, failed: summary.failed });
+    setBulkFailedIds(summary.failedIds);
   };
 
   const handleBulkModalClose = () => {
     setBulkAction(null);
     setBulkResult(null);
+    setBulkFailedIds([]);
+    setLastBulkSubmission(null);
   };
 
   if (error) {
@@ -406,44 +450,9 @@ const Users: React.FC = () => {
       width: '120px',
       sortable: true,
     },
-    {
-      id: 'actions',
-      header: 'Actions',
-      accessor: row => (
-        <div
-          className={styles.actionButtons}
-          onClick={e => e.stopPropagation()}
-          onKeyDown={e => e.stopPropagation()}
-          role='presentation'
-        >
-          <button
-            className={styles.iconButton}
-            title='Edit user'
-            onClick={() => handleEditUser(row)}
-          >
-            <FiEdit2 />
-          </button>
-          <button
-            className={styles.iconButton}
-            title='Send message'
-            onClick={() => handleMessageUser(row)}
-          >
-            <FiMail />
-          </button>
-          <UserActionsMenu
-            user={row}
-            onSuspend={handleSuspendUser}
-            onUnsuspend={handleUnsuspendUser}
-            onVerify={handleVerifyUser}
-            onDelete={handleDeleteUser}
-            onResetPassword={handleResetPassword}
-          />
-        </div>
-      ),
-      width: '140px',
-      align: 'center',
-    },
   ];
+
+  const detailOpen = selectedUser !== null;
 
   return (
     <div className={styles.pageContainer}>
@@ -461,106 +470,118 @@ const Users: React.FC = () => {
         </div>
       </div>
 
-      <div className={styles.filterBar}>
-        <div className={styles.searchInputWrapper}>
-          <FiSearch />
-          <Input
-            type='text'
-            placeholder='Search by name or email...'
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+      <div className={styles.splitLayout}>
+        {/* List pane: table with filters and bulk actions */}
+        <div className={clsx(styles.listPane, detailOpen && styles.listPaneNarrow)}>
+          <div className={styles.filterBar}>
+            <div className={styles.searchInputWrapper}>
+              <FiSearch />
+              <Input
+                type='text'
+                placeholder='Search by name or email...'
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='users-type-filter'>
+                User Type
+              </label>
+              <select
+                id='users-type-filter'
+                className={styles.select}
+                value={userTypeFilter}
+                onChange={e => setUserTypeFilter(e.target.value)}
+              >
+                <option value='all'>All Types</option>
+                <option value='admin'>Admin</option>
+                <option value='moderator'>Moderator</option>
+                <option value='rescue_staff'>Rescue Staff</option>
+                <option value='adopter'>Adopter</option>
+              </select>
+            </div>
+
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel} htmlFor='users-status-filter'>
+                Status
+              </label>
+              <select
+                id='users-status-filter'
+                className={styles.select}
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+              >
+                <option value='all'>All Statuses</option>
+                <option value='active'>Active</option>
+                <option value='pending'>Pending</option>
+                <option value='suspended'>Suspended</option>
+              </select>
+            </div>
+          </div>
+
+          <BulkActionToolbar
+            selectedCount={selectedRows.size}
+            totalCount={users.length}
+            onSelectAll={() => setSelectedRows(new Set(users.map((u: AdminUser) => u.userId)))}
+            onClearSelection={() => setSelectedRows(new Set())}
+            actions={[
+              {
+                label: 'Activate',
+                variant: 'primary',
+                onClick: () => setBulkAction('activate'),
+              },
+              {
+                label: 'Deactivate',
+                variant: 'warning',
+                onClick: () => setBulkAction('deactivate'),
+              },
+              {
+                label: 'Delete',
+                variant: 'danger',
+                onClick: () => setBulkAction('delete'),
+              },
+            ]}
+          />
+
+          <DataTable
+            columns={columns}
+            data={users}
+            loading={isLoading}
+            emptyMessage='No users found matching your criteria. Try adjusting your search or filters.'
+            onRowClick={handleRowClick}
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            selectable
+            selectedRows={selectedRows}
+            onSelectionChange={setSelectedRows}
+            getRowId={user => user.userId}
           />
         </div>
 
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='users-type-filter'>
-            User Type
-          </label>
-          <select
-            id='users-type-filter'
-            className={styles.select}
-            value={userTypeFilter}
-            onChange={e => setUserTypeFilter(e.target.value)}
-          >
-            <option value='all'>All Types</option>
-            <option value='admin'>Admin</option>
-            <option value='moderator'>Moderator</option>
-            <option value='rescue_staff'>Rescue Staff</option>
-            <option value='adopter'>Adopter</option>
-          </select>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel} htmlFor='users-status-filter'>
-            Status
-          </label>
-          <select
-            id='users-status-filter'
-            className={styles.select}
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-          >
-            <option value='all'>All Statuses</option>
-            <option value='active'>Active</option>
-            <option value='pending'>Pending</option>
-            <option value='suspended'>Suspended</option>
-          </select>
-        </div>
+        {/* Detail pane: shown when a user is selected */}
+        {detailOpen && (
+          <div className={styles.detailPane}>
+            <button type='button' className={styles.backToList} onClick={handleCloseDetail}>
+              <FiArrowLeft /> Back to list
+            </button>
+            <UserDetailPanel
+              user={selectedUser}
+              onClose={handleCloseDetail}
+              onSave={handleSaveUser}
+              onSuspend={handleSuspendUser}
+              onUnsuspend={handleUnsuspendUser}
+              onVerify={handleVerifyUser}
+              onDelete={handleDeleteUser}
+              onResetPassword={handleResetPassword}
+              onMessage={handleMessageUser}
+            />
+          </div>
+        )}
       </div>
 
-      <BulkActionToolbar
-        selectedCount={selectedRows.size}
-        totalCount={users.length}
-        onSelectAll={() => setSelectedRows(new Set(users.map((u: AdminUser) => u.userId)))}
-        onClearSelection={() => setSelectedRows(new Set())}
-        actions={[
-          {
-            label: 'Activate',
-            variant: 'primary',
-            onClick: () => setBulkAction('activate'),
-          },
-          {
-            label: 'Deactivate',
-            variant: 'warning',
-            onClick: () => setBulkAction('deactivate'),
-          },
-          {
-            label: 'Delete',
-            variant: 'danger',
-            onClick: () => setBulkAction('delete'),
-          },
-        ]}
-      />
-
-      <DataTable
-        columns={columns}
-        data={users}
-        loading={isLoading}
-        emptyMessage='No users found matching your criteria'
-        onRowClick={handleRowClick}
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        selectable
-        selectedRows={selectedRows}
-        onSelectionChange={setSelectedRows}
-        getRowId={user => user.userId}
-      />
-
-      {/* Modals */}
-      <UserDetailModal
-        isOpen={isDetailModalOpen}
-        onClose={handleCloseDetailModal}
-        user={selectedUser}
-      />
-
-      <EditUserModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        user={selectedUser}
-        onSave={handleSaveUser}
-      />
-
+      {/* Modals (only add user, support ticket, and bulk operations remain as modals) */}
       <AddUserModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -573,7 +594,7 @@ const Users: React.FC = () => {
       <CreateSupportTicketModal
         isOpen={isMessageModalOpen}
         onClose={() => setIsMessageModalOpen(false)}
-        user={selectedUser}
+        user={messageUser}
         onCreate={handleCreateSupportTicket}
       />
 
@@ -584,17 +605,25 @@ const Users: React.FC = () => {
         title={(() => {
           const count = selectedRows.size;
           const noun = `${count} user${count !== 1 ? 's' : ''}`;
-          if (bulkAction === 'delete') return `Delete ${noun}?`;
-          if (bulkAction === 'activate') return `Activate ${noun}?`;
+          if (bulkAction === 'delete') {
+            return `Delete ${noun}?`;
+          }
+          if (bulkAction === 'activate') {
+            return `Activate ${noun}?`;
+          }
           return `Deactivate ${noun}?`;
         })()}
-        description={
-          bulkAction === 'delete'
-            ? 'This will permanently delete the selected users. This action cannot be undone.'
-            : bulkAction === 'activate'
-              ? 'Activate the selected user accounts.'
-              : 'Deactivate the selected user accounts. They will be unable to log in.'
-        }
+        description={(() => {
+          const count = selectedRows.size;
+          const noun = `${count} user account${count !== 1 ? 's' : ''}`;
+          if (bulkAction === 'delete') {
+            return `This will permanently delete ${noun}. This action cannot be undone.`;
+          }
+          if (bulkAction === 'activate') {
+            return `This will activate ${noun}. The affected users will regain access to the platform.`;
+          }
+          return `This will deactivate ${noun}. The affected users will be unable to log in until reactivated.`;
+        })()}
         selectedCount={selectedRows.size}
         confirmLabel={
           bulkAction === 'delete'
@@ -606,11 +635,26 @@ const Users: React.FC = () => {
         variant={
           bulkAction === 'delete' ? 'danger' : bulkAction === 'deactivate' ? 'warning' : 'info'
         }
-        requireReason={bulkAction === 'delete'}
-        reasonLabel='Reason for deletion'
-        reasonPlaceholder='Explain why these users are being deleted...'
+        requireReason
+        reasonLabel={
+          bulkAction === 'delete'
+            ? 'Reason for deletion'
+            : bulkAction === 'activate'
+              ? 'Reason for activation'
+              : 'Reason for deactivation'
+        }
+        reasonPlaceholder={
+          bulkAction === 'delete'
+            ? 'Explain why these users are being deleted...'
+            : bulkAction === 'activate'
+              ? 'Explain why these users are being activated...'
+              : 'Explain why these users are being deactivated...'
+        }
         isLoading={bulkUpdateUsers.isPending || deleteUser.isPending}
         resultSummary={bulkResult}
+        failedIds={bulkFailedIds}
+        onRetryFailed={handleBulkRetryFailed}
+        onRetry={handleBulkRetry}
       />
 
       <ToastContainer position='top-right'>

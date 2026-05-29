@@ -1,6 +1,15 @@
 import { z } from 'zod';
 import { normalizeEmail } from '@adopt-dont-shop/lib.validation';
+import type {
+  UserActivity as SharedUserActivity,
+  UserActivityFilters,
+} from '@adopt-dont-shop/lib.types';
 import { JsonObject } from '../types/common';
+import {
+  auditLogToActivity,
+  formatActivityDescription,
+  mapActionToActivityType,
+} from './audit-log-formatting';
 import { Op, QueryTypes, WhereOptions } from 'sequelize';
 import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
@@ -24,7 +33,12 @@ import {
 import { UserActivity } from '../types/user';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
-import { ForbiddenError } from './reports.service';
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+  ConflictError,
+} from '../middleware/error-handler';
 import { isAdminRole } from '../utils/is-admin-role';
 import { redactSensitiveFields } from '../utils/redact';
 import RefreshToken from '../models/RefreshToken';
@@ -55,7 +69,7 @@ const safeLoggerHelpers = {
   },
 };
 
-// Define UserActivitySummary interface
+// Internal user shape for service-layer returns
 interface UserWithPermissions {
   userId: string;
   firstName: string;
@@ -73,7 +87,12 @@ interface UserWithPermissions {
   roles: unknown[] | undefined;
   permissions: string[];
 }
-interface UserActivitySummary {
+
+// UserActivitySummary contract lives in @adopt-dont-shop/lib.types.
+// The internal builder returns Date objects (serialised to ISO 8601 by
+// express's res.json), which match the wire-format `string` fields in
+// the shared type.
+type UserActivitySummaryInternal = {
   applicationsCount: number;
   activeChatsCount: number;
   petsFavoritedCount: number;
@@ -90,7 +109,7 @@ interface UserActivitySummary {
     accountCreatedAt: Date;
     profileCompleteness: number;
   };
-}
+};
 
 const UpdateProfileSchema = z.object({
   firstName: z.string().min(1).optional(),
@@ -225,7 +244,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Store original data for audit
@@ -441,7 +460,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Plan 5.6: notification prefs and privacy prefs live in their own
@@ -497,7 +516,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Sequential reads — SQLite (test dialect) can't parallelise queries
@@ -545,7 +564,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const defaultPreferences: UserPreferences = {
@@ -604,7 +623,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Get real application count
@@ -696,8 +715,8 @@ export class UserService {
         activeChatsCount,
         petsFavoritedCount,
         recentActivity: (recentActivity || []).map(log => ({
-          type: this.mapActionToActivityType(log.action),
-          description: this.formatActivityDescription(log.action, log.metadata),
+          type: mapActionToActivityType(log.action),
+          description: formatActivityDescription(log.action, log.category, log.metadata),
           timestamp: log.timestamp,
           metadata: log.metadata || {},
         })),
@@ -731,13 +750,13 @@ export class UserService {
   /**
    * Get user activity summary with real data
    */
-  static async getUserActivitySummary(userId: string): Promise<UserActivitySummary> {
+  static async getUserActivitySummary(userId: string): Promise<UserActivitySummaryInternal> {
     const startTime = Date.now();
 
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Get real application count
@@ -824,7 +843,7 @@ export class UserService {
             }, 0) / sessionData.length
           : 0;
 
-      const activitySummary: UserActivitySummary = {
+      const activitySummary: UserActivitySummaryInternal = {
         applicationsCount,
         activeChatsCount,
         petsFavoritedCount,
@@ -863,48 +882,66 @@ export class UserService {
   }
 
   /**
-   * Map audit log action to activity type
+   * Get paginated user activity log from audit_logs.
    */
-  private static mapActionToActivityType(
-    action: string
-  ): 'application' | 'chat' | 'favorite' | 'profile_update' | 'login' {
-    if (action.includes('APPLICATION')) {
-      return 'application';
-    }
-    if (action.includes('CHAT') || action.includes('MESSAGE')) {
-      return 'chat';
-    }
-    if (action.includes('FAVORITE')) {
-      return 'favorite';
-    }
-    if (action.includes('PROFILE') || action.includes('USER_UPDATE')) {
-      return 'profile_update';
-    }
-    if (action.includes('LOGIN')) {
-      return 'login';
-    }
-    return 'profile_update'; // default fallback
-  }
+  static async getUserActivityLog(
+    userId: string,
+    filters: UserActivityFilters = {}
+  ): Promise<SharedUserActivity[]> {
+    const startTime = Date.now();
+    const limit = Math.min(Math.max(filters.limit ?? 50, 1), 200);
+    const offset = Math.max(filters.offset ?? 0, 0);
 
-  /**
-   * Format activity description from action and metadata
-   */
-  private static formatActivityDescription(action: string, metadata?: JsonObject | null): string {
-    switch (action) {
-      case 'APPLICATION_SUBMITTED':
-        return `Submitted application for ${metadata?.petName || 'a pet'}`;
-      case 'USER_LOGIN':
-        return 'Logged into account';
-      case 'PROFILE_UPDATED':
-        return 'Updated profile information';
-      case 'PET_FAVORITED':
-        return `Added ${metadata?.petName || 'a pet'} to favorites`;
-      case 'MESSAGE_SENT':
-        return 'Sent a message';
-      case 'CHAT_CREATED':
-        return 'Started a new conversation';
-      default:
-        return action.toLowerCase().replace(/_/g, ' ');
+    try {
+      const user = await User.findByPk(userId);
+      if (!user) {
+        throw new NotFoundError('User not found');
+      }
+
+      const where: WhereOptions = { user: userId };
+      if (filters.from || filters.to) {
+        const range: { [Op.gte]?: Date; [Op.lte]?: Date } = {};
+        if (filters.from) {
+          range[Op.gte] = new Date(filters.from);
+        }
+        if (filters.to) {
+          range[Op.lte] = new Date(filters.to);
+        }
+        (where as { timestamp?: typeof range }).timestamp = range;
+      }
+
+      const rows = await AuditLog.findAll({
+        where,
+        order: [['timestamp', 'DESC']],
+        limit,
+        offset,
+        attributes: [
+          'id',
+          'action',
+          'category',
+          'metadata',
+          'ip_address',
+          'user_agent',
+          'timestamp',
+        ],
+      });
+
+      const activities: SharedUserActivity[] = rows.map(auditLogToActivity);
+
+      loggerHelpers.logPerformance('User Activity Log', {
+        duration: Date.now() - startTime,
+        userId,
+        rowCount: activities.length,
+      });
+
+      return activities;
+    } catch (error) {
+      logger.error('Failed to get user activity log:', {
+        error: error instanceof Error ? error.message : String(error),
+        userId,
+        duration: Date.now() - startTime,
+      });
+      throw error;
     }
   }
 
@@ -1090,7 +1127,7 @@ export class UserService {
 
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       const oldUserType = user.userType;
@@ -1153,11 +1190,11 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       if (user.status === UserStatus.INACTIVE) {
-        throw new Error('User is already deactivated');
+        throw new ConflictError('User is already deactivated');
       }
 
       user.status = UserStatus.INACTIVE;
@@ -1206,11 +1243,11 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       if (user.status === UserStatus.ACTIVE) {
-        throw new Error('User is already active');
+        throw new ConflictError('User is already active');
       }
 
       user.status = UserStatus.ACTIVE;
@@ -1277,7 +1314,7 @@ export class UserService {
     operation: string
   ): void {
     if (requestingUserId === targetUserId) {
-      throw new Error(`Cannot ${operation} your own account`);
+      throw new ForbiddenError(`Cannot ${operation} your own account`);
     }
   }
 
@@ -1287,7 +1324,7 @@ export class UserService {
     operation: string
   ): void {
     if (targetUserIds.includes(requestingUserId)) {
-      throw new Error(`Cannot include your own account in bulk ${operation} operation`);
+      throw new ForbiddenError(`Cannot include your own account in bulk ${operation} operation`);
     }
   }
 
@@ -1326,7 +1363,15 @@ export class UserService {
     };
   }
 
-  static async bulkUpdateUsers(updates: BulkUserUpdateData[], updatedBy: string): Promise<number> {
+  static async bulkUpdateUsers(
+    updates: BulkUserUpdateData[],
+    updatedBy: string
+  ): Promise<{
+    success: number;
+    failed: number;
+    failedIds: string[];
+    results: Array<{ id: string; success: boolean; error?: string }>;
+  }> {
     const startTime = Date.now();
 
     try {
@@ -1363,30 +1408,56 @@ export class UserService {
         ? { ...payload, tokensInvalidBefore: new Date() }
         : payload;
 
-      const [affectedRows] = await User.update(effectiveUpdates, {
-        where: {
-          userId: {
-            [Op.in]: targetUserIds,
-          },
-        },
-        individualHooks: true,
+      // Per-id updates with allSettled so a failure on one user (validation,
+      // hook reject, etc.) doesn't take down the whole batch and we can return
+      // the precise list of failedIds for per-item retry in the admin UI.
+      const settled = await Promise.allSettled(
+        targetUserIds.map(async userId => {
+          const [affected] = await User.update(effectiveUpdates, {
+            where: { userId },
+            individualHooks: true,
+          });
+          if (affected === 0) {
+            throw new NotFoundError('User not found');
+          }
+          return userId;
+        })
+      );
+
+      const results = settled.map((outcome, index) => {
+        const id = targetUserIds[index];
+        if (outcome.status === 'fulfilled') {
+          return { id, success: true };
+        }
+        const reasonMessage =
+          outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason);
+        return { id, success: false, error: reasonMessage };
       });
 
-      // Log bulk update
-      await AuditLogService.log({
-        action: 'BULK_UPDATE',
-        entity: 'User',
-        entityId: 'multiple',
-        details: {
-          updateCount: updates.length,
-          updatedBy,
-          updates: updates[0].userIds.map(userId => ({
-            userId,
-            fields: Object.keys(updates[0].updates),
-          })),
-        },
-        userId: updatedBy,
-      });
+      const failedIds = results.filter(r => !r.success).map(r => r.id);
+      const successCount = results.length - failedIds.length;
+
+      // Log bulk update — ADS-651: per-user entries each carry the
+      // operator reason so the audit log captures *why* every affected
+      // user changed state, not just that they were part of a bulk job.
+      // Only audit the successful rows; failed updates didn't change state.
+      const reason = updates[0].reason ?? null;
+      const successfulIds = results.filter(r => r.success).map(r => r.id);
+      await Promise.all(
+        successfulIds.map(userId =>
+          AuditLogService.log({
+            action: 'BULK_UPDATE',
+            entity: 'User',
+            entityId: userId,
+            details: {
+              fields: Object.keys(updates[0].updates),
+              reason,
+              bulk_operation: true,
+            },
+            userId: updatedBy,
+          })
+        )
+      );
 
       if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(
@@ -1400,7 +1471,12 @@ export class UserService {
         );
       }
 
-      return affectedRows;
+      return {
+        success: successCount,
+        failed: failedIds.length,
+        failedIds,
+        results,
+      };
     } catch (error) {
       logger.error('Failed to bulk update users:', {
         error: error instanceof Error ? error.message : String(error),
@@ -1421,7 +1497,7 @@ export class UserService {
     try {
       const user = await User.findByPk(userId);
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Soft delete related data first
@@ -1502,7 +1578,7 @@ export class UserService {
       });
 
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Extract unique permissions from all roles

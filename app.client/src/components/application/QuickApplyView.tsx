@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Alert, Button } from '@adopt-dont-shop/lib.components';
 import * as styles from './QuickApplyView.css';
 import type { Pet } from '@/services';
-import type { SaveStatus } from '@/hooks/use-auto-save';
+import type { SaveStatus } from '@/hooks/useApplicationDraft';
 import { PetHeroCard } from './PetHeroCard';
 import { PreFilledSectionCard } from './PreFilledSectionCard';
 import { QuestionField, type Question } from './QuestionField';
@@ -40,6 +40,8 @@ type Props = {
   onSwitchToGuided: () => void;
   isSubmitting: boolean;
   saveStatus: SaveStatus;
+  referencesConsented: boolean;
+  onReferencesConsentChange: (consented: boolean) => void;
 };
 
 const hasAnswer = (value: unknown): boolean => {
@@ -65,6 +67,8 @@ export const QuickApplyView: React.FC<Props> = ({
   onSwitchToGuided,
   isSubmitting,
   saveStatus,
+  referencesConsented,
+  onReferencesConsentChange,
 }) => {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [ackTouchedKeys, setAckTouchedKeys] = useState<Set<string>>(() => new Set());
@@ -132,6 +136,12 @@ export const QuickApplyView: React.FC<Props> = ({
           .slice(0, 3)
           .map(q => q.questionText)
           .join(', ')}${missing.length > 3 ? ', and a couple more' : ''}.`
+      );
+      return;
+    }
+    if (!referencesConsented) {
+      setValidationError(
+        'Please confirm that your references have agreed to be contacted before sending.'
       );
       return;
     }
@@ -208,6 +218,23 @@ export const QuickApplyView: React.FC<Props> = ({
           })}
       </section>
 
+      <section className={styles.finalStep}>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+          <input
+            type='checkbox'
+            checked={referencesConsented}
+            onChange={e => {
+              onReferencesConsentChange(e.target.checked);
+              if (validationError) {
+                setValidationError(null);
+              }
+            }}
+            aria-required='true'
+          />
+          <span>I confirm my references have agreed to be contacted about this application.</span>
+        </label>
+      </section>
+
       <div className={styles.actions}>
         <button className={styles.switchLink} type='button' onClick={onSwitchToGuided}>
           Prefer to go step-by-step? Switch to the guided form →
@@ -215,7 +242,7 @@ export const QuickApplyView: React.FC<Props> = ({
         <Button
           variant='primary'
           onClick={handleSubmit}
-          disabled={isSubmitting || saveStatus === 'saving'}
+          disabled={isSubmitting || saveStatus === 'saving' || !referencesConsented}
           isLoading={isSubmitting}
         >
           Send my application 💌

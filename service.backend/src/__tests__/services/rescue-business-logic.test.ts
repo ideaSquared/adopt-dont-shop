@@ -529,6 +529,14 @@ describe('RescueService - Business Logic Tests', () => {
         rescueId: rescueId1,
         error: 'Rescue is already suspended',
       });
+      // failedIds + per-id results power per-item retry in the admin UI.
+      expect(result.failedIds).toEqual([rescueId1]);
+      expect(result.results).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: rescueId1, success: false }),
+          expect.objectContaining({ id: rescueId2, success: true }),
+        ])
+      );
     });
 
     it('preserves the operator action verb (approve vs verify) in the audit log [ADS-378]', async () => {

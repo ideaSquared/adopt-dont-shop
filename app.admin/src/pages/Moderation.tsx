@@ -1,18 +1,14 @@
-import React, { useState } from 'react';
-import { Heading, Text, Button, Input } from '@adopt-dont-shop/lib.components';
-import {
-  FiSearch,
-  FiAlertTriangle,
-  FiCheckCircle,
-  FiXCircle,
-  FiEye,
-  FiShield,
-} from 'react-icons/fi';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
+import { Input, toast } from '@adopt-dont-shop/lib.components';
+import { FiSearch, FiAlertTriangle, FiCheckCircle, FiEye, FiShield } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
+import { BulkActionToolbar } from '../components/ui';
 import {
   useReports,
   useModerationMetrics,
   useReportMutations,
+  moderationService,
   getSeverityLabel,
   getStatusLabel,
   formatRelativeTime,
@@ -25,6 +21,11 @@ import {
   type ActionSelectionData,
 } from '../components/moderation/ActionSelectionModal';
 import { ReportDetailModal } from '../components/moderation/ReportDetailModal';
+import {
+  BulkModerationModal,
+  type BulkModerationActionKind,
+  type BulkModerationSubmitData,
+} from '../components/moderation/BulkModerationModal';
 import * as styles from './Moderation.css';
 
 const getStatusBadgeClass = (status: string): string => {
@@ -87,16 +88,59 @@ const getContentTypeTagClass = (type: string): string => {
   }
 };
 
+const VALID_REPORT_STATUSES: ReadonlySet<string> = new Set([
+  'pending',
+  'under_review',
+  'resolved',
+  'dismissed',
+  'escalated',
+]);
+
+const VALID_REPORT_SEVERITIES: ReadonlySet<string> = new Set(['critical', 'high', 'medium', 'low']);
+
 const Moderation: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const statusParam = searchParams.get('status');
+  const severityParam = searchParams.get('severity');
+  const statusFilter: ReportStatus | 'all' =
+    statusParam && VALID_REPORT_STATUSES.has(statusParam) ? (statusParam as ReportStatus) : 'all';
+  const severityFilter: ReportSeverity | 'all' =
+    severityParam && VALID_REPORT_SEVERITIES.has(severityParam)
+      ? (severityParam as ReportSeverity)
+      : 'all';
+
+  const setFilterParam = (key: string, value: string) => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        if (value && value !== 'all') {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  const { reportId } = useParams<{ reportId?: string }>();
+  const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('all');
-  const [severityFilter, setSeverityFilter] = useState<ReportSeverity | 'all'>('all');
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Bulk selection state
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [bulkKind, setBulkKind] = useState<BulkModerationActionKind | null>(null);
+  const [bulkResult, setBulkResult] = useState<{ succeeded: number; failed: number } | null>(null);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
 
   const {
     data: reportsData,
@@ -117,7 +161,7 @@ const Moderation: React.FC = () => {
   const { data: metricsData } = useModerationMetrics();
   const { resolveReport, dismissReport, isLoading: isActionLoading } = useReportMutations();
 
-  const reports = reportsData?.data || [];
+  const reports = useMemo(() => reportsData?.data ?? [], [reportsData?.data]);
   const pagination = reportsData?.pagination;
   const metrics = metricsData || {
     pendingReports: 0,
@@ -135,24 +179,47 @@ const Moderation: React.FC = () => {
     );
   };
 
+  // ADS deep-link: the detail modal is driven by the URL :reportId param.
+  // Look up the report once the list has loaded; if the id doesn't match
+  // any loaded report (e.g. deleted/invalid), bounce back to /moderation
+  // and surface a soft toast. While reports are still loading we wait.
+  const detailReport = useMemo<Report | null>(
+    () => (reportId ? (reports.find((r: Report) => r.reportId === reportId) ?? null) : null),
+    [reportId, reports]
+  );
+  const isDetailModalOpen = Boolean(reportId) && detailReport !== null;
+
+  useEffect(() => {
+    if (!reportId || isLoading) {
+      return;
+    }
+    if (!reports.some((r: Report) => r.reportId === reportId)) {
+      toast.error('Report not found');
+      navigate({ pathname: '/moderation', search: searchParams.toString() }, { replace: true });
+    }
+  }, [reportId, isLoading, reports, navigate, searchParams]);
+
   const handleOpenDetailModal = (report: Report) => {
-    setSelectedReport(report);
-    setIsDetailModalOpen(true);
+    navigate({
+      pathname: `/moderation/${report.reportId}`,
+      search: searchParams.toString(),
+    });
   };
 
   const handleCloseDetailModal = () => {
-    setIsDetailModalOpen(false);
-    setSelectedReport(null);
+    navigate({ pathname: '/moderation', search: searchParams.toString() });
   };
 
   const handleOpenActionModal = (report: Report) => {
     setSelectedReport(report);
+    setActionError(null);
     setIsActionModalOpen(true);
   };
 
   const handleCloseActionModal = () => {
     setIsActionModalOpen(false);
     setSelectedReport(null);
+    setActionError(null);
   };
 
   const handleActionSubmit = async (actionData: ActionSelectionData) => {
@@ -171,6 +238,84 @@ const Moderation: React.FC = () => {
       await refetch();
     } catch (err) {
       console.error('Failed to take moderation action:', err);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setActionError(`Failed to take moderation action: ${message}`);
+    }
+  };
+
+  const selectedReports = useMemo(
+    () => reports.filter(r => selectedRows.has(r.reportId)),
+    [reports, selectedRows]
+  );
+  const selectedSeverities = useMemo<ReportSeverity[]>(
+    () => selectedReports.map(r => r.severity),
+    [selectedReports]
+  );
+
+  const handleOpenBulk = (kind: BulkModerationActionKind) => {
+    setBulkKind(kind);
+    setBulkResult(null);
+  };
+
+  const handleCloseBulk = () => {
+    setBulkKind(null);
+    setBulkResult(null);
+  };
+
+  const handleBulkSubmit = async (data: BulkModerationSubmitData) => {
+    const reportIds = Array.from(selectedRows);
+    if (reportIds.length === 0) {
+      return;
+    }
+
+    setIsBulkLoading(true);
+    try {
+      if (data.kind === 'dismiss') {
+        // Backend writes one audit log row per dismissed report.
+        const result = await moderationService.bulkUpdateReports({
+          reportIds,
+          action: 'dismiss',
+          resolutionNotes: data.reason,
+        });
+        setBulkResult({
+          succeeded: result.updated,
+          failed: reportIds.length - result.updated,
+        });
+      } else if (data.kind === 'sanction' && data.sanction) {
+        // Bulk sanctions: iterate per report so each action creates its own
+        // moderation action + audit-log entry (MODERATION_ACTION_TAKEN).
+        const outcomes = await Promise.all(
+          selectedReports.map(async report => {
+            try {
+              await moderationService.takeAction(
+                report.reportId,
+                {
+                  reportId: report.reportId,
+                  targetEntityType: report.reportedEntityType,
+                  targetEntityId: report.reportedEntityId,
+                  targetUserId: report.reportedUserId ?? undefined,
+                  actionType: data.sanction!.actionType,
+                  severity: data.sanction!.severity,
+                  reason: data.reason,
+                },
+                data.reason
+              );
+              return true;
+            } catch (err) {
+              console.error('Bulk sanction failed for report', report.reportId, err);
+              return false;
+            }
+          })
+        );
+        setBulkResult({
+          succeeded: outcomes.filter(Boolean).length,
+          failed: outcomes.filter(o => !o).length,
+        });
+      }
+      setSelectedRows(new Set());
+      await refetch();
+    } finally {
+      setIsBulkLoading(false);
     }
   };
 
@@ -323,7 +468,7 @@ const Moderation: React.FC = () => {
             id='mod-status-filter'
             className={styles.select}
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value as any)}
+            onChange={e => setFilterParam('status', e.target.value)}
           >
             <option value='all'>All Statuses</option>
             <option value='pending'>Pending</option>
@@ -342,7 +487,7 @@ const Moderation: React.FC = () => {
             id='mod-severity-filter'
             className={styles.select}
             value={severityFilter}
-            onChange={e => setSeverityFilter(e.target.value as any)}
+            onChange={e => setFilterParam('severity', e.target.value)}
           >
             <option value='all'>All Severities</option>
             <option value='critical'>Critical</option>
@@ -372,20 +517,44 @@ const Moderation: React.FC = () => {
         </div>
       </div>
 
+      <BulkActionToolbar
+        selectedCount={selectedRows.size}
+        totalCount={reports.length}
+        onSelectAll={() => setSelectedRows(new Set(reports.map(r => r.reportId)))}
+        onClearSelection={() => setSelectedRows(new Set())}
+        actions={[
+          {
+            label: 'Dismiss',
+            variant: 'neutral',
+            onClick: () => handleOpenBulk('dismiss'),
+          },
+          {
+            label: 'Sanction',
+            variant: 'danger',
+            onClick: () => handleOpenBulk('sanction'),
+          },
+        ]}
+      />
+
       <DataTable
         data={reports}
         columns={columns}
         loading={isLoading}
+        emptyMessage='No reports found matching your criteria. Try adjusting your filters or search query.'
         onRowClick={handleOpenDetailModal}
         currentPage={pagination?.page || 1}
         totalPages={pagination?.totalPages || 1}
         onPageChange={page => setCurrentPage(page)}
+        selectable
+        selectedRows={selectedRows}
+        onSelectionChange={setSelectedRows}
+        getRowId={report => report.reportId}
       />
 
       <ReportDetailModal
         isOpen={isDetailModalOpen}
         onClose={handleCloseDetailModal}
-        report={selectedReport}
+        report={detailReport}
       />
 
       <ActionSelectionModal
@@ -394,6 +563,18 @@ const Moderation: React.FC = () => {
         onSubmit={handleActionSubmit}
         reportTitle={selectedReport?.title || ''}
         isLoading={isActionLoading}
+        error={actionError}
+      />
+
+      <BulkModerationModal
+        isOpen={bulkKind !== null}
+        onClose={handleCloseBulk}
+        onSubmit={handleBulkSubmit}
+        kind={bulkKind ?? 'dismiss'}
+        selectedCount={selectedRows.size}
+        selectedSeverities={selectedSeverities}
+        isLoading={isBulkLoading}
+        resultSummary={bulkResult}
       />
     </div>
   );

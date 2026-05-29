@@ -204,6 +204,9 @@ export const content = style({
       animationName: slideRightAndFade,
     },
   },
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
 });
 
 export const viewport = style({

@@ -15,6 +15,7 @@ import { errorHandler } from './middleware/error-handler';
 import { csrfProtection, csrfErrorHandler, getCsrfToken } from './middleware/csrf';
 import { metricsMiddleware } from './middleware/metrics';
 import { httpAccessLog } from './middleware/morgan';
+import { noStoreCacheControl } from './middleware/no-cache';
 import { apiLimiter } from './middleware/rate-limiter';
 import { requestContextMiddleware } from './middleware/request-context';
 import { verifyEmailDeliveryWebhook } from './middleware/webhook-signature';
@@ -35,6 +36,7 @@ import { installAuditLogsImmutableTrigger } from './models/audit-logs-immutable'
 import adminRoutes from './routes/admin.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import applicationRoutes from './routes/application.routes';
+import applicationDraftRoutes from './routes/application-draft.routes';
 import applicationProfileRoutes from './routes/application-profile.routes';
 import authRoutes from './routes/auth.routes';
 import chatRoutes from './routes/chat.routes';
@@ -52,6 +54,7 @@ import staffRoutes from './routes/staff.routes';
 import supportTicketRoutes from './routes/supportTicket.routes';
 import userSupportRoutes from './routes/userSupport.routes';
 import moderationRoutes from './routes/moderation.routes';
+import inboxRoutes from './routes/inbox.routes';
 import userRoutes from './routes/user.routes';
 import gdprRoutes from './routes/gdpr.routes';
 import fieldPermissionsRoutes from './routes/field-permissions.routes';
@@ -235,6 +238,27 @@ app.post(
 // this global gate.
 app.use('/api', apiLimiter);
 
+// Apply `Cache-Control: private, no-store, max-age=0` to every /api/*
+// response so a default-configured CDN / shared proxy cannot cache a
+// personalised GET and serve it to a different user. Mounted after the
+// global rate-limiter and before any route handlers so it covers every
+// authenticated and public API endpoint uniformly. Pass-9 audit
+// confirmed public listings under /api don't expose PII directly; the
+// trade-off is loss of HTTP-level caching on those listings, which the
+// frontend already caches via React Query. Static asset routes mounted
+// outside /api/* (e.g. /uploads/* signed URLs) intentionally keep
+// their own cache headers and are unaffected.
+app.use('/api', noStoreCacheControl);
+
+// Tighter body limit on auth endpoints. Login / register / 2FA /
+// password-recovery bodies are typically a few hundred bytes — there
+// is no legitimate reason to accept anything close to the 1 MB global
+// ceiling on these paths. Mounting this parser BEFORE the global
+// express.json() means it consumes the body first (express.json is a
+// no-op once req._body is set), so an oversized auth body gets a 413
+// without ever burning a 1 MB JSON parse.
+app.use('/api/v1/auth', express.json({ limit: '32kb' }));
+
 // ADS-457: 10 MB body limits were a DoS amplifier on auth/search/chat
 // endpoints that only need a few KB of JSON. Multipart file uploads go
 // through multer (not body-parser), so this lower limit doesn't affect
@@ -258,17 +282,17 @@ app.use(httpAccessLog);
 // ADS-404: per-request HTTP histogram for the Prometheus scrape endpoint.
 app.use(metricsMiddleware);
 
-// Cookie parser for CSRF tokens
-app.use(cookieParser());
+// Cookie parsing + CSRF protection, scoped to /api so non-API paths
+// (Swagger, monitoring, upload-serve) don't trigger CodeQL's
+// js/missing-token-validation false positive.  GET/HEAD/OPTIONS are
+// skipped automatically by csrf-csrf's ignoredMethods config.  The
+// email webhook POST is handled by a self-contained route above
+// cookieParser and never reaches here.
+app.use('/api', cookieParser(), csrfProtection);
 
-// CSRF Protection for state-changing requests
-// Provide CSRF token endpoint (must be before csrfProtection middleware)
+// CSRF token endpoint — must be reachable without CSRF validation
+// (it's a GET, so csrfProtection's ignoredMethods skips it).
 app.get('/api/v1/csrf-token', getCsrfToken);
-
-// Apply CSRF protection to all /api routes. GET/HEAD/OPTIONS are skipped
-// automatically by csrf-csrf's ignoredMethods config. The email webhook POST
-// is handled by the fully self-contained route above and never reaches here.
-app.use('/api', csrfProtection);
 
 // ADS-429 / ADS-422: upload serving.
 //
@@ -311,6 +335,9 @@ app.use('/monitoring', monitoringRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/auth', authRoutes);
+// Drafts router mounted BEFORE the main applications router so its
+// /drafts/:petId paths aren't shadowed by /:applicationId in the latter.
+app.use('/api/v1/applications/drafts', applicationDraftRoutes);
 app.use('/api/v1/applications', applicationRoutes);
 app.use('/api/v1/profile', applicationProfileRoutes);
 app.use('/api/v1/chats', chatRoutes);
@@ -329,6 +356,7 @@ app.use('/api/v1/staff', staffRoutes);
 app.use('/api/v1/support', userSupportRoutes); // User-facing support tickets
 app.use('/api/v1/admin/support', supportTicketRoutes); // Admin support ticket management
 app.use('/api/v1/admin/moderation', moderationRoutes);
+app.use('/api/v1/admin/inbox', inboxRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/config', configRoutes);
 app.use('/api/v1/field-permissions', fieldPermissionsRoutes);
@@ -348,14 +376,10 @@ app.use('/api/v1', healthRoutes);
 app.use('/metrics', metricsRoutes);
 
 // Simple health check (no dependencies)
-app.get('/api/v1/health/simple', (req, res) => {
+app.get('/api/v1/health/simple', (_req, res) => {
   res.json({
     success: true,
     status: 'healthy',
-    message: 'Backend service is running',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    version: process.env.npm_package_version || '1.0.0',
   });
 });
 

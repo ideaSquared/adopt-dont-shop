@@ -42,6 +42,7 @@ vi.mock('../hooks', () => ({
   useBulkUpdateUsers: () => mockUseBulkUpdateUsers(),
   useBulkUpdateRescues: () => mockUseBulkUpdateRescues(),
   useCreateUser: () => mockUseCreateUser(),
+  useEntityActivity: () => ({ data: [], isLoading: false, error: null }),
 }));
 
 const mockGetAll = vi.fn();
@@ -130,9 +131,13 @@ vi.mock('../components/modals', () => ({
       </div>
     );
   },
-  RescueDetailModal: () => null,
   RescueVerificationModal: () => null,
   SendEmailModal: () => null,
+}));
+
+vi.mock('../components/detail', () => ({
+  UserDetailPanel: () => null,
+  RescueDetailPanel: () => null,
 }));
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -477,7 +482,7 @@ describe('Bulk operations — Rescues page', () => {
       await user.click(within(toolbar).getByRole('button', { name: /^approve$/i }));
 
       expect(screen.getByTestId('bulk-confirmation-modal')).toBeInTheDocument();
-      expect(screen.getByTestId('modal-title')).toHaveTextContent('Approve Rescues');
+      expect(screen.getByTestId('modal-title')).toHaveTextContent(/Approve \d+ rescues?\?/);
     });
 
     it('opens the confirmation modal when Suspend is clicked', async () => {
@@ -493,7 +498,7 @@ describe('Bulk operations — Rescues page', () => {
       await user.click(within(toolbar).getByRole('button', { name: /^suspend$/i }));
 
       expect(screen.getByTestId('bulk-confirmation-modal')).toBeInTheDocument();
-      expect(screen.getByTestId('modal-title')).toHaveTextContent('Suspend Rescues');
+      expect(screen.getByTestId('modal-title')).toHaveTextContent(/Suspend \d+ rescues?\?/);
     });
 
     it('calls bulkUpdateRescues when Approve is confirmed', async () => {
@@ -512,6 +517,121 @@ describe('Bulk operations — Rescues page', () => {
       await waitFor(() => {
         expect(mockMutationResult.mutateAsync).toHaveBeenCalled();
       });
+    });
+  });
+});
+
+// ── ADS-651: consistent bulk-action reasons ───────────────────────────────────
+
+describe('ADS-651 — bulk-action reasons are required and captured', () => {
+  beforeEach(() => {
+    mockMutationResult.mutateAsync.mockClear();
+    setupUsers();
+    setupRescues();
+  });
+
+  describe('Users page', () => {
+    it.each([
+      ['activate', /^activate$/i],
+      ['deactivate', /^deactivate$/i],
+      ['delete', /^delete$/i],
+    ])('requires a reason when bulk %s is triggered', async (_label, buttonName) => {
+      const user = userEvent.setup();
+      renderWithProviders(<Users />);
+
+      await user.click(screen.getAllByRole('checkbox')[1]);
+      const toolbar = screen.getByRole('toolbar', { name: /bulk actions/i });
+      await user.click(within(toolbar).getByRole('button', { name: buttonName }));
+
+      // The modal renders a reason textarea — proves requireReason is on
+      // for this action.
+      expect(screen.getByTestId('reason-textarea')).toBeInTheDocument();
+    });
+
+    it.each([
+      ['activate', /^activate$/i],
+      ['deactivate', /^deactivate$/i],
+    ])(
+      'passes the captured reason through to bulkUpdateUsers for %s',
+      async (_label, buttonName) => {
+        const user = userEvent.setup();
+        renderWithProviders(<Users />);
+
+        await user.click(screen.getAllByRole('checkbox')[1]);
+        const toolbar = screen.getByRole('toolbar', { name: /bulk actions/i });
+        await user.click(within(toolbar).getByRole('button', { name: buttonName }));
+        await user.click(screen.getByTestId('confirm-btn'));
+
+        await waitFor(() => {
+          expect(mockMutationResult.mutateAsync).toHaveBeenCalledWith(
+            expect.objectContaining({ reason: 'test reason' })
+          );
+        });
+      }
+    );
+
+    it('shows confirmation copy that names the action and the row count', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<Users />);
+
+      // Select two rows.
+      await user.click(screen.getAllByRole('checkbox')[1]);
+      await user.click(screen.getAllByRole('checkbox')[2]);
+      const toolbar = screen.getByRole('toolbar', { name: /bulk actions/i });
+      await user.click(within(toolbar).getByRole('button', { name: /^deactivate$/i }));
+
+      // Title states the action and the count explicitly.
+      expect(screen.getByTestId('modal-title')).toHaveTextContent(/Deactivate 2 users\?/);
+      expect(screen.getByTestId('modal-count')).toHaveTextContent('2 items selected');
+    });
+  });
+
+  describe('Rescues page', () => {
+    it.each([
+      ['approve', /^approve$/i],
+      ['suspend', /^suspend$/i],
+    ])('requires a reason when bulk %s is triggered', async (_label, buttonName) => {
+      const user = userEvent.setup();
+      renderWithProviders(<Rescues />);
+      await waitFor(() => {
+        expect(screen.getByText('Happy Paws')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getAllByRole('checkbox')[1]);
+      const toolbar = screen.getByRole('toolbar', { name: /bulk actions/i });
+      await user.click(within(toolbar).getByRole('button', { name: buttonName }));
+
+      expect(screen.getByTestId('reason-textarea')).toBeInTheDocument();
+    });
+
+    it.each([
+      ['approve', /^approve$/i],
+      ['suspend', /^suspend$/i],
+    ])('passes the reason through to bulkUpdateRescues for %s', async (action, buttonName) => {
+      const user = userEvent.setup();
+      renderWithProviders(<Rescues />);
+      await waitFor(() => {
+        expect(screen.getByText('Happy Paws')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getAllByRole('checkbox')[1]);
+      const toolbar = screen.getByRole('toolbar', { name: /bulk actions/i });
+      await user.click(within(toolbar).getByRole('button', { name: buttonName }));
+      await user.click(screen.getByTestId('confirm-btn'));
+
+      await waitFor(() => {
+        expect(mockMutationResult.mutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({ action, reason: 'test reason' })
+        );
+      });
+    });
+  });
+
+  describe('Single-row actions are available via the detail panel', () => {
+    it('renders the table without per-row action menus (actions moved to detail panel)', () => {
+      renderWithProviders(<Users />);
+      // Per-row UserActionsMenu is no longer rendered; actions live in the detail panel.
+      expect(screen.queryByTestId('actions-user-1')).not.toBeInTheDocument();
     });
   });
 });

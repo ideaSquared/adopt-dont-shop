@@ -92,7 +92,7 @@ The Adopt Don't Shop platform uses a modern microservices architecture with shar
 - Development: Local uploads directory
 - Production: AWS S3 with CloudFront CDN
 
-## Shared Libraries (23 libraries)
+## Shared Libraries (24 libraries)
 
 All libraries follow ESM-only architecture with TypeScript strict mode. Package names are scoped as `@adopt-dont-shop/lib.<name>` (dots, matching the directory names).
 
@@ -120,6 +120,7 @@ All libraries follow ESM-only architecture with TypeScript strict mode. Package 
 - `@adopt-dont-shop/lib.moderation` - Reporting and moderation
 - `@adopt-dont-shop/lib.support-tickets` - Support tickets
 - `@adopt-dont-shop/lib.audit-logs` - Audit logging
+- `@adopt-dont-shop/lib.matching` - Pet-adopter matching types
 
 **UI & Analytics:**
 

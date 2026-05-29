@@ -133,6 +133,13 @@ export const applicationCard = style({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
+  gap: '1rem',
+  '@media': {
+    '(max-width: 768px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    },
+  },
 });
 
 export const applicationInfo = style({});

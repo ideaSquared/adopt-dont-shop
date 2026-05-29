@@ -13,6 +13,7 @@ interface ChatAttributes {
   application_id?: string; // Optional - links to adoption application if chat was initiated from one
   rescue_id: string; // Add rescue_id to attributes
   pet_id?: string; // Optional - links to specific pet if chat was initiated from pet page
+  assigned_to?: string; // ADS-649: admin user assigned to triage this chat
   status: ChatStatus;
   created_at?: Date;
   updated_at?: Date;
@@ -31,6 +32,7 @@ export class Chat extends Model<ChatAttributes, ChatCreationAttributes> implemen
   public application_id?: string;
   public rescue_id!: string; // Add rescue_id to class
   public pet_id?: string; // Add pet_id to class
+  public assigned_to?: string; // ADS-649: admin triage assignment
   public status!: ChatStatus;
   // Sequelize, with `underscored: true`, maps timestamp COLUMNS to
   // snake_case (created_at) but keeps timestamp ATTRIBUTES camelCase.
@@ -107,6 +109,15 @@ Chat.init(
       },
       onDelete: 'SET NULL',
     },
+    assigned_to: {
+      type: getUuidType(),
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'user_id',
+      },
+      onDelete: 'SET NULL',
+    },
     status: {
       type: DataTypes.ENUM(...Object.values(ChatStatus)),
       allowNull: false,
@@ -134,6 +145,10 @@ Chat.init(
       {
         fields: ['pet_id'],
         name: 'chats_pet_id_idx',
+      },
+      {
+        fields: ['assigned_to'],
+        name: 'chats_assigned_to_idx',
       },
       {
         fields: ['status'],

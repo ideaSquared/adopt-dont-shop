@@ -41,6 +41,17 @@ This project follows strict Test-Driven Development — **no new behaviour witho
 
 CI runs **ten** checks across `.github/workflows/ci.yml`, `lib-test-guard.yml`, `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
 
+### One-shot preflight (recommended before pushing)
+
+Two aggregated scripts run the CI-equivalent checks for you:
+
+```bash
+npm run ci:local:quick   # fast preflight (~30s): format + lint + type-check
+npm run ci:local         # full preflight (~3-5min): format + lint + type-check + test + lib-test guard + workspace drift
+```
+
+`ci:local` covers everything in the fast and slow tiers below except E2E and the backend coverage thresholds — run those separately when relevant.
+
 ### Fast feedback (run every time, ~30s)
 
 These are the quickest signals and cover lint, unit tests, type-check and formatting across every workspace:
@@ -106,6 +117,23 @@ Full guidelines are in [.claude/CLAUDE.md](./.claude/CLAUDE.md). Key rules:
 Every package uses **Vitest** (`vitest run`). The React apps and `lib.components` add React Testing Library on top. Use the `npm test` / `npm run test:watch` / `npm run test:coverage` scripts defined in each package.
 
 Tests must cover **behaviour**, not implementation. 100% coverage is expected but tests must always be grounded in business requirements, not internal structure.
+
+### Coverage thresholds
+
+Since ADS-708, CI runs `test:coverage` (not plain `test`) across `lib.*` and `app.*` and enforces the thresholds declared in `vitest.shared.config.ts`. The baseline is **0%** so existing PRs are not blocked — the infrastructure is in place so individual packages can ratchet upward incrementally (tracked in ADS-717). To raise the bar for a single package, override the inherited thresholds in that package's `vitest.config.ts`:
+
+```typescript
+import { mergeConfig } from 'vitest/config';
+import shared from '../vitest.shared.config';
+
+export default mergeConfig(shared, {
+  test: {
+    coverage: {
+      thresholds: { statements: 80, branches: 80, functions: 80, lines: 80 },
+    },
+  },
+});
+```
 
 ## Reporting bugs / proposing features
 

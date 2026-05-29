@@ -1,16 +1,32 @@
 import { Op, Order, WhereOptions } from 'sequelize';
 import EmailService from './email.service';
 import { EmailType, EmailPriority } from '../models/EmailQueue';
+import {
+  BadRequestError,
+  NotFoundError,
+  ConflictError,
+  ForbiddenError,
+} from '../middleware/error-handler';
 import { Application, Pet, Rescue, StaffMember, User, Role, UserRole } from '../models';
 import type { RescueAttributes, RescueCreationAttributes } from '../models/Rescue';
+import { UserStatus, UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { cached, invalidateNamespace } from '../cache/redis-cache';
 import { AuditLogService } from './auditLog.service';
+import { auditLogToActivity } from './audit-log-formatting';
+import type {
+  EntityActivity as SharedEntityActivity,
+  EntityActivityFilters,
+} from '@adopt-dont-shop/lib.types';
+import { NotificationService } from './notification.service';
+import { NotificationType } from '../models/Notification';
+import { emitToRescue } from '../socket/socket-registry';
 import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
 import { verifyCompaniesHouseNumber } from './companies-house.service';
 import { verifyCharityRegistrationNumber } from './charity-commission.service';
+import type { RescueRegistrationRequest } from '@adopt-dont-shop/lib.validation';
 
 const RESCUE_PET_SORT_FIELDS = ['createdAt', 'updatedAt', 'name'] as const;
 import sequelize from '../sequelize';
@@ -23,6 +39,10 @@ export type BulkRescueResult = {
   successCount: number;
   failedCount: number;
   errors: Array<{ rescueId: string; error: string }>;
+  // Additive per-item failure detail so the admin UI can offer
+  // per-item retry without re-fetching to diff against the input.
+  failedIds: string[];
+  results: Array<{ id: string; success: boolean; error?: string }>;
 };
 
 export interface RescueSearchOptions {
@@ -119,6 +139,229 @@ export class RescueService {
   static async isUserStaffOfRescue(userId: string, rescueId: string): Promise<boolean> {
     const membership = await StaffMember.findOne({ where: { userId, rescueId } });
     return Boolean(membership);
+  }
+
+  /**
+   * ADS-641: Public rescue registration — creates a User, Rescue, and
+   * StaffMember (owner role) in a single transaction. After commit,
+   * fires email verification and attempts external verification.
+   * Returns the new rescue and user IDs.
+   */
+  static async registerRescue(
+    data: RescueRegistrationRequest
+  ): Promise<{ rescueId: string; userId: string }> {
+    const startTime = Date.now();
+    const transaction = await Rescue.sequelize!.transaction();
+
+    try {
+      // Check for duplicate user email
+      const existingUser = await User.findOne({
+        where: { email: data.email },
+        transaction,
+      });
+      if (existingUser) {
+        throw new ConflictError('A user with this email already exists');
+      }
+
+      // Check for duplicate rescue email
+      const existingRescue = await Rescue.findOne({
+        where: { email: data.rescueEmail },
+        transaction,
+      });
+      if (existingRescue) {
+        throw new ConflictError('A rescue organization with this email already exists');
+      }
+
+      // Check duplicate registration numbers
+      if (data.companiesHouseNumber) {
+        const existingByCH = await Rescue.findOne({
+          where: { companiesHouseNumber: data.companiesHouseNumber },
+          transaction,
+        });
+        if (existingByCH) {
+          throw new ConflictError(
+            'A rescue is already registered with this Companies House number'
+          );
+        }
+      }
+      if (data.charityRegistrationNumber) {
+        const existingByCharity = await Rescue.findOne({
+          where: { charityRegistrationNumber: data.charityRegistrationNumber },
+          transaction,
+        });
+        if (existingByCharity) {
+          throw new ConflictError(
+            'A rescue is already registered with this charity registration number'
+          );
+        }
+      }
+
+      // Create user (password hashed by model hook)
+      const crypto = await import('crypto');
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      const user = await User.create(
+        {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          password: data.password,
+          userType: UserType.RESCUE_STAFF,
+          status: UserStatus.PENDING_VERIFICATION,
+          emailVerified: false,
+          verificationToken,
+          verificationTokenExpiresAt: verificationExpires,
+          loginAttempts: 0,
+        },
+        { transaction }
+      );
+
+      // Create rescue in pending state
+      const rescue = await Rescue.create(
+        {
+          name: data.name,
+          email: data.rescueEmail,
+          phone: data.phone,
+          address: data.address,
+          city: data.city,
+          county: data.county,
+          postcode: data.postcode,
+          country: data.country,
+          website: data.website,
+          description: data.description,
+          companiesHouseNumber: data.companiesHouseNumber,
+          charityRegistrationNumber: data.charityRegistrationNumber,
+          contactPerson: `${data.firstName} ${data.lastName}`,
+          status: 'pending',
+          created_by: user.userId,
+        } as unknown as RescueCreationAttributes,
+        { transaction }
+      );
+
+      // Create staff member as owner
+      await StaffMember.create(
+        {
+          rescueId: rescue.rescueId,
+          userId: user.userId,
+          title: 'Owner',
+          isVerified: true,
+          addedBy: user.userId,
+          addedAt: new Date(),
+        },
+        { transaction }
+      );
+
+      // Assign rescue_staff role
+      const rescueStaffRole = await Role.findOne({
+        where: { name: 'rescue_staff' },
+        transaction,
+      });
+      if (rescueStaffRole) {
+        await UserRole.create(
+          { userId: user.userId, roleId: rescueStaffRole.roleId },
+          { transaction }
+        );
+      }
+
+      await transaction.commit();
+
+      // --- Post-commit: email verification + external verification ---
+
+      // Send verification email (best-effort)
+      try {
+        const emailService = (await import('./email.service')).default;
+        const { resolveEmailLinkBase, EmailLinkType } = await import('../utils/email-url');
+        const frontendUrl = resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION);
+        const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+        await emailService.sendEmail({
+          toEmail: user.email,
+          toName: `${user.firstName} ${user.lastName}`,
+          subject: 'Verify your email to complete rescue registration',
+          htmlContent: `
+            <p>Hello ${user.firstName},</p>
+            <p>Thank you for registering <strong>${rescue.name}</strong> on Adopt Don't Shop.</p>
+            <p>Please verify your email by clicking <a href="${verificationUrl}">here</a>.</p>
+            <p>This link expires in 24 hours.</p>
+          `,
+          type: EmailType.TRANSACTIONAL,
+          priority: EmailPriority.HIGH,
+        });
+      } catch (emailErr) {
+        logger.error('Failed to send rescue registration verification email', {
+          err: emailErr,
+          userId: user.userId,
+          rescueId: rescue.rescueId,
+        });
+      }
+
+      // Attempt external verification (best-effort — does not fail registration)
+      try {
+        const verificationUpdate = await RescueService.attemptExternalVerification(
+          rescue.rescueId,
+          data.companiesHouseNumber,
+          data.charityRegistrationNumber
+        );
+        if (Object.keys(verificationUpdate).length > 0) {
+          await rescue.update(verificationUpdate);
+        }
+      } catch (verifyErr) {
+        logger.warn('External verification failed during registration (rescue stays pending)', {
+          err: verifyErr,
+          rescueId: rescue.rescueId,
+        });
+      }
+
+      // Audit log (best-effort)
+      try {
+        await AuditLogService.log({
+          userId: user.userId,
+          action: 'register',
+          entity: 'rescue',
+          entityId: rescue.rescueId,
+          details: {
+            rescueId: rescue.rescueId,
+            rescueName: rescue.name,
+            userEmail: user.email,
+          },
+        });
+      } catch (auditErr) {
+        logger.error('Failed to write audit log for rescue registration', {
+          err: auditErr,
+          rescueId: rescue.rescueId,
+        });
+      }
+
+      await invalidateRescueCaches();
+
+      loggerHelpers.logBusiness(
+        'Rescue Registered',
+        {
+          rescueId: rescue.rescueId,
+          userId: user.userId,
+          duration: Date.now() - startTime,
+        },
+        user.userId
+      );
+
+      return { rescueId: rescue.rescueId, userId: user.userId };
+    } catch (error) {
+      // Only rollback if the transaction hasn't been committed yet
+      try {
+        await transaction.rollback();
+      } catch {
+        // Transaction already committed or rolled back — safe to ignore.
+      }
+      logger.error('Rescue registration failed:', {
+        error: error instanceof Error ? error.message : String(error),
+        duration: Date.now() - startTime,
+      });
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to register rescue');
+    }
   }
 
   /**
@@ -313,7 +556,7 @@ export class RescueService {
       });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       if (includeStats) {
@@ -371,7 +614,7 @@ export class RescueService {
           transaction,
         });
         if (existingCount >= RescueService.RESCUE_CREATION_CAP_PER_USER) {
-          throw new Error('Maximum number of rescues per user reached');
+          throw new ForbiddenError('Maximum number of rescues per user reached');
         }
       }
 
@@ -381,7 +624,7 @@ export class RescueService {
         transaction,
       });
       if (existingByEmail) {
-        throw new Error('A rescue organization with this email already exists');
+        throw new ConflictError('A rescue organization with this email already exists');
       }
 
       // Check for duplicate registration numbers
@@ -391,7 +634,9 @@ export class RescueService {
           transaction,
         });
         if (existingByCH) {
-          throw new Error('A rescue is already registered with this Companies House number');
+          throw new ConflictError(
+            'A rescue is already registered with this Companies House number'
+          );
         }
       }
       if (rescueData.charityRegistrationNumber) {
@@ -400,7 +645,9 @@ export class RescueService {
           transaction,
         });
         if (existingByCharity) {
-          throw new Error('A rescue is already registered with this charity registration number');
+          throw new ConflictError(
+            'A rescue is already registered with this charity registration number'
+          );
         }
       }
 
@@ -526,7 +773,7 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId, { transaction });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       // If email is being updated, check for conflicts
@@ -540,7 +787,7 @@ export class RescueService {
         });
 
         if (existingRescue) {
-          throw new Error('A rescue organization with this email already exists');
+          throw new ConflictError('A rescue organization with this email already exists');
         }
       }
 
@@ -620,11 +867,11 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId, { transaction });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       if (rescue.status === 'verified') {
-        throw new Error('Rescue is already verified');
+        throw new ConflictError('Rescue is already verified');
       }
 
       await rescue.update(
@@ -665,6 +912,38 @@ export class RescueService {
 
       await transaction.commit();
 
+      // ADS C4-3: notify rescue staff and broadcast a live event to the
+      // rescue:{id} room so an open rescue dashboard can react without
+      // waiting for a poll. Best-effort: failures here must not unwind
+      // the verification itself.
+      try {
+        const staff = await StaffMember.findAll({
+          where: { rescueId, deletedAt: null },
+          attributes: ['userId'],
+        });
+        const recipients = Array.from(new Set(staff.map(s => s.userId)));
+        await Promise.all(
+          recipients.map(userId =>
+            NotificationService.createNotification({
+              userId,
+              type: NotificationType.RESCUE_VERIFIED,
+              title: 'Your rescue has been verified',
+              message: `${rescue.name} is now verified and can publish listings.`,
+              data: { rescueId, event: 'rescue_verified' },
+            })
+          )
+        );
+        emitToRescue(rescueId, 'rescue:verified', {
+          rescueId,
+          verifiedAt: rescue.verifiedAt,
+        });
+      } catch (notifyError) {
+        logger.warn('Failed to notify rescue staff of verification', {
+          rescueId,
+          error: notifyError instanceof Error ? notifyError.message : String(notifyError),
+        });
+      }
+
       logger.info(`Verified rescue: ${rescueId}`);
       return rescue;
     } catch (error) {
@@ -699,15 +978,15 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId, { transaction });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       if (rescue.status === 'verified') {
-        throw new Error('Cannot reject an already verified rescue');
+        throw new ConflictError('Cannot reject an already verified rescue');
       }
 
       if (rescue.status === 'rejected') {
-        throw new Error('Rescue is already rejected');
+        throw new ConflictError('Rescue is already rejected');
       }
 
       await rescue.update(
@@ -777,11 +1056,11 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId, { transaction });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       if (rescue.status === 'suspended') {
-        throw new Error('Rescue is already suspended');
+        throw new ConflictError('Rescue is already suspended');
       }
 
       await rescue.update({ status: 'suspended' }, { transaction });
@@ -973,7 +1252,7 @@ export class RescueService {
       // Verify rescue exists
       const rescue = await Rescue.findByPk(rescueId, { transaction });
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       // Enforce plan staff seat limit before allowing the add.
@@ -982,7 +1261,7 @@ export class RescueService {
       // Verify user exists
       const user = await User.findByPk(userId, { transaction });
       if (!user) {
-        throw new Error('User not found');
+        throw new NotFoundError('User not found');
       }
 
       // Check if user is already an active staff member. paranoid scope
@@ -993,7 +1272,7 @@ export class RescueService {
       });
 
       if (existingActiveStaff) {
-        throw new Error('User is already a staff member of this rescue');
+        throw new ConflictError('User is already a staff member of this rescue');
       }
 
       // Check if user was previously a staff member (soft deleted) — opt
@@ -1125,7 +1404,7 @@ export class RescueService {
       });
 
       if (!staffMember) {
-        throw new Error('Staff member not found');
+        throw new NotFoundError('Staff member not found');
       }
 
       const user = staffMember.user!;
@@ -1180,7 +1459,7 @@ export class RescueService {
       // Verify rescue exists
       const rescue = await Rescue.findByPk(rescueId);
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       // Find the staff member
@@ -1190,7 +1469,7 @@ export class RescueService {
       });
 
       if (!staffMember) {
-        throw new Error('Staff member not found');
+        throw new NotFoundError('Staff member not found');
       }
 
       // Update the staff member
@@ -1379,11 +1658,11 @@ export class RescueService {
       });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       if (rescue.deletedAt) {
-        throw new Error('Rescue organization is already deleted');
+        throw new ConflictError('Rescue organization is already deleted');
       }
 
       // paranoid soft-delete sets deletedAt; the audit log captures who.
@@ -1431,7 +1710,7 @@ export class RescueService {
     try {
       const rescue = await Rescue.findByPk(rescueId);
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       const { page = 1, limit = 20, search, role } = options;
@@ -1514,7 +1793,7 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId, { transaction });
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       // Get current settings or initialize empty object
@@ -1580,7 +1859,7 @@ export class RescueService {
       const rescue = await Rescue.findByPk(rescueId);
 
       if (!rescue) {
-        throw new Error('Rescue not found');
+        throw new NotFoundError('Rescue not found');
       }
 
       type RescueSettings = { adoptionPolicies?: AdoptionPolicy | null };
@@ -1614,7 +1893,13 @@ export class RescueService {
     performedBy: string,
     reason?: string
   ): Promise<BulkRescueResult> {
-    const result: BulkRescueResult = { successCount: 0, failedCount: 0, errors: [] };
+    const result: BulkRescueResult = {
+      successCount: 0,
+      failedCount: 0,
+      errors: [],
+      failedIds: [],
+      results: [],
+    };
 
     for (const rescueId of rescueIds) {
       try {
@@ -1628,12 +1913,13 @@ export class RescueService {
           await RescueService.suspendRescue(rescueId, performedBy, reason);
         }
         result.successCount++;
+        result.results.push({ id: rescueId, success: true });
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
         result.failedCount++;
-        result.errors.push({
-          rescueId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        result.errors.push({ rescueId, error: message });
+        result.failedIds.push(rescueId);
+        result.results.push({ id: rescueId, success: false, error: message });
       }
     }
 
@@ -1646,5 +1932,53 @@ export class RescueService {
     });
 
     return result;
+  }
+
+  /**
+   * Get paginated activity log for a single rescue, sourced from audit_logs.
+   *
+   * Powers the EntityInspector "Activity" tab on the admin rescue detail
+   * panel. The category passed to `getEntityActivityLog` matches what
+   * existing rescue audit writers actually emit (lower-case 'rescue' —
+   * see `rescue.service.ts` AuditLogService.log calls). Admin-side writers
+   * historically used 'Rescue' (PascalCase), so those rows may be missed
+   * until a follow-up normalises the casing.
+   */
+  static async getRescueActivityLog(
+    rescueId: string,
+    filters: EntityActivityFilters = {}
+  ): Promise<SharedEntityActivity[]> {
+    const startTime = Date.now();
+
+    try {
+      const rescue = await Rescue.findByPk(rescueId);
+      if (!rescue) {
+        throw new NotFoundError('Rescue not found');
+      }
+
+      const rows = await AuditLogService.getEntityActivityLog('rescue', rescueId, {
+        from: filters.from ? new Date(filters.from) : undefined,
+        to: filters.to ? new Date(filters.to) : undefined,
+        limit: filters.limit,
+        offset: filters.offset,
+      });
+
+      const activities = rows.map(auditLogToActivity);
+
+      loggerHelpers.logPerformance('Rescue Activity Log', {
+        duration: Date.now() - startTime,
+        rescueId,
+        rowCount: activities.length,
+      });
+
+      return activities;
+    } catch (error) {
+      logger.error('Failed to get rescue activity log:', {
+        error: error instanceof Error ? error.message : String(error),
+        rescueId,
+        duration: Date.now() - startTime,
+      });
+      throw error;
+    }
   }
 }

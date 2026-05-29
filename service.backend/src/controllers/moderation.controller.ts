@@ -93,6 +93,24 @@ export class ModerationController {
     });
   }
 
+  /**
+   * Get report activity log (paginated audit-log entries).
+   */
+  async getReportActivityLog(req: AuthenticatedRequest, res: Response): Promise<void> {
+    const { reportId } = req.params;
+    const { from, to, limit, offset } = req.query;
+    const activity = await ModerationService.getReportActivityLog(reportId, {
+      from: typeof from === 'string' ? from : undefined,
+      to: typeof to === 'string' ? to : undefined,
+      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      offset: typeof offset === 'string' ? Number(offset) : undefined,
+    });
+    res.json({
+      success: true,
+      data: activity,
+    });
+  }
+
   async updateReportStatus(req: AuthenticatedRequest, res: Response): Promise<void> {
     const { reportId } = req.params;
     const { status, assignedModerator, resolution, resolutionNotes } = req.body;
@@ -140,9 +158,12 @@ export class ModerationController {
   }
 
   async getActiveActions(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const { userId } = req.params;
+    // Accept the target user via query (`?userId=...`) since the route has
+    // no path param. When omitted the service returns no rows, which is the
+    // expected behaviour for the unfiltered case.
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
 
-    const actions = await ModerationService.getActiveActionsForUser(userId);
+    const actions = userId ? await ModerationService.getActiveActionsForUser(userId) : [];
 
     res.json({
       success: true,

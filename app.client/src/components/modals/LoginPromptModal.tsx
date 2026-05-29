@@ -40,13 +40,15 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
   };
 
   return (
+    // UX P2 I: backdrop is a click-target convenience, not an interactive
+    // control — the accessible close affordance is the ✕ button inside the
+    // modal content.
     <div
       className={styles.modalOverlay({ isOpen })}
       onClick={onClose}
-      role='button'
-      tabIndex={0}
+      role='presentation'
       onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+        if (e.key === 'Escape') {
           onClose();
         }
       }}
@@ -66,7 +68,7 @@ export const LoginPromptModal: React.FC<LoginPromptModalProps> = ({
 
         <p className={styles.message}>
           To {getActionMessage()}, you&apos;ll need to create an account or sign in. It&apos;s free
-          and helps us find you the perfect pet match!
+          and helps us match you with the right pet.
         </p>
 
         <div className={styles.buttonGroup}>

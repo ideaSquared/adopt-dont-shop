@@ -56,7 +56,7 @@ class EmailTemplateService {
             </div>
             <div class="content">
               <h2>Hi {{user.firstName}},</h2>
-              <p>Thank you for joining {{system.appName}}! We're excited to help you find your perfect furry companion.</p>
+              <p>Thank you for joining {{system.appName}}. We're here to help you find a companion.</p>
               <p>Here's what you can do next:</p>
               <ul>
                 <li>Complete your profile to help rescues get to know you better</li>
@@ -68,7 +68,7 @@ class EmailTemplateService {
                 <a href="{{system.baseUrl}}/dashboard" class="button">Get Started</a>
               </p>
               <p>If you have any questions, feel free to reach out to our support team at {{system.supportEmail}}.</p>
-              <p>Happy pet hunting!</p>
+              <p>Happy browsing!</p>
               <p>The {{system.appName}} Team</p>
             </div>
             <div class="footer">
@@ -81,7 +81,7 @@ class EmailTemplateService {
       `,
       textContent: `Welcome to {{system.appName}}, {{user.firstName}}!
 
-Thank you for joining {{system.appName}}! We're excited to help you find your perfect furry companion.
+Thank you for joining {{system.appName}}. We're here to help you find a companion.
 
 Here's what you can do next:
 - Complete your profile to help rescues get to know you better
@@ -93,7 +93,7 @@ Get started: {{system.baseUrl}}/dashboard
 
 If you have any questions, feel free to reach out to our support team at {{system.supportEmail}}.
 
-Happy pet hunting!
+Happy browsing!
 The {{system.appName}} Team
 
 © {{system.year}} {{system.appName}}. All rights reserved.
@@ -342,7 +342,7 @@ The {{system.appName}} Team
               <div class="celebration">🎉 🐕 🎊</div>
               
               <h2>Congratulations {{user.firstName}}!</h2>
-              <p>We're thrilled to confirm that your adoption application has been approved and your new furry family member is ready to come home!</p>
+              <p>Good news — we approved your adoption application and your new family member is ready to come home.</p>
               
               <div class="pet-info">
                 <h3>Meet Your New Family Member: {{pet.name}}</h3>
@@ -367,7 +367,7 @@ The {{system.appName}} Team
               Email: {{rescue.contactEmail}}<br>
               Phone: {{rescue.contactPhone}}</p>
 
-              <p>Thank you for choosing adoption and giving {{pet.name}} a loving forever home. You're making a real difference in their life!</p>
+              <p>Thank you for choosing adoption and giving {{pet.name}} a loving home. You're making a real difference in their life.</p>
               
               <p>We'd love to hear how {{pet.name}} is settling in. Feel free to share updates and photos with us!</p>
               
@@ -436,7 +436,7 @@ The {{system.appName}} Team
             </div>
             <div class="content">
               <h2>Hi {{user.firstName}},</h2>
-              <p>Thank you for signing up for {{system.appName}}! To complete your registration and start helping pets find their forever homes, please verify your email address.</p>
+              <p>Thank you for signing up for {{system.appName}}. To complete your registration and start helping pets find homes, please verify your email address.</p>
               
               <p style="text-align: center; margin: 30px 0;">
                 <a href="{{verificationUrl}}" class="button">Verify Email Address</a>
@@ -700,7 +700,7 @@ The {{system.appName}} Team
 
             <p>If you didn't expect this invitation or have any questions, please contact ${params.rescueName} directly or reach out to our support team at ${supportEmail}.</p>
 
-            <p>We're excited to have you join the team!</p>
+            <p>We look forward to having you on the team.</p>
             <p>The ${appName} Team</p>
           </div>
           <div class="footer">
@@ -751,7 +751,7 @@ Important: This invitation link will expire in ${params.expirationDays} days. Ma
 
 If you didn't expect this invitation or have any questions, please contact ${params.rescueName} directly or reach out to our support team at ${supportEmail}.
 
-We're excited to have you join the team!
+We look forward to having you on the team.
 The ${appName} Team
 
 © ${currentYear} ${appName}. All rights reserved.

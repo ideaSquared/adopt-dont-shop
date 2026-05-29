@@ -123,7 +123,7 @@ export const dateInput = style({
   fontSize: '0.875rem',
   color: vars.text.primary,
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
     boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,

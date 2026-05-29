@@ -38,7 +38,7 @@ export const select = style({
   background: vars.background.body,
   color: vars.text.primary,
   fontSize: '1rem',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
     boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,

@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for lib.{{LIB_NAME}}
 
 # Development stage
-FROM node:20-alpine AS development
+FROM node:22.15.1-alpine AS development
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ VOLUME ["/app/dist"]
 CMD ["npm", "run", "dev"]
 
 # Production build stage
-FROM node:20-alpine AS build
+FROM node:22.15.1-alpine AS build
 
 WORKDIR /app
 
@@ -43,14 +43,23 @@ COPY src/ ./src/
 RUN npm run build && npm prune --production
 
 # Production stage
-FROM node:20-alpine AS production
+FROM node:22.15.1-alpine AS production
 
 WORKDIR /app
 
+# hadolint ignore=DL3018
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S appuser -u 1001 -G nodejs
+
+# Strip setuid/setgid bits for defence-in-depth
+RUN find / -perm /6000 -type f -exec chmod a-s {} + 2>/dev/null || true
+
 # Copy built library and production dependencies
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package*.json ./
+COPY --from=build --chown=appuser:nodejs /app/dist ./dist
+COPY --from=build --chown=appuser:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=appuser:nodejs /app/package*.json ./
+
+USER appuser
 
 # Default command
 CMD ["node", "dist/index.js"]

@@ -21,20 +21,8 @@ const mockLocalStorage = {
   clear: vi.fn(),
 };
 
-// Mock sessionStorage (access tokens are stored here)
-const mockSessionStorage = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-};
-
 Object.defineProperty(window, 'localStorage', {
   value: mockLocalStorage,
-});
-
-Object.defineProperty(window, 'sessionStorage', {
-  value: mockSessionStorage,
 });
 
 describe('AuthService', () => {
@@ -66,10 +54,6 @@ describe('AuthService', () => {
     mockLocalStorage.getItem.mockClear();
     mockLocalStorage.setItem.mockClear();
     mockLocalStorage.removeItem.mockClear();
-    mockSessionStorage.clear.mockClear();
-    mockSessionStorage.getItem.mockClear();
-    mockSessionStorage.setItem.mockClear();
-    mockSessionStorage.removeItem.mockClear();
   });
 
   describe('initialization', () => {
@@ -85,7 +69,7 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('should login successfully and store access token in sessionStorage', async () => {
+    it('should login successfully, store user in localStorage, and not write tokens to JS storage', async () => {
       const credentials: LoginRequest = {
         email: 'test@example.com',
         password: 'password123',
@@ -96,22 +80,20 @@ describe('AuthService', () => {
       const result = await authService.login(credentials);
 
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/login', credentials);
-      // Access token stored in sessionStorage (not localStorage)
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
-        STORAGE_KEYS.AUTH_TOKEN,
-        'mock-token'
-      );
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
-        STORAGE_KEYS.ACCESS_TOKEN,
-        'mock-token'
-      );
       // User stored in localStorage (persists across sessions)
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         STORAGE_KEYS.USER,
         JSON.stringify(mockUser)
       );
-      // Refresh token NOT stored in localStorage (it's an httpOnly cookie)
-      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith('refreshToken', expect.any(String));
+      // Access token NOT stored anywhere JS-accessible — it's an httpOnly cookie
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(
+        STORAGE_KEYS.AUTH_TOKEN,
+        expect.any(String)
+      );
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(
+        STORAGE_KEYS.ACCESS_TOKEN,
+        expect.any(String)
+      );
       expect(result).toEqual({ ...mockAuthResponse, accessToken: 'mock-token' });
     });
 
@@ -125,7 +107,7 @@ describe('AuthService', () => {
       (apiService.post as ReturnType<typeof vi.fn>).mockRejectedValue(error);
 
       await expect(authService.login(credentials)).rejects.toThrow('Invalid credentials');
-      expect(mockSessionStorage.setItem).not.toHaveBeenCalled();
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
     });
   });
 
@@ -148,24 +130,23 @@ describe('AuthService', () => {
 
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/register', userData);
       // No tokens — user must verify email + log in to get a session.
-      expect(mockSessionStorage.setItem).not.toHaveBeenCalled();
       expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
       expect(result).toEqual(registerResponse);
     });
   });
 
   describe('logout', () => {
-    it('should logout successfully and clear sessionStorage tokens', async () => {
+    it('should logout successfully and clear user from localStorage', async () => {
       (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue({});
 
       await authService.logout();
 
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/logout');
-      // Access tokens removed from sessionStorage
-      expect(mockSessionStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN);
-      expect(mockSessionStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
       // User removed from localStorage
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
+      // Token cookies are cleared server-side — no JS-side removal needed
+      expect(mockLocalStorage.removeItem).not.toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN);
+      expect(mockLocalStorage.removeItem).not.toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
     });
 
     it('should clear storage even if API call fails', async () => {
@@ -175,8 +156,6 @@ describe('AuthService', () => {
       await authService.logout();
 
       expect(consoleSpy).toHaveBeenCalledWith('Logout API call failed:', expect.any(Error));
-      expect(mockSessionStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN);
-      expect(mockSessionStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
 
       consoleSpy.mockRestore();
@@ -203,17 +182,16 @@ describe('AuthService', () => {
   });
 
   describe('isAuthenticated', () => {
-    it('should return true if access token and user exist', () => {
-      mockSessionStorage.getItem.mockReturnValueOnce('mock-token'); // getToken call
-      mockLocalStorage.getItem.mockReturnValueOnce(JSON.stringify(mockUser)); // getCurrentUser call
+    it('should return true when user data exists in localStorage', () => {
+      mockLocalStorage.getItem.mockReturnValueOnce(JSON.stringify(mockUser));
 
       const isAuth = authService.isAuthenticated();
 
       expect(isAuth).toBe(true);
     });
 
-    it('should return false if no access token exists', () => {
-      mockSessionStorage.getItem.mockReturnValue(null);
+    it('should return false when no user data in localStorage', () => {
+      mockLocalStorage.getItem.mockReturnValue(null);
 
       const isAuth = authService.isAuthenticated();
 
@@ -222,51 +200,31 @@ describe('AuthService', () => {
   });
 
   describe('getToken', () => {
-    it('should return auth token from sessionStorage', () => {
-      mockSessionStorage.getItem.mockReturnValueOnce('auth-token');
-
+    it('should return null — access token lives in httpOnly cookie, not JS storage', () => {
       const token = authService.getToken();
 
-      expect(mockSessionStorage.getItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN);
-      expect(token).toBe('auth-token');
-    });
-
-    it('should fallback to access token key if auth token not found', () => {
-      mockSessionStorage.getItem.mockReturnValueOnce(null).mockReturnValueOnce('access-token');
-
-      const token = authService.getToken();
-
-      expect(mockSessionStorage.getItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN);
-      expect(mockSessionStorage.getItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
-      expect(token).toBe('access-token');
+      expect(token).toBeNull();
     });
   });
 
   describe('setToken', () => {
-    it('should set token in sessionStorage', () => {
-      authService.setToken('new-token');
+    it('should be a no-op — token is managed as httpOnly cookie by the backend', () => {
+      authService.setToken('some-token');
 
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN, 'new-token');
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(
-        STORAGE_KEYS.ACCESS_TOKEN,
-        'new-token'
-      );
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
     });
   });
 
   describe('clearTokens', () => {
-    it('should clear access tokens from sessionStorage', () => {
+    it('should be a no-op — token cookies are cleared by the backend logout endpoint', () => {
       authService.clearTokens();
 
-      expect(mockSessionStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN);
-      expect(mockSessionStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
-      // Refresh token is NOT in localStorage/sessionStorage — it's an httpOnly cookie
-      expect(mockLocalStorage.removeItem).not.toHaveBeenCalledWith('refreshToken');
+      expect(mockLocalStorage.removeItem).not.toHaveBeenCalled();
     });
   });
 
   describe('refreshToken', () => {
-    it('should refresh token via cookie (no body token needed)', async () => {
+    it('should refresh token via cookie and return the new token value', async () => {
       const refreshResponse = {
         token: 'new-token',
         // refreshToken not returned — it's set as httpOnly cookie by backend
@@ -278,7 +236,8 @@ describe('AuthService', () => {
 
       // Should NOT send refresh token in body — cookie is auto-sent by browser
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/refresh-token', {});
-      expect(mockSessionStorage.setItem).toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN, 'new-token');
+      // No token stored in JS-accessible storage
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
       expect(newToken).toBe('new-token');
     });
 

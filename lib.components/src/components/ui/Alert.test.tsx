@@ -64,4 +64,23 @@ describe('Alert', () => {
       expect(alert).toBeInTheDocument();
     });
   });
+
+  // C2-7: explicit aria-live keeps screen readers reliably announcing
+  // async errors/warnings when they appear; success/info stay polite
+  // so they don't interrupt the user mid-task.
+  it('announces error and warning variants assertively', () => {
+    const { rerender } = renderWithTheme(<Alert variant='error'>Async error</Alert>);
+    expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'assertive');
+
+    rerender(<Alert variant='warning'>Watch out</Alert>);
+    expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'assertive');
+  });
+
+  it('announces success and info variants politely', () => {
+    const { rerender } = renderWithTheme(<Alert variant='success'>Saved</Alert>);
+    expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'polite');
+
+    rerender(<Alert variant='info'>Heads up</Alert>);
+    expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'polite');
+  });
 });

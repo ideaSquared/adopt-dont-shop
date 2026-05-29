@@ -21,32 +21,38 @@ export function useDashboardData(): UseDashboardDataReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (signal?: { cancelled: boolean }) => {
     try {
       setLoading(true);
       setError(null);
 
       // Fetch all dashboard data in parallel
-      const [dashboardData, recentActivities, notifications] = await Promise.all([
+      const [dashboard, activities, notifs] = await Promise.all([
         dashboardService.getRescueDashboardData(),
         dashboardService.getRecentActivities(),
         dashboardService.getDashboardNotifications(),
       ]);
 
-      setDashboardData(dashboardData);
-      setRecentActivities(recentActivities);
-      setNotifications(notifications);
+      if (signal?.cancelled) return;
+      setDashboardData(dashboard);
+      setRecentActivities(activities);
+      setNotifications(notifs);
     } catch (err) {
+      if (signal?.cancelled) return;
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch dashboard data';
       setError(errorMessage);
       console.error('Dashboard data fetch error:', err);
     } finally {
-      setLoading(false);
+      if (!signal?.cancelled) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    const signal = { cancelled: false };
+    fetchDashboardData(signal);
+    return () => {
+      signal.cancelled = true;
+    };
   }, []);
 
   return {
@@ -55,6 +61,6 @@ export function useDashboardData(): UseDashboardDataReturn {
     notifications,
     loading,
     error,
-    refetch: fetchDashboardData,
+    refetch: () => fetchDashboardData(),
   };
 }

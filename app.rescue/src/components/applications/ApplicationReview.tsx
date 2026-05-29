@@ -45,6 +45,9 @@ interface ApplicationReviewProps {
   references: ReferenceCheck[];
   homeVisits: HomeVisit[];
   timeline: ApplicationTimeline[];
+  timelineError?: string | null;
+  referencesError?: string | null;
+  homeVisitsError?: string | null;
   loading: boolean;
   error: string | null;
   onClose: () => void;
@@ -66,6 +69,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   application,
   homeVisits,
   timeline,
+  timelineError = null,
+  referencesError = null,
+  homeVisitsError = null,
   loading,
   error,
   onClose,
@@ -160,6 +166,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     conditions: '',
   });
   const [viewingVisit, setViewingVisit] = useState<string | null>(null);
+  // UX P2 B: replace window.prompt() with a modal for cancel-visit reason.
+  const [cancellingVisit, setCancellingVisit] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   // Helper functions for timeline
   const formatTimelineTimestamp = (timestamp: string) => {
@@ -265,6 +274,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
     setEditingVisit(null);
     setCompletingVisit(null);
     setViewingVisit(null);
+    setCancellingVisit(null);
+    setCancelReason('');
     setVisitForm({
       scheduledDate: '',
       scheduledTime: '',
@@ -562,9 +573,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
   };
 
   const handleCancelVisit = async (visitId: string) => {
-    const reason = prompt('Please enter a reason for cancelling this visit:');
+    // UX P2 B: validation is enforced by the disabled submit + HTML `required`
+    // attribute on the textarea, but guard here as a belt-and-braces measure
+    // in case a future caller invokes this without going through the modal.
+    const reason = cancelReason.trim();
     if (!reason) {
-      return; // User cancelled or didn't provide reason
+      return;
     }
 
     try {
@@ -573,6 +587,9 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         cancelReason: reason,
         cancelledAt: new Date().toISOString(),
       });
+
+      setCancellingVisit(null);
+      setCancelReason('');
 
       if (onRefresh) {
         onRefresh();
@@ -592,9 +609,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         className={styles.overlay}
         onClick={e => e.target === e.currentTarget && onClose()}
         onKeyDown={e => e.key === 'Escape' && onClose()}
-        role="button"
-        tabIndex={-1}
-        aria-label="Close modal"
+        role="presentation"
       >
         <div className={styles.loadingContainer}>
           <div className={styles.spinner} />
@@ -610,9 +625,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         className={styles.overlay}
         onClick={e => e.target === e.currentTarget && onClose()}
         onKeyDown={e => e.key === 'Escape' && onClose()}
-        role="button"
-        tabIndex={-1}
-        aria-label="Close modal"
+        role="presentation"
       >
         <div className={styles.errorContainer}>
           <div className={styles.errorText}>Error loading application</div>
@@ -631,8 +644,8 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
   const handleStatusUpdate = async () => {
     // ADS-579: Rejection is irreversible and must notify the applicant.
-    // Require explicit confirmation before committing; other transitions
-    // proceed without a prompt as before.
+    // Approval is equally irreversible — confirm both transitions so
+    // rescue staff cannot accidentally finalise an application.
     if (newStatus === 'rejected') {
       const confirmed = await confirm({
         title: 'Reject this application?',
@@ -641,6 +654,18 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
         confirmText: 'Reject application',
         cancelText: 'Cancel',
         variant: 'danger',
+      });
+      if (!confirmed) {
+        return;
+      }
+    } else if (newStatus === 'approved') {
+      const confirmed = await confirm({
+        title: 'Approve this application?',
+        message:
+          'The applicant will be notified by email that their application has been approved. This action cannot be undone via the status dropdown.',
+        confirmText: 'Approve application',
+        cancelText: 'Cancel',
+        variant: 'info',
       });
       if (!confirmed) {
         return;
@@ -715,9 +740,7 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
       className={styles.overlay}
       onClick={e => e.target === e.currentTarget && onClose()}
       onKeyDown={e => e.key === 'Escape' && onClose()}
-      role="button"
-      tabIndex={-1}
-      aria-label="Close modal"
+      role="presentation"
     >
       <div className={styles.modal}>
         {/* Header */}
@@ -1125,6 +1148,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
           <div className={styles.tabPanel({ active: activeTab === 'references' })}>
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>Reference Checks</h3>
+              {referencesError && (
+                <div className={styles.card} role="alert">
+                  <p>Failed to load reference checks.</p>
+                  <p>{referencesError}</p>
+                </div>
+              )}
               {extractedReferences.length === 0 ? (
                 <div className={styles.card}>
                   <p>No references found for this application.</p>
@@ -1261,6 +1290,13 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                     : 'Schedule Visit'}
                 </button>
               </div>
+
+              {homeVisitsError && (
+                <div className={styles.card} role="alert">
+                  <p>Failed to load home visits.</p>
+                  <p>{homeVisitsError}</p>
+                </div>
+              )}
 
               {showScheduleVisit && (
                 <div className={styles.scheduleVisitForm}>
@@ -1474,7 +1510,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                             </button>
                             <button
                               className={styles.button({ variant: 'danger' })}
-                              onClick={() => handleCancelVisit(visit.id)}
+                              onClick={() => {
+                                setCancellingVisit(visit.id);
+                                setCancelReason('');
+                              }}
                             >
                               ❌ Cancel Visit
                             </button>
@@ -1491,7 +1530,10 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                             </button>
                             <button
                               className={styles.button({ variant: 'danger' })}
-                              onClick={() => handleCancelVisit(visit.id)}
+                              onClick={() => {
+                                setCancellingVisit(visit.id);
+                                setCancelReason('');
+                              }}
                             >
                               ❌ Cancel Visit
                             </button>
@@ -1730,6 +1772,61 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
                           </div>
                         </div>
                       )}
+
+                      {/* UX P2 B: Cancel Visit Form (replaces window.prompt) */}
+                      {cancellingVisit === visit.id && (
+                        <div
+                          className={styles.rescheduleForm}
+                          role="dialog"
+                          aria-modal="true"
+                          aria-labelledby={`cancel-visit-title-${visit.id}`}
+                        >
+                          <h5
+                            id={`cancel-visit-title-${visit.id}`}
+                            className={styles.rescheduleTitle}
+                          >
+                            Cancel Home Visit
+                          </h5>
+                          <div className={styles.formRow}>
+                            <div className={styles.formGroup}>
+                              <label
+                                className={styles.formLabel}
+                                htmlFor={`cancel-reason-${visit.id}`}
+                              >
+                                Reason for Cancellation
+                              </label>
+                              <textarea
+                                id={`cancel-reason-${visit.id}`}
+                                className={styles.formTextarea}
+                                value={cancelReason}
+                                onChange={e => setCancelReason(e.target.value)}
+                                placeholder="Why is this visit being cancelled?"
+                                rows={3}
+                                required
+                                aria-required="true"
+                              />
+                            </div>
+                          </div>
+                          <div className={styles.formActions}>
+                            <button
+                              className={styles.button({ variant: 'secondary' })}
+                              onClick={() => {
+                                setCancellingVisit(null);
+                                setCancelReason('');
+                              }}
+                            >
+                              Keep Visit
+                            </button>
+                            <button
+                              className={styles.button({ variant: 'danger' })}
+                              onClick={() => handleCancelVisit(visit.id)}
+                              disabled={!cancelReason.trim()}
+                            >
+                              Confirm Cancellation
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -1814,7 +1911,12 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
               )}
 
               <div className={styles.timelineContainer}>
-                {timeline.length === 0 ? (
+                {timelineError ? (
+                  <div className={styles.emptyTimeline} role="alert">
+                    <p>Failed to load timeline events.</p>
+                    <p>{timelineError}</p>
+                  </div>
+                ) : timeline.length === 0 ? (
                   <div className={styles.emptyTimeline}>
                     <p>No timeline events yet.</p>
                     <p>
@@ -1908,13 +2010,14 @@ const ApplicationReview: React.FC<ApplicationReviewProps> = ({
 
       {/* Visit Details Modal */}
       {viewingVisit && homeVisits.find(v => v.id === viewingVisit) && (
+        // UX P2 I: backdrop is a click-target convenience, not an interactive
+        // control — the explicit × close button below is the accessible
+        // affordance. Matches the other modal-backdrop patterns in this file.
         <div
           className={styles.visitDetailsModal}
           onClick={e => e.target === e.currentTarget && setViewingVisit(null)}
           onKeyDown={e => e.key === 'Escape' && setViewingVisit(null)}
-          role="button"
-          tabIndex={-1}
-          aria-label="Close details"
+          role="presentation"
         >
           <div className={styles.visitDetailsContent}>
             <div className={styles.visitDetailsHeader}>

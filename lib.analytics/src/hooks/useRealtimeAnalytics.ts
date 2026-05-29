@@ -66,10 +66,33 @@ export type ReportsScheduledRunCompletePayload = {
   ts: string;
 };
 
+/** ADS C4-5: pushed to user:{id} when an application's status changes. */
+export type ApplicationStatusChangedPayload = {
+  applicationId: string;
+  status: string;
+  stage?: string;
+  updatedAt: string;
+};
+
+/** ADS C4-6: pushed to rescue:{id} when an application is created / updated. */
+export type ApplicationListChangePayload = {
+  applicationId: string;
+};
+
+/** ADS C4-3: pushed to rescue:{id} when an admin verifies the rescue. */
+export type RescueVerifiedPayload = {
+  rescueId: string;
+  verifiedAt: string;
+};
+
 type EventMap = {
   'analytics:invalidate': AnalyticsInvalidatePayload;
   'analytics:metric-update': AnalyticsMetricUpdatePayload;
   'reports:scheduled-run-complete': ReportsScheduledRunCompletePayload;
+  application_status_changed: ApplicationStatusChangedPayload;
+  application_created: ApplicationListChangePayload;
+  application_updated: ApplicationListChangePayload;
+  'rescue:verified': RescueVerifiedPayload;
 };
 
 export const useRealtimeAnalytics = <K extends keyof EventMap>(

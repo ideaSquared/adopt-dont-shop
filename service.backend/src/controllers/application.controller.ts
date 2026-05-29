@@ -25,7 +25,6 @@ import {
   CreateApplicationRequest,
   FrontendApplication,
 } from '../types/application';
-import { logger } from '../utils/logger';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { validateBody, validateParams, validateQuery } from '../middleware/zod-validate';
 import { BaseController } from './base.controller';
@@ -179,6 +178,7 @@ export class ApplicationController extends BaseController {
       userId: applicationModel.userId as string,
       rescueId: applicationModel.rescueId as string,
       status: applicationModel.status as ApplicationStatus,
+      stage: applicationModel.stage as string | undefined,
       submittedAt: applicationModel.submittedAt as string,
       reviewedAt: applicationModel.reviewedAt as string,
       reviewedBy: applicationModel.actionedBy as string,
@@ -227,618 +227,365 @@ export class ApplicationController extends BaseController {
 
   // Get applications with filtering and pagination
   getApplications = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return this.sendValidationError(res, errors.array());
-      }
-
-      const filters: ApplicationSearchFilters = {
-        search: req.query.search as string,
-        userId: req.query.userId as string,
-        petId: req.query.petId as string,
-        rescueId: req.query.rescueId as string,
-        status: req.query.status as ApplicationStatus,
-        priority: req.query.priority as ApplicationPriority,
-        score_min: req.query.score_min ? parseFloat(req.query.score_min as string) : undefined,
-        score_max: req.query.score_max ? parseFloat(req.query.score_max as string) : undefined,
-        // ADS-575: pet-type / pet-breed filters from the rescue dashboard.
-        petType: req.query.petType as string,
-        petBreed: req.query.petBreed as string,
-        createdFrom: req.query.createdFrom ? new Date(req.query.createdFrom as string) : undefined,
-        createdTo: req.query.createdTo ? new Date(req.query.createdTo as string) : undefined,
-        submittedFrom: req.query.submittedFrom
-          ? new Date(req.query.submittedFrom as string)
-          : undefined,
-        submittedTo: req.query.submittedTo ? new Date(req.query.submittedTo as string) : undefined,
-      };
-
-      const options: ApplicationSearchOptions = {
-        page: parsePage(req.query.page as string | undefined),
-        limit: parsePaginationLimit(req.query.limit as string | undefined, {
-          default: DEFAULT_PAGE_SIZE,
-          max: MAX_PAGE_SIZE,
-        }),
-        sortBy: (req.query.sortBy as string) || 'createdAt',
-        sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
-        include_user: true,
-        include_pet: true,
-        include_rescue: true,
-      };
-
-      const result = await ApplicationService.searchApplications(
-        filters,
-        options,
-        req.user!.userId,
-        req.user!.userType as UserType
-      );
-
-      // Transform the applications to frontend format
-      const transformedApplications = result.applications.map(app =>
-        this.transformApplicationModel(app)
-      );
-
-      return this.sendPaginatedSuccess(res, transformedApplications, {
-        total: result.total_filtered || 0,
-        page: result.pagination.page,
-        limit: result.pagination.limit,
-        totalPages: result.pagination.totalPages,
-      });
-    } catch (error) {
-      logger.error('Error getting applications:', error);
-      return this.sendError(
-        res,
-        'Failed to retrieve applications',
-        500,
-        error instanceof Error ? error.message : 'Unknown error'
-      );
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return this.sendValidationError(res, errors.array());
     }
+
+    const filters: ApplicationSearchFilters = {
+      search: req.query.search as string,
+      userId: req.query.userId as string,
+      petId: req.query.petId as string,
+      rescueId: req.query.rescueId as string,
+      status: req.query.status as ApplicationStatus,
+      priority: req.query.priority as ApplicationPriority,
+      score_min: req.query.score_min ? parseFloat(req.query.score_min as string) : undefined,
+      score_max: req.query.score_max ? parseFloat(req.query.score_max as string) : undefined,
+      // ADS-575: pet-type / pet-breed filters from the rescue dashboard.
+      petType: req.query.petType as string,
+      petBreed: req.query.petBreed as string,
+      createdFrom: req.query.createdFrom ? new Date(req.query.createdFrom as string) : undefined,
+      createdTo: req.query.createdTo ? new Date(req.query.createdTo as string) : undefined,
+      submittedFrom: req.query.submittedFrom
+        ? new Date(req.query.submittedFrom as string)
+        : undefined,
+      submittedTo: req.query.submittedTo ? new Date(req.query.submittedTo as string) : undefined,
+    };
+
+    const options: ApplicationSearchOptions = {
+      page: parsePage(req.query.page as string | undefined),
+      limit: parsePaginationLimit(req.query.limit as string | undefined, {
+        default: DEFAULT_PAGE_SIZE,
+        max: MAX_PAGE_SIZE,
+      }),
+      sortBy: (req.query.sortBy as string) || 'createdAt',
+      sortOrder: (req.query.sortOrder as 'ASC' | 'DESC') || 'DESC',
+      include_user: true,
+      include_pet: true,
+      include_rescue: true,
+    };
+
+    const result = await ApplicationService.searchApplications(
+      filters,
+      options,
+      req.user!.userId,
+      req.user!.userType as UserType
+    );
+
+    // Transform the applications to frontend format
+    const transformedApplications = result.applications.map(app =>
+      this.transformApplicationModel(app)
+    );
+
+    return this.sendPaginatedSuccess(res, transformedApplications, {
+      total: result.total_filtered || 0,
+      page: result.pagination.page,
+      limit: result.pagination.limit,
+      totalPages: result.pagination.totalPages,
+    });
   };
 
   // Create new application
   createApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const applicationData: CreateApplicationRequest = {
-        petId: req.body.petId,
-        answers: req.body.answers,
-        references: req.body.references,
-        priority: req.body.priority,
-        notes:
-          req.body.notes !== undefined
-            ? RichTextProcessingService.sanitize(req.body.notes)
-            : undefined,
-        tags: req.body.tags,
-        // ADS-535: must thread the references-consent flag through; the
-        // model hook refuses SUBMITTED rows without it.
-        referencesConsented: req.body.referencesConsented,
-      };
-
-      const application = await ApplicationService.createApplication(
-        applicationData,
-        req.user!.userId
-      );
-
-      res.status(201).json({
-        success: true,
-        message: 'Application created successfully',
-        data: application,
-      });
-    } catch (error) {
-      logger.error('Error creating application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage.includes('unverified rescue')) {
-        return res.status(403).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (
-        errorMessage.includes('not available') ||
-        errorMessage.includes('already have an active')
-      ) {
-        return res.status(409).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage.includes('validation failed')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to create application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const applicationData: CreateApplicationRequest = {
+      petId: req.body.petId,
+      answers: req.body.answers,
+      references: req.body.references,
+      priority: req.body.priority,
+      notes:
+        req.body.notes !== undefined
+          ? RichTextProcessingService.sanitize(req.body.notes)
+          : undefined,
+      tags: req.body.tags,
+      // ADS-535: must thread the references-consent flag through; the
+      // model hook refuses SUBMITTED rows without it.
+      referencesConsented: req.body.referencesConsented,
+    };
+
+    const application = await ApplicationService.createApplication(
+      applicationData,
+      req.user!.userId
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Application created successfully',
+      data: application,
+    });
   };
 
   // Get application by ID
   getApplicationById = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const application = await ApplicationService.getApplicationById(
-        applicationId,
-        req.user!.userId,
-        req.user!.userType as UserType
-      );
-
-      if (!application) {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      // Transform the raw application data to frontend format
-      const transformedApplication = this.transformApplicationModel(application);
-
-      res.status(200).json({
-        success: true,
-        data: transformedApplication,
-      });
-    } catch (error) {
-      logger.error('Error getting application by ID:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to retrieve application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { applicationId } = req.params;
+    const application = await ApplicationService.getApplicationById(
+      applicationId,
+      req.user!.userId,
+      req.user!.userType as UserType
+    );
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found',
+      });
+    }
+
+    // Transform the raw application data to frontend format
+    const transformedApplication = this.transformApplicationModel(application);
+
+    res.status(200).json({
+      success: true,
+      data: transformedApplication,
+    });
+  };
+
+  // Get application activity log (paginated audit-log entries).
+  getApplicationActivityLog = async (req: AuthenticatedRequest, res: Response) => {
+    const { applicationId } = req.params;
+    const { from, to, limit, offset } = req.query;
+    const activity = await ApplicationService.getApplicationActivityLog(applicationId, {
+      from: typeof from === 'string' ? from : undefined,
+      to: typeof to === 'string' ? to : undefined,
+      limit: typeof limit === 'string' ? Number(limit) : undefined,
+      offset: typeof offset === 'string' ? Number(offset) : undefined,
+    });
+    res.json({
+      success: true,
+      data: activity,
+    });
   };
 
   // Update application
   updateApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      if (typeof req.body.notes === 'string') {
-        req.body.notes = RichTextProcessingService.sanitize(req.body.notes);
-      }
-      if (typeof req.body.interviewNotes === 'string') {
-        req.body.interviewNotes = RichTextProcessingService.sanitize(req.body.interviewNotes);
-      }
-      if (typeof req.body.homeVisitNotes === 'string') {
-        req.body.homeVisitNotes = RichTextProcessingService.sanitize(req.body.homeVisitNotes);
-      }
-      const application = await ApplicationService.updateApplication(
-        applicationId,
-        req.body,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Application updated successfully',
-        data: application,
-      });
-    } catch (error) {
-      logger.error('Error updating application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      if (errorMessage.includes('cannot be updated')) {
-        return res.status(409).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to update application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { applicationId } = req.params;
+    if (typeof req.body.notes === 'string') {
+      req.body.notes = RichTextProcessingService.sanitize(req.body.notes);
+    }
+    if (typeof req.body.interviewNotes === 'string') {
+      req.body.interviewNotes = RichTextProcessingService.sanitize(req.body.interviewNotes);
+    }
+    if (typeof req.body.homeVisitNotes === 'string') {
+      req.body.homeVisitNotes = RichTextProcessingService.sanitize(req.body.homeVisitNotes);
+    }
+    const application = await ApplicationService.updateApplication(
+      applicationId,
+      req.body,
+      req.user!.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Application updated successfully',
+      data: application,
+    });
   };
 
   // Submit application
   submitApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const application = await ApplicationService.submitApplication(
-        applicationId,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Application submitted successfully',
-        data: application,
-      });
-    } catch (error) {
-      logger.error('Error submitting application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      if (errorMessage.includes('Only draft applications') || errorMessage.includes('incomplete')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to submit application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { applicationId } = req.params;
+    const application = await ApplicationService.submitApplication(applicationId, req.user!.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Application submitted successfully',
+      data: application,
+    });
   };
 
   // Update application status
   updateApplicationStatus = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const statusUpdate: ApplicationStatusUpdateRequest = {
-        status: req.body.status,
-        actionedBy: req.user!.userId,
-        rejectionReason:
-          typeof req.body.rejectionReason === 'string'
-            ? RichTextProcessingService.sanitize(req.body.rejectionReason)
-            : req.body.rejectionReason,
-        notes:
-          typeof req.body.notes === 'string'
-            ? RichTextProcessingService.sanitize(req.body.notes)
-            : req.body.notes,
-        followUpDate: req.body.followUpDate,
-      };
-
-      const application = await ApplicationService.updateApplicationStatus(
-        applicationId,
-        statusUpdate,
-        req.user!.userId,
-        req.user!.userType as UserType
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Application status updated successfully',
-        data: application,
-      });
-    } catch (error) {
-      logger.error('Error updating application status:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage.includes('Cannot transition')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to update application status',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { applicationId } = req.params;
+    const statusUpdate: ApplicationStatusUpdateRequest = {
+      status: req.body.status,
+      actionedBy: req.user!.userId,
+      rejectionReason:
+        typeof req.body.rejectionReason === 'string'
+          ? RichTextProcessingService.sanitize(req.body.rejectionReason)
+          : req.body.rejectionReason,
+      notes:
+        typeof req.body.notes === 'string'
+          ? RichTextProcessingService.sanitize(req.body.notes)
+          : req.body.notes,
+      followUpDate: req.body.followUpDate,
+    };
+
+    const application = await ApplicationService.updateApplicationStatus(
+      applicationId,
+      statusUpdate,
+      req.user!.userId,
+      req.user!.userType as UserType
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Application status updated successfully',
+      data: application,
+    });
   };
 
   // Withdraw application
   withdrawApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const application = await ApplicationService.withdrawApplication(
-        applicationId,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Application withdrawn successfully',
-        data: application,
-      });
-    } catch (error) {
-      logger.error('Error withdrawing application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      if (errorMessage.includes('cannot be withdrawn')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to withdraw application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { applicationId } = req.params;
+    const application = await ApplicationService.withdrawApplication(
+      applicationId,
+      req.user!.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Application withdrawn successfully',
+      data: application,
+    });
   };
 
   // Add document to application
   addDocument = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'No file uploaded. Supported formats: PDF, JPG, PNG, DOC, DOCX (max 5MB)',
-        });
-      }
-
-      const { applicationId } = req.params;
-      const documentType: string = req.body.documentType || 'OTHER';
-
-      const uploadResult = await FileUploadService.uploadFile(req.file, 'applications', {
-        uploadedBy: req.user!.userId,
-        entityId: applicationId,
-        entityType: 'application',
-        purpose: 'document',
-      });
-
-      if (!uploadResult.success || !uploadResult.upload) {
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to store uploaded file',
-        });
-      }
-
-      const application = await ApplicationService.addDocument(
-        applicationId,
-        {
-          documentType,
-          fileName: uploadResult.upload.original_filename,
-          fileUrl: uploadResult.upload.url,
-        },
-        req.user!.userId
-      );
-
-      res.status(201).json({
-        success: true,
-        message: 'Document uploaded successfully',
-        document: {
-          documentId: uploadResult.upload.upload_id,
-          fileName: uploadResult.upload.original_filename,
-          fileType: uploadResult.upload.mime_type,
-          url: uploadResult.upload.url,
-          uploadedAt: new Date().toISOString(),
-        },
-        data: application,
-      });
-    } catch (error) {
-      logger.error('Error adding document:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to add document',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded. Supported formats: PDF, JPG, PNG, DOC, DOCX (max 5MB)',
+      });
+    }
+
+    const { applicationId } = req.params;
+    const documentType: string = req.body.documentType || 'OTHER';
+
+    const uploadResult = await FileUploadService.uploadFile(req.file, 'applications', {
+      uploadedBy: req.user!.userId,
+      entityId: applicationId,
+      entityType: 'application',
+      purpose: 'document',
+    });
+
+    if (!uploadResult.success || !uploadResult.upload) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to store uploaded file',
+      });
+    }
+
+    const application = await ApplicationService.addDocument(
+      applicationId,
+      {
+        documentType,
+        fileName: uploadResult.upload.original_filename,
+        fileUrl: uploadResult.upload.url,
+      },
+      req.user!.userId
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Document uploaded successfully',
+      document: {
+        documentId: uploadResult.upload.upload_id,
+        fileName: uploadResult.upload.original_filename,
+        fileType: uploadResult.upload.mime_type,
+        url: uploadResult.upload.url,
+        uploadedAt: new Date().toISOString(),
+      },
+      data: application,
+    });
   };
 
   // Remove document from application
   removeDocument = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const { applicationId, documentId } = req.params;
+    const { applicationId, documentId } = req.params;
 
-      await ApplicationService.removeDocument(applicationId, documentId, req.user!.userId);
+    await ApplicationService.removeDocument(applicationId, documentId, req.user!.userId);
 
-      res.status(200).json({
-        success: true,
-        message: 'Document removed successfully',
-      });
-    } catch (error) {
-      logger.error('Error removing document:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found' || errorMessage === 'Document not found') {
-        return res.status(404).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to remove document',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
-      });
-    }
+    res.status(200).json({
+      success: true,
+      message: 'Document removed successfully',
+    });
   };
 
   // Update reference
   updateReference = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      const application = await ApplicationService.updateReference(
-        applicationId,
-        req.body,
-        req.user!.userId
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Reference updated successfully',
-        data: application,
-      });
-    } catch (error) {
-      logger.error('Error updating reference:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage.includes('index out of bounds')) {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-        });
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to update reference',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { applicationId } = req.params;
+    const application = await ApplicationService.updateReference(
+      applicationId,
+      req.body,
+      req.user!.userId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Reference updated successfully',
+      data: application,
+    });
   };
 
   // Get application form structure
@@ -908,47 +655,22 @@ export class ApplicationController extends BaseController {
 
   // Delete application
   deleteApplication = async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
-      const { applicationId } = req.params;
-      await ApplicationService.deleteApplication(applicationId, req.user!.userId);
-
-      res.status(200).json({
-        success: true,
-        message: 'Application deleted successfully',
-      });
-    } catch (error) {
-      logger.error('Error deleting application:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage === 'Application not found') {
-        return res.status(404).json({
-          success: false,
-          message: 'Application not found',
-        });
-      }
-
-      if (errorMessage === 'Access denied') {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-        });
-      }
-
-      res.status(500).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: 'Failed to delete application',
-        error: process.env.DEBUG_ERRORS === 'true' ? errorMessage : undefined,
+        message: 'Validation failed',
+        errors: errors.array(),
       });
     }
+
+    const { applicationId } = req.params;
+    await ApplicationService.deleteApplication(applicationId, req.user!.userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Application deleted successfully',
+    });
   };
 
   // Validate application answers
@@ -1031,7 +753,37 @@ export class ApplicationController extends BaseController {
 
   updateHomeVisit = async (req: AuthenticatedRequest, res: Response) => {
     const { applicationId, visitId } = req.params;
-    const updateData = req.body;
+    const {
+      scheduled_date,
+      scheduled_time,
+      assigned_staff,
+      notes,
+      outcome,
+      outcome_notes,
+      reschedule_reason,
+      cancelled_reason,
+      status,
+      started_at,
+      rescheduled_at,
+      cancelled_at,
+      conditions,
+    } = req.body;
+
+    const updateData = {
+      ...(scheduled_date !== undefined && { scheduledDate: scheduled_date }),
+      ...(scheduled_time !== undefined && { scheduledTime: scheduled_time }),
+      ...(assigned_staff !== undefined && { assignedStaff: assigned_staff }),
+      ...(notes !== undefined && { notes }),
+      ...(outcome !== undefined && { outcome }),
+      ...(outcome_notes !== undefined && { outcomeNotes: outcome_notes }),
+      ...(reschedule_reason !== undefined && { rescheduleReason: reschedule_reason }),
+      ...(cancelled_reason !== undefined && { cancelledReason: cancelled_reason }),
+      ...(status !== undefined && { status }),
+      ...(started_at !== undefined && { startedAt: started_at }),
+      ...(rescheduled_at !== undefined && { rescheduledAt: rescheduled_at }),
+      ...(cancelled_at !== undefined && { cancelledAt: cancelled_at }),
+      ...(conditions !== undefined && { conditions }),
+    };
 
     const visit = await ApplicationService.updateHomeVisit(
       applicationId,

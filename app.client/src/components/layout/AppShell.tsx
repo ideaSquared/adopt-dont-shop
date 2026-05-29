@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Footer, InstallPwaBanner } from '@adopt-dont-shop/lib.components';
+import { Footer, InstallPwaBanner, SkipLink } from '@adopt-dont-shop/lib.components';
 import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { AppNavbar } from '@/components/navigation/AppNavbar';
 import { BottomTabBar } from '@/components/navigation/BottomTabBar';
 import { SwipeOnboarding } from '@/components/onboarding/SwipeOnboarding';
 import { SwipeFloatingButton } from '@/components/ui/SwipeFloatingButton';
+import { SanctionBannerHost } from '@/components/SanctionBannerHost';
 import * as styles from './AppShell.css';
 
 export const AppShell: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(true);
 
   return (
-    <div className={styles.shell}>
-      <a href='#main-content' className={styles.skipLink}>
-        Skip to main content
-      </a>
+    <div className={`${styles.shell} ${styles.shellWithBottomNav}`}>
+      <SkipLink />
       <header>
         <AppNavbar />
       </header>
+      {/* ADS C4-5: dismissible sanction banner sits above the main-content
+          target so the SkipLink still bypasses it to '#main-content'. */}
+      <SanctionBannerHost />
       <main id='main-content' className={styles.main} tabIndex={-1}>
         <Outlet />
       </main>

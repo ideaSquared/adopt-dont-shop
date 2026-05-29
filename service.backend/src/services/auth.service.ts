@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { Op, Transaction } from 'sequelize';
 import sequelize from '../sequelize';
-import speakeasy from 'speakeasy';
+import * as OTPAuth from 'otpauth';
 import qrcode from 'qrcode';
 import { normalizeEmail } from '@adopt-dont-shop/lib.validation';
 import User, { UserStatus, UserType } from '../models/User';
@@ -13,10 +13,16 @@ import TwoFactorRecovery from '../models/TwoFactorRecovery';
 import EmailQueue, { EmailStatus, EmailType, EmailPriority } from '../models/EmailQueue';
 import { logger, loggerHelpers } from '../utils/logger';
 import { decryptSecret, encryptSecret, hashToken, verifyBackupCode } from '../utils/secrets';
-import { getValidatedFrontendOrigin } from '../utils/url-allowlist';
+import { EmailLinkType, resolveEmailLinkBase } from '../utils/email-url';
 import { AuditLogService } from './auditLog.service';
 import { redactEmail } from './redact';
 import { env } from '../config/env';
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+  ForbiddenError,
+} from '../middleware/error-handler';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { invalidateUserTokens } from '../lib/invalidate-user-tokens';
 import { disconnectAllSockets } from '../socket/socket-registry';
@@ -94,12 +100,12 @@ export class AuthService {
       // Send verification email
       try {
         const emailService = (await import('./email.service')).default;
-        const frontendUrl = getValidatedFrontendOrigin();
+        const frontendUrl = resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION);
         const verificationUrl = `${frontendUrl}/verify-email?token=${verificationToken}`;
 
         const template = await emailService.getTemplateByName('Email Verification');
         if (!template) {
-          throw new Error("Email template 'Email Verification' not found");
+          throw new NotFoundError("Email template 'Email Verification' not found");
         }
 
         await emailService.sendEmail({
@@ -126,7 +132,7 @@ export class AuthService {
             fromEmail: process.env.EMAIL_FROM_ADDRESS || 'noreply@adoptdontshop.com',
             toEmail: user.email,
             subject: 'Verify Your Email',
-            htmlContent: `<p>Hello ${user.firstName},</p><p>Please verify your email by clicking <a href="${getValidatedFrontendOrigin()}/verify-email?token=${verificationToken}">here</a></p>`,
+            htmlContent: `<p>Hello ${user.firstName},</p><p>Please verify your email by clicking <a href="${resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION)}/verify-email?token=${verificationToken}">here</a></p>`,
             type: EmailType.TRANSACTIONAL,
             priority: EmailPriority.HIGH,
             status: EmailStatus.QUEUED,
@@ -140,7 +146,7 @@ export class AuthService {
             templateData: {
               firstName: user.firstName,
               verificationToken,
-              verificationUrl: `${getValidatedFrontendOrigin()}/verify-email?token=${verificationToken}`,
+              verificationUrl: `${resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION)}/verify-email?token=${verificationToken}`,
               expiresAt: verificationExpires.toISOString(),
             },
           });
@@ -164,7 +170,7 @@ export class AuthService {
   }
 
   private static async sendAccountExistsEmail(email: string): Promise<void> {
-    const frontendUrl = getValidatedFrontendOrigin();
+    const frontendUrl = resolveEmailLinkBase(EmailLinkType.ACCOUNT_EXISTS);
     const resetUrl = `${frontendUrl}/forgot-password`;
     try {
       const emailService = (await import('./email.service')).default;
@@ -271,7 +277,7 @@ export class AuthService {
               reason: 'unknown_email',
             },
           });
-          throw new Error('Invalid credentials');
+          throw new UnauthorizedError('Invalid credentials');
         }
 
         if (user.isAccountLocked()) {
@@ -289,7 +295,7 @@ export class AuthService {
             userAgent,
             details: { reason: 'account_locked' },
           });
-          throw new Error('Account is temporarily locked. Please try again later.');
+          throw new ForbiddenError('Account is temporarily locked. Please try again later.');
         }
 
         const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
@@ -320,7 +326,7 @@ export class AuthService {
               loginAttempts: user.loginAttempts,
             },
           });
-          throw new Error('Invalid credentials');
+          throw new UnauthorizedError('Invalid credentials');
         }
 
         // Check if email is verified
@@ -335,7 +341,7 @@ export class AuthService {
             userAgent,
             details: { reason: 'email_not_verified' },
           });
-          throw new Error('Please verify your email before logging in');
+          throw new ForbiddenError('Please verify your email before logging in');
         }
 
         // Check 2FA if enabled
@@ -351,7 +357,7 @@ export class AuthService {
               userAgent,
               details: { reason: 'two_factor_required' },
             });
-            throw new Error('Two-factor authentication code required');
+            throw new BadRequestError('Two-factor authentication code required');
           }
 
           const isValidTwoFactor = await this.verifyTwoFactorToken(
@@ -374,7 +380,7 @@ export class AuthService {
               userAgent,
               details: { reason: 'invalid_two_factor' },
             });
-            throw new Error('Invalid two-factor authentication code');
+            throw new BadRequestError('Invalid two-factor authentication code');
           }
         }
 
@@ -450,7 +456,7 @@ export class AuthService {
       const storedToken = await RefreshToken.findByPk(decoded.jti);
 
       if (!storedToken) {
-        throw new Error('Invalid refresh token');
+        throw new UnauthorizedError('Invalid refresh token');
       }
 
       // Refresh-token rotation is security-critical: a partial write on the
@@ -479,14 +485,14 @@ export class AuthService {
           userId: storedToken.user_id,
           familyId: storedToken.family_id,
         });
-        throw new Error('Invalid refresh token');
+        throw new UnauthorizedError('Invalid refresh token');
       }
 
       if (storedToken.isExpired()) {
         await sequelize.transaction(async transaction => {
           await storedToken.update({ is_revoked: true }, { transaction });
         });
-        throw new Error('Invalid refresh token');
+        throw new UnauthorizedError('Invalid refresh token');
       }
 
       const user = await User.findByPk(decoded.userId, {
@@ -499,7 +505,7 @@ export class AuthService {
       });
 
       if (!user || !user.canLogin()) {
-        throw new Error('Invalid refresh token');
+        throw new UnauthorizedError('Invalid refresh token');
       }
 
       const newTokenId = crypto.randomUUID();
@@ -526,7 +532,7 @@ export class AuthService {
         error: error instanceof Error ? error.message : String(error),
         userId: decoded?.userId,
       });
-      throw new Error('Invalid refresh token');
+      throw new UnauthorizedError('Invalid refresh token');
     }
   }
 
@@ -574,7 +580,8 @@ export class AuthService {
         const emailService = (await import('./email.service')).default;
         // ADS-438: validate FRONTEND_URL origin before building the link so a
         // misconfigured env var cannot redirect users to an attacker domain.
-        const resetUrl = `${getValidatedFrontendOrigin()}/reset-password?token=${resetToken}`;
+        // Password reset is a typed-adopter email — pins to the client app.
+        const resetUrl = `${resolveEmailLinkBase(EmailLinkType.PASSWORD_RESET)}/reset-password?token=${resetToken}`;
 
         await emailService.sendEmail({
           toEmail: user.email,
@@ -722,7 +729,7 @@ Need help? Contact us at support@adoptdontshop.com
       });
 
       if (!user) {
-        throw new Error('Invalid or expired reset token');
+        throw new BadRequestError('Invalid or expired reset token');
       }
 
       // ADS: atomic single-use claim of the reset token. Two concurrent
@@ -753,7 +760,7 @@ Need help? Contact us at support@adoptdontshop.com
       );
 
       if (affectedCount === 0) {
-        throw new Error('Invalid or expired reset token');
+        throw new BadRequestError('Invalid or expired reset token');
       }
 
       // ADS: full session kick — bumps tokens_invalid_before (so any
@@ -881,7 +888,7 @@ Need help? Contact us at support@adoptdontshop.com
       try {
         const emailService = (await import('./email.service')).default;
         // ADS-438: validate FRONTEND_URL origin before building the link.
-        const recoveryUrl = `${getValidatedFrontendOrigin()}/auth/2fa/recover?token=${plaintextToken}`;
+        const recoveryUrl = `${resolveEmailLinkBase(EmailLinkType.TWO_FACTOR_RECOVERY)}/auth/2fa/recover?token=${plaintextToken}`;
 
         await emailService.sendEmail({
           toEmail: user.email,
@@ -962,7 +969,7 @@ Need help? Contact us at support@adoptdontshop.com
 
 We received a request to recover access to your Adopt Don't Shop account by disabling two-factor authentication.
 
-Confirming this link will turn off two-factor authentication and sign you out of all active sessions. You will be able to sign in with just your password until you re-enable two-factor authentication.
+Confirming this link will turn off two-factor authentication and sign you out of all active sessions. You will be able to sign in with your password alone until you re-enable two-factor authentication.
 
 To continue, click the link below or copy and paste it into your browser:
 
@@ -1032,7 +1039,7 @@ Need help? Contact us at support@adoptdontshop.com
         });
 
         if (!recovery) {
-          throw new Error('Invalid or expired recovery token');
+          throw new BadRequestError('Invalid or expired recovery token');
         }
 
         // Conditional UPDATE provides the atomic single-use claim:
@@ -1052,7 +1059,7 @@ Need help? Contact us at support@adoptdontshop.com
         );
 
         if (affectedCount === 0) {
-          throw new Error('Invalid or expired recovery token');
+          throw new BadRequestError('Invalid or expired recovery token');
         }
 
         const user = await User.findByPk(recovery.user_id, { transaction });
@@ -1060,7 +1067,7 @@ Need help? Contact us at support@adoptdontshop.com
           // Should not happen — FK CASCADE keeps these in sync — but be
           // defensive: a missing user means the row is orphaned and the
           // token must not be honoured.
-          throw new Error('Invalid or expired recovery token');
+          throw new BadRequestError('Invalid or expired recovery token');
         }
 
         user.twoFactorEnabled = false;
@@ -1075,7 +1082,7 @@ Need help? Contact us at support@adoptdontshop.com
 
       if (!userId) {
         // Defensive: the transaction body always assigns userId on success.
-        throw new Error('Invalid or expired recovery token');
+        throw new BadRequestError('Invalid or expired recovery token');
       }
 
       // Out-of-transaction cleanup (mirrors disableTwoFactor): a 2FA
@@ -1114,7 +1121,7 @@ Need help? Contact us at support@adoptdontshop.com
         const user = await User.findByPk(userId);
         if (user) {
           const emailService = (await import('./email.service')).default;
-          const loginUrl = `${getValidatedFrontendOrigin()}/login`;
+          const loginUrl = `${resolveEmailLinkBase(EmailLinkType.TWO_FACTOR_RECOVERY)}/login`;
 
           await emailService.sendEmail({
             toEmail: user.email,
@@ -1127,9 +1134,9 @@ Need help? Contact us at support@adoptdontshop.com
                 <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px;">
                   <h2 style="color: #333;">Two-Factor Authentication Disabled</h2>
                   <p>Hi ${user.firstName},</p>
-                  <p>Two-factor authentication has just been disabled on your account using the
+                  <p>Two-factor authentication was disabled on your account using the
                   email recovery link. All active sessions have been signed out for your security.</p>
-                  <p>You can now sign in with just your password. We recommend re-enabling
+                  <p>You can now sign in with your password alone. We recommend re-enabling
                   two-factor authentication as soon as you can.</p>
                   <p><a href="${loginUrl}" style="display:inline-block;padding:12px 24px;background:#667eea;color:#fff;border-radius:6px;text-decoration:none;">Sign in</a></p>
                   <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:12px;margin:20px 0;">
@@ -1144,9 +1151,9 @@ Need help? Contact us at support@adoptdontshop.com
             `,
             textContent: `Hi ${user.firstName},
 
-Two-factor authentication has just been disabled on your account using the email recovery link. All active sessions have been signed out for your security.
+Two-factor authentication was disabled on your account using the email recovery link. All active sessions have been signed out for your security.
 
-You can now sign in with just your password: ${loginUrl}
+You can now sign in with your password alone: ${loginUrl}
 
 We recommend re-enabling two-factor authentication as soon as you can.
 
@@ -1190,7 +1197,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
       });
 
       if (!user) {
-        throw new Error('Invalid or expired verification token');
+        throw new BadRequestError('Invalid or expired verification token');
       }
 
       // Idempotent: a duplicate request (React StrictMode dev double-mount,
@@ -1382,7 +1389,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
           templateData: {
             firstName: user.firstName,
             verificationToken: verificationToken,
-            verificationUrl: `${getValidatedFrontendOrigin()}/verify-email?token=${verificationToken}`,
+            verificationUrl: `${resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION)}/verify-email?token=${verificationToken}`,
             expiresAt: verificationExpires.toISOString(),
           },
           type: 'transactional',
@@ -1490,23 +1497,23 @@ If this wasn't you, your account may be compromised. Reset your password immedia
 
   private static validatePassword(password: string): void {
     if (password.length < 8) {
-      throw new Error('Password must be at least 8 characters long');
+      throw new BadRequestError('Password must be at least 8 characters long');
     }
 
     if (!/(?=.*[a-z])/.test(password)) {
-      throw new Error('Password must contain at least one lowercase letter');
+      throw new BadRequestError('Password must contain at least one lowercase letter');
     }
 
     if (!/(?=.*[A-Z])/.test(password)) {
-      throw new Error('Password must contain at least one uppercase letter');
+      throw new BadRequestError('Password must contain at least one uppercase letter');
     }
 
     if (!/(?=.*\d)/.test(password)) {
-      throw new Error('Password must contain at least one number');
+      throw new BadRequestError('Password must contain at least one number');
     }
 
-    if (!/(?=.*[@$!%*?&])/.test(password)) {
-      throw new Error('Password must contain at least one special character');
+    if (!/[^a-zA-Z0-9]/.test(password)) {
+      throw new BadRequestError('Password must contain at least one special character');
     }
   }
 
@@ -1522,16 +1529,16 @@ If this wasn't you, your account may be compromised. Reset your password immedia
   ): Promise<void> {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new Error('Invalid credentials');
+      throw new UnauthorizedError('Invalid credentials');
     }
 
     if (user.twoFactorEnabled) {
       if (!twoFactorToken) {
-        throw new Error('Two-factor authentication code required');
+        throw new BadRequestError('Two-factor authentication code required');
       }
       const isValid = await this.verifyTwoFactorToken(user, twoFactorToken);
       if (!isValid) {
-        throw new Error('Invalid two-factor authentication code');
+        throw new BadRequestError('Invalid two-factor authentication code');
       }
     }
   }
@@ -1542,19 +1549,21 @@ If this wasn't you, your account may be compromised. Reset your password immedia
     transaction?: Transaction
   ): Promise<boolean> {
     if (!user.twoFactorSecret) {
-      throw new Error('Two-factor authentication is not set up for this user');
+      throw new BadRequestError('Two-factor authentication is not set up for this user');
     }
 
-    // twoFactorSecret is stored AES-256-GCM-encrypted; speakeasy needs the
+    // twoFactorSecret is stored AES-256-GCM-encrypted; otpauth needs the
     // raw base32 secret to derive the TOTP. Decrypt on use, never persist.
     const plainSecret = decryptSecret(user.twoFactorSecret);
 
-    const isValidTotp = speakeasy.totp.verify({
-      secret: plainSecret,
-      encoding: 'base32',
-      token,
-      window: 1,
+    const totp = new OTPAuth.TOTP({
+      secret: OTPAuth.Secret.fromBase32(plainSecret),
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
     });
+
+    const isValidTotp = totp.validate({ token, window: 1 }) !== null;
 
     if (isValidTotp) {
       return true;
@@ -1637,15 +1646,20 @@ If this wasn't you, your account may be compromised. Reset your password immedia
   }
 
   static generateTwoFactorSecret(userEmail: string): { secret: string; otpauthUrl: string } {
-    const secretObj = speakeasy.generateSecret({
-      name: `Adopt Don't Shop (${userEmail})`,
+    const secret = new OTPAuth.Secret({ size: 20 });
+
+    const totp = new OTPAuth.TOTP({
       issuer: "Adopt Don't Shop",
-      length: 20,
+      label: `Adopt Don't Shop (${userEmail})`,
+      secret,
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
     });
 
     return {
-      secret: secretObj.base32,
-      otpauthUrl: secretObj.otpauth_url ?? '',
+      secret: secret.base32,
+      otpauthUrl: totp.toString(),
     };
   }
 
@@ -1669,7 +1683,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
 
     const user = await User.findByPk(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundError('User not found');
     }
 
     user.twoFactorPendingSecret = encryptSecret(secret);
@@ -1686,12 +1700,14 @@ If this wasn't you, your account may be compromised. Reset your password immedia
   }
 
   static verifyTwoFactorSetupToken(secret: string, token: string): boolean {
-    return speakeasy.totp.verify({
-      secret,
-      encoding: 'base32',
-      token,
-      window: 1,
+    const totp = new OTPAuth.TOTP({
+      secret: OTPAuth.Secret.fromBase32(secret),
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
     });
+
+    return totp.validate({ token, window: 1 }) !== null;
   }
 
   static generateBackupCodes(count = 10): string[] {
@@ -1706,23 +1722,25 @@ If this wasn't you, your account may be compromised. Reset your password immedia
     // initiateTwoFactorSetup and times out after PENDING_2FA_TTL_MS.
     const user = await User.scope('withSecrets').findByPk(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundError('User not found');
     }
 
     if (!user.twoFactorPendingSecret) {
-      throw new Error('Two-factor setup has not been initiated. Please start setup again.');
+      throw new BadRequestError(
+        'Two-factor setup has not been initiated. Please start setup again.'
+      );
     }
     if (user.twoFactorPendingExpiresAt && user.twoFactorPendingExpiresAt.getTime() < Date.now()) {
       user.twoFactorPendingSecret = null;
       user.twoFactorPendingExpiresAt = null;
       await user.save();
-      throw new Error('Two-factor setup has expired. Please start setup again.');
+      throw new BadRequestError('Two-factor setup has expired. Please start setup again.');
     }
 
     const plainPendingSecret = decryptSecret(user.twoFactorPendingSecret);
     const isValid = this.verifyTwoFactorSetupToken(plainPendingSecret, token);
     if (!isValid) {
-      throw new Error('Invalid verification code. Please try again.');
+      throw new BadRequestError('Invalid verification code. Please try again.');
     }
 
     const backupCodes = this.generateBackupCodes();
@@ -1758,7 +1776,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
   static async disableTwoFactor(userId: string): Promise<void> {
     const user = await User.findByPk(userId);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundError('User not found');
     }
 
     user.twoFactorEnabled = false;
@@ -1836,7 +1854,7 @@ If this wasn't you, your account may be compromised. Reset your password immedia
 
       const emailService = (await import('./email.service')).default;
       // ADS-438: origin is validated against the configured allowlist.
-      const frontendUrl = getValidatedFrontendOrigin();
+      const frontendUrl = resolveEmailLinkBase(EmailLinkType.EMAIL_VERIFICATION);
 
       for (const user of unverifiedUsers) {
         try {

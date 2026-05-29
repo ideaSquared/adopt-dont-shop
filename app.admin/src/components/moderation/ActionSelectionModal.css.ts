@@ -84,6 +84,16 @@ export const reportText = style({
   color: '#111827',
 });
 
+export const inlineError = style({
+  background: '#fee2e2',
+  border: '1px solid #fecaca',
+  borderRadius: '8px',
+  padding: '0.75rem 1rem',
+  color: '#991b1b',
+  fontSize: '0.875rem',
+  marginBottom: '1.5rem',
+});
+
 export const formGroup = style({
   marginBottom: '1.5rem',
 });
@@ -105,7 +115,7 @@ export const select = style({
   background: '#ffffff',
   color: '#111827',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
@@ -124,7 +134,7 @@ export const textArea = style({
   resize: 'vertical',
   fontFamily: 'inherit',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
@@ -140,7 +150,7 @@ export const input = style({
   background: '#ffffff',
   color: '#111827',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#667eea',
     boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',

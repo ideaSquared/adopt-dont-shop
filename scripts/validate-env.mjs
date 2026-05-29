@@ -10,6 +10,9 @@
  *  3. Diffs the active env against root /.env.example so missing or stale
  *     keys surface before deploy.
  *  4. Exits non-zero on any error so it can run as a CI gate.
+ *  5. Optional --staging-env=PATH: fails if any of the six application secrets
+ *     share a value with the staging env (prevents staging→prod secret reuse,
+ *     ADS-659).
  *
  * Keep the rule set in sync with service.backend/src/utils/validate-env.ts.
  * The two implementations validate the same secrets so operators get the same
@@ -220,12 +223,41 @@ function validate(env) {
     }
   }
 
+  // ADS-662: validate LOG_LEVEL against Winston's level set
+  const validLogLevels = ['error', 'warn', 'info', 'http', 'debug', 'silly'];
+  if (env.LOG_LEVEL && !validLogLevels.includes(env.LOG_LEVEL.toLowerCase())) {
+    errors.push(
+      `LOG_LEVEL must be one of ${validLogLevels.join('|')} (got "${env.LOG_LEVEL}")`
+    );
+  }
+
   // Production-only requirements
   if (isProduction) {
     if (!env.CORS_ORIGIN) {
       errors.push('CORS_ORIGIN is required in production');
     } else if (env.CORS_ORIGIN.split(',').some(o => o.trim() === '*' || o.includes('*'))) {
       errors.push("CORS_ORIGIN cannot contain wildcard ('*') in production");
+    }
+    // ADS-668: block dev-style origins in production CORS
+    if (env.CORS_ORIGIN) {
+      const devPatterns = ['localhost', '127.0.0.1', '0.0.0.0', '.ngrok.io', '.ngrok-free.app'];
+      const origins = env.CORS_ORIGIN.split(',').map(o => o.trim());
+      const devOrigins = origins.filter(o =>
+        devPatterns.some(p => o.includes(p))
+      );
+      if (devOrigins.length > 0) {
+        errors.push(
+          `CORS_ORIGIN contains dev-style origins in production: ${devOrigins.join(', ')}. ` +
+          'Use real domain names only'
+        );
+      }
+      const httpOrigins = origins.filter(o => o.startsWith('http://'));
+      if (httpOrigins.length > 0) {
+        warnings.push(
+          `CORS_ORIGIN contains non-HTTPS origins: ${httpOrigins.join(', ')}. ` +
+          'Production should use HTTPS only'
+        );
+      }
     }
     // ADS-410
     if (!env.FRONTEND_URL) {
@@ -277,13 +309,44 @@ function diffAgainstExample(env, examplePath) {
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
+// Staging-reuse check (ADS-659)
+// Fails if any of the six application secrets share a value with a staging env.
+// ---------------------------------------------------------------------------
+const SECRET_VARS = [
+  'JWT_SECRET',
+  'JWT_REFRESH_SECRET',
+  'SESSION_SECRET',
+  'CSRF_SECRET',
+  'ENCRYPTION_KEY',
+  'UPLOAD_SIGNING_SECRET',
+];
+
+function checkStagingReuse(prodEnv, stagingPath, errors) {
+  const stagingEnv = loadEnvFile(stagingPath);
+  if (!stagingEnv) {
+    log.warn(`--staging-env file not found at ${stagingPath}; skipping reuse check`);
+    return;
+  }
+  for (const key of SECRET_VARS) {
+    const prodVal = prodEnv[key];
+    const stagingVal = stagingEnv[key];
+    if (prodVal && stagingVal && prodVal === stagingVal) {
+      errors.push(
+        `${key} is identical in production and staging — rotate before deploying`
+      );
+    }
+  }
+}
+
 function parseArgs(argv) {
-  const args = { envFile: null, examplePath: null, json: false };
+  const args = { envFile: null, examplePath: null, stagingEnv: null, json: false };
   for (const arg of argv.slice(2)) {
     if (arg.startsWith('--env-file=')) {
       args.envFile = arg.slice('--env-file='.length);
     } else if (arg.startsWith('--example=')) {
       args.examplePath = arg.slice('--example='.length);
+    } else if (arg.startsWith('--staging-env=')) {
+      args.stagingEnv = arg.slice('--staging-env='.length);
     } else if (arg === '--json') {
       args.json = true;
     }
@@ -297,10 +360,12 @@ function main() {
   const examplePath = args.examplePath
     ? path.resolve(args.examplePath)
     : path.join(rootDir, '.env.example');
-
   log.title('Environment / secret validation');
   log.info(`env file:    ${envFile}`);
   log.info(`example:     ${examplePath}`);
+  if (args.stagingEnv) {
+    log.info(`staging env: ${path.resolve(args.stagingEnv)}`);
+  }
 
   const fileEnv = loadEnvFile(envFile);
   // Merge file env on top of process.env so `STATSIG_SERVER_SECRET_KEY=foo
@@ -313,6 +378,10 @@ function main() {
   }
 
   const { errors, warnings } = validate(env);
+
+  if (args.stagingEnv) {
+    checkStagingReuse(env, path.resolve(args.stagingEnv), errors);
+  }
   const { missing, examplePath: foundExample } = diffAgainstExample(env, examplePath);
 
   if (foundExample && missing.length > 0) {

@@ -30,7 +30,7 @@ const parseOrUndefined = (raw: string | undefined): URL | undefined => {
 
 const collectAllowedOrigins = (): Set<string> => {
   const allowed = new Set<string>();
-  for (const key of ['FRONTEND_URL', 'RESCUE_FRONTEND_URL']) {
+  for (const key of ['FRONTEND_URL', 'RESCUE_FRONTEND_URL', 'ADMIN_FRONTEND_URL']) {
     const url = parseOrUndefined(process.env[key]);
     if (url) {
       allowed.add(url.origin);

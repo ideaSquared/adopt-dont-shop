@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import React, { useRef } from 'react';
 import { SelectInput, SelectOption } from './SelectInput';
 
 const renderWithTheme = (component: React.ReactElement) => render(component);
@@ -174,6 +174,36 @@ describe('SelectInput', () => {
     const label = screen.getByText('Required Field');
     expect(label).toBeInTheDocument();
     // Required styling is applied via CSS pseudo-element, component renders successfully
+  });
+
+  it('sets aria-required on the trigger when required is true', () => {
+    renderWithTheme(<SelectInput options={mockOptions} required />);
+    const trigger = screen.getByRole('combobox');
+    expect(trigger).toHaveAttribute('aria-required', 'true');
+  });
+
+  it('does not set aria-required on the trigger when required is false', () => {
+    renderWithTheme(<SelectInput options={mockOptions} />);
+    const trigger = screen.getByRole('combobox');
+    expect(trigger).not.toHaveAttribute('aria-required');
+  });
+
+  it('forwards ref to the underlying trigger button', () => {
+    const RefTest: React.FC = () => {
+      const triggerRef = useRef<HTMLButtonElement>(null);
+      return (
+        <>
+          <SelectInput options={mockOptions} ref={triggerRef} />
+          <button onClick={() => triggerRef.current?.focus()}>focus</button>
+        </>
+      );
+    };
+    renderWithTheme(<RefTest />);
+    const trigger = screen.getByRole('combobox');
+    act(() => {
+      screen.getByText('focus').click();
+    });
+    expect(trigger).toHaveFocus();
   });
 
   it('applies different sizes correctly', () => {

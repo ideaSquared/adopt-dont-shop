@@ -155,7 +155,7 @@ export const statusSelect = style({
   background: 'white',
   cursor: 'pointer',
   transition: 'all 0.2s ease',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: '#3b82f6',
   },

@@ -7,6 +7,7 @@ import FosterPlacement, {
 } from '../models/FosterPlacement';
 import PetStatusTransition from '../models/PetStatusTransition';
 import { logger } from '../utils/logger';
+import { NotFoundError, ConflictError } from '../middleware/error-handler';
 
 export type CreatePlacementInput = {
   petId: string;
@@ -36,10 +37,10 @@ class FosterService {
     return sequelize.transaction(async t => {
       const pet = await Pet.findByPk(input.petId, { transaction: t });
       if (!pet) {
-        throw new Error('Pet not found');
+        throw new NotFoundError('Pet not found');
       }
       if (pet.rescueId !== input.rescueId) {
-        throw new Error('Pet does not belong to the specified rescue');
+        throw new NotFoundError('Pet does not belong to the specified rescue');
       }
 
       const existing = await FosterPlacement.findOne({
@@ -47,7 +48,7 @@ class FosterService {
         transaction: t,
       });
       if (existing) {
-        throw new Error('Pet already has an active foster placement');
+        throw new ConflictError('Pet already has an active foster placement');
       }
 
       const placement = await FosterPlacement.create(
@@ -89,10 +90,10 @@ class FosterService {
     return sequelize.transaction(async t => {
       const placement = await FosterPlacement.findByPk(placementId, { transaction: t });
       if (!placement) {
-        throw new Error('Placement not found');
+        throw new NotFoundError('Placement not found');
       }
       if (placement.status !== FosterPlacementStatus.ACTIVE) {
-        throw new Error('Placement is not active');
+        throw new ConflictError('Placement is not active');
       }
 
       const newStatus =

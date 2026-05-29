@@ -1,10 +1,17 @@
 import { z } from 'zod';
+import {
+  APPLICATION_STATUSES,
+  APPLICATION_STAGES,
+  APPLICATION_PRIORITIES,
+} from '@adopt-dont-shop/lib.types';
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 
-export const ApplicationStatusSchema = z.enum(['submitted', 'approved', 'rejected', 'withdrawn']);
+export const ApplicationStatusSchema = z.enum(APPLICATION_STATUSES);
 
-export const ApplicationPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
+export const ApplicationStageSchema = z.enum(APPLICATION_STAGES);
+
+export const ApplicationPrioritySchema = z.enum(APPLICATION_PRIORITIES);
 
 // ── ApplicationData sub-schemas ───────────────────────────────────────────────
 //
@@ -168,6 +175,10 @@ export const ApplicationSchema = z.object({
   userId: z.string(),
   rescueId: z.string(),
   status: ApplicationStatusSchema,
+  // Optional for backwards compatibility — older backend responses (and
+  // older clients/tests) may omit it. Present on adopter and rescue reads
+  // from the canonical transformApplicationModel.
+  stage: ApplicationStageSchema.optional(),
   priority: ApplicationPrioritySchema.optional(),
   // These four columns are nullable in the database, so the JSON wire shape
   // can be `null` (not just absent). Use `.nullish()` to accept both null
@@ -241,8 +252,11 @@ export const DocumentsResponseSchema = z.object({
 
 // ── Inferred types ─────────────────────────────────────────────────────────────
 
-export type ApplicationStatus = z.infer<typeof ApplicationStatusSchema>;
-export type ApplicationPriority = z.infer<typeof ApplicationPrioritySchema>;
+export type {
+  ApplicationStatus,
+  ApplicationStage,
+  ApplicationPriority,
+} from '@adopt-dont-shop/lib.types';
 export type PersonalInfo = z.infer<typeof PersonalInfoSchema>;
 export type LivingSituation = z.infer<typeof LivingSituationSchema>;
 export type PetExperience = z.infer<typeof PetExperienceSchema>;

@@ -407,7 +407,12 @@ describe('GET /uploads/:path — Express fallback streaming route', () => {
       }
     );
 
-    const response = await request(app).get('/uploads/../etc/passwd');
+    // supertest 7 (superagent 10) normalises `../` out of URLs per
+    // RFC 3986 before sending, so `/uploads/../etc/passwd` becomes
+    // `/etc/passwd` and never reaches the route handler.  Percent-
+    // encode the slash (`..%2F`) to bypass client-side normalisation
+    // while still exercising the server's safeResolve traversal guard.
+    const response = await request(app).get('/uploads/..%2Fetc/passwd');
     expect(response.status).toBe(400);
   });
 

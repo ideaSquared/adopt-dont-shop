@@ -81,6 +81,12 @@ vi.mock('../../middleware/auth-rate-limit', () => ({
   registrationEmailLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
     next(),
   loginIpLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
+  passwordResetIpLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
+    next(),
+  passwordResetEmailLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
+    next(),
+  passwordResetTokenLimiter: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
+    next(),
 }));
 
 vi.mock('../../middleware/turnstile', () => ({
@@ -114,6 +120,7 @@ vi.mock('../../middleware/auth', () => ({
 import AuthService from '../../services/auth.service';
 import authRouter from '../../routes/auth.routes';
 import User from '../../models/User';
+import { UnauthorizedError } from '../../middleware/error-handler';
 
 const mockRegister = vi.mocked(AuthService.register);
 const mockLogin = vi.mocked(AuthService.login);
@@ -247,7 +254,7 @@ describe('Auth routes', () => {
     });
 
     it('returns 401 when credentials are invalid', async () => {
-      mockLogin.mockRejectedValue(new Error('Invalid credentials'));
+      mockLogin.mockRejectedValue(new UnauthorizedError('Invalid credentials'));
 
       const res = await request(buildApp()).post('/api/v1/auth/login').send(validBody);
 
@@ -295,7 +302,7 @@ describe('Auth routes', () => {
     });
 
     it('does not rotate the CSRF session cookie on failed login', async () => {
-      mockLogin.mockRejectedValue(new Error('Invalid credentials'));
+      mockLogin.mockRejectedValue(new UnauthorizedError('Invalid credentials'));
 
       const res = await request(buildApp())
         .post('/api/v1/auth/login')

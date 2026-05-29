@@ -1290,8 +1290,11 @@ router.get('/:petId/similar', PetController.validatePetId, petController.getSimi
  * /api/v1/pets/{petId}/activity:
  *   get:
  *     tags: [Pet Management]
- *     summary: Get pet activity history
- *     description: Get activity history and statistics for a specific pet
+ *     summary: Get pet activity log
+ *     description: Paginated chronological activity log for a pet, sourced from audit logs. Powers the admin EntityInspector Activity tab.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: petId
@@ -1299,10 +1302,29 @@ router.get('/:petId/similar', PetController.validatePetId, petController.getSimi
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Pet ID
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
  *     responses:
  *       200:
- *         description: Pet activity retrieved successfully
+ *         description: Pet activity log retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -1310,33 +1332,44 @@ router.get('/:petId/similar', PetController.validatePetId, petController.getSimi
  *               properties:
  *                 success:
  *                   type: boolean
- *                   example: true
- *                 activity:
- *                   type: object
- *                   properties:
- *                     views:
- *                       type: integer
- *                       example: 245
- *                     favorites:
- *                       type: integer
- *                       example: 23
- *                     applications:
- *                       type: integer
- *                       example: 5
- *                     recentViews:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           timestamp:
- *                             type: string
- *                             format: date-time
- *                           userId:
- *                             type: string
- *                             format: uuid
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       activityId:
+ *                         type: integer
+ *                       activityType:
+ *                         type: string
+ *                       action:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *                       ipAddress:
+ *                         type: string
+ *                         nullable: true
+ *                       userAgent:
+ *                         type: string
+ *                         nullable: true
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
  *       404:
  *         $ref: '#/components/responses/NotFoundError'
  */
+router.get(
+  '/:petId/activity',
+  authenticateToken,
+  requirePermission('pets.read'),
+  PetController.validatePetId,
+  petController.getPetActivityLog
+);
 
 // Protected routes (authentication required)
 router.post(

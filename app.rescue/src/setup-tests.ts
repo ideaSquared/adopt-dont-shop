@@ -127,6 +127,36 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
   Alert: ({ children, ...props }: any) =>
     React.createElement('div', { role: 'alert', ...props }, children),
   Spinner: (props: any) => React.createElement('div', { 'aria-label': props?.label ?? 'loading' }),
+  Skeleton: ({ width, height, radius, className, style, ...props }: any) =>
+    React.createElement('div', {
+      'aria-hidden': 'true',
+      style: { width, height, borderRadius: radius, ...(style ?? {}) },
+      ...props,
+    }),
+  SkeletonText: ({ lines = 3 }: any) =>
+    React.createElement(
+      'div',
+      { 'aria-hidden': 'true' },
+      ...Array.from({ length: lines }, (_, i) => React.createElement('div', { key: i }))
+    ),
+  SkeletonTableRow: ({ columnCount, hasCheckbox }: any) =>
+    React.createElement(
+      'tr',
+      { 'aria-hidden': 'true', 'data-testid': 'skeleton-row' },
+      hasCheckbox ? React.createElement('td', { key: 'cb' }) : null,
+      ...Array.from({ length: columnCount }, (_, i) => React.createElement('td', { key: i }))
+    ),
+  SkeletonCard: ({ lines = 3, showAvatar }: any) =>
+    React.createElement(
+      'div',
+      { 'aria-hidden': 'true' },
+      showAvatar ? React.createElement('div', { key: 'avatar' }) : null,
+      React.createElement(
+        'div',
+        { key: 'text' },
+        ...Array.from({ length: lines }, (_, i) => React.createElement('div', { key: i }))
+      )
+    ),
   CheckboxInput: ({ children, ...props }: any) =>
     React.createElement('input', { type: 'checkbox', ...props }, children),
   SelectInput: ({ children, ...props }: any) => React.createElement('select', props, children),
@@ -195,6 +225,15 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
         )
       : null,
   InstallPwaBanner: () => null,
+  // ADS C4-5: rendered by SanctionBannerHost; tests don't exercise sanctions.
+  SanctionBanner: () => null,
+  SkipLink: ({
+    href = '#main-content',
+    children = 'Skip to main content',
+  }: {
+    href?: string;
+    children?: React.ReactNode;
+  }) => React.createElement('a', { href }, children),
   toast: Object.assign(vi.fn(), {
     success: vi.fn(),
     error: vi.fn(),

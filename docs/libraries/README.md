@@ -1,6 +1,6 @@
 # Shared Libraries
 
-The monorepo ships **23 workspace libraries** under `@adopt-dont-shop/lib.*`. Each library's authoritative documentation is its own `README.md` next to the source — those READMEs are kept code-verified.
+The monorepo ships **24 workspace libraries** under `@adopt-dont-shop/lib.*`. Each library's authoritative documentation is its own `README.md` next to the source — those READMEs are kept code-verified.
 
 ## Standards
 
@@ -33,6 +33,7 @@ The monorepo ships **23 workspace libraries** under `@adopt-dont-shop/lib.*`. Ea
 - [`lib.moderation`](../../lib.moderation/README.md) — reporting + moderation workflow
 - [`lib.support-tickets`](../../lib.support-tickets/README.md) — support ticket creation / tracking
 - [`lib.audit-logs`](../../lib.audit-logs/README.md) — audit logging for sensitive actions
+- [`lib.matching`](../../lib.matching/README.md) — shared types for pet-adopter matching
 
 ### UI & analytics
 - [`lib.components`](../../lib.components/README.md) — shared React components

@@ -28,6 +28,7 @@ const Reports = lazy(() => import('./pages/Reports'));
 const ReportBuilderPage = lazy(() => import('./pages/ReportBuilderPage'));
 const ReportViewPage = lazy(() => import('./pages/ReportViewPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const RegisterRescue = lazy(() => import('./pages/RegisterRescue'));
 
 import './App.css';
 import * as styles from './AppRouting.css';
@@ -47,9 +48,9 @@ const RouteBoundary = ({ name, children }: { name: string; children: ReactNode }
 function App() {
   // ADS-105: subscribe to backend analytics:invalidate events.
   useAnalyticsInvalidator();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
 
-  if (isLoading) {
+  if (isInitializing) {
     return <PageLoader />;
   }
 
@@ -59,6 +60,7 @@ function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/accept-invitation" element={<AcceptInvitation />} />
+            <Route path="/register-rescue" element={<RegisterRescue />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
@@ -75,6 +77,7 @@ function App() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/accept-invitation" element={<AcceptInvitation />} />
+          <Route path="/register-rescue" element={<RegisterRescue />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
 
           <Route

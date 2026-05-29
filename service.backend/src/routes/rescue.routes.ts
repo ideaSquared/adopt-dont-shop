@@ -7,6 +7,7 @@ import {
   RescueBulkUpdateRequestSchema,
   RescueCreateRequestSchema,
   RescueDeletionRequestSchema,
+  RescueRegistrationRequestSchema,
   RescueRejectionRequestSchema,
   RescueSearchQuerySchema,
   RescueUpdateRequestSchema,
@@ -20,6 +21,7 @@ import { authenticateToken, optionalAuth } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
 import {
   invitationSendLimiter,
+  rescueRegistrationLimiter,
   searchLimiter,
   sensitiveWriteLimiter,
 } from '../middleware/rate-limiter';
@@ -633,6 +635,15 @@ router.get('/:rescueId/pets', validateRescueId, rescueController.getRescuePets);
 // Get adoption policies (public route)
 router.get('/:rescueId/adoption-policies', validateRescueId, rescueController.getAdoptionPolicies);
 
+// ADS-641: Public rescue registration (creates user + rescue + staff)
+const validateRegistration = validateBody(RescueRegistrationRequestSchema);
+router.post(
+  '/register',
+  rescueRegistrationLimiter,
+  validateRegistration,
+  rescueController.registerRescue
+);
+
 // Routes requiring authentication
 router.use(authenticateToken);
 
@@ -1006,6 +1017,91 @@ router.patch(
   requirePermission('rescues.update'),
   requirePlanFeature('custom_questions'),
   questionController.reorderQuestions.bind(questionController)
+);
+
+/**
+ * @swagger
+ * /api/v1/rescues/{rescueId}/activity:
+ *   get:
+ *     tags: [Rescue Organizations]
+ *     summary: Get rescue activity log
+ *     description: Paginated chronological activity log for a rescue, sourced from audit logs. Drives the EntityInspector Activity tab.
+ *     security:
+ *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: rescueId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Rescue activity log retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       activityId:
+ *                         type: integer
+ *                       activityType:
+ *                         type: string
+ *                       action:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *                       ipAddress:
+ *                         type: string
+ *                         nullable: true
+ *                       userAgent:
+ *                         type: string
+ *                         nullable: true
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.get(
+  '/:rescueId/activity',
+  validateRescueId,
+  requirePermission('rescues.read'),
+  rescueController.getRescueActivityLog
 );
 
 export default router;

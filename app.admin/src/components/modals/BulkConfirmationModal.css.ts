@@ -138,7 +138,7 @@ export const textArea = style({
   color: '#111827',
   resize: 'vertical',
   boxSizing: 'border-box',
-  ':focus': {
+  ':focus-visible': {
     outline: 'none',
     borderColor: vars.colors.primary,
     boxShadow: `0 0 0 3px ${vars.colors.primaryBgSubtle}`,
@@ -179,4 +179,49 @@ export const resultIcon = style({
 export const requiredMark = style({
   color: '#ef4444',
   marginLeft: '0.25rem',
+});
+
+export const failureGuidance = style({
+  margin: '0',
+  fontSize: '0.8125rem',
+  color: '#6b7280',
+  lineHeight: '1.5',
+});
+
+export const failedIdsSection = style({
+  marginTop: '0.75rem',
+});
+
+export const failedIdsToggle = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.375rem',
+  background: 'none',
+  border: 'none',
+  padding: '0.25rem 0',
+  fontSize: '0.8125rem',
+  fontWeight: '600',
+  color: '#374151',
+  cursor: 'pointer',
+  ':hover': {
+    color: '#111827',
+  },
+});
+
+export const failedIdsList = style({
+  listStyle: 'none',
+  margin: '0.5rem 0 0',
+  padding: '0.5rem 0.75rem',
+  background: '#f9fafb',
+  border: '1px solid #e5e7eb',
+  borderRadius: '6px',
+  maxHeight: '120px',
+  overflowY: 'auto',
+  fontSize: '0.8125rem',
+  fontFamily: 'monospace',
+  color: '#374151',
+});
+
+export const failedIdItem = style({
+  padding: '0.125rem 0',
 });

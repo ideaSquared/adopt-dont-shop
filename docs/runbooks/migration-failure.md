@@ -44,8 +44,8 @@ These mirror the four documented modes in
 
 The failing migration has a logic error.
 
-- The migration's row will **not** be in `SequelizeMeta` (sequelize-cli
-  only writes it after `up()` returns).
+- The migration's row will **not** be in `SequelizeMeta` (the Umzug
+  runner only writes it after `up()` returns).
 - Re-running `db:migrate` will replay the whole `up()`.
 
 ```bash
@@ -114,7 +114,7 @@ is ahead of binary" failure mode.
 # 1. Decide: forward-fix (deploy a new image that handles the new
 #    schema) or back out (run the migration's down()).
 docker compose -f docker-compose.prod.yml run --rm service-backend-migrate \
-  npx sequelize-cli db:migrate:undo
+  npm run db:migrate:undo
 ```
 
 If `down()` is a no-op or destructive, **stop and call the DBA**.

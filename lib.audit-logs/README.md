@@ -4,9 +4,17 @@ Audit logs service for the Adopt Don't Shop platform. Provides type-safe access 
 
 ## Installation
 
-```bash
-npm install @adopt-dont-shop/lib.audit-logs
+Workspace package — add to a consumer's `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@adopt-dont-shop/lib.audit-logs": "*"
+  }
+}
 ```
+
+Then run `npm install` at the repo root to link.
 
 ## Usage
 

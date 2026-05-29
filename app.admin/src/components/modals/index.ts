@@ -1,5 +1,4 @@
 // Rescue modals
-export { RescueDetailModal } from './RescueDetailModal/index';
 export { RescueVerificationModal } from './RescueVerificationModal';
 export { SendEmailModal } from './SendEmailModal';
 
@@ -16,7 +15,3 @@ export { ChatDetailModal } from './ChatDetailModal/index';
 // Bulk operations
 export { BulkConfirmationModal } from './BulkConfirmationModal';
 export type { BulkConfirmationVariant } from './BulkConfirmationModal';
-
-// Entity detail modals
-export { PetDetailModal } from './PetDetailModal';
-export { ApplicationDetailModal } from './ApplicationDetailModal';

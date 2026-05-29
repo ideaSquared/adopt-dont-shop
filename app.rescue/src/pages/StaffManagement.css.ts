@@ -39,6 +39,14 @@ export const headerActions = style({
   display: 'flex',
   gap: '1rem',
   alignItems: 'center',
+  '@media': {
+    // The header stacks vertically on mobile; let the action buttons stack and
+    // fill the width too rather than crowding onto one cramped row.
+    'screen and (max-width: 768px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    },
+  },
 });
 
 export const actionButtonPrimary = style({

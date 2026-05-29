@@ -26,19 +26,18 @@ export const SwipeHero: React.FC = () => {
       <div className={styles.heroContent}>
         <div className={styles.swipeBadge}>
           <MdAutoFixHigh className={styles.sparkle} />
-          New: AI-Powered Pet Matching
+          New: Smart Pet Matching
         </div>
 
         <h1 className={styles.mainHeading}>
-          Find Your Perfect
+          Find Your Next
           <br />
           Companion with a Swipe
         </h1>
 
         <p className={styles.subtitle}>
-          Discover amazing pets waiting for their forever home. Our innovative swipe feature uses
-          smart matching to help you find the perfect companion based on your preferences and
-          lifestyle.
+          Swipe through adoptable pets matched to your preferences and lifestyle. Like the ones that
+          catch your eye — we'll connect you with their rescue.
         </p>
 
         <div className={styles.ctaContainer}>
@@ -66,19 +65,19 @@ export const SwipeHero: React.FC = () => {
           <div className={styles.featureCard}>
             <MdSwipe className='icon' />
             <h3>Smart Swiping</h3>
-            <p>Swipe right to like, left to pass. Our algorithm learns your preferences!</p>
+            <p>Swipe right to like, left to pass. Matches improve as you set more preferences.</p>
           </div>
 
           <div className={styles.featureCard}>
             <MdTrendingUp className='icon' />
-            <h3>Instant Matching</h3>
-            <p>Get matched with pets that fit your lifestyle and preferences in real-time.</p>
+            <h3>Preference Matching</h3>
+            <p>See pets that fit your home, lifestyle, and experience level first.</p>
           </div>
 
           <div className={styles.featureCard}>
             <MdFlashOn className='icon' />
             <h3>Quick & Fun</h3>
-            <p>Finding your new best friend has never been this easy and entertaining!</p>
+            <p>A faster way to browse adoptable pets — no endless scrolling required.</p>
           </div>
         </div>
       </div>

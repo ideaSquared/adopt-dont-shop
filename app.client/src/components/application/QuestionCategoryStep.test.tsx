@@ -158,3 +158,46 @@ describe('QuestionCategoryStep accessibility — validation errors', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
+
+/**
+ * UX P2 F — Required-field markers for screen readers.
+ *
+ * The `*` is rendered visually (aria-hidden) for sighted users. To surface the
+ * required state to assistive tech, every input control that backs an
+ * isRequired question must carry aria-required="true". Optional fields must
+ * not.
+ */
+describe('QuestionCategoryStep — required-field markers (UX P2 F)', () => {
+  const optionalMiddleName: Question = {
+    questionId: 'q5',
+    questionKey: 'middle_name',
+    scope: 'core',
+    category: 'about',
+    questionType: 'text',
+    questionText: 'What is your middle name?',
+    helpText: null,
+    placeholder: null,
+    options: null,
+    isRequired: false,
+    isEnabled: true,
+    displayOrder: 3,
+  };
+
+  it('renders aria-required on required inputs and the visible legend, and does not mark optional inputs', () => {
+    render(<Wrapper questions={[firstName, optionalMiddleName]} initialAnswers={{}} />);
+
+    // Legend explaining the * marker is shown when there is at least one required field.
+    expect(screen.getByText(/Fields marked with \* are required/i)).toBeInTheDocument();
+
+    const requiredInput = screen.getByRole('textbox', {
+      name: /what is your first name\? \(required\)/i,
+    });
+    expect(requiredInput).toHaveAttribute('aria-required', 'true');
+
+    // The optional input is not addressable by a (required) label and does not
+    // carry aria-required.
+    const optionalInput = screen.getAllByRole('textbox').find(el => el !== requiredInput);
+    expect(optionalInput).toBeDefined();
+    expect(optionalInput).not.toHaveAttribute('aria-required');
+  });
+});
