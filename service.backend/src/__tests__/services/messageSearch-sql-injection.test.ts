@@ -85,4 +85,16 @@ describe('messageSearch — SQL parameterisation (ADS-399)', () => {
     const [, opts] = queryMock.mock.calls[0] as [string, { replacements: { userId: unknown } }];
     expect(opts.replacements.userId).toBeNull();
   });
+
+  it('escapes LIKE wildcards in the autocomplete queryPattern so % and _ are literal', async () => {
+    await svc.getAutocompleteSuggestions('a%_b', undefined);
+
+    const [, opts] = queryMock.mock.calls[0] as [
+      string,
+      { replacements: { queryPattern: string } },
+    ];
+    // The leading/trailing % are the literal wrap; the user's % and _ must be
+    // backslash-escaped so they're matched literally rather than as wildcards.
+    expect(opts.replacements.queryPattern).toBe('%a\\%\\_b%');
+  });
 });

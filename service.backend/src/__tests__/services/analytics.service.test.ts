@@ -6,6 +6,7 @@ vi.mock('../../models/Application', () => ({
   default: {
     count: vi.fn(),
     findAll: vi.fn(),
+    findOne: vi.fn(),
   },
 }));
 
@@ -106,6 +107,7 @@ import { AnalyticsService } from '../../services/analytics.service';
 const mockApplication = Application as unknown as {
   count: ReturnType<typeof vi.fn>;
   findAll: ReturnType<typeof vi.fn>;
+  findOne: ReturnType<typeof vi.fn>;
 };
 const mockAuditLog = AuditLog as unknown as {
   count: ReturnType<typeof vi.fn>;
@@ -209,12 +211,26 @@ describe('AnalyticsService.getAdoptionMetrics', () => {
 
   it('returns avgTimeToAdoption: 0 when no adopted applications resolved', async () => {
     mockApplication.count.mockResolvedValue(0);
-    mockApplication.findAll.mockResolvedValue([]); // no adopted apps
+    mockApplication.findAll.mockResolvedValue([]);
+    // SQL AVG over zero rows returns NULL.
+    mockApplication.findOne.mockResolvedValue({ avgSeconds: null });
     mockSequelize.query.mockResolvedValue([]);
 
     const result = await AnalyticsService.getAdoptionMetrics({});
 
     expect(result.avgTimeToAdoption).toBe(0);
+  });
+
+  it('converts the SQL AVG(EXTRACT(EPOCH ...)) seconds result into days', async () => {
+    mockApplication.count.mockResolvedValue(0);
+    mockApplication.findAll.mockResolvedValue([]);
+    // 3 days in seconds — Postgres returns the average as a numeric string.
+    mockApplication.findOne.mockResolvedValue({ avgSeconds: String(3 * 24 * 60 * 60) });
+    mockSequelize.query.mockResolvedValue([]);
+
+    const result = await AnalyticsService.getAdoptionMetrics({});
+
+    expect(result.avgTimeToAdoption).toBe(3);
   });
 });
 
@@ -373,8 +389,8 @@ describe('AnalyticsService.getApplicationMetrics', () => {
         { status: 'approved', count: '3' },
         { status: 'rejected', count: '2' },
       ])
-      .mockResolvedValueOnce([]) // applicationTrends
-      .mockResolvedValueOnce([]); // completedApplications
+      .mockResolvedValueOnce([]); // applicationTrends
+    mockApplication.findOne.mockResolvedValue({ avgSeconds: null });
 
     const result = await AnalyticsService.getApplicationMetrics({});
 
@@ -387,8 +403,9 @@ describe('AnalyticsService.getApplicationMetrics', () => {
   it('returns avgProcessingTime: 0 when no applications have been resolved', async () => {
     mockApplication.findAll
       .mockResolvedValueOnce([]) // no status data
-      .mockResolvedValueOnce([]) // no trends
-      .mockResolvedValueOnce([]); // no completed apps
+      .mockResolvedValueOnce([]); // no trends
+    // SQL AVG over zero rows returns NULL.
+    mockApplication.findOne.mockResolvedValue({ avgSeconds: null });
 
     const result = await AnalyticsService.getApplicationMetrics({});
 
@@ -396,14 +413,12 @@ describe('AnalyticsService.getApplicationMetrics', () => {
     expect(isNaN(result.avgProcessingTime)).toBe(false);
   });
 
-  it('calculates avgProcessingTime in hours for completed applications', async () => {
-    const createdAt = new Date('2025-01-01T00:00:00Z');
-    const updatedAt = new Date('2025-01-03T00:00:00Z'); // 48 hours later
-
+  it('calculates avgProcessingTime in hours from the SQL AVG(EXTRACT(EPOCH ...)) seconds result', async () => {
     mockApplication.findAll
       .mockResolvedValueOnce([]) // no status breakdown
-      .mockResolvedValueOnce([]) // no trends
-      .mockResolvedValueOnce([{ createdAt, updatedAt }]); // one completed app
+      .mockResolvedValueOnce([]); // no trends
+    // 48 hours expressed in seconds, returned as a numeric string.
+    mockApplication.findOne.mockResolvedValue({ avgSeconds: String(48 * 60 * 60) });
 
     const result = await AnalyticsService.getApplicationMetrics({});
 
@@ -413,8 +428,8 @@ describe('AnalyticsService.getApplicationMetrics', () => {
   it('returns approvalRate: 0 when no approved or rejected applications exist', async () => {
     mockApplication.findAll
       .mockResolvedValueOnce([{ status: 'pending', count: '5' }])
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
+    mockApplication.findOne.mockResolvedValue({ avgSeconds: null });
 
     const result = await AnalyticsService.getApplicationMetrics({});
 

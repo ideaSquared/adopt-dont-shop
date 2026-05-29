@@ -1220,24 +1220,19 @@ describe('ChatService', () => {
         const chatId = 'chat-123';
         const userId = 'user-456';
 
-        const mockMessages = [
-          { message_id: 'msg-001', sender_id: 'other-user', Reads: [] },
-          { message_id: 'msg-002', sender_id: 'other-user', Reads: [] },
-          {
-            message_id: 'msg-003',
-            sender_id: 'other-user',
-            Reads: [{ user_id: userId, read_at: new Date() }],
-          },
-        ];
-
-        (MockedMessage.findAll as vi.Mock).mockResolvedValue(mockMessages);
+        // The count is aggregated in SQL via Message.count + LEFT JOIN.
+        (MockedMessage.count as vi.Mock).mockResolvedValue(2);
 
         const count = await ChatService.getUnreadMessageCount(chatId, userId);
 
         expect(count).toBe(2);
-        expect(MockedMessage.findAll).toHaveBeenCalledWith(
+        expect(MockedMessage.count).toHaveBeenCalledWith(
           expect.objectContaining({
-            where: { chat_id: chatId, sender_id: { [Op.ne]: userId } },
+            where: expect.objectContaining({
+              chat_id: chatId,
+              sender_id: { [Op.ne]: userId },
+              '$Reads.user_id$': null,
+            }),
             include: expect.arrayContaining([
               expect.objectContaining({ as: 'Reads', where: { user_id: userId } }),
             ]),
@@ -1249,15 +1244,7 @@ describe('ChatService', () => {
         const chatId = 'chat-123';
         const userId = 'user-456';
 
-        const mockMessages = [
-          {
-            message_id: 'msg-001',
-            sender_id: 'other-user',
-            Reads: [{ user_id: userId, read_at: new Date() }],
-          },
-        ];
-
-        (MockedMessage.findAll as vi.Mock).mockResolvedValue(mockMessages);
+        (MockedMessage.count as vi.Mock).mockResolvedValue(0);
 
         const count = await ChatService.getUnreadMessageCount(chatId, userId);
 

@@ -31,8 +31,12 @@ const requireRoleMock = vi.fn();
 vi.mock('../../middleware/auth', () => ({
   authenticateToken: (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
     authenticateTokenMock(req, res, next),
+}));
+
+vi.mock('../../middleware/rbac', () => ({
   requireRole:
-    (roles: string[]) => (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
+    (...roles: string[]) =>
+    (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
       requireRoleMock(roles, req, res, next),
 }));
 
