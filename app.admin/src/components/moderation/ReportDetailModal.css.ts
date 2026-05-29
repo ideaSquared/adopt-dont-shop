@@ -14,10 +14,6 @@ export const overlay = style({
   padding: '1rem',
 });
 
-export const overlayHidden = style({
-  display: 'none',
-});
-
 export const modalContainer = style({
   background: '#ffffff',
   borderRadius: '12px',
