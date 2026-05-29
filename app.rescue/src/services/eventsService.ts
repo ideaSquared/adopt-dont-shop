@@ -8,6 +8,69 @@ import type {
   EventAnalytics,
 } from '../types/events';
 
+type RawAttendee = {
+  userId?: string;
+  user_id?: string;
+  name?: string;
+  email?: string;
+  registeredAt?: string;
+  registered_at?: string;
+  checkedIn?: boolean;
+  checked_in?: boolean;
+  checkedInAt?: string;
+  checked_in_at?: string;
+  notes?: string;
+};
+
+type RawEvent = {
+  id?: string;
+  event_id?: string;
+  rescueId?: string;
+  rescue_id?: string;
+  name?: string;
+  description?: string;
+  type?: Event['type'];
+  startDate?: string;
+  start_date?: string;
+  endDate?: string;
+  end_date?: string;
+  location?: Event['location'];
+  address?: string;
+  city?: string;
+  postcode?: string;
+  capacity?: number;
+  registrationRequired?: boolean;
+  registration_required?: boolean;
+  status?: Event['status'];
+  featuredPets?: string[];
+  featured_pets?: string[];
+  assignedStaff?: string[];
+  assigned_staff?: string[];
+  isPublic?: boolean;
+  is_public?: boolean;
+  imageUrl?: string;
+  image_url?: string;
+  attendees?: RawAttendee[];
+  currentAttendance?: number;
+  current_attendance?: number;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
+  createdBy?: string;
+  created_by?: string;
+};
+
+type RawEventsResponse = {
+  events?: RawEvent[];
+  data?: RawEvent[];
+};
+
+type RawAttendeesResponse = {
+  attendees?: RawAttendee[];
+  data?: RawAttendee[];
+};
+
 /**
  * Events Service for Rescue App
  * Manages event creation, scheduling, attendance, and analytics
@@ -46,7 +109,7 @@ export class RescueEventsService {
         params.append('isPublic', filter.isPublic.toString());
       }
 
-      const response = await this.apiService.get<any>(
+      const response = await this.apiService.get<RawEvent[] | RawEventsResponse>(
         `/api/v1/events${params.toString() ? `?${params}` : ''}`
       );
 
@@ -72,7 +135,9 @@ export class RescueEventsService {
    */
   async getEvent(eventId: string): Promise<Event | null> {
     try {
-      const response = await this.apiService.get<any>(`/api/v1/events/${eventId}`);
+      const response = await this.apiService.get<RawEvent & { data?: RawEvent }>(
+        `/api/v1/events/${eventId}`
+      );
       return this.transformEvent(response.data || response);
     } catch (error) {
       console.error(`Failed to fetch event ${eventId}:`, error);
@@ -101,7 +166,10 @@ export class RescueEventsService {
         status: 'draft', // New events start as drafts
       };
 
-      const response = await this.apiService.post<any>('/api/v1/events', payload);
+      const response = await this.apiService.post<RawEvent & { data?: RawEvent }>(
+        '/api/v1/events',
+        payload
+      );
       return this.transformEvent(response.data || response);
     } catch (error) {
       console.error('Failed to create event:', error);
@@ -114,7 +182,7 @@ export class RescueEventsService {
    */
   async updateEvent(eventId: string, updates: UpdateEventInput): Promise<Event> {
     try {
-      const payload: any = {};
+      const payload: Record<string, unknown> = {};
 
       if (updates.name !== undefined) {
         payload.name = updates.name;
@@ -156,7 +224,10 @@ export class RescueEventsService {
         payload.status = updates.status;
       }
 
-      const response = await this.apiService.put<any>(`/api/v1/events/${eventId}`, payload);
+      const response = await this.apiService.put<RawEvent & { data?: RawEvent }>(
+        `/api/v1/events/${eventId}`,
+        payload
+      );
       return this.transformEvent(response.data || response);
     } catch (error) {
       console.error(`Failed to update event ${eventId}:`, error);
@@ -184,7 +255,7 @@ export class RescueEventsService {
     attendeeData: { userId: string; name: string; email: string; notes?: string }
   ): Promise<EventAttendee> {
     try {
-      const response = await this.apiService.post<any>(
+      const response = await this.apiService.post<RawAttendee & { data?: RawAttendee }>(
         `/api/v1/events/${eventId}/attendees`,
         attendeeData
       );
@@ -200,7 +271,7 @@ export class RescueEventsService {
    */
   async checkInAttendee(eventId: string, userId: string): Promise<EventAttendee> {
     try {
-      const response = await this.apiService.patch<any>(
+      const response = await this.apiService.patch<RawAttendee & { data?: RawAttendee }>(
         `/api/v1/events/${eventId}/attendees/${userId}/check-in`,
         {
           checked_in: true,
@@ -219,7 +290,9 @@ export class RescueEventsService {
    */
   async getEventAnalytics(eventId: string): Promise<EventAnalytics | null> {
     try {
-      const response = await this.apiService.get<any>(`/api/v1/events/${eventId}/analytics`);
+      const response = await this.apiService.get<EventAnalytics & { data?: EventAnalytics }>(
+        `/api/v1/events/${eventId}/analytics`
+      );
       return response.data || response;
     } catch (error) {
       console.error(`Failed to fetch analytics for event ${eventId}:`, error);
@@ -232,7 +305,9 @@ export class RescueEventsService {
    */
   async getEventAttendees(eventId: string): Promise<EventAttendee[]> {
     try {
-      const response = await this.apiService.get<any>(`/api/v1/events/${eventId}/attendees`);
+      const response = await this.apiService.get<RawAttendee[] | RawAttendeesResponse>(
+        `/api/v1/events/${eventId}/attendees`
+      );
 
       if (Array.isArray(response)) {
         return response.map(this.transformAttendee);
@@ -254,9 +329,12 @@ export class RescueEventsService {
    */
   async updateEventStatus(eventId: string, status: string): Promise<Event> {
     try {
-      const response = await this.apiService.patch<any>(`/api/v1/events/${eventId}/status`, {
-        status,
-      });
+      const response = await this.apiService.patch<RawEvent & { data?: RawEvent }>(
+        `/api/v1/events/${eventId}/status`,
+        {
+          status,
+        }
+      );
       return this.transformEvent(response.data || response);
     } catch (error) {
       console.error(`Failed to update event status for ${eventId}:`, error);
@@ -267,15 +345,15 @@ export class RescueEventsService {
   /**
    * Transform event data from API format to application format
    */
-  private transformEvent = (event: any): Event => {
+  private transformEvent = (event: RawEvent): Event => {
     return {
-      id: event.id || event.event_id,
-      rescueId: event.rescueId || event.rescue_id,
-      name: event.name,
+      id: event.id || event.event_id || '',
+      rescueId: event.rescueId || event.rescue_id || '',
+      name: event.name || '',
       description: event.description || '',
-      type: event.type,
-      startDate: event.startDate || event.start_date,
-      endDate: event.endDate || event.end_date,
+      type: event.type ?? 'community',
+      startDate: event.startDate || event.start_date || '',
+      endDate: event.endDate || event.end_date || '',
       location: event.location || {
         type: 'physical',
         address: event.address || '',
@@ -291,8 +369,8 @@ export class RescueEventsService {
       imageUrl: event.imageUrl || event.image_url,
       attendees: event.attendees ? event.attendees.map(this.transformAttendee) : [],
       currentAttendance: event.currentAttendance || event.current_attendance || 0,
-      createdAt: event.createdAt || event.created_at,
-      updatedAt: event.updatedAt || event.updated_at,
+      createdAt: event.createdAt || event.created_at || '',
+      updatedAt: event.updatedAt || event.updated_at || '',
       createdBy: event.createdBy || event.created_by,
     };
   };
@@ -300,12 +378,12 @@ export class RescueEventsService {
   /**
    * Transform attendee data from API format
    */
-  private transformAttendee = (attendee: any): EventAttendee => {
+  private transformAttendee = (attendee: RawAttendee): EventAttendee => {
     return {
-      userId: attendee.userId || attendee.user_id,
-      name: attendee.name,
-      email: attendee.email,
-      registeredAt: attendee.registeredAt || attendee.registered_at,
+      userId: attendee.userId || attendee.user_id || '',
+      name: attendee.name || '',
+      email: attendee.email || '',
+      registeredAt: attendee.registeredAt || attendee.registered_at || '',
       checkedIn: attendee.checkedIn ?? attendee.checked_in ?? false,
       checkedInAt: attendee.checkedInAt || attendee.checked_in_at,
       notes: attendee.notes,

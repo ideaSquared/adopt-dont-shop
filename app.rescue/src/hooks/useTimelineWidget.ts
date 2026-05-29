@@ -2,6 +2,27 @@ import { useState, useEffect } from 'react';
 import { TimelineEvent } from '../components/ApplicationTimeline';
 import { apiService } from '@adopt-dont-shop/lib.api';
 
+type TimelineEventsResponse = {
+  events: TimelineEvent[];
+};
+
+type TimelineStatsPayload = {
+  lastActivity?: string;
+  totalEvents?: number;
+  eventTypeCounts?: {
+    stage_change?: number;
+    note_added?: number;
+  };
+};
+
+type TimelineStatsResponse = {
+  stats: TimelineStatsPayload;
+};
+
+type BulkTimelineStatsResponse = {
+  summaries: Record<string, TimelineStatsPayload>;
+};
+
 interface UseTimelineWidgetProps {
   applicationId: string;
   maxEvents?: number;
@@ -31,7 +52,7 @@ export function useTimelineWidget({
   const fetchEvents = async () => {
     try {
       setError(null);
-      const data = await apiService.get<any>(
+      const data = await apiService.get<TimelineEventsResponse>(
         `/api/applications/${applicationId}/timeline?limit=${maxEvents * 2}`
       );
 
@@ -109,7 +130,9 @@ export function useTimelineSummary({
   const fetchSummary = async () => {
     try {
       setError(null);
-      const data = await apiService.get<any>(`/api/applications/${applicationId}/timeline/stats`);
+      const data = await apiService.get<TimelineStatsResponse>(
+        `/api/applications/${applicationId}/timeline/stats`
+      );
 
       // Transform the stats into our summary format
       const now = new Date();
@@ -185,18 +208,13 @@ export function useBulkTimelineSummaries({
 
     try {
       setError(null);
-      type BulkStatsEntry = {
-        totalEvents?: number;
-        lastActivity?: string;
-        eventTypeCounts?: Record<string, number>;
-      };
-
-      const data = await apiService.post<{
-        summaries: Record<string, BulkStatsEntry>;
-      }>('/api/applications/timeline/bulk-stats', {
-        applicationIds,
-        recentThresholdHours,
-      });
+      const data = await apiService.post<BulkTimelineStatsResponse>(
+        '/api/applications/timeline/bulk-stats',
+        {
+          applicationIds,
+          recentThresholdHours,
+        }
+      );
 
       // Transform the bulk stats into our summary format
       const now = new Date();

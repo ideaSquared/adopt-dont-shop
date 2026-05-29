@@ -368,7 +368,7 @@ export class UtilsService {
     };
 
     const flatten = (
-      current: any,
+      current: unknown,
       prefix: string = '',
       depth: number = 0
     ): Record<string, unknown> => {
@@ -381,10 +381,11 @@ export class UtilsService {
       if (Array.isArray(current) && opts.preserveArrays) {
         result[prefix] = current;
       } else if (current !== null && typeof current === 'object' && !Array.isArray(current)) {
-        for (const key in current) {
-          if (current.hasOwnProperty(key)) {
+        const obj = current as Record<string, unknown>;
+        for (const key in obj) {
+          if (obj.hasOwnProperty(key)) {
             const newKey = prefix ? `${prefix}${opts.delimiter}${key}` : key;
-            Object.assign(result, flatten(current[key], newKey, depth + 1));
+            Object.assign(result, flatten(obj[key], newKey, depth + 1));
           }
         }
       } else {

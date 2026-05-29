@@ -322,7 +322,7 @@ export class SearchService {
   /**
    * Generate cache key from search parameters
    */
-  private generateCacheKey(type: string, params: any): string {
+  private generateCacheKey(type: string, params: object): string {
     const sortedParams = JSON.stringify(params, Object.keys(params).sort());
     return `${type}:${btoa(sortedParams)}`;
   }
@@ -330,7 +330,7 @@ export class SearchService {
   /**
    * Get result from cache if not expired
    */
-  private getFromCache(key: string): any | null {
+  private getFromCache(key: string): unknown | null {
     const entry = this.cache.get(key);
     if (!entry) {
       return null;
@@ -347,7 +347,10 @@ export class SearchService {
   /**
    * Store result in cache with TTL
    */
-  private setInCache(key: string, data: any): void {
+  private setInCache(
+    key: string,
+    data: PaginatedResponse<SearchResult> | MessageSearchResponse
+  ): void {
     // Evict oldest entries if cache is full
     if (this.cache.size >= this.MAX_CACHE_SIZE) {
       const oldestKey = this.cache.keys().next().value;
@@ -356,9 +359,19 @@ export class SearchService {
       }
     }
 
+    // The cache historically stores the full response shape under `results`
+    // (callers in getFromCache cast back to the response type). The
+    // SearchCacheEntry type narrows `results` to an array, so we coerce via
+    // unknown to preserve that existing behaviour without widening the type.
+    const total =
+      'total' in data
+        ? data.total
+        : 'pagination' in data && data.pagination
+          ? data.pagination.total
+          : 0;
     const entry: SearchCacheEntry = {
-      results: data,
-      total: data.total || data.pagination?.total || 0,
+      results: data as unknown as SearchCacheEntry['results'],
+      total,
       query: key,
       timestamp: Date.now(),
       expiresAt: Date.now() + this.CACHE_TTL,

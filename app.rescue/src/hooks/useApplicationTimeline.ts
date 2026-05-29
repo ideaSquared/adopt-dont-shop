@@ -10,6 +10,12 @@ interface TimelineStats {
   staff_activity: Record<string, number>;
 }
 
+type TimelineApiResponse<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+
 interface UseApplicationTimelineResult {
   events: TimelineEvent[];
   stats: TimelineStats | null;
@@ -34,7 +40,9 @@ export function useApplicationTimeline(applicationId: string): UseApplicationTim
       setLoading(true);
 
       // Fetch timeline events
-      const timelineData = await apiService.get<any>(`/api/applications/${applicationId}/timeline`);
+      const timelineData = await apiService.get<TimelineApiResponse<TimelineEvent[]>>(
+        `/api/applications/${applicationId}/timeline`
+      );
 
       if (timelineData.success) {
         setEvents(timelineData.data || []);
@@ -44,10 +52,10 @@ export function useApplicationTimeline(applicationId: string): UseApplicationTim
 
       // Fetch timeline stats
       try {
-        const statsData = await apiService.get<any>(
+        const statsData = await apiService.get<TimelineApiResponse<TimelineStats>>(
           `/api/applications/${applicationId}/timeline/stats`
         );
-        if (statsData.success) {
+        if (statsData.success && statsData.data) {
           setStats(statsData.data);
         }
       } catch (statsError) {
@@ -71,7 +79,7 @@ export function useApplicationTimeline(applicationId: string): UseApplicationTim
       }
 
       try {
-        const result = await apiService.post<any>(
+        const result = await apiService.post<TimelineApiResponse<TimelineEvent>>(
           `/api/applications/${applicationId}/timeline/notes`,
           {
             note_type: noteType,
@@ -120,10 +128,10 @@ export function useTimelineEvents() {
       applicationId: string,
       previousStage: string | null,
       newStage: string,
-      metadata?: Record<string, any>
+      metadata?: Record<string, unknown>
     ) => {
       try {
-        const result = await apiService.post<any>(
+        const result = await apiService.post<TimelineApiResponse<TimelineEvent>>(
           `/api/applications/${applicationId}/timeline/events`,
           {
             event_type: TimelineEventType.STAGE_CHANGE,
@@ -173,7 +181,7 @@ export function useTimelineEvents() {
       };
 
       try {
-        const result = await apiService.post<any>(
+        const result = await apiService.post<TimelineApiResponse<TimelineEvent>>(
           `/api/applications/${applicationId}/timeline/events`,
           {
             event_type: eventMap[eventType],
@@ -216,7 +224,7 @@ export function useTimelineEvents() {
       };
 
       try {
-        const result = await apiService.post<any>(
+        const result = await apiService.post<TimelineApiResponse<TimelineEvent>>(
           `/api/applications/${applicationId}/timeline/events`,
           {
             event_type: eventTypeMap[decision],

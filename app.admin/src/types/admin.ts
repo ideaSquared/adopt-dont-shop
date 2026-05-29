@@ -237,7 +237,7 @@ export type AuditLog = {
   action: string;
   resource: string;
   resourceId?: string;
-  changes?: Record<string, any>;
+  changes?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
   status: 'success' | 'failure';
@@ -299,5 +299,5 @@ export interface PaginatedResult<T> {
 export type ActionResponse = {
   success: boolean;
   message: string;
-  data?: any;
+  data?: unknown;
 };

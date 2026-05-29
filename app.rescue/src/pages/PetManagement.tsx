@@ -4,10 +4,10 @@ import { Card, Container, Button, Text, Heading, toast } from '@adopt-dont-shop/
 import { PetListSkeleton } from '../components/skeletons';
 import {
   Pet,
-  PetCreateData,
   PetStatus,
-  PetUpdateData,
   petManagementService,
+  type PetCreateData,
+  type PetUpdateData,
 } from '@adopt-dont-shop/lib.pets';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { apiService } from '@adopt-dont-shop/lib.api';
@@ -51,10 +51,13 @@ const PetManagement: React.FC = () => {
 
       // Call the API using lib.api (relative path resolves against the
       // configured API base URL, so this works in any environment).
-      const result = await apiService.post<any>('/api/v1/rescues', demoRescueData);
+      const result = await apiService.post<{ data: { rescueId: string } }>(
+        '/api/v1/rescues',
+        demoRescueData
+      );
 
       // Now update the user with the rescue ID
-      await apiService.patch<any>(`/api/v1/users/${user?.userId}`, {
+      await apiService.patch<unknown>(`/api/v1/users/${user?.userId}`, {
         rescueId: result.data.rescueId,
       });
 
@@ -136,7 +139,7 @@ const PetManagement: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const filters: any = {
+      const filters: Parameters<typeof petManagementService.getMyRescuePets>[0] = {
         page: currentPage,
         limit: 12,
         search: searchFilter || undefined,
@@ -193,7 +196,14 @@ const PetManagement: React.FC = () => {
   const fetchStats = async () => {
     try {
       // Try to get stats using the dashboard endpoint which works
-      const dashboardData = await apiService.get<any>('/api/v1/dashboard/rescue');
+      const dashboardData = await apiService.get<{
+        data: {
+          totalAnimals?: number;
+          availableForAdoption?: number;
+          pendingApplications?: number;
+          adoptedPets?: number;
+        };
+      }>('/api/v1/dashboard/rescue');
 
       // Map dashboard data to our stats format
       setStats({

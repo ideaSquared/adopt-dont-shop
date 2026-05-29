@@ -15,9 +15,12 @@ export const AppWithAuth = ({ children }: AppWithAuthProps) => {
 
   const handleAuthEvent = (event: string, data?: Record<string, unknown>) => {
     trackEvent({
-      eventType: event,
-      ...data,
-    } as any);
+      category: 'auth',
+      action: event,
+      sessionId: 'app-with-auth-session',
+      timestamp: new Date(),
+      properties: data,
+    });
     // ADS-497 (slice 5): on first sign-in OR rehydrate, replay the
     // anonymous cookie-banner choice (if any) against the user's
     // account so the audit log captures their decision. Idempotent per

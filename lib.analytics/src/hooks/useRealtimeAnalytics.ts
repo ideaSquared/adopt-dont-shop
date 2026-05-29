@@ -107,14 +107,13 @@ export const useRealtimeAnalytics = <K extends keyof EventMap>(
     // Socket.IO v4's typed `on`/`off` reject anything that isn't on the
     // server's typed event map. We trust the EventMap contract here and
     // address the bus through the untyped surface.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const untyped = s as unknown as {
-      on: (e: string, cb: any) => void;
-      off: (e: string, cb: any) => void;
+      on: (e: string, cb: (...args: unknown[]) => void) => void;
+      off: (e: string, cb: (...args: unknown[]) => void) => void;
     };
-    untyped.on(event, handler);
+    untyped.on(event, handler as (...args: unknown[]) => void);
     return () => {
-      untyped.off(event, handler);
+      untyped.off(event, handler as (...args: unknown[]) => void);
     };
   }, [event, handler]);
 };
@@ -137,14 +136,13 @@ export const useAnalyticsInvalidator = (): void => {
       }
       qc.invalidateQueries({ queryKey: ['reports'] });
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const untyped = s as unknown as {
-      on: (e: string, cb: any) => void;
-      off: (e: string, cb: any) => void;
+      on: (e: string, cb: (...args: unknown[]) => void) => void;
+      off: (e: string, cb: (...args: unknown[]) => void) => void;
     };
-    untyped.on('analytics:invalidate', handler);
+    untyped.on('analytics:invalidate', handler as (...args: unknown[]) => void);
     return () => {
-      untyped.off('analytics:invalidate', handler);
+      untyped.off('analytics:invalidate', handler as (...args: unknown[]) => void);
     };
   }, [qc]);
 };

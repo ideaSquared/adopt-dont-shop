@@ -107,7 +107,7 @@ export interface ApplicationTimeline {
   timestamp: string;
   userId?: string;
   userName: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   eventType?: string;
   isSystemGenerated?: boolean;
   previousStage?: string;
@@ -128,7 +128,7 @@ export interface ApplicationStats {
 export interface BulkAction {
   type: 'approve' | 'reject' | 'withdraw' | 'schedule_visit' | 'send_message';
   applicationIds: string[];
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 /**

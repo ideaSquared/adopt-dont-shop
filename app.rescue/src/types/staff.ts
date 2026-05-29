@@ -28,7 +28,7 @@ export interface StaffActivity {
   action: string;
   description: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Permission constants
