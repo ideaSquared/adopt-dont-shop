@@ -54,6 +54,16 @@ export default mergeConfig(
     test: {
       name: 'lib.legal',
       setupFiles: ['./src/setupTests.ts'],
+      coverage: {
+        // ADS-717: ratcheted to measured baseline (2026-05-29).
+        // Measured: statements=87.97 branches=84.42 functions=76.19 lines=90.44
+        thresholds: {
+          statements: 86,
+          branches: 83,
+          functions: 75,
+          lines: 89,
+        },
+      },
     },
     resolve: {
       alias: {

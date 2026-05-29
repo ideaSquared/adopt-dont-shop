@@ -20,6 +20,14 @@ export default mergeConfig(
           'src/__mocks__/**/*',
           'src/index.ts',
         ],
+        // ADS-717: ratcheted to measured baseline (2026-05-29).
+        // Measured: statements=49.49 branches=39.93 functions=47.02 lines=49.76
+        thresholds: {
+          statements: 48,
+          branches: 38,
+          functions: 46,
+          lines: 48,
+        },
       },
     },
     resolve: {
