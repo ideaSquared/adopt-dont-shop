@@ -8,13 +8,20 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const getApplicationsMock = vi.fn();
-
-vi.mock('../services/applicationService', () => ({
-  RescueApplicationService: class {
-    getApplications = getApplicationsMock;
-  },
-}));
+// The module-level singleton in useApplications.ts is constructed at import
+// time, so the mock class must not reference any test-scope variable in a
+// class-field initializer (those run at construction and would hit the TDZ).
+// Using a prototype method defers the reference until the method is called.
+vi.mock('../services/applicationService', () => {
+  const mockFn = vi.fn();
+  return {
+    RescueApplicationService: class {
+      // Expose the underlying vi.fn so tests can reach it via the class.
+      static _getApplicationsMock = mockFn;
+      getApplications = mockFn;
+    },
+  };
+});
 
 // Capture each event handler the hook subscribes with so we can fire them.
 const handlers: Record<string, ((p: unknown) => void) | undefined> = {};
@@ -26,6 +33,12 @@ vi.mock('@adopt-dont-shop/lib.analytics', () => ({
 }));
 
 import { useApplications } from './useApplications';
+import { RescueApplicationService } from '../services/applicationService';
+
+// Reach the shared vi.fn through the static property set in the mock factory.
+const getApplicationsMock = (
+  RescueApplicationService as unknown as { _getApplicationsMock: ReturnType<typeof vi.fn> }
+)._getApplicationsMock;
 
 describe('useApplications (C4-6)', () => {
   beforeEach(() => {

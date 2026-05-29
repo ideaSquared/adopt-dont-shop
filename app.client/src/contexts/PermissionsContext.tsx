@@ -46,7 +46,7 @@ export const PermissionsProvider = ({ children, userId }: PermissionsProviderPro
 
   const permissionsService = useMemo(() => {
     return new PermissionsService({
-      debug: import.meta.env.NODE_ENV === 'development',
+      debug: import.meta.env.DEV,
     });
   }, []);
 

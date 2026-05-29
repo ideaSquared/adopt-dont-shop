@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TimelineEvent } from '../components/ApplicationTimeline';
 import { apiService } from '@adopt-dont-shop/lib.api';
 
@@ -49,31 +49,41 @@ export function useTimelineWidget({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchEvents = async () => {
-    try {
-      setError(null);
-      const data = await apiService.get<TimelineEventsResponse>(
-        `/api/applications/${applicationId}/timeline?limit=${maxEvents * 2}`
-      );
+  const fetchEvents = useCallback(
+    async (cancelled?: { value: boolean }) => {
+      try {
+        setError(null);
+        const data = await apiService.get<TimelineEventsResponse>(
+          `/api/applications/${applicationId}/timeline?limit=${maxEvents * 2}`
+        );
 
-      setEvents(data.events || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load timeline');
-      console.error('Timeline widget error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+        if (cancelled?.value) return;
+        setEvents(data.events || []);
+      } catch (err) {
+        if (cancelled?.value) return;
+        setError(err instanceof Error ? err.message : 'Failed to load timeline');
+        console.error('Timeline widget error:', err);
+      } finally {
+        if (!cancelled?.value) setLoading(false);
+      }
+    },
+    [applicationId, maxEvents]
+  );
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     await fetchEvents();
-  };
+  }, [fetchEvents]);
 
   // Initial load
   useEffect(() => {
-    fetchEvents();
-  }, [applicationId, maxEvents]);
+    const cancelled = { value: false };
+    setLoading(true);
+    fetchEvents(cancelled);
+    return () => {
+      cancelled.value = true;
+    };
+  }, [fetchEvents]);
 
   // Auto refresh
   useEffect(() => {
@@ -81,9 +91,11 @@ export function useTimelineWidget({
       return;
     }
 
-    const interval = setInterval(fetchEvents, refreshInterval);
+    const interval = setInterval(() => {
+      fetchEvents();
+    }, refreshInterval);
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, applicationId, maxEvents]);
+  }, [autoRefresh, refreshInterval, fetchEvents]);
 
   const hasEvents = events.length > 0;
   const recentEventCount = events.length;
@@ -127,44 +139,55 @@ export function useTimelineSummary({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSummary = async () => {
-    try {
-      setError(null);
-      const data = await apiService.get<TimelineStatsResponse>(
-        `/api/applications/${applicationId}/timeline/stats`
-      );
+  const fetchSummary = useCallback(
+    async (cancelled?: { value: boolean }) => {
+      try {
+        setError(null);
+        const data = await apiService.get<TimelineStatsResponse>(
+          `/api/applications/${applicationId}/timeline/stats`
+        );
 
-      // Transform the stats into our summary format
-      const now = new Date();
-      const recentThreshold = new Date(now.getTime() - recentThresholdHours * 60 * 60 * 1000);
+        if (cancelled?.value) return;
 
-      const lastActivity = data.stats.lastActivity ? new Date(data.stats.lastActivity) : null;
-      const hasRecentActivity = lastActivity ? lastActivity > recentThreshold : false;
+        // Transform the stats into our summary format
+        const now = new Date();
+        const recentThreshold = new Date(now.getTime() - recentThresholdHours * 60 * 60 * 1000);
 
-      setSummary({
-        totalEvents: data.stats.totalEvents || 0,
-        lastActivity,
-        hasRecentActivity,
-        stageChangeCount: data.stats.eventTypeCounts?.stage_change || 0,
-        noteCount: data.stats.eventTypeCounts?.note_added || 0,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load timeline summary');
-      console.error('Timeline summary error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const lastActivity = data.stats.lastActivity ? new Date(data.stats.lastActivity) : null;
+        const hasRecentActivity = lastActivity ? lastActivity > recentThreshold : false;
 
-  const refresh = async () => {
+        setSummary({
+          totalEvents: data.stats.totalEvents || 0,
+          lastActivity,
+          hasRecentActivity,
+          stageChangeCount: data.stats.eventTypeCounts?.stage_change || 0,
+          noteCount: data.stats.eventTypeCounts?.note_added || 0,
+        });
+      } catch (err) {
+        if (cancelled?.value) return;
+        setError(err instanceof Error ? err.message : 'Failed to load timeline summary');
+        console.error('Timeline summary error:', err);
+      } finally {
+        if (!cancelled?.value) setLoading(false);
+      }
+    },
+    [applicationId, recentThresholdHours]
+  );
+
+  const refresh = useCallback(async () => {
     setLoading(true);
     await fetchSummary();
-  };
+  }, [fetchSummary]);
 
   // Initial load
   useEffect(() => {
-    fetchSummary();
-  }, [applicationId, recentThresholdHours]);
+    const cancelled = { value: false };
+    setLoading(true);
+    fetchSummary(cancelled);
+    return () => {
+      cancelled.value = true;
+    };
+  }, [fetchSummary]);
 
   return {
     summary,
@@ -199,60 +222,74 @@ export function useBulkTimelineSummaries({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSummaries = async () => {
-    if (applicationIds.length === 0) {
-      setSummaries({});
-      setLoading(false);
-      return;
-    }
+  // Stable key so the effect only re-runs when the actual IDs change.
+  const applicationIdsKey = applicationIds.join(',');
 
-    try {
-      setError(null);
-      const data = await apiService.post<BulkTimelineStatsResponse>(
-        '/api/applications/timeline/bulk-stats',
-        {
-          applicationIds,
-          recentThresholdHours,
-        }
-      );
-
-      // Transform the bulk stats into our summary format
-      const now = new Date();
-      const recentThreshold = new Date(now.getTime() - recentThresholdHours * 60 * 60 * 1000);
-
-      const transformedSummaries: BulkTimelineSummary = {};
-
-      for (const [appId, stats] of Object.entries(data.summaries)) {
-        const lastActivity = stats.lastActivity ? new Date(stats.lastActivity) : null;
-        const hasRecentActivity = lastActivity ? lastActivity > recentThreshold : false;
-
-        transformedSummaries[appId] = {
-          totalEvents: stats.totalEvents || 0,
-          lastActivity,
-          hasRecentActivity,
-          stageChangeCount: stats.eventTypeCounts?.stage_change || 0,
-          noteCount: stats.eventTypeCounts?.note_added || 0,
-        };
+  const fetchSummaries = useCallback(
+    async (cancelled?: { value: boolean }) => {
+      if (applicationIds.length === 0) {
+        setSummaries({});
+        setLoading(false);
+        return;
       }
 
-      setSummaries(transformedSummaries);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load timeline summaries');
-      console.error('Bulk timeline summaries error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        setError(null);
+        const data = await apiService.post<BulkTimelineStatsResponse>(
+          '/api/applications/timeline/bulk-stats',
+          {
+            applicationIds,
+            recentThresholdHours,
+          }
+        );
 
-  const refresh = async () => {
+        if (cancelled?.value) return;
+
+        // Transform the bulk stats into our summary format
+        const now = new Date();
+        const recentThreshold = new Date(now.getTime() - recentThresholdHours * 60 * 60 * 1000);
+
+        const transformedSummaries: BulkTimelineSummary = {};
+
+        for (const [appId, stats] of Object.entries(data.summaries)) {
+          const lastActivity = stats.lastActivity ? new Date(stats.lastActivity) : null;
+          const hasRecentActivity = lastActivity ? lastActivity > recentThreshold : false;
+
+          transformedSummaries[appId] = {
+            totalEvents: stats.totalEvents || 0,
+            lastActivity,
+            hasRecentActivity,
+            stageChangeCount: stats.eventTypeCounts?.stage_change || 0,
+            noteCount: stats.eventTypeCounts?.note_added || 0,
+          };
+        }
+
+        setSummaries(transformedSummaries);
+      } catch (err) {
+        if (cancelled?.value) return;
+        setError(err instanceof Error ? err.message : 'Failed to load timeline summaries');
+        console.error('Bulk timeline summaries error:', err);
+      } finally {
+        if (!cancelled?.value) setLoading(false);
+      }
+    },
+    [applicationIdsKey, recentThresholdHours]
+  );
+
+  const refresh = useCallback(async () => {
     setLoading(true);
     await fetchSummaries();
-  };
+  }, [fetchSummaries]);
 
   // Initial load
   useEffect(() => {
-    fetchSummaries();
-  }, [applicationIds.join(','), recentThresholdHours]);
+    const cancelled = { value: false };
+    setLoading(true);
+    fetchSummaries(cancelled);
+    return () => {
+      cancelled.value = true;
+    };
+  }, [fetchSummaries]);
 
   return {
     summaries,

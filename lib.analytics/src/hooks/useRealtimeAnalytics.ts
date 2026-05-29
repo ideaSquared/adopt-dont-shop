@@ -45,6 +45,24 @@ export const setRealtimeAnalyticsToken = (token: string | null): void => {
   }
 };
 
+/**
+ * Reset the module-level singleton state.
+ *
+ * Disconnects the current socket, nulls both singletons, and is
+ * intentionally exported so that tests can tear down between test cases
+ * without leaking a connected socket across user sessions.
+ *
+ * In production, prefer {@link setRealtimeAnalyticsToken} with `null`
+ * to disconnect on logout; this function is primarily for test teardown.
+ */
+export const resetRealtimeAnalytics = (): void => {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+  pendingToken = null;
+};
+
 export type AnalyticsInvalidatePayload = {
   rescueId: string | null;
   categories: string[];

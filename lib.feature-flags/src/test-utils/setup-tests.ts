@@ -3,9 +3,8 @@
 
 // Type declarations for global variables
 declare global {
-  // eslint-disable-next-line no-var
   var mockFetch: ReturnType<typeof vi.fn>;
-  // eslint-disable-next-line no-var
+
   var mockLocalStorage: {
     getItem: ReturnType<typeof vi.fn>;
     setItem: ReturnType<typeof vi.fn>;

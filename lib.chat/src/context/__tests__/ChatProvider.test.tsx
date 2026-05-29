@@ -891,4 +891,67 @@ describe('ChatProvider', () => {
       expect(ctxRef?.conversations[0].status).toBe('archived');
     });
   });
+
+  describe('toggleReaction rollback', () => {
+    it('rolls back an optimistic reaction add when the service call rejects', async () => {
+      const conv = buildConversation({ id: 'chat-1' });
+      const { chatService } = buildHarness([conv]);
+
+      const existingMessage = buildMessage({
+        id: 'msg-1',
+        reactions: [],
+      });
+
+      vi.spyOn(chatService, 'getMessages').mockResolvedValue({
+        data: [existingMessage],
+        success: true,
+        timestamp: '2026-01-01T00:00:00Z',
+        pagination: { page: 1, limit: 50, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+      });
+      vi.spyOn(chatService, 'markAsRead').mockResolvedValue();
+      vi.spyOn(chatService, 'addReaction').mockRejectedValue(new Error('server error'));
+
+      let ctxRef: ReturnType<typeof useChat> | null = null;
+      const Capture = () => {
+        ctxRef = useChat();
+        useEffect(() => {
+          if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
+            ctx.setActiveConversation(ctx.conversations[0]);
+          }
+        }, [ctx]);
+        return null;
+      };
+      // Need ctx reference inside Capture
+      const CaptureWithCtx = () => {
+        const ctx = useChat();
+        ctxRef = ctx;
+        useEffect(() => {
+          if (ctx.conversations.length > 0 && ctx.activeConversation === null) {
+            ctx.setActiveConversation(ctx.conversations[0]);
+          }
+        }, [ctx]);
+        return null;
+      };
+
+      render(
+        <ChatProvider chatService={chatService} user={{ userId: 'user-1' }} isAuthenticated>
+          <CaptureWithCtx />
+        </ChatProvider>
+      );
+
+      // Wait for message to load.
+      await waitFor(() => expect(ctxRef?.messages).toHaveLength(1));
+
+      // Trigger the reaction toggle (optimistic add + server rejection).
+      await act(async () => {
+        ctxRef!.toggleReaction('msg-1', '👍');
+      });
+
+      // The reaction was applied optimistically then rolled back on failure.
+      await waitFor(() => {
+        const reactions = ctxRef?.messages.find((m) => m.id === 'msg-1')?.reactions ?? [];
+        expect(reactions).toHaveLength(0);
+      });
+    });
+  });
 });

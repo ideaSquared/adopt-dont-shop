@@ -1,3 +1,4 @@
+import sequelize from '../sequelize';
 import ApplicationQuestion, {
   QuestionCategory,
   QuestionScope,
@@ -232,11 +233,15 @@ export class QuestionService {
         throw new NotFoundError('Some questions not found or do not belong to this rescue');
       }
 
-      await Promise.all(
-        reorderEntries.map(entry => {
-          const question = questions.find(q => q.question_id === entry.questionId);
-          return question?.update({ display_order: entry.displayOrder });
-        })
+      // Apply all reorder updates atomically so a partial failure can't
+      // leave the questions with an inconsistent display order.
+      await sequelize.transaction(async t =>
+        Promise.all(
+          reorderEntries.map(entry => {
+            const question = questions.find(q => q.question_id === entry.questionId);
+            return question?.update({ display_order: entry.displayOrder }, { transaction: t });
+          })
+        )
       );
 
       logger.info('Questions reordered', { rescueId, count: reorderEntries.length });

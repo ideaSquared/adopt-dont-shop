@@ -199,4 +199,35 @@ describe('FosterService - Pet.status sync (ADS-603)', () => {
       expect(refreshed?.status).toBe(PetStatus.AVAILABLE);
     });
   });
+
+  describe('list pagination', () => {
+    const createPlacementForRescue = async () => {
+      const pet = await createAvailablePet();
+      return fosterService.createPlacement(
+        {
+          petId: pet.petId,
+          fosterUserId: testFosterUser.userId,
+          rescueId: testRescue.rescueId,
+          startDate: new Date(),
+        },
+        testActorId
+      );
+    };
+
+    it('caps the number of placements returned via limit', async () => {
+      await createPlacementForRescue();
+      await createPlacementForRescue();
+      await createPlacementForRescue();
+
+      const firstPage = await fosterService.list({ rescueId: testRescue.rescueId, limit: 2 });
+      expect(firstPage).toHaveLength(2);
+
+      const secondPage = await fosterService.list({
+        rescueId: testRescue.rescueId,
+        limit: 2,
+        offset: 2,
+      });
+      expect(secondPage).toHaveLength(1);
+    });
+  });
 });

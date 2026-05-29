@@ -31,89 +31,106 @@ type ApplicationDetail = {
   data?: Record<string, unknown>;
 } & Record<string, unknown>;
 
+// Module-level singleton so every call to useApplications/useApplicationDetails/etc.
+// shares one instance and avoids re-creating the service on every render.
+const applicationServiceInstance = new RescueApplicationService();
+
 export const useApplications = () => {
-  const [applicationService] = useState(() => new RescueApplicationService());
   const [applications, setApplications] = useState<ApplicationListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<ApplicationFilter>({});
   const [sort, setSort] = useState<ApplicationSort>({ field: 'submittedAt', direction: 'desc' });
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 25,
-    total: 0,
-    totalPages: 0,
-  });
+  // Pagination control state (triggers refetch when changed)
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(25);
+  // Pagination metadata (set from response — must NOT be in fetchApplications deps)
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
-  const fetchApplications = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const fetchApplications = useCallback(
+    async (cancelled?: { value: boolean }) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const result = await applicationService.getApplications(
-        filter,
-        sort,
-        pagination.page,
-        pagination.limit
-      );
+        const result = await applicationServiceInstance.getApplications(filter, sort, page, limit);
 
-      setApplications(result.applications);
-      setPagination(prev => ({
-        ...prev,
-        total: result.total,
-        totalPages: result.totalPages,
-      }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch applications');
-    } finally {
-      setLoading(false);
-    }
-  }, [applicationService, filter, sort, pagination.page, pagination.limit]);
+        if (cancelled?.value) return;
+        setApplications(result.applications);
+        setTotal(result.total);
+        setTotalPages(result.totalPages);
+      } catch (err) {
+        if (cancelled?.value) return;
+        setError(err instanceof Error ? err.message : 'Failed to fetch applications');
+      } finally {
+        if (!cancelled?.value) setLoading(false);
+      }
+    },
+    [filter, sort, page, limit]
+  );
 
   const updateApplicationStatus = useCallback(
     async (id: string, status: string, notes?: string) => {
       try {
         setLoading(true);
-        await applicationService.updateApplicationStatus(id, status, notes);
-        await fetchApplications(); // Refresh the list
+        await applicationServiceInstance.updateApplicationStatus(id, status, notes);
+        await fetchApplications();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to update application status');
       } finally {
         setLoading(false);
       }
     },
-    [applicationService, fetchApplications]
+    [fetchApplications]
   );
 
   const updateFilter = useCallback((newFilter: ApplicationFilter) => {
     setFilter(newFilter);
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when filtering
+    setPage(1); // Reset to first page when filtering
   }, []);
 
   const updateSort = useCallback((newSort: ApplicationSort) => {
     setSort(newSort);
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when sorting
+    setPage(1); // Reset to first page when sorting
   }, []);
 
-  const changePage = useCallback((page: number) => {
-    setPagination(prev => ({ ...prev, page }));
+  const changePage = useCallback((newPage: number) => {
+    setPage(newPage);
   }, []);
 
-  const changePageSize = useCallback((limit: number) => {
-    setPagination(prev => ({ ...prev, limit, page: 1 }));
+  const changePageSize = useCallback((newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
   }, []);
 
   // Fetch applications when dependencies change
   useEffect(() => {
-    fetchApplications();
+    const cancelled = { value: false };
+    fetchApplications(cancelled);
+    return () => {
+      cancelled.value = true;
+    };
   }, [fetchApplications]);
 
   // ADS C4-6: live-update the application list when the backend emits a
   // new submission or status change for this rescue. Both events trigger
   // the same plain refetch — no optimistic patching — so the list stays
   // consistent with the server.
-  useRealtimeAnalytics('application_created', fetchApplications);
-  useRealtimeAnalytics('application_updated', fetchApplications);
+  // Wrap in a no-arg callback so the payload type from useRealtimeAnalytics
+  // doesn't leak into fetchApplications' optional cancelled parameter.
+  useRealtimeAnalytics(
+    'application_created',
+    useCallback(() => {
+      fetchApplications();
+    }, [fetchApplications])
+  );
+  useRealtimeAnalytics(
+    'application_updated',
+    useCallback(() => {
+      fetchApplications();
+    }, [fetchApplications])
+  );
 
   return {
     applications,
@@ -121,7 +138,7 @@ export const useApplications = () => {
     error,
     filter,
     sort,
-    pagination,
+    pagination: { page, limit, total, totalPages },
     updateFilter,
     updateSort,
     changePage,
@@ -132,7 +149,6 @@ export const useApplications = () => {
 };
 
 export const useApplicationDetails = (applicationId: string | null) => {
-  const [applicationService] = useState(() => new RescueApplicationService());
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
   const [references, setReferences] = useState<ReferenceCheck[]>([]);
   const [homeVisits, setHomeVisits] = useState<HomeVisit[]>([]);
@@ -145,51 +161,56 @@ export const useApplicationDetails = (applicationId: string | null) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchApplicationDetails = useCallback(async () => {
-    if (!applicationId) {
-      return;
-    }
+  const fetchApplicationDetails = useCallback(
+    async (cancelled?: { value: boolean }) => {
+      if (!applicationId) {
+        return;
+      }
 
-    try {
-      setLoading(true);
-      setError(null);
-      setTimelineError(null);
-      setReferencesError(null);
-      setHomeVisitsError(null);
+      try {
+        setLoading(true);
+        setError(null);
+        setTimelineError(null);
+        setReferencesError(null);
+        setHomeVisitsError(null);
 
-      // UX P0/P1 #6 + P2 G: sub-resource failures (timeline, references,
-      // home visits) used to either swallow to `[]` or take down the whole
-      // modal via Promise.all rejection. They now surface per-section so
-      // the rest of the applicant data remains visible.
-      const [appData, referencesResult, visitsResult, timelineResult] = await Promise.all([
-        applicationService.getApplicationById(applicationId),
-        applicationService.getReferenceChecks(applicationId).catch((err: unknown) => {
-          const message = err instanceof Error ? err.message : 'Failed to load reference checks';
-          setReferencesError(message);
-          return [] as ReferenceCheck[];
-        }),
-        applicationService.getHomeVisits(applicationId).catch((err: unknown) => {
-          const message = err instanceof Error ? err.message : 'Failed to load home visits';
-          setHomeVisitsError(message);
-          return [] as HomeVisit[];
-        }),
-        applicationService.getApplicationTimeline(applicationId).catch((err: unknown) => {
-          const message = err instanceof Error ? err.message : 'Failed to load timeline';
-          setTimelineError(message);
-          return [] as ApplicationTimeline[];
-        }),
-      ]);
+        // UX P0/P1 #6 + P2 G: sub-resource failures (timeline, references,
+        // home visits) used to either swallow to `[]` or take down the whole
+        // modal via Promise.all rejection. They now surface per-section so
+        // the rest of the applicant data remains visible.
+        const [appData, referencesResult, visitsResult, timelineResult] = await Promise.all([
+          applicationServiceInstance.getApplicationById(applicationId),
+          applicationServiceInstance.getReferenceChecks(applicationId).catch((err: unknown) => {
+            const message = err instanceof Error ? err.message : 'Failed to load reference checks';
+            if (!cancelled?.value) setReferencesError(message);
+            return [] as ReferenceCheck[];
+          }),
+          applicationServiceInstance.getHomeVisits(applicationId).catch((err: unknown) => {
+            const message = err instanceof Error ? err.message : 'Failed to load home visits';
+            if (!cancelled?.value) setHomeVisitsError(message);
+            return [] as HomeVisit[];
+          }),
+          applicationServiceInstance.getApplicationTimeline(applicationId).catch((err: unknown) => {
+            const message = err instanceof Error ? err.message : 'Failed to load timeline';
+            if (!cancelled?.value) setTimelineError(message);
+            return [] as ApplicationTimeline[];
+          }),
+        ]);
 
-      setApplication(appData as ApplicationDetail);
-      setReferences(referencesResult);
-      setHomeVisits(visitsResult);
-      setTimeline(timelineResult);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch application details');
-    } finally {
-      setLoading(false);
-    }
-  }, [applicationService, applicationId]);
+        if (cancelled?.value) return;
+        setApplication(appData as ApplicationDetail);
+        setReferences(referencesResult);
+        setHomeVisits(visitsResult);
+        setTimeline(timelineResult);
+      } catch (err) {
+        if (cancelled?.value) return;
+        setError(err instanceof Error ? err.message : 'Failed to fetch application details');
+      } finally {
+        if (!cancelled?.value) setLoading(false);
+      }
+    },
+    [applicationId]
+  );
 
   const updateReferenceCheck = useCallback(
     async (referenceId: string, status: string, notes?: string) => {
@@ -198,13 +219,18 @@ export const useApplicationDetails = (applicationId: string | null) => {
       }
 
       try {
-        await applicationService.updateReferenceCheck(applicationId, referenceId, status, notes);
-        await fetchApplicationDetails(); // Refresh data
+        await applicationServiceInstance.updateReferenceCheck(
+          applicationId,
+          referenceId,
+          status,
+          notes
+        );
+        await fetchApplicationDetails();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to update reference check');
       }
     },
-    [applicationService, applicationId, fetchApplicationDetails]
+    [applicationId, fetchApplicationDetails]
   );
 
   const scheduleHomeVisit = useCallback(
@@ -219,13 +245,13 @@ export const useApplicationDetails = (applicationId: string | null) => {
       }
 
       try {
-        await applicationService.scheduleHomeVisit(applicationId, visitData);
-        await fetchApplicationDetails(); // Refresh data
+        await applicationServiceInstance.scheduleHomeVisit(applicationId, visitData);
+        await fetchApplicationDetails();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to schedule home visit');
       }
     },
-    [applicationService, applicationId, fetchApplicationDetails]
+    [applicationId, fetchApplicationDetails]
   );
 
   const updateHomeVisit = useCallback(
@@ -235,13 +261,13 @@ export const useApplicationDetails = (applicationId: string | null) => {
       }
 
       try {
-        await applicationService.updateHomeVisit(applicationId, visitId, updateData);
-        await fetchApplicationDetails(); // Refresh data
+        await applicationServiceInstance.updateHomeVisit(applicationId, visitId, updateData);
+        await fetchApplicationDetails();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to update home visit');
       }
     },
-    [applicationService, applicationId, fetchApplicationDetails]
+    [applicationId, fetchApplicationDetails]
   );
 
   const addTimelineEvent = useCallback(
@@ -251,13 +277,13 @@ export const useApplicationDetails = (applicationId: string | null) => {
       }
 
       try {
-        await applicationService.addTimelineEvent(applicationId, event, description, data);
-        await fetchApplicationDetails(); // Refresh data
+        await applicationServiceInstance.addTimelineEvent(applicationId, event, description, data);
+        await fetchApplicationDetails();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to add timeline event');
       }
     },
-    [applicationService, applicationId, fetchApplicationDetails]
+    [applicationId, fetchApplicationDetails]
   );
 
   const transitionStage = useCallback(
@@ -267,23 +293,27 @@ export const useApplicationDetails = (applicationId: string | null) => {
       }
 
       try {
-        await applicationService.transitionStage(
+        await applicationServiceInstance.transitionStage(
           applicationId,
           action.type,
           action.nextStage,
           notes
         );
-        await fetchApplicationDetails(); // Refresh data
+        await fetchApplicationDetails();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to transition application stage');
         throw err; // Re-throw to allow the modal to handle the error
       }
     },
-    [applicationService, applicationId, fetchApplicationDetails]
+    [applicationId, fetchApplicationDetails]
   );
 
   useEffect(() => {
-    fetchApplicationDetails();
+    const cancelled = { value: false };
+    fetchApplicationDetails(cancelled);
+    return () => {
+      cancelled.value = true;
+    };
   }, [fetchApplicationDetails]);
 
   return {
@@ -306,26 +336,31 @@ export const useApplicationDetails = (applicationId: string | null) => {
 };
 
 export const useApplicationStats = () => {
-  const [applicationService] = useState(() => new RescueApplicationService());
   const [stats, setStats] = useState<ApplicationStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(async (cancelled?: { value: boolean }) => {
     try {
       setLoading(true);
       setError(null);
-      const statsData = await applicationService.getApplicationStats();
+      const statsData = await applicationServiceInstance.getApplicationStats();
+      if (cancelled?.value) return;
       setStats(statsData);
     } catch (err) {
+      if (cancelled?.value) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch application stats');
     } finally {
-      setLoading(false);
+      if (!cancelled?.value) setLoading(false);
     }
-  }, [applicationService]);
+  }, []);
 
   useEffect(() => {
-    fetchStats();
+    const cancelled = { value: false };
+    fetchStats(cancelled);
+    return () => {
+      cancelled.value = true;
+    };
   }, [fetchStats]);
 
   return {

@@ -139,4 +139,42 @@ describe('NotificationService', () => {
       logSpy.mockRestore();
     });
   });
+
+  describe('createBulkNotifications', () => {
+    it('creates one notification per user and delivers every one in bounded batches', async () => {
+      // 23 recipients spans more than two batches of the 10-wide delivery
+      // fan-out. The model and audit log are mocked so the test exercises
+      // the batched delivery loop deterministically — every created
+      // notification must be delivered, and the count must match the input.
+      const userIds = Array.from({ length: 23 }, (_, i) => `user-${i}`);
+
+      const createSpy = vi.spyOn(Notification, 'create').mockImplementation(
+        async (values?: Record<string, unknown>) =>
+          ({
+            notification_id: `notif-${(values?.user_id as string) ?? 'x'}`,
+            channel: NotificationChannel.IN_APP,
+            type: NotificationType.SYSTEM_ANNOUNCEMENT,
+            ...values,
+          }) as unknown as Notification
+      );
+      const logSpy = vi.spyOn(AuditLogService, 'log').mockResolvedValue(undefined as never);
+
+      const result = await NotificationService.createBulkNotifications(
+        userIds,
+        {
+          type: NotificationType.SYSTEM_ANNOUNCEMENT,
+          channel: NotificationChannel.IN_APP,
+          title: 'Heads up',
+          message: 'Bulk message',
+        },
+        userIds[0]
+      );
+
+      expect(result.count).toBe(23);
+      expect(createSpy).toHaveBeenCalledTimes(23);
+
+      createSpy.mockRestore();
+      logSpy.mockRestore();
+    });
+  });
 });

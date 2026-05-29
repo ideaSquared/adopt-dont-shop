@@ -18,7 +18,7 @@ import {
 import { ApplicationCardSkeletonList } from '@/components/skeletons';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as styles from './ProfilePage.css';
 
@@ -61,12 +61,20 @@ export const ProfilePage: React.FC = () => {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { confirmProps } = useConfirm();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteTwoFactorToken, setDeleteTwoFactorToken] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Clear the success-message timer on unmount to prevent setState on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   const loadApplications = useCallback(async () => {
     try {
@@ -121,7 +129,8 @@ export const ProfilePage: React.FC = () => {
       // ADS-125
       toast.success('Profile updated');
       // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(null), 3000);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       console.error('Failed to update profile:', error);
 
@@ -206,7 +215,8 @@ export const ProfilePage: React.FC = () => {
       await updateProfile(profilePatch);
 
       setSuccessMessage('Settings saved successfully!');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       console.error('Failed to save settings:', error);
 
@@ -282,11 +292,13 @@ export const ProfilePage: React.FC = () => {
   const renderProfileTab = () => (
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>Profile Information</h2>
-      {successMessage && (
-        <div className={styles.sectionGap}>
-          <Alert variant='success'>{successMessage}</Alert>
-        </div>
-      )}
+      <div role='status' aria-live='polite' aria-atomic='true'>
+        {successMessage && (
+          <div className={styles.sectionGap}>
+            <Alert variant='success'>{successMessage}</Alert>
+          </div>
+        )}
+      </div>
       {user && (
         <>
           {isEditingProfile ? (
@@ -422,11 +434,13 @@ export const ProfilePage: React.FC = () => {
   const renderSettingsTab = () => (
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>Settings</h2>
-      {successMessage && (
-        <div className={styles.sectionGap}>
-          <Alert variant='success'>{successMessage}</Alert>
-        </div>
-      )}
+      <div role='status' aria-live='polite' aria-atomic='true'>
+        {successMessage && (
+          <div className={styles.sectionGap}>
+            <Alert variant='success'>{successMessage}</Alert>
+          </div>
+        )}
+      </div>
       {error && (
         <div className={styles.sectionGap} role='alert'>
           <Alert variant='error'>{error}</Alert>

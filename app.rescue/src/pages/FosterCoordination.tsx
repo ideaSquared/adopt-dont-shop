@@ -55,37 +55,48 @@ const FosterCoordination: React.FC = () => {
     load();
   }, [statusFilter]);
 
-  // Load pickers once we know the rescue. Fetch all pages so the pet
-  // picker isn't limited to the first 20 results.
+  // Load pickers once we know the rescue. Fetch up to MAX_PET_PAGES pages so
+  // the pet picker is populated without unbounded parallel fetches.
+  const MAX_PET_PAGES = 10;
   useEffect(() => {
     if (!rescueId) {
       return;
     }
+    let cancelled = false;
     const loadAllPets = async () => {
       try {
         const first = await petService.getPetsByRescue(rescueId, 1);
+        if (cancelled) return;
         let allPets = [...first.data];
-        const totalPages = first.pagination.totalPages;
-        if (totalPages > 1) {
+        const cappedPages = Math.min(first.pagination.totalPages, MAX_PET_PAGES);
+        if (cappedPages > 1) {
           const remaining = await Promise.all(
-            Array.from({ length: totalPages - 1 }, (_, i) =>
+            Array.from({ length: cappedPages - 1 }, (_, i) =>
               petService.getPetsByRescue(rescueId, i + 2)
             )
           );
+          if (cancelled) return;
           for (const page of remaining) {
             allPets = [...allPets, ...page.data];
           }
         }
         setPets(allPets);
       } catch {
-        setPets([]);
+        if (!cancelled) setPets([]);
       }
     };
     loadAllPets();
     staffService
       .getRescueStaff()
-      .then(setStaff)
-      .catch(() => setStaff([]));
+      .then(result => {
+        if (!cancelled) setStaff(result);
+      })
+      .catch(() => {
+        if (!cancelled) setStaff([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [rescueId]);
 
   const handleCreate = async (e: React.FormEvent) => {

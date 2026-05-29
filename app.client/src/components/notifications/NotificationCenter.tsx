@@ -125,9 +125,13 @@ export const NotificationCenterComponent: React.FC<NotificationCenterProps> = ({
       } as React.MouseEvent);
     }
 
-    // Handle navigation based on notification data
+    // Only navigate to internal paths starting with '/' — reject absolute/external URLs
+    // to prevent open redirect. Mirror the guard used in NotificationBell.
     if (notification.data?.action_url) {
-      navigate(notification.data.action_url as string);
+      const actionUrl = notification.data.action_url as string;
+      if (actionUrl.startsWith('/') && !actionUrl.startsWith('//')) {
+        navigate(actionUrl);
+      }
     }
   };
 

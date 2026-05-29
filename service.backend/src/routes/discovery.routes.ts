@@ -459,7 +459,12 @@ router.post(
  */
 // Optional auth so the personalised match path engages when a cookie is
 // present, while anonymous browse still works.
-router.post('/queue', optionalAuth, discoveryController.addToQueue);
+router.post(
+  '/queue',
+  optionalAuth,
+  DiscoveryController.validateAddToQueue,
+  discoveryController.addToQueue
+);
 
 // Swipe action routes.
 // optionalAuth attaches `req.user` when a token is present so the controller

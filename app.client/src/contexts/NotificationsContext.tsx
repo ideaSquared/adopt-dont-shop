@@ -1,5 +1,13 @@
 import { NotificationsService, Notification } from '@adopt-dont-shop/lib.notifications';
-import { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 
 interface NotificationsContextType {
   notificationsService: NotificationsService;
@@ -33,7 +41,7 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
   const notificationsService = useMemo(() => {
     return new NotificationsService({
       apiUrl: import.meta.env.VITE_API_BASE_URL,
-      debug: import.meta.env.NODE_ENV === 'development',
+      debug: import.meta.env.DEV,
     });
   }, []);
 
@@ -62,45 +70,57 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     initializeNotifications();
   }, [notificationsService, userId]);
 
-  const markAsRead = async (id: string): Promise<void> => {
-    try {
-      await notificationsService.markAsRead([id]);
-      setNotifications(prev =>
-        prev.map(notification =>
-          notification.id === id
-            ? { ...notification, readAt: new Date().toISOString() }
-            : notification
-        )
-      );
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-    }
-  };
+  const markAsRead = useCallback(
+    async (id: string): Promise<void> => {
+      try {
+        await notificationsService.markAsRead([id]);
+        setNotifications(prev =>
+          prev.map(notification =>
+            notification.id === id
+              ? { ...notification, readAt: new Date().toISOString() }
+              : notification
+          )
+        );
+      } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+      }
+    },
+    [notificationsService]
+  );
 
-  const markAllAsRead = async (currentUserId: string): Promise<void> => {
-    try {
-      await notificationsService.markAllAsRead(currentUserId);
-      setNotifications(prev =>
-        prev.map(notification => ({
-          ...notification,
-          readAt: notification.readAt || new Date().toISOString(),
-        }))
-      );
-    } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
-    }
-  };
+  const markAllAsRead = useCallback(
+    async (currentUserId: string): Promise<void> => {
+      try {
+        await notificationsService.markAllAsRead(currentUserId);
+        setNotifications(prev =>
+          prev.map(notification => ({
+            ...notification,
+            readAt: notification.readAt || new Date().toISOString(),
+          }))
+        );
+      } catch (error) {
+        console.error('Failed to mark all notifications as read:', error);
+      }
+    },
+    [notificationsService]
+  );
 
-  const clearAll = async (_currentUserId: string): Promise<void> => {
-    try {
-      // Note: The service doesn't have a clearAll method, so we'll just clear the local state
-      // In a real implementation, you might want to delete notifications one by one
-      // or implement a bulk delete endpoint
+  const clearAll = useCallback(
+    async (_currentUserId: string): Promise<void> => {
+      // Optimistically clear local state, then delete server-side.
+      // Mirror the rescue context which deletes per-item via the notifications service.
+      const snapshot = notifications;
       setNotifications([]);
-    } catch (error) {
-      console.error('Failed to clear all notifications:', error);
-    }
-  };
+      try {
+        await Promise.all(snapshot.map(n => notificationsService.deleteNotification(n.id)));
+      } catch (error) {
+        console.error('Failed to clear all notifications:', error);
+        // Restore on failure
+        setNotifications(snapshot);
+      }
+    },
+    [notificationsService, notifications]
+  );
 
   const value = useMemo(
     () => ({
@@ -112,7 +132,15 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
       clearAll,
       isLoading,
     }),
-    [notificationsService, notifications, unreadCount, isLoading]
+    [
+      notificationsService,
+      notifications,
+      unreadCount,
+      markAsRead,
+      markAllAsRead,
+      clearAll,
+      isLoading,
+    ]
   );
 
   return <NotificationsContext value={value}>{children}</NotificationsContext>;

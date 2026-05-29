@@ -18,6 +18,7 @@ export {
   useRealtimeAnalytics,
   useAnalyticsInvalidator,
   setRealtimeAnalyticsToken,
+  resetRealtimeAnalytics,
 } from './useRealtimeAnalytics';
 
 export type {

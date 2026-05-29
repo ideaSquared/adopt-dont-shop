@@ -9,6 +9,30 @@ import type {
   FieldPermissionUpdateRequest,
   FieldMaskingOptions,
 } from '../types/field-permissions';
+
+/**
+ * Guard that validates the shape returned by the field-permissions API.
+ * Both getFieldPermissions() and getOverrides() cast the response to
+ * `{ data: FieldPermissionRecord[] }` — this guard checks that shape
+ * before the cast so a malformed server response fails loudly rather
+ * than silently producing wrong access decisions.
+ */
+function isFieldPermissionResponse(value: unknown): value is { data: FieldPermissionRecord[] } {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  if (!Array.isArray(obj['data'])) {
+    return false;
+  }
+  return (obj['data'] as unknown[]).every(
+    (item) =>
+      item !== null &&
+      typeof item === 'object' &&
+      typeof (item as Record<string, unknown>)['field_name'] === 'string' &&
+      typeof (item as Record<string, unknown>)['access_level'] === 'string'
+  );
+}
 import {
   getDefaultFieldAccess,
   getFieldAccessMap,
@@ -252,21 +276,22 @@ export class FieldPermissionsService {
 
   /**
    * Get all field permission overrides for a resource.
+   *
+   * Fails closed: errors are re-thrown so callers (typically admin UIs)
+   * see auth failures rather than silently receiving an empty list that
+   * looks like "no overrides configured". Validate the response shape
+   * before trusting it.
    */
   public async getFieldPermissions(
     resource: FieldPermissionResource
   ): Promise<FieldPermissionRecord[]> {
-    try {
-      const response = (await this.apiService.get(`/api/v1/field-permissions/${resource}`)) as {
-        data: FieldPermissionRecord[];
-      };
-      return response.data || [];
-    } catch (error) {
-      if (this.config.debug) {
-        console.error('Failed to get field permissions:', error);
-      }
-      return [];
+    const raw = await this.apiService.get(`/api/v1/field-permissions/${resource}`);
+    if (!isFieldPermissionResponse(raw)) {
+      throw new Error(
+        `getFieldPermissions: unexpected response shape from /api/v1/field-permissions/${resource}`
+      );
     }
+    return raw.data;
   }
 
   /**
@@ -295,11 +320,15 @@ export class FieldPermissionsService {
     }
 
     try {
-      const response = (await this.apiService.get(
-        `/api/v1/field-permissions/${resource}/${role}`
-      )) as { data: FieldPermissionRecord[] };
+      const raw = await this.apiService.get(`/api/v1/field-permissions/${resource}/${role}`);
 
-      const overrides = response.data || [];
+      if (!isFieldPermissionResponse(raw)) {
+        throw new Error(
+          `getOverrides: unexpected response shape from /api/v1/field-permissions/${resource}/${role}`
+        );
+      }
+
+      const overrides = raw.data;
       this.overrideCache.set(cacheKey, {
         overrides,
         expires: Date.now() + this.cacheTimeout,

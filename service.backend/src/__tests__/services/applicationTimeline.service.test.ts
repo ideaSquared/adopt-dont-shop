@@ -79,21 +79,35 @@ describe('ApplicationTimelineService', () => {
       await new Promise(r => setTimeout(r, 5));
       const later = await seedEvent({ title: 'later' });
 
-      const events = await ApplicationTimelineService.getApplicationTimeline(APP_ID);
+      const { events, total } = await ApplicationTimelineService.getApplicationTimeline(APP_ID);
 
       expect(events.map(e => e.timeline_id)).toEqual([later.timeline_id, earlier.timeline_id]);
+      expect(total).toBe(2);
     });
 
     it('filters by event types when provided', async () => {
       await seedEvent({ event_type: TimelineEventType.NOTE_ADDED, title: 'note' });
       await seedEvent({ event_type: TimelineEventType.STAGE_CHANGE, title: 'stage' });
 
-      const events = await ApplicationTimelineService.getApplicationTimeline(APP_ID, {
+      const { events } = await ApplicationTimelineService.getApplicationTimeline(APP_ID, {
         event_types: [TimelineEventType.STAGE_CHANGE],
       });
 
       expect(events).toHaveLength(1);
       expect(events[0].event_type).toBe(TimelineEventType.STAGE_CHANGE);
+    });
+
+    it('caps the page size and reports the full total when more rows exist', async () => {
+      for (let i = 0; i < 3; i += 1) {
+        await seedEvent({ title: `note-${i}` });
+      }
+
+      const { events, total } = await ApplicationTimelineService.getApplicationTimeline(APP_ID, {
+        limit: 2,
+      });
+
+      expect(events).toHaveLength(2);
+      expect(total).toBe(3);
     });
   });
 

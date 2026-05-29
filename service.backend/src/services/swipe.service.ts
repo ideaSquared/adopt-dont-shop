@@ -49,6 +49,17 @@ interface UserPreference {
 
 type PreferencesByType = Record<string, Array<{ value: string; score: number }>>;
 
+/**
+ * Memoised guard so the legacy lazy table-creation fallback runs at most
+ * once per process instead of on every swipe. The canonical `swipe_actions`
+ * table is owned by migration `00-baseline-052-swipe-actions.ts`; this
+ * fallback only exists for environments that record swipes before migrations
+ * have run. It is NEVER invoked from the production request path (the
+ * controller constructs SwipeService with skipTableCreation defaulting to
+ * false, but the DDL now fires once and is cached, not per-request).
+ */
+let swipeTableEnsured: Promise<void> | null = null;
+
 export class SwipeService {
   private skipTableCreation: boolean = false;
 
@@ -67,9 +78,11 @@ export class SwipeService {
         sessionId: swipeAction.sessionId,
       });
 
-      // Ensure swipe_actions table exists (skip in tests)
+      // Ensure swipe_actions table exists exactly once per process (skipped
+      // entirely in tests). No DDL is issued on the hot path after the first
+      // call — see the swipeTableEnsured memo above.
       if (!this.skipTableCreation) {
-        await this.ensureSwipeActionsTable();
+        await this.ensureSwipeActionsTableOnce();
       }
 
       // Insert swipe action into database
@@ -126,6 +139,18 @@ export class SwipeService {
       logger.error('Error recording swipe action', { error, swipeAction });
       throw new Error('Failed to record swipe action');
     }
+  }
+
+  /**
+   * Run the lazy table-creation fallback at most once per process, caching
+   * the in-flight/resolved promise so concurrent swipes share a single DDL
+   * attempt instead of each issuing CREATE TABLE/INDEX statements.
+   */
+  private async ensureSwipeActionsTableOnce(): Promise<void> {
+    if (!swipeTableEnsured) {
+      swipeTableEnsured = this.ensureSwipeActionsTable();
+    }
+    return swipeTableEnsured;
   }
 
   /**
@@ -474,7 +499,9 @@ export class SwipeService {
       const rows = prefs[key] ?? [];
       const out: Record<string, number> = {};
       for (const { value, score } of rows) {
-        if (score > 0) out[value] = score;
+        if (score > 0) {
+          out[value] = score;
+        }
       }
       return out;
     };

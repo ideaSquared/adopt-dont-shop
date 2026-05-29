@@ -316,6 +316,30 @@ describe('SecurityService', () => {
       expect(flagged[0].userEmail).toBe('attacked@test.dev');
     });
 
+    it('getSuspiciousActivity groups a user across multiple IPs by the fall-through key', async () => {
+      const user = await makeUser({ email: 'roaming@test.dev' });
+      const now = Date.now();
+      for (let i = 0; i < 5; i += 1) {
+        await AuditLog.create({
+          service: 'svc',
+          user: user.userId,
+          user_email_snapshot: user.email,
+          action: 'LOGIN',
+          level: 'WARNING',
+          status: 'failure',
+          timestamp: new Date(now - i * 60_000),
+          category: 'auth',
+          ip_address: `203.0.113.${i}`,
+        });
+      }
+
+      const flagged = await SecurityService.getSuspiciousActivity({ failureThreshold: 5 });
+      const match = flagged.find(f => f.userId === user.userId);
+      expect(match).toBeDefined();
+      expect(match?.failureCount).toBe(5);
+      expect(match?.userEmail).toBe('roaming@test.dev');
+    });
+
     it('getSuspiciousActivity excludes users below threshold', async () => {
       const user = await makeUser();
       await AuditLog.create({

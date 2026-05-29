@@ -294,6 +294,17 @@ export class ApiService {
   // double-casting. Now `makeRequest` always parses JSON (or returns
   // `undefined` for empty-body responses like 204 No Content). Callers
   // wanting the raw `Response` use `fetchRaw()` instead.
+  //
+  // CONTRACT — empty-body responses (204 / Content-Length: 0 / no Content-Type):
+  //   `makeRequest` returns `undefined` at runtime. Callers that target these
+  //   endpoints MUST type-parameterise with `void` (e.g. `apiService.post<void>(…)`)
+  //   so the TypeScript type system reflects what is actually returned.
+  //   Using any other `T` for a void-returning endpoint is a type lie that will
+  //   surface as a runtime `undefined` where an object is expected.
+  //
+  //   TODO (follow-up): add typed overloads so `post('/endpoint')` with no type
+  //   argument infers `void` for known 204-returning routes. Until then, callers
+  //   must opt in via the explicit `<void>` type argument.
   private async makeRequest<T>(url: string, options: FetchOptions = {}): Promise<T> {
     const response = await this.executeFetch(url, options);
 

@@ -1,4 +1,4 @@
-import { Op, WhereOptions } from 'sequelize';
+import { col, fn, literal, Op, WhereOptions } from 'sequelize';
 import AuditLog from '../models/AuditLog';
 import IpRule, { IpRuleType } from '../models/IpRule';
 import RefreshToken from '../models/RefreshToken';
@@ -425,48 +425,51 @@ class SecurityService {
     const { failureThreshold = 5, windowHours = 24 } = options;
     const since = new Date(Date.now() - windowHours * 60 * 60 * 1000);
 
-    const recentFailures = await AuditLog.findAll({
+    // Aggregate in SQL rather than streaming every failed-login row into
+    // memory. Group on the same fall-through key the JS reducer used —
+    // user id, else email snapshot, else ip — and let the database apply
+    // the threshold via HAVING so only flagged actors come back. `"user"`
+    // is quoted because it's a reserved word in both Postgres and SQLite.
+    const groupKey = fn(
+      'COALESCE',
+      col('user'),
+      col('user_email_snapshot'),
+      col('ip_address'),
+      literal("'unknown'")
+    );
+
+    const rows = (await AuditLog.findAll({
+      attributes: [
+        [fn('MAX', col('user')), 'userId'],
+        [fn('MAX', col('user_email_snapshot')), 'userEmail'],
+        [fn('COUNT', literal('*')), 'failureCount'],
+        [fn('MAX', col('timestamp')), 'lastAttempt'],
+        [fn('MAX', col('ip_address')), 'lastIp'],
+      ],
       where: {
         action: 'LOGIN',
         status: 'failure',
         timestamp: { [Op.gte]: since },
       },
-      order: [['timestamp', 'DESC']],
-    });
+      group: [groupKey],
+      having: literal(`COUNT(*) >= ${Math.trunc(failureThreshold)}`),
+      raw: true,
+    })) as unknown as Array<{
+      userId: string | null;
+      userEmail: string | null;
+      failureCount: number | string;
+      lastAttempt: Date | string;
+      lastIp: string | null;
+    }>;
 
-    const grouped = new Map<
-      string,
-      {
-        userId: string | null;
-        userEmail: string | null;
-        failureCount: number;
-        lastAttempt: Date;
-        lastIp: string | null;
-      }
-    >();
-
-    for (const row of recentFailures) {
-      const key = row.user || row.user_email_snapshot || row.ip_address || 'unknown';
-      const existing = grouped.get(key);
-      if (existing) {
-        existing.failureCount += 1;
-        if (row.timestamp > existing.lastAttempt) {
-          existing.lastAttempt = row.timestamp;
-          existing.lastIp = row.ip_address ?? existing.lastIp;
-        }
-      } else {
-        grouped.set(key, {
-          userId: row.user,
-          userEmail: row.user_email_snapshot,
-          failureCount: 1,
-          lastAttempt: row.timestamp,
-          lastIp: row.ip_address,
-        });
-      }
-    }
-
-    return Array.from(grouped.values())
-      .filter(entry => entry.failureCount >= failureThreshold)
+    return rows
+      .map(row => ({
+        userId: row.userId,
+        userEmail: row.userEmail,
+        failureCount: Number(row.failureCount),
+        lastAttempt: row.lastAttempt instanceof Date ? row.lastAttempt : new Date(row.lastAttempt),
+        lastIp: row.lastIp,
+      }))
       .sort((a, b) => b.failureCount - a.failureCount);
   }
 

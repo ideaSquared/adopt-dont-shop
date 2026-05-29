@@ -174,6 +174,28 @@ describe('Discovery routes - user id binding (security)', () => {
       const [, , passedUserId] = getDiscoveryQueueMock.mock.calls[0];
       expect(passedUserId).toBeUndefined();
     });
+
+    it('rejects a limit above the cap with 400 and never reaches the service', async () => {
+      optionalAuthMock.mockImplementation(passAuth);
+
+      const res = await request(app)
+        .post('/api/v1/discovery/queue')
+        .send({ filters: {}, limit: 100000 });
+
+      expect(res.status).toBe(400);
+      expect(getDiscoveryQueueMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-integer limit with 400', async () => {
+      optionalAuthMock.mockImplementation(passAuth);
+
+      const res = await request(app)
+        .post('/api/v1/discovery/queue')
+        .send({ filters: {}, limit: 'lots' });
+
+      expect(res.status).toBe(400);
+      expect(getDiscoveryQueueMock).not.toHaveBeenCalled();
+    });
   });
 });
 

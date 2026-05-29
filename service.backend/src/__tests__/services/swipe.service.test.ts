@@ -188,6 +188,25 @@ describe('SwipeService', () => {
       );
     });
 
+    it('issues the table-creation DDL at most once across many swipes (no per-request DDL)', async () => {
+      // skipTableCreation defaults to false here, exercising the lazy
+      // fallback. The CREATE TABLE statement must fire only on the first
+      // swipe — subsequent swipes must not re-run DDL on the hot path.
+      const ddlService = new SwipeService();
+      mockSequelize.query = vi.fn().mockResolvedValue([[]]);
+
+      const swipe = { ...mockSwipeAction, userId: undefined };
+      await ddlService.recordSwipeAction(swipe);
+      await ddlService.recordSwipeAction(swipe);
+      await ddlService.recordSwipeAction(swipe);
+
+      const createTableCalls = mockSequelize.query.mock.calls.filter(
+        ([sql]: [string]) =>
+          typeof sql === 'string' && sql.includes('CREATE TABLE IF NOT EXISTS swipe_actions')
+      );
+      expect(createTableCalls).toHaveLength(1);
+    });
+
     it('should handle error when recording swipe action fails', async () => {
       mockSequelize.query = vi.fn().mockRejectedValue(new Error('Database error'));
 

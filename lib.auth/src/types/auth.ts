@@ -1,4 +1,5 @@
 // User and Authentication Types for lib.auth
+import { z } from 'zod';
 import type { UserRole, UserStatus } from '@adopt-dont-shop/lib.types';
 
 export interface User {
@@ -239,7 +240,25 @@ export interface TokenData {
 
 // Storage keys constants
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: 'authToken',
-  ACCESS_TOKEN: 'accessToken', // For backward compatibility
+  AUTH_TOKEN: '__dev_authToken',
+  ACCESS_TOKEN: '__dev_accessToken',
   USER: 'user',
 } as const;
+
+/**
+ * Runtime schema for the User shape stored in localStorage.
+ * Only the required fields are checked; optional fields are allowed through.
+ */
+export const StoredUserSchema = z.object({
+  userId: z.string().min(1),
+  email: z.string().email(),
+  firstName: z.string(),
+  lastName: z.string(),
+  emailVerified: z.boolean(),
+  userType: z.string().min(1),
+  status: z.string().min(1),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+});
+
+export type StoredUser = z.infer<typeof StoredUserSchema>;

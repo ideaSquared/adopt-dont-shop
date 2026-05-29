@@ -3,6 +3,16 @@ import { useContext } from 'react';
 import { KnownGate } from '../types';
 
 /**
+ * Module-level set of gate names that have already emitted the
+ * "Statsig not initialized" warning. Keeps the warning to at most once
+ * per gate name per page load rather than on every render.
+ *
+ * Exported for test teardown only — production code should not call this.
+ */
+export const _warnedGatesForTesting = new Set<string>();
+const warnedGates = _warnedGatesForTesting;
+
+/**
  * Hook to check if a feature gate is enabled
  *
  * @example
@@ -20,9 +30,12 @@ export const useFeatureGate = (gateName: KnownGate | string): { value: boolean }
   const { client } = useContext(StatsigContext);
 
   if (!client) {
-    console.warn(
-      `[useFeatureGate] Statsig client not initialized, returning false for gate: ${gateName}`
-    );
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV && !warnedGates.has(gateName)) {
+      warnedGates.add(gateName);
+      console.warn(
+        `[useFeatureGate] Statsig client not initialized, returning false for gate: ${gateName}`
+      );
+    }
     return { value: false };
   }
 

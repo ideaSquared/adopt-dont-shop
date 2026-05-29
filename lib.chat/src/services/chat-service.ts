@@ -81,6 +81,24 @@ export class ChatService {
   }
 
   /**
+   * Fetch wrapper that enforces a 30-second timeout via AbortController so
+   * hung requests cannot block the chat UI forever.
+   *
+   * TODO (follow-up): route these REST calls through lib.api's ApiService
+   * which already handles timeouts, auth, and CSRF via a single pipeline.
+   */
+  private async fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+    const TIMEOUT_MS = 30_000;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
    * Resolve headers for state-changing requests (POST/PUT/PATCH/DELETE).
    * Adds the CSRF token the backend's double-submit-cookie middleware
    * expects on top of the standard headers.
@@ -389,6 +407,15 @@ export class ChatService {
   }
 
   /**
+   * Unsubscribe from connection errors
+   */
+  offConnectionError(callback: (error: Error) => void): void {
+    this.connectionErrorListeners = this.connectionErrorListeners.filter(
+      (listener) => listener !== callback
+    );
+  }
+
+  /**
    * Process queued messages
    */
   private async processMessageQueue(): Promise<void> {
@@ -484,7 +511,7 @@ export class ChatService {
    */
   async getConversations(): Promise<Conversation[]> {
     try {
-      const response = await fetch(`${this.config.apiUrl}/api/v1/chats`, {
+      const response = await this.fetchWithTimeout(`${this.config.apiUrl}/api/v1/chats`, {
         credentials: 'include',
         headers: this.getHeaders(),
       });
@@ -516,7 +543,7 @@ export class ChatService {
         limit: (options.limit || 50).toString(),
       });
 
-      const response = await fetch(
+      const response = await this.fetchWithTimeout(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages?${params}`,
         {
           credentials: 'include',
@@ -617,7 +644,7 @@ export class ChatService {
         fetchBody = JSON.stringify({ content });
       }
 
-      const response = await fetch(
+      const response = await this.fetchWithTimeout(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages`,
         {
           method: 'POST',
@@ -646,11 +673,14 @@ export class ChatService {
    */
   async markAsRead(conversationId: string): Promise<void> {
     try {
-      const response = await fetch(`${this.config.apiUrl}/api/v1/chats/${conversationId}/read`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: await this.getMutatingHeaders(),
-      });
+      const response = await this.fetchWithTimeout(
+        `${this.config.apiUrl}/api/v1/chats/${conversationId}/read`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: await this.getMutatingHeaders(),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -670,12 +700,15 @@ export class ChatService {
    */
   async updateConversationStatus(conversationId: string, status: string): Promise<Conversation> {
     try {
-      const response = await fetch(`${this.config.apiUrl}/api/v1/chats/${conversationId}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: await this.getMutatingHeaders(),
-        body: JSON.stringify({ status }),
-      });
+      const response = await this.fetchWithTimeout(
+        `${this.config.apiUrl}/api/v1/chats/${conversationId}`,
+        {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: await this.getMutatingHeaders(),
+          body: JSON.stringify({ status }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -700,7 +733,7 @@ export class ChatService {
     initialMessage?: string;
   }): Promise<Conversation> {
     try {
-      const response = await fetch(`${this.config.apiUrl}/api/v1/chats`, {
+      const response = await this.fetchWithTimeout(`${this.config.apiUrl}/api/v1/chats`, {
         method: 'POST',
         credentials: 'include',
         headers: await this.getMutatingHeaders(),
@@ -733,7 +766,7 @@ export class ChatService {
       // Don't set Content-Type for FormData, let browser set it
       delete headers['Content-Type'];
 
-      const response = await fetch(
+      const response = await this.fetchWithTimeout(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/attachments`,
         {
           method: 'POST',
@@ -780,7 +813,7 @@ export class ChatService {
    */
   async addReaction(conversationId: string, messageId: string, emoji: string): Promise<void> {
     try {
-      const response = await fetch(
+      const response = await this.fetchWithTimeout(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages/${messageId}/reactions`,
         {
           method: 'POST',
@@ -806,7 +839,7 @@ export class ChatService {
    */
   async removeReaction(conversationId: string, messageId: string, emoji: string): Promise<void> {
     try {
-      const response = await fetch(
+      const response = await this.fetchWithTimeout(
         `${this.config.apiUrl}/api/v1/chats/${conversationId}/messages/${messageId}/reactions`,
         {
           method: 'DELETE',

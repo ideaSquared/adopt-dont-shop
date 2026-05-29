@@ -30,6 +30,11 @@ export class AnalyticsService {
   // lib.observability consent gates.
   private consentGranted = false;
 
+  // Stored so destroy() can restore the originals and remove the listener.
+  private originalPushState: typeof window.history.pushState | null = null;
+  private originalReplaceState: typeof window.history.replaceState | null = null;
+  private boundPopstateHandler: (() => void) | null = null;
+
   constructor(config: Partial<AnalyticsServiceConfig> = {}, apiService?: ApiService) {
     this.config = {
       debug: false,
@@ -59,7 +64,10 @@ export class AnalyticsService {
   }
 
   /**
-   * Setup automatic page view tracking
+   * Setup automatic page view tracking.
+   *
+   * Stores the original pushState/replaceState refs and the bound popstate
+   * handler so destroy() can fully restore them and remove the listener.
    */
   private setupPageViewTracking(): void {
     // Track initial page view
@@ -75,6 +83,10 @@ export class AnalyticsService {
     if (typeof window.history !== 'undefined') {
       const originalPushState = window.history.pushState;
       const originalReplaceState = window.history.replaceState;
+
+      // Store refs so destroy() can restore them.
+      this.originalPushState = originalPushState;
+      this.originalReplaceState = originalReplaceState;
 
       window.history.pushState = (...args) => {
         originalPushState.apply(window.history, args);
@@ -106,7 +118,7 @@ export class AnalyticsService {
         );
       };
 
-      window.addEventListener('popstate', () => {
+      this.boundPopstateHandler = () => {
         this.trackPageView({
           url: window.location.href,
           title: document.title,
@@ -114,7 +126,9 @@ export class AnalyticsService {
           timestamp: new Date(),
           referrer: document.referrer,
         });
-      });
+      };
+
+      window.addEventListener('popstate', this.boundPopstateHandler);
     }
   }
 
@@ -508,12 +522,33 @@ export class AnalyticsService {
   }
 
   /**
-   * Cleanup resources
+   * Cleanup resources.
+   *
+   * Restores the original pushState/replaceState methods patched by
+   * setupPageViewTracking() and removes the popstate listener, so that
+   * multiple AnalyticsService instances (e.g. in tests) don't accumulate
+   * history patches.
    */
   public destroy(): void {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
+    }
+
+    // Restore patched history methods.
+    if (typeof window !== 'undefined' && typeof window.history !== 'undefined') {
+      if (this.originalPushState !== null) {
+        window.history.pushState = this.originalPushState;
+        this.originalPushState = null;
+      }
+      if (this.originalReplaceState !== null) {
+        window.history.replaceState = this.originalReplaceState;
+        this.originalReplaceState = null;
+      }
+      if (this.boundPopstateHandler !== null) {
+        window.removeEventListener('popstate', this.boundPopstateHandler);
+        this.boundPopstateHandler = null;
+      }
     }
 
     // Flush any remaining events

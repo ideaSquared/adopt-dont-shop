@@ -22,7 +22,8 @@ vi.mock('@adopt-dont-shop/lib.api', () => ({
   }),
 }));
 
-// Mock setInterval
+// Suppress the setInterval call that SearchService makes in its constructor
+// so tests don't actually schedule recurring callbacks.
 const mockSetInterval = vi.fn();
 global.setInterval = mockSetInterval;
 
@@ -436,6 +437,40 @@ describe('SearchService', () => {
       await service.searchPets({ type: 'dog' });
 
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/search/pets', expect.any(Object));
+    });
+  });
+
+  describe('destroy — cache cleanup lifecycle', () => {
+    it('destroy() calls clearInterval with the stored handle then nulls it', () => {
+      // Spy on clearInterval before constructing so we capture the destroy call.
+      const clearSpy = vi.spyOn(global, 'clearInterval');
+
+      const svc = new SearchService();
+      type Private = { cleanupTimer: ReturnType<typeof setInterval> | null };
+      const handle = (svc as unknown as Private).cleanupTimer;
+
+      // Constructor must have stored a non-null handle.
+      expect(handle).not.toBeNull();
+
+      svc.destroy();
+
+      expect(clearSpy).toHaveBeenCalledWith(handle);
+      expect((svc as unknown as Private).cleanupTimer).toBeNull();
+
+      clearSpy.mockRestore();
+    });
+
+    it('calling destroy() a second time is a safe no-op', () => {
+      const clearSpy = vi.spyOn(global, 'clearInterval');
+
+      const svc = new SearchService();
+      svc.destroy();
+      // cleanupTimer is null — a second call must not throw.
+      expect(() => svc.destroy()).not.toThrow();
+      // clearInterval should only have been called once.
+      expect(clearSpy).toHaveBeenCalledTimes(1);
+
+      clearSpy.mockRestore();
     });
   });
 });
