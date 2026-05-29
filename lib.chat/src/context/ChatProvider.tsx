@@ -731,6 +731,9 @@ export function ChatProvider({
 
     return () => {
       offlineAdapter.removeOfflineStateListener(listener);
+      // Clear the sync callback so a stale closure cannot run against a
+      // torn-down provider after unmount.
+      offlineAdapter.setSyncCallback(null);
     };
   }, [chatService, offlineAdapter]);
 
@@ -742,41 +745,78 @@ export function ChatProvider({
   const resolvedFeatureFlags = featureFlags ?? DEFAULT_FEATURE_FLAGS;
   const resolvedResolveFileUrl = resolveFileUrl ?? DEFAULT_RESOLVE_FILE_URL;
 
-  const value: ChatContextValue = {
-    currentUser: user,
-    isAuthenticated,
-    featureFlags: resolvedFeatureFlags,
-    resolveFileUrl: resolvedResolveFileUrl,
-    conversations,
-    activeConversation,
-    messages,
-    isConnected,
-    isLoading,
-    error,
-    typingUsers,
-    hasMoreMessages,
-    isLoadingMoreMessages,
-    connectionStatus,
-    isReconnecting,
-    reconnectionAttempts,
-    isOnline,
-    connectionQuality,
-    pendingMessageCount,
-    unreadMessageCount,
-    setActiveConversation: handleSetActiveConversation,
-    updateConversationStatus,
-    sendMessage,
-    retryMessage,
-    markAsRead,
-    loadConversations,
-    loadMessages,
-    loadMoreMessages,
-    startConversation,
-    startTyping,
-    stopTyping,
-    toggleReaction,
-    forceSyncOfflineData,
-  };
+  const value: ChatContextValue = useMemo(
+    () => ({
+      currentUser: user,
+      isAuthenticated,
+      featureFlags: resolvedFeatureFlags,
+      resolveFileUrl: resolvedResolveFileUrl,
+      conversations,
+      activeConversation,
+      messages,
+      isConnected,
+      isLoading,
+      error,
+      typingUsers,
+      hasMoreMessages,
+      isLoadingMoreMessages,
+      connectionStatus,
+      isReconnecting,
+      reconnectionAttempts,
+      isOnline,
+      connectionQuality,
+      pendingMessageCount,
+      unreadMessageCount,
+      setActiveConversation: handleSetActiveConversation,
+      updateConversationStatus,
+      sendMessage,
+      retryMessage,
+      markAsRead,
+      loadConversations,
+      loadMessages,
+      loadMoreMessages,
+      startConversation,
+      startTyping,
+      stopTyping,
+      toggleReaction,
+      forceSyncOfflineData,
+    }),
+    [
+      user,
+      isAuthenticated,
+      resolvedFeatureFlags,
+      resolvedResolveFileUrl,
+      conversations,
+      activeConversation,
+      messages,
+      isConnected,
+      isLoading,
+      error,
+      typingUsers,
+      hasMoreMessages,
+      isLoadingMoreMessages,
+      connectionStatus,
+      isReconnecting,
+      reconnectionAttempts,
+      isOnline,
+      connectionQuality,
+      pendingMessageCount,
+      unreadMessageCount,
+      handleSetActiveConversation,
+      updateConversationStatus,
+      sendMessage,
+      retryMessage,
+      markAsRead,
+      loadConversations,
+      loadMessages,
+      loadMoreMessages,
+      startConversation,
+      startTyping,
+      stopTyping,
+      toggleReaction,
+      forceSyncOfflineData,
+    ]
+  );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }

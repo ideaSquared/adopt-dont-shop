@@ -15,6 +15,9 @@ import {
   ABTestResults,
 } from '../types';
 
+const MAX_QUEUE_SIZE = 1000;
+const MAX_RETRY_AGE_MS = 5 * 60 * 1000; // 5 minutes — drop events older than this on re-queue
+
 /**
  * AnalyticsService - Comprehensive user behavior tracking and analytics
  */
@@ -169,8 +172,13 @@ export class AnalyticsService {
         sessionId: this.sessionId,
       });
     } catch (error) {
-      // Re-queue events on failure
-      this.eventQueue.unshift(...events);
+      // Re-queue only recent events (drop permanently-failing stale events)
+      const cutoff = Date.now() - MAX_RETRY_AGE_MS;
+      const fresh = events.filter((e) => e.timestamp.getTime() >= cutoff);
+
+      // Prepend fresh events back, then cap: keep only the newest MAX_QUEUE_SIZE total
+      const combined = [...fresh, ...this.eventQueue];
+      this.eventQueue = combined.slice(0, MAX_QUEUE_SIZE);
 
       if (this.config.debug) {
         console.error(`${AnalyticsService.name} failed to flush events:`, error);
@@ -247,7 +255,10 @@ export class AnalyticsService {
       referrer: typeof document !== 'undefined' ? document.referrer : undefined,
     };
 
-    // Add to queue for batch processing
+    // Add to queue for batch processing; enforce cap by dropping oldest events first
+    if (this.eventQueue.length >= MAX_QUEUE_SIZE) {
+      this.eventQueue.shift();
+    }
     this.eventQueue.push(fullEvent);
 
     // For high-priority events, flush immediately
