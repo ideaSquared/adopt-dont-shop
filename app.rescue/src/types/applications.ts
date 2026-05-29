@@ -130,3 +130,86 @@ export interface BulkAction {
   applicationIds: string[];
   data?: Record<string, any>;
 }
+
+/**
+ * ADS-699: raw shapes returned by the backend `/applications` endpoints
+ * before the rescue service transforms them into UI-facing types. These
+ * are intentionally loose (everything optional, most fields `unknown`)
+ * because the backend payloads still mix snake_case and camelCase and
+ * the rescue service has to tolerate both. Use these instead of `any`
+ * so the compiler at least checks that fields exist on the type.
+ */
+export interface RawReference {
+  name?: string;
+  email?: string;
+  phone?: string;
+  relationship?: string;
+  status?: ReferenceCheck['status'];
+  notes?: string;
+  contactedAt?: string;
+  contactedBy?: string;
+}
+
+export interface RawTimelineItemUser {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+}
+
+export interface RawTimelineItem {
+  id?: string;
+  timeline_id?: string;
+  application_id?: string;
+  event_type?: string;
+  event?: string;
+  title?: string;
+  description?: string;
+  created_at?: string;
+  timestamp?: string;
+  created_by?: string;
+  userId?: string;
+  created_by_system?: boolean;
+  created_by_name?: string;
+  userName?: string;
+  CreatedBy?: RawTimelineItemUser;
+  metadata?: Record<string, unknown>;
+  data?: Record<string, unknown>;
+  previous_stage?: string;
+  new_stage?: string;
+  previous_status?: string;
+  new_status?: string;
+}
+
+export interface RawApplicationPersonalInfo {
+  firstName?: string;
+  lastName?: string;
+}
+
+export interface RawApplicationData {
+  personalInfo?: RawApplicationPersonalInfo;
+  [key: string]: unknown;
+}
+
+export interface RawApplication {
+  id: string;
+  petId: string;
+  userId: string;
+  rescueId: string;
+  status: ApplicationStatus;
+  createdAt: string;
+  updatedAt: string;
+  petName?: string;
+  petType?: string;
+  petBreed?: string;
+  stage?: ApplicationStage;
+  priority?: string;
+  submittedAt?: string | null;
+  data?: RawApplicationData;
+  references?: RawReference[];
+  assignedStaff?: string;
+  tags?: string[];
+  finalOutcome?: FinalOutcome;
+  referencesCompleted?: boolean;
+  homeVisitCompleted?: boolean;
+  interviewCompleted?: boolean;
+}
