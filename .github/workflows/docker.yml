@@ -60,7 +60,7 @@ jobs:
       - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
         with:
           driver-opts: |
-            image=moby/buildkit:latest
+            image=moby/buildkit:v0.23.0
             network=host
 
       - name: Log in to GHCR (for Trivy DB pulls)
@@ -115,7 +115,7 @@ jobs:
               --format sarif \
               --output trivy-results.sarif \
               --severity CRITICAL,HIGH \
-              --exit-code 0 \
+              --exit-code 1 \
               paragonjenko/adoptdontshop:service-backend-prod-${{ github.sha }}
 
       - name: Upload Trivy results to GitHub Security tab
@@ -143,7 +143,7 @@ jobs:
       - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
         with:
           driver-opts: |
-            image=moby/buildkit:latest
+            image=moby/buildkit:v0.23.0
             network=host
 
       - name: Build development image

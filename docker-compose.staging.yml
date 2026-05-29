@@ -30,6 +30,14 @@ services:
       timeout: 5s
       retries: 5
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
+        reservations:
+          cpus: '0.25'
+          memory: 256m
 
   redis:
     image: redis:7-alpine
@@ -46,11 +54,19 @@ services:
       retries: 5
       start_period: 10s
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256m
+        reservations:
+          cpus: '0.1'
+          memory: 64m
 
   # One-shot init container: applies pending migrations before the backend
   # starts. [ADS-393]
   service-backend-migrate:
-    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:-latest}
+    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
     container_name: ads_staging_backend_migrate
     restart: 'no'
     command: ['node', 'dist/migrations/runner.js', 'up']
@@ -62,13 +78,21 @@ services:
       DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
       DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
       PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
+      DB_SSL_MODE: ${DB_SSL_MODE:-require}
+      ALLOW_INSECURE_DB: ${ALLOW_INSECURE_DB:-}
+      DB_SSL_ROOT_CERT: ${DB_SSL_ROOT_CERT:-}
     depends_on:
       database:
         condition: service_healthy
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256m
 
   service-backend:
-    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:-latest}
+    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
     container_name: ads_staging_backend
     restart: always
     environment:
@@ -131,9 +155,17 @@ services:
       service-backend-migrate:
         condition: service_completed_successfully
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
+        reservations:
+          cpus: '0.25'
+          memory: 256m
 
   app-client:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${DEPLOY_SHA:-latest}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
     container_name: ads_staging_client
     restart: always
     # ADS-701: nginx runs unprivileged and listens on 8080.
@@ -146,9 +178,17 @@ services:
       retries: 3
       start_period: 30s
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128m
+        reservations:
+          cpus: '0.05'
+          memory: 32m
 
   app-admin:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${DEPLOY_SHA:-latest}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
     container_name: ads_staging_admin
     restart: always
     # ADS-701: nginx runs unprivileged and listens on 8080.
@@ -161,9 +201,17 @@ services:
       retries: 3
       start_period: 30s
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128m
+        reservations:
+          cpus: '0.05'
+          memory: 32m
 
   app-rescue:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${DEPLOY_SHA:-latest}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
     container_name: ads_staging_rescue
     restart: always
     # ADS-701: nginx runs unprivileged and listens on 8080.
@@ -176,6 +224,14 @@ services:
       retries: 3
       start_period: 30s
     logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128m
+        reservations:
+          cpus: '0.05'
+          memory: 32m
 
 volumes:
   postgres_data:

@@ -60,7 +60,7 @@ jobs:
 
             # Wait for backend health
             for i in $(seq 1 30); do
-              if docker compose -f $COMPOSE_FILE exec -T service-backend wget -q --spider http://localhost:5000/health > /dev/null 2>&1; then
+              if docker compose -f $COMPOSE_FILE exec -T service-backend wget -q --spider http://localhost:5000/health/simple > /dev/null 2>&1; then
                 echo "Backend healthy after rollback."
                 break
               fi

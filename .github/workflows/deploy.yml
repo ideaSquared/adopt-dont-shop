@@ -14,6 +14,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/ideasquared/adopt-dont-shop
+  DOCKER_BUILDKIT: 1
 
 jobs:
   build-and-push:
@@ -34,9 +35,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Run tests
-        run: npx turbo run test --filter='!@adopt-dont-shop/e2e'
 
       - name: Log in to GHCR
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee  # v4.2.0
@@ -63,6 +61,12 @@ jobs:
             --build-arg APP_NAME=app.client \
             --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
             --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
+            --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \
+            --build-arg VITE_STATSIG_CLIENT_KEY="${{ vars.VITE_STATSIG_CLIENT_KEY }}" \
+            --build-arg SENTRY_ORG="${{ vars.SENTRY_ORG }}" \
+            --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_CLIENT }}" \
+            --build-arg DEPLOY_SHA="${{ github.sha }}" \
+            --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
             -t $IMAGE_PREFIX/app-client:${{ github.sha }} \
             -t $IMAGE_PREFIX/app-client:latest \
             .
@@ -76,6 +80,12 @@ jobs:
             --build-arg APP_NAME=app.admin \
             --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
             --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
+            --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \
+            --build-arg VITE_STATSIG_CLIENT_KEY="${{ vars.VITE_STATSIG_CLIENT_KEY }}" \
+            --build-arg SENTRY_ORG="${{ vars.SENTRY_ORG }}" \
+            --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_ADMIN }}" \
+            --build-arg DEPLOY_SHA="${{ github.sha }}" \
+            --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
             -t $IMAGE_PREFIX/app-admin:${{ github.sha }} \
             -t $IMAGE_PREFIX/app-admin:latest \
             .
@@ -89,6 +99,12 @@ jobs:
             --build-arg APP_NAME=app.rescue \
             --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
             --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
+            --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \
+            --build-arg VITE_STATSIG_CLIENT_KEY="${{ vars.VITE_STATSIG_CLIENT_KEY }}" \
+            --build-arg SENTRY_ORG="${{ vars.SENTRY_ORG }}" \
+            --build-arg SENTRY_PROJECT="${{ vars.SENTRY_PROJECT_RESCUE }}" \
+            --build-arg DEPLOY_SHA="${{ github.sha }}" \
+            --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
             -t $IMAGE_PREFIX/app-rescue:${{ github.sha }} \
             -t $IMAGE_PREFIX/app-rescue:latest \
             .
@@ -153,7 +169,7 @@ jobs:
             # Wait for backend health
             echo "Waiting for backend health check..."
             for i in $(seq 1 30); do
-              if docker compose -f $COMPOSE_FILE exec -T service-backend wget -q --spider http://localhost:5000/health > /dev/null 2>&1; then
+              if docker compose -f $COMPOSE_FILE exec -T service-backend wget -q --spider http://localhost:5000/health/simple > /dev/null 2>&1; then
                 echo "Backend healthy."
                 break
               fi

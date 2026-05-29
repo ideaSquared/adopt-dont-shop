@@ -235,8 +235,9 @@ CMD ["node", "dist/index.js"]
 # ============================================================================
 # METADATA - Labels following OCI image-spec standard
 # ============================================================================
+ARG IMAGE_VERSION=dev
 LABEL org.opencontainers.image.title="Adopt Don't Shop - Backend Service"
 LABEL org.opencontainers.image.description="Express.js backend API for Adopt Don't Shop platform"
 LABEL org.opencontainers.image.vendor="Adopt Don't Shop"
-LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.version="${IMAGE_VERSION}"
 LABEL org.opencontainers.image.source="https://github.com/ideaSquared/adopt-dont-shop"
