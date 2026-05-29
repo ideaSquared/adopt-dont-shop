@@ -29,6 +29,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     logging: *default-logging
     deploy:
       resources:
@@ -58,6 +62,10 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     logging: *default-logging
     deploy:
       resources:
@@ -81,6 +89,11 @@ services:
       DB_HOST: database
       DB_PORT: 5432
       DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
+      # Staging intentionally uses a plaintext env var for DB_PASSWORD rather
+      # than Docker secrets. Staging is a short-lived ephemeral environment
+      # (no production data, not internet-facing) and has no Docker Swarm
+      # secrets infrastructure configured. Production uses /run/secrets/db_password
+      # via readSecretOrEnv() [ADS-675]. Do not copy this pattern to production.
       DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
       PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
       DB_SSL_MODE: ${DB_SSL_MODE:-require}
@@ -89,6 +102,10 @@ services:
     depends_on:
       database:
         condition: service_healthy
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     logging: *default-logging
     deploy:
       resources:
@@ -160,6 +177,10 @@ services:
         condition: service_healthy
       service-backend-migrate:
         condition: service_completed_successfully
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     logging: *default-logging
     deploy:
       resources:
@@ -177,6 +198,10 @@ services:
     # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
       - "8080"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/']
       interval: 30s
@@ -200,6 +225,10 @@ services:
     # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
       - "8080"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/']
       interval: 30s
@@ -223,6 +252,10 @@ services:
     # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
       - "8080"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/']
       interval: 30s
