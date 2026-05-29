@@ -15,7 +15,6 @@ WORKDIR /app
 
 # Install necessary packages including wget for health checks
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
     wget \
     dumb-init \
     && rm -rf /var/lib/apt/lists/*
@@ -127,11 +126,17 @@ FROM base AS build
 ARG APP_NAME
 # Vite reads these at build time and inlines them into the static bundle.
 # Defaulting to empty so the build works without them; deploy.yml passes the
-# real public URLs via --build-arg for prod/staging images.
+# real values via --build-arg for prod/staging images. Do NOT promote to ENV —
+# ARG is sufficient for Vite's build-time substitution and avoids embedding
+# secrets in image metadata.
 ARG VITE_API_BASE_URL=""
 ARG VITE_WS_BASE_URL=""
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-ENV VITE_WS_BASE_URL=$VITE_WS_BASE_URL
+ARG VITE_SENTRY_DSN=""
+ARG VITE_STATSIG_CLIENT_KEY=""
+# Sentry sourcemap upload args (optional — build skips upload when secret absent)
+ARG SENTRY_ORG=""
+ARG SENTRY_PROJECT=""
+ARG DEPLOY_SHA=""
 
 COPY package*.json turbo.json ./
 COPY tsconfig.base.json tsconfig.cjs.base.json ./
@@ -173,45 +178,72 @@ COPY service.backend/package.json ./service.backend/
 # App package.json
 COPY ${APP_NAME}/package.json ./${APP_NAME}/
 
-# Install dependencies with cache mount
-RUN --mount=type=cache,target=/root/.npm \
+# Transfer ownership of the build workspace to viteuser so the non-root
+# install and Turbo build can write node_modules and .turbo cache.
+RUN chown -R viteuser:nodejs /app
+
+# Run as non-root for the build stage
+USER viteuser
+
+# Install dependencies with cache mount (uid 1001 home is /home/viteuser)
+RUN --mount=type=cache,target=/home/viteuser/.npm,uid=1001 \
     npm ci --prefer-offline
 
 # Library sources
-COPY lib.analytics/ ./lib.analytics/
-COPY lib.api/ ./lib.api/
-COPY lib.applications/ ./lib.applications/
-COPY lib.audit-logs/ ./lib.audit-logs/
-COPY lib.auth/ ./lib.auth/
-COPY lib.chat/ ./lib.chat/
-COPY lib.components/ ./lib.components/
-COPY lib.dev-tools/ ./lib.dev-tools/
-COPY lib.discovery/ ./lib.discovery/
-COPY lib.feature-flags/ ./lib.feature-flags/
-COPY lib.invitations/ ./lib.invitations/
-COPY lib.legal/ ./lib.legal/
-COPY lib.matching/ ./lib.matching/
-COPY lib.moderation/ ./lib.moderation/
-COPY lib.notifications/ ./lib.notifications/
-COPY lib.observability/ ./lib.observability/
-COPY lib.permissions/ ./lib.permissions/
-COPY lib.pets/ ./lib.pets/
-COPY lib.rescue/ ./lib.rescue/
-COPY lib.search/ ./lib.search/
-COPY lib.support-tickets/ ./lib.support-tickets/
-COPY lib.types/ ./lib.types/
-COPY lib.utils/ ./lib.utils/
-COPY lib.validation/ ./lib.validation/
+COPY --chown=viteuser:nodejs lib.analytics/ ./lib.analytics/
+COPY --chown=viteuser:nodejs lib.api/ ./lib.api/
+COPY --chown=viteuser:nodejs lib.applications/ ./lib.applications/
+COPY --chown=viteuser:nodejs lib.audit-logs/ ./lib.audit-logs/
+COPY --chown=viteuser:nodejs lib.auth/ ./lib.auth/
+COPY --chown=viteuser:nodejs lib.chat/ ./lib.chat/
+COPY --chown=viteuser:nodejs lib.components/ ./lib.components/
+COPY --chown=viteuser:nodejs lib.dev-tools/ ./lib.dev-tools/
+COPY --chown=viteuser:nodejs lib.discovery/ ./lib.discovery/
+COPY --chown=viteuser:nodejs lib.feature-flags/ ./lib.feature-flags/
+COPY --chown=viteuser:nodejs lib.invitations/ ./lib.invitations/
+COPY --chown=viteuser:nodejs lib.legal/ ./lib.legal/
+COPY --chown=viteuser:nodejs lib.matching/ ./lib.matching/
+COPY --chown=viteuser:nodejs lib.moderation/ ./lib.moderation/
+COPY --chown=viteuser:nodejs lib.notifications/ ./lib.notifications/
+COPY --chown=viteuser:nodejs lib.observability/ ./lib.observability/
+COPY --chown=viteuser:nodejs lib.permissions/ ./lib.permissions/
+COPY --chown=viteuser:nodejs lib.pets/ ./lib.pets/
+COPY --chown=viteuser:nodejs lib.rescue/ ./lib.rescue/
+COPY --chown=viteuser:nodejs lib.search/ ./lib.search/
+COPY --chown=viteuser:nodejs lib.support-tickets/ ./lib.support-tickets/
+COPY --chown=viteuser:nodejs lib.types/ ./lib.types/
+COPY --chown=viteuser:nodejs lib.utils/ ./lib.utils/
+COPY --chown=viteuser:nodejs lib.validation/ ./lib.validation/
 
 # App source
-COPY ${APP_NAME}/ ./${APP_NAME}/
+COPY --chown=viteuser:nodejs ${APP_NAME}/ ./${APP_NAME}/
 
 # Build libraries first, then the specific app using Turbo
 # Use cache mount for Turbo cache
 # The '...' prefix builds all dependencies first, then the target app
 # Set NODE_ENV=production to use "import" exports instead of "development" (src/*.ts)
-RUN --mount=type=cache,target=/app/.turbo \
+RUN --mount=type=cache,target=/app/.turbo,uid=1001 \
     NODE_ENV=production npx turbo run build --filter=...@adopt-dont-shop/${APP_NAME}
+
+# Upload sourcemaps to Sentry using a BuildKit secret so the auth token never
+# lands in an image layer. Gracefully skips when the secret is absent so local
+# and CI builds work without Sentry credentials configured.
+RUN --mount=type=secret,id=sentry_auth \
+    if [ -s /run/secrets/sentry_auth ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT" ]; then \
+      export SENTRY_AUTH_TOKEN=$(cat /run/secrets/sentry_auth); \
+      npx @sentry/cli sourcemaps inject /app/${APP_NAME}/dist && \
+      npx @sentry/cli sourcemaps upload \
+        --org "$SENTRY_ORG" \
+        --project "$SENTRY_PROJECT" \
+        --release "$DEPLOY_SHA" \
+        /app/${APP_NAME}/dist; \
+    else \
+      echo "No SENTRY_AUTH_TOKEN or SENTRY_ORG/PROJECT — skipping sourcemap upload"; \
+    fi
+
+# Strip sourcemaps from the dist directory before they are copied into the
+# nginx image — sourcemaps must never be served to end users.
+RUN find /app/${APP_NAME}/dist -name '*.map' -delete
 
 # ============================================================================
 # PRODUCTION STAGE - Minimal Nginx image for static assets
@@ -304,6 +336,11 @@ http { \
             access_log off; \
         } \
         \
+        # Defense-in-depth: never serve sourcemaps \
+        location ~* \.map$ { \
+            return 404; \
+        } \
+        \
         # Health check endpoint \
         location /health { \
             access_log off; \
@@ -330,8 +367,9 @@ CMD ["nginx", "-g", "daemon off;"]
 # ============================================================================
 # METADATA - OCI image-spec labels
 # ============================================================================
+ARG IMAGE_VERSION=dev
 LABEL org.opencontainers.image.title="Adopt Don't Shop - Frontend App"
 LABEL org.opencontainers.image.description="React + Vite frontend application"
 LABEL org.opencontainers.image.vendor="Adopt Don't Shop"
-LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.version="${IMAGE_VERSION}"
 LABEL org.opencontainers.image.source="https://github.com/ideaSquared/adopt-dont-shop"

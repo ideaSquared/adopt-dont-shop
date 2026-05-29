@@ -27,11 +27,10 @@ export {
 // Utils (could add dev utilities here in the future)
 export const isDevelopmentMode = () => {
   if (typeof window !== 'undefined') {
-    return (
-      window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1' ||
-      window.location.hostname.includes('dev')
-    );
+    // Only treat explicitly local hostnames as dev. The previous
+    // hostname.includes('dev') check would have exposed dev tooling on
+    // production-adjacent hosts like dev.example.com — removed intentionally.
+    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   }
   // Case-insensitive match — matches isProductionLike() in
   // service.backend/src/config/env.ts so a "Development" or "DEVELOPMENT"

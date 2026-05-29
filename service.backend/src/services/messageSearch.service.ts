@@ -389,7 +389,7 @@ export class MessageSearchService {
       const results = (await sequelize.query(suggestionQuery, {
         type: QueryTypes.SELECT,
         replacements: {
-          queryPattern: `%${query.toLowerCase()}%`,
+          queryPattern: `%${escapeLikePattern(query.toLowerCase())}%`,
           userId: userId ?? null,
         },
       })) as Array<{ word: string }>;

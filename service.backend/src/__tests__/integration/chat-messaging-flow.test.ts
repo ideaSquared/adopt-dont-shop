@@ -878,17 +878,9 @@ describe('Chat Messaging Flow Integration Tests', () => {
 
     describe('when getting unread message count', () => {
       it('should return correct unread count for a chat', async () => {
-        // Messages with empty Reads arrays (eager-loaded with where
-        // filtering on user_id) are unread (plan 2.1).
-        const mockMessages = [
-          { ...createMockMessage({ message_id: 'msg-1', sender_id: rescueStaffId }), Reads: [] },
-          {
-            ...createMockMessage({ message_id: 'msg-2', sender_id: rescueStaffId }),
-            Reads: [{ user_id: adopterId, read_at: new Date() }],
-          },
-        ];
-
-        MockedMessage.findAll = vi.fn().mockResolvedValue(mockMessages as never);
+        // The unread count is now aggregated in SQL via Message.count
+        // (LEFT JOIN keeping rows with no read record for the user).
+        MockedMessage.count = vi.fn().mockResolvedValue(1);
 
         const count = await ChatService.getUnreadMessageCount(chatId, adopterId);
 
@@ -896,14 +888,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
       });
 
       it('should return 0 if all messages are read', async () => {
-        const mockMessages = [
-          {
-            ...createMockMessage({ message_id: 'msg-1', sender_id: rescueStaffId }),
-            Reads: [{ user_id: adopterId, read_at: new Date() }],
-          },
-        ];
-
-        MockedMessage.findAll = vi.fn().mockResolvedValue(mockMessages as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
 
         const count = await ChatService.getUnreadMessageCount(chatId, adopterId);
 
@@ -911,7 +896,7 @@ describe('Chat Messaging Flow Integration Tests', () => {
       });
 
       it('should return 0 if there are no messages', async () => {
-        MockedMessage.findAll = vi.fn().mockResolvedValue([] as never);
+        MockedMessage.count = vi.fn().mockResolvedValue(0);
 
         const count = await ChatService.getUnreadMessageCount(chatId, adopterId);
 

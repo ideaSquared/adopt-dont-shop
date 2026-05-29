@@ -125,12 +125,18 @@ export class ApiService {
       return '';
     }
 
-    // For Node.js environments (SSR / tests)
+    // For Node.js environments (SSR / tests): require an explicit env var.
+    // A hardcoded production domain would silently target the wrong host in
+    // staging/preview environments or any non-browser context.
     if (typeof process !== 'undefined' && process.env.NODE_ENV) {
-      if (process.env.NODE_ENV === 'production') {
-        return 'https://api.adoptdontshop.com';
+      const apiBaseUrl = process.env.API_BASE_URL;
+      if (process.env.NODE_ENV === 'production' && !apiBaseUrl) {
+        throw new Error(
+          'API_BASE_URL environment variable is required in Node.js production environments. ' +
+            'Set it to the backend base URL (e.g. https://api.example.com).'
+        );
       }
-      return process.env.API_BASE_URL ?? '';
+      return apiBaseUrl ?? '';
     }
 
     return '';

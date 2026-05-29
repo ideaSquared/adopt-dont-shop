@@ -462,32 +462,10 @@ if (isProduction) {
     });
 }
 
-// Graceful shutdown handling
-process.on('SIGINT', () => {
-  logger.info('Received SIGINT, shutting down gracefully');
-});
-
-process.on('SIGTERM', () => {
-  logger.info('Received SIGTERM, shutting down gracefully');
-});
-
-// Uncaught exception handling
-process.on('uncaughtException', error => {
-  try {
-    logger.error('Uncaught Exception', { error: error.message, stack: error.stack });
-  } catch {
-    console.error('Uncaught Exception (logger unavailable):', error);
-  }
-  // eslint-disable-next-line no-process-exit
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  try {
-    logger.error('Unhandled Rejection', { reason, promise });
-  } catch {
-    console.error('Unhandled Rejection (logger unavailable):', reason);
-  }
-});
+// Process-level signal + exception handling is consolidated in src/index.ts
+// (it owns the graceful-shutdown drain). Registering duplicate handlers here
+// caused non-deterministic shutdown ordering, so they were removed. The
+// `console.error` fallbacks for an unavailable logger live at each call site
+// in index.ts's handlers.
 
 export default logger;

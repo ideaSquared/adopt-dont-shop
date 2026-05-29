@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import * as cmsController from '../controllers/cms.controller';
-import { authenticateToken, requireRole } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import { requireRole } from '../middleware/rbac';
+import { UserType } from '../models/User';
 import { handleValidationErrors } from '../middleware/validation';
 import { cmsValidation } from '../validation/cms.validation';
 
 const router = Router();
 
-const adminRoles = ['admin', 'super_admin'];
+const adminRoles = [UserType.ADMIN, UserType.SUPER_ADMIN] as const;
 
 // Public routes - published content only, no auth required
 router.get('/public/content', cmsController.listPublicContent);
@@ -16,7 +18,7 @@ router.get('/public/content/:slug', cmsController.getPublicContentBySlug);
 router.get(
   '/slug',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.generateSlug,
   handleValidationErrors,
   cmsController.generateSlug
@@ -27,7 +29,7 @@ router.get(
 router.get(
   '/content',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.listContent,
   handleValidationErrors,
   cmsController.listContent
@@ -36,7 +38,7 @@ router.get(
 router.post(
   '/content',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.createContent,
   handleValidationErrors,
   cmsController.createContent
@@ -45,7 +47,7 @@ router.post(
 router.get(
   '/content/slug/:slug',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.getContentBySlug,
   handleValidationErrors,
   cmsController.getContentBySlug
@@ -54,7 +56,7 @@ router.get(
 router.get(
   '/content/:contentId',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.getContent,
   handleValidationErrors,
   cmsController.getContent
@@ -63,7 +65,7 @@ router.get(
 router.put(
   '/content/:contentId',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.updateContent,
   handleValidationErrors,
   cmsController.updateContent
@@ -72,7 +74,7 @@ router.put(
 router.delete(
   '/content/:contentId',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.deleteContent,
   handleValidationErrors,
   cmsController.deleteContent
@@ -83,7 +85,7 @@ router.delete(
 router.post(
   '/content/:contentId/publish',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.publishContent,
   handleValidationErrors,
   cmsController.publishContent
@@ -92,7 +94,7 @@ router.post(
 router.post(
   '/content/:contentId/unpublish',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.unpublishContent,
   handleValidationErrors,
   cmsController.unpublishContent
@@ -101,7 +103,7 @@ router.post(
 router.post(
   '/content/:contentId/archive',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.archiveContent,
   handleValidationErrors,
   cmsController.archiveContent
@@ -112,7 +114,7 @@ router.post(
 router.get(
   '/content/:contentId/versions',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.getVersionHistory,
   handleValidationErrors,
   cmsController.getVersionHistory
@@ -121,7 +123,7 @@ router.get(
 router.post(
   '/content/:contentId/versions/:version/restore',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.restoreVersion,
   handleValidationErrors,
   cmsController.restoreVersion
@@ -132,7 +134,7 @@ router.post(
 router.get(
   '/menus',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.listMenus,
   handleValidationErrors,
   cmsController.listMenus
@@ -141,7 +143,7 @@ router.get(
 router.post(
   '/menus',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.createMenu,
   handleValidationErrors,
   cmsController.createMenu
@@ -150,7 +152,7 @@ router.post(
 router.get(
   '/menus/:menuId',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.getMenu,
   handleValidationErrors,
   cmsController.getMenu
@@ -159,7 +161,7 @@ router.get(
 router.put(
   '/menus/:menuId',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.updateMenu,
   handleValidationErrors,
   cmsController.updateMenu
@@ -168,7 +170,7 @@ router.put(
 router.delete(
   '/menus/:menuId',
   authenticateToken,
-  requireRole(adminRoles),
+  requireRole(...adminRoles),
   cmsValidation.deleteMenu,
   handleValidationErrors,
   cmsController.deleteMenu

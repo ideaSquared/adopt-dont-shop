@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
+import { captureException } from '@adopt-dont-shop/lib.observability';
 import * as styles from './ErrorBoundary.css';
 
 interface Props {
@@ -29,7 +30,15 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // ADS-406 / ADS-426: forward to Sentry. captureException no-ops when DSN absent.
+    captureException(error, {
+      app: 'client',
+      boundary: this.props.boundary ?? 'root',
+      componentStack: errorInfo.componentStack,
+    });
+    if (import.meta.env.DEV) {
+      console.error('ErrorBoundary caught an error:', error, errorInfo);
+    }
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }

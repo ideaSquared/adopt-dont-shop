@@ -63,7 +63,13 @@ export const SearchPage: React.FC = () => {
     });
   }, [trackPageView, trackEvent, logEvent, advancedFiltersEnabled]);
 
+  // Track the current in-flight request so stale responses are discarded when
+  // filters change rapidly. Each loadPets invocation gets a unique token; only
+  // the token matching the latest invocation is allowed to commit state.
+  const searchTokenRef = useRef(0);
+
   const loadPets = useCallback(async () => {
+    const token = ++searchTokenRef.current;
     setIsLoading(true);
     setError(null);
 
@@ -117,6 +123,13 @@ export const SearchPage: React.FC = () => {
       });
 
       const response = await petService.searchPets(searchFilters);
+
+      // Discard stale *success* responses: if a newer request has already
+      // started, don't overwrite the UI with outdated results.
+      if (token !== searchTokenRef.current) {
+        return;
+      }
+
       setPets(response.data || []);
       setPagination(response.pagination || null);
 
@@ -142,6 +155,9 @@ export const SearchPage: React.FC = () => {
         search_query: filterState.searchQuery || 'none',
       });
     } catch (err) {
+      // Errors always propagate regardless of staleness — the user must never
+      // be left in a silent broken state. Stale *successful* responses are
+      // discarded above so outdated results don't overwrite a newer fetch.
       console.error('Search error details:', err);
       setError('Something went wrong loading results. Please check your connection and try again.');
       setPets([]);

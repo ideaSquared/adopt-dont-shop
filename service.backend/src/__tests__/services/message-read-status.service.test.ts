@@ -19,6 +19,7 @@ vi.mock('../../models', () => ({
   Message: {
     findByPk: vi.fn(),
     findAll: vi.fn(),
+    count: vi.fn(),
   },
 }));
 
@@ -54,6 +55,7 @@ const MockedChatParticipant = ChatParticipant as unknown as {
 const MockedMessage = Message as unknown as {
   findByPk: ReturnType<typeof vi.fn>;
   findAll: ReturnType<typeof vi.fn>;
+  count: ReturnType<typeof vi.fn>;
 };
 const MockedAuditLog = AuditLogService.log as ReturnType<typeof vi.fn>;
 
@@ -132,8 +134,8 @@ describe('MessageReadStatusService', () => {
             true,
           ]);
 
-        // getUnreadCount uses Message.findAll
-        MockedMessage.findAll.mockResolvedValue([]);
+        // getUnreadCount uses Message.count
+        MockedMessage.count.mockResolvedValue(0);
 
         const result = await MessageReadStatusService.markMessageAsRead('msg-1', 'user-1');
 
@@ -156,7 +158,7 @@ describe('MessageReadStatusService', () => {
             { message_id: 'msg-1', user_id: 'user-1', read_at: new Date() } as MessageRead,
             true,
           ]);
-        MockedMessage.findAll.mockResolvedValue([]);
+        MockedMessage.count.mockResolvedValue(0);
 
         await MessageReadStatusService.markMessageAsRead('msg-1', 'user-1');
 
@@ -166,6 +168,9 @@ describe('MessageReadStatusService', () => {
             entity: 'MESSAGE',
             entityId: 'msg-1',
             userId: 'user-1',
+            // Audit write must be paired with the open transaction so it rolls
+            // back atomically with the read-status update.
+            transaction: expect.anything(),
           })
         );
 
@@ -191,7 +196,7 @@ describe('MessageReadStatusService', () => {
           // Second call: created = false (already exists)
           .mockResolvedValueOnce([existingRecord as unknown as MessageRead, false]);
 
-        MockedMessage.findAll.mockResolvedValue([]);
+        MockedMessage.count.mockResolvedValue(0);
 
         // Call twice
         await MessageReadStatusService.markMessageAsRead('msg-1', 'user-1');
@@ -322,33 +327,26 @@ describe('MessageReadStatusService', () => {
   // getUnreadCount
   // --------------------------------------------------------------------------
   describe('getUnreadCount', () => {
-    it('returns the correct number of unread messages (sender ≠ userId, no read record)', async () => {
-      MockedMessage.findAll.mockResolvedValue([
-        { message_id: 'msg-1', sender_id: 'other', Reads: [] },
-        { message_id: 'msg-2', sender_id: 'other', Reads: [] },
-        { message_id: 'msg-3', sender_id: 'other', Reads: [{ user_id: 'user-1' }] },
-      ]);
+    it('returns the unread count computed in SQL (no read record for the user)', async () => {
+      // The count is now aggregated by the database via a LEFT JOIN, so the
+      // service returns Message.count's result directly.
+      MockedMessage.count.mockResolvedValue(2);
 
       const count = await MessageReadStatusService.getUnreadCount('chat-1', 'user-1');
 
-      // msg-1 and msg-2 are unread; msg-3 has a read record
       expect(count).toBe(2);
+      expect(MockedMessage.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            chat_id: 'chat-1',
+            '$Reads.user_id$': null,
+          }),
+        })
+      );
     });
 
-    it('returns 0 for a chat with no messages', async () => {
-      MockedMessage.findAll.mockResolvedValue([]);
-
-      const count = await MessageReadStatusService.getUnreadCount('chat-1', 'user-1');
-
-      expect(count).toBe(0);
-    });
-
-    it('returns 0 after all messages have been marked read', async () => {
-      // Simulate: all messages have a read_status entry for the user
-      MockedMessage.findAll.mockResolvedValue([
-        { message_id: 'msg-1', sender_id: 'other', Reads: [{ user_id: 'user-1' }] },
-        { message_id: 'msg-2', sender_id: 'other', Reads: [{ user_id: 'user-1' }] },
-      ]);
+    it('returns 0 for a chat with no unread messages', async () => {
+      MockedMessage.count.mockResolvedValue(0);
 
       const count = await MessageReadStatusService.getUnreadCount('chat-1', 'user-1');
 
@@ -360,31 +358,13 @@ describe('MessageReadStatusService', () => {
   // getUnreadMessagesForUser
   // --------------------------------------------------------------------------
   describe('getUnreadMessagesForUser', () => {
-    it('returns an entry per chat with the correct unread count', async () => {
+    it('returns an entry per chat with the unread count aggregated in SQL', async () => {
       MockedChat.findAll.mockResolvedValue([{ chat_id: 'chat-1' }, { chat_id: 'chat-2' }]);
 
+      // The query now GROUPs BY chat_id and returns raw aggregate rows.
       MockedMessage.findAll.mockResolvedValue([
-        {
-          message_id: 'msg-1',
-          chat_id: 'chat-1',
-          sender_id: 'other',
-          Reads: [],
-          created_at: new Date(),
-        },
-        {
-          message_id: 'msg-2',
-          chat_id: 'chat-1',
-          sender_id: 'other',
-          Reads: [],
-          created_at: new Date(),
-        },
-        {
-          message_id: 'msg-3',
-          chat_id: 'chat-2',
-          sender_id: 'other',
-          Reads: [],
-          created_at: new Date(),
-        },
+        { chat_id: 'chat-1', unread_count: '2', last_message_time: new Date() },
+        { chat_id: 'chat-2', unread_count: '1', last_message_time: new Date() },
       ]);
 
       const results = await MessageReadStatusService.getUnreadMessagesForUser('user-1');
@@ -404,18 +384,13 @@ describe('MessageReadStatusService', () => {
       expect(results).toEqual([]);
     });
 
-    it('excludes chats where all messages are already read', async () => {
+    it('excludes chats with a zero unread count', async () => {
       MockedChat.findAll.mockResolvedValue([{ chat_id: 'chat-1' }]);
 
-      // All messages already have a read_status for user-1
+      // Fully-read chats are excluded by the `$Reads.user_id$ IS NULL` filter
+      // (they produce no aggregate row), and a zero count is filtered out too.
       MockedMessage.findAll.mockResolvedValue([
-        {
-          message_id: 'msg-1',
-          chat_id: 'chat-1',
-          sender_id: 'other',
-          Reads: [{ user_id: 'user-1' }],
-          created_at: new Date(),
-        },
+        { chat_id: 'chat-1', unread_count: '0', last_message_time: null },
       ]);
 
       const results = await MessageReadStatusService.getUnreadMessagesForUser('user-1');
@@ -458,12 +433,8 @@ describe('MessageReadStatusService', () => {
   // --------------------------------------------------------------------------
   describe('getChatReadStatistics', () => {
     it('returns correct total_messages, unread_messages, and read_percentage', async () => {
-      MockedMessage.findAll.mockResolvedValue([
-        { message_id: 'msg-1', sender_id: 'other', Reads: [{ user_id: 'user-1' }] },
-        { message_id: 'msg-2', sender_id: 'other', Reads: [] },
-        { message_id: 'msg-3', sender_id: 'other', Reads: [{ user_id: 'user-1' }] },
-        { message_id: 'msg-4', sender_id: 'other', Reads: [] },
-      ]);
+      // total count, then unread count — both computed in SQL.
+      MockedMessage.count.mockResolvedValueOnce(4).mockResolvedValueOnce(2);
 
       const findAllSpy = vi
         .spyOn(MessageRead, 'findAll')
@@ -479,10 +450,7 @@ describe('MessageReadStatusService', () => {
     });
 
     it('returns 0% read when none of the messages have been read', async () => {
-      MockedMessage.findAll.mockResolvedValue([
-        { message_id: 'msg-1', sender_id: 'other', Reads: [] },
-        { message_id: 'msg-2', sender_id: 'other', Reads: [] },
-      ]);
+      MockedMessage.count.mockResolvedValueOnce(2).mockResolvedValueOnce(2);
 
       const findAllSpy = vi.spyOn(MessageRead, 'findAll').mockResolvedValue([]);
 
@@ -495,10 +463,7 @@ describe('MessageReadStatusService', () => {
     });
 
     it('returns 100% read when all messages have been read', async () => {
-      MockedMessage.findAll.mockResolvedValue([
-        { message_id: 'msg-1', sender_id: 'other', Reads: [{ user_id: 'user-1' }] },
-        { message_id: 'msg-2', sender_id: 'other', Reads: [{ user_id: 'user-1' }] },
-      ]);
+      MockedMessage.count.mockResolvedValueOnce(2).mockResolvedValueOnce(0);
 
       const lastReadDate = new Date();
       const findAllSpy = vi
@@ -515,7 +480,7 @@ describe('MessageReadStatusService', () => {
     });
 
     it('returns 0% and no last_read_message_id for a chat with no messages', async () => {
-      MockedMessage.findAll.mockResolvedValue([]);
+      MockedMessage.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
 
       const findAllSpy = vi.spyOn(MessageRead, 'findAll').mockResolvedValue([]);
 

@@ -392,6 +392,36 @@ describe('RBAC Middleware', () => {
 
         expect(mockNext).toHaveBeenCalled();
       });
+
+      it('should allow ownership via a non-userId param matching the owning user id', () => {
+        mockRequest.user = {
+          userId: 'user-123',
+          userType: UserType.ADOPTER,
+          Roles: [],
+        } as unknown as AuthenticatedRequest['user'];
+        mockRequest.params = { ownerId: 'user-123' };
+
+        const middleware = requirePermissionOrOwnership('profiles:update', 'ownerId');
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+        expect(mockNext).toHaveBeenCalled();
+        expect(mockResponse.status).not.toHaveBeenCalled();
+      });
+
+      it('should reject a non-userId param that does not match the owning user id', () => {
+        mockRequest.user = {
+          userId: 'user-123',
+          userType: UserType.ADOPTER,
+          Roles: [],
+        } as unknown as AuthenticatedRequest['user'];
+        mockRequest.params = { ownerId: 'user-999' };
+
+        const middleware = requirePermissionOrOwnership('profiles:update', 'ownerId');
+        middleware(mockRequest as AuthenticatedRequest, mockResponse as Response, mockNext);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(403);
+        expect(mockNext).not.toHaveBeenCalled();
+      });
     });
 
     describe('when user lacks permission and does not own resource', () => {

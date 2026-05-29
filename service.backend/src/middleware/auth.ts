@@ -251,68 +251,6 @@ export const optionalAuth = optionalAuthMiddleware;
 export const authenticateOptionalToken = optionalAuthMiddleware;
 
 /**
- * Middleware to require specific roles
- */
-export const requireRole = (requiredRoles: string | string[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-    try {
-      if (!req.user) {
-        loggerHelpers.logSecurity(
-          'Role authorization failed - no user',
-          {
-            requiredRoles: Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles],
-            ip: req.ip,
-            url: req.path,
-          },
-          req
-        );
-        res.status(401).json({ error: 'Authentication required' });
-        return;
-      }
-
-      const roles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
-
-      // Check if user has unknown of the required roles
-      const userRoles = req.user.Roles?.map(role => role.name) || [];
-      const hasRequiredRole = roles.some(role => userRoles.includes(role));
-
-      if (!hasRequiredRole) {
-        loggerHelpers.logSecurity(
-          'Role authorization failed - insufficient permissions',
-          {
-            userId: req.user.userId,
-            userRoles,
-            requiredRoles: roles,
-            ip: req.ip,
-            url: req.path,
-          },
-          req
-        );
-        res.status(403).json({
-          error: `Access denied. Required roles: ${roles.join(', ')}`,
-        });
-        return;
-      }
-
-      logger.debug('Role authorization successful', {
-        userId: req.user.userId,
-        roles: userRoles,
-        requiredRoles: roles,
-      });
-
-      next();
-    } catch (error) {
-      logger.error('Role authorization error:', {
-        error: error instanceof Error ? error.message : String(error),
-        userId: req.user?.userId,
-        ip: req.ip,
-      });
-      res.status(403).json({ error: 'Authorization check failed' });
-    }
-  };
-};
-
-/**
  * Middleware to require email verification
  * Must be used after authenticateToken middleware
  * Prevents unverified users from accessing protected resources

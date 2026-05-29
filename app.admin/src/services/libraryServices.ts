@@ -1,32 +1,19 @@
-import { ApiService, AuthenticationError } from '@adopt-dont-shop/lib.api';
+// Use the shared lib.api singleton. AuthProvider from @adopt-dont-shop/lib.auth
+// registers onUnauthorized on this singleton via updateConfig(), which clears
+// React state, invalidates React Query cache, and shows the session-expired
+// toast. A separate ApiService instance would bypass all of that.
+import { apiService } from '@adopt-dont-shop/lib.api';
 
-// Create the global API service instance (tokens are in HttpOnly cookies)
-export const globalApiService = new ApiService({
+// Configure the singleton with the admin app's base URL.
+apiService.updateConfig({
   apiUrl: import.meta.env.VITE_API_BASE_URL ?? '',
   debug: import.meta.env.DEV,
 });
 
-// Add error interceptor for handling 401 responses
-globalApiService.interceptors.addErrorInterceptor((error: unknown) => {
-  if (
-    error instanceof AuthenticationError ||
-    (error as { response?: { status?: number } })?.response?.status === 401
-  ) {
-    // Clear non-sensitive user data
-    localStorage.removeItem('user');
-
-    // Redirect to login page
-    window.location.href = '/login';
-  }
-
-  throw error;
-});
-
 // Export the configured API service
-export const apiService = globalApiService;
-
-// Export additional API service alias for compatibility
-export const api = globalApiService;
+export const globalApiService = apiService;
+export { apiService };
+export const api = apiService;
 
 // Re-export types for convenience
 export type { User, AdminUser, UserType, UserStatus } from '../types/user';

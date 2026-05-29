@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Card, Container, Heading, Text } from '@adopt-dont-shop/lib.components';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { useAuth, STORAGE_KEYS } from '@adopt-dont-shop/lib.auth';
 import { useDashboardData } from '../hooks';
 import { UnreadMessagesPanel } from '../components/dashboard/UnreadMessagesPanel';
 import { DashboardSkeleton } from '../components/skeletons';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
+import { apiService } from '../services/libraryServices';
 import * as styles from './Dashboard.css';
 
 const Dashboard: React.FC = () => {
@@ -42,7 +43,12 @@ const Dashboard: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  localStorage.clear();
+                  // Clear only auth-related keys rather than all localStorage,
+                  // to avoid wiping unrelated user preferences (theme, etc.).
+                  localStorage.removeItem(STORAGE_KEYS.USER);
+                  localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+                  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+                  apiService.clearCsrfToken();
                   window.location.reload();
                 }}
                 className={styles.clearAuthButton}

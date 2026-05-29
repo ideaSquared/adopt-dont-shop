@@ -1,4 +1,4 @@
-import { Op, QueryTypes } from 'sequelize';
+import { fn, literal, Op, QueryTypes } from 'sequelize';
 import Application from '../models/Application';
 import AuditLog from '../models/AuditLog';
 import Chat from '../models/Chat';
@@ -337,24 +337,31 @@ export class AnalyticsService {
 
       const adoptionRate = totalApplications > 0 ? (totalAdoptions / totalApplications) * 100 : 0;
 
-      // Calculate average time to adoption
-      const adoptedApplications = await Application.findAll({
+      // Calculate average time to adoption in SQL. AVG(EXTRACT(EPOCH ...))
+      // returns the mean approve duration in seconds, which we convert to
+      // days — computing this in Postgres avoids loading every approved
+      // application row into Node just to average it.
+      const avgRow = await Application.findOne({
         where: {
           ...whereConditions,
           status: 'approved',
           updatedAt: { [Op.not]: null } as unknown as Date,
         },
-        attributes: ['createdAt', 'updatedAt'],
+        attributes: [
+          [fn('AVG', literal('EXTRACT(EPOCH FROM updated_at - created_at)')), 'avgSeconds'],
+        ],
+        raw: true,
       });
 
-      const avgTimeToAdoption =
-        adoptedApplications.length > 0
-          ? adoptedApplications.reduce((sum, app) => {
-              const adoptionTime =
-                new Date(app.updatedAt!).getTime() - new Date(app.createdAt).getTime();
-              return sum + adoptionTime / (1000 * 60 * 60 * 24); // Convert to days
-            }, 0) / adoptedApplications.length
-          : 0;
+      const avgSecondsRaw = (avgRow as unknown as { avgSeconds: number | string | null } | null)
+        ?.avgSeconds;
+      const avgSeconds =
+        avgSecondsRaw === null || avgSecondsRaw === undefined
+          ? 0
+          : typeof avgSecondsRaw === 'string'
+            ? parseFloat(avgSecondsRaw)
+            : avgSecondsRaw;
+      const avgTimeToAdoption = avgSeconds / (60 * 60 * 24); // Convert seconds to days
 
       // Get popular pet types from adopted pets
       const popularPetTypes = (await sequelize.query(
@@ -746,24 +753,31 @@ export class AnalyticsService {
         count: parseInt(String(row.count || '0')),
       }));
 
-      // Calculate processing time for completed applications
-      const completedApplications = await Application.findAll({
+      // Calculate processing time for completed applications in SQL.
+      // AVG(EXTRACT(EPOCH ...)) yields the mean duration in seconds, which we
+      // convert to hours — avoids loading every completed application row.
+      const processingRow = await Application.findOne({
         where: {
           ...whereConditions,
           status: { [Op.in]: ['approved', 'rejected'] },
           updatedAt: { [Op.not]: null } as unknown as Date,
         },
-        attributes: ['createdAt', 'updatedAt'],
+        attributes: [
+          [fn('AVG', literal('EXTRACT(EPOCH FROM updated_at - created_at)')), 'avgSeconds'],
+        ],
+        raw: true,
       });
 
-      const avgProcessingTime =
-        completedApplications.length > 0
-          ? completedApplications.reduce((sum, app) => {
-              const processingTime =
-                new Date(app.updatedAt!).getTime() - new Date(app.createdAt).getTime();
-              return sum + processingTime / (1000 * 60 * 60); // Convert to hours
-            }, 0) / completedApplications.length
-          : 0;
+      const processingSecondsRaw = (
+        processingRow as unknown as { avgSeconds: number | string | null } | null
+      )?.avgSeconds;
+      const processingSeconds =
+        processingSecondsRaw === null || processingSecondsRaw === undefined
+          ? 0
+          : typeof processingSecondsRaw === 'string'
+            ? parseFloat(processingSecondsRaw)
+            : processingSecondsRaw;
+      const avgProcessingTime = processingSeconds / (60 * 60); // Convert seconds to hours
 
       loggerHelpers.logPerformance('Application Metrics', {
         duration: Date.now() - startTime,

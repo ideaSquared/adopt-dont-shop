@@ -37,7 +37,7 @@ vi.mock('../../models/Notification', () => ({
 
 vi.mock('../../models/User', () => ({
   __esModule: true,
-  default: { findByPk: vi.fn() },
+  default: { findAll: vi.fn() },
   UserStatus: {
     ACTIVE: 'active',
     INACTIVE: 'inactive',
@@ -82,10 +82,9 @@ describe('runMatchDigest recipient re-verification', () => {
   it('notifies when the profile owner is an active user', async () => {
     const profile = buildProfile();
     (AdopterMatchProfile.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([profile]);
-    (User.findByPk as ReturnType<typeof vi.fn>).mockResolvedValue({
-      userId: 'user-1',
-      status: UserStatus.ACTIVE,
-    });
+    (User.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { userId: 'user-1', status: UserStatus.ACTIVE },
+    ]);
     (Pet.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([{ petId: 'pet-1', name: 'Rex' }]);
     (matchService.rankPets as ReturnType<typeof vi.fn>).mockResolvedValue([
       { petId: 'pet-1', score: 0.9 },
@@ -100,7 +99,8 @@ describe('runMatchDigest recipient re-verification', () => {
   it('skips notification when the profile owner has been deleted', async () => {
     const profile = buildProfile();
     (AdopterMatchProfile.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([profile]);
-    (User.findByPk as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    // Deleted user — absent from the batched recipient lookup.
+    (User.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     const result = await runMatchDigest();
 
@@ -111,10 +111,9 @@ describe('runMatchDigest recipient re-verification', () => {
   it('skips notification when the profile owner is suspended', async () => {
     const profile = buildProfile();
     (AdopterMatchProfile.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([profile]);
-    (User.findByPk as ReturnType<typeof vi.fn>).mockResolvedValue({
-      userId: 'user-1',
-      status: UserStatus.SUSPENDED,
-    });
+    (User.findAll as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { userId: 'user-1', status: UserStatus.SUSPENDED },
+    ]);
 
     const result = await runMatchDigest();
 

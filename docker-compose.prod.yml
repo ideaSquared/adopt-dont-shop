@@ -67,6 +67,11 @@ services:
     volumes:
       - redis_data:/data
     command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required in production}"
+    # REDIS_PASSWORD must be in the container env (not just interpolated into
+    # `command`) so the healthcheck's `redis-cli -a "$$REDIS_PASSWORD"` can
+    # authenticate — without it the check gets NOAUTH and never goes healthy.
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     # Healthcheck so dependent services can wait for service_healthy. Without
     # this the backend may start before Redis is ready and crash on first
     # connection. [ADS-431]
@@ -90,7 +95,7 @@ services:
   # before the backend starts. Skipping this leaves the running service hitting
   # a stale schema on every release. [ADS-393]
   service-backend-migrate:
-    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:-latest}
+    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
     container_name: ads_prod_backend_migrate
     restart: 'no'
     command: ['node', 'dist/migrations/runner.js', 'up']
@@ -120,7 +125,7 @@ services:
 
   # Backend Service - Production
   service-backend:
-    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:-latest}
+    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
     container_name: ads_prod_backend
     restart: always
     environment:
@@ -130,7 +135,8 @@ services:
       DB_HOST: database
       DB_PORT: 5432
       DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
-      DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
+      # DB_PASSWORD is provided via the db_password Docker secret (/run/secrets/db_password);
+      # readSecretOrEnv() reads the file first. [ADS-675]
       PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
       DB_POOL_MAX: ${DB_POOL_MAX:-20}
       DB_POOL_MIN: ${DB_POOL_MIN:-5}
@@ -141,13 +147,11 @@ services:
       # Redis - NO DEFAULTS
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: "${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}"
-      # Security - REQUIRED
-      JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET required}"
-      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}"
-      SESSION_SECRET: "${SESSION_SECRET:?Error: SESSION_SECRET required}"
-      CSRF_SECRET: "${CSRF_SECRET:?Error: CSRF_SECRET required}"
-      ENCRYPTION_KEY: "${ENCRYPTION_KEY:?Error: ENCRYPTION_KEY required}"
+      # REDIS_PASSWORD / JWT_SECRET / JWT_REFRESH_SECRET / SESSION_SECRET /
+      # CSRF_SECRET / ENCRYPTION_KEY are provided via Docker secrets mounted at
+      # /run/secrets/<name>; the backend reads them via readSecretOrEnv(). Do
+      # not duplicate them as plaintext env vars — secrets files take priority
+      # and plaintext would be visible in `docker inspect`. [ADS-675]
       # URLs
       API_URL: "${API_URL:?Error: API_URL required}"
       CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required}"
@@ -226,7 +230,7 @@ services:
 
   # Frontend Apps - Production
   app-admin:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${DEPLOY_SHA:-latest}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
     container_name: ads_prod_admin
     restart: always
     volumes: []  # No volumes in production
@@ -252,7 +256,7 @@ services:
           memory: 64m
 
   app-client:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${DEPLOY_SHA:-latest}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
     container_name: ads_prod_client
     restart: always
     volumes: []  # No volumes in production
@@ -278,7 +282,7 @@ services:
           memory: 64m
 
   app-rescue:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${DEPLOY_SHA:-latest}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
     container_name: ads_prod_rescue
     restart: always
     volumes: []  # No volumes in production

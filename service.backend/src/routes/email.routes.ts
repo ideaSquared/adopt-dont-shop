@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import * as emailController from '../controllers/email.controller';
-import { authenticateToken, requireRole } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import { requireRole } from '../middleware/rbac';
+import { UserType } from '../models/User';
 import { handleValidationErrors } from '../middleware/validation';
 import { emailValidation } from '../validation/email.validation';
 
@@ -69,7 +71,7 @@ const router = Router();
 router.get(
   '/templates',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.getTemplates,
   handleValidationErrors,
   emailController.getTemplates
@@ -150,7 +152,7 @@ router.get(
 router.post(
   '/templates',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.createTemplate,
   handleValidationErrors,
   emailController.createTemplate
@@ -222,7 +224,7 @@ router.post(
 router.get(
   '/templates/:templateId',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.getTemplateById,
   handleValidationErrors,
   emailController.getTemplate
@@ -294,7 +296,7 @@ router.get(
 router.put(
   '/templates/:templateId',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.updateTemplate,
   handleValidationErrors,
   emailController.updateTemplate
@@ -341,7 +343,7 @@ router.put(
 router.delete(
   '/templates/:templateId',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.deleteTemplate,
   handleValidationErrors,
   emailController.deleteTemplate
@@ -410,7 +412,7 @@ router.delete(
 router.post(
   '/templates/:templateId/preview',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.previewTemplate,
   handleValidationErrors,
   emailController.previewTemplate
@@ -482,7 +484,7 @@ router.post(
 router.post(
   '/templates/:templateId/test',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.sendTestEmail,
   handleValidationErrors,
   emailController.sendTestEmail
@@ -565,7 +567,7 @@ router.post(
 router.post(
   '/send',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN', 'RESCUE_STAFF']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN, UserType.RESCUE_STAFF),
   emailValidation.sendEmail,
   handleValidationErrors,
   emailController.sendEmail
@@ -649,7 +651,7 @@ router.post(
 router.post(
   '/send/bulk',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.sendBulkEmail,
   handleValidationErrors,
   emailController.sendBulkEmail
@@ -754,7 +756,7 @@ router.post(
 router.get(
   '/queue',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.getQueueStatus,
   handleValidationErrors,
   emailController.getQueueStatus
@@ -813,7 +815,7 @@ router.get(
 router.post(
   '/queue/process',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.processQueue,
   handleValidationErrors,
   emailController.processQueue
@@ -871,7 +873,7 @@ router.post(
 router.post(
   '/queue/retry',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.retryFailedEmails,
   handleValidationErrors,
   emailController.retryFailedEmails
@@ -1010,7 +1012,7 @@ router.post(
 router.get(
   '/analytics',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.getEmailAnalytics,
   handleValidationErrors,
   emailController.getEmailAnalytics
@@ -1139,7 +1141,7 @@ router.get(
 router.get(
   '/analytics/:templateId',
   authenticateToken,
-  requireRole(['ADMIN', 'SUPER_ADMIN']),
+  requireRole(UserType.ADMIN, UserType.SUPER_ADMIN),
   emailValidation.getTemplateAnalytics,
   handleValidationErrors,
   emailController.getTemplateAnalytics

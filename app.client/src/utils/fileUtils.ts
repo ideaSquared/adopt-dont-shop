@@ -37,8 +37,10 @@ export const resolveFileUrl = (url: string | undefined): string | undefined => {
     return undefined;
   }
 
-  // Get the backend base URL from environment variables
-  const backendBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://api.localhost';
+  // Get the backend base URL from environment variables. Fall back to an empty
+  // string (same-origin / relative URLs) rather than a hardcoded host so that
+  // production builds without VITE_API_BASE_URL still resolve images correctly.
+  const backendBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
   // If it's a relative path starting with '/', prepend the base URL
   if (url.startsWith('/')) {

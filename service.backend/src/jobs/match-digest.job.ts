@@ -73,14 +73,25 @@ export const runMatchDigest = async (): Promise<{ scanned: number; notified: num
     where: { notify_new_matches: true },
   });
 
+  // Batch the recipient lookups into a single query instead of one
+  // User.findByPk per profile (N+1). We still need to re-verify each
+  // recipient still exists and is ACTIVE — the `notify_new_matches=true`
+  // WHERE clause doesn't join through User.status, so a suspended/deleted
+  // user with a stale profile would otherwise still get notified.
+  const userIds = [...new Set(profiles.map(p => p.user_id))];
+  const recipients =
+    userIds.length === 0
+      ? []
+      : await User.findAll({
+          where: { userId: { [Op.in]: userIds } },
+          attributes: ['userId', 'status'],
+        });
+  const recipientById = new Map(recipients.map(u => [u.userId, u]));
+
   let notified = 0;
   for (const profile of profiles) {
     try {
-      // Defense-in-depth: re-verify the recipient User still exists
-      // and is ACTIVE. The `notify_new_matches=true` WHERE clause
-      // doesn't join through User.status, so a suspended/deleted user
-      // with a stale profile would otherwise still get notifications.
-      const recipient = await User.findByPk(profile.user_id);
+      const recipient = recipientById.get(profile.user_id);
       if (!recipient || recipient.status !== UserStatus.ACTIVE) {
         logger.warn('match-digest: skipping — recipient missing or inactive', {
           userId: profile.user_id,

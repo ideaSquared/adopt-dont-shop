@@ -17,6 +17,7 @@ import { EmailLinkType, resolveEmailLinkBase } from '../utils/email-url';
 import { AuditLogService } from './auditLog.service';
 import { redactEmail } from './redact';
 import { env } from '../config/env';
+import { config } from '../config';
 import {
   BadRequestError,
   NotFoundError,
@@ -40,8 +41,8 @@ import { JsonObject } from '../types/common';
 export class AuthService {
   private static readonly JWT_SECRET = env.JWT_SECRET;
   private static readonly JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
-  private static readonly JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
-  private static readonly JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '3d';
+  private static readonly JWT_EXPIRES_IN = config.jwt.expiresIn;
+  private static readonly JWT_REFRESH_EXPIRES_IN = config.jwt.refreshExpiresIn;
 
   static async register(userData: RegisterData): Promise<RegisterResponse> {
     const genericMessage = 'Registration request received. Check your email to continue.';
@@ -53,7 +54,9 @@ export class AuthService {
         // Send an out-of-band "you already have an account" email so the
         // legitimate owner can recover, then return the same generic shape as
         // a fresh registration — this prevents account enumeration (ADS-541).
-        void this.sendAccountExistsEmail(existingUser.email);
+        void this.sendAccountExistsEmail(existingUser.email).catch(err =>
+          logger.warn('account-exists email failed', { err })
+        );
         return { message: genericMessage };
       }
 

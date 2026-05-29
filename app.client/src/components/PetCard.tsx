@@ -219,6 +219,9 @@ export const PetCard: React.FC<PetCardProps> = ({
             className={styles.favoriteButton}
             onClick={handleFavoriteClick}
             style={{ color: isFavorite ? '#ff6b6b' : '#ccc' }}
+            aria-label={
+              isFavorite ? `Remove ${pet.name} from favorites` : `Add ${pet.name} to favorites`
+            }
           >
             {isFavorite ? <MdFavorite size={24} /> : <MdFavoriteBorder size={24} />}
           </button>

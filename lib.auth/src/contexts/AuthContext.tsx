@@ -137,7 +137,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           }
         }
       } catch (error) {
-        console.error('Failed to initialize auth:', error);
+        if (import.meta.env?.DEV) {
+          console.error('Failed to initialize auth:', error);
+        }
         // Clear invalid auth data only if we're not in dev mode with a dev user
         if (!import.meta.env?.DEV || !localStorage.getItem('dev_user')) {
           await authService.logout();
@@ -258,7 +260,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
       initializeForAuthenticatedUser(response.user);
     } catch (error) {
-      console.error('Login error:', error);
+      if (import.meta.env?.DEV) {
+        console.error('Login error:', error);
+      }
       setUser(null);
 
       onAuthEvent?.('auth_login_failed', {
@@ -336,7 +340,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         }
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      if (import.meta.env?.DEV) {
+        console.error('Logout error:', error);
+      }
 
       if (currentUserId) {
         onAuthEvent?.('auth_logout_failed', {
@@ -368,7 +374,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       try {
         onLogout?.();
       } catch (cleanupError) {
-        console.error('onLogout handler threw:', cleanupError);
+        if (import.meta.env?.DEV) {
+          console.error('onLogout handler threw:', cleanupError);
+        }
       }
       setIsLoading(false);
     }
@@ -414,7 +422,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         await logout();
       }
     } catch (error) {
-      console.error('Failed to refresh user:', error);
+      if (import.meta.env?.DEV) {
+        console.error('Failed to refresh user:', error);
+      }
       // If refresh fails, logout user (but not dev users)
       if (!import.meta.env?.DEV || !localStorage.getItem('dev_user')) {
         await logout();

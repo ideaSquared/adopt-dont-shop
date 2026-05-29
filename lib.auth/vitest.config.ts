@@ -10,6 +10,16 @@ export default mergeConfig(
     test: {
       name: 'lib.auth',
       setupFiles: ['./src/setupTests.ts'],
+      coverage: {
+        // ADS-717: ratcheted to measured baseline (2026-05-29).
+        // Measured: statements=52.25 branches=40.74 functions=55.55 lines=51.83
+        thresholds: {
+          statements: 51,
+          branches: 39,
+          functions: 54,
+          lines: 50,
+        },
+      },
     },
     resolve: {
       alias: {

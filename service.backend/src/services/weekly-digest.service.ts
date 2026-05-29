@@ -30,6 +30,11 @@ import { NotificationService } from './notification.service';
 export const NEW_MATCHES_LIMIT = 3;
 export const STILL_WAITING_LIMIT = 2;
 export const NEW_MATCHES_LOOKBACK_DAYS = 7;
+// Cap the favourites we scan per user. We only surface STILL_WAITING_LIMIT
+// pets, but some favourites get filtered out (already applied / no longer
+// available), so we look at a bounded window of the oldest favourites rather
+// than loading a power-user's entire favourites list into memory.
+export const STILL_WAITING_SCAN_LIMIT = 50;
 
 export type DigestPetSummary = {
   petId: string;
@@ -87,6 +92,7 @@ const fetchStillWaiting = async (userId: string): Promise<Pet[]> => {
   const favorites = await UserFavorite.findAll({
     where: { userId },
     order: [['createdAt', 'ASC']],
+    limit: STILL_WAITING_SCAN_LIMIT,
   });
 
   if (favorites.length === 0) {
@@ -190,26 +196,45 @@ export const sendWeeklyDigestForUser = async (userId: string): Promise<boolean> 
   return true;
 };
 
-export const runWeeklyDigest = async (): Promise<{ scanned: number; sent: number }> => {
-  const users = await User.findAll({
-    where: { status: UserStatus.ACTIVE },
-    attributes: ['userId'],
-  });
+// Active users are paged through in batches rather than loaded all at once —
+// the cohort grows unbounded over the platform's lifetime, so a single
+// findAll would eventually exhaust Node's heap.
+export const RUN_BATCH_SIZE = 500;
 
+export const runWeeklyDigest = async (): Promise<{ scanned: number; sent: number }> => {
+  let scanned = 0;
   let sent = 0;
-  for (const user of users) {
-    try {
-      const delivered = await sendWeeklyDigestForUser(user.userId);
-      if (delivered) {
-        sent += 1;
+  let offset = 0;
+
+  for (;;) {
+    const users = await User.findAll({
+      where: { status: UserStatus.ACTIVE },
+      attributes: ['userId'],
+      order: [['userId', 'ASC']],
+      limit: RUN_BATCH_SIZE,
+      offset,
+    });
+
+    for (const user of users) {
+      scanned += 1;
+      try {
+        const delivered = await sendWeeklyDigestForUser(user.userId);
+        if (delivered) {
+          sent += 1;
+        }
+      } catch (err) {
+        logger.warn('weekly digest failed for user', {
+          userId: user.userId,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
-    } catch (err) {
-      logger.warn('weekly digest failed for user', {
-        userId: user.userId,
-        error: err instanceof Error ? err.message : String(err),
-      });
     }
+
+    if (users.length < RUN_BATCH_SIZE) {
+      break;
+    }
+    offset += RUN_BATCH_SIZE;
   }
 
-  return { scanned: users.length, sent };
+  return { scanned, sent };
 };

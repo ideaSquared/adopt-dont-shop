@@ -931,4 +931,46 @@ describe('ApiService', () => {
       expect(csrfTokenCalls).toHaveLength(2);
     });
   });
+
+  describe('getBaseUrl (Node.js environment)', () => {
+    const originalWindow = global.window;
+
+    beforeEach(() => {
+      // Simulate a non-browser (Node.js) environment by removing window.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (global as any).window = undefined;
+    });
+
+    afterEach(() => {
+      global.window = originalWindow;
+      delete process.env.API_BASE_URL;
+    });
+
+    it('returns the API_BASE_URL env var in Node.js development', () => {
+      process.env.NODE_ENV = 'development';
+      process.env.API_BASE_URL = 'http://localhost:3000';
+      const service = new ApiService();
+      expect(service.getConfig().apiUrl).toBe('http://localhost:3000');
+    });
+
+    it('returns empty string in Node.js development when API_BASE_URL is unset', () => {
+      process.env.NODE_ENV = 'development';
+      delete process.env.API_BASE_URL;
+      const service = new ApiService();
+      expect(service.getConfig().apiUrl).toBe('');
+    });
+
+    it('throws when NODE_ENV is production and API_BASE_URL is unset', () => {
+      process.env.NODE_ENV = 'production';
+      delete process.env.API_BASE_URL;
+      expect(() => new ApiService()).toThrow(/API_BASE_URL/);
+    });
+
+    it('returns API_BASE_URL in Node.js production when the env var is set', () => {
+      process.env.NODE_ENV = 'production';
+      process.env.API_BASE_URL = 'https://api.example.com';
+      const service = new ApiService();
+      expect(service.getConfig().apiUrl).toBe('https://api.example.com');
+    });
+  });
 });

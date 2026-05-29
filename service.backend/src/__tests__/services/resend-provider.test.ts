@@ -173,6 +173,22 @@ describe('ResendProvider', () => {
       expect(result.messageId).toBeUndefined();
     });
 
+    it('returns failure (rather than hanging) when the Resend send never settles', async () => {
+      vi.useFakeTimers();
+      // A send that never resolves — without the per-call timeout this would
+      // stall the email queue processor indefinitely.
+      mockEmailsSend.mockReturnValue(new Promise(() => {}));
+
+      const sendPromise = provider.send(buildEmail());
+      await vi.advanceTimersByTimeAsync(10_000);
+      const result = await sendPromise;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('timeout');
+
+      vi.useRealTimers();
+    });
+
     it('strips CRLF injection attempts from header fields before sending', async () => {
       mockEmailsSend.mockResolvedValue({ data: { id: 'resend_msg_006' }, error: null });
 

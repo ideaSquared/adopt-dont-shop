@@ -97,11 +97,14 @@ export const requirePermissionOrOwnership = (
       return;
     }
 
-    // If no permission, check ownership
+    // If no permission, check ownership. The configured `resourceIdParam`
+    // names the route param that carries the owning user's id (e.g. 'userId',
+    // 'ownerId'); compare it generically so ownership works for any param,
+    // not just a hardcoded 'userId'.
     const resourceId = req.params[resourceIdParam];
     const userId = req.user.userId;
 
-    if (resourceIdParam === 'userId' && resourceId === userId) {
+    if (resourceId && resourceId === userId) {
       next();
       return;
     }

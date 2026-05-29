@@ -117,9 +117,9 @@ export const resolveDbSslMode = (
     );
   }
   const mode =
-    (trimmed as DbSslMode | undefined) ?? (nodeEnv === 'production' ? 'require' : 'disable');
+    (trimmed as DbSslMode | undefined) ?? (isProductionLike(nodeEnv) ? 'require' : 'disable');
 
-  if (nodeEnv === 'production' && mode === 'disable' && allowInsecure !== 'true') {
+  if (isProductionLike(nodeEnv) && mode === 'disable' && allowInsecure !== 'true') {
     throw new Error(
       'DB_SSL_MODE=disable is not allowed in production. Set DB_SSL_MODE to require/verify-ca/verify-full, ' +
         'or explicitly opt out by setting ALLOW_INSECURE_DB=true (only safe on a fully trusted network).'
@@ -176,7 +176,10 @@ const validateEnv = (): ValidatedEnv => {
   // in production so a JWT_SECRET disclosure cannot be used to forge signed
   // upload URLs (and vice versa). In dev/test we fall back to a deterministic
   // placeholder if unset, so existing local setups still boot.
-  const isProduction = process.env.NODE_ENV === 'production';
+  // Route through isProductionLike() so staging (or a 'prod'/'PRODUCTION'
+  // casing) doesn't silently fall back to the JWT-derived dev placedholder
+  // placeholder for the upload-signing secret.
+  const isProduction = isProductionLike(process.env.NODE_ENV);
   if (!uploadSigningSecret && isProduction) {
     missing.push('UPLOAD_SIGNING_SECRET');
   }
@@ -220,6 +223,14 @@ const validateEnv = (): ValidatedEnv => {
       );
     } else if (!/^[0-9a-f]+$/i.test(encryptionKey)) {
       invalid.push('ENCRYPTION_KEY must be hex (0-9, a-f)');
+    } else if (/^(.)\1*$/.test(encryptionKey)) {
+      // Reject trivially weak keys (all-zeros, all-f's, any single repeated
+      // hex digit). A correct-length, valid-hex but uniform key provides no
+      // real entropy and would silently weaken AES-256 to a guessable key.
+      invalid.push(
+        'ENCRYPTION_KEY is trivially weak (all identical hex characters). ' +
+          "Generate a random key with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+      );
     }
   }
 
