@@ -241,6 +241,20 @@ COPY --from=build /app/${APP_NAME}/dist /usr/share/nginx/html
 RUN find / -xdev -perm -4000 -exec chmod -s {} + 2>/dev/null || true && \
     find / -xdev -perm -2000 -exec chmod -s {} + 2>/dev/null || true
 
+# Shared security-header snippet — included by the server block AND by every
+# location block that uses its own `add_header` (e.g. static assets,
+# /health). Without this include, nginx's add_header inheritance rule
+# silently drops the server-level CSP/HSTS/etc. on those responses. [ADS-693]
+RUN echo 'add_header X-Frame-Options "SAMEORIGIN" always; \
+add_header X-Content-Type-Options "nosniff" always; \
+add_header X-XSS-Protection "1; mode=block" always; \
+add_header Referrer-Policy "strict-origin-when-cross-origin" always; \
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always; \
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always; \
+# CSP without unsafe-inline / unsafe-eval on script-src. style-src keeps \
+# unsafe-inline only because styled-components injects runtime styles. [ADS-434] \
+add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"'; style-src '"'"'self'"'"' '"'"'unsafe-inline'"'"'; img-src '"'"'self'"'"' data: https:; font-src '"'"'self'"'"' data:; connect-src '"'"'self'"'"' wss: https:; frame-ancestors '"'"'none'"'"'; object-src '"'"'none'"'"'; base-uri '"'"'self'"'"'; form-action '"'"'self'"'"'; upgrade-insecure-requests" always;' > /etc/nginx/security-headers.conf
+
 # Create optimized nginx config for SPA with security headers
 RUN echo 'events { \
     worker_connections 1024; \
@@ -272,17 +286,10 @@ http { \
         root /usr/share/nginx/html; \
         index index.html; \
         \
-        # Security headers (OWASP recommendations + ADS-353 CSP/HSTS) \
-        add_header X-Frame-Options "SAMEORIGIN" always; \
-        add_header X-Content-Type-Options "nosniff" always; \
-        add_header X-XSS-Protection "1; mode=block" always; \
-        add_header Referrer-Policy "strict-origin-when-cross-origin" always; \
-        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always; \
-        add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always; \
-        # CSP without unsafe-inline / unsafe-eval on script-src. style-src \
-        # keeps unsafe-inline only because styled-components injects runtime \
-        # styles. [ADS-434] \
-        add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"'; style-src '"'"'self'"'"' '"'"'unsafe-inline'"'"'; img-src '"'"'self'"'"' data: https:; font-src '"'"'self'"'"' data:; connect-src '"'"'self'"'"' wss: https:; frame-ancestors '"'"'none'"'"'; object-src '"'"'none'"'"'; base-uri '"'"'self'"'"'; form-action '"'"'self'"'"'; upgrade-insecure-requests" always; \
+        # Security headers (OWASP recommendations + ADS-353 CSP/HSTS) — see \
+        # /etc/nginx/security-headers.conf. Re-included in every location \
+        # block that uses add_header so headers are not stripped. [ADS-693] \
+        include /etc/nginx/security-headers.conf; \
         \
         # SPA routing - all routes to index.html \
         location / { \
@@ -293,6 +300,7 @@ http { \
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|webp|avif)$ { \
             expires 1y; \
             add_header Cache-Control "public, immutable"; \
+            include /etc/nginx/security-headers.conf; \
             access_log off; \
         } \
         \
@@ -301,6 +309,7 @@ http { \
             access_log off; \
             return 200 "healthy\n"; \
             add_header Content-Type text/plain; \
+            include /etc/nginx/security-headers.conf; \
         } \
     } \
 }' > /etc/nginx/nginx.conf

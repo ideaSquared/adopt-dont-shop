@@ -313,6 +313,10 @@ services:
     restart: always
     volumes:
       - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      # ADS-693: shared security-header snippet — included by every server
+      # block AND every location block that uses `add_header`, so per-location
+      # Cache-Control directives don't strip server-level CSP/HSTS/etc.
+      - ./nginx/security-headers.conf:/etc/nginx/security-headers.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       # Let's Encrypt certificates (if using)
       - letsencrypt:/etc/letsencrypt:ro
