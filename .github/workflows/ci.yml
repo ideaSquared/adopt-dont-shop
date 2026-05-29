@@ -288,8 +288,8 @@ jobs:
         run: npm run lint
         working-directory: ${{ matrix.app }}
 
-      - name: Test
-        run: npm test
+      - name: Test (with coverage thresholds)
+        run: npm run test:coverage
         working-directory: ${{ matrix.app }}
 
       - name: Type check
@@ -341,7 +341,7 @@ jobs:
           name: lib-dist
 
       - name: Lint, test and type-check all libraries
-        run: npx turbo run lint test type-check --filter='@adopt-dont-shop/lib.*'
+        run: npx turbo run lint test:coverage type-check --filter='@adopt-dont-shop/lib.*'
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         if: always()
