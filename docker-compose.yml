@@ -44,6 +44,12 @@ services:
     volumes:
       - redis_data:/data
     command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required (run `npm run secrets:generate` or copy .env.example)}"
+    # REDIS_PASSWORD must be in the container env (not just interpolated into
+    # `command`) so the healthcheck's `redis-cli -a "$$REDIS_PASSWORD"` can
+    # authenticate — otherwise it gets NOAUTH, never reports healthy, and
+    # dependents gated on `service_healthy` fail to start.
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     healthcheck:
       test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" ping | grep -q PONG']
       interval: 10s

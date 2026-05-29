@@ -67,6 +67,11 @@ services:
     volumes:
       - redis_data:/data
     command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required in production}"
+    # REDIS_PASSWORD must be in the container env (not just interpolated into
+    # `command`) so the healthcheck's `redis-cli -a "$$REDIS_PASSWORD"` can
+    # authenticate — without it the check gets NOAUTH and never goes healthy.
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     # Healthcheck so dependent services can wait for service_healthy. Without
     # this the backend may start before Redis is ready and crash on first
     # connection. [ADS-431]
