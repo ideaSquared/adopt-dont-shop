@@ -709,7 +709,17 @@ export class SocketHandlers {
         }
         const { messageId, emoji, chatId } = parsed.data;
 
-        await ChatService.addMessageReaction(messageId, socket.userId!, emoji);
+        // Authorise against the client-supplied chatId before doing any
+        // work, matching every other chat handler. Without this a JWT
+        // holder could mutate/broadcast reactions on a chat they are not
+        // a participant of.
+        await this.requireChatAccess(socket, chatId);
+
+        const message = await ChatService.addMessageReaction(messageId, socket.userId!, emoji);
+        // Broadcast to the message's REAL chat room rather than trusting
+        // the payload chatId, so reactor user_ids never leak into a room
+        // the message does not belong to.
+        const broadcastChatId = message.chat_id;
         // Reactions live in message_reactions (plan 2.1) — refetch the
         // current list so the broadcast carries an authoritative snapshot.
         const reactions = await MessageReaction.findAll({
@@ -717,7 +727,7 @@ export class SocketHandlers {
           attributes: ['user_id', 'emoji', 'created_at'],
         });
 
-        this.io.to(`chat:${chatId}`).emit('reaction_added', {
+        this.io.to(`chat:${broadcastChatId}`).emit('reaction_added', {
           messageId,
           emoji,
           userId: socket.userId,
@@ -750,13 +760,20 @@ export class SocketHandlers {
         }
         const { messageId, emoji, chatId } = parsed.data;
 
-        await ChatService.removeMessageReaction(messageId, socket.userId!, emoji);
+        // Authorise against the client-supplied chatId before doing any
+        // work, matching every other chat handler.
+        await this.requireChatAccess(socket, chatId);
+
+        const message = await ChatService.removeMessageReaction(messageId, socket.userId!, emoji);
+        // Broadcast to the message's REAL chat room rather than the
+        // payload chatId.
+        const broadcastChatId = message.chat_id;
         const reactions = await MessageReaction.findAll({
           where: { message_id: messageId },
           attributes: ['user_id', 'emoji', 'created_at'],
         });
 
-        this.io.to(`chat:${chatId}`).emit('reaction_removed', {
+        this.io.to(`chat:${broadcastChatId}`).emit('reaction_removed', {
           messageId,
           emoji,
           userId: socket.userId,

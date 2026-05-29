@@ -1149,7 +1149,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
   describe('Swipe/Match Functionality', () => {
     describe('when recording swipe actions', () => {
       it('should record like action', async () => {
-        const swipeService = new SwipeService(true);
+        const swipeService = new SwipeService();
         const swipeAction = {
           action: 'like' as const,
           petId: 'pet-1',
@@ -1165,7 +1165,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should record pass action', async () => {
-        const swipeService = new SwipeService(true);
+        const swipeService = new SwipeService();
         const swipeAction = {
           action: 'pass' as const,
           petId: 'pet-1',
@@ -1180,7 +1180,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should record super like action', async () => {
-        const swipeService = new SwipeService(true);
+        const swipeService = new SwipeService();
         const swipeAction = {
           action: 'super_like' as const,
           petId: 'pet-1',
@@ -1195,7 +1195,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
       });
 
       it('should record info view action', async () => {
-        const swipeService = new SwipeService(true);
+        const swipeService = new SwipeService();
         const swipeAction = {
           action: 'info' as const,
           petId: 'pet-1',
@@ -1357,7 +1357,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         expect(searchResult.pets).toHaveLength(2);
 
         // Step 2: Record swipe actions
-        const swipeService = new SwipeService(true);
+        const swipeService = new SwipeService();
         const sessionId = `session_${Date.now()}`;
 
         await swipeService.recordSwipeAction({
@@ -1514,7 +1514,7 @@ describe('Pet Discovery & Matching Integration Tests', () => {
         expect(searchResult.pets).toHaveLength(2);
 
         // Step 2: Record user interactions (likes) to build preferences
-        const swipeService = new SwipeService(true);
+        const swipeService = new SwipeService();
         const sessionId = `session_${Date.now()}`;
 
         await swipeService.recordSwipeAction({
