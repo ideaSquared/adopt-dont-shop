@@ -164,7 +164,8 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15
+        # Match docker-compose.yml database image to avoid version drift (ADS-710)
+        image: postgis/postgis:16-3.4
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: ${{ secrets.TEST_DB_PASSWORD || format('{0}{1}{2}', github.run_id, github.run_number, github.run_attempt) }}
