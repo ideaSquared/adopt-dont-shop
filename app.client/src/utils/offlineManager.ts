@@ -37,11 +37,16 @@ class OfflineManager {
   private pendingActions: QueuedAction[] = [];
   private syncCallback: SyncCallback | null = null;
   private listeners: OfflineStateChangeListener[] = [];
-  private syncInterval: ReturnType<typeof setTimeout> | null = null;
-  private connectionCheckInterval: ReturnType<typeof setTimeout> | null = null;
+  private syncInterval: ReturnType<typeof setInterval> | null = null;
+  private connectionCheckInterval: ReturnType<typeof setInterval> | null = null;
   private consecutiveFailures: number = 0;
+  // Bound listener refs stored so removeEventListener can remove the same function reference.
+  private readonly boundHandleOnline: () => void;
+  private readonly boundHandleOffline: () => void;
 
   constructor() {
+    this.boundHandleOnline = this.handleOnline.bind(this);
+    this.boundHandleOffline = this.handleOffline.bind(this);
     this.initializeNetworkListeners();
     this.loadPersistedData();
     this.startPeriodicSync();
@@ -49,8 +54,8 @@ class OfflineManager {
   }
 
   private initializeNetworkListeners() {
-    window.addEventListener('online', this.handleOnline.bind(this));
-    window.addEventListener('offline', this.handleOffline.bind(this));
+    window.addEventListener('online', this.boundHandleOnline);
+    window.addEventListener('offline', this.boundHandleOffline);
   }
 
   private handleOnline() {
@@ -262,12 +267,14 @@ class OfflineManager {
   cleanup() {
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
+      this.syncInterval = null;
     }
     if (this.connectionCheckInterval) {
       clearInterval(this.connectionCheckInterval);
+      this.connectionCheckInterval = null;
     }
-    window.removeEventListener('online', this.handleOnline.bind(this));
-    window.removeEventListener('offline', this.handleOffline.bind(this));
+    window.removeEventListener('online', this.boundHandleOnline);
+    window.removeEventListener('offline', this.boundHandleOffline);
   }
 }
 

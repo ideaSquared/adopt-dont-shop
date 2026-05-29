@@ -56,6 +56,7 @@ vi.mock('@/services', () => ({
     onConnectionStatusChange: vi.fn(),
     offConnectionStatusChange: vi.fn(),
     onConnectionError: vi.fn(),
+    offConnectionError: vi.fn(),
   },
   authService: {
     getToken: vi.fn(() => 'test-token'),

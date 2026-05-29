@@ -1,5 +1,13 @@
 import { NotificationsService, Notification } from '@adopt-dont-shop/lib.notifications';
-import { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 
 interface NotificationsContextType {
   notificationsService: NotificationsService;
@@ -32,7 +40,8 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
 
   const notificationsService = useMemo(() => {
     return new NotificationsService({
-      debug: import.meta.env.NODE_ENV === 'development',
+      apiUrl: import.meta.env.VITE_API_BASE_URL ?? '',
+      debug: import.meta.env.DEV,
     });
   }, []);
 
@@ -65,39 +74,45 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
     initializeNotifications();
   }, [notificationsService, userId]);
 
-  const markAsRead = async (id: string) => {
-    try {
-      await notificationsService.markAsRead([id]);
-      setNotifications(prev =>
-        prev.map(n => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n))
-      );
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-      throw error;
-    }
-  };
+  const markAsRead = useCallback(
+    async (id: string) => {
+      try {
+        await notificationsService.markAsRead([id]);
+        setNotifications(prev =>
+          prev.map(n => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n))
+        );
+      } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+        throw error;
+      }
+    },
+    [notificationsService]
+  );
 
-  const markAllAsRead = async (currentUserId: string) => {
-    try {
-      await notificationsService.markAllAsRead(currentUserId);
-      setNotifications(prev => prev.map(n => ({ ...n, readAt: new Date().toISOString() })));
-    } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
-      throw error;
-    }
-  };
+  const markAllAsRead = useCallback(
+    async (currentUserId: string) => {
+      try {
+        await notificationsService.markAllAsRead(currentUserId);
+        setNotifications(prev => prev.map(n => ({ ...n, readAt: new Date().toISOString() })));
+      } catch (error) {
+        console.error('Failed to mark all notifications as read:', error);
+        throw error;
+      }
+    },
+    [notificationsService]
+  );
 
-  const clearAll = async () => {
+  const clearAll = useCallback(async () => {
+    // Delete all notifications for the user
+    const deletePromises = notifications.map(n => notificationsService.deleteNotification(n.id));
     try {
-      // Delete all notifications for the user
-      const deletePromises = notifications.map(n => notificationsService.deleteNotification(n.id));
       await Promise.all(deletePromises);
       setNotifications([]);
     } catch (error) {
       console.error('Failed to clear all notifications:', error);
       throw error;
     }
-  };
+  }, [notificationsService, notifications]);
 
   const value = useMemo(
     () => ({

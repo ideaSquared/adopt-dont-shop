@@ -1,4 +1,6 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { Button, Card } from '@adopt-dont-shop/lib.components';
@@ -6,10 +8,14 @@ import type { Notification } from '@adopt-dont-shop/lib.notifications';
 import * as styles from './NotificationsPage.css';
 
 export const NotificationsPage: React.FC = () => {
+  const { isAuthenticated } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { trackPageView, trackEvent } = useAnalytics();
 
   React.useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
     trackPageView('/notifications');
     trackEvent({
       category: 'notifications',
@@ -22,7 +28,11 @@ export const NotificationsPage: React.FC = () => {
         unread_count: unreadCount,
       },
     });
-  }, [trackPageView, trackEvent, notifications.length, unreadCount]);
+  }, [isAuthenticated, trackPageView, trackEvent, notifications.length, unreadCount]);
+
+  if (!isAuthenticated) {
+    return <Navigate to='/login' replace />;
+  }
 
   const handleNotificationClick = (notificationId: string, isRead: boolean) => {
     if (!isRead) {

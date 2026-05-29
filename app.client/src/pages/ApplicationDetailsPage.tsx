@@ -4,7 +4,7 @@ import { ApplicationDetailSkeleton } from '@/components/skeletons';
 import { applicationStatusLabel } from '@adopt-dont-shop/lib.types';
 import { formatDisplayDate } from '@adopt-dont-shop/lib.utils';
 import { useChat } from '@/contexts/ChatContext';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { WithdrawApplicationModal } from '../components/application';
 import * as styles from './ApplicationDetailsPage.css';
@@ -18,9 +18,17 @@ export const ApplicationDetailsPage: React.FC = () => {
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isOpeningMessages, setIsOpeningMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
   const { conversations, startConversation } = useChat();
+
+  // Clear success timer on unmount to prevent setState after unmount.
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const loadApplication = async () => {
@@ -61,7 +69,8 @@ export const ApplicationDetailsPage: React.FC = () => {
       setIsWithdrawModalOpen(false);
 
       // Clear success message after 5 seconds
-      setTimeout(() => setSuccessMessage(null), 5000);
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      successTimerRef.current = setTimeout(() => setSuccessMessage(null), 5000);
     } catch (error) {
       console.error('Failed to withdraw application:', error);
       // Error handling is done in the modal

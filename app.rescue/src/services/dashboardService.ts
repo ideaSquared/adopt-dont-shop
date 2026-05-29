@@ -154,14 +154,15 @@ export class DashboardService {
   }
 
   /**
-   * Fetch dashboard notifications for the rescue
+   * Fetch dashboard notifications for the rescue.
+   * @param userId - The authenticated user's ID (from useAuth, not localStorage).
    */
-  async getDashboardNotifications(limit: number = 5): Promise<DashboardNotification[]> {
+  async getDashboardNotifications(
+    userId: string,
+    limit: number = 5
+  ): Promise<DashboardNotification[]> {
     try {
-      // Get userId from localStorage
-      const userId = localStorage.getItem('userId');
       if (!userId) {
-        console.warn('No userId found in localStorage');
         return [];
       }
 

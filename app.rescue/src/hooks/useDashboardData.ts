@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { dashboardService } from '../services';
 import { RescueDashboardData, RecentActivity, DashboardNotification } from '../types';
 
@@ -15,6 +16,7 @@ interface UseDashboardDataReturn {
  * Custom hook for fetching and managing dashboard data
  */
 export function useDashboardData(): UseDashboardDataReturn {
+  const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState<RescueDashboardData | null>(null);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
@@ -30,7 +32,8 @@ export function useDashboardData(): UseDashboardDataReturn {
       const [dashboard, activities, notifs] = await Promise.all([
         dashboardService.getRescueDashboardData(),
         dashboardService.getRecentActivities(),
-        dashboardService.getDashboardNotifications(),
+        // Pass userId from auth context — never read from localStorage
+        dashboardService.getDashboardNotifications(user?.userId ?? ''),
       ]);
 
       if (signal?.cancelled) return;
@@ -53,7 +56,8 @@ export function useDashboardData(): UseDashboardDataReturn {
     return () => {
       signal.cancelled = true;
     };
-  }, []);
+    // Re-fetch when the authenticated user changes
+  }, [user?.userId]);
 
   return {
     dashboardData,

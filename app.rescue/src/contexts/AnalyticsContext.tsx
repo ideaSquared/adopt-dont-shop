@@ -31,7 +31,7 @@ export const AnalyticsProvider = ({ children }: AnalyticsProviderProps) => {
       apiUrl: import.meta.env.VITE_API_BASE_URL,
       provider: 'internal',
       autoTrackPageViews: true,
-      debug: import.meta.env.NODE_ENV === 'development',
+      debug: import.meta.env.DEV,
     });
   }, []);
 
