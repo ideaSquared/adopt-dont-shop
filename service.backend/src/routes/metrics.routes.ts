@@ -1,6 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { isProductionLike } from '../config/env';
 import { registry } from '../middleware/metrics';
+import { logger } from '../utils/logger';
 
 /**
  * ADS-404: Prometheus scrape endpoint.
@@ -18,6 +19,20 @@ import { registry } from '../middleware/metrics';
  * `METRICS_AUTH_TOKEN` is unset in production the route 404s.
  */
 const router = Router();
+
+/**
+ * Startup check: in a production-like environment, the /metrics endpoint
+ * 404s when METRICS_AUTH_TOKEN is unset (see the route handler below).
+ * That silently disables Prometheus scraping, so surface it as a clear
+ * warning at boot. We deliberately do NOT throw — failing startup here
+ * could break an existing deployment that intentionally runs without
+ * metrics scraping.
+ */
+export const warnIfMetricsTokenUnset = (nodeEnv: string | undefined): void => {
+  if (isProductionLike(nodeEnv) && !process.env.METRICS_AUTH_TOKEN) {
+    logger.warn('METRICS_AUTH_TOKEN unset — /metrics scraping is disabled (route returns 404)');
+  }
+};
 
 const isLoopback = (ip: string | undefined): boolean =>
   ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';

@@ -1010,48 +1010,57 @@ export class ApplicationService {
       };
 
       // Update application — replace-all semantics for answers and
-      // references mirror the JSONB era's overwrite behaviour.
-      await application.update(applicationUpdate);
+      // references mirror the JSONB era's overwrite behaviour. The whole
+      // replace must be atomic: a destroy followed by a failed bulkCreate
+      // would otherwise leave the application with no answers/references
+      // (data loss). Wrap every write in a single transaction.
+      await sequelize.transaction(async t => {
+        await application.update(applicationUpdate, { transaction: t });
 
-      if (incomingAnswers !== undefined) {
-        await ApplicationAnswer.destroy({
-          where: { application_id: applicationId },
-        });
-        const answerEntries = Object.entries(incomingAnswers);
-        if (answerEntries.length > 0) {
-          await ApplicationAnswer.bulkCreate(
-            answerEntries.map(([question_key, answer_value]) => ({
-              application_id: applicationId,
-              question_key,
-              answer_value: answer_value as JsonValue,
-            }))
-          );
+        if (incomingAnswers !== undefined) {
+          await ApplicationAnswer.destroy({
+            where: { application_id: applicationId },
+            transaction: t,
+          });
+          const answerEntries = Object.entries(incomingAnswers);
+          if (answerEntries.length > 0) {
+            await ApplicationAnswer.bulkCreate(
+              answerEntries.map(([question_key, answer_value]) => ({
+                application_id: applicationId,
+                question_key,
+                answer_value: answer_value as JsonValue,
+              })),
+              { transaction: t }
+            );
+          }
         }
-      }
 
-      if (incomingReferences !== undefined) {
-        await ApplicationReferenceModel.destroy({
-          where: { application_id: applicationId },
-        });
-        if (incomingReferences.length > 0) {
-          await ApplicationReferenceModel.bulkCreate(
-            incomingReferences.map((ref, index) => ({
-              application_id: applicationId,
-              legacy_id: ref.id || `ref-${index}`,
-              name: ref.name,
-              relationship: ref.relationship,
-              phone: ref.phone,
-              email: ref.email ?? null,
-              status:
-                (ref.status as ApplicationReferenceStatus) ?? ApplicationReferenceStatus.PENDING,
-              contacted_at: ref.contacted_at ?? null,
-              contacted_by: ref.contacted_by ?? null,
-              notes: ref.notes ?? null,
-              order_index: index,
-            }))
-          );
+        if (incomingReferences !== undefined) {
+          await ApplicationReferenceModel.destroy({
+            where: { application_id: applicationId },
+            transaction: t,
+          });
+          if (incomingReferences.length > 0) {
+            await ApplicationReferenceModel.bulkCreate(
+              incomingReferences.map((ref, index) => ({
+                application_id: applicationId,
+                legacy_id: ref.id || `ref-${index}`,
+                name: ref.name,
+                relationship: ref.relationship,
+                phone: ref.phone,
+                email: ref.email ?? null,
+                status:
+                  (ref.status as ApplicationReferenceStatus) ?? ApplicationReferenceStatus.PENDING,
+                contacted_at: ref.contacted_at ?? null,
+                contacted_by: ref.contacted_by ?? null,
+                notes: ref.notes ?? null,
+                order_index: index,
+              })),
+              { transaction: t }
+            );
+          }
         }
-      }
+      });
 
       // Create timeline event for application update
       await ApplicationTimelineService.createEvent({
@@ -1243,40 +1252,50 @@ export class ApplicationService {
           break;
       }
 
-      await application.update(updateFields);
+      // The status change, its transition-log row, and the timeline event
+      // form one logical write. Wrap them in a single transaction so a
+      // failure partway through can't leave the application advanced
+      // without an audit-trail transition or timeline entry.
+      await sequelize.transaction(async t => {
+        await application.update(updateFields, { transaction: t });
 
-      // Append a row to the transition log; the trigger / hook updates
-      // applications.status to statusUpdate.status. The reload at the
-      // bottom of this method picks up the new value.
-      await ApplicationStatusTransition.create({
-        applicationId,
-        fromStatus: previousStatus,
-        toStatus: statusUpdate.status,
-        transitionedBy: actionedBy,
-        reason: statusUpdate.rejectionReason || statusUpdate.notes || null,
-        metadata: statusUpdate.followUpDate
-          ? { follow_up_date: statusUpdate.followUpDate.toISOString() }
-          : null,
-      });
+        // Append a row to the transition log; the trigger / hook updates
+        // applications.status to statusUpdate.status. The reload at the
+        // bottom of this method picks up the new value.
+        await ApplicationStatusTransition.create(
+          {
+            applicationId,
+            fromStatus: previousStatus,
+            toStatus: statusUpdate.status,
+            transitionedBy: actionedBy,
+            reason: statusUpdate.rejectionReason || statusUpdate.notes || null,
+            metadata: statusUpdate.followUpDate
+              ? { follow_up_date: statusUpdate.followUpDate.toISOString() }
+              : null,
+          },
+          { transaction: t }
+        );
 
-      // Create timeline event for status change
-      await ApplicationTimelineService.createEvent({
-        application_id: applicationId,
-        event_type: ApplicationService.getTimelineEventTypeForStatus(statusUpdate.status),
-        title: `Application ${ApplicationService.formatStatusName(statusUpdate.status)}`,
-        description:
-          statusUpdate.rejectionReason ||
-          statusUpdate.notes ||
-          `Application status changed from ${ApplicationService.formatStatusName(previousStatus)} to ${ApplicationService.formatStatusName(statusUpdate.status)}`,
-        created_by: actionedBy,
-        created_by_system: false,
-        previous_status: previousStatus,
-        new_status: statusUpdate.status,
-        metadata: {
-          rejection_reason: statusUpdate.rejectionReason,
-          follow_up_date: statusUpdate.followUpDate,
-          notes: statusUpdate.notes,
-        },
+        // Create timeline event for status change
+        await ApplicationTimelineService.createEvent({
+          application_id: applicationId,
+          event_type: ApplicationService.getTimelineEventTypeForStatus(statusUpdate.status),
+          title: `Application ${ApplicationService.formatStatusName(statusUpdate.status)}`,
+          description:
+            statusUpdate.rejectionReason ||
+            statusUpdate.notes ||
+            `Application status changed from ${ApplicationService.formatStatusName(previousStatus)} to ${ApplicationService.formatStatusName(statusUpdate.status)}`,
+          created_by: actionedBy,
+          created_by_system: false,
+          previous_status: previousStatus,
+          new_status: statusUpdate.status,
+          metadata: {
+            rejection_reason: statusUpdate.rejectionReason,
+            follow_up_date: statusUpdate.followUpDate,
+            notes: statusUpdate.notes,
+          },
+          transaction: t,
+        });
       });
 
       // Log status change
@@ -1516,9 +1535,18 @@ export class ApplicationService {
         verified: false,
       };
 
-      const updatedDocuments = [...application.documents, newDocument];
-
-      await application.update({ documents: updatedDocuments });
+      // The documents array is a read-modify-write on a JSONB column.
+      // Two concurrent uploads that both read the pre-append array would
+      // each write back their own single-element addition, losing one
+      // document (lost update). Serialize the append behind a row lock so
+      // the second writer reads the first writer's committed array.
+      // (On SQLite the lock option is a no-op but writes are serialized
+      // anyway, so the behaviour is correct on both dialects.)
+      await sequelize.transaction(async t => {
+        await application.reload({ transaction: t, lock: t.LOCK.UPDATE });
+        const updatedDocuments = [...application.documents, newDocument];
+        await application.update({ documents: updatedDocuments }, { transaction: t });
+      });
 
       // Create timeline event for document upload
       await ApplicationTimelineService.createEvent({

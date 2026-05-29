@@ -615,14 +615,16 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             actionedBy: rescueStaffId,
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
         expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
           expect.objectContaining({
             applicationId,
             toStatus: ApplicationStatus.APPROVED,
             transitionedBy: rescueStaffId,
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
 
@@ -653,14 +655,16 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             rejectionReason: 'Not suitable for high-energy dog',
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
         expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
           expect.objectContaining({
             applicationId,
             toStatus: ApplicationStatus.REJECTED,
             reason: 'Not suitable for high-energy dog',
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
 
@@ -690,7 +694,8 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             decisionAt: expect.any(Date),
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
 
@@ -878,7 +883,8 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             homeVisitNotes: 'Scheduled for Saturday 2pm',
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
 
@@ -906,7 +912,8 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             homeVisitNotes: expect.stringContaining('Visit completed'),
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
 
@@ -933,7 +940,8 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             homeVisitNotes: expect.stringContaining('Concerns'),
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
     });
@@ -969,7 +977,8 @@ describe('Application Submission Workflow Integration Tests', () => {
           expect.objectContaining({
             applicationId,
             toStatus: ApplicationStatus.APPROVED,
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
 
@@ -999,7 +1008,8 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             actionedBy: rescueStaffId,
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
 
@@ -1029,7 +1039,8 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             decisionAt: expect.any(Date),
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
 
@@ -1092,7 +1103,8 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             rejectionReason: 'Not suitable living conditions for this pet',
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
 
@@ -1123,7 +1135,8 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             decisionAt: expect.any(Date),
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
 
@@ -1154,7 +1167,8 @@ describe('Application Submission Workflow Integration Tests', () => {
         expect(mockApplication.update).toHaveBeenCalledWith(
           expect.objectContaining({
             actionedBy: rescueStaffId,
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
 
@@ -1550,7 +1564,8 @@ describe('Application Submission Workflow Integration Tests', () => {
             applicationId,
             toStatus: ApplicationStatus.REJECTED,
             reason: 'Apartment not suitable for large dog',
-          })
+          }),
+          expect.objectContaining({ transaction: expect.anything() })
         );
       });
     });

@@ -148,6 +148,30 @@ export const chatValidation = {
       .withMessage('Message ID must be a valid string'),
   ],
 
+  searchConversations: [
+    query('query')
+      .trim()
+      .isLength({ min: 1, max: 200 })
+      .withMessage('Search query must be 1-200 characters'),
+    query('type')
+      .optional()
+      .isIn(Object.values(ChatType))
+      .withMessage(`Type must be one of: ${Object.values(ChatType).join(', ')}`),
+    query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    query('sortBy')
+      .optional()
+      .isIn(['created_at', 'updated_at', 'last_message'])
+      .withMessage('Sort by must be one of: created_at, updated_at, last_message'),
+    query('sortOrder')
+      .optional()
+      .isIn(['ASC', 'DESC'])
+      .withMessage('Sort order must be ASC or DESC'),
+  ],
+
   searchChats: [
     query('search')
       .optional()
