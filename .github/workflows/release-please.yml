@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-please-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

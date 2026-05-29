@@ -18,14 +18,34 @@ services:
     networks:
       - ads-prod-network
       - ads-staging-network
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ['CMD-SHELL', 'nginx -t 2>/dev/null && test -f /var/run/nginx.pid']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:
         max-size: '10m'
         max-file: '3'
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256m
+        reservations:
+          cpus: '0.1'
+          memory: 64m
 
   certbot:
-    image: certbot/certbot
+    image: certbot/certbot:v3.1.0  # TODO: pin to digest once resolved via `docker pull certbot/certbot:v3.1.0 && docker inspect --format='{{index .RepoDigests 0}}'`
     container_name: ads_certbot
     restart: unless-stopped
     volumes:

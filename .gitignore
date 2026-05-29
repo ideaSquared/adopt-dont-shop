@@ -61,6 +61,9 @@ uploads
 
 ### Docker ###
 docker-compose.override.yml
+# Materialized Docker secret files (written by deploy workflow, never committed)
+secrets/
+**/secrets/
 
 ### Development ###
 .env.development
