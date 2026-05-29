@@ -541,12 +541,16 @@ export class ChatService {
         userId,
         rescueId,
         page = 1,
-        limit = 20,
+        limit: requestedLimit = 20,
         sortBy = 'created_at',
         sortOrder = 'DESC',
         isAdmin = false,
       } = options;
 
+      // Defense-in-depth: clamp the page size even though the route
+      // validator already caps it, so a direct service caller can't
+      // request an unbounded result set.
+      const limit = Math.min(Math.max(requestedLimit, 1), 100);
       const offset = (page - 1) * limit;
       const safeSortBy = validateSortField(sortBy, CHAT_SORT_FIELDS, 'created_at');
       const safeSortOrder = validateSortOrder(sortOrder);
@@ -654,11 +658,15 @@ export class ChatService {
         rescueId,
         query,
         page = 1,
-        limit = 20,
+        limit: requestedLimit = 20,
         sortBy = 'created_at',
         sortOrder = 'DESC',
       } = options;
 
+      // Defense-in-depth: clamp the page size server-side. The /search
+      // route validator caps limit at 100, but a direct/legacy caller
+      // could otherwise request an unbounded result set.
+      const limit = Math.min(Math.max(requestedLimit, 1), 100);
       const offset = (page - 1) * limit;
       const safeSortBy = validateSortField(sortBy, CHAT_SORT_FIELDS, 'created_at');
       const safeSortOrder = validateSortOrder(sortOrder);
@@ -1346,7 +1354,9 @@ export class ChatService {
   static async updateChat(
     chatId: string,
     updateData: ChatUpdateData,
-    updatedBy: string
+    updatedBy: string,
+    isAdmin = false,
+    userRescueId?: string
   ): Promise<Chat> {
     const startTime = Date.now();
 
@@ -1355,6 +1365,11 @@ export class ChatService {
       if (!chat) {
         throw new NotFoundError('Chat not found');
       }
+
+      // Authorization: only chat participants, rescue staff (scoped to the
+      // chat's rescue) or admins may mutate a chat. Without this any
+      // authenticated user could update/archive arbitrary chats (IDOR).
+      await this.requireChatParticipant(chatId, updatedBy, isAdmin, userRescueId);
 
       const originalData = chat.toJSON();
 
@@ -1404,7 +1419,13 @@ export class ChatService {
   /**
    * Delete a chat (archive it)
    */
-  static async deleteChat(chatId: string, deletedBy: string, reason?: string): Promise<void> {
+  static async deleteChat(
+    chatId: string,
+    deletedBy: string,
+    reason?: string,
+    isAdmin = false,
+    userRescueId?: string
+  ): Promise<void> {
     const startTime = Date.now();
 
     try {
@@ -1412,6 +1433,11 @@ export class ChatService {
       if (!chat) {
         throw new NotFoundError('Chat not found');
       }
+
+      // Authorization: only chat participants, rescue staff (scoped to the
+      // chat's rescue) or admins may delete a chat. Without this any
+      // authenticated user could archive arbitrary chats (IDOR).
+      await this.requireChatParticipant(chatId, deletedBy, isAdmin, userRescueId);
 
       await chat.destroy();
 

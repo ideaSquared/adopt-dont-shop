@@ -76,12 +76,42 @@ describe('InvitationsService', () => {
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/rescues/rescue-1/invitations');
     });
 
-    it('should return empty array on error', async () => {
-      mockApiService.get = vi.fn().mockRejectedValue(new Error('Network error'));
+    it('should return empty array for a 404 (no invitations yet)', async () => {
+      const notFoundError = Object.assign(new Error('Not found'), { status: 404 });
+      mockApiService.get = vi.fn().mockRejectedValue(notFoundError);
 
       const result = await service.getPendingInvitations('rescue-1');
 
       expect(result).toEqual([]);
+    });
+
+    it('should re-throw on a 401 auth error', async () => {
+      const authError = Object.assign(new Error('Unauthorized'), { status: 401 });
+      mockApiService.get = vi.fn().mockRejectedValue(authError);
+
+      await expect(service.getPendingInvitations('rescue-1')).rejects.toThrow('Unauthorized');
+    });
+
+    it('should re-throw on a 403 forbidden error', async () => {
+      const forbiddenError = Object.assign(new Error('Forbidden'), { status: 403 });
+      mockApiService.get = vi.fn().mockRejectedValue(forbiddenError);
+
+      await expect(service.getPendingInvitations('rescue-1')).rejects.toThrow('Forbidden');
+    });
+
+    it('should re-throw on a 500 server error', async () => {
+      const serverError = Object.assign(new Error('Internal Server Error'), { status: 500 });
+      mockApiService.get = vi.fn().mockRejectedValue(serverError);
+
+      await expect(service.getPendingInvitations('rescue-1')).rejects.toThrow(
+        'Internal Server Error'
+      );
+    });
+
+    it('should re-throw on a network error (no status)', async () => {
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('Network error'));
+
+      await expect(service.getPendingInvitations('rescue-1')).rejects.toThrow('Network error');
     });
   });
 

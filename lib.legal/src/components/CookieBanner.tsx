@@ -297,9 +297,22 @@ const subscribeToConsent = (callback: () => void): (() => void) => {
  * object every call triggers React's "getSnapshot should be cached"
  * warning and breaks bailout. We cache the last serialized record and
  * return the previous parsed instance when the bytes are unchanged.
+ *
+ * These module-level variables are intentionally mutable (the cache
+ * pattern requires mutation). Call `_resetSnapshotCache()` in test
+ * teardown to prevent cross-test pollution and avoid SSR state leaks.
  */
 let cachedSnapshotRaw: string | null = null;
 let cachedSnapshot: StoredCookieConsent | null = null;
+
+/**
+ * Reset the module-level snapshot cache. Exported for test teardown only
+ * — do not call in production code.
+ */
+export const _resetSnapshotCache = (): void => {
+  cachedSnapshotRaw = null;
+  cachedSnapshot = null;
+};
 
 const getConsentSnapshot = (): StoredCookieConsent | null => {
   const parsed = readStoredConsentRaw();

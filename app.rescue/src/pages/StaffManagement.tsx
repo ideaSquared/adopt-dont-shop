@@ -60,25 +60,46 @@ const StaffManagement: React.FC = () => {
 
   // Load pending invitations
   useEffect(() => {
+    let cancelled = false;
+
     const loadPendingInvitations = async () => {
       if (staff.length === 0) {
         return;
       }
 
+      let rescueId: string;
+      try {
+        rescueId = getRescueId();
+      } catch (err) {
+        console.error('Could not determine rescue ID:', err);
+        return;
+      }
+
       try {
         setInvitationsLoading(true);
-        const rescueId = getRescueId();
         const invites = await invitationService.getPendingInvitations(rescueId);
-        setPendingInvitations(invites);
+        if (!cancelled) {
+          setPendingInvitations(invites);
+        }
       } catch (err) {
-        console.error('Failed to load pending invitations:', err);
+        if (!cancelled) {
+          console.error('Failed to load pending invitations:', err);
+          setPendingInvitations([]);
+        }
       } finally {
-        setInvitationsLoading(false);
+        if (!cancelled) {
+          setInvitationsLoading(false);
+        }
       }
     };
 
     loadPendingInvitations();
-  }, [staff]);
+    return () => {
+      cancelled = true;
+    };
+    // Depend on staff.length to avoid re-running when individual staff objects change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staff.length]);
 
   const handleSendInvitation = async (invitation: InvitationPayload) => {
     setActionLoading(true);

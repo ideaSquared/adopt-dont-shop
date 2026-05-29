@@ -10,10 +10,14 @@ export const useStaff = () => {
   const { user } = useAuth();
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchStaff = async () => {
       if (!user?.userId) {
-        setStaff([]);
-        setLoading(false);
+        if (!cancelled) {
+          setStaff([]);
+          setLoading(false);
+        }
         return;
       }
 
@@ -23,16 +27,25 @@ export const useStaff = () => {
 
         // Fetch staff for the current user's rescue (automatically filtered by backend)
         const staffMembers = await staffService.getRescueStaff();
-        setStaff(staffMembers);
+        if (!cancelled) {
+          setStaff(staffMembers);
+        }
       } catch (err) {
-        setError('Failed to load staff members');
-        setStaff([]);
+        if (!cancelled) {
+          setError('Failed to load staff members');
+          setStaff([]);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchStaff();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.userId]);
 
   return {

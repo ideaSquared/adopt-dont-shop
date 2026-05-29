@@ -40,10 +40,13 @@ export const TopPicksPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!isAuthenticated) {
       setLoading(false);
       return;
     }
+
     const load = async () => {
       try {
         setLoading(true);
@@ -51,15 +54,25 @@ export const TopPicksPage: React.FC = () => {
         const res = await apiService.get<{ data: MatchTopPick[] }>(
           '/api/v1/match/top-picks?limit=10'
         );
-        setPicks(res.data ?? []);
+        if (!cancelled) {
+          setPicks(res.data ?? []);
+        }
       } catch (err) {
-        console.error('Failed to load top picks', err);
-        setError('Failed to load your top picks.');
+        if (!cancelled) {
+          console.error('Failed to load top picks', err);
+          setError('Failed to load your top picks.');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
+
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated]);
 
   if (!isAuthenticated) {

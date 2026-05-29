@@ -1,6 +1,7 @@
 import { useNotifications } from '@/contexts/NotificationContext';
 import notificationService, { type Notification } from '@/services/notificationService';
 import { openExternal } from '@/utils/openExternal';
+import { isSafeRedirectPath } from '@/utils/safeRedirect';
 import React, { useEffect, useRef, useState } from 'react';
 import { MdNotifications } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
@@ -90,23 +91,21 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className })
       // Mark as read if not already read
       if (!notification.read_at) {
         await contextMarkAsRead(notification.notification_id);
-
-        // Force refresh the unread count after a successful mark as read
-        // This ensures the count is accurate even if optimistic updates fail
-        setTimeout(async () => {
-          await refreshUnreadCount();
-        }, 100);
+        // Refresh unread count directly after the awaited mark-as-read.
+        // Using setTimeout here would swallow rejections and leak a timer.
+        void refreshUnreadCount().catch(() => undefined);
       }
 
       // Navigate based on notification data
       if (notification.data?.action_url) {
         const actionUrl = notification.data.action_url as string;
-        if (actionUrl.startsWith('http')) {
+        if (actionUrl.startsWith('http://') || actionUrl.startsWith('https://')) {
           openExternal(actionUrl);
-        } else {
+        } else if (isSafeRedirectPath(actionUrl)) {
           navigate(actionUrl);
           setIsOpen(false);
         }
+        // Non-http, non-safe paths are silently dropped to prevent open redirects
       }
     } catch (error) {
       console.error('Failed to handle notification click:', error);

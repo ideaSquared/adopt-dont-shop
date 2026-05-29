@@ -165,12 +165,15 @@ const AdminApp: React.FC = () => {
                   </RouteBoundary>
                 }
               />
+              {/* Broadcast notifications — admin/super_admin only */}
               <Route
                 path='/notifications/broadcast'
                 element={
-                  <RouteBoundary name='broadcast'>
-                    <BroadcastNotifications />
-                  </RouteBoundary>
+                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                    <RouteBoundary name='broadcast'>
+                      <BroadcastNotifications />
+                    </RouteBoundary>
+                  </ProtectedRoute>
                 }
               />
 
@@ -181,23 +184,72 @@ const AdminApp: React.FC = () => {
               <Route path='/reports/:id' element={<ReportViewPage />} />
               <Route path='/reports/:id/edit' element={<ReportBuilderPage />} />
 
-              {/* System Configuration */}
-              <Route path='/configuration' element={<Configuration />} />
-              <Route path='/configuration/features' element={<Configuration />} />
-              <Route path='/configuration/settings' element={<Configuration />} />
-              <Route path='/configuration/questions' element={<Configuration />} />
+              {/* System Configuration — admin/super_admin only */}
+              <Route
+                path='/configuration'
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                    <Configuration />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/configuration/features'
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                    <Configuration />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/configuration/settings'
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                    <Configuration />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path='/configuration/questions'
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                    <Configuration />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Content Management */}
               <Route path='/content-management' element={<ContentManagement />} />
 
-              {/* Field-Level Permissions */}
-              <Route path='/field-permissions' element={<FieldPermissions />} />
+              {/* Field-Level Permissions — admin/super_admin only */}
+              <Route
+                path='/field-permissions'
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                    <FieldPermissions />
+                  </ProtectedRoute>
+                }
+              />
 
-              {/* Privacy / GDPR Tools */}
-              <Route path='/privacy-tools' element={<PrivacyTools />} />
+              {/* Privacy / GDPR Tools — admin/super_admin only */}
+              <Route
+                path='/privacy-tools'
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                    <PrivacyTools />
+                  </ProtectedRoute>
+                }
+              />
 
-              {/* Audit & Monitoring */}
-              <Route path='/audit' element={<Audit />} />
+              {/* Audit & Monitoring — admin/super_admin only */}
+              <Route
+                path='/audit'
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                    <Audit />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Account Settings */}
               <Route path='/account' element={<AccountSettings />} />

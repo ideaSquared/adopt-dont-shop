@@ -98,7 +98,9 @@ export const ResetPasswordPage: React.FC = () => {
       // Log successful reset
       logEvent('password_reset_completed', 1, {});
     } catch (err: unknown) {
-      console.error('Reset password error:', err);
+      if (import.meta.env.DEV) {
+        console.error('Reset password error:', err);
+      }
 
       const error = err as Error & { response?: { status?: number; data?: { message?: string } } };
 

@@ -58,6 +58,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed, onMo
         <input
           className={styles.searchInput}
           type='text'
+          aria-label='Search users, rescues, or content'
           placeholder='Search users, rescues, or content...'
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
@@ -70,7 +71,12 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed, onMo
         </button>
 
         <div className={styles.userMenu}>
-          <button className={styles.userButton} onClick={() => setUserMenuOpen(!userMenuOpen)}>
+          <button
+            className={styles.userButton}
+            aria-label='User menu'
+            aria-expanded={userMenuOpen}
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+          >
             <div className={styles.userAvatar}>{getInitials(user?.firstName, user?.lastName)}</div>
             <div className={styles.userInfo}>
               <span className={styles.userName}>

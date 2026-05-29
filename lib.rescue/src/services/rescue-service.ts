@@ -282,10 +282,10 @@ export class RescueService {
       const rescueData = Array.isArray(parsed) ? parsed : parsed.data;
       return rescueData.map(transformRescueFromAPI);
     } catch (error) {
-      if (this.config.debug) {
-        console.error('Failed to fetch featured rescues:', error);
-      }
-      // Return empty array on error for featured rescues (non-critical feature)
+      // Featured rescues are non-critical (homepage widget), so we keep
+      // the [] fallback to avoid breaking the page. However, we always log
+      // so failures are visible in any environment, not just debug mode.
+      console.error('Failed to fetch featured rescues:', error);
       return [];
     }
   }

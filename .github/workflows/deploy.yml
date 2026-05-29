@@ -26,6 +26,7 @@ concurrency:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     permissions:
       contents: read
       packages: write
@@ -82,16 +83,25 @@ jobs:
 
       - name: Build and push backend
         run: |
+          # ADS-rollback: :latest is only updated for production deploys.
+          # The SHA tag is always pushed so every build is individually
+          # addressable for rollback. :latest on non-production would
+          # overwrite the production pointer mid-window.
+          PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
           docker build \
             -f service.backend/Dockerfile \
             --target production \
             -t $IMAGE_PREFIX/backend:${{ github.sha }} \
-            -t $IMAGE_PREFIX/backend:latest \
             .
-          docker push $IMAGE_PREFIX/backend --all-tags
+          docker push $IMAGE_PREFIX/backend:${{ github.sha }}
+          if [ "$PUSH_LATEST" = "true" ]; then
+            docker tag $IMAGE_PREFIX/backend:${{ github.sha }} $IMAGE_PREFIX/backend:latest
+            docker push $IMAGE_PREFIX/backend:latest
+          fi
 
       - name: Build and push app.client
         run: |
+          PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
           docker build \
             -f Dockerfile.app.optimized \
             --target production \
@@ -105,12 +115,16 @@ jobs:
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
             -t $IMAGE_PREFIX/app-client:${{ github.sha }} \
-            -t $IMAGE_PREFIX/app-client:latest \
             .
-          docker push $IMAGE_PREFIX/app-client --all-tags
+          docker push $IMAGE_PREFIX/app-client:${{ github.sha }}
+          if [ "$PUSH_LATEST" = "true" ]; then
+            docker tag $IMAGE_PREFIX/app-client:${{ github.sha }} $IMAGE_PREFIX/app-client:latest
+            docker push $IMAGE_PREFIX/app-client:latest
+          fi
 
       - name: Build and push app.admin
         run: |
+          PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
           docker build \
             -f Dockerfile.app.optimized \
             --target production \
@@ -124,12 +138,16 @@ jobs:
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
             -t $IMAGE_PREFIX/app-admin:${{ github.sha }} \
-            -t $IMAGE_PREFIX/app-admin:latest \
             .
-          docker push $IMAGE_PREFIX/app-admin --all-tags
+          docker push $IMAGE_PREFIX/app-admin:${{ github.sha }}
+          if [ "$PUSH_LATEST" = "true" ]; then
+            docker tag $IMAGE_PREFIX/app-admin:${{ github.sha }} $IMAGE_PREFIX/app-admin:latest
+            docker push $IMAGE_PREFIX/app-admin:latest
+          fi
 
       - name: Build and push app.rescue
         run: |
+          PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
           docker build \
             -f Dockerfile.app.optimized \
             --target production \
@@ -143,13 +161,17 @@ jobs:
             --build-arg DEPLOY_SHA="${{ github.sha }}" \
             --secret id=sentry_auth,env=SENTRY_AUTH_TOKEN \
             -t $IMAGE_PREFIX/app-rescue:${{ github.sha }} \
-            -t $IMAGE_PREFIX/app-rescue:latest \
             .
-          docker push $IMAGE_PREFIX/app-rescue --all-tags
+          docker push $IMAGE_PREFIX/app-rescue:${{ github.sha }}
+          if [ "$PUSH_LATEST" = "true" ]; then
+            docker tag $IMAGE_PREFIX/app-rescue:${{ github.sha }} $IMAGE_PREFIX/app-rescue:latest
+            docker push $IMAGE_PREFIX/app-rescue:latest
+          fi
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: ${{ github.event.inputs.environment }}
     steps:
       # ADS-670: SSH host fingerprint pinned to prevent MitM during deploy.

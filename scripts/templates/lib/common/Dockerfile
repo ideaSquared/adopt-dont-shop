@@ -49,7 +49,8 @@ WORKDIR /app
 
 # hadolint ignore=DL3018
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S appuser -u 1001 -G nodejs
+    adduser -S appuser -u 1001 -G nodejs && \
+    apk add --no-cache dumb-init
 
 # Strip setuid/setgid bits for defence-in-depth
 RUN find / -perm /6000 -type f -exec chmod a-s {} + 2>/dev/null || true
@@ -60,6 +61,14 @@ COPY --from=build --chown=appuser:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=appuser:nodejs /app/package*.json ./
 
 USER appuser
+
+# Library containers have no network service to probe; disable the default
+# Dockerfile HEALTHCHECK inherited from the base image.
+HEALTHCHECK NONE
+
+# dumb-init reaps orphaned child processes and forwards signals correctly,
+# matching the pattern used in service.backend/Dockerfile and Dockerfile.app.optimized.
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
 # Default command
 CMD ["node", "dist/index.js"]

@@ -774,8 +774,10 @@ export class ChatController {
     const { chatId } = req.params;
     const updateData = req.body;
     const updatedBy = req.user!.userId;
+    const isAdmin = isAdminRole(req.user!.userType);
+    const userRescueId = req.user!.rescueId || undefined;
 
-    const chat = await ChatService.updateChat(chatId, updateData, updatedBy);
+    const chat = await ChatService.updateChat(chatId, updateData, updatedBy, isAdmin, userRescueId);
 
     loggerHelpers.logRequest(req, res, Date.now() - startTime);
 
@@ -791,8 +793,10 @@ export class ChatController {
   static async deleteChat(req: AuthenticatedRequest, res: Response) {
     const { chatId } = req.params;
     const deletedBy = req.user!.userId;
+    const isAdmin = isAdminRole(req.user!.userType);
+    const userRescueId = req.user!.rescueId || undefined;
 
-    await ChatService.deleteChat(chatId, deletedBy);
+    await ChatService.deleteChat(chatId, deletedBy, undefined, isAdmin, userRescueId);
 
     res.json({
       success: true,

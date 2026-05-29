@@ -664,6 +664,7 @@ describe('ChatService', () => {
     // skips the check.
     const chatId = 'chat-xyz';
     const strangerId = 'stranger-999';
+    const participantId = 'participant-111';
 
     const setupNonParticipant = () => {
       (MockedChatParticipant.findOne as vi.Mock).mockReset();
@@ -794,6 +795,154 @@ describe('ChatService', () => {
           ChatService.removeMessageReaction(messageId, strangerId, '👍')
         ).rejects.toThrow('User is not a participant in this chat');
       });
+    });
+
+    describe('updateChat', () => {
+      const buildWritableChat = () => {
+        const chat: Record<string, unknown> = {
+          chat_id: chatId,
+          rescue_id: 'rescue-xyz',
+          status: ChatStatus.ACTIVE,
+        };
+        chat.toJSON = () => ({ ...chat });
+        chat.update = vi.fn().mockResolvedValue(chat);
+        chat.reload = vi.fn().mockResolvedValue(chat);
+        return chat;
+      };
+
+      it('throws when caller is not a participant and not an admin', async () => {
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(buildWritableChat());
+        setupNonParticipant();
+
+        await expect(
+          ChatService.updateChat(chatId, { status: ChatStatus.ARCHIVED }, strangerId)
+        ).rejects.toThrow('User is not a participant in this chat');
+      });
+
+      it('does not write when authorization fails', async () => {
+        const chat = buildWritableChat();
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(chat);
+        setupNonParticipant();
+
+        await expect(
+          ChatService.updateChat(chatId, { status: ChatStatus.ARCHIVED }, strangerId)
+        ).rejects.toThrow();
+        expect(chat.update).not.toHaveBeenCalled();
+      });
+
+      it('updates the chat for a participant', async () => {
+        const chat = buildWritableChat();
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(chat);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue({
+          chat_id: chatId,
+          participant_id: participantId,
+        });
+
+        await ChatService.updateChat(chatId, { status: ChatStatus.ARCHIVED }, participantId);
+
+        expect(chat.update).toHaveBeenCalledWith({ status: ChatStatus.ARCHIVED });
+      });
+
+      it('updates the chat for an admin without checking participation', async () => {
+        const chat = buildWritableChat();
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(chat);
+        (MockedChatParticipant.findOne as vi.Mock).mockReset();
+
+        await ChatService.updateChat(chatId, { status: ChatStatus.ARCHIVED }, 'admin-user', true);
+
+        expect(chat.update).toHaveBeenCalled();
+        expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('deleteChat', () => {
+      const buildDeletableChat = () => {
+        const chat: Record<string, unknown> = {
+          chat_id: chatId,
+          rescue_id: 'rescue-xyz',
+          status: ChatStatus.ACTIVE,
+        };
+        chat.toJSON = () => ({ ...chat });
+        chat.destroy = vi.fn().mockResolvedValue(undefined);
+        return chat;
+      };
+
+      it('throws when caller is not a participant and not an admin', async () => {
+        const chat = buildDeletableChat();
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(chat);
+        setupNonParticipant();
+
+        await expect(ChatService.deleteChat(chatId, strangerId)).rejects.toThrow(
+          'User is not a participant in this chat'
+        );
+        expect(chat.destroy).not.toHaveBeenCalled();
+      });
+
+      it('deletes the chat for a participant', async () => {
+        const chat = buildDeletableChat();
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(chat);
+        (MockedChatParticipant.findOne as vi.Mock).mockResolvedValue({
+          chat_id: chatId,
+          participant_id: participantId,
+        });
+
+        await ChatService.deleteChat(chatId, participantId);
+
+        expect(chat.destroy).toHaveBeenCalled();
+      });
+
+      it('deletes the chat for an admin without checking participation', async () => {
+        const chat = buildDeletableChat();
+        (MockedChat.findByPk as vi.Mock).mockResolvedValue(chat);
+        (MockedChatParticipant.findOne as vi.Mock).mockReset();
+
+        await ChatService.deleteChat(chatId, 'admin-user', undefined, true);
+
+        expect(chat.destroy).toHaveBeenCalled();
+        expect(MockedChatParticipant.findOne).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Search page-size clamping (DoS hardening)', () => {
+    beforeEach(() => {
+      (MockedChat.findAndCountAll as vi.Mock).mockResolvedValue({ rows: [], count: 0 });
+    });
+
+    it('clamps searchConversations limit to a maximum of 100', async () => {
+      const result = await ChatService.searchConversations({
+        userId: 'user-1',
+        query: 'puppy',
+        limit: 100000,
+      });
+
+      expect(MockedChat.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 100 })
+      );
+      expect(result.pagination.limit).toBe(100);
+    });
+
+    it('clamps searchConversations limit up to a minimum of 1', async () => {
+      await ChatService.searchConversations({
+        userId: 'user-1',
+        query: 'puppy',
+        limit: 0,
+      });
+
+      expect(MockedChat.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 1 })
+      );
+    });
+
+    it('clamps searchChats limit to a maximum of 100', async () => {
+      await ChatService.searchChats({
+        userId: 'user-1',
+        limit: 5000,
+      });
+
+      expect(MockedChat.findAndCountAll).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 100 })
+      );
     });
   });
 

@@ -318,4 +318,74 @@ describe('ProtectedRoute', () => {
       expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
     });
   });
+
+  describe('when allowedRoles restricts access to admin/super_admin only', () => {
+    it('denies a support_agent', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: makeUser('support_agent'),
+      });
+
+      renderWithProviders(
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+          <ProtectedContent />
+        </ProtectedRoute>
+      );
+
+      expect(screen.getByText('Insufficient Permissions')).toBeInTheDocument();
+      expect(screen.queryByText('Protected Admin Content')).not.toBeInTheDocument();
+    });
+
+    it('denies a moderator', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: makeUser('moderator'),
+      });
+
+      renderWithProviders(
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+          <ProtectedContent />
+        </ProtectedRoute>
+      );
+
+      expect(screen.getByText('Insufficient Permissions')).toBeInTheDocument();
+      expect(screen.queryByText('Protected Admin Content')).not.toBeInTheDocument();
+    });
+
+    it('allows an admin', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: makeUser('admin'),
+      });
+
+      renderWithProviders(
+        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+          <ProtectedContent />
+        </ProtectedRoute>
+      );
+
+      expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
+      expect(screen.queryByText('Insufficient Permissions')).not.toBeInTheDocument();
+    });
+
+    it('allows a super_admin even when allowedRoles does not include super_admin explicitly', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: makeUser('super_admin'),
+      });
+
+      renderWithProviders(
+        <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedContent />
+        </ProtectedRoute>
+      );
+
+      expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
+      expect(screen.queryByText('Insufficient Permissions')).not.toBeInTheDocument();
+    });
+  });
 });

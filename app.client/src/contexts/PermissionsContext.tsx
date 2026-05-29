@@ -75,22 +75,31 @@ export const PermissionsProvider = ({ children, userId }: PermissionsProviderPro
     loadUserPermissions();
   }, [loadUserPermissions]);
 
-  const hasPermission = (permission: Permission): boolean => {
-    return userPermissions.includes(permission);
-  };
+  const hasPermission = useCallback(
+    (permission: Permission): boolean => {
+      return userPermissions.includes(permission);
+    },
+    [userPermissions]
+  );
 
-  const hasAnyPermission = (permissions: Permission[]): boolean => {
-    return permissions.some(permission => userPermissions.includes(permission));
-  };
+  const hasAnyPermission = useCallback(
+    (permissions: Permission[]): boolean => {
+      return permissions.some(permission => userPermissions.includes(permission));
+    },
+    [userPermissions]
+  );
 
-  const hasAllPermissions = (permissions: Permission[]): boolean => {
-    return permissions.every(permission => userPermissions.includes(permission));
-  };
+  const hasAllPermissions = useCallback(
+    (permissions: Permission[]): boolean => {
+      return permissions.every(permission => userPermissions.includes(permission));
+    },
+    [userPermissions]
+  );
 
-  const refreshPermissions = async (): Promise<void> => {
+  const refreshPermissions = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     await loadUserPermissions();
-  };
+  }, [loadUserPermissions]);
 
   const value = useMemo(
     () => ({
@@ -103,7 +112,16 @@ export const PermissionsProvider = ({ children, userId }: PermissionsProviderPro
       isLoading,
       refreshPermissions,
     }),
-    [permissionsService, userPermissions, userWithPermissions, isLoading]
+    [
+      permissionsService,
+      userPermissions,
+      hasPermission,
+      hasAnyPermission,
+      hasAllPermissions,
+      userWithPermissions,
+      isLoading,
+      refreshPermissions,
+    ]
   );
 
   return <PermissionsContext value={value}>{children}</PermissionsContext>;

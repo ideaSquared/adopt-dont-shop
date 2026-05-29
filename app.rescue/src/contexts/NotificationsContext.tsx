@@ -15,7 +15,7 @@ interface NotificationsContextType {
   unreadCount: number;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: (userId: string) => Promise<void>;
-  clearAll: (userId: string) => Promise<void>;
+  clearAll: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -50,9 +50,13 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
   }, [notifications]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const initializeNotifications = async () => {
       if (!userId) {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -62,16 +66,25 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
           limit: 50,
           unreadOnly: true,
         });
-        setNotifications(response.data || []);
+        if (!cancelled) {
+          setNotifications(response.data || []);
+        }
       } catch (error) {
-        console.error('Failed to load notifications:', error);
-        setNotifications([]);
+        if (!cancelled) {
+          console.error('Failed to load notifications:', error);
+          setNotifications([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     initializeNotifications();
+    return () => {
+      cancelled = true;
+    };
   }, [notificationsService, userId]);
 
   const markAsRead = useCallback(
@@ -103,16 +116,16 @@ export const NotificationsProvider = ({ children, userId }: NotificationsProvide
   );
 
   const clearAll = useCallback(async () => {
-    // Delete all notifications for the user
-    const deletePromises = notifications.map(n => notificationsService.deleteNotification(n.id));
-    try {
-      await Promise.all(deletePromises);
-      setNotifications([]);
-    } catch (error) {
-      console.error('Failed to clear all notifications:', error);
-      throw error;
-    }
-  }, [notificationsService, notifications]);
+    // Capture the current list inside the callback body to avoid a stale closure
+    // when `notifications` changes between renders.
+    setNotifications(current => {
+      const deletePromises = current.map(n => notificationsService.deleteNotification(n.id));
+      Promise.all(deletePromises).catch(error => {
+        console.error('Failed to clear all notifications:', error);
+      });
+      return [];
+    });
+  }, [notificationsService]);
 
   const value = useMemo(
     () => ({

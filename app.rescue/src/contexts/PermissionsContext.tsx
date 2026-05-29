@@ -31,28 +31,41 @@ export const PermissionsProvider = ({ children }: PermissionsProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadUserPermissions = async () => {
       if (!user?.userId) {
-        setUserPermissions([]);
-        setIsLoading(false);
+        if (!cancelled) {
+          setUserPermissions([]);
+          setIsLoading(false);
+        }
         return;
       }
 
       try {
         // Fetch actual user permissions from the backend using pre-configured service
         const permissions = await permissionsService.getUserPermissions(user.userId);
-        setUserPermissions(permissions);
+        if (!cancelled) {
+          setUserPermissions(permissions);
+        }
       } catch (error) {
-        console.error('Failed to load user permissions:', error);
-        // Fallback: if API call fails, derive permissions from user role
-        const rolePermissions = getRolePermissions(user.role);
-        setUserPermissions(rolePermissions);
+        if (!cancelled) {
+          console.error('Failed to load user permissions:', error);
+          // Fallback: if API call fails, derive permissions from user role
+          const rolePermissions = getRolePermissions(user.role);
+          setUserPermissions(rolePermissions);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadUserPermissions();
+    return () => {
+      cancelled = true;
+    };
   }, [permissionsService, user?.userId]);
 
   // Fallback function to get permissions based on role

@@ -346,7 +346,8 @@ describe('ApplicationService - Business Logic', () => {
           applicationId: mockApplicationId,
           toStatus: ApplicationStatus.APPROVED,
           transitionedBy: 'rescue-staff-123',
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
 
@@ -422,14 +423,16 @@ describe('ApplicationService - Business Logic', () => {
       expect(mockApplication.update).toHaveBeenCalledWith(
         expect.objectContaining({
           rejectionReason: 'Not a good fit for this pet',
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
       expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
         expect.objectContaining({
           applicationId: mockApplicationId,
           toStatus: ApplicationStatus.REJECTED,
           reason: 'Not a good fit for this pet',
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
 
@@ -506,7 +509,8 @@ describe('ApplicationService - Business Logic', () => {
           applicationId: mockApplicationId,
           toStatus: ApplicationStatus.WITHDRAWN,
           transitionedBy: mockUserId,
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
 
@@ -605,6 +609,7 @@ describe('ApplicationService - Business Logic', () => {
       // field — replace-all semantics destroy + bulkCreate the rows.
       expect(MockedApplicationAnswer.destroy).toHaveBeenCalledWith({
         where: { application_id: mockApplicationId },
+        transaction: expect.anything(),
       });
       expect(MockedApplicationAnswer.bulkCreate).toHaveBeenCalledWith(
         expect.arrayContaining([
@@ -618,7 +623,8 @@ describe('ApplicationService - Business Logic', () => {
             question_key: 'has_yard',
             answer_value: 'yes',
           }),
-        ])
+        ]),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
 
@@ -850,7 +856,8 @@ describe('ApplicationService - Business Logic', () => {
       expect(mockApplication.update).toHaveBeenCalledWith(
         expect.objectContaining({
           decisionAt: expect.any(Date),
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
 
@@ -878,7 +885,8 @@ describe('ApplicationService - Business Logic', () => {
       expect(mockApplication.update).toHaveBeenCalledWith(
         expect.objectContaining({
           decisionAt: expect.any(Date),
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
 
@@ -934,7 +942,8 @@ describe('ApplicationService - Business Logic', () => {
           applicationId: mockApplicationId,
           toStatus: ApplicationStatus.WITHDRAWN,
           transitionedBy: mockUserId,
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
 
@@ -1172,7 +1181,8 @@ describe('ApplicationService - Business Logic', () => {
       ).resolves.toBeDefined();
       // The transition is still recorded.
       expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
-        expect.objectContaining({ toStatus: ApplicationStatus.REJECTED })
+        expect.objectContaining({ toStatus: ApplicationStatus.REJECTED }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
   });
@@ -1492,6 +1502,155 @@ describe('ApplicationService - Business Logic', () => {
       await expect(ApplicationService.getApplicationActivityLog('missing-app-id')).rejects.toThrow(
         'Application not found'
       );
+    });
+  });
+
+  describe('Business Rule: Update Atomicity (answers + references)', () => {
+    /**
+     * updateApplication replaces answers and references with destroy +
+     * bulkCreate. If a bulkCreate fails after its destroy ran outside a
+     * transaction, the application would be left with no answers/references
+     * (data loss). The whole replace must commit or roll back together.
+     */
+    it('applies application.update, answers and references writes in a single transaction', async () => {
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      mockApplication.userId = mockUserId;
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+
+      await ApplicationService.updateApplication(
+        mockApplicationId,
+        {
+          priority: ApplicationPriority.HIGH,
+          answers: { experience: 'lots' },
+          references: [
+            { id: 'r1', name: 'Pat', relationship: 'friend', phone: '555-1', email: null },
+          ],
+        },
+        mockUserId
+      );
+
+      // Every write carries the same transaction handle.
+      expect(mockApplication.update).toHaveBeenCalledWith(
+        expect.objectContaining({ priority: ApplicationPriority.HIGH }),
+        expect.objectContaining({ transaction: expect.anything() })
+      );
+      expect(MockedApplicationAnswer.destroy).toHaveBeenCalledWith(
+        expect.objectContaining({ transaction: expect.anything() })
+      );
+      expect(MockedApplicationAnswer.bulkCreate).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ transaction: expect.anything() })
+      );
+      expect(MockedApplicationReference.destroy).toHaveBeenCalledWith(
+        expect.objectContaining({ transaction: expect.anything() })
+      );
+      expect(MockedApplicationReference.bulkCreate).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ transaction: expect.anything() })
+      );
+    });
+
+    it('rolls back the answer destroy when the answer bulkCreate fails', async () => {
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      mockApplication.userId = mockUserId;
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+      MockedApplicationAnswer.bulkCreate = vi
+        .fn()
+        .mockRejectedValue(new Error('answer insert blocked') as never);
+
+      await expect(
+        ApplicationService.updateApplication(
+          mockApplicationId,
+          { answers: { experience: 'lots' } },
+          mockUserId
+        )
+      ).rejects.toThrow('answer insert blocked');
+
+      // The failure propagated out of the transaction — the service threw
+      // rather than leaving the application with a half-applied replace.
+    });
+  });
+
+  describe('Business Rule: Status Update Atomicity', () => {
+    it('writes the status update, transition row and timeline event in one transaction', async () => {
+      const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
+      (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+
+      await ApplicationService.updateApplicationStatus(
+        mockApplicationId,
+        { status: ApplicationStatus.APPROVED, actionedBy: 'rescue-staff-123' },
+        'rescue-staff-123'
+      );
+
+      expect(mockApplication.update).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({ transaction: expect.anything() })
+      );
+      expect(MockedApplicationStatusTransition.create).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({ transaction: expect.anything() })
+      );
+    });
+  });
+
+  describe('Business Rule: addDocument', () => {
+    const createDocApplication = () => {
+      const docs: unknown[] = [];
+      const app = createMockApplication(ApplicationStatus.SUBMITTED, {
+        documents: docs,
+      }) as ReturnType<typeof createMockApplication> & { documents: unknown[] };
+      // reload inside the transaction must preserve the documents array so
+      // the append reads the current value.
+      app.reload = vi.fn().mockResolvedValue(app);
+      app.update = vi.fn().mockResolvedValue(app);
+      return app;
+    };
+
+    it('appends a document inside a transaction with a row lock', async () => {
+      const app = createDocApplication();
+      app.userId = mockUserId;
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(app);
+
+      await ApplicationService.addDocument(
+        mockApplicationId,
+        {
+          documentType: 'identity',
+          fileName: 'id.png',
+          fileUrl: 'https://example.com/id.png',
+        },
+        mockUserId
+      );
+
+      // The pre-update reload takes an UPDATE lock and runs in the
+      // transaction; the write joins the same transaction.
+      expect(app.reload).toHaveBeenCalledWith(
+        expect.objectContaining({ transaction: expect.anything(), lock: expect.anything() })
+      );
+      expect(app.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          documents: expect.arrayContaining([
+            expect.objectContaining({ fileName: 'id.png', documentType: 'identity' }),
+          ]),
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
+      );
+    });
+
+    it('rejects when the caller does not own the application', async () => {
+      const app = createDocApplication();
+      app.userId = 'other-user';
+      MockedApplication.findByPk = vi.fn().mockResolvedValue(app);
+
+      await expect(
+        ApplicationService.addDocument(
+          mockApplicationId,
+          { documentType: 'identity', fileName: 'id.png', fileUrl: 'https://x/id.png' },
+          mockUserId
+        )
+      ).rejects.toThrow('Access denied');
+
+      expect(app.update).not.toHaveBeenCalled();
     });
   });
 });

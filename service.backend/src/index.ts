@@ -60,7 +60,7 @@ import gdprRoutes from './routes/gdpr.routes';
 import fieldPermissionsRoutes from './routes/field-permissions.routes';
 import cmsRoutes from './routes/cms.routes';
 import healthRoutes from './routes/health.routes';
-import metricsRoutes from './routes/metrics.routes';
+import metricsRoutes, { warnIfMetricsTokenUnset } from './routes/metrics.routes';
 import reportsRoutes from './routes/reports.routes';
 import legalRoutes from './routes/legal.routes';
 import privacyRoutes from './routes/privacy.routes';
@@ -373,6 +373,7 @@ app.use('/api/v1/uploads', uploadRoutes); // ADS-588: staged image upload (POST 
 app.use('/api/v1', healthRoutes);
 
 // ADS-404: Prometheus scrape endpoint, gated by METRICS_AUTH_TOKEN.
+warnIfMetricsTokenUnset(config.nodeEnv);
 app.use('/metrics', metricsRoutes);
 
 // Simple health check (no dependencies)

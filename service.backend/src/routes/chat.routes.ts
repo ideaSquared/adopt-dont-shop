@@ -302,7 +302,13 @@ router.get(
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.get('/search', generalLimiter, ChatController.searchConversations);
+router.get(
+  '/search',
+  generalLimiter,
+  chatValidation.searchConversations,
+  handleValidationErrors,
+  ChatController.searchConversations
+);
 
 /**
  * @swagger

@@ -25,6 +25,7 @@ permissions:
 jobs:
   rollback:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: ${{ github.event.inputs.environment }}
     steps:
       # ADS-670: pin SSH host fingerprint to prevent MitM.

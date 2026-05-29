@@ -43,6 +43,10 @@ services:
     restart: always
     # Production: Don't expose database port to host
     ports: []
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     logging: *default-logging
     deploy:
       resources:
@@ -81,6 +85,10 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     logging: *default-logging
     deploy:
       resources:
@@ -119,6 +127,10 @@ services:
     depends_on:
       database:
         condition: service_healthy
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     logging: *default-logging
     deploy:
       resources:
@@ -221,6 +233,10 @@ services:
         condition: service_healthy
       service-backend-migrate:
         condition: service_completed_successfully
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     logging: *default-logging
     deploy:
       resources:
@@ -242,6 +258,10 @@ services:
       - "8080"
     stdin_open: false
     tty: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080']
       interval: 30s
@@ -268,6 +288,10 @@ services:
       - "8080"
     stdin_open: false
     tty: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080']
       interval: 30s
@@ -294,6 +318,10 @@ services:
       - "8080"
     stdin_open: false
     tty: false
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080']
       interval: 30s
@@ -334,6 +362,20 @@ services:
     expose:
       - "80"
       - "443"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # The per-stack nginx listens on port 80 (HTTP) internally; the default
+    # server returns 444 for unknown hosts but nginx itself is alive and
+    # accepting connections. `nginx -t` validates config; checking the master
+    # PID file confirms the daemon is running. Both together confirm liveness.
+    healthcheck:
+      test: ['CMD-SHELL', 'nginx -t 2>/dev/null && test -f /var/run/nginx.pid']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     depends_on:
       - service-backend
       - app-client

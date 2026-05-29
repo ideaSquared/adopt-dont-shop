@@ -78,8 +78,16 @@ export const useSeededUsers = (options: UseSeededUsersOptions = {}): UseSeededUs
         throw new Error(`API responded with status: ${response.status}`);
       }
 
-      const data = await response.json();
-      setUsers(data.users || []);
+      const data: unknown = await response.json();
+      // Guard the shape before storing: we expect { users: DevUser[] }
+      const users =
+        data !== null &&
+        typeof data === 'object' &&
+        'users' in data &&
+        Array.isArray((data as { users: unknown }).users)
+          ? (data as { users: DevUser[] }).users
+          : [];
+      setUsers(users);
     } catch (err) {
       if ((err as { name?: string }).name === 'AbortError') {
         return;

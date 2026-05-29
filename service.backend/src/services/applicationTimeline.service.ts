@@ -1,4 +1,4 @@
-import { fn, col, type WhereAttributeHash } from 'sequelize';
+import { fn, col, type Transaction, type WhereAttributeHash } from 'sequelize';
 import ApplicationTimeline, { TimelineEventType } from '../models/ApplicationTimeline';
 import User from '../models/User';
 import { ApplicationStage } from '../models/Application';
@@ -27,6 +27,12 @@ export interface CreateTimelineEventData {
   new_stage?: string;
   previous_status?: string;
   new_status?: string;
+  /**
+   * When provided, the event row (and the actor lookup) join the caller's
+   * transaction so the timeline write commits/rolls back atomically with
+   * the surrounding status change.
+   */
+  transaction?: Transaction;
 }
 
 export class ApplicationTimelineService {
@@ -39,23 +45,31 @@ export class ApplicationTimelineService {
     // — if the user can't be resolved (e.g. test fixtures with mocked
     // user IDs that don't exist in the DB), the snapshot stays null
     // and the timeline degrades gracefully on display.
+    const { transaction, ...eventData } = data;
+
     let created_by_email_snapshot: string | null = null;
-    if (data.created_by) {
+    if (eventData.created_by) {
       try {
-        const actor = await User.findByPk(data.created_by, { attributes: ['email'] });
+        const actor = await User.findByPk(eventData.created_by, {
+          attributes: ['email'],
+          transaction,
+        });
         created_by_email_snapshot = actor?.email ?? null;
       } catch {
         // Soft-fail — the snapshot is a display hint, not a guarantee.
       }
     }
 
-    return ApplicationTimeline.create({
-      timeline_id: undefined, // Will be auto-generated
-      ...data,
-      created_by_email_snapshot,
-      created_at: new Date(),
-      updated_at: new Date(),
-    });
+    return ApplicationTimeline.create(
+      {
+        timeline_id: undefined, // Will be auto-generated
+        ...eventData,
+        created_by_email_snapshot,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      { transaction }
+    );
   }
 
   /**

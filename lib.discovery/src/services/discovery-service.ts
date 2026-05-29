@@ -31,18 +31,30 @@ export class DiscoveryService {
   private apiService: ApiService;
   private config: DiscoveryServiceConfig;
   private API_BASE_URL = '/api/v1/discovery';
+  private preloadTimerIds: Set<ReturnType<typeof setTimeout>> = new Set();
 
-  constructor(config: DiscoveryServiceConfig = {}) {
+  /**
+   * @param config - Discovery service configuration options.
+   * @param apiService - Optional ApiService instance. When omitted, a new
+   *   ApiService is constructed with a 30 s timeout override (discovery
+   *   endpoints can be slow). The shared singleton from lib.api is NOT used
+   *   as the default here because the 30 s timeout must be applied; pass an
+   *   explicit instance if you need to share interceptors/CSRF state with the
+   *   rest of the app.
+   */
+  constructor(config: DiscoveryServiceConfig = {}, apiService?: ApiService) {
     this.config = {
       debug: false,
       ...config,
     };
 
-    this.apiService = new ApiService({
-      apiUrl: config.apiUrl ?? '',
-      debug: config.debug,
-      timeout: 30000,
-    });
+    this.apiService =
+      apiService ??
+      new ApiService({
+        apiUrl: config.apiUrl ?? '',
+        debug: config.debug,
+        timeout: 30000,
+      });
   }
 
   /**
@@ -279,6 +291,24 @@ export class DiscoveryService {
   }
 
   /**
+   * Cancel all pending preload timers. Call this when the service is no
+   * longer needed (e.g. component unmount) to prevent timer accumulation
+   * in long-lived SPAs.
+   */
+  clearPreloads(): void {
+    this.preloadTimerIds.forEach((id) => clearTimeout(id));
+    this.preloadTimerIds.clear();
+  }
+
+  /**
+   * Alias for clearPreloads — use whichever naming convention suits the
+   * call-site (both call the same implementation).
+   */
+  destroy(): void {
+    this.clearPreloads();
+  }
+
+  /**
    * Preload images for smooth user experience
    * This ensures images are cached when user swipes
    *
@@ -286,6 +316,11 @@ export class DiscoveryService {
    */
   private preloadImages(pets: DiscoveryPet[]): void {
     if (typeof Image === 'undefined') return;
+
+    // Cancel timers from the previous preload batch before starting a new one
+    // so timers don't accumulate across repeated calls in a long-lived SPA.
+    this.clearPreloads();
+
     pets.forEach((pet) => {
       if (pet.images && pet.images.length > 0) {
         // Preload first image immediately, others in background
@@ -294,14 +329,16 @@ export class DiscoveryService {
 
         // Preload additional images with small delay
         pet.images.slice(1, 3).forEach((imageUrl, index) => {
-          setTimeout(
+          const timerId = setTimeout(
             () => {
+              this.preloadTimerIds.delete(timerId);
               if (typeof Image === 'undefined') return;
               const additionalImg = new Image();
               additionalImg.src = imageUrl;
             },
             (index + 1) * 100
           );
+          this.preloadTimerIds.add(timerId);
         });
       }
     });

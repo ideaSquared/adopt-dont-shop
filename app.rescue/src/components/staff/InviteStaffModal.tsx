@@ -80,14 +80,22 @@ const InviteStaffModal: React.FC<InviteStaffModalProps> = ({
       onKeyDown={e => e.key === 'Escape' && onCancel()}
       role="presentation"
     >
-      <div className={styles.formModal}>
+      <div
+        className={styles.formModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="invite-staff-modal-title"
+      >
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Invite Staff Member</h2>
+          <h2 id="invite-staff-modal-title" className={styles.modalTitle}>
+            Invite Staff Member
+          </h2>
           <button
             className={styles.closeButton}
             onClick={onCancel}
             disabled={loading}
             type="button"
+            aria-label="Close"
           >
             ✕
           </button>

@@ -17,10 +17,14 @@ export const FavoritesPage: React.FC = () => {
   const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchFavorites = async () => {
       if (!isAuthenticated) {
-        setLoading(false);
-        setFavorites([]);
+        if (!cancelled) {
+          setLoading(false);
+          setFavorites([]);
+        }
         return;
       }
 
@@ -28,16 +32,25 @@ export const FavoritesPage: React.FC = () => {
         setLoading(true);
         setError(null);
         const favoritePets = await petService.getFavorites();
-        setFavorites(favoritePets);
+        if (!cancelled) {
+          setFavorites(favoritePets);
+        }
       } catch (err) {
-        console.error('Failed to fetch favorites:', err);
-        setError('Failed to load your favorite pets. Please try again.');
+        if (!cancelled) {
+          console.error('Failed to fetch favorites:', err);
+          setError('Failed to load your favorite pets. Please try again.');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchFavorites();
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated]);
 
   // ADS UX P0 #1: when an un-favorite API call fails, PetCard keeps the pet
