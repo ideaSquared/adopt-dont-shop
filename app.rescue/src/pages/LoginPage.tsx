@@ -7,13 +7,23 @@ type LocationState = {
   from?: { pathname?: string };
 };
 
+// Reject absolute URLs, protocol-relative (//), backslash variants (/\),
+// and javascript: — only accept paths starting with a single `/`.
+const isSafeRedirectPath = (value: string | null | undefined): value is string => {
+  if (!value) return false;
+  if (!value.startsWith('/')) return false;
+  if (value.startsWith('//') || value.startsWith('/\\')) return false;
+  return true;
+};
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleSuccess = () => {
     const state = location.state as LocationState | null;
-    const redirectTo = state?.from?.pathname ?? '/';
+    const rawRedirect = state?.from?.pathname;
+    const redirectTo = isSafeRedirectPath(rawRedirect) ? rawRedirect : '/';
     navigate(redirectTo, { replace: true });
   };
 

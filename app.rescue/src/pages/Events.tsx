@@ -60,33 +60,40 @@ const Events: React.FC = () => {
   // ADS-586: confirm dialog for destructive event deletion.
   const { confirm, confirmProps } = useConfirm();
 
-  // Fetch events on mount and when filters change
+  // Fetch events on mount
   useEffect(() => {
-    fetchEvents();
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const fetchedEvents = await eventsService.getEvents();
+        if (!cancelled) {
+          setEvents(fetchedEvents);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Failed to fetch events:', err);
+          setError('Failed to load events. Please try again.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Apply filters whenever events or filters change
   useEffect(() => {
     applyFilters();
   }, [events, filters]);
-
-  /**
-   * Fetch events from the API
-   */
-  const fetchEvents = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const fetchedEvents = await eventsService.getEvents();
-      setEvents(fetchedEvents);
-    } catch (err) {
-      console.error('Failed to fetch events:', err);
-      setError('Failed to load events. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   /**
    * Apply filters to events
@@ -227,6 +234,9 @@ const Events: React.FC = () => {
    * Handle event status update
    */
   const handleUpdateEventStatus = async (eventId: string, status: string) => {
+    if (submitting) return;
+
+    setSubmitting(true);
     try {
       const updatedEvent = await eventsService.updateEventStatus(eventId, status);
       setEvents(prev => prev.map(event => (event.id === updatedEvent.id ? updatedEvent : event)));
@@ -240,6 +250,8 @@ const Events: React.FC = () => {
       toast.error('Failed to update event status. Please try again.', {
         action: { label: 'Retry', onClick: () => handleUpdateEventStatus(eventId, status) },
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -396,11 +408,24 @@ const Events: React.FC = () => {
         className={clsx(styles.modal, showCreateModal ? styles.modalOpen : styles.modalClosed)}
         onClick={() => handleCloseModal('create')}
       >
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions -- stop-propagation guard so clicks inside the modal don't bubble to the backdrop above */}
-        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions,jsx-a11y/no-noninteractive-element-interactions -- dialog role is interactive; Escape key closes the modal */}
+        <div
+          className={styles.modalContent}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-event-title"
+          onClick={e => e.stopPropagation()}
+          onKeyDown={e => e.key === 'Escape' && handleCloseModal('create')}
+        >
           <div className={styles.modalHeader}>
-            <h2 className={styles.modalTitle}>Create New Event</h2>
-            <button className={styles.closeButton} onClick={() => handleCloseModal('create')}>
+            <h2 id="create-event-title" className={styles.modalTitle}>
+              Create New Event
+            </h2>
+            <button
+              className={styles.closeButton}
+              aria-label="Close"
+              onClick={() => handleCloseModal('create')}
+            >
               &times;
             </button>
           </div>
@@ -421,11 +446,24 @@ const Events: React.FC = () => {
         className={clsx(styles.modal, showEditModal ? styles.modalOpen : styles.modalClosed)}
         onClick={() => handleCloseModal('edit')}
       >
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions -- stop-propagation guard so clicks inside the modal don't bubble to the backdrop above */}
-        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions,jsx-a11y/no-noninteractive-element-interactions -- dialog role is interactive; Escape key closes the modal */}
+        <div
+          className={styles.modalContent}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-event-title"
+          onClick={e => e.stopPropagation()}
+          onKeyDown={e => e.key === 'Escape' && handleCloseModal('edit')}
+        >
           <div className={styles.modalHeader}>
-            <h2 className={styles.modalTitle}>Edit Event</h2>
-            <button className={styles.closeButton} onClick={() => handleCloseModal('edit')}>
+            <h2 id="edit-event-title" className={styles.modalTitle}>
+              Edit Event
+            </h2>
+            <button
+              className={styles.closeButton}
+              aria-label="Close"
+              onClick={() => handleCloseModal('edit')}
+            >
               &times;
             </button>
           </div>
@@ -462,11 +500,24 @@ const Events: React.FC = () => {
         className={clsx(styles.modal, showDetailsModal ? styles.modalOpen : styles.modalClosed)}
         onClick={() => handleCloseModal('details')}
       >
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions -- stop-propagation guard so clicks inside the modal don't bubble to the backdrop above */}
-        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events,jsx-a11y/no-static-element-interactions,jsx-a11y/no-noninteractive-element-interactions -- dialog role is interactive; Escape key closes the modal */}
+        <div
+          className={styles.modalContent}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="event-details-title"
+          onClick={e => e.stopPropagation()}
+          onKeyDown={e => e.key === 'Escape' && handleCloseModal('details')}
+        >
           <div className={styles.modalHeader}>
-            <h2 className={styles.modalTitle}>Event Details</h2>
-            <button className={styles.closeButton} onClick={() => handleCloseModal('details')}>
+            <h2 id="event-details-title" className={styles.modalTitle}>
+              Event Details
+            </h2>
+            <button
+              className={styles.closeButton}
+              aria-label="Close"
+              onClick={() => handleCloseModal('details')}
+            >
               &times;
             </button>
           </div>

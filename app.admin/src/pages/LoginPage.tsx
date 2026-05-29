@@ -3,11 +3,21 @@ import { ManageCookiesLink } from '@adopt-dont-shop/lib.legal';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import * as styles from './LoginPage.css';
 
+// Reject absolute URLs, protocol-relative (//), backslash variants (/\),
+// and javascript: — only accept paths starting with a single `/`.
+const isSafeRedirectPath = (value: string | null | undefined): value is string => {
+  if (!value) return false;
+  if (!value.startsWith('/')) return false;
+  if (value.startsWith('//') || value.startsWith('/\\')) return false;
+  return true;
+};
+
 export const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/';
+  const rawFrom = location.state?.from?.pathname;
+  const from = isSafeRedirectPath(rawFrom) ? rawFrom : '/';
 
   const handleSuccess = () => {
     navigate(from, { replace: true });

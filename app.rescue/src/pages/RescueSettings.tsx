@@ -52,10 +52,54 @@ const RescueSettings: React.FC = () => {
   const canEdit = hasPermission(RESCUE_SETTINGS_UPDATE);
 
   useEffect(() => {
-    loadRescueData();
-  }, [user]);
+    let cancelled = false;
 
-  const loadRescueData = async () => {
+    const loadRescueData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const staffData = await apiService.get<{ data: { rescueId?: string } }>('/api/v1/staff/me');
+        const rescueId = staffData.data.rescueId;
+
+        if (!rescueId) {
+          throw new Error('No rescue ID found for current user');
+        }
+
+        const rescueData = await apiService.get<{
+          data: RescueProfile & { settings?: { adoptionPolicies?: AdoptionPolicy } };
+        }>(`/api/v1/rescues/${rescueId}`);
+
+        if (cancelled) return;
+
+        // Extract adoption policies from settings if they exist
+        const { settings, ...rest } = rescueData.data;
+        const rescueProfile: RescueProfile = {
+          ...rest,
+          adoptionPolicies: settings?.adoptionPolicies,
+        };
+
+        setRescue(rescueProfile);
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : 'Failed to load rescue settings. Please try again.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadRescueData();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.userId]);
+
+  const loadRescueData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -86,7 +130,7 @@ const RescueSettings: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleSaveProfile = async (profileData: Partial<RescueProfile>) => {
     if (!rescue) {

@@ -34,9 +34,9 @@ export const ForgotPasswordPage: React.FC = () => {
     setError(null);
 
     try {
-      // Log password reset attempt
+      // Log password reset attempt — never send PII to analytics
       logEvent('password_reset_requested', 1, {
-        email: data.email,
+        has_email: 'true',
       });
 
       await authService.forgotPassword(data.email);
@@ -47,14 +47,16 @@ export const ForgotPasswordPage: React.FC = () => {
 
       // Log successful request
       logEvent('password_reset_email_sent', 1, {
-        email: data.email,
+        has_email: 'true',
       });
     } catch (err: unknown) {
-      console.error('Forgot password error:', err);
+      if (import.meta.env.DEV) {
+        console.error('Forgot password error:', err);
+      }
 
-      // Log error
+      // Log error — never send PII to analytics
       logEvent('password_reset_request_failed', 1, {
-        email: data.email,
+        has_email: 'true',
         error_message: err instanceof Error ? err.message : 'Unknown error',
       });
 

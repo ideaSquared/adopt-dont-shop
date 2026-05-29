@@ -65,6 +65,8 @@ const Analytics: React.FC = () => {
 
   // Fetch analytics data
   useEffect(() => {
+    let cancelled = false;
+
     const fetchAnalytics = async () => {
       setLoading(true);
       setError(null);
@@ -78,20 +80,29 @@ const Analytics: React.FC = () => {
           analyticsService.getStageDistribution(),
         ]);
 
-        setAdoptionMetrics(adoption);
-        setApplicationAnalytics(application);
-        setPetPerformance(pet);
-        setResponseTimeMetrics(responseTime);
-        setStageDistribution(stages);
+        if (!cancelled) {
+          setAdoptionMetrics(adoption);
+          setApplicationAnalytics(application);
+          setPetPerformance(pet);
+          setResponseTimeMetrics(responseTime);
+          setStageDistribution(stages);
+        }
       } catch (err) {
-        console.error('Failed to fetch analytics:', err);
-        setError('Failed to load analytics data. Please try again.');
+        if (!cancelled) {
+          console.error('Failed to fetch analytics:', err);
+          setError('Failed to load analytics data. Please try again.');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchAnalytics();
+    return () => {
+      cancelled = true;
+    };
   }, [dateRange]);
 
   // Export handlers
@@ -147,8 +158,6 @@ const Analytics: React.FC = () => {
     setEmailAddress('');
     setEmailError('');
     setShowEmailModal(true);
-    // Focus the input on next render
-    setTimeout(() => emailInputRef.current?.focus(), 0);
   };
 
   const handleEmailModalSubmit = async (e: React.FormEvent) => {
@@ -457,6 +466,7 @@ const Analytics: React.FC = () => {
                   ref={emailInputRef}
                   id="report-email"
                   type="email"
+                  autoFocus
                   className={styles.emailModalInput}
                   value={emailAddress}
                   onChange={e => {

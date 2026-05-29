@@ -4,12 +4,24 @@ import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { ADMIN_USER_TYPES } from '@/types';
 import * as styles from './ProtectedRoute.css';
 
+type AdminRole = 'admin' | 'moderator' | 'super_admin' | 'support_agent';
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'moderator' | 'super_admin' | 'support_agent';
+  /** Single-role shorthand (kept for backwards compatibility). */
+  requiredRole?: AdminRole;
+  /**
+   * Whitelist of roles that may access this route. super_admin always passes.
+   * Takes precedence over `requiredRole` when both are provided.
+   */
+  allowedRoles?: readonly AdminRole[];
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  requiredRole,
+  allowedRoles,
+}) => {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   // Show loading state while checking authentication
@@ -48,25 +60,32 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
     );
   }
 
-  // Check specific role requirements if provided; super_admin bypasses all role gates
-  if (requiredRole && user.userType !== 'super_admin') {
-    if (user.userType !== requiredRole) {
-      return (
-        <div className={styles.unauthorizedContainer}>
-          <div className={styles.unauthorizedCard}>
-            <div className={styles.unauthorizedIcon}>⚠️</div>
-            <h1 className={styles.unauthorizedTitle}>Insufficient Permissions</h1>
-            <p className={styles.unauthorizedMessage}>
-              This section requires {requiredRole} privileges. Please contact your system
-              administrator if you need access.
-            </p>
-            <button className={styles.backButton} onClick={() => window.history.back()}>
-              Go Back
-            </button>
-          </div>
+  // super_admin bypasses all role gates
+  if (user.userType === 'super_admin') {
+    return <>{children}</>;
+  }
+
+  // Resolve which roles are required for this route
+  const roles: readonly AdminRole[] | undefined =
+    allowedRoles ?? (requiredRole ? [requiredRole] : undefined);
+
+  if (roles && !roles.includes(user.userType as AdminRole)) {
+    const roleLabel = roles.join(' or ');
+    return (
+      <div className={styles.unauthorizedContainer}>
+        <div className={styles.unauthorizedCard}>
+          <div className={styles.unauthorizedIcon}>⚠️</div>
+          <h1 className={styles.unauthorizedTitle}>Insufficient Permissions</h1>
+          <p className={styles.unauthorizedMessage}>
+            This section requires {roleLabel} privileges. Please contact your system administrator
+            if you need access.
+          </p>
+          <button className={styles.backButton} onClick={() => window.history.back()}>
+            Go Back
+          </button>
         </div>
-      );
-    }
+      </div>
+    );
   }
 
   return <>{children}</>;
