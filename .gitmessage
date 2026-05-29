@@ -1,0 +1,19 @@
+# <type>(<scope>): <subject>
+#
+# Types: feat | fix | refactor | test | docs | chore | ci | perf | style | build
+# Scope (optional): package name without @adopt-dont-shop/ prefix.
+#                   Examples: lib.auth, app.admin, service.backend, ci, deps
+#
+# Subject: imperative, <= 72 chars, no trailing period.
+#
+# Examples:
+#   feat(lib.auth): add two-factor authentication support
+#   fix(service.backend): correct date format in rescue profile
+#   chore(deps): bump vitest to 4.0.9
+#
+# --- Body (optional) ---
+# Explain WHY, not WHAT. Wrap at 72 cols.
+#
+# --- Footer (optional) ---
+# BREAKING CHANGE: <description>
+# Closes #123 / Refs ADS-456

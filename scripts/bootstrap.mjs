@@ -223,6 +223,22 @@ async function setup() {
       log('', RESET);
     }
 
+    // Step 7: Configure git commit message template (idempotent — git config overwrites)
+    logStep('7', 'Configuring git commit message template...');
+    try {
+      execSync('git config commit.template .gitmessage', {
+        stdio: 'ignore',
+        cwd: ROOT,
+      });
+      logSuccess('Git commit template set to .gitmessage');
+    } catch {
+      logError(
+        'Failed to set git commit template — run `git config commit.template .gitmessage` manually.'
+      );
+      // Non-fatal: not every contributor environment has git configured (e.g. some CI sandboxes).
+    }
+    log('', RESET);
+
     // Success message
     logHeader('Setup Complete! 🎉');
     log('', GREEN);
