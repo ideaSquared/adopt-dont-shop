@@ -121,16 +121,14 @@
   },
   "overridesDocumentation": {
     "lodash": "Force lodash to >=4.17.21 to mitigate the prototype-pollution vulnerability tracked by CVE-2019-10744 / CVE-2020-8203 (GHSA-jf85-cpcp-j695, GHSA-p6mc-m468-83gw). The constraint is intentionally permissive (^4.18.1) so npm resolves the latest patched 4.x release across all transitive consumers. Do not remove without first verifying every transitive lodash dependency satisfies >=4.17.21.",
-    "esbuild": "Pinned as a root devDependency (^0.27.0) — npm's workspace deduper uses the root version for every transitive consumer (notably @vanilla-extract/vite-plugin and @vanilla-extract/integration), which mitigates the dev-server CORS bypass tracked by GHSA-67mh-4wv8-2f99. Adding a separate `overrides` entry conflicts with the direct devDependency under npm 10/11; the devDep is enough on its own. Do not downgrade below 0.25.0.",
-    "uuid": "Forces uuid to >=11.1.1 across all transitive consumers (including sequelize 6.x which pins uuid ^8.3.2) to remediate GHSA-w5hq-g745-h8pq. uuid 11.x is a breaking API change (ESM-only, removed v1/v6 helpers), but sequelize 6 only calls v4() internally and the v4 signature is unchanged, so this is safe. Run `npm install` to regenerate the lockfile after editing this override."
+    "esbuild": "Pinned as a root devDependency (^0.27.0) — npm's workspace deduper uses the root version for every transitive consumer (notably @vanilla-extract/vite-plugin and @vanilla-extract/integration), which mitigates the dev-server CORS bypass tracked by GHSA-67mh-4wv8-2f99. Adding a separate `overrides` entry conflicts with the direct devDependency under npm 10/11; the devDep is enough on its own. Do not downgrade below 0.25.0."
   },
   "overrides": {
     "lodash": "^4.18.1",
-    "@types/react": "^19.2.15",
+    "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/express": "^5.0.0",
-    "@types/express-serve-static-core": "^5.0.0",
-    "uuid": "^11.1.1"
+    "@types/express-serve-static-core": "^5.0.0"
   },
   "engines": {
     "node": ">=22.0.0 <23.0.0",
