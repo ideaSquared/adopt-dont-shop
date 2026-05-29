@@ -1,21 +1,35 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
-export interface ToastMessage {
+export type ToastMessage = {
   id: string;
   message: string;
   type: 'success' | 'error' | 'warning' | 'info';
   duration?: number;
-}
+};
 
-export interface UseToastReturn {
+export type UseToastReturn = {
   toasts: ToastMessage[];
   showToast: (message: string, type?: ToastMessage['type'], duration?: number) => void;
   hideToast: (id: string) => void;
   clearToasts: () => void;
-}
+};
 
 export function useToast(): UseToastReturn {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const timerIds = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  // Clear all pending timers on unmount to avoid setState calls on
+  // an unmounted component and memory leaks in long-lived SPAs.
+  useEffect(() => {
+    return () => {
+      timerIds.current.forEach(id => clearTimeout(id));
+      timerIds.current.clear();
+    };
+  }, []);
+
+  const hideToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  }, []);
 
   const showToast = useCallback(
     (message: string, type: ToastMessage['type'] = 'info', duration = 5000) => {
@@ -24,17 +38,15 @@ export function useToast(): UseToastReturn {
 
       setToasts(prev => [...prev, toast]);
       if (duration > 0) {
-        setTimeout(() => {
+        const timerId = setTimeout(() => {
+          timerIds.current.delete(timerId);
           hideToast(id);
         }, duration);
+        timerIds.current.add(timerId);
       }
     },
-    [] // eslint-disable-line react-hooks/exhaustive-deps
+    [hideToast]
   );
-
-  const hideToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
 
   const clearToasts = useCallback(() => {
     setToasts([]);

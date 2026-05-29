@@ -16,12 +16,12 @@ import {
   centeredBadgeContainer,
 } from './ImageGallery.css';
 
-interface ImageGalleryProps {
+type ImageGalleryProps = {
   images: string[];
   viewMode: 'carousel' | 'gallery';
   onUpload?: (file: File) => void;
   onDelete?: (fileName: string) => void;
-}
+};
 
 const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload, onDelete }) => {
   const [galleryImages, setGalleryImages] = useState<string[]>(
@@ -39,8 +39,11 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
     setGalleryImages(fallbackImages);
     setLoadingImages(new Array(fallbackImages.length).fill(true));
 
+    const imgObjects: HTMLImageElement[] = [];
+
     fallbackImages.forEach((src, index) => {
       const img = new window.Image();
+      imgObjects.push(img);
       img.src = src;
 
       if (src === noImage && img.complete) {
@@ -53,8 +56,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
     });
 
     return () => {
-      fallbackImages.forEach(() => {
-        const img = new window.Image();
+      imgObjects.forEach(img => {
         img.onload = null;
       });
     };
@@ -113,7 +115,9 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, viewMode, onUpload,
                 {onDelete && src !== noImage && (
                   <button
                     className={deleteButton}
-                    onClick={() => handleDelete(fileName!)}
+                    onClick={() => {
+                      if (fileName) handleDelete(fileName);
+                    }}
                     aria-label={`delete image ${fileName}`}
                   >
                     delete image

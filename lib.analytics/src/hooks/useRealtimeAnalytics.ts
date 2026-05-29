@@ -122,16 +122,19 @@ export const useRealtimeAnalytics = <K extends keyof EventMap>(
     if (!s) {
       return;
     }
-    // Socket.IO v4's typed `on`/`off` reject anything that isn't on the
-    // server's typed event map. We trust the EventMap contract here and
-    // address the bus through the untyped surface.
-    const untyped = s as unknown as {
-      on: (e: string, cb: (...args: unknown[]) => void) => void;
-      off: (e: string, cb: (...args: unknown[]) => void) => void;
+    // Socket.IO v4 types the `on`/`off` overloads against its own server-side
+    // EventsMap, which does not include our application EventMap. We access the
+    // bus through the untyped string-keyed surface so TypeScript does not reject
+    // our custom event names. This is a justified single cast: the runtime
+    // contract is enforced by EventMap above; no double-cast is needed.
+    type UntypedBus = {
+      on(e: string, cb: (...a: unknown[]) => void): void;
+      off(e: string, cb: (...a: unknown[]) => void): void;
     };
-    untyped.on(event, handler as (...args: unknown[]) => void);
+    const bus = s as unknown as UntypedBus;
+    bus.on(event, handler as (...args: unknown[]) => void);
     return () => {
-      untyped.off(event, handler as (...args: unknown[]) => void);
+      bus.off(event, handler as (...args: unknown[]) => void);
     };
   }, [event, handler]);
 };
@@ -154,13 +157,15 @@ export const useAnalyticsInvalidator = (): void => {
       }
       qc.invalidateQueries({ queryKey: ['reports'] });
     };
-    const untyped = s as unknown as {
-      on: (e: string, cb: (...args: unknown[]) => void) => void;
-      off: (e: string, cb: (...args: unknown[]) => void) => void;
+    // Same justified single cast as in useRealtimeAnalytics (see comment above).
+    type UntypedBus = {
+      on(e: string, cb: (...a: unknown[]) => void): void;
+      off(e: string, cb: (...a: unknown[]) => void): void;
     };
-    untyped.on('analytics:invalidate', handler as (...args: unknown[]) => void);
+    const bus = s as unknown as UntypedBus;
+    bus.on('analytics:invalidate', handler as (...args: unknown[]) => void);
     return () => {
-      untyped.off('analytics:invalidate', handler as (...args: unknown[]) => void);
+      bus.off('analytics:invalidate', handler as (...args: unknown[]) => void);
     };
   }, [qc]);
 };

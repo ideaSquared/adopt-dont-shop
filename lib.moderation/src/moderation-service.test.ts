@@ -67,6 +67,31 @@ describe('ModerationService', () => {
     });
   });
 
+  describe('bulkUpdateReports', () => {
+    it('parses and returns the bulk update response', async () => {
+      mockedApi.post.mockResolvedValueOnce({ success: true, updated: 3 });
+
+      const result = await service.bulkUpdateReports({
+        reportIds: ['rep_1', 'rep_2', 'rep_3'],
+        action: 'resolve',
+      });
+
+      expect(mockedApi.post).toHaveBeenCalledWith(
+        '/api/v1/admin/moderation/reports/bulk-update',
+        expect.objectContaining({ action: 'resolve' })
+      );
+      expect(result).toEqual({ success: true, updated: 3 });
+    });
+
+    it('rejects when the bulk update response fails schema validation', async () => {
+      mockedApi.post.mockResolvedValueOnce({ success: 'yes', updated: 'three' });
+
+      await expect(
+        service.bulkUpdateReports({ reportIds: ['rep_1'], action: 'dismiss' })
+      ).rejects.toBeDefined();
+    });
+  });
+
   describe('createReport', () => {
     it('POSTs the body and returns the parsed Report', async () => {
       mockedApi.post.mockResolvedValueOnce({ data: validReport });

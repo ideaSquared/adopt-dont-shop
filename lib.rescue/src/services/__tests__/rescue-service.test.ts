@@ -406,6 +406,18 @@ describe('RescueService', () => {
 
       expect(result).toEqual([]);
     });
+
+    it('should log featured rescues errors to console.error regardless of debug mode', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const error = new Error('Network failure');
+      mockApiService.get.mockRejectedValue(error);
+
+      // Default service has debug: false — error must still be logged
+      await rescueService.getFeaturedRescues();
+
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to fetch featured rescues:', error);
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('updateConfig', () => {

@@ -200,6 +200,26 @@ describe('Modal', () => {
     expect(realButton).toHaveFocus();
   });
 
+  it('uses unique aria-labelledby ids when multiple modals are open', () => {
+    const handleClose = vi.fn();
+    render(
+      <>
+        <Modal isOpen={true} onClose={handleClose} title='First Modal'>
+          <p>First content</p>
+        </Modal>
+        <Modal isOpen={true} onClose={handleClose} title='Second Modal'>
+          <p>Second content</p>
+        </Modal>
+      </>
+    );
+
+    const dialogs = screen.getAllByRole('dialog');
+    const ids = dialogs.map(d => d.getAttribute('aria-labelledby')).filter(Boolean);
+    // Both ids must exist and be distinct
+    expect(ids).toHaveLength(2);
+    expect(ids[0]).not.toBe(ids[1]);
+  });
+
   it('restores focus to the trigger element on close', () => {
     const handleClose = vi.fn();
     const trigger = document.createElement('button');

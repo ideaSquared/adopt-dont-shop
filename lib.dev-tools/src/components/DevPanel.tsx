@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { EtherealCredentialsPanel } from './EtherealCredentialsPanel';
 import { isDevelopmentMode } from '../index';
 import { useSeededUsers } from '../hooks/useSeededUsers';
@@ -53,6 +53,7 @@ export const DevPanelComponent: React.FC<DevPanelProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loginError, setLoginError] = useState<string | null>(null);
   const { user, login, logout, isAuthenticated } = authContext;
 
   // Use API data if requested, otherwise use prop data
@@ -70,21 +71,27 @@ export const DevPanelComponent: React.FC<DevPanelProps> = ({
   const users = useApiData ? apiUsers : propSeededUsers || [];
   const seededPassword = propSeededPassword;
 
-  // Only show in development mode
+  const handleUserLogin = useCallback(
+    async (devUser: DevUser) => {
+      setLoginError(null);
+      try {
+        // Use real authentication with backend seeded users
+        await login({ email: devUser.email, password: seededPassword });
+        setIsOpen(false);
+      } catch (error) {
+        if (isDev()) {
+          console.error('DevPanel: Login error:', error);
+        }
+        setLoginError(error instanceof Error ? error.message : 'Unknown error');
+      }
+    },
+    [login, seededPassword, isDev]
+  );
+
+  // Only show in development mode (guard after hooks to satisfy Rules of Hooks)
   if (!isDev()) {
     return null;
   }
-
-  const handleUserLogin = async (devUser: DevUser) => {
-    try {
-      // Use real authentication with backend seeded users
-      await login({ email: devUser.email, password: seededPassword });
-      setIsOpen(false);
-    } catch (error) {
-      console.error('DevPanel: Login error:', error);
-      alert(`Login error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -124,6 +131,22 @@ export const DevPanelComponent: React.FC<DevPanelProps> = ({
 
           {/* Ethereal Email Credentials */}
           <EtherealCredentialsPanel />
+
+          {loginError && (
+            <div
+              role="alert"
+              style={{
+                color: '#dc2626',
+                fontSize: '0.8rem',
+                marginBottom: '1rem',
+                padding: '0.5rem',
+                background: '#fef2f2',
+                borderRadius: '4px',
+              }}
+            >
+              Login error: {loginError}
+            </div>
+          )}
 
           <h4 style={{ marginBottom: '1rem', color: '#374151', fontSize: '0.9rem' }}>
             Available Users (Password: {seededPassword}):

@@ -116,26 +116,45 @@ export const ReportRenderer: React.FC<ReportRendererProps> = ({
   );
 };
 
+/**
+ * Guard helpers: check the required keys exist before destructuring.
+ * When a required key is missing we return a small error element rather
+ * than throwing an uncaught runtime error.
+ */
+const hasKeys = (obj: Record<string, unknown>, ...keys: string[]): boolean =>
+  keys.every(k => k in obj && obj[k] !== undefined && obj[k] !== null);
+
+const malformedWidget = (chartType: string): React.ReactNode => (
+  <div
+    role='alert'
+    style={{ color: 'red', padding: '0.5rem', fontSize: '0.8rem' }}
+    data-testid='widget-error'
+  >
+    Widget misconfigured: missing required options for &ldquo;{chartType}&rdquo;
+  </div>
+);
+
 const renderWidget = (
   widget: ReportRendererWidget,
   widgetData: unknown,
   state: { isLoading?: boolean; error?: Error | null; onClick?: () => void }
 ): React.ReactNode => {
+  const opts = widget.options;
+
   switch (widget.chartType) {
     case 'line': {
-      const opts = widget.options as {
-        xKey: string;
-        series: Array<{ key: string; label: string; color?: string }>;
-        showLegend?: boolean;
-      };
+      if (!hasKeys(opts, 'xKey', 'series')) return malformedWidget('line');
+      const xKey = opts.xKey as string;
+      const series = opts.series as Array<{ key: string; label: string; color?: string }>;
+      const showLegend = opts.showLegend as boolean | undefined;
       const rows = coerceArray(widgetData, 'adoptionTrends', 'trends', 'data');
       return (
         <LineChart
           title={widget.title}
           data={rows}
-          xKey={opts.xKey}
-          series={opts.series}
-          showLegend={opts.showLegend}
+          xKey={xKey}
+          series={series}
+          showLegend={showLegend}
           isLoading={state.isLoading}
           error={state.error ?? null}
           onClick={state.onClick}
@@ -143,19 +162,18 @@ const renderWidget = (
       );
     }
     case 'bar': {
-      const opts = widget.options as {
-        xKey: string;
-        series: Array<{ key: string; label: string; color?: string }>;
-        stacked?: boolean;
-      };
+      if (!hasKeys(opts, 'xKey', 'series')) return malformedWidget('bar');
+      const xKey = opts.xKey as string;
+      const series = opts.series as Array<{ key: string; label: string; color?: string }>;
+      const stacked = opts.stacked as boolean | undefined;
       const rows = coerceArray(widgetData, 'trends', 'data', 'breakdown');
       return (
         <BarChart
           title={widget.title}
           data={rows}
-          xKey={opts.xKey}
-          series={opts.series}
-          stacked={opts.stacked}
+          xKey={xKey}
+          series={series}
+          stacked={stacked}
           isLoading={state.isLoading}
           error={state.error ?? null}
           onClick={state.onClick}
@@ -163,19 +181,18 @@ const renderWidget = (
       );
     }
     case 'area': {
-      const opts = widget.options as {
-        xKey: string;
-        series: Array<{ key: string; label: string; color?: string }>;
-        stacked?: boolean;
-      };
+      if (!hasKeys(opts, 'xKey', 'series')) return malformedWidget('area');
+      const xKey = opts.xKey as string;
+      const series = opts.series as Array<{ key: string; label: string; color?: string }>;
+      const stacked = opts.stacked as boolean | undefined;
       const rows = coerceArray(widgetData, 'trends', 'data');
       return (
         <AreaChart
           title={widget.title}
           data={rows}
-          xKey={opts.xKey}
-          series={opts.series}
-          stacked={opts.stacked}
+          xKey={xKey}
+          series={series}
+          stacked={stacked}
           isLoading={state.isLoading}
           error={state.error ?? null}
           onClick={state.onClick}
@@ -183,15 +200,18 @@ const renderWidget = (
       );
     }
     case 'pie': {
-      const opts = widget.options as { labelKey: string; valueKey: string; donut?: boolean };
+      if (!hasKeys(opts, 'labelKey', 'valueKey')) return malformedWidget('pie');
+      const labelKey = opts.labelKey as string;
+      const valueKey = opts.valueKey as string;
+      const donut = opts.donut as boolean | undefined;
       const rows = coerceArray(widgetData, 'popularPetTypes', 'breakdown', 'data');
       return (
         <PieChart
           title={widget.title}
           data={rows}
-          labelKey={opts.labelKey}
-          valueKey={opts.valueKey}
-          donut={opts.donut}
+          labelKey={labelKey}
+          valueKey={valueKey}
+          donut={donut}
           isLoading={state.isLoading}
           error={state.error ?? null}
           onClick={state.onClick}
@@ -199,43 +219,41 @@ const renderWidget = (
       );
     }
     case 'table': {
-      const opts = widget.options as {
-        columns: Array<{ key: string; label: string }>;
-        pageSize?: number;
-      };
+      if (!hasKeys(opts, 'columns')) return malformedWidget('table');
+      const columns = opts.columns as Array<{ key: string; label: string }>;
+      const pageSize = opts.pageSize as number | undefined;
       const rows = coerceArray(widgetData, 'rescuePerformance', 'data', 'rows');
       return (
         <DataTable
           title={widget.title}
-          columns={opts.columns}
+          columns={columns}
           rows={rows}
-          pageSize={opts.pageSize}
+          pageSize={pageSize}
           isLoading={state.isLoading}
           error={state.error ?? null}
-          onRowClick={state.onClick ? () => state.onClick!() : undefined}
+          onRowClick={state.onClick ? () => state.onClick?.() : undefined}
         />
       );
     }
     case 'metric-card': {
-      const opts = widget.options as {
-        valueKey: string;
-        label: string;
-        format?: 'number' | 'percent' | 'currency' | 'duration';
-        delta?: { previousKey: string; inverted?: boolean };
-      };
-      const value = numericValue(widgetData, opts.valueKey);
-      const previous = opts.delta ? numericValue(widgetData, opts.delta.previousKey) : undefined;
-      const delta =
-        opts.delta && previous !== undefined && previous !== 0
+      if (!hasKeys(opts, 'valueKey', 'label')) return malformedWidget('metric-card');
+      const valueKey = opts.valueKey as string;
+      const label = opts.label as string;
+      const format = opts.format as 'number' | 'percent' | 'currency' | 'duration' | undefined;
+      const delta = opts.delta as { previousKey: string; inverted?: boolean } | undefined;
+      const value = numericValue(widgetData, valueKey);
+      const previous = delta ? numericValue(widgetData, delta.previousKey) : undefined;
+      const deltaValue =
+        delta && previous !== undefined && previous !== 0
           ? (value - previous) / previous
           : undefined;
       return (
         <MetricCard
-          label={opts.label}
+          label={label}
           value={value}
-          delta={delta}
-          deltaInverted={opts.delta?.inverted}
-          format={opts.format}
+          delta={deltaValue}
+          deltaInverted={delta?.inverted}
+          format={format}
         />
       );
     }

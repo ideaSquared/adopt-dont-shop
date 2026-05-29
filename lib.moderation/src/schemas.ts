@@ -215,6 +215,11 @@ export const ActionsResponseSchema = z.object({
   pagination: PaginationSchema,
 });
 
+export const BulkUpdateResponseSchema = z.object({
+  success: z.boolean(),
+  updated: z.number().int(),
+});
+
 export const ModerationMetricsSchema = z.object({
   totalReports: z.number().int(),
   pendingReports: z.number().int(),
@@ -266,3 +271,4 @@ export type Pagination = z.infer<typeof PaginationSchema>;
 export type ReportsResponse = z.infer<typeof ReportsResponseSchema>;
 export type ActionsResponse = z.infer<typeof ActionsResponseSchema>;
 export type ModerationMetrics = z.infer<typeof ModerationMetricsSchema>;
+export type BulkUpdateResponse = z.infer<typeof BulkUpdateResponseSchema>;

@@ -1,4 +1,5 @@
 import { DiscoveryService } from '../discovery-service';
+import { ApiService } from '@adopt-dont-shop/lib.api';
 import {
   SwipeSession,
   SwipeAction,
@@ -94,6 +95,25 @@ describe('DiscoveryService', () => {
         apiUrl: '/custom-api',
       });
       expect(customService).toBeInstanceOf(DiscoveryService);
+    });
+
+    it('should use the injected apiService instance when provided', async () => {
+      const injectedApiService = {
+        get: vi.fn(),
+        post: vi
+          .fn()
+          .mockResolvedValue({ pets: [], currentIndex: 0, hasMore: false, nextBatchSize: 20 }),
+        put: vi.fn(),
+        delete: vi.fn(),
+      } as unknown as ApiService;
+
+      const serviceWithInjection = new DiscoveryService({}, injectedApiService);
+      await serviceWithInjection.getDiscoveryQueue();
+
+      expect(injectedApiService.post).toHaveBeenCalledWith(
+        '/api/v1/discovery/queue',
+        expect.any(Object)
+      );
     });
   });
 
@@ -408,6 +428,78 @@ describe('DiscoveryService', () => {
 
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe('clearPreloads / destroy', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.runOnlyPendingTimers();
+      vi.useRealTimers();
+    });
+
+    it('clearPreloads cancels pending preload timers', async () => {
+      const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+      // Pet with two additional images so two timers are scheduled.
+      const petWithImages: DiscoveryPet = {
+        ...mockDiscoveryPet,
+        images: ['img1.jpg', 'img2.jpg', 'img3.jpg'],
+      };
+
+      mockApiService.post.mockResolvedValue({
+        pets: [petWithImages],
+        currentIndex: 0,
+        hasMore: false,
+        nextBatchSize: 20,
+      });
+
+      await service.getDiscoveryQueue();
+
+      // Two deferred timers should have been scheduled (img2 + img3).
+      service.clearPreloads();
+
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+      clearTimeoutSpy.mockRestore();
+    });
+
+    it('destroy is an alias for clearPreloads', async () => {
+      const clearPreloadsSpy = vi.spyOn(service, 'clearPreloads');
+      service.destroy();
+      expect(clearPreloadsSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('calling clearPreloads before any preload does not throw', () => {
+      expect(() => service.clearPreloads()).not.toThrow();
+    });
+
+    it('a new preload batch cancels timers from the previous batch', async () => {
+      const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+      const petWithImages: DiscoveryPet = {
+        ...mockDiscoveryPet,
+        images: ['img1.jpg', 'img2.jpg', 'img3.jpg'],
+      };
+
+      mockApiService.post.mockResolvedValue({
+        pets: [petWithImages],
+        currentIndex: 0,
+        hasMore: false,
+        nextBatchSize: 20,
+      });
+
+      // First batch
+      await service.getDiscoveryQueue();
+      const countAfterFirst = clearTimeoutSpy.mock.calls.length;
+
+      // Second batch — should cancel the previous timers first
+      await service.getDiscoveryQueue();
+      const countAfterSecond = clearTimeoutSpy.mock.calls.length;
+
+      // At least some timers were cleared between the two batches
+      expect(countAfterSecond).toBeGreaterThan(countAfterFirst);
+      clearTimeoutSpy.mockRestore();
     });
   });
 });

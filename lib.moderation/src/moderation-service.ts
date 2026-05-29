@@ -5,6 +5,7 @@ import {
   ReportSchema,
   ModeratorActionSchema,
   ModerationMetricsSchema,
+  BulkUpdateResponseSchema,
   type Report,
   type ReportFilters,
   type CreateReportRequest,
@@ -12,6 +13,7 @@ import {
   type AssignReportRequest,
   type EscalateReportRequest,
   type BulkUpdateReportsRequest,
+  type BulkUpdateResponse,
   type ModeratorAction,
   type CreateModeratorActionRequest,
   type ActionFilters,
@@ -92,11 +94,9 @@ export class ModerationService {
   /**
    * Bulk update reports
    */
-  async bulkUpdateReports(
-    data: BulkUpdateReportsRequest
-  ): Promise<{ success: boolean; updated: number }> {
+  async bulkUpdateReports(data: BulkUpdateReportsRequest): Promise<BulkUpdateResponse> {
     const response = await apiService.post(`${this.baseUrl}/reports/bulk-update`, data);
-    return response as { success: boolean; updated: number };
+    return BulkUpdateResponseSchema.parse(response);
   }
 
   /**

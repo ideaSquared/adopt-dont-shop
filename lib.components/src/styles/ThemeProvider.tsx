@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import { darkTheme, lightTheme, normalTheme, Theme, ThemeMode } from './theme';
 import { darkThemeClass, lightThemeClass, normalThemeClass } from './theme.css';
@@ -86,5 +86,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     root.setAttribute('data-theme', themeMode);
   }, [themeClass, themeMode]);
 
-  return <ThemeContext value={{ theme, themeMode, setThemeMode }}>{children}</ThemeContext>;
+  const contextValue = useMemo(
+    () => ({ theme, themeMode, setThemeMode }),
+    [theme, themeMode, setThemeMode]
+  );
+
+  return <ThemeContext value={contextValue}>{children}</ThemeContext>;
 };

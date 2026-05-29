@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import * as styles from './Modal.css';
@@ -50,6 +50,7 @@ export const Modal: React.FC<ModalProps> = ({
   header,
   footer,
 }) => {
+  const titleId = useId();
   const modalRef = useRef<HTMLDivElement>(null);
   const isInitialOpen = useRef(false);
   const previouslyFocused = useRef<HTMLElement | null>(null);
@@ -153,14 +154,14 @@ export const Modal: React.FC<ModalProps> = ({
         className={clsx(styles.modalContainer({ size, centered }), className)}
         role='dialog'
         aria-modal='true'
-        aria-labelledby={title ? 'modal-title' : undefined}
+        aria-labelledby={title ? titleId : undefined}
         data-testid={dataTestId}
         onKeyDown={handleKeyDown}
       >
         {(title || header) && (
           <div className={styles.modalHeader}>
             {header ?? (
-              <h2 id='modal-title' className={styles.modalTitle}>
+              <h2 id={titleId} className={styles.modalTitle}>
                 {title}
               </h2>
             )}

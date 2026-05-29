@@ -71,7 +71,12 @@ export class InvitationsService {
   }
 
   /**
-   * Get pending invitations for a rescue
+   * Get pending invitations for a rescue.
+   *
+   * Returns [] only for a genuine empty/404 response.
+   * Re-throws on auth errors (401/403) and server/network errors so
+   * callers can surface an error state instead of silently showing
+   * stale or empty data.
    */
   async getPendingInvitations(rescueId: string): Promise<PendingInvitation[]> {
     try {
@@ -91,6 +96,22 @@ export class InvitationsService {
 
       return [];
     } catch (error) {
+      // Re-throw auth and server errors so callers can show an error state.
+      // Only swallow genuine empty/404 cases (no invitations yet).
+      const status =
+        error instanceof Error && 'status' in error
+          ? (error as { status: number }).status
+          : (error as { response?: { status?: number } }).response?.status;
+
+      if (status === 401 || status === 403 || (status !== undefined && status >= 500)) {
+        throw error;
+      }
+
+      // Network errors (no status) also propagate so the UI knows.
+      if (status === undefined && error instanceof Error) {
+        throw error;
+      }
+
       if (this.config.debug) {
         console.error('Failed to get pending invitations:', error);
       }
