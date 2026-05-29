@@ -53,10 +53,20 @@ export class FosterController {
       ? (req.query.rescueId as string | undefined)
       : (req.user?.rescueId ?? undefined);
 
+    const parseQueryInt = (value: unknown): number | undefined => {
+      if (typeof value !== 'string') {
+        return undefined;
+      }
+      const parsed = parseInt(value, 10);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    };
+
     const placements = await fosterService.list({
       rescueId: scopedRescueId,
       fosterUserId: req.query.fosterUserId as string | undefined,
       status: req.query.status as FosterPlacementStatus | undefined,
+      limit: parseQueryInt(req.query.limit),
+      offset: parseQueryInt(req.query.offset),
     });
     return res.json({ data: placements });
   }

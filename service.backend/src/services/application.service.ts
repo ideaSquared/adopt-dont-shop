@@ -137,6 +137,51 @@ export class ApplicationService {
   }
 
   /**
+   * Authorize a caller for a specific application, mirroring the access
+   * checks in getApplicationById. Throws NotFoundError when the application
+   * doesn't exist and ForbiddenError when the caller is neither the owning
+   * adopter, verified staff of the owning rescue, nor an admin/moderator.
+   *
+   * Used by sub-resources (e.g. the timeline) that share an application's
+   * access boundary but don't otherwise load the parent row.
+   */
+  static async assertApplicationAccess(
+    applicationId: string,
+    userId: string,
+    userType: UserType
+  ): Promise<void> {
+    const application = await Application.findOne({
+      where: { applicationId },
+      attributes: ['applicationId', 'userId', 'rescueId'],
+    });
+
+    if (!application) {
+      throw new NotFoundError('Application not found');
+    }
+
+    if (userType === UserType.ADMIN || userType === UserType.MODERATOR) {
+      return;
+    }
+
+    if (userType === UserType.ADOPTER) {
+      if (application.userId !== userId) {
+        throw new ForbiddenError('Access denied');
+      }
+      return;
+    }
+
+    if (userType === UserType.RESCUE_STAFF) {
+      const staffRescueId = await this.getStaffRescueIdForUser(userId);
+      if (!staffRescueId || staffRescueId !== application.rescueId) {
+        throw new ForbiddenError('Access denied');
+      }
+      return;
+    }
+
+    throw new ForbiddenError('Access denied');
+  }
+
+  /**
    * List all HomeVisit rows for an application, newest first, projected
    * into the frontend-friendly DTO shape.
    */
@@ -165,28 +210,41 @@ export class ApplicationService {
   ): Promise<HomeVisitDto> {
     const visitId = `visit_${applicationId}_${Date.now()}`;
 
-    const visit = await HomeVisit.create({
-      visit_id: visitId,
-      application_id: applicationId,
-      scheduled_date: input.scheduledDate,
-      scheduled_time: input.scheduledTime,
-      assigned_staff: input.assignedStaff,
-      notes: input.notes ?? null,
-      status: HomeVisitStatus.SCHEDULED,
-    });
+    // All three writes must land together — a partial failure would leave a
+    // visit without its seed transition row, or vice versa (mirrors the
+    // transactional shape in createApplication).
+    const visit = await sequelize.transaction(async t => {
+      const created = await HomeVisit.create(
+        {
+          visit_id: visitId,
+          application_id: applicationId,
+          scheduled_date: input.scheduledDate,
+          scheduled_time: input.scheduledTime,
+          assigned_staff: input.assignedStaff,
+          notes: input.notes ?? null,
+          status: HomeVisitStatus.SCHEDULED,
+        },
+        { transaction: t }
+      );
 
-    await HomeVisitStatusTransition.create({
-      visitId: visit.visit_id,
-      fromStatus: null,
-      toStatus: visit.status,
-      transitionedBy,
-      reason: 'Visit scheduled',
-    });
+      await HomeVisitStatusTransition.create(
+        {
+          visitId: created.visit_id,
+          fromStatus: null,
+          toStatus: created.status,
+          transitionedBy,
+          reason: 'Visit scheduled',
+        },
+        { transaction: t }
+      );
 
-    await Application.update(
-      { status: ApplicationStatus.SUBMITTED },
-      { where: { applicationId }, individualHooks: true }
-    );
+      await Application.update(
+        { status: ApplicationStatus.SUBMITTED },
+        { where: { applicationId }, individualHooks: true, transaction: t }
+      );
+
+      return created;
+    });
 
     return formatHomeVisit(visit);
   }
@@ -257,38 +315,48 @@ export class ApplicationService {
       dbUpdateData.completed_at = new Date();
     }
 
-    if (Object.keys(dbUpdateData).length > 0) {
-      await visit.update(dbUpdateData);
-    }
-
-    // Append a transition row for the status change; the trigger / hook
-    // updates home_visits.status.
-    if (updateData.status && updateData.status !== visit.status) {
-      await HomeVisitStatusTransition.create({
-        visitId: visit.visit_id,
-        fromStatus: visit.status,
-        toStatus: updateData.status as HomeVisitStatus,
-        transitionedBy,
-        reason: updateData.cancelledReason || updateData.rescheduleReason || null,
-      });
-    }
-
-    // Update application status based on visit outcome.
-    if (updateData.status === 'completed' && updateData.outcome) {
-      let applicationStatus: ApplicationStatus = ApplicationStatus.SUBMITTED;
-      if (updateData.outcome === 'approved') {
-        applicationStatus = ApplicationStatus.APPROVED;
-      } else if (updateData.outcome === 'conditional') {
-        applicationStatus = ApplicationStatus.APPROVED; // Treat conditional as approved
-      } else if (updateData.outcome === 'rejected') {
-        applicationStatus = ApplicationStatus.REJECTED;
+    // The visit update, the status-transition row, and the parent
+    // application status update must all commit together so a partial
+    // failure can't leave the visit, its transition log, and the parent
+    // application disagreeing about state.
+    const fromStatus = visit.status;
+    await sequelize.transaction(async t => {
+      if (Object.keys(dbUpdateData).length > 0) {
+        await visit.update(dbUpdateData, { transaction: t });
       }
 
-      await Application.update(
-        { status: applicationStatus },
-        { where: { applicationId }, individualHooks: true }
-      );
-    }
+      // Append a transition row for the status change; the trigger / hook
+      // updates home_visits.status.
+      if (updateData.status && updateData.status !== fromStatus) {
+        await HomeVisitStatusTransition.create(
+          {
+            visitId: visit.visit_id,
+            fromStatus,
+            toStatus: updateData.status as HomeVisitStatus,
+            transitionedBy,
+            reason: updateData.cancelledReason || updateData.rescheduleReason || null,
+          },
+          { transaction: t }
+        );
+      }
+
+      // Update application status based on visit outcome.
+      if (updateData.status === 'completed' && updateData.outcome) {
+        let applicationStatus: ApplicationStatus = ApplicationStatus.SUBMITTED;
+        if (updateData.outcome === 'approved') {
+          applicationStatus = ApplicationStatus.APPROVED;
+        } else if (updateData.outcome === 'conditional') {
+          applicationStatus = ApplicationStatus.APPROVED; // Treat conditional as approved
+        } else if (updateData.outcome === 'rejected') {
+          applicationStatus = ApplicationStatus.REJECTED;
+        }
+
+        await Application.update(
+          { status: applicationStatus },
+          { where: { applicationId }, individualHooks: true, transaction: t }
+        );
+      }
+    });
 
     return formatHomeVisit(visit);
   }

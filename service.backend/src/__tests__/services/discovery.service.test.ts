@@ -133,6 +133,18 @@ describe('DiscoveryService', () => {
         'Failed to generate discovery queue'
       );
     });
+
+    it('clamps an oversized limit before fetching pets', async () => {
+      const smartSpy = vi
+        .spyOn(discoveryService as unknown, 'getSmartSortedPets')
+        .mockResolvedValue([]);
+      vi.spyOn(discoveryService as unknown, 'transformToDiscoveryPets').mockResolvedValue([]);
+
+      await discoveryService.getDiscoveryQueue({}, 100000);
+
+      const [, passedLimit] = smartSpy.mock.calls[0];
+      expect(passedLimit).toBe(100);
+    });
   });
 
   describe('loadMorePets', () => {

@@ -27,7 +27,14 @@ export type ListPlacementsFilter = {
   rescueId?: string;
   fosterUserId?: string;
   status?: FosterPlacementStatus;
+  limit?: number;
+  offset?: number;
 };
+
+/** Default number of placements returned when the caller omits `limit`. */
+const DEFAULT_PLACEMENT_LIMIT = 20;
+/** Hard upper bound on how many placements a single list call returns. */
+const MAX_PLACEMENT_LIMIT = 100;
 
 class FosterService {
   async createPlacement(
@@ -144,9 +151,21 @@ class FosterService {
     if (filter.status) {
       where.status = filter.status;
     }
+
+    // Bound the result set so an unfiltered list can't return every
+    // placement in one query. Clamp to a sane default/cap, matching the
+    // pagination guardrails used by other list services.
+    const limit =
+      filter.limit && filter.limit > 0
+        ? Math.min(Math.trunc(filter.limit), MAX_PLACEMENT_LIMIT)
+        : DEFAULT_PLACEMENT_LIMIT;
+    const offset = filter.offset && filter.offset > 0 ? Math.trunc(filter.offset) : 0;
+
     const placements = await FosterPlacement.findAll({
       where,
       order: [['createdAt', 'DESC']],
+      limit,
+      offset,
     });
     return placements.map(p => p.get({ plain: true }));
   }

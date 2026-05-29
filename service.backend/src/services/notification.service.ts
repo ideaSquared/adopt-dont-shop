@@ -652,9 +652,17 @@ export class NotificationService {
         duration: Date.now() - startTime,
       });
 
-      // Deliver notifications
-      for (const notification of notifications) {
-        await this.deliverNotification(notification, [notification.channel]);
+      // Deliver notifications with bounded concurrency. The previous
+      // sequential await serialised every external send (email/push/SMS);
+      // a large recipient list could take minutes. We fan out in fixed-size
+      // batches so at most DELIVERY_CONCURRENCY deliveries are in flight,
+      // and use allSettled so one failed delivery doesn't abort the rest.
+      const DELIVERY_CONCURRENCY = 10;
+      for (let i = 0; i < notifications.length; i += DELIVERY_CONCURRENCY) {
+        const batch = notifications.slice(i, i + DELIVERY_CONCURRENCY);
+        await Promise.allSettled(
+          batch.map(notification => this.deliverNotification(notification, [notification.channel]))
+        );
       }
 
       return { notifications, count: notifications.length };

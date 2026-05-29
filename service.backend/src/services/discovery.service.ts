@@ -114,13 +114,17 @@ export class DiscoveryService {
     limit: number = 20,
     userId?: string
   ): Promise<DiscoveryQueue> {
+    // Defence-in-depth: even with route validation, clamp the limit here so
+    // the underlying `LIMIT limit * 2` query can never be driven unbounded
+    // by a caller that bypasses the controller.
+    const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.trunc(limit), 1), 100) : 20;
     return cached(
       {
         namespace: 'discovery:queue',
-        args: { filters, limit, userId: userId ?? null },
+        args: { filters, limit: safeLimit, userId: userId ?? null },
         ttlSeconds: 60,
       },
-      () => this.getDiscoveryQueueUncached(filters, limit, userId)
+      () => this.getDiscoveryQueueUncached(filters, safeLimit, userId)
     );
   }
 
@@ -383,7 +387,9 @@ export class DiscoveryService {
    * When `scoredPets` is empty, preserves the legacy smart-sort order.
    */
   private orderByScores(pets: Pet[], scoredPets: ScoredPet[]): Pet[] {
-    if (scoredPets.length === 0) return pets;
+    if (scoredPets.length === 0) {
+      return pets;
+    }
     const scoreByPetId = new Map(scoredPets.map(s => [s.petId, s.score]));
     return [...pets].sort(
       (a, b) => (scoreByPetId.get(b.petId) ?? 0) - (scoreByPetId.get(a.petId) ?? 0)

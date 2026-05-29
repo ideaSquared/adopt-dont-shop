@@ -1,7 +1,19 @@
-import type { WhereAttributeHash } from 'sequelize';
+import { fn, col, type WhereAttributeHash } from 'sequelize';
 import ApplicationTimeline, { TimelineEventType } from '../models/ApplicationTimeline';
 import User from '../models/User';
 import { ApplicationStage } from '../models/Application';
+
+/** Default page size when a caller omits `limit`. */
+const DEFAULT_TIMELINE_LIMIT = 50;
+/** Hard upper bound on how many timeline rows a single query may return. */
+const MAX_TIMELINE_LIMIT = 200;
+
+const clampLimit = (limit?: number): number => {
+  if (limit === undefined || Number.isNaN(limit) || limit < 1) {
+    return DEFAULT_TIMELINE_LIMIT;
+  }
+  return Math.min(limit, MAX_TIMELINE_LIMIT);
+};
 
 export interface CreateTimelineEventData {
   application_id: string;
@@ -56,14 +68,19 @@ export class ApplicationTimelineService {
       offset?: number;
       event_types?: TimelineEventType[];
     }
-  ): Promise<ApplicationTimeline[]> {
+  ): Promise<{ events: ApplicationTimeline[]; total: number }> {
     const whereClause: WhereAttributeHash = { application_id };
 
     if (options?.event_types && options.event_types.length > 0) {
       whereClause.event_type = options.event_types;
     }
 
-    return ApplicationTimeline.findAll({
+    // Enforce a default + hard-capped limit so an unbounded query can't be
+    // triggered by omitting `limit` (or passing an absurdly large value).
+    const limit = clampLimit(options?.limit);
+    const offset = options?.offset && options.offset > 0 ? options.offset : 0;
+
+    const { rows, count } = await ApplicationTimeline.findAndCountAll({
       where: whereClause,
       include: [
         {
@@ -74,9 +91,11 @@ export class ApplicationTimelineService {
         },
       ],
       order: [['created_at', 'DESC']],
-      limit: options?.limit,
-      offset: options?.offset,
+      limit,
+      offset,
     });
+
+    return { events: rows, total: count };
   }
 
   /**
@@ -291,30 +310,65 @@ export class ApplicationTimelineService {
     last_event: Date | null;
     staff_activity: Record<string, number>;
   }> {
-    const events = await ApplicationTimeline.findAll({
-      where: { application_id },
-      order: [['created_at', 'ASC']],
-    });
+    // Aggregate in SQL rather than loading every row into memory. Three
+    // cheap grouped/aggregate queries replace a full table scan + JS reduce.
+    const [byTypeRows, byStaffRows, boundsRows] = await Promise.all([
+      ApplicationTimeline.findAll({
+        attributes: ['event_type', [fn('COUNT', col('event_type')), 'count']],
+        where: { application_id },
+        group: ['event_type'],
+        raw: true,
+      }) as unknown as Promise<Array<{ event_type: TimelineEventType; count: number | string }>>,
+      ApplicationTimeline.findAll({
+        attributes: ['created_by', [fn('COUNT', col('created_by')), 'count']],
+        where: { application_id },
+        group: ['created_by'],
+        raw: true,
+      }) as unknown as Promise<Array<{ created_by: string | null; count: number | string }>>,
+      ApplicationTimeline.findAll({
+        attributes: [
+          [fn('MIN', col('created_at')), 'first_event'],
+          [fn('MAX', col('created_at')), 'last_event'],
+          [fn('COUNT', col('timeline_id')), 'total_events'],
+        ],
+        where: { application_id },
+        raw: true,
+      }) as unknown as Promise<
+        Array<{
+          first_event: Date | string | null;
+          last_event: Date | string | null;
+          total_events: number | string;
+        }>
+      >,
+    ]);
 
-    const stats = {
-      total_events: events.length,
-      events_by_type: {} as Record<TimelineEventType, number>,
-      first_event: events.length > 0 ? events[0].created_at || null : null,
-      last_event: events.length > 0 ? events[events.length - 1].created_at || null : null,
-      staff_activity: {} as Record<string, number>,
+    const events_by_type = {} as Record<TimelineEventType, number>;
+    for (const row of byTypeRows) {
+      events_by_type[row.event_type] = Number(row.count);
+    }
+
+    const staff_activity: Record<string, number> = {};
+    for (const row of byStaffRows) {
+      if (row.created_by) {
+        staff_activity[row.created_by] = Number(row.count);
+      }
+    }
+
+    const bounds = boundsRows[0];
+    const toDate = (value: Date | string | null | undefined): Date | null => {
+      if (!value) {
+        return null;
+      }
+      return value instanceof Date ? value : new Date(value);
     };
 
-    // Count events by type
-    events.forEach(event => {
-      stats.events_by_type[event.event_type] = (stats.events_by_type[event.event_type] || 0) + 1;
-
-      // Count staff activity
-      if (event.created_by) {
-        stats.staff_activity[event.created_by] = (stats.staff_activity[event.created_by] || 0) + 1;
-      }
-    });
-
-    return stats;
+    return {
+      total_events: Number(bounds?.total_events ?? 0),
+      events_by_type,
+      first_event: toDate(bounds?.first_event),
+      last_event: toDate(bounds?.last_event),
+      staff_activity,
+    };
   }
 
   /**

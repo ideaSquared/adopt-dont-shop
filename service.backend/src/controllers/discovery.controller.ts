@@ -50,6 +50,14 @@ export class DiscoveryController {
       .withMessage('Limit must be between 1 and 20'),
   ];
 
+  static validateAddToQueue = [
+    body('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    body('filters').optional().isObject().withMessage('Filters must be an object'),
+  ];
+
   static validateSwipeAction = [
     body('action').isIn(['like', 'pass', 'super_like', 'info']).withMessage('Invalid action'),
     body('petId').notEmpty().withMessage('Pet ID is required'),
