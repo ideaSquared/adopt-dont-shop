@@ -28,6 +28,14 @@ on:
           - production
 
 # Only proceed if CI passed (or if triggered directly by a tag / manual dispatch)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ============================================================================
   # GUARD — skip all downstream jobs if CI failed on the triggering commit.

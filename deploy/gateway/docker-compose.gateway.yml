@@ -4,7 +4,7 @@
 
 services:
   nginx:
-    image: nginx:alpine
+    image: nginx:1.27-alpine  # TODO: pin to digest once resolved via `docker pull nginx:1.27-alpine && docker inspect --format='{{index .RepoDigests 0}}'`
     container_name: ads_gateway
     restart: always
     ports:

@@ -133,6 +133,7 @@ services:
       LOG_DIR: ${LOG_DIR:-logs}
       SMS_DEFAULT_COUNTRY_CODE: ${SMS_DEFAULT_COUNTRY_CODE:-GB}
       JWT_REPORT_SHARE_SECRET: ${JWT_REPORT_SHARE_SECRET:-}
+      UPLOAD_SIGNING_SECRET: "${UPLOAD_SIGNING_SECRET:?Error: UPLOAD_SIGNING_SECRET required}"
       # Staging has no per-stack nginx; backend serves /uploads itself.
       SERVE_LOCAL_UPLOADS: "true"
       FORCE_SEED: "false"

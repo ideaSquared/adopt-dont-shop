@@ -41,6 +41,9 @@ jobs:
       # Credentials are CI-local — both DBs live in the same Postgres service
       # and are dropped at the end of the job. No production secrets touch
       # this workflow.
+      # NOTE: PGPASSWORD is intentionally a static value here. This is a
+      # short-lived, ephemeral CI-only database with no external exposure;
+      # no real data is stored and the container is destroyed after the job.
       PGUSER: postgres
       PGPASSWORD: postgres
       PGHOST: localhost

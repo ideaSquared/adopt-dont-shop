@@ -11,10 +11,17 @@ on:
           - staging
           - production
 
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/ideasquared/adopt-dont-shop
   DOCKER_BUILDKIT: 1
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
 
 jobs:
   build-and-push:
@@ -22,9 +29,39 @@ jobs:
     permissions:
       contents: read
       packages: write
+      checks: read
     outputs:
       sha: ${{ github.sha }}
     steps:
+      - name: Verify CI passed on this commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHA="${{ github.sha }}"
+          REPO="${{ github.repository }}"
+          echo "Checking CI status for $SHA on $REPO"
+          # Fetch all check-suites for the commit
+          suites=$(curl -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPO}/commits/${SHA}/check-suites")
+          # Filter to GitHub Actions suites (app id 15368) that have completed
+          completed=$(echo "$suites" | \
+            jq '[.check_suites[] | select(.app.slug == "github-actions" and .status == "completed")]')
+          total=$(echo "$completed" | jq 'length')
+          if [ "$total" -eq 0 ]; then
+            echo "WARNING: No completed GitHub Actions check-suites found for $SHA — proceeding."
+            exit 0
+          fi
+          failed=$(echo "$completed" | jq '[.[] | select(.conclusion != "success" and .conclusion != "neutral" and .conclusion != "skipped")] | length')
+          if [ "$failed" -gt 0 ]; then
+            echo "ERROR: $failed check-suite(s) did not succeed on $SHA. Aborting deploy."
+            echo "$completed" | jq '[.[] | {id, status, conclusion}]'
+            exit 1
+          fi
+          echo "All $total completed check-suite(s) passed. Proceeding with deploy."
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Set up Node.js

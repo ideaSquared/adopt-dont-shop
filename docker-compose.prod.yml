@@ -105,7 +105,8 @@ services:
       DB_HOST: database
       DB_PORT: 5432
       DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
-      DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
+      # DB_PASSWORD is read from the db_password Docker secret at
+      # /run/secrets/db_password via readSecretOrEnv(). [ADS-675]
       PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
       # ADS-540: enforce TLS on the DB link. In-cluster Postgres on the
       # docker network can opt out via ALLOW_INSECURE_DB=true; managed
@@ -113,6 +114,8 @@ services:
       DB_SSL_MODE: ${DB_SSL_MODE:-require}
       ALLOW_INSECURE_DB: ${ALLOW_INSECURE_DB:-}
       DB_SSL_ROOT_CERT: ${DB_SSL_ROOT_CERT:-}
+    secrets:
+      - db_password
     depends_on:
       database:
         condition: service_healthy
@@ -312,7 +315,7 @@ services:
   # Public TLS is handled by the gateway stack — this nginx only listens on
   # the internal network and is reverse-proxied by the gateway.
   nginx:
-    image: nginx:1.27-alpine
+    image: nginx:1.27-alpine  # TODO: pin to digest once resolved via `docker pull nginx:1.27-alpine && docker inspect --format='{{index .RepoDigests 0}}'`
     container_name: ads_prod_nginx
     restart: always
     volumes:
