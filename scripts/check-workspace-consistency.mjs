@@ -26,9 +26,6 @@ import { fileURLToPath } from 'url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-// format / format:check are intentionally omitted: prettier runs at the
-// repo root over the entire tree, and 22/23 libs (and all apps) skip
-// per-package wrappers. Adding them everywhere is a separate cleanup.
 const REQUIRED_LIB_SCRIPTS = [
   'build',
   'dev',
@@ -38,6 +35,8 @@ const REQUIRED_LIB_SCRIPTS = [
   'test:coverage',
   'lint',
   'lint:fix',
+  'format',
+  'format:check',
   'type-check',
   'prepublishOnly',
 ];
@@ -52,6 +51,8 @@ const REQUIRED_APP_SCRIPTS = [
   'test:ui',
   'lint',
   'lint:fix',
+  'format',
+  'format:check',
   'type-check',
   'clean',
 ];
