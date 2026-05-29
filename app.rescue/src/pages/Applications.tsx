@@ -8,6 +8,7 @@ import StageCountSummary from '../components/applications/StageCountSummary';
 import { applicationService } from '../services/applicationService';
 import type { ApplicationListItem } from '../types/applications';
 import { buildBulkUpdatePayload, type BulkStageAction } from '../utils/applicationStageTransitions';
+import type { StageAction } from '../types/applicationStages';
 
 const Applications: React.FC = () => {
   // ADS-644: when deep-linked from a pet card or foster row, scope the
@@ -87,7 +88,7 @@ const Applications: React.FC = () => {
     }
   };
 
-  const handleStageTransition = async (action: any, notes?: string) => {
+  const handleStageTransition = async (action: StageAction, notes?: string) => {
     if (selectedApplication) {
       await transitionStage(action, notes);
       // Refresh both the main list and the application details
@@ -251,7 +252,7 @@ const Applications: React.FC = () => {
       />
 
       {/* Application Review Modal */}
-      {selectedApplication && (
+      {selectedApplication && applicationDetails && (
         <ApplicationReview
           application={applicationDetails}
           references={references}

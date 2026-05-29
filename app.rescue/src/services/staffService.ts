@@ -13,6 +13,32 @@ export interface StaffMember {
   addedAt: string;
 }
 
+type RawStaffMember = {
+  id?: string;
+  staffId?: string;
+  userId?: string;
+  user_id?: string;
+  rescueId?: string;
+  rescue_id?: string;
+  firstName?: string;
+  first_name?: string;
+  lastName?: string;
+  last_name?: string;
+  email?: string;
+  title?: string;
+  isVerified?: boolean;
+  is_verified?: boolean;
+  addedAt?: string;
+  added_at?: string;
+  createdAt?: string;
+  created_at?: string;
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
+};
+
 /**
  * Staff Service for Rescue App
  * Uses the configured API service with authentication
@@ -31,7 +57,7 @@ export class RescueStaffService {
     try {
       const response = await this.apiService.get<{
         success: boolean;
-        data: any[];
+        data: RawStaffMember[];
       }>(`/api/v1/staff/colleagues`);
 
       if (response.success && Array.isArray(response.data)) {
@@ -40,7 +66,7 @@ export class RescueStaffService {
 
       // Fallback for different response formats
       if (Array.isArray(response)) {
-        return response.map(this.transformStaffMember);
+        return (response as RawStaffMember[]).map(this.transformStaffMember);
       }
 
       return [];
@@ -53,17 +79,17 @@ export class RescueStaffService {
   /**
    * Transform staff member data from API format
    */
-  private transformStaffMember = (staff: any): StaffMember => {
+  private transformStaffMember = (staff: RawStaffMember): StaffMember => {
     return {
-      id: staff.id || staff.staffId,
-      userId: staff.userId || staff.user_id,
-      rescueId: staff.rescueId || staff.rescue_id,
+      id: staff.id || staff.staffId || '',
+      userId: staff.userId || staff.user_id || '',
+      rescueId: staff.rescueId || staff.rescue_id || '',
       firstName: staff.firstName || staff.first_name || staff.user?.firstName || 'Unknown',
       lastName: staff.lastName || staff.last_name || staff.user?.lastName || 'User',
       email: staff.email || staff.user?.email || '',
       title: staff.title || 'Staff Member',
       isVerified: staff.isVerified || staff.is_verified || false,
-      addedAt: staff.addedAt || staff.added_at || staff.createdAt || staff.created_at,
+      addedAt: staff.addedAt || staff.added_at || staff.createdAt || staff.created_at || '',
     };
   };
 
@@ -74,7 +100,7 @@ export class RescueStaffService {
     try {
       const response = await this.apiService.post<{
         success: boolean;
-        data: any;
+        data: RawStaffMember;
       }>(`/api/v1/rescues/${rescueId}/staff`, staffData);
 
       if (response.success && response.data) {
@@ -116,7 +142,7 @@ export class RescueStaffService {
     try {
       const response = await this.apiService.put<{
         success: boolean;
-        data: any;
+        data: RawStaffMember;
       }>(`/api/v1/rescues/${rescueId}/staff/${userId}`, staffData);
 
       if (response.success && response.data) {

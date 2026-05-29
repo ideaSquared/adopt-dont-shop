@@ -10,7 +10,26 @@ import type {
   HomeVisit,
   ApplicationTimeline,
 } from '../types/applications';
-import type { StageAction } from '../types/applicationStages';
+import type { ApplicationStage, StageAction } from '../types/applicationStages';
+
+/**
+ * Application detail payload tolerated by useApplicationDetails / the
+ * ApplicationReview consumer. Field set is the union of what the backend
+ * returns and what the review modal renders — both are loose because the
+ * backend response shape is still evolving.
+ */
+type ApplicationDetail = {
+  id: string;
+  status: string;
+  petId?: string;
+  petName?: string;
+  applicantName?: string;
+  userName?: string;
+  submittedDaysAgo?: number;
+  submittedAt?: string;
+  stage?: ApplicationStage;
+  data?: Record<string, unknown>;
+} & Record<string, unknown>;
 
 export const useApplications = () => {
   const [applicationService] = useState(() => new RescueApplicationService());
@@ -114,7 +133,7 @@ export const useApplications = () => {
 
 export const useApplicationDetails = (applicationId: string | null) => {
   const [applicationService] = useState(() => new RescueApplicationService());
-  const [application, setApplication] = useState<any>(null);
+  const [application, setApplication] = useState<ApplicationDetail | null>(null);
   const [references, setReferences] = useState<ReferenceCheck[]>([]);
   const [homeVisits, setHomeVisits] = useState<HomeVisit[]>([]);
   const [timeline, setTimeline] = useState<ApplicationTimeline[]>([]);
@@ -161,7 +180,7 @@ export const useApplicationDetails = (applicationId: string | null) => {
         }),
       ]);
 
-      setApplication(appData);
+      setApplication(appData as ApplicationDetail);
       setReferences(referencesResult);
       setHomeVisits(visitsResult);
       setTimeline(timelineResult);
@@ -226,7 +245,7 @@ export const useApplicationDetails = (applicationId: string | null) => {
   );
 
   const addTimelineEvent = useCallback(
-    async (event: string, description: string, data?: Record<string, any>) => {
+    async (event: string, description: string, data?: Record<string, unknown>) => {
       if (!applicationId) {
         return;
       }

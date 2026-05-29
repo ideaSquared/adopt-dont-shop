@@ -60,23 +60,23 @@ const RescueSettings: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const staffData = await apiService.get<any>('/api/v1/staff/me');
+      const staffData = await apiService.get<{ data: { rescueId?: string } }>('/api/v1/staff/me');
       const rescueId = staffData.data.rescueId;
 
       if (!rescueId) {
         throw new Error('No rescue ID found for current user');
       }
 
-      const rescueData = await apiService.get<any>(`/api/v1/rescues/${rescueId}`);
+      const rescueData = await apiService.get<{
+        data: RescueProfile & { settings?: { adoptionPolicies?: AdoptionPolicy } };
+      }>(`/api/v1/rescues/${rescueId}`);
 
       // Extract adoption policies from settings if they exist
-      const rescueProfile = { ...rescueData.data };
-
-      if (rescueProfile.settings?.adoptionPolicies) {
-        rescueProfile.adoptionPolicies = rescueProfile.settings.adoptionPolicies;
-      } else {
-        rescueProfile.adoptionPolicies = null;
-      }
+      const { settings, ...rest } = rescueData.data;
+      const rescueProfile: RescueProfile = {
+        ...rest,
+        adoptionPolicies: settings?.adoptionPolicies,
+      };
 
       setRescue(rescueProfile);
     } catch (err) {

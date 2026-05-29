@@ -15,6 +15,7 @@ import {
   type Report,
   type ReportStatus,
   type ReportSeverity,
+  type ReportedEntityType,
 } from '@adopt-dont-shop/lib.moderation';
 import {
   ActionSelectionModal,
@@ -150,7 +151,8 @@ const Moderation: React.FC = () => {
   } = useReports({
     status: statusFilter === 'all' ? undefined : statusFilter,
     severity: severityFilter === 'all' ? undefined : severityFilter,
-    reportedEntityType: entityTypeFilter === 'all' ? undefined : (entityTypeFilter as any),
+    reportedEntityType:
+      entityTypeFilter === 'all' ? undefined : (entityTypeFilter as ReportedEntityType),
     search: searchQuery || undefined,
     page: currentPage,
     limit: pageSize,

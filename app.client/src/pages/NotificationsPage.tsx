@@ -2,6 +2,7 @@ import React from 'react';
 import { useNotifications } from '@/contexts/NotificationsContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { Button, Card } from '@adopt-dont-shop/lib.components';
+import type { Notification } from '@adopt-dont-shop/lib.notifications';
 import * as styles from './NotificationsPage.css';
 
 export const NotificationsPage: React.FC = () => {
@@ -67,7 +68,7 @@ export const NotificationsPage: React.FC = () => {
     }
   };
 
-  const isNotificationRead = (notification: any) => {
+  const isNotificationRead = (notification: Notification) => {
     return !!notification.readAt;
   };
 

@@ -57,6 +57,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Admin app PRD](./frontend/app-admin-prd.md) — admin dashboard requirements
 - [Frontend implementation plan](./frontend/implementation-plan.md) — phased rescue-app delivery plan
 - [Frontend recommendations plan](./frontend/recommendations-plan.md) — UX/recommendation surfaces roadmap
+- [React Native + Expo mobile exploration](./frontend/react-native-mobile-migration.md) — exploratory analysis for a future native mobile app
 - [Design tokens](../DESIGN_TOKENS.md) — vanilla-extract theme tokens reference
 - [Accessibility](./ACCESSIBILITY.md) — WCAG targets, testing checklist, screen-reader notes
 - [UK localization](./UK_LOCALIZATION.md) — full localization guide

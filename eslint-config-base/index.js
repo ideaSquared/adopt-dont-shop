@@ -21,7 +21,7 @@ export default tseslint.config(
           varsIgnorePattern: '^_',
         },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
 
@@ -50,6 +50,8 @@ export default tseslint.config(
       '**/*.spec.{ts,tsx,js,jsx}',
       '**/__tests__/**',
       '**/__mocks__/**',
+      '**/test-utils/**',
+      '**/setup-tests.{ts,tsx,js,jsx}',
     ],
     rules: {
       'no-console': 'off',
