@@ -29,9 +29,12 @@ router.use(monitoringGuard);
 // admin-auth chain runs.
 router.use(apiLimiter);
 
-// Dev-login user list is consumed pre-auth by the DevLoginPanel so the
-// user has *something* to log in as. `monitoringGuard` already 404s
-// this in production; admin auth on top would defeat the purpose.
+// Dev-login user list. This endpoint returns full user PII (email, address,
+// phone, DOB, …) so it MUST require admin auth — a host running
+// NODE_ENV=development would otherwise serve the entire user table to any
+// unauthenticated caller. `monitoringGuard` 404s this in production-like
+// envs and the inner `config.nodeEnv !== 'development'` check 404s staging,
+// but defence-in-depth still demands admin auth on the actual response.
 //
 // ADS-security: the perimeter `monitoringGuard` only blocks
 // `isProductionLike(nodeEnv)`. In a staging env (`nodeEnv='staging'`)
@@ -39,7 +42,7 @@ router.use(apiLimiter);
 // would be served unauthenticated. Restrict the route body to actual
 // development so the staging case 404s in lockstep with the inner
 // dev-only block below.
-router.get('/api/dev/seeded-users', async (req, res) => {
+router.get('/api/dev/seeded-users', authenticateToken, requireAdmin, async (req, res) => {
   if (config.nodeEnv !== 'development') {
     res.status(404).json({ error: 'Not found' });
     return;

@@ -15,6 +15,7 @@ import ModerationService from '../services/moderation.service';
 import { UserService } from '../services/user.service';
 import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
+import { isProductionLike } from '../config/env';
 import { validateBody } from '../middleware/zod-validate';
 import { clearCsrfSessionCookie, rotateCsrfSessionCookie } from '../middleware/csrf';
 import { logger, loggerHelpers } from '../utils/logger';
@@ -23,7 +24,7 @@ import { AuditLogService } from '../services/auditLog.service';
 export const REFRESH_TOKEN_COOKIE = 'refreshToken';
 export const REFRESH_TOKEN_COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: isProductionLike(process.env.NODE_ENV),
   sameSite: 'strict' as const,
   maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
 };
@@ -31,7 +32,7 @@ export const REFRESH_TOKEN_COOKIE_OPTIONS = {
 export const ACCESS_TOKEN_COOKIE = 'accessToken';
 export const ACCESS_TOKEN_COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: isProductionLike(process.env.NODE_ENV),
   sameSite: 'strict' as const,
   maxAge: 15 * 60 * 1000, // 15 minutes
 };
