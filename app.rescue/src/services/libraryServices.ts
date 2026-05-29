@@ -14,7 +14,7 @@ import { PermissionsService } from '@adopt-dont-shop/lib.permissions';
 import { InvitationsService } from '@adopt-dont-shop/lib.invitations';
 
 // Configure the global apiService FIRST
-import { apiService as globalApiService, AuthenticationError } from '@adopt-dont-shop/lib.api';
+import { apiService as globalApiService } from '@adopt-dont-shop/lib.api';
 
 // Configure with the proper base URL
 import { getApiBaseUrl, isDevelopment } from '../utils/env';
@@ -24,22 +24,6 @@ globalApiService.updateConfig({
   apiUrl: baseUrl,
   debug: isDevelopment(),
   // Tokens are stored in HttpOnly cookies — no localStorage fallback needed
-});
-
-// Add 401 error interceptor for automatic logout and redirect
-globalApiService.interceptors.addErrorInterceptor(async error => {
-  // Handle 401 authentication errors
-  if (
-    error instanceof AuthenticationError ||
-    (error instanceof Error && error.message.includes('401'))
-  ) {
-    // Clear non-sensitive user data
-    localStorage.removeItem('user');
-
-    // Redirect to homepage
-    window.location.href = '/';
-  }
-  return error;
 });
 
 // Now import AuthService AFTER configuring the global apiService

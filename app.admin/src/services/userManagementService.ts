@@ -59,7 +59,6 @@ class UserManagementService {
     try {
       return await apiService.get<PaginatedResponse<User>>('/api/v1/admin/users', filters);
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to fetch users:', error);
       throw error;
     }
   }
@@ -71,7 +70,6 @@ class UserManagementService {
     try {
       return await apiService.get<User>(`/api/v1/admin/users/${userId}`);
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to fetch user:', error);
       throw error;
     }
   }
@@ -83,7 +81,6 @@ class UserManagementService {
     try {
       return await apiService.post<User>('/api/v1/admin/users', userData);
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to create user:', error);
       throw error;
     }
   }
@@ -95,7 +92,6 @@ class UserManagementService {
     try {
       return await apiService.patch<User>(`/api/v1/admin/users/${userId}`, userData);
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to update user:', error);
       throw error;
     }
   }
@@ -110,7 +106,6 @@ class UserManagementService {
         reason,
       });
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to suspend user:', error);
       throw error;
     }
   }
@@ -124,7 +119,6 @@ class UserManagementService {
         action: 'unsuspend',
       });
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to unsuspend user:', error);
       throw error;
     }
   }
@@ -138,7 +132,6 @@ class UserManagementService {
         action: 'verify',
       });
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to verify user:', error);
       throw error;
     }
   }
@@ -153,7 +146,6 @@ class UserManagementService {
         reason,
       });
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to delete user:', error);
       throw error;
     }
   }
@@ -167,7 +159,6 @@ class UserManagementService {
         `/api/v1/admin/users/${userId}/reset-password`
       );
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to reset user password:', error);
       throw error;
     }
   }
@@ -182,7 +173,6 @@ class UserManagementService {
         ...filters,
       });
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to search users:', error);
       throw error;
     }
   }
@@ -194,7 +184,6 @@ class UserManagementService {
     try {
       return await apiService.get<UserStats>('/api/v1/admin/users/stats');
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to fetch user stats:', error);
       throw error;
     }
   }
@@ -222,7 +211,6 @@ class UserManagementService {
         reason,
       });
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to bulk update users:', error);
       throw error;
     }
   }
@@ -240,7 +228,6 @@ class UserManagementService {
       const response = await apiService.get('/api/v1/admin/users/export', exportFilters);
       return response as unknown as Blob;
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to export users:', error);
       throw error;
     }
   }
@@ -259,7 +246,6 @@ class UserManagementService {
     try {
       await apiService.post(`/api/v1/admin/users/${userId}/notifications`, notification);
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to send notification:', error);
       throw error;
     }
   }
@@ -284,7 +270,6 @@ class UserManagementService {
         joined_at: string;
       }>;
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to fetch user rescues:', error);
       throw error;
     }
   }
@@ -311,7 +296,6 @@ class UserManagementService {
         created_at: string;
       }>;
     } catch (error) {
-      console.error('❌ UserManagementService: Failed to fetch user applications:', error);
       throw error;
     }
   }

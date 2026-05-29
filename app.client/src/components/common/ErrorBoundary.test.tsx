@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@/test-utils/render';
 import { ErrorBoundary } from './ErrorBoundary';
 
+vi.mock('@adopt-dont-shop/lib.observability', () => ({
+  captureException: vi.fn(),
+}));
+
 const ThrowingChild = ({ shouldThrow }: { shouldThrow: boolean }) => {
   if (shouldThrow) {
     throw new Error('Boom');
@@ -64,6 +68,45 @@ describe('ErrorBoundary', () => {
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
     expect((onError.mock.calls[0][0] as Error).message).toBe('Boom');
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('forwards the error to captureException with boundary context', async () => {
+    const { captureException } = await import('@adopt-dont-shop/lib.observability');
+    vi.mocked(captureException).mockClear();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(
+      <ErrorBoundary boundary='test-boundary'>
+        <ThrowingChild shouldThrow={true} />
+      </ErrorBoundary>
+    );
+
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(captureException).mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(vi.mocked(captureException).mock.calls[0][1]).toMatchObject({
+      app: 'client',
+      boundary: 'test-boundary',
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('defaults boundary to "root" when not provided', async () => {
+    const { captureException } = await import('@adopt-dont-shop/lib.observability');
+    vi.mocked(captureException).mockClear();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(
+      <ErrorBoundary>
+        <ThrowingChild shouldThrow={true} />
+      </ErrorBoundary>
+    );
+
+    expect(vi.mocked(captureException).mock.calls[0][1]).toMatchObject({
+      boundary: 'root',
+    });
 
     consoleErrorSpy.mockRestore();
   });
