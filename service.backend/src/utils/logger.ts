@@ -128,22 +128,55 @@ const stripSecretQueryParams = (raw: string): string => {
   return kept ? `${pathPart}?${kept}` : pathPart;
 };
 
-const redactUrlsInValue = (value: unknown): unknown => {
+// ADS-784: JSON.stringify that never throws on circular references or BigInt.
+// Log meta can carry Node internals (timers, sockets) and Sequelize instances
+// with cyclic references — notably when the migration runner logs umzug error
+// objects, which previously crashed `db:migrate` outright.
+const safeJsonStringify = (value: unknown): string => {
+  const seen = new WeakSet<object>();
+  return JSON.stringify(value, (_key, val) => {
+    if (typeof val === 'bigint') {
+      return val.toString();
+    }
+    if (typeof val === 'object' && val !== null) {
+      if (seen.has(val)) {
+        return '[Circular]';
+      }
+      seen.add(val);
+    }
+    return val;
+  });
+};
+
+// ADS-784: bounded depth + cycle guard so a deep/cyclic meta object cannot
+// blow the stack (this format runs on every log line).
+const redactUrlsInValue = (value: unknown, depth = 0, seen = new WeakSet<object>()): unknown => {
   if (value === null || value === undefined) {
     return value;
   }
   if (typeof value === 'string') {
     return stripSecretQueryParams(value);
   }
+  if (depth >= 8) {
+    return value;
+  }
   if (Array.isArray(value)) {
-    return value.map(redactUrlsInValue);
+    if (seen.has(value)) {
+      return '[Circular]';
+    }
+    seen.add(value);
+    return value.map(v => redactUrlsInValue(v, depth + 1, seen));
   }
   if (typeof value === 'object') {
+    if (seen.has(value)) {
+      return '[Circular]';
+    }
+    seen.add(value);
     const entries = Object.entries(value as Record<string, unknown>).map(([k, v]) => {
       if (URL_LOG_KEYS.has(k.toLowerCase()) && typeof v === 'string') {
         return [k, stripSecretQueryParams(v)];
       }
-      return [k, redactUrlsInValue(v)];
+      return [k, redactUrlsInValue(v, depth + 1, seen)];
     });
     return Object.fromEntries(entries);
   }
@@ -197,7 +230,7 @@ const logFormat = winston.format.combine(
       logEntry.meta = meta as Record<string, LogEntryValue>;
     }
 
-    return JSON.stringify(logEntry);
+    return safeJsonStringify(logEntry);
   })
 );
 
@@ -211,7 +244,7 @@ const devFormat = winston.format.combine(
   winston.format.printf(info => {
     const { timestamp, level, message, correlationId, ...meta } = info;
     const correlationStr = correlationId ? ` [${correlationId}]` : '';
-    const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
+    const metaStr = Object.keys(meta).length > 0 ? ` ${safeJsonStringify(meta)}` : '';
     return `${timestamp}${correlationStr} [${level}]: ${message}${metaStr}`;
   })
 );

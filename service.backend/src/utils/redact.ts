@@ -25,24 +25,47 @@ const matchesAny = (key: string, patterns: readonly string[]): boolean => {
   return patterns.some(pattern => lower.includes(pattern));
 };
 
-const redactBy = <T>(value: T, patterns: readonly string[]): T => {
+// ADS-784: cap recursion depth and guard against cycles so a deeply-nested or
+// self-referential payload can't blow the stack / loop forever when a log line
+// or audit entry is sanitised.
+const MAX_DEPTH = 10;
+const TRUNCATED = '[TRUNCATED]';
+const CIRCULAR = '[CIRCULAR]';
+
+const redactByInner = <T>(
+  value: T,
+  patterns: readonly string[],
+  depth: number,
+  seen: WeakSet<object>
+): T => {
   if (value === null || value === undefined) {
     return value;
   }
+  if (typeof value !== 'object') {
+    return value;
+  }
+  if (depth >= MAX_DEPTH) {
+    return TRUNCATED as unknown as T;
+  }
+  if (seen.has(value as object)) {
+    return CIRCULAR as unknown as T;
+  }
+  seen.add(value as object);
+
   if (Array.isArray(value)) {
-    return value.map(item => redactBy(item, patterns)) as unknown as T;
+    return value.map(item => redactByInner(item, patterns, depth + 1, seen)) as unknown as T;
   }
-  if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>).map(([k, v]) => {
-      if (matchesAny(k, patterns)) {
-        return [k, REDACTED];
-      }
-      return [k, redactBy(v, patterns)];
-    });
-    return Object.fromEntries(entries) as T;
-  }
-  return value;
+  const entries = Object.entries(value as Record<string, unknown>).map(([k, v]) => {
+    if (matchesAny(k, patterns)) {
+      return [k, REDACTED];
+    }
+    return [k, redactByInner(v, patterns, depth + 1, seen)];
+  });
+  return Object.fromEntries(entries) as T;
 };
+
+const redactBy = <T>(value: T, patterns: readonly string[]): T =>
+  redactByInner(value, patterns, 0, new WeakSet<object>());
 
 /**
  * Redact credential-like fields (password, token, secret). Safe for audit

@@ -21,6 +21,7 @@ import {
   assertDestructiveDownAcknowledged,
   dropEnumTypeIfExists,
   runInTransaction,
+  tableExists,
 } from './_helpers';
 
 const MIGRATION_KEY = '03-create-foster-placements';
@@ -29,6 +30,14 @@ const FOSTER_PLACEMENT_STATUSES = ['active', 'completed', 'cancelled'] as const;
 
 export default {
   up: async (queryInterface: QueryInterface) => {
+    // ADS-784: idempotency guard. `00-baseline.ts` sync() already creates this
+    // table on a clean DB and sorts before this migration, so without the guard
+    // db:migrate aborts re-creating it. No-op when the table already exists;
+    // creates it on a truly fresh object. (Deliberate, approved edit to an
+    // existing migration — it never worked from a clean DB.)
+    if (await tableExists(queryInterface, 'foster_placements')) {
+      return;
+    }
     await runInTransaction(queryInterface, async transaction => {
       await queryInterface.createTable(
         'foster_placements',

@@ -14,10 +14,17 @@
  * deletes rows where expires_at < NOW().
  */
 import { DataTypes, type QueryInterface } from 'sequelize';
-import { runInTransaction } from './_helpers';
+import { runInTransaction, tableExists } from './_helpers';
 
 export default {
   up: async (queryInterface: QueryInterface) => {
+    // ADS-784: idempotency guard. `00-baseline.ts` sync() already creates this
+    // table on a clean DB and sorts before this migration; no-op when present,
+    // create when truly fresh. (Approved edit to an existing migration — it
+    // never worked from a clean DB.)
+    if (await tableExists(queryInterface, 'application_drafts')) {
+      return;
+    }
     await runInTransaction(queryInterface, async transaction => {
       await queryInterface.createTable(
         'application_drafts',
