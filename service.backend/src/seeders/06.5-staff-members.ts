@@ -1,4 +1,5 @@
 import StaffMember from '../models/StaffMember';
+import { bulkInsert } from './lib/bulk-insert';
 
 const staffMembers = [
   // Paws Rescue Austin staff
@@ -53,11 +54,16 @@ export const seedStaffMembers = async (): Promise<void> => {
   console.log('🧑‍💼 Seeding staff members...');
 
   try {
-    // Clear existing staff members
-    await StaffMember.destroy({ where: {}, force: true });
+    // ADS-784: idempotent. Previously this destroyed all rows then bulkCreate'd,
+    // churning the table on every run. Guard on count and insert with
+    // ignoreDuplicates so re-runs are no-ops, matching the sibling seeders.
+    const existing = await StaffMember.count();
+    if (existing > 0) {
+      console.log(`⏭️  Staff members already seeded (${existing}). Skipping.`);
+      return;
+    }
 
-    // Create staff members
-    await StaffMember.bulkCreate(staffMembers);
+    await bulkInsert(StaffMember, staffMembers);
 
     console.log(`✅ Successfully seeded ${staffMembers.length} staff members`);
   } catch (error) {

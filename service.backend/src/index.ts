@@ -388,17 +388,15 @@ app.get('/api/v1/health/simple', (_req, res) => {
 // The richer `services` and `metrics` payloads leak internal infrastructure
 // shape (DB host, Redis URL, queue depths, hostnames) and are now gated
 // behind admin auth via /api/v1/health/metrics below.
-app.get('/api/v1/health', async (req, res) => {
-  try {
-    const health = await HealthCheckService.getFullHealthCheck();
-    const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
-    res.status(statusCode).json({
-      status: health.status,
-      timestamp: health.timestamp,
-    });
-  } catch (error) {
-    res.status(503).json({ error: 'Health check failed' });
-  }
+// ADS-784: cheap, unauthenticated liveness only. The full check spawns `df`
+// and does disk read/write, so calling it here gave an unauthenticated,
+// un-rate-limited DoS amplifier. The deep check stays on the admin-gated
+// /health/services and /health/metrics routes below.
+app.get('/api/v1/health', (_req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date(),
+  });
 });
 
 // ADS-545: per-service detail behind admin auth. Mirrors /api/v1/health/metrics
@@ -474,25 +472,15 @@ if (config.nodeEnv === 'development') {
 // /api/v1/health/services and /api/v1/health/metrics. Docker HEALTHCHECK
 // and nginx upstream probes should target /health/simple for the cheap
 // liveness check.
-app.get('/health', async (req, res) => {
-  try {
-    const health = await HealthCheckService.getFullHealthCheck();
-
-    // Return appropriate status code
-    const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
-
-    res.status(statusCode).json({
-      status: health.status,
-      timestamp: health.timestamp,
-    });
-  } catch (error) {
-    logger.error('Health check failed:', error);
-    res.status(503).json({
-      status: 'unhealthy',
-      error: 'Health check service failed',
-      timestamp: new Date(),
-    });
-  }
+// ADS-784: cheap, unauthenticated liveness only (mirrors /health/simple). The
+// full check spawns `df` and does disk read/write — too expensive for an
+// unauthenticated, un-rate-limited probe. Deep checks are admin-gated at
+// /api/v1/health/services and /api/v1/health/metrics.
+app.get('/health', (_req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date(),
+  });
 });
 
 // Simple health check for load balancers

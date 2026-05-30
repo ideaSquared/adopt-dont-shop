@@ -117,6 +117,18 @@ const baseSchema = z.object({
   RESCUE_FRONTEND_URL: z.string().optional(),
   ADMIN_FRONTEND_URL: z.string().optional(),
   STATSIG_SERVER_SECRET_KEY: z.string().optional(),
+
+  // ADS-784: previously-unvalidated vars with safe runtime fallbacks. Bringing
+  // them into the schema means an invalid value (e.g. a typo'd LOG_LEVEL or a
+  // misspelled provider) fails validation fast rather than silently taking the
+  // wrong default. All optional — the consuming code already defaults them.
+  LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'debug', 'silly']).optional(),
+  SMS_PROVIDER: z.enum(['console', 'twilio']).optional(),
+  PUSH_PROVIDER: z.enum(['console', 'fcm']).optional(),
+  EMAIL_PROVIDER: z.enum(['console', 'ethereal', 'resend']).optional(),
+  METRICS_AUTH_TOKEN: z.string().optional(),
+  SENTRY_DSN: z.string().optional(),
+  ANON_SWIPE_LIMIT: numericString('ANON_SWIPE_LIMIT').optional(),
 });
 
 type ValidationIssue = {

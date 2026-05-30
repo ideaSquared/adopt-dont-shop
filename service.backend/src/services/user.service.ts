@@ -111,21 +111,25 @@ type UserActivitySummaryInternal = {
   };
 };
 
+// ADS-784: this service-side schema previously had `.min(1)` but no `.max()`,
+// so an oversized firstName/lastName/bio could reach the DB unbounded. Caps
+// mirror the canonical lib.validation UpdateProfileRequestSchema (name max 100,
+// bio max 500, address fields max 255).
 const UpdateProfileSchema = z.object({
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
-  phoneNumber: z.string().optional(),
-  bio: z.string().optional(),
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  phoneNumber: z.string().max(32).optional(),
+  bio: z.string().max(500).optional(),
   profileImageUrl: z.string().url().optional().nullable(),
   location: z
     .object({
-      type: z.string().optional(),
+      type: z.string().max(64).optional(),
       coordinates: z.tuple([z.number(), z.number()]).optional(),
-      country: z.string().optional(),
-      city: z.string().optional(),
-      addressLine1: z.string().optional(),
-      addressLine2: z.string().optional(),
-      postalCode: z.string().optional(),
+      country: z.string().max(255).optional(),
+      city: z.string().max(255).optional(),
+      addressLine1: z.string().max(255).optional(),
+      addressLine2: z.string().max(255).optional(),
+      postalCode: z.string().max(20).optional(),
     })
     .optional(),
   privacySettings: z

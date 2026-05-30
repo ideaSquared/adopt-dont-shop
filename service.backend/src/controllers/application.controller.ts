@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { body, param, query, validationResult } from 'express-validator';
+import { body, param, query } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import { z } from 'zod';
 import {
   ApplicationBulkUpdateRequestSchema,
@@ -227,9 +228,8 @@ export class ApplicationController extends BaseController {
 
   // Get applications with filtering and pagination
   getApplications = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return this.sendValidationError(res, errors.array());
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const filters: ApplicationSearchFilters = {
@@ -287,13 +287,8 @@ export class ApplicationController extends BaseController {
 
   // Create new application
   createApplication = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const applicationData: CreateApplicationRequest = {
@@ -325,13 +320,8 @@ export class ApplicationController extends BaseController {
 
   // Get application by ID
   getApplicationById = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { applicationId } = req.params;
@@ -375,13 +365,8 @@ export class ApplicationController extends BaseController {
 
   // Update application
   updateApplication = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { applicationId } = req.params;
@@ -409,13 +394,8 @@ export class ApplicationController extends BaseController {
 
   // Submit application
   submitApplication = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { applicationId } = req.params;
@@ -430,13 +410,8 @@ export class ApplicationController extends BaseController {
 
   // Update application status
   updateApplicationStatus = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { applicationId } = req.params;
@@ -470,13 +445,8 @@ export class ApplicationController extends BaseController {
 
   // Withdraw application
   withdrawApplication = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { applicationId } = req.params;
@@ -494,13 +464,8 @@ export class ApplicationController extends BaseController {
 
   // Add document to application
   addDocument = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     if (!req.file) {
@@ -565,13 +530,8 @@ export class ApplicationController extends BaseController {
 
   // Update reference
   updateReference = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { applicationId } = req.params;
@@ -635,13 +595,8 @@ export class ApplicationController extends BaseController {
 
   // Bulk update applications
   bulkUpdateApplications = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const result = await ApplicationService.bulkUpdateApplications(req.body, req.user!.userId);
@@ -655,13 +610,8 @@ export class ApplicationController extends BaseController {
 
   // Delete application
   deleteApplication = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { applicationId } = req.params;

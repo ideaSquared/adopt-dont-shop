@@ -72,15 +72,8 @@ export class UserSupportController {
    */
   static async createMyTicket(req: AuthenticatedRequest, res: Response) {
     const userId = req.user!.userId;
+    // Body is validated + coerced by validateBody(CreateTicketSchema) upstream.
     const { subject, description, category, priority } = req.body;
-
-    // Validation
-    if (!subject || !description || !category) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields: subject, description, category',
-      });
-    }
 
     // Get user details
     const user = await User.findByPk(userId);
@@ -120,30 +113,32 @@ export class UserSupportController {
    */
   static async getMyTickets(req: AuthenticatedRequest, res: Response) {
     const userId = req.user!.userId;
-    const { status, page, limit } = req.query;
+    // Query is validated + coerced by validateQuery(MyTicketsQuerySchema):
+    // `page`/`limit` are bounded numbers, `status` (if present) is a
+    // comma-separated list of valid TicketStatus values.
+    const status = req.query.status as string | undefined;
+    const page = Number(req.query.page);
+    const limit = Number(req.query.limit);
 
-    // Build validated filters - convert string status to TicketStatus enum if needed
     const ticketFilters: {
       userId: string;
       status?: TicketStatus | TicketStatus[];
     } = { userId };
 
     if (status) {
-      const statusArray = typeof status === 'string' ? status.split(',') : (status as string[]);
-      // Type assertion safe: we're passing validated status strings to the service
-      ticketFilters.status =
-        statusArray.length === 1
-          ? (statusArray[0] as TicketStatus)
-          : (statusArray as TicketStatus[]);
+      const validStatuses = new Set<string>(Object.values(TicketStatus));
+      const statusArray = status
+        .split(',')
+        .map(s => s.trim())
+        .filter((s): s is TicketStatus => validStatuses.has(s));
+      if (statusArray.length === 1) {
+        ticketFilters.status = statusArray[0];
+      } else if (statusArray.length > 1) {
+        ticketFilters.status = statusArray;
+      }
     }
 
-    const pagination: PaginationOptions = {};
-    if (page) {
-      pagination.page = parseInt(page as string, 10);
-    }
-    if (limit) {
-      pagination.limit = parseInt(limit as string, 10);
-    }
+    const pagination: PaginationOptions = { page, limit };
 
     const result = await SupportTicketService.getUserTickets(userId, ticketFilters, pagination);
 

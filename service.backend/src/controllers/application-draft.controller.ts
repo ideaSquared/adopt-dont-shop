@@ -1,14 +1,13 @@
 import { type Response } from 'express';
-import { validationResult } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import { ApplicationDraftUpsertRequestSchema } from '@adopt-dont-shop/lib.validation';
 import applicationDraftService from '../services/application-draft.service';
 import type { AuthenticatedRequest } from '../types/auth';
 
 export class ApplicationDraftController {
   static async getDraft(req: AuthenticatedRequest, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const draft = await applicationDraftService.getDraft(req.user!.userId, req.params.petId);
@@ -26,9 +25,8 @@ export class ApplicationDraftController {
   }
 
   static async upsertDraft(req: AuthenticatedRequest, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const parsed = ApplicationDraftUpsertRequestSchema.safeParse(req.body);
@@ -58,9 +56,8 @@ export class ApplicationDraftController {
   }
 
   static async deleteDraft(req: AuthenticatedRequest, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     await applicationDraftService.deleteDraft(req.user!.userId, req.params.petId);

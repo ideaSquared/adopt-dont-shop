@@ -119,7 +119,7 @@ describe('POST /api/v1/device-tokens (ADS-611)', () => {
       .post('/api/v1/device-tokens')
       .send({ token: 'fcm-token-abcdef0123', platform: 'symbian' });
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
     expect(mockedDeviceToken.findOrCreate).not.toHaveBeenCalled();
   });
 
@@ -129,7 +129,7 @@ describe('POST /api/v1/device-tokens (ADS-611)', () => {
       .post('/api/v1/device-tokens')
       .send({ token: 'short', platform: 'ios' });
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
     expect(mockedDeviceToken.findOrCreate).not.toHaveBeenCalled();
   });
 
@@ -264,7 +264,7 @@ describe('DELETE /api/v1/device-tokens/:tokenId (ADS-611)', () => {
   it('rejects a non-UUID tokenId', async () => {
     authenticateAs('user-1');
     const res = await request(buildApp()).delete('/api/v1/device-tokens/not-a-uuid');
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
     expect(mockedDeviceToken.findOne).not.toHaveBeenCalled();
   });
 

@@ -1,17 +1,12 @@
 import { Request, type Response } from 'express';
-import { validationResult } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import { InvitationService } from '../services/invitation.service';
 import User from '../models/User';
 
 export class InvitationController {
   static async acceptInvitation(req: Request, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { token, firstName, lastName, password, title } = req.body;
@@ -27,13 +22,8 @@ export class InvitationController {
   }
 
   static async getDetails(req: Request, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { token } = req.params;

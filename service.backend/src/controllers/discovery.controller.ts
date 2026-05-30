@@ -1,5 +1,6 @@
 import { Response } from 'express';
-import { body, param, query, validationResult } from 'express-validator';
+import { body, param, query } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { DiscoveryService, DiscoveryFilters } from '../services/discovery.service';
 import { SwipeService } from '../services/swipe.service';
@@ -76,14 +77,8 @@ export class DiscoveryController {
     req: AuthenticatedRequest,
     res: Response
   ): Promise<Response | void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-        timestamp: new Date().toISOString(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const filters = {
@@ -118,14 +113,8 @@ export class DiscoveryController {
    * Load more pets for infinite scroll
    */
   loadMorePets = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-        timestamp: new Date().toISOString(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { sessionId, lastPetId, limit = 10 } = req.body;
@@ -147,14 +136,8 @@ export class DiscoveryController {
     req: AuthenticatedRequest,
     res: Response
   ): Promise<Response | void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-        timestamp: new Date().toISOString(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     // SECURITY: derive userId exclusively from the authenticated session. A
@@ -183,14 +166,8 @@ export class DiscoveryController {
    * Get user's swipe statistics
    */
   getSwipeStats = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-        timestamp: new Date().toISOString(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { userId } = req.params;
@@ -222,14 +199,8 @@ export class DiscoveryController {
    * Get session statistics
    */
   getSessionStats = async (req: AuthenticatedRequest, res: Response): Promise<Response | void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-        timestamp: new Date().toISOString(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { sessionId } = req.params;
@@ -248,13 +219,7 @@ export class DiscoveryController {
    * Get discovery queue via POST (filters passed in request body)
    */
   addToQueue = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
       return;
     }
 

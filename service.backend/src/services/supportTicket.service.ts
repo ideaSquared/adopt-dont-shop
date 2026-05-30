@@ -12,6 +12,7 @@ import { NotFoundError, BadRequestError } from '../middleware/error-handler';
 import { JsonObject } from '../types/common';
 import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
+import { MAX_PAGE_SIZE } from '../constants/pagination';
 import type { EntityActivity, EntityActivityFilters } from '@adopt-dont-shop/lib.types';
 import { AuditLogService } from './auditLog.service';
 import { auditLogToActivity } from './audit-log-formatting';
@@ -57,7 +58,9 @@ class SupportTicketService {
    */
   async getTickets(filters: TicketFilters = {}, pagination: PaginationOptions = {}) {
     try {
-      const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
+      const { page = 1, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
+      // Defense-in-depth: clamp limit even if a caller bypasses route validation.
+      const limit = Math.min(pagination.limit ?? 20, MAX_PAGE_SIZE);
 
       const offset = (page - 1) * limit;
       const safeSortBy = validateSortField(sortBy, SUPPORT_TICKET_SORT_FIELDS, 'createdAt');
@@ -514,7 +517,9 @@ class SupportTicketService {
     pagination: PaginationOptions = {}
   ) {
     try {
-      const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
+      const { page = 1, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
+      // Defense-in-depth: clamp limit even if a caller bypasses route validation.
+      const limit = Math.min(pagination.limit ?? 20, MAX_PAGE_SIZE);
 
       const offset = (page - 1) * limit;
       const safeSortBy = validateSortField(sortBy, SUPPORT_TICKET_SORT_FIELDS, 'createdAt');
