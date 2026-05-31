@@ -469,6 +469,26 @@ export const authenticate = async (
 };
 ```
 
+### Logging vs. Auditing — two layers
+
+The backend separates **operational logs** (Layer 1) from **audit events** (Layer 2). Use the right tool for the job:
+
+| | Layer 1 — `logger.*` | Layer 2 — audit |
+|---|---|---|
+| **Purpose** | Debugging, ops, "what happened" | Forensics, "who did what to what" |
+| **Storage** | console + files + Loki (when `LOKI_URL` set) | immutable `audit_logs` table + mirrored to Loki |
+| **How to emit** | `logger.info/warn/error(...)` or `loggerHelpers.log*` | one of the two paths below |
+
+**Decision rule for emitting audit events:**
+
+- **Route-level CRUD with no service transaction?** Attach `auditRoute({...})` middleware to the route — it fires on `res.on('finish')` after a 2xx response. Use for invitations, drafts, CMS content, etc. See `service.backend/src/middleware/audit-route.ts`.
+- **Service runs inside a Sequelize transaction?** Call `AuditLogService.log({..., transaction: t})` explicitly inside the service so the audit row commits atomically with the business write. Pattern at `pet.service.ts:157`, `application.service.ts:524`.
+- **Background job / cron / event consumer?** Call `AuditLogService.log(...)` explicitly. No transaction needed.
+
+**For UPDATE operations on sensitive entities**, capture before/after deltas with `diffSequelize(instance, allowlist)` from `service.backend/src/utils/audit-diff.ts` and pass the result as `details.diff`.
+
+**Never** log secrets or PII to Layer 1 without going through `loggerHelpers` — the redaction format only protects known fields. Audit-row metadata is also redacted by Winston, but treat it as durable storage.
+
 ---
 
 ## Frontend Patterns (React + Vite)
