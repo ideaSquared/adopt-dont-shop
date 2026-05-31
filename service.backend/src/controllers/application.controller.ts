@@ -538,7 +538,8 @@ export class ApplicationController extends BaseController {
     const application = await ApplicationService.updateReference(
       applicationId,
       req.body,
-      req.user!.userId
+      req.user!.userId,
+      req.user!.userType as UserType
     );
 
     res.status(200).json({

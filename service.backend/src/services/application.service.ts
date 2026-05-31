@@ -1562,6 +1562,21 @@ export class ApplicationService {
         userId,
       });
 
+      // Cancel any non-terminal home visits scheduled for this application.
+      // Without this, withdrawing leaves SCHEDULED / IN_PROGRESS HomeVisit
+      // rows pointing at a withdrawn application — rescue staff see a zombie
+      // visit on a deal that's already off the table. COMPLETED / CANCELLED
+      // rows are historical and left alone.
+      await HomeVisit.update(
+        { status: HomeVisitStatus.CANCELLED, cancelled_reason: 'Application withdrawn' },
+        {
+          where: {
+            application_id: applicationId,
+            status: { [Op.notIn]: [HomeVisitStatus.COMPLETED, HomeVisitStatus.CANCELLED] },
+          },
+        }
+      );
+
       logger.info('Application withdrawn', { applicationId, userId });
 
       await application.reload();
@@ -1727,12 +1742,24 @@ export class ApplicationService {
   static async updateReference(
     applicationId: string,
     referenceUpdate: ReferenceUpdateRequest,
-    userId: string
+    userId: string,
+    userType: UserType
   ): Promise<ApplicationData> {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
         throw new NotFoundError('Application not found');
+      }
+
+      // Authorize: rescue staff may only act on their own rescue's
+      // applications. The route's requireRole only checks the role —
+      // without this, a staff member at rescue A could PATCH references
+      // on rescue B's application. Admins / moderators are allowed.
+      if (userType !== UserType.ADMIN && userType !== UserType.MODERATOR) {
+        const staffRescueId = await ApplicationService.getStaffRescueIdForUser(userId);
+        if (!staffRescueId || staffRescueId !== application.rescueId) {
+          throw new ForbiddenError('Access denied');
+        }
       }
 
       // Determine the reference index to update
