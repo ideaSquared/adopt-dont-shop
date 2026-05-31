@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Request, Response, Router } from 'express';
 import { isProductionLike } from '../config/env';
 import { registry } from '../middleware/metrics';
@@ -37,13 +38,27 @@ export const warnIfMetricsTokenUnset = (nodeEnv: string | undefined): void => {
 const isLoopback = (ip: string | undefined): boolean =>
   ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
 
+/**
+ * ADS-784: constant-time bearer-token comparison. A plain `!==` leaks the token
+ * length and the first-differing byte position via response timing. Guard the
+ * length first because `timingSafeEqual` throws on unequal-length buffers.
+ */
+const tokenMatches = (provided: string, expected: string): boolean => {
+  const providedBuf = Buffer.from(provided);
+  const expectedBuf = Buffer.from(expected);
+  if (providedBuf.length !== expectedBuf.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(providedBuf, expectedBuf);
+};
+
 router.get('/', async (req: Request, res: Response) => {
   const token = process.env.METRICS_AUTH_TOKEN;
 
   if (token) {
     const header = req.get('authorization') ?? '';
     const provided = header.startsWith('Bearer ') ? header.slice(7) : '';
-    if (provided !== token) {
+    if (!tokenMatches(provided, token)) {
       res.status(401).json({ error: 'unauthorized' });
       return;
     }

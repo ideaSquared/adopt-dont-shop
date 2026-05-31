@@ -1,34 +1,29 @@
 /**
  * Baseline migration — Phase 1 data model.
  *
- * Historically this used `sequelize.sync({ force: true })` which drops every
- * table on apply (catastrophic if accidentally run against a populated DB)
- * and silently drifts as the model definitions evolve.
+ * Historically this called `sequelize.sync()` to materialise the whole model
+ * graph. That made `db:migrate` from a clean database fail (ADS-784):
  *
- * Two safety changes apply now (ADS-400):
+ *  - `sync()` is model-driven, so it tried to create indexes for columns that
+ *    only later forward migrations add (e.g. `chats.assigned_to` from
+ *    `09-add-chats-assigned-to`), aborting with `42703 undefined_column`.
+ *  - It also created tables that have their own later `createTable` migrations
+ *    (`foster_placements`, `two_factor_recoveries`, `application_drafts`),
+ *    so those migrations then collided.
  *
- * 1. `force` is removed — `sync()` is now create-if-not-exists, so applying
- *    the migration on a populated DB is a no-op rather than a wipe.
- * 2. The down-migration only runs in non-production environments. Dropping
- *    every table in production is never the right rollback path; operators
- *    should restore from backup instead.
- *
- * The longer-term fix (replacing this migration with an explicit set of
- * frozen `queryInterface.createTable(...)` calls so the produced schema is
- * deterministic and does not drift with model edits) is tracked under a
- * follow-up rebaseline ticket — touching ~60 models in a single PR is too
- * high-risk to merge alongside the rest of the audit fixes.
+ * The schema is now fully described by the explicit `00-baseline-0NN-*.ts`
+ * files (including `062-adopter-match-profile` and `063-user-preferences`,
+ * which were previously only created by this sync). This migration is kept as
+ * a no-op so its `SequelizeMeta` row is preserved on databases that already
+ * applied it; the numbered baselines + forward migrations are the source of
+ * truth.
  */
 import type { QueryInterface } from 'sequelize';
-import sequelize from '../sequelize';
-import '../models/index';
 
 export default {
   up: async (_queryInterface: QueryInterface) => {
-    // Idempotent: create tables that don't exist, leave existing tables alone.
-    // No `force`, no `alter` — destructive ops belong in explicit forward
-    // migrations, not the baseline.
-    await sequelize.sync();
+    // No-op: the explicit numbered baseline migrations create the schema.
+    // (Previously `await sequelize.sync()` — removed under ADS-784.)
   },
 
   down: async (queryInterface: QueryInterface) => {

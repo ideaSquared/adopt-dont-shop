@@ -15,6 +15,13 @@ export async function seedModeratorActions() {
       return;
     }
 
+    // ADS-784: idempotency guard — re-runs must not duplicate rows.
+    const existing = await ModeratorAction.count();
+    if (existing > 0) {
+      console.log(`⏭️  Moderator actions already seeded (${existing}). Skipping.`);
+      return;
+    }
+
     const actions = [
       // Warning issued
       {

@@ -1325,6 +1325,36 @@ const FK_CONSTRAINTS: FkDef[] = [
     references: { table: 'users', field: 'user_id' },
     onDelete: 'SET NULL',
   },
+
+  // ── matching (orphan-table backfill, ADS-784 C2) ──────────────────────────
+  {
+    table: 'adopter_match_profile',
+    name: 'adopter_match_profile_user_id_fkey',
+    fields: ['user_id'],
+    references: { table: 'users', field: 'user_id' },
+    onDelete: 'CASCADE',
+  },
+  {
+    table: 'adopter_match_profile',
+    name: 'adopter_match_profile_created_by_fkey',
+    fields: ['created_by'],
+    references: { table: 'users', field: 'user_id' },
+    onDelete: 'SET NULL',
+  },
+  {
+    table: 'adopter_match_profile',
+    name: 'adopter_match_profile_updated_by_fkey',
+    fields: ['updated_by'],
+    references: { table: 'users', field: 'user_id' },
+    onDelete: 'SET NULL',
+  },
+  {
+    table: 'user_preferences',
+    name: 'user_preferences_user_id_fkey',
+    fields: ['user_id'],
+    references: { table: 'users', field: 'user_id' },
+    onDelete: 'CASCADE',
+  },
 ];
 
 export default {

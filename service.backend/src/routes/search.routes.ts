@@ -5,11 +5,36 @@
  */
 
 import { Router } from 'express';
+import { z } from 'zod';
 import { SearchController } from '../controllers/search.controller';
 import { authenticateToken } from '../middleware/auth';
 import { searchLimiter } from '../middleware/rate-limiter';
+import { validateQuery } from '../middleware/zod-validate';
+import { LARGE_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 
 const router = Router();
+
+// ADS-784: bound + coerce pagination and enum-validate sort options so bad
+// input is a clean 422 rather than a 500 (NaN offset / invalid order clause).
+const MessageSearchQuerySchema = z.object({
+  q: z.string().trim().min(1, 'Query parameter is required').max(200),
+  conversationId: z.string().optional(),
+  senderId: z.string().optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+  messageType: z.string().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  // Clamp (don't reject) an over-cap limit to preserve the endpoint's existing
+  // silent-cap behaviour while still bounding the value.
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(LARGE_PAGE_SIZE)
+    .transform(value => Math.min(value, MAX_PAGE_SIZE)),
+  sortBy: z.enum(['relevance', 'date', 'sender']).default('relevance'),
+  sortOrder: z.enum(['ASC', 'DESC']).default('DESC'),
+});
 
 // Apply authentication to all search routes
 router.use(authenticateToken);
@@ -35,7 +60,7 @@ router.use(searchLimiter);
  * @param {string} sortBy - Sort by 'relevance', 'date', or 'sender' (default: 'relevance')
  * @param {string} sortOrder - 'ASC' or 'DESC' (default: 'DESC')
  */
-router.get('/messages', SearchController.searchMessages);
+router.get('/messages', validateQuery(MessageSearchQuerySchema), SearchController.searchMessages);
 
 /**
  * @route GET /api/v1/search/suggestions

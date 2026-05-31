@@ -182,7 +182,7 @@ describe('Discovery routes - user id binding (security)', () => {
         .post('/api/v1/discovery/queue')
         .send({ filters: {}, limit: 100000 });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
       expect(getDiscoveryQueueMock).not.toHaveBeenCalled();
     });
 
@@ -193,7 +193,7 @@ describe('Discovery routes - user id binding (security)', () => {
         .post('/api/v1/discovery/queue')
         .send({ filters: {}, limit: 'lots' });
 
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
       expect(getDiscoveryQueueMock).not.toHaveBeenCalled();
     });
   });

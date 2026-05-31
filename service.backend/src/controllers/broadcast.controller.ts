@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { validationResult } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import {
   BROADCAST_AUDIENCES,
   BroadcastAudience,
@@ -18,13 +18,8 @@ export class BroadcastController {
    * cached response inside 24h.
    */
   broadcast = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const audience = req.body.audience as BroadcastAudience;

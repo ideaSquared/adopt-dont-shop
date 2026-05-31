@@ -16,33 +16,9 @@ import { validateBody } from '../middleware/zod-validate';
 
 // Validation rules
 export const userValidation = {
-  updateProfile: [
-    body('first_name')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('First name must be between 1 and 50 characters'),
-    body('last_name')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('Last name must be between 1 and 50 characters'),
-    body('phone_number')
-      .optional()
-      .isMobilePhone('en-GB')
-      .withMessage('Please provide a valid UK mobile number'),
-    body('bio')
-      .optional()
-      .isLength({ max: 500 })
-      .withMessage('Bio must be less than 500 characters'),
-    body('location')
-      .optional()
-      .trim()
-      .isLength({ max: 100 })
-      .withMessage('Location must be less than 100 characters'),
-    body('profile_image_url').optional().isURL().withMessage('Profile image must be a valid URL'),
-  ],
-
+  // ADS-784: the snake_case `updateProfile` express-validator chain was removed.
+  // The FE sends camelCase, so it never matched; the users.* update routes now
+  // use validateBody(UpdateProfileRequestSchema) (camelCase) directly.
   searchUsers: [
     query('search')
       .optional()

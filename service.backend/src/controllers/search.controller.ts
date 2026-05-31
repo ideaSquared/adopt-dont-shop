@@ -5,7 +5,6 @@
  */
 
 import { Response } from 'express';
-import { LARGE_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { MessageSearchService } from '../services/messageSearch.service';
 import { AuthenticatedRequest } from '../types/auth';
 
@@ -15,6 +14,9 @@ export class SearchController {
    */
   static async searchMessages(req: AuthenticatedRequest, res: Response) {
     const userId = req.user?.userId;
+    // Query is validated + coerced by validateQuery(MessageSearchQuerySchema):
+    // `q` is a non-empty string, `page`/`limit` are bounded numbers,
+    // `startDate`/`endDate` are Dates, and the sort options are valid enums.
     const {
       q: query,
       conversationId,
@@ -22,28 +24,22 @@ export class SearchController {
       startDate,
       endDate,
       messageType,
-      page = 1,
-      limit = LARGE_PAGE_SIZE,
-      sortBy = 'relevance',
-      sortOrder = 'DESC',
+      page,
+      limit,
+      sortBy,
+      sortOrder,
     } = req.query;
 
-    if (!query || typeof query !== 'string') {
-      return res.status(400).json({
-        error: 'Query parameter is required',
-      });
-    }
-
     const searchOptions = {
-      query,
+      query: query as string,
       userId,
       conversationId: conversationId as string,
       senderId: senderId as string,
-      startDate: startDate ? new Date(startDate as string) : undefined,
-      endDate: endDate ? new Date(endDate as string) : undefined,
+      startDate: startDate as Date | undefined,
+      endDate: endDate as Date | undefined,
       messageType: messageType as string,
-      page: parseInt(page as string, 10),
-      limit: Math.min(parseInt(limit as string, 10), MAX_PAGE_SIZE),
+      page: Number(page),
+      limit: Number(limit),
       sortBy: sortBy as 'relevance' | 'date' | 'sender',
       sortOrder: sortOrder as 'ASC' | 'DESC',
     };

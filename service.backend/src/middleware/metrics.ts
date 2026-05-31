@@ -31,9 +31,13 @@ export const httpRequestsTotal = new client.Counter({
   registers: [registry],
 });
 
+// ADS-784: only emit the `route` label for matched routes. For 404s and other
+// unmatched requests `req.route` is undefined, and falling back to the raw
+// concrete path (which carries IDs) produced an unbounded set of Prometheus
+// series. A single `unmatched` bucket keeps cardinality finite.
 const labelsFor = (req: Request, res: Response) => ({
   method: req.method,
-  route: req.route?.path ?? req.baseUrl + (req.path || ''),
+  route: req.route?.path ? req.baseUrl + req.route.path : 'unmatched',
   status_code: String(res.statusCode),
 });
 

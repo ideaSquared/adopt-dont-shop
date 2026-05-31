@@ -19,12 +19,19 @@
  * Indexes: token (unique), user_id, plus the audit_columns pair.
  */
 import { DataTypes, type QueryInterface } from 'sequelize';
-import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers';
+import { assertDestructiveDownAcknowledged, runInTransaction, tableExists } from './_helpers';
 
 const MIGRATION_KEY = '05-create-two-factor-recoveries';
 
 export default {
   up: async (queryInterface: QueryInterface) => {
+    // ADS-784: idempotency guard. `00-baseline.ts` sync() already creates this
+    // table on a clean DB and sorts before this migration; no-op when present,
+    // create when truly fresh. (Approved edit to an existing migration — it
+    // never worked from a clean DB.)
+    if (await tableExists(queryInterface, 'two_factor_recoveries')) {
+      return;
+    }
     await runInTransaction(queryInterface, async transaction => {
       await queryInterface.createTable(
         'two_factor_recoveries',

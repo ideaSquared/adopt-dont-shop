@@ -1,13 +1,12 @@
 import { Response } from 'express';
-import { validationResult } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import DeviceToken, { TokenStatus } from '../models/DeviceToken';
 import { AuthenticatedRequest } from '../types/auth';
 
 export class DeviceTokenController {
   static async registerToken(req: AuthenticatedRequest, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { token, platform, appVersion, deviceInfo } = req.body;
@@ -49,9 +48,8 @@ export class DeviceTokenController {
   }
 
   static async deleteToken(req: AuthenticatedRequest, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const device = await DeviceToken.findOne({

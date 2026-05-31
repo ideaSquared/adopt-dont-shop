@@ -117,7 +117,7 @@ describe('POST /api/v1/notifications/broadcast', () => {
     expect(mockedBroadcast).not.toHaveBeenCalled();
   });
 
-  it('rejects an invalid audience with 400', async () => {
+  it('rejects an invalid audience with 422', async () => {
     const res = await request(buildApp())
       .post('/api/v1/notifications/broadcast')
       .send({
@@ -126,18 +126,19 @@ describe('POST /api/v1/notifications/broadcast', () => {
         body: 'Body',
         channels: ['in_app'],
       });
-    expect(res.status).toBe(400);
+    // ADS-784: validation errors now use the canonical 422 `details` envelope.
+    expect(res.status).toBe(422);
     expect(mockedBroadcast).not.toHaveBeenCalled();
   });
 
-  it('rejects an empty channels array with 400', async () => {
+  it('rejects an empty channels array with 422', async () => {
     const res = await request(buildApp()).post('/api/v1/notifications/broadcast').send({
       audience: 'all',
       title: 'Hi',
       body: 'Body',
       channels: [],
     });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
   });
 
   it('sends a broadcast with the validated payload', async () => {

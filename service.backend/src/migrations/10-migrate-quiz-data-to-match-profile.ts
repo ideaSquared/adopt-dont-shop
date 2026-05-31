@@ -16,7 +16,7 @@
  */
 import { type QueryInterface } from 'sequelize';
 
-import { assertDestructiveDownAcknowledged, runInTransaction } from './_helpers';
+import { assertDestructiveDownAcknowledged, columnExists, runInTransaction } from './_helpers';
 
 type QuizBlob = {
   homeType?: string;
@@ -46,6 +46,15 @@ const mapActivityToEnergy = (v: string): string[] => {
 export default {
   up: async (queryInterface: QueryInterface) => {
     const sequelize = queryInterface.sequelize;
+
+    // ADS-784: this backfill targets the legacy `user_preferences.preferences`
+    // JSONB blob. That column was removed when user_preferences became a
+    // normalised key/value table, so on a clean DB the column never exists and
+    // there is nothing to migrate. Skip rather than fail on the missing column
+    // (this migration never ran from clean — the old logger crash masked it).
+    if (!(await columnExists(queryInterface, 'user_preferences', 'preferences'))) {
+      return;
+    }
 
     await runInTransaction(queryInterface, async transaction => {
       // Find users with quiz data in their preferences blob.

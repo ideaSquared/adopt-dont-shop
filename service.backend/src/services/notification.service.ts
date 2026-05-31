@@ -12,6 +12,7 @@ import logger, { loggerHelpers } from '../utils/logger';
 import { NotFoundError } from '../middleware/error-handler';
 import { AuditLogService } from './auditLog.service';
 import { NotificationChannelService } from './notificationChannelService';
+import { getPushProvider } from './push-providers';
 import { smsService } from './sms.service';
 
 export interface NotificationSearchOptions {
@@ -838,32 +839,46 @@ export class NotificationService {
         return;
       }
 
-      // Send to each device
+      // Route through the prod-guarded push provider factory. In non-prod the
+      // console provider honestly logs; in prod the factory throws unless a
+      // real provider is configured, so we never emit a false 'Delivered'
+      // signal for a notification that was not actually dispatched.
+      // TODO: real FCM/APNS delivery is implemented by FcmPushProvider; until a
+      // provider is configured (PUSH_PROVIDER), production push is intentionally
+      // unimplemented and fails safe rather than silently dropping.
+      const provider = getPushProvider();
+
       const pushPromises = deviceTokens.map(async deviceToken => {
         try {
-          // This would integrate with FCM, APNS, or other push service
-          const payload = {
-            notification: {
-              title: notification.title,
-              body: notification.message,
-              icon: '/icon-192x192.png',
-              badge: '/badge-icon.png',
-              data: notification.data,
-            },
+          const result = await provider.send({
             token: deviceToken.device_token,
-          };
+            platform: deviceToken.platform,
+            title: notification.title,
+            body: notification.message,
+            data: notification.data,
+          });
 
-          // Mock push notification sending
-          loggerHelpers.logExternalService('Push Notification', 'Delivered', {
+          if (result.success) {
+            loggerHelpers.logExternalService('Push Notification', 'Delivered', {
+              notificationId: notification.notification_id,
+              deviceToken: deviceToken.token_id,
+              userId: notification.user_id,
+              provider: provider.getName(),
+              messageId: result.messageId,
+            });
+            // Update last used timestamp
+            deviceToken.last_used_at = new Date();
+            await deviceToken.save();
+            return;
+          }
+
+          loggerHelpers.logExternalService('Push Notification', 'Failed', {
             notificationId: notification.notification_id,
             deviceToken: deviceToken.token_id,
             userId: notification.user_id,
-            payload: payload.notification.title, // Include payload info in logs
+            provider: provider.getName(),
+            error: result.error,
           });
-
-          // Update last used timestamp
-          deviceToken.last_used_at = new Date();
-          await deviceToken.save();
         } catch (deviceError) {
           logger.error(`Failed to send push to device ${deviceToken.token_id}:`, deviceError);
 

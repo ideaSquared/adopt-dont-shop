@@ -92,6 +92,43 @@ describe('validateEnv', () => {
     });
   });
 
+  describe('optional provider / observability vars (ADS-784)', () => {
+    it('accepts valid LOG_LEVEL / SMS_PROVIDER / PUSH_PROVIDER / EMAIL_PROVIDER values', () => {
+      const env = baseProdEnv();
+      env.LOG_LEVEL = 'debug';
+      env.SMS_PROVIDER = 'twilio';
+      env.PUSH_PROVIDER = 'fcm';
+      env.EMAIL_PROVIDER = 'resend';
+      env.METRICS_AUTH_TOKEN = 'tok';
+      env.SENTRY_DSN = 'https://abc@sentry.io/1';
+      env.ANON_SWIPE_LIMIT = '7';
+      const result = validateEnv(env);
+      expect(result.errors).toEqual([]);
+      expect(result.ok).toBe(true);
+    });
+
+    it('rejects an invalid LOG_LEVEL', () => {
+      const env = baseProdEnv();
+      env.LOG_LEVEL = 'loud';
+      const result = validateEnv(env);
+      expect(result.ok).toBe(false);
+    });
+
+    it('rejects an unknown SMS_PROVIDER', () => {
+      const env = baseProdEnv();
+      env.SMS_PROVIDER = 'nexmo';
+      const result = validateEnv(env);
+      expect(result.ok).toBe(false);
+    });
+
+    it('rejects a non-numeric ANON_SWIPE_LIMIT', () => {
+      const env = baseProdEnv();
+      env.ANON_SWIPE_LIMIT = 'lots';
+      const result = validateEnv(env);
+      expectError(result, 'ANON_SWIPE_LIMIT must be a number');
+    });
+  });
+
   describe('database name selection (ADS-409)', () => {
     it('requires DEV_DB_NAME in development', () => {
       const env = baseProdEnv();

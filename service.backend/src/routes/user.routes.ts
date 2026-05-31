@@ -1,7 +1,9 @@
 import { Router } from 'express';
+import { UpdateProfileRequestSchema } from '@adopt-dont-shop/lib.validation';
 import UserController, { userValidation } from '../controllers/user.controller';
 import { authenticateToken } from '../middleware/auth';
 import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
+import { validateBody } from '../middleware/zod-validate';
 import { requirePermission, requirePermissionOrOwnership } from '../middleware/rbac';
 import {
   accountDeletionLimiter,
@@ -256,7 +258,10 @@ router.get('/profile', fieldMask('users', { audit: true }), UserController.getCu
 router.put(
   '/profile',
   fieldWriteGuard('users', { audit: true }),
-  userValidation.updateProfile,
+  // ADS-784: canonical camelCase schema — the FE (lib.auth) sends camelCase, so
+  // the old snake_case express-validator chain never matched and its caps were
+  // dead. validateBody also gives us the consistent 422 `details` envelope.
+  validateBody(UpdateProfileRequestSchema),
   UserController.updateUser
 );
 
@@ -1115,7 +1120,8 @@ router.put(
   '/:userId',
   requirePermissionOrOwnership(PERMISSIONS.USER_UPDATE, 'userId'),
   fieldWriteGuard('users', { audit: true, resourceIdParam: 'userId' }),
-  userValidation.updateProfile,
+  // ADS-784: canonical camelCase schema (see PUT /profile above).
+  validateBody(UpdateProfileRequestSchema),
   UserController.updateUser
 );
 

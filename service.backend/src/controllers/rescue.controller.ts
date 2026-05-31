@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { validationResult } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../constants/pagination';
 import { RescueService, BulkRescueAction } from '../services/rescue.service';
 import { InvitationService } from '../services/invitation.service';
@@ -18,13 +18,8 @@ export class RescueController {
    * Search rescues with filters and pagination
    */
   searchRescues = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const {
@@ -37,9 +32,13 @@ export class RescueController {
       sortOrder = 'DESC',
     } = req.query;
 
+    // ADS-784: NaN-safe coercion. The route validates page/limit upstream, but
+    // a non-numeric value would otherwise yield NaN here; fall back to defaults.
+    const parsedPage = parseInt(page as string, 10);
+    const parsedLimit = parseInt(limit as string, 10);
     const options = {
-      page: parseInt(page as string),
-      limit: Math.min(parseInt(limit as string), MAX_PAGE_SIZE),
+      page: Number.isNaN(parsedPage) ? 1 : parsedPage,
+      limit: Math.min(Number.isNaN(parsedLimit) ? DEFAULT_PAGE_SIZE : parsedLimit, MAX_PAGE_SIZE),
       search: search as string,
       status: status as 'pending' | 'verified' | 'suspended' | 'inactive' | 'rejected',
       location: location as string,
@@ -60,13 +59,8 @@ export class RescueController {
    * Get rescue by ID
    */
   getRescueById = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -114,13 +108,8 @@ export class RescueController {
    * Create new rescue organization
    */
   createRescue = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const rescueData = {
@@ -159,13 +148,8 @@ export class RescueController {
    * Update rescue information
    */
   updateRescue = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -188,13 +172,8 @@ export class RescueController {
    * Verify rescue organization (admin only)
    */
   verifyRescue = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -213,13 +192,8 @@ export class RescueController {
    * Reject a rescue organization
    */
   rejectRescue = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -238,13 +212,8 @@ export class RescueController {
    * Get rescue staff with pagination
    */
   getRescueStaff = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -276,13 +245,8 @@ export class RescueController {
    * Add staff member to rescue
    */
   addStaffMember = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -306,13 +270,8 @@ export class RescueController {
    * Remove staff member from rescue
    */
   removeStaffMember = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId, userId } = req.params;
@@ -339,13 +298,8 @@ export class RescueController {
    * Update staff member in rescue
    */
   updateStaffMember = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId, userId } = req.params;
@@ -379,13 +333,8 @@ export class RescueController {
    * Get rescue pets with pagination
    */
   getRescuePets = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -418,13 +367,8 @@ export class RescueController {
    * Get rescue analytics and statistics
    */
   getRescueAnalytics = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -450,13 +394,8 @@ export class RescueController {
    * Delete rescue (soft delete, admin only)
    */
   deleteRescue = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -474,13 +413,8 @@ export class RescueController {
    * Invite a new staff member to join the rescue
    */
   inviteStaffMember = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -496,13 +430,8 @@ export class RescueController {
    * Get pending invitations for a rescue
    */
   getPendingInvitations = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -516,13 +445,8 @@ export class RescueController {
    * Cancel a pending invitation
    */
   cancelInvitation = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId, invitationId } = req.params;
@@ -537,13 +461,8 @@ export class RescueController {
    * Update adoption policies for a rescue
    */
   updateAdoptionPolicies = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -567,13 +486,8 @@ export class RescueController {
    * Get adoption policies for a rescue
    */
   getAdoptionPolicies = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -590,13 +504,8 @@ export class RescueController {
    * Send email to rescue organization
    */
   sendEmail = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueId } = req.params;
@@ -671,13 +580,8 @@ export class RescueController {
   };
 
   bulkUpdateRescues = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { rescueIds, action, reason } = req.body as {

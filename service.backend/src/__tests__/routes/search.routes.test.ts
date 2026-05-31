@@ -78,12 +78,12 @@ describe('Search routes', () => {
   });
 
   describe('GET /api/v1/search/messages', () => {
-    it('returns 400 when q query parameter is missing', async () => {
-      // Controller hand-rolls validation and returns 400 directly, so the
-      // ADS-455/469 422-for-schema convention (which targets the Zod /
-      // express-validator middleware paths) doesn't apply here.
+    it('returns 422 when q query parameter is missing', async () => {
+      // ADS-784: the route now uses validateQuery(MessageSearchQuerySchema), so
+      // a missing `q` is a clean 422 (canonical `details` envelope) rather than
+      // a controller hand-rolled 400.
       const res = await request(app).get('/api/v1/search/messages');
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
       expect(mockSearchMessages).not.toHaveBeenCalled();
     });
 

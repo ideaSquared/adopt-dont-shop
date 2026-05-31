@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { validationResult } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import RefreshToken from '../models/RefreshToken';
 import SecurityService from '../services/security.service';
 import { AuthenticatedRequest } from '../types/auth';
@@ -18,9 +18,8 @@ export class SessionController {
   }
 
   static async revokeSession(req: AuthenticatedRequest, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const row = await RefreshToken.findByPk(req.params.sessionId);
