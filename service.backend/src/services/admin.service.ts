@@ -14,7 +14,7 @@ import { logger, loggerHelpers } from '../utils/logger';
 import { escapeLikePattern } from '../utils/escape-like';
 import { safeCsvCell } from '../utils/safe-csv-cell';
 import { AuditLogService } from './auditLog.service';
-import { disconnectAllSockets } from '../socket/socket-registry';
+import { invalidateUserTokens } from '../lib/invalidate-user-tokens';
 
 export type ExportType = 'users' | 'rescues' | 'pets' | 'applications' | 'audit_logs';
 export type ExportFormat = 'json' | 'jsonl' | 'csv';
@@ -299,9 +299,13 @@ class AdminService {
       await user.save();
 
       // ADS-597: tear down any live Socket.IO connections so a
-      // suspended user can't continue receiving events. The HTTP path
-      // is already blocked by authenticateRequest's status check.
-      disconnectAllSockets(userId);
+      // suspended user can't continue receiving events. Pair the socket
+      // disconnect with full token invalidation — without it the JWT
+      // stays valid until natural expiry (the per-request status check
+      // is served from the auth cache and lags behind). invalidateUserTokens
+      // sets tokens_invalid_before, revokes refresh tokens, busts the
+      // auth cache, and disconnects sockets in one call.
+      await invalidateUserTokens(userId);
 
       await AuditLogService.log({
         action: 'SUSPEND',
@@ -395,6 +399,13 @@ class AdminService {
       if (!user) {
         throw new NotFoundError('User not found');
       }
+
+      // Kill sessions BEFORE the destroy so the paranoid-scoped UPDATE
+      // inside invalidateUserTokens actually reaches the row (a
+      // soft-deleted user would otherwise slip past the default
+      // deleted_at IS NULL filter and the JWT would stay valid until
+      // natural expiry).
+      await invalidateUserTokens(userId);
 
       await user.destroy();
 

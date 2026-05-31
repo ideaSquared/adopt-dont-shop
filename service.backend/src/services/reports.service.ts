@@ -325,6 +325,22 @@ export const ReportsService = {
     });
   },
 
+  async getSchedule(scheduleId: string): Promise<ScheduledReport> {
+    const schedule = await ScheduledReport.findByPk(scheduleId);
+    if (!schedule) {
+      throw new NotFoundError('Schedule not found');
+    }
+    return schedule;
+  },
+
+  async getShare(shareId: string): Promise<ReportShare> {
+    const share = await ReportShare.findByPk(shareId);
+    if (!share) {
+      throw new NotFoundError('Share not found');
+    }
+    return share;
+  },
+
   async deleteSchedule(scheduleId: string): Promise<ScheduledReport> {
     const schedule = await ScheduledReport.findByPk(scheduleId);
     if (!schedule) {

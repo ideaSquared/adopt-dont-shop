@@ -232,6 +232,55 @@ describe('AdminService', () => {
     });
   });
 
+  describe('Session invalidation on user state changes', () => {
+    // ADS C4-pass4: suspending or deleting a user must invalidate their
+    // JWTs by bumping tokens_invalid_before — without it the user keeps
+    // accessing the API for the full JWT TTL even though the per-request
+    // status check would (eventually) catch a SUSPENDED user.
+    it('suspendUser bumps tokens_invalid_before so existing JWTs are rejected', async () => {
+      const before = new Date('2026-01-01T00:00:00Z');
+      const user = await User.create({
+        userId: 'user-suspend',
+        firstName: 'To',
+        lastName: 'Suspend',
+        email: 'tosuspend@example.com',
+        password: 'hashedPassword123!',
+        status: UserStatus.ACTIVE,
+        userType: UserType.ADOPTER,
+        emailVerified: true,
+        tokensInvalidBefore: before,
+      });
+
+      await AdminService.suspendUser(user.userId, 'admin-1', 'spam');
+
+      const reloaded = await User.findByPk(user.userId);
+      expect(reloaded?.status).toBe(UserStatus.SUSPENDED);
+      expect(reloaded?.tokensInvalidBefore?.getTime()).toBeGreaterThan(before.getTime());
+    });
+
+    it('deleteUser bumps tokens_invalid_before so a deleted user cannot keep using their JWT', async () => {
+      const before = new Date('2026-01-01T00:00:00Z');
+      const user = await User.create({
+        userId: 'user-delete',
+        firstName: 'To',
+        lastName: 'Delete',
+        email: 'todelete@example.com',
+        password: 'hashedPassword123!',
+        status: UserStatus.ACTIVE,
+        userType: UserType.ADOPTER,
+        emailVerified: true,
+        tokensInvalidBefore: before,
+      });
+
+      await AdminService.deleteUser(user.userId, 'admin-1', 'gdpr');
+
+      // paranoid soft-delete keeps the row, so we can still read it back
+      // with paranoid:false. tokens_invalid_before must have been bumped.
+      const reloaded = await User.findByPk(user.userId, { paranoid: false });
+      expect(reloaded?.tokensInvalidBefore?.getTime()).toBeGreaterThan(before.getTime());
+    });
+  });
+
   describe('Error Handling', () => {
     it('should handle errors in getUsers gracefully', async () => {
       await expect(AdminService.getUsers({ page: -1, limit: 0 })).resolves.toBeDefined();
