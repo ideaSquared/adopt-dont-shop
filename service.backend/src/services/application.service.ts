@@ -1565,6 +1565,21 @@ export class ApplicationService {
       logger.info('Application withdrawn', { applicationId, userId });
 
       await application.reload();
+
+      // Mirror the broadcast pattern in updateApplicationStatus: the rescue
+      // dashboard needs to know the application moved to WITHDRAWN so staff
+      // don't keep reviewing it, and the adopter's own connected sessions
+      // need the state change to flow to other tabs / devices.
+      emitToUser(application.userId, 'application_status_changed', {
+        applicationId,
+        status: application.status,
+        stage: application.stage,
+        updatedAt: application.updatedAt,
+      });
+      emitToRescue(application.rescueId, 'application_updated', {
+        applicationId,
+      });
+
       return {
         ...(application.toJSON() as ApplicationData),
         answers: await loadAnswersJson(applicationId),
