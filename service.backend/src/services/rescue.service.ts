@@ -1432,6 +1432,13 @@ export class RescueService {
 
       await transaction.commit();
 
+      // ADS-253 mirror: bust the auth cache so requireRescueTenant /
+      // permission checks on the removed user's next request re-read the
+      // (now soft-deleted) StaffMember row instead of serving the stale
+      // verified-staff entry. Without this, a removed user keeps their
+      // rescue access for the full cache TTL.
+      invalidateAuthCache(userId);
+
       logger.info(`Soft deleted staff member ${userId} from rescue ${rescueId}`);
       return { success: true, message: 'Staff member removed successfully' };
     } catch (error) {

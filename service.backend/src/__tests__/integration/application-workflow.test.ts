@@ -88,6 +88,17 @@ describe('Application Submission Workflow Integration Tests', () => {
       status: 'verified',
     } as never);
 
+    // Default: the rescue-staff fixture is verified staff at the rescue
+    // that owns the test applications. The createMockApplication factory
+    // defaults rescueId to 'rescue-123' (see bottom of file), so we mock
+    // staff to the same id. Specific tests override this for wrong-rescue
+    // / no-membership scenarios.
+    MockedStaffMember.findOne = vi.fn().mockResolvedValue({
+      userId: rescueStaffId,
+      rescueId: 'rescue-123',
+      isVerified: true,
+    } as never);
+
     // Setup default timeline mocks
     MockedApplicationTimelineService.createEvent = vi.fn().mockResolvedValue(undefined as never);
 
@@ -768,7 +779,12 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: 'contacted',
         };
 
-        await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
+        await ApplicationService.updateReference(
+          applicationId,
+          referenceUpdate,
+          rescueStaffId,
+          UserType.RESCUE_STAFF
+        );
 
         expect(refRow.update).toHaveBeenCalledWith(
           expect.objectContaining({ status: 'contacted' })
@@ -789,7 +805,12 @@ describe('Application Submission Workflow Integration Tests', () => {
           notes: 'Confirmed excellent pet owner',
         };
 
-        await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
+        await ApplicationService.updateReference(
+          applicationId,
+          referenceUpdate,
+          rescueStaffId,
+          UserType.RESCUE_STAFF
+        );
 
         expect(refRow.update).toHaveBeenCalledWith(
           expect.objectContaining({ status: 'verified', notes: 'Confirmed excellent pet owner' })
@@ -810,7 +831,12 @@ describe('Application Submission Workflow Integration Tests', () => {
           notes: 'Phone number disconnected',
         };
 
-        await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
+        await ApplicationService.updateReference(
+          applicationId,
+          referenceUpdate,
+          rescueStaffId,
+          UserType.RESCUE_STAFF
+        );
 
         expect(refRow.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
       });
@@ -830,7 +856,12 @@ describe('Application Submission Workflow Integration Tests', () => {
           contactedAt,
         };
 
-        await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
+        await ApplicationService.updateReference(
+          applicationId,
+          referenceUpdate,
+          rescueStaffId,
+          UserType.RESCUE_STAFF
+        );
 
         expect(refRow.update).toHaveBeenCalledWith(
           expect.objectContaining({ status: 'contacted', contacted_at: contactedAt })
@@ -851,11 +882,43 @@ describe('Application Submission Workflow Integration Tests', () => {
           notes: 'Very positive reference - highly recommended',
         };
 
-        await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
+        await ApplicationService.updateReference(
+          applicationId,
+          referenceUpdate,
+          rescueStaffId,
+          UserType.RESCUE_STAFF
+        );
 
         expect(refRow.update).toHaveBeenCalledWith(
           expect.objectContaining({ notes: 'Very positive reference - highly recommended' })
         );
+      });
+
+      it('rejects reference update when staff is from a different rescue', async () => {
+        // The application belongs to rescue-123 (factory default); the caller
+        // is staff at a different rescue. Even though they have the
+        // RESCUE_STAFF role, they must not be able to touch this application.
+        const mockApplication = createMockApplication({ applicationId: applicationId });
+        MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication as never);
+        MockedStaffMember.findOne = vi.fn().mockResolvedValue({
+          userId: rescueStaffId,
+          rescueId: 'other-rescue',
+          isVerified: true,
+        } as never);
+
+        const referenceUpdate: ReferenceUpdateRequest = {
+          referenceId: 'ref-0',
+          status: 'verified',
+        };
+
+        await expect(
+          ApplicationService.updateReference(
+            applicationId,
+            referenceUpdate,
+            rescueStaffId,
+            UserType.RESCUE_STAFF
+          )
+        ).rejects.toThrow(/Access denied/);
       });
     });
   });
@@ -1486,7 +1549,12 @@ describe('Application Submission Workflow Integration Tests', () => {
           status: 'verified',
         };
 
-        await ApplicationService.updateReference(applicationId, referenceUpdate, rescueStaffId);
+        await ApplicationService.updateReference(
+          applicationId,
+          referenceUpdate,
+          rescueStaffId,
+          UserType.RESCUE_STAFF
+        );
 
         // Step 3: Home visit
         await ApplicationService.updateApplication(
