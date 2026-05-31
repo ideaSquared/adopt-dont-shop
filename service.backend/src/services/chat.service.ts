@@ -936,6 +936,10 @@ export class ChatService {
                 chatId: data.chatId,
                 messageId: messageWithSender.message_id,
                 senderId: data.senderId,
+                // Deep-link for NotificationCenter / NotificationBell click
+                // handlers (currently surfaced in app.client). Other apps
+                // ignore action_url if their notification UI doesn't read it.
+                action_url: `/chat/${data.chatId}`,
               },
               priority: NotificationPriority.NORMAL,
             }))

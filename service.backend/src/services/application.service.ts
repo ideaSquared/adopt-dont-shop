@@ -1323,6 +1323,8 @@ export class ApplicationService {
       // change, but it must be logged so a human can chase it up.
       if (statusUpdate.status === ApplicationStatus.REJECTED) {
         await ApplicationService.notifyApplicantOfRejection(application, statusUpdate);
+      } else if (statusUpdate.status === ApplicationStatus.APPROVED) {
+        await ApplicationService.notifyApplicantOfApproval(application);
       }
 
       await application.reload();
@@ -1395,6 +1397,7 @@ export class ApplicationService {
           applicationId: application.applicationId,
           petId: application.petId,
           rejectionReason,
+          action_url: `/applications/${application.applicationId}`,
         },
       });
 
@@ -1425,6 +1428,71 @@ export class ApplicationService {
       }
     } catch (error) {
       logger.error('Rejection notification failed (non-fatal):', {
+        applicationId: application.applicationId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Notify an applicant their adoption application was approved.
+   * Mirrors notifyApplicantOfRejection — best-effort, never throws,
+   * so a transient notification failure can't roll back the approval.
+   */
+  private static async notifyApplicantOfApproval(application: Application): Promise<void> {
+    try {
+      const [applicant, pet] = await Promise.all([
+        User.findByPk(application.userId),
+        Pet.findByPk(application.petId),
+      ]);
+
+      if (!applicant) {
+        logger.warn('Approval notification skipped: applicant not found', {
+          applicationId: application.applicationId,
+          userId: application.userId,
+        });
+        return;
+      }
+
+      const applicantName = [applicant.firstName, applicant.lastName].filter(Boolean).join(' ');
+      const petName = pet?.name ?? 'the pet';
+
+      await NotificationService.createNotification({
+        userId: application.userId,
+        type: NotificationType.ADOPTION_APPROVED,
+        title: `Your application for ${petName} was approved!`,
+        message: `Great news — your application to adopt ${petName} has been approved. Log in to see next steps.`,
+        data: {
+          applicationId: application.applicationId,
+          petId: application.petId,
+          action_url: `/applications/${application.applicationId}`,
+        },
+      });
+
+      if (applicant.email) {
+        const template = await emailService.getTemplateByName('Application Approved');
+        if (template) {
+          await emailService.sendEmail({
+            toEmail: applicant.email,
+            toName: applicantName || undefined,
+            templateId: template.templateId,
+            templateData: {
+              applicantName: applicantName || 'there',
+              petName,
+              applicationId: application.applicationId,
+            },
+            userId: application.userId,
+            type: 'transactional',
+            priority: 'normal',
+          });
+        } else {
+          logger.warn("Approval email template 'Application Approved' not found; skipping email", {
+            applicationId: application.applicationId,
+          });
+        }
+      }
+    } catch (error) {
+      logger.error('Approval notification failed (non-fatal):', {
         applicationId: application.applicationId,
         error: error instanceof Error ? error.message : String(error),
       });

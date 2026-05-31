@@ -70,7 +70,14 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
       : `${totalEvents} events • Last: ${lastActivityText}`;
   };
 
-  const statusKey = application.status.toLowerCase() as
+  // The badge variants in ApplicationCard.css.ts are a mix of stage names
+  // (pending/reviewing/visiting/deciding) and terminal status names
+  // (approved/rejected). The backend `status` field is one of
+  // submitted/approved/rejected/withdrawn, while `stage` carries the
+  // finer-grained workflow position. Pick the variant accordingly so
+  // in-progress applications get a meaningful colour instead of falling
+  // through to the neutral default.
+  type BadgeVariant =
     | 'pending'
     | 'reviewing'
     | 'visiting'
@@ -78,8 +85,21 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
     | 'approved'
     | 'rejected'
     | 'default';
-  const validStatuses = ['pending', 'reviewing', 'visiting', 'deciding', 'approved', 'rejected'];
-  const statusVariant = validStatuses.includes(statusKey) ? statusKey : 'default';
+  const validVariants: readonly BadgeVariant[] = [
+    'pending',
+    'reviewing',
+    'visiting',
+    'deciding',
+    'approved',
+    'rejected',
+  ];
+  const statusLower = application.status.toLowerCase();
+  const stageLower = (application.stage ?? '').toLowerCase();
+  const candidate =
+    statusLower === 'approved' || statusLower === 'rejected' ? statusLower : stageLower;
+  const statusVariant: BadgeVariant = (validVariants as readonly string[]).includes(candidate)
+    ? (candidate as BadgeVariant)
+    : 'default';
 
   const priorityKey = application.priority as 'high' | 'medium' | 'low';
 
