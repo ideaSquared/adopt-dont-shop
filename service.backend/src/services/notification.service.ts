@@ -781,16 +781,34 @@ export class NotificationService {
     const startTime = Date.now();
 
     try {
+      // Resolve user_id -> email. Without this the EmailService gets a UUID
+      // as the toEmail and silently fails delivery while the notification row
+      // is marked as created.
+      const user = await User.findByPk(notification.user_id, {
+        attributes: ['email'],
+      });
+      if (!user?.email) {
+        logger.warn('Email notification skipped: user has no email', {
+          notificationId: notification.notification_id,
+          userId: notification.user_id,
+        });
+        return;
+      }
+
       const EmailService = (await import('./email.service')).default;
 
+      const actionUrl =
+        (notification.data?.action_url as string | undefined) ??
+        (notification.data?.actionUrl as string | undefined);
+
       await EmailService.sendEmail({
-        toEmail: notification.user_id, // This would need to be resolved to email
+        toEmail: user.email,
         subject: notification.title,
         htmlContent: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>${notification.title}</h2>
             <p>${notification.message}</p>
-            ${notification.data?.actionUrl ? `<a href="${notification.data.actionUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Details</a>` : ''}
+            ${actionUrl ? `<a href="${actionUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Details</a>` : ''}
           </div>
         `,
         type: 'notification',
@@ -805,7 +823,6 @@ export class NotificationService {
       loggerHelpers.logExternalService('Email Notification', 'Delivered', {
         notificationId: notification.notification_id,
         userId: notification.user_id,
-        email: notification.user_id,
         duration: Date.now() - startTime,
       });
     } catch (error) {
