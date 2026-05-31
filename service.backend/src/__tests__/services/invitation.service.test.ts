@@ -14,6 +14,10 @@ vi.mock('../../services/email-template.service', () => ({
   },
 }));
 
+vi.mock('../../services/auditLog.service', () => ({
+  AuditLogService: { log: vi.fn().mockResolvedValue(undefined) },
+}));
+
 vi.mock('../../utils/logger', () => ({
   logger: {
     info: vi.fn(),

@@ -3,7 +3,7 @@ import FieldPermission, {
   FieldAccessLevel,
   FieldPermissionResource,
 } from '../models/FieldPermission';
-import AuditLog from '../models/AuditLog';
+import { AuditLogService } from './auditLog.service';
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
 import { clearFieldPermissionCache } from '../middleware/field-permissions';
@@ -51,7 +51,10 @@ export class FieldPermissionService {
     updatedBy: string,
     transaction?: Transaction
   ): Promise<FieldPermission> {
-    const record = await FieldPermissionService.findOrCreateAndUpdate(
+    // findOrCreateAndUpdate returns both the new/updated record AND the
+    // previous access_level it observed before mutating, so the audit row
+    // can express the change as a before/after diff without re-querying.
+    const { record, previousAccessLevel } = await FieldPermissionService.findOrCreateAndUpdate(
       resource,
       field_name,
       role,
@@ -61,23 +64,22 @@ export class FieldPermissionService {
 
     clearFieldPermissionCache(resource, role);
 
-    await AuditLog.create(
-      {
-        service: 'field-permissions',
-        user: updatedBy,
-        action: `field_permission_upsert`,
-        level: 'INFO',
-        status: 'success',
-        category: 'FIELD_PERMISSION_CHANGE',
-        metadata: {
-          resource,
-          field_name,
-          role,
-          access_level,
+    await AuditLogService.log({
+      userId: updatedBy,
+      action: 'FIELD_PERMISSION_UPSERTED',
+      entity: 'FieldPermission',
+      entityId: `${resource}:${role}:${field_name}`,
+      details: {
+        resource,
+        field_name,
+        role,
+        diff: {
+          access_level: { before: previousAccessLevel, after: access_level },
         },
       },
-      { transaction }
-    );
+      service: 'field-permissions',
+      transaction,
+    });
 
     logger.info('Field permission upserted', {
       resource,
@@ -94,6 +96,10 @@ export class FieldPermissionService {
    * Find-or-create a FieldPermission row, then update its access_level.
    * Retries once on unique-constraint violation to handle the race where
    * two concurrent callers both observe "not found" and both try to insert.
+   *
+   * Returns the final record plus the previous access_level (null on
+   * insert) so the caller can emit a before/after audit diff without a
+   * second SELECT round-trip.
    */
   private static async findOrCreateAndUpdate(
     resource: FieldPermissionResource,
@@ -101,21 +107,24 @@ export class FieldPermissionService {
     role: string,
     access_level: FieldAccessLevel,
     transaction?: Transaction
-  ): Promise<FieldPermission> {
+  ): Promise<{ record: FieldPermission; previousAccessLevel: FieldAccessLevel | null }> {
     const existing = await FieldPermission.findOne({
       where: { resource, field_name, role },
       transaction,
     });
 
     if (existing) {
-      return existing.update({ access_level }, { transaction });
+      const previousAccessLevel = existing.access_level;
+      const record = await existing.update({ access_level }, { transaction });
+      return { record, previousAccessLevel };
     }
 
     try {
-      return await FieldPermission.create(
+      const record = await FieldPermission.create(
         { resource, field_name, role, access_level },
         { transaction }
       );
+      return { record, previousAccessLevel: null };
     } catch (error) {
       if (!(error instanceof UniqueConstraintError)) {
         throw error;
@@ -130,7 +139,9 @@ export class FieldPermissionService {
         throw error;
       }
 
-      return conflict.update({ access_level }, { transaction });
+      const previousAccessLevel = conflict.access_level;
+      const record = await conflict.update({ access_level }, { transaction });
+      return { record, previousAccessLevel };
     }
   }
 
@@ -182,18 +193,13 @@ export class FieldPermissionService {
     if (deleted > 0) {
       clearFieldPermissionCache(resource, role);
 
-      await AuditLog.create({
+      await AuditLogService.log({
+        userId: deletedBy,
+        action: 'FIELD_PERMISSION_DELETED',
+        entity: 'FieldPermission',
+        entityId: `${resource}:${role}:${field_name}`,
+        details: { resource, field_name, role },
         service: 'field-permissions',
-        user: deletedBy,
-        action: 'field_permission_delete',
-        level: 'INFO',
-        status: 'success',
-        category: 'FIELD_PERMISSION_CHANGE',
-        metadata: {
-          resource,
-          field_name,
-          role,
-        },
       });
 
       logger.info('Field permission override deleted', { resource, field_name, role, deletedBy });
@@ -217,18 +223,14 @@ export class FieldPermissionService {
     if (deleted > 0) {
       clearFieldPermissionCache(resource, role);
 
-      await AuditLog.create({
+      await AuditLogService.log({
+        userId: deletedBy,
+        action: 'FIELD_PERMISSION_BULK_DELETED',
+        entity: 'FieldPermission',
+        entityId: `${resource}:${role}:*`,
+        details: { resource, role, deletedCount: deleted },
         service: 'field-permissions',
-        user: deletedBy,
-        action: 'field_permission_bulk_delete',
         level: 'WARNING',
-        status: 'success',
-        category: 'FIELD_PERMISSION_CHANGE',
-        metadata: {
-          resource,
-          role,
-          deletedCount: deleted,
-        },
       });
 
       logger.info('Field permission overrides bulk deleted', {

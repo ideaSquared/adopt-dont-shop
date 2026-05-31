@@ -7,6 +7,7 @@ import StaffMember from '../models/StaffMember';
 import Role from '../models/Role';
 import UserRole from '../models/UserRole';
 import EmailTemplateService from './email-template.service';
+import { AuditLogService } from './auditLog.service';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { logger } from '../utils/logger';
 import { NotFoundError, ConflictError, BadRequestError } from '../middleware/error-handler';
@@ -110,6 +111,15 @@ export class InvitationService {
         },
         { transaction }
       );
+
+      await AuditLogService.log({
+        userId: invitedBy,
+        action: 'STAFF_INVITED',
+        entity: 'Invitation',
+        entityId: invitation.invitation_id,
+        details: { rescueId, email, title },
+        transaction,
+      });
 
       // Send invitation email
       try {
@@ -268,6 +278,19 @@ export class InvitationService {
         { transaction }
       );
 
+      await AuditLogService.log({
+        userId: user.userId,
+        action: 'INVITATION_ACCEPTED',
+        entity: 'Invitation',
+        entityId: invitation.invitation_id,
+        details: {
+          rescueId: invitation.rescue_id,
+          email: invitation.email,
+          newUserId: user.userId,
+        },
+        transaction,
+      });
+
       await transaction.commit();
 
       logger.info(
@@ -365,6 +388,15 @@ export class InvitationService {
         },
         { transaction }
       );
+
+      await AuditLogService.log({
+        userId: cancelledBy,
+        action: 'INVITATION_CANCELLED',
+        entity: 'Invitation',
+        entityId: invitation.invitation_id,
+        details: { rescueId: invitation.rescue_id, email: invitation.email },
+        transaction,
+      });
 
       await transaction.commit();
 

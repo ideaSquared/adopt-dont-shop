@@ -8,7 +8,7 @@
  *   - deleteOverride removes rows and clears the cache
  *   - deleteAllForRole removes all rows for a role/resource pair
  *
- * All DB calls are stubbed. AuditLog.create is mocked to prevent writes.
+ * All DB calls are stubbed. AuditLogService.log is mocked to prevent writes.
  * clearFieldPermissionCache is verified via spy.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -37,8 +37,8 @@ vi.mock('../../models/FieldPermission', () => {
   };
 });
 
-vi.mock('../../models/AuditLog', () => ({
-  default: { create: vi.fn().mockResolvedValue({}) },
+vi.mock('../../services/auditLog.service', () => ({
+  AuditLogService: { log: vi.fn().mockResolvedValue({}) },
 }));
 
 // sequelize.transaction wraps a callback — stub it to call through immediately.

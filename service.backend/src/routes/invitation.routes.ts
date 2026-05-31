@@ -1,22 +1,20 @@
 import { Router, Request, Response } from 'express';
 import { body, param } from 'express-validator';
 import { sensitiveWriteLimiter } from '../middleware/rate-limiter';
-import { auditRoute } from '../middleware/audit-route';
 import { InvitationController } from '../controllers/invitation.controller';
+
+// NOTE: audit is intentionally NOT applied at the route layer here.
+// invitation.service runs each mutation inside a Sequelize transaction and
+// audit is paired with the business write transactionally — see the
+// AuditLogService.log({..., transaction}) calls in invitation.service.ts.
+// Adding auditRoute() here would double-write and break the atomicity
+// guarantee (route-level audit fires after res.finish, outside the tx).
 
 const router = Router();
 
 router.post(
   '/accept',
   sensitiveWriteLimiter,
-  auditRoute({
-    action: 'INVITATION_ACCEPTED',
-    entity: 'Invitation',
-    // Token is the invitation handle; controller doesn't echo it back, so
-    // resolve it from the request body. Email is captured for forensics.
-    entityIdFrom: 'body.token',
-    metadataFrom: ['body.firstName', 'body.lastName'],
-  }),
   [
     body('token').notEmpty().withMessage('Invitation token is required'),
     body('firstName')
