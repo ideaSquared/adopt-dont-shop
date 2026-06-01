@@ -772,6 +772,15 @@ class EmailService {
     this.isProcessing = true;
 
     try {
+      // Reclaim stuck SENDING rows before pulling the next batch. If a
+      // worker / container crashed mid-send after `markAsSending` but
+      // before `markAsSent` or `markAsFailed`, the row would otherwise
+      // sit pinned in SENDING forever — nothing else queries that
+      // state, so the email is silently lost. A 5-minute floor on
+      // lastAttemptAt is well beyond any legitimate provider call so
+      // it won't race a real in-flight send.
+      await this.reclaimStuckSendingRows();
+
       const concurrency = this.getQueueConcurrency();
       // Pull a batch sized to the concurrency window so we don't
       // hold rows in QUEUED state any longer than necessary.
@@ -816,6 +825,36 @@ class EmailService {
       logger.error('Error processing email queue:', error);
     } finally {
       this.isProcessing = false;
+    }
+  }
+
+  // Rows stuck in SENDING for this long are assumed to be from a
+  // crashed worker. 5 minutes is well beyond any legitimate provider
+  // send call (Resend / SES finish in under a second under normal
+  // conditions) so a real in-flight row won't be reclaimed mid-send.
+  private static readonly STUCK_SENDING_THRESHOLD_MS = 5 * 60 * 1000;
+
+  private async reclaimStuckSendingRows(): Promise<void> {
+    try {
+      const cutoff = new Date(Date.now() - EmailService.STUCK_SENDING_THRESHOLD_MS);
+      const [reclaimed] = await EmailQueue.update(
+        { status: EmailStatus.QUEUED },
+        {
+          where: {
+            status: EmailStatus.SENDING,
+            lastAttemptAt: { [Op.lt]: cutoff },
+          } as WhereOptions,
+        }
+      );
+      if (reclaimed > 0) {
+        logger.warn(
+          `Reclaimed ${reclaimed} stuck SENDING email row(s) older than ${EmailService.STUCK_SENDING_THRESHOLD_MS}ms`
+        );
+      }
+    } catch (error) {
+      // Reclaim failure must not block the main processor loop — the
+      // worst case is the stuck rows wait another cycle.
+      logger.error('Failed to reclaim stuck SENDING email rows', { error });
     }
   }
 
