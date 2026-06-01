@@ -40,10 +40,11 @@ npm install
 # Run pending migrations (umzug runner — no sequelize-cli)
 npm run migrate
 
-# Seed initial data — pick the right safety profile (no "do everything" alias)
+# Seed initial data — pick the right safety profile
 npm run db:seed:reference   # idempotent reference data (RBAC, breeds, templates)
 npm run db:seed:demo        # Faker-generated demo data (dev/staging; ALLOW_DEMO_SEED=true)
 npm run db:seed:fixtures    # deterministic e2e fixtures
+npm run seed                # reference + demo in one go (ALLOW_DEMO_SEED forced on; dev only)
 ```
 
 ### 4. Development Server
@@ -113,7 +114,7 @@ User listing is admin-only and lives at `GET /api/v1/admin/users`. The `/api/v1/
 - GET `/api/v1/users/profile` - Get own profile
 - PUT `/api/v1/users/profile` - Update own profile
 - GET `/api/v1/users/preferences` - Get own preferences
-- GET `/api/v1/users/:userId` - Get another user's public profile
+- GET `/api/v1/users/:userId` - Get a user profile by ID. Gated by `requirePermissionOrOwnership(USER_READ, 'userId')` — accessible to the user themselves or to roles that hold the `USER_READ` permission (typically admin/support).
 
 ### Pets
 
@@ -222,30 +223,49 @@ npm run test:coverage  # Vitest with coverage
 
 ### Environment Variables
 
-**REQUIRED for production:**
+**REQUIRED for production** (enforced by `docker-compose.yml` `:?Error: ... required` guards — Compose refuses to start without them):
 
 ```bash
 # Application
 NODE_ENV=production
 PORT=5000
 
-# Database (REQUIRED)
+# Database — the backend selects ONE of DEV_DB_NAME / TEST_DB_NAME / PROD_DB_NAME
+# based on NODE_ENV. There is no generic DB_NAME variable (ADS-409/452/465).
 DB_HOST=your-db-host
 DB_PORT=5432
 DB_USERNAME=your-db-user
 DB_PASSWORD=your-secure-db-password
-DB_NAME=adopt_dont_shop
+PROD_DB_NAME=adopt_dont_shop_prod
+# Alternatively, set a single PROD_DATABASE_URL / DATABASE_URL to override the discrete vars.
 
-# Security (REQUIRED)
-JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long
+# Database TLS (ADS-540) — production refuses `disable` unless ALLOW_INSECURE_DB=true
+DB_SSL_MODE=verify-full
+DB_SSL_ROOT_CERT=/etc/ssl/certs/rds-combined-ca-bundle.pem
+
+# Redis
+REDIS_HOST=your-redis-host
+REDIS_PORT=6379
+REDIS_PASSWORD=your-strong-redis-password
+
+# Auth secrets — minimum 32 characters each, generate with `npm run secrets:generate`
+JWT_SECRET=...
+JWT_REFRESH_SECRET=...
+SESSION_SECRET=...
+CSRF_SECRET=...
+ENCRYPTION_KEY=...
+UPLOAD_SIGNING_SECRET=...
+
+# CORS
 CORS_ORIGIN=https://yourdomain.com
-SESSION_SECRET=your-session-secret-minimum-32-characters-long
 
-# Optional but recommended
-BCRYPT_ROUNDS=12
+# Optional tuning
+JWT_EXPIRES_IN=1h            # default 1h; refresh tokens last 7 days
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 ```
+
+See `.env.example` at the repo root for the authoritative list and per-variable notes.
 
 ### Docker Deployment
 
