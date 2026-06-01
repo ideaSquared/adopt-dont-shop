@@ -7,7 +7,8 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AppWithAuth } from './components/AppWithAuth';
 import { ChatProvider } from '@/contexts/ChatContext';
-import { PermissionsProvider } from '@/contexts/PermissionsContext';
+import { PermissionsProvider } from '@adopt-dont-shop/lib.auth';
+import { permissionsService } from '@/services/libraryServices';
 import { StatsigWrapper } from '@/contexts/StatsigContext';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -61,7 +62,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <AppWithAuth>
           <StatsigWrapper>
-            <PermissionsProvider>
+            <PermissionsProvider service={permissionsService}>
               <ThemeProvider>
                 <ChatProvider>
                   <BrowserRouter>

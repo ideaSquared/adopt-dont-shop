@@ -1,8 +1,8 @@
 import { ReactNode, lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Spinner } from '@adopt-dont-shop/lib.components';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { PermissionsProvider } from '@/contexts/PermissionsContext';
+import { useAuth, PermissionsProvider } from '@adopt-dont-shop/lib.auth';
+import { permissionsService } from '@/services/libraryServices';
 import { AnalyticsProvider } from '@/contexts/AnalyticsContext';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { ChatProvider } from '@/contexts/ChatContext';
@@ -100,7 +100,7 @@ function App() {
   // re-runs whenever userId changes, so no event subscription is needed.
   const { user } = useAuth();
   return (
-    <PermissionsProvider>
+    <PermissionsProvider service={permissionsService}>
       <AnalyticsProvider>
         <NotificationsProvider userId={user?.userId}>
           <ChatProvider>

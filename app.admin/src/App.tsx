@@ -1,9 +1,10 @@
 import React, { ReactNode, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
+import { useAuth, PermissionsProvider } from '@adopt-dont-shop/lib.auth';
 import { Spinner } from '@adopt-dont-shop/lib.components';
 import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
 import { useAnalyticsInvalidator } from '@adopt-dont-shop/lib.analytics';
+import { permissionsService } from './services/libraryServices';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminLayout } from './components/layout/AdminLayout';
 import DevLoginPanel from './components/dev/DevLoginPanel';
@@ -85,7 +86,7 @@ const AdminApp: React.FC = () => {
 
   // Protected routes (admin only)
   return (
-    <>
+    <PermissionsProvider service={permissionsService}>
       <ProtectedRoute>
         <AdminLayout>
           <Suspense fallback={<PageLoader />}>
@@ -169,7 +170,7 @@ const AdminApp: React.FC = () => {
               <Route
                 path='/notifications/broadcast'
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <ProtectedRoute requiredPermission='notifications.broadcast'>
                     <RouteBoundary name='broadcast'>
                       <BroadcastNotifications />
                     </RouteBoundary>
@@ -188,7 +189,7 @@ const AdminApp: React.FC = () => {
               <Route
                 path='/configuration'
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <ProtectedRoute requiredPermission='admin.config.update'>
                     <Configuration />
                   </ProtectedRoute>
                 }
@@ -196,7 +197,7 @@ const AdminApp: React.FC = () => {
               <Route
                 path='/configuration/features'
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <ProtectedRoute requiredPermission='admin.config.update'>
                     <Configuration />
                   </ProtectedRoute>
                 }
@@ -204,7 +205,7 @@ const AdminApp: React.FC = () => {
               <Route
                 path='/configuration/settings'
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <ProtectedRoute requiredPermission='admin.config.update'>
                     <Configuration />
                   </ProtectedRoute>
                 }
@@ -212,7 +213,7 @@ const AdminApp: React.FC = () => {
               <Route
                 path='/configuration/questions'
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <ProtectedRoute requiredPermission='admin.config.update'>
                     <Configuration />
                   </ProtectedRoute>
                 }
@@ -225,7 +226,7 @@ const AdminApp: React.FC = () => {
               <Route
                 path='/field-permissions'
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <ProtectedRoute requiredPermission='admin.config.update'>
                     <FieldPermissions />
                   </ProtectedRoute>
                 }
@@ -235,7 +236,7 @@ const AdminApp: React.FC = () => {
               <Route
                 path='/privacy-tools'
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <ProtectedRoute requiredPermission='admin.data.export'>
                     <PrivacyTools />
                   </ProtectedRoute>
                 }
@@ -245,7 +246,7 @@ const AdminApp: React.FC = () => {
               <Route
                 path='/audit'
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <ProtectedRoute requiredPermission='admin.audit.read'>
                     <Audit />
                   </ProtectedRoute>
                 }
@@ -276,7 +277,7 @@ const AdminApp: React.FC = () => {
           accepted ToS / Privacy version is older than current. Admins are
           bound by the same documents as adopters. */}
       <LegalReacceptanceModal />
-    </>
+    </PermissionsProvider>
   );
 };
 

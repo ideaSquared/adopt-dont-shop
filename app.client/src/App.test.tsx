@@ -17,8 +17,8 @@ vi.mock('@/contexts/NotificationsContext', () => ({
 }));
 
 // Stub the other context providers so App can render without their full deps.
-vi.mock('@/contexts/PermissionsContext', () => ({
-  PermissionsProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+vi.mock('@/services/libraryServices', () => ({
+  permissionsService: { getUserPermissions: vi.fn().mockResolvedValue([]), clearCache: vi.fn() },
 }));
 vi.mock('@/contexts/AnalyticsContext', () => ({
   AnalyticsProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -66,6 +66,7 @@ vi.mock('@adopt-dont-shop/lib.auth', async () => {
   return {
     ...actual,
     useAuth: () => useAuthMock(),
+    PermissionsProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
     // ADS-627 also stub the auth forms so the cookie-banner test's
     // `initialEntries: ['/login']` doesn't render the real LoginForm —
     // its relative `../hooks/useAuth` import bypasses the mock above
