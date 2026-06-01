@@ -9,8 +9,7 @@ import {
 } from '../components/staff';
 import { StaffMember, NewStaffMember } from '../types/staff';
 import { useStaff } from '../hooks/useStaff';
-import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { usePermissions } from '../contexts/PermissionsContext';
+import { useAuth, useHasPermission } from '@adopt-dont-shop/lib.auth';
 import { STAFF_CREATE, STAFF_DELETE, STAFF_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import { InvitationPayload, PendingInvitation } from '@adopt-dont-shop/lib.invitations';
 import { invitationService } from '../services/libraryServices';
@@ -18,7 +17,9 @@ import * as styles from './StaffManagement.css';
 
 const StaffManagement: React.FC = () => {
   const { user } = useAuth();
-  const { hasPermission } = usePermissions();
+  const canDeleteStaff = useHasPermission(STAFF_DELETE);
+  const canEditStaff = useHasPermission(STAFF_UPDATE);
+  const canAddStaff = useHasPermission(STAFF_CREATE);
   const { staff, loading, error, refetch, addStaffMember, removeStaffMember, updateStaffMember } =
     useStaff();
 
@@ -38,11 +39,6 @@ const StaffManagement: React.FC = () => {
 
   // ADS-586: confirm dialog for destructive staff/invitation actions.
   const { confirm, confirmProps } = useConfirm();
-
-  // Check permissions using the permissions service
-  const canDeleteStaff = hasPermission(STAFF_DELETE);
-  const canEditStaff = hasPermission(STAFF_UPDATE);
-  const canAddStaff = hasPermission(STAFF_CREATE);
 
   // Get rescue ID from the current user's staff record
   const getRescueId = (): string => {

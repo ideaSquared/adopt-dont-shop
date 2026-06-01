@@ -6,6 +6,7 @@ import RescueSettings from './RescueSettings';
 // Mock all heavy dependencies to focus on tab/hash behaviour
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => ({ user: { userId: '1', rescueId: 'r1' } }),
+  useHasPermission: () => true,
   TwoFactorSettings: () => null,
 }));
 
@@ -20,10 +21,6 @@ vi.mock('@adopt-dont-shop/lib.components', async () => {
     SkeletonCard: () => React.createElement('div', { 'aria-hidden': 'true' }),
   };
 });
-
-vi.mock('../contexts/PermissionsContext', () => ({
-  usePermissions: () => ({ hasPermission: () => true }),
-}));
 
 vi.mock('../services/libraryServices', () => ({
   apiService: {

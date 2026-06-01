@@ -1,68 +1,174 @@
 ---
 name: permissions-frontend
 description: >
-  How to gate UI by user role, permission, or field-level access in React apps.
-  Apply when conditionally rendering admin-only controls, role-gated routes,
-  rescue staff features, or fields hidden by the field-permissions system.
+  How to gate UI by permission or field-level access in React apps using
+  PermissionGate, useHasPermission, and FieldPermissionsService. Apply when
+  conditionally rendering staff/admin controls, route-level capability gates,
+  or fields hidden by the field-permissions system.
 ---
 
 # Frontend Permissions
 
-The frontend has three permission layers, each with a clear job:
+The frontend has two permission layers, each with a clear job:
 
-| Layer | Purpose | Source |
-|-------|---------|--------|
-| **Role gates** | Coarse: is this user an admin / rescue staff / adopter? | `useAuth()` → `user.userType` |
-| **Permission gates** | Fine: does this user have permission X? | `lib.permissions` `PermissionsService` |
+| Layer | Purpose | API |
+|-------|---------|-----|
+| **Permission gates** | "Can this user perform action X?" | `lib.auth` `<PermissionGate>` / `useHasPermission` |
 | **Field gates** | Per-field read/write access by role + resource | `lib.permissions` `FieldPermissionsService` (see `field-permissions` skill) |
 
 **Critical rule:** frontend permission checks are UX, not security. The backend
 enforces every permission on every request. Never use a frontend check as the
-only barrier to a sensitive action.
+only barrier to a sensitive action — your job is making the UI not show buttons
+that would 403.
 
-## Role gates (the simplest case)
+## Permissions, not roles
+
+This codebase gates UI by **permission**, not by role. Roles (`admin`,
+`rescue_staff`, `rescue_volunteer`, etc.) are bundles of permissions; the
+backend seeder maps each role to its permission set, and the frontend reads
+the resolved permissions for the signed-in user.
+
+**Do not write `user.userType === 'admin'` or `user.role === 'rescue_admin'`
+to gate functionality.** If a feature is admin-only, gate it by the
+permission an admin would use to invoke it — e.g.
+`'admin.config.update'` or `'notifications.broadcast'`.
+
+The one exception is **identity** checks that aren't about capability — e.g.
+`<ProtectedRoute>` in `app.admin` checks that the signed-in user's
+`userType` is in `ADMIN_USER_TYPES` to gate the admin app shell. That's
+"who you are" (you signed in via the admin app), not "what you can do".
+Don't reach for this pattern in feature code; it's specifically for app-shell
+guards.
+
+## Wiring the provider
+
+Each app mounts a `PermissionsProvider` from `lib.auth`, injected with the
+app's configured `PermissionsService` (which the lib reuses to fetch and
+cache the user's permission set):
 
 ```typescript
-import { useAuth } from '@adopt-dont-shop/lib.auth';
+// app.*/src/App.tsx
+import { PermissionsProvider } from '@adopt-dont-shop/lib.auth';
+import { permissionsService } from '@/services/libraryServices';
 
-const Settings = () => {
-  const { user } = useAuth();
+<PermissionsProvider service={permissionsService}>
+  {/* … rest of the app */}
+</PermissionsProvider>
+```
 
-  if (user?.userType !== 'admin') {
-    return <Unauthorized />;
+The provider reads the signed-in user from `useAuth()` and fetches their
+permissions from `/api/v1/users/:userId/permissions`. Results are cached for
+5 minutes inside `PermissionsService`.
+
+## The two primitives
+
+### `<PermissionGate>` — for inline JSX gating
+
+```typescript
+import { PermissionGate } from '@adopt-dont-shop/lib.auth';
+import { PETS_DELETE } from '@adopt-dont-shop/lib.permissions';
+
+<PermissionGate permission={PETS_DELETE}>
+  <DangerButton onClick={onDelete}>Delete</DangerButton>
+</PermissionGate>
+```
+
+Pass a `fallback` to render something else when denied:
+
+```typescript
+<PermissionGate
+  permission={PETS_DELETE}
+  fallback={<DisabledButton aria-describedby="no-delete">Delete</DisabledButton>}
+>
+  <DangerButton onClick={onDelete}>Delete</DangerButton>
+</PermissionGate>
+```
+
+For "any of" and "all of" semantics:
+
+```typescript
+<PermissionGate anyOf={[PETS_CREATE, PETS_UPDATE]}>…</PermissionGate>
+<PermissionGate allOf={[PETS_UPDATE, PETS_PUBLISH]}>…</PermissionGate>
+```
+
+Exactly one of `permission`, `anyOf`, `allOf` may be passed — the types
+enforce this.
+
+### `useHasPermission` — for boolean checks
+
+When you need the decision as a value (passed to a child as a prop, used in
+a condition, or feeding `disabled`), use the hook:
+
+```typescript
+import { useHasPermission } from '@adopt-dont-shop/lib.auth';
+import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
+
+const RescueSettings = () => {
+  const canEdit = useHasPermission(RESCUE_SETTINGS_UPDATE);
+
+  return <SettingsForm disabled={!canEdit} />;
+};
+```
+
+Variants:
+- `useHasAnyPermission(permissions: Permission[])` — true if user has at least one
+- `useHasAllPermissions(permissions: Permission[])` — true only if user has all
+
+## Choosing between the two
+
+- **`<PermissionGate>`** when the check directly determines whether a JSX
+  subtree renders. Reads declaratively, no intermediate variable.
+- **`useHasPermission`** when the boolean flows into prop wiring, a
+  conditional that controls more than rendering, or a derived computation.
+
+Don't mix them for the same check — pick the one that fits the surface.
+
+## Use the permission constants
+
+`lib.permissions` exports symbolic constants for every permission used in
+the apps:
+
+```typescript
+import { PETS_CREATE, STAFF_DELETE, CHAT_UPDATE } from '@adopt-dont-shop/lib.permissions';
+```
+
+Use these instead of string literals. Typos become compile-time errors and
+the constants document which permissions actually exist in the system.
+
+If a permission you need isn't exported as a constant, add it rather than
+inlining a string — the `Permission` type in `lib.types` is the union of all
+permissions the backend may grant, so widen it (and add the constant in
+`lib.permissions`) to capture the intent.
+
+## Route-level guards
+
+In `app.admin`, `<ProtectedRoute>` accepts `requiredPermission` or `anyOf`:
+
+```typescript
+<Route
+  path='/audit'
+  element={
+    <ProtectedRoute requiredPermission='admin.audit.read'>
+      <Audit />
+    </ProtectedRoute>
   }
+/>
 
-  return <AdminSettings />;
-};
+<Route
+  path='/dashboard'
+  element={
+    // No requiredPermission → only the base "admin-tier user" identity
+    // check applies. Use this when every signed-in admin should see it.
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  }
+/>
 ```
 
-For route-level role guards, use the route wrapper (e.g.
-`<ProtectedRoute roles={['admin']}>`) defined in each app's router config rather
-than inlining the check on every page.
-
-## Permission gates
-
-`lib.permissions` exports `PermissionsService` with check helpers. The user's
-permission set is loaded once on auth and cached. Use it from a hook:
-
-```typescript
-import { useAuth } from '@adopt-dont-shop/lib.auth';
-import { PermissionsService } from '@adopt-dont-shop/lib.permissions';
-
-const usePermission = (permission: string) => {
-  const { user } = useAuth();
-  if (!user) return false;
-  return PermissionsService.userHasPermission(user, permission);
-};
-
-// In a component
-const canSuspend = usePermission('user.suspend');
-
-{canSuspend && <SuspendButton userId={userId} />}
-```
-
-Use constants for permission strings, not inline literals — `lib.permissions`
-exports `PERMISSIONS.USER_SUSPEND` etc. so typos don't slip through.
+`<ProtectedRoute>` no longer takes `requiredRole`/`allowedRoles`. If you
+need to keep a route admin-and-up-only but allow moderators too, gate it
+by a permission both admins and moderators hold.
 
 ## Field gates
 
@@ -106,20 +212,6 @@ loop — pull it once at the top of the component.
 `field-permissions` skill), so the value won't be present even if you tried to
 render it.
 
-## Combining gates
-
-Order from cheapest to most expensive:
-
-```typescript
-if (!isAuthenticated) return <SignIn />;
-if (user.userType !== 'admin') return <Unauthorized />;
-if (!usePermission('reports.export')) return <Unauthorized />;
-// ... render the admin reports page
-```
-
-Don't chain unrelated checks — if a check returns false, render the appropriate
-state and stop. Don't blank-screen because two flags don't align.
-
 ## Gating actions, not just views
 
 Hide controls the user can't invoke. If a user lacks `pet.delete`, don't render
@@ -128,6 +220,8 @@ the delete button. Disabled-but-visible is acceptable when:
 - The disabled state communicates *why* via tooltip / aria-describedby
 
 ```typescript
+const canDelete = useHasPermission(PETS_DELETE);
+
 {canDelete ? (
   <DangerButton onClick={onDelete}>Delete</DangerButton>
 ) : (
@@ -138,19 +232,19 @@ the delete button. Disabled-but-visible is acceptable when:
 </span>
 ```
 
-Most of the time, just hide.
+Most of the time, just hide — `<PermissionGate>` with no fallback renders
+nothing on denial.
 
 ## Empty states for restricted users
 
-If a whole page or section has zero permitted content, show an explanation, not
-a blank screen:
+If a whole page or section has zero permitted content, show an explanation,
+not a blank screen:
 
 ```typescript
-const { data: pets } = usePets();
-const visiblePets = pets?.data.filter(p => canRead(p)) ?? [];
+const canRead = useHasPermission(PETS_READ);
 
-if (visiblePets.length === 0) {
-  return <EmptyState title="No pets" message="You don't have access to any pets in this rescue." />;
+if (!canRead) {
+  return <EmptyState title="No access" message="You don't have access to any pets in this rescue." />;
 }
 ```
 
@@ -162,38 +256,71 @@ Frontend gates are UX hints. The backend re-checks:
 - RBAC on every route (`requirePermission`)
 - Field-level read masking (`fieldMask`) and write rejection (`fieldWriteGuard`)
 
-So a malicious user bypassing the frontend can't escalate. **Your job is making
-the UI not show them buttons that would 403.**
+So a malicious user bypassing the frontend can't escalate. **Your job is
+making the UI not show them buttons that would 403.**
 
 ## Testing permission gates
 
-In Vitest tests, mock `useAuth` to drive different roles:
+In Vitest tests, mock `useHasPermission` (or `usePermissions`) from
+`lib.auth` to drive different permission slices:
 
 ```typescript
-vi.mock('@adopt-dont-shop/lib.auth', () => ({
-  useAuth: () => ({
-    user: { userId: 'u1', userType: 'admin' },
-    isAuthenticated: true,
-  }),
-}));
+// Boolean per-permission style: simplest when a component checks one or two.
+const mockedUseHasPermission = vi.fn();
+vi.mock('@adopt-dont-shop/lib.auth', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.auth')>(
+    '@adopt-dont-shop/lib.auth'
+  );
+  return {
+    ...actual,
+    useHasPermission: (permission: string) => mockedUseHasPermission(permission),
+  };
+});
+
+// In tests:
+mockedUseHasPermission.mockImplementation((p) => p === 'pets.create');
 ```
 
-Test the matrix that matters: admin sees the control, adopter doesn't. Don't
-write 10 permutations — one positive and one negative per gate is enough.
+For components that read the whole permission set (e.g. via `usePermissions()`
+or `useHasAnyPermission`), mock the provider instead:
 
-For field permissions, `lib.permissions/src/test-utils/` provides helpers for
-building synthetic access maps in tests.
+```typescript
+vi.mock('@adopt-dont-shop/lib.auth', async () => {
+  const actual = await vi.importActual<typeof import('@adopt-dont-shop/lib.auth')>(
+    '@adopt-dont-shop/lib.auth'
+  );
+  return {
+    ...actual,
+    usePermissions: () => ({
+      permissions: ['pets.read', 'pets.create'],
+      isLoading: false,
+      refresh: vi.fn(),
+    }),
+  };
+});
+```
+
+Test the matrix that matters: granted sees the control, denied doesn't.
+Don't write 10 permutations — one positive and one negative per gate is
+enough.
+
+For field permissions, `lib.permissions/src/test-utils/` provides helpers
+for building synthetic access maps in tests.
 
 ## Common mistakes
 
 - Treating frontend gates as security — they're UX. Backend is the gate.
-- Hardcoding role strings (`'admin'`) instead of using `UserType.ADMIN` exports
-- Re-computing the field access map on every render → 60s cache helps but still
-  unnecessary work. Lift it to the top of the component
-- Showing a disabled "Delete" button to a user who can't see deletion exists at
-  all — that's noise, just hide
+- Hardcoding role strings (`'admin'`) or `user.userType === ...` checks
+  instead of using `useHasPermission(...)` with a permission constant
+- Inline permission strings (`useHasPermission('pets.create')`) instead of
+  importing the constant from `lib.permissions` — typos become silent bugs
+- Re-computing the field access map on every render → 60s cache helps but
+  still unnecessary work. Lift it to the top of the component
+- Showing a disabled "Delete" button to a user who can't see deletion exists
+  at all — that's noise, just hide
 - Forgetting that field access `none` means the value is also stripped on the
   wire → don't try to fall back to it
-- Inconsistent gates between list view and detail view — user sees the row but
-  can't open it. Decide once and apply everywhere.
-- Adding new permission strings without checking `PERMISSIONS.*` constants
+- Inconsistent gates between list view and detail view — user sees the row
+  but can't open it. Decide once and apply everywhere
+- Adding new permission strings without checking `lib.permissions` exports
+  and the `Permission` type in `lib.types`

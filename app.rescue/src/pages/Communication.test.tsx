@@ -134,11 +134,11 @@ vi.mock('@adopt-dont-shop/lib.chat', async () => {
   return { ...actual, ConversationList, ChatWindow };
 });
 
-// PermissionsContext is the gate. We replace it inline so we can grant or
+// useHasPermission is the gate. We replace it inline so we can grant or
 // revoke CHAT_UPDATE per test.
-const mockedHasPermission = vi.fn();
-vi.mock('@/contexts/PermissionsContext', () => ({
-  usePermissions: () => ({ hasPermission: mockedHasPermission }),
+const mockedUseHasPermission = vi.fn();
+vi.mock('@adopt-dont-shop/lib.auth', () => ({
+  useHasPermission: (permission: string) => mockedUseHasPermission(permission),
 }));
 
 vi.mock('@/contexts/ChatContext', () => ({
@@ -168,8 +168,8 @@ const baseConversation = (overrides: Partial<Conversation>): Conversation => ({
 const setupHooks = (opts: BuildOptions = {}) => {
   const updateConversationStatus =
     opts.updateConversationStatus ?? vi.fn().mockResolvedValue(undefined);
-  mockedHasPermission.mockReset();
-  mockedHasPermission.mockImplementation(() => opts.hasPermission ?? true);
+  mockedUseHasPermission.mockReset();
+  mockedUseHasPermission.mockImplementation(() => opts.hasPermission ?? true);
   mockedUseChat.mockReset();
   mockedUseChat.mockReturnValue({
     conversations: opts.conversations ?? [],

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { RescueRole, useAuth } from '@adopt-dont-shop/lib.auth';
+import { useAuth, usePermissions } from '@adopt-dont-shop/lib.auth';
+import type { Permission } from '@adopt-dont-shop/lib.permissions';
 import { Logo } from '@adopt-dont-shop/lib.components';
 import { useChat } from '@/contexts/ChatContext';
 import clsx from 'clsx';
@@ -12,11 +13,10 @@ type NavItem = {
   icon: string;
   badge?: number;
   /**
-   * Roles that should NOT see this item. Other roles (incl. undefined, e.g.
-   * platform admins) continue to see it. Keep rules conservative — broader
-   * role-based filtering is follow-up work.
+   * If set, the item is shown only when the signed-in user holds at least
+   * one of these permissions. Items without `requiresAnyOf` are always shown.
    */
-  hideForRoles?: ReadonlyArray<RescueRole>;
+  requiresAnyOf?: ReadonlyArray<Permission>;
 };
 
 type NavGroup = {
@@ -28,6 +28,7 @@ type NavGroup = {
 const Navigation: React.FC = () => {
   const location = useLocation();
   const { user, logout, isLoading } = useAuth();
+  const { permissions } = usePermissions();
   const { unreadMessageCount } = useChat();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -73,9 +74,8 @@ const Navigation: React.FC = () => {
           path: '/analytics',
           label: 'Analytics',
           icon: '📈',
-          // Volunteers don't need Analytics by default — they focus on
-          // pet/application work. Admins and staff still see it.
-          hideForRoles: [RescueRole.RESCUE_VOLUNTEER],
+          // Volunteers don't have reports.read.rescue and so don't see this.
+          requiresAnyOf: ['reports.read.rescue' as Permission],
         },
         { path: '/reports', label: 'Reports', icon: '📑' },
         { path: '/settings', label: 'Settings', icon: '⚙️' },
@@ -84,9 +84,10 @@ const Navigation: React.FC = () => {
   ];
 
   const isVisible = (item: NavItem): boolean => {
-    if (!item.hideForRoles || item.hideForRoles.length === 0) return true;
-    if (!user?.role) return true;
-    return !item.hideForRoles.includes(user.role);
+    if (!item.requiresAnyOf || item.requiresAnyOf.length === 0) {
+      return true;
+    }
+    return item.requiresAnyOf.some(p => permissions.includes(p));
   };
 
   const visibleGroups = navGroups
