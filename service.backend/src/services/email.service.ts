@@ -11,7 +11,6 @@ import EmailTemplate, {
 } from '../models/EmailTemplate';
 import { JsonObject, JsonValue, TemplateData, TemplateVariable } from '../types/common';
 import { BulkEmailOptions, EmailAnalytics, SendEmailOptions } from '../types/email';
-import { AuditLog } from '../models/AuditLog';
 import logger, { loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { EmailProvider } from './email-providers/base-provider';
@@ -140,23 +139,18 @@ class EmailService {
       provider,
       environment: process.env.NODE_ENV,
     });
-    // System-level audit row (no user actor) — mirror the pattern used by
-    // the legal-reminder worker so the immutable-trigger doesn't reject
-    // the write and so the operator can answer "which provider was
-    // active at deploy time?" by querying audit_logs.
-    AuditLog.create({
-      service: 'adopt-dont-shop-backend',
-      user: null,
-      user_email_snapshot: null,
+    // System-level audit row (no user actor). Routed through AuditLogService
+    // so the email-snapshot capture, redaction and entity-activity queries
+    // line up with the rest of the codebase — direct AuditLog.create bypasses
+    // all of that. Boot-time so we tolerate failure (logger.warn + swallow);
+    // we don't want a deploy to fail because of a transient audit-log error.
+    AuditLogService.log({
+      userId: '',
       action: 'EMAIL_PROVIDER_INITIALIZED',
-      level: 'INFO',
-      timestamp: new Date(),
-      metadata: {
-        entity: 'EmailService',
-        entityId: 'boot',
-        details: { provider, environment: process.env.NODE_ENV ?? 'unknown' },
-      },
-      category: 'System',
+      entity: 'EmailService',
+      entityId: 'boot',
+      service: 'adopt-dont-shop-backend',
+      details: { provider, environment: process.env.NODE_ENV ?? 'unknown' },
     }).catch(error => {
       logger.warn('Failed to write EMAIL_PROVIDER_INITIALIZED audit row', { error });
     });
