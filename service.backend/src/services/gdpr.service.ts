@@ -197,6 +197,7 @@ export const GdprService = {
           actorUserId: actorUserId ?? null,
           graceDays: GDPR_ANONYMIZATION_GRACE_DAYS,
         },
+        transaction: tx,
       });
 
       logger.info('User erasure requested (GDPR phase 1)', {
@@ -346,6 +347,7 @@ export const GdprService = {
             phase: 'phase-2-anonymise',
             attachmentsScheduledForDeletion: attachmentIds.length,
           },
+          transaction: tx,
         });
 
         logger.info('User anonymised (GDPR phase 2)', {
@@ -417,6 +419,7 @@ export const GdprService = {
         details: {
           actorUserId: actor.userId,
         },
+        transaction: tx,
       });
 
       logger.info('User erasure cancelled within grace window', {
@@ -714,6 +717,7 @@ export const GdprService = {
           staffDowngraded,
           actorUserId: actorUserId ?? null,
         },
+        transaction: tx,
       });
 
       logger.info('Rescue anonymised for GDPR erasure', {
