@@ -14,14 +14,23 @@
 
 #### Required for Production
 
-```bash
-# CRITICAL: These MUST be set in production
-JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long
-CORS_ORIGIN=https://yourdomain.com
-SESSION_SECRET=your-session-secret-minimum-32-characters-long
+These variables are enforced by `docker-compose.yml`'s `:?Error: ... required` guards — Compose refuses to start without them. See `.env.example` for the full list and per-variable notes; the authoritative source is the root `.env.example` and `scripts/validate-env.mjs`.
 
-# Database credentials
+```bash
+# CRITICAL secrets — generate strong values via `npm run secrets:generate`
+JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long
+JWT_REFRESH_SECRET=different-strong-random-secret
+SESSION_SECRET=your-session-secret-minimum-32-characters-long
+CSRF_SECRET=your-csrf-secret-minimum-32-characters-long
+ENCRYPTION_KEY=your-encryption-key-minimum-32-characters-long
+UPLOAD_SIGNING_SECRET=your-upload-signing-secret-minimum-32-characters-long
+
+# Database / Redis credentials
 DB_PASSWORD=your-secure-database-password-here
+REDIS_PASSWORD=your-secure-redis-password-here
+
+# CORS — comma-separated allowed origins
+CORS_ORIGIN=https://yourdomain.com
 ```
 
 #### Security Requirements
@@ -42,9 +51,9 @@ DB_PASSWORD=your-secure-database-password-here
 
 #### Authentication Security
 
-- **JWT tokens**: Short-lived (15 minutes) access tokens
-- **Refresh tokens**: 7-day rotation
-- **Password hashing**: bcrypt with 12+ rounds
+- **JWT access tokens**: Short-lived. Default `JWT_EXPIRES_IN=1h` (see `.env.example` and `docker-compose.yml`). Override via the `JWT_EXPIRES_IN` env var to tighten in higher-risk environments (`15m`, `5m`, etc.).
+- **Refresh tokens**: 7-day rotation by default (`JWT_REFRESH_EXPIRES_IN`).
+- **Password hashing**: bcryptjs with 12+ rounds
 - **Account lockout**: Automatic protection against brute force
 
 #### Request Security
