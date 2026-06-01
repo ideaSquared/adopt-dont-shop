@@ -1030,6 +1030,27 @@ class ModerationService {
         if (didUpdate) {
           updated++;
           updatedReportIds.push(report.reportId);
+          // Write the audit row inside the same transaction as the state
+          // change so a partial-failure scenario (some reports update,
+          // audit-log write fails) can no longer leave the audit trail
+          // drifted from the actual state. The previous post-commit
+          // Promise.all could commit the updates but drop audit rows.
+          await AuditLogService.log({
+            userId: moderatorId,
+            action: 'REPORT_BULK_HANDLED',
+            entity: 'Report',
+            entityId: report.reportId,
+            details: {
+              action,
+              fromStatus: previousStatus,
+              ...(resolutionNotes !== undefined && { resolutionNotes }),
+              ...(assignTo !== undefined && { assignTo }),
+              ...(escalateTo !== undefined && { escalateTo }),
+              ...(escalationReason !== undefined && { escalationReason }),
+              bulkBatchSize: reportIds.length,
+            },
+            transaction,
+          });
         }
       }
 
@@ -1044,27 +1065,6 @@ class ModerationService {
           resolutionNotes: action === 'escalate' ? escalationReason : resolutionNotes,
         });
       }
-
-      // Write one audit log row per affected report so each handled report
-      // has a discrete entry, even when actioned via a bulk operation.
-      await Promise.all(
-        updatedReportIds.map(affectedReportId =>
-          AuditLogService.log({
-            userId: moderatorId,
-            action: 'REPORT_BULK_HANDLED',
-            entity: 'Report',
-            entityId: affectedReportId,
-            details: {
-              action,
-              ...(resolutionNotes !== undefined && { resolutionNotes }),
-              ...(assignTo !== undefined && { assignTo }),
-              ...(escalateTo !== undefined && { escalateTo }),
-              ...(escalationReason !== undefined && { escalationReason }),
-              bulkBatchSize: reportIds.length,
-            },
-          })
-        )
-      );
 
       logger.info(
         `Bulk ${action} completed: ${updated} of ${reportIds.length} reports updated by ${moderatorId}`
