@@ -15,7 +15,8 @@ This directory contains GitHub Actions workflows for the Adopt Don't Shop platfo
 | `schema-equivalence.yml`   | Bootstraps DB-A (migrate) and DB-B (sync), diffs normalised `pg_dump` to detect schema drift.            |
 | `deploy.yml`               | Manual deploy to staging or production via GHCR + SSH.                                                  |
 | `rollback.yml`             | Manual rollback to a previously published GHCR image SHA.                                               |
-| `release.yml`              | Creates GitHub releases on tags and pushes images on successful CI runs to `main`.                      |
+| `release.yml`              | Builds and pushes production Docker images to Docker Hub on tag pushes (`v*`) and successful CI runs to `main`. |
+| `release-please.yml`       | Generates release PRs, version tags, and GitHub Releases with changelogs from conventional commits.     |
 | `storybook.yml`            | Builds and deploys `lib.components` Storybook to GitHub Pages.                                          |
 | `labeler.yml`              | Auto-labels pull requests using `.github/labeler.yml` rules.                                            |
 | `sync-labels.yml`          | Syncs `.github/labels.yml` to the repository's label set on changes to `main`.                          |
@@ -81,16 +82,17 @@ Tag a test with `@smoke` in its title to add it to the PR set. Keep the smoke se
 
 ### 🚀 **Release Workflow** (`release.yml`)
 
-**Purpose**: Automated releases and deployment pipeline.
+**Purpose**: Build and publish production Docker images.
 
 **What it does**:
 
-- 📝 Creates GitHub releases from tags
-- 🐳 Builds and pushes Docker images to registry
-- 🚀 Deploys to staging/production environments
-- 🏷️ Supports semantic versioning
+- 🐳 Builds and pushes the backend image to Docker Hub (`paragonjenko/adoptdontshop`)
+- 🐳 Builds and pushes per-app frontend images (`app.client`, `app.admin`, `app.rescue`) to Docker Hub
+- 🏷️ Tags images with semver (when triggered by a `v*` tag), branch name, and commit SHA
 
-**Triggers**: Tags starting with `v*`, pushes to `main`, manual dispatch
+GitHub Releases themselves are produced by `release-please.yml` from conventional commits — `release.yml` only handles image publishing. Deploys are driven separately by `deploy.yml`.
+
+**Triggers**: Tags starting with `v*`, completion of a successful CI run on `main`, manual dispatch.
 
 ---
 
@@ -141,18 +143,21 @@ Tag a test with `@smoke` in its title to add it to the PR set. Keep the smoke se
 
 ### Required Secrets
 
-For the release workflow to function fully, add these secrets to your repository:
+For release and deploy workflows to function fully, add these secrets to your repository:
 
 ```bash
-# Docker Hub (optional - for image publishing)
+# Docker Hub — release.yml pushes production images here
 DOCKER_USERNAME=your-docker-username
 DOCKER_PASSWORD=your-docker-password
 
-# Deployment (when ready)
-DEPLOY_HOST=your-server-hostname
-DEPLOY_USER=deployment-user
-DEPLOY_SSH_KEY=your-private-ssh-key
+# Deploy / rollback — Hetzner host accessed over SSH; backend image pulled from GHCR
+HETZNER_HOST=your-server-hostname
+HETZNER_SSH_KEY=your-private-ssh-key
+HETZNER_HOST_FINGERPRINT=ssh-host-key-fingerprint  # computed via `ssh-keyscan -t ed25519 $HOST | ssh-keygen -lf -`
+GHCR_TOKEN=read-only-personal-access-token         # scope: read:packages
 ```
+
+`deploy.yml` and `rollback.yml` also pass through application secrets (`SECRET_JWT_SECRET`, `SECRET_JWT_REFRESH_SECRET`, `SECRET_SESSION_SECRET`, `SECRET_CSRF_SECRET`, `SECRET_ENCRYPTION_KEY`, `SECRET_UPLOAD_SIGNING_SECRET`, `SECRET_DB_PASSWORD`, `SECRET_REDIS_PASSWORD`) — these must be configured per environment.
 
 ### Branch Protection
 
