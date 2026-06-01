@@ -274,8 +274,24 @@ export class FileUploadService {
         }
       }
 
-      // Create database record
-      const uploadRecord = await this.createUploadRecord(fileMetadata, metadata);
+      // Create database record. If this fails the upload row is never
+      // created, so the remote object is referenced nowhere — wrap the
+      // DB write so we can roll the remote upload back instead of
+      // leaving an orphaned object accruing storage cost.
+      let uploadRecord;
+      try {
+        uploadRecord = await this.createUploadRecord(fileMetadata, metadata);
+      } catch (dbErr) {
+        if (remoteUrls) {
+          await this.rollbackRemoteUpload(remoteUrls).catch(cleanupErr => {
+            logger.error('Failed to roll back remote upload after DB write failure', {
+              path: remoteUrls.path,
+              cleanupErr,
+            });
+          });
+        }
+        throw dbErr;
+      }
 
       // Log the upload
       await AuditLogService.log({
@@ -809,6 +825,39 @@ export class FileUploadService {
     return categoryMap[uploadType];
   }
 
+  /**
+   * Delete the remote object(s) created by `transferToRemoteStorage`
+   * after a downstream failure (e.g. DB write). Best-effort — callers
+   * log the cleanup error but don't re-throw, because the originating
+   * error is what the caller cares about.
+   */
+  private static async rollbackRemoteUpload(remoteUrls: {
+    url: string;
+    thumbnailUrl?: string;
+    path: string;
+  }): Promise<void> {
+    const provider = getStorageProvider();
+    // `path` is `${category}/${filename}` (see transferToRemoteStorage
+    // return shape). Split once to recover the bits deleteFile wants.
+    const splitPath = (p: string): { category: string; filename: string } | null => {
+      const slash = p.indexOf('/');
+      if (slash < 0) return null;
+      return { category: p.slice(0, slash), filename: p.slice(slash + 1) };
+    };
+    const main = splitPath(remoteUrls.path);
+    if (main) {
+      await provider.deleteFile(main.filename, main.category);
+    }
+    if (remoteUrls.thumbnailUrl) {
+      // thumbnailUrl is `/uploads/${category}/${thumbFilename}`.
+      const stripped = remoteUrls.thumbnailUrl.replace(/^\/uploads\//, '');
+      const thumb = splitPath(stripped);
+      if (thumb) {
+        await provider.deleteFile(thumb.filename, thumb.category);
+      }
+    }
+  }
+
   private static async transferToRemoteStorage(
     file: Express.Multer.File,
     processedFile: ProcessedFileInfo,
@@ -834,13 +883,28 @@ export class FileUploadService {
     if (processedFile.thumbnailPath) {
       const safeThumbPath = this.safeResolveUploadPath(processedFile.thumbnailPath);
       const thumbBuffer = await fs.promises.readFile(safeThumbPath);
-      const thumbResult = await provider.uploadFile(
-        thumbBuffer,
-        `thumb_${file.originalname}`,
-        'image/jpeg',
-        category
-      );
-      thumbnailFilename = thumbResult.filename;
+      try {
+        const thumbResult = await provider.uploadFile(
+          thumbBuffer,
+          `thumb_${file.originalname}`,
+          'image/jpeg',
+          category
+        );
+        thumbnailFilename = thumbResult.filename;
+      } catch (thumbErr) {
+        // Roll back the main upload that already landed so we don't
+        // leak an orphaned object — the function is about to throw, no
+        // DB row will reference it, and there's no GC path that would
+        // catch it later.
+        await provider.deleteFile(uploadResult.filename, category).catch(cleanupErr => {
+          logger.error('Failed to roll back main upload after thumbnail failure', {
+            filename: uploadResult.filename,
+            category,
+            cleanupErr,
+          });
+        });
+        throw thumbErr;
+      }
     }
 
     // Best-effort cleanup of local temp files after successful remote upload
@@ -1033,7 +1097,13 @@ export class FileUploadService {
       filename: file.filename,
       originalName: file.originalname,
       mimeType: file.mimetype,
-      size: file.size,
+      // file.size is what multer reported at upload time — i.e. the size
+      // of the ORIGINAL bytes. processFile() resizes / compresses images
+      // before this metadata is generated, so the bytes on disk now have
+      // stats.size (often ~50–80% smaller). Use the on-disk size so
+      // storage-quota accounting, audit reporting and cost calculations
+      // see what's actually stored, not what was originally uploaded.
+      size: stats.size,
       path: file.path,
       url: this.generateFileUrl(uploadType, file.filename),
       thumbnailUrl: processedFile.thumbnailPath

@@ -13,6 +13,12 @@ type ListContentOptions = {
   page?: number;
   limit?: number;
   authorId?: string;
+  // ADS C6: public callers set this to `new Date()` so future-dated
+  // published content (e.g. content with status='published' but
+  // publishedAt set for embargo) stays hidden from the public listing
+  // until its publish moment. Admin callers omit it so the admin view
+  // continues to surface scheduled rows.
+  publishedAtBefore?: Date;
 };
 
 type ListContentResult = {
@@ -78,7 +84,15 @@ const generateSlug = (title: string): string =>
 
 class CmsService {
   async listContent(options: ListContentOptions = {}): Promise<ListContentResult> {
-    const { contentType, status, search, page = 1, limit = 20, authorId } = options;
+    const {
+      contentType,
+      status,
+      search,
+      page = 1,
+      limit = 20,
+      authorId,
+      publishedAtBefore,
+    } = options;
 
     const where: WhereOptions = {};
 
@@ -90,6 +104,14 @@ class CmsService {
     }
     if (authorId) {
       Object.assign(where, { authorId });
+    }
+    if (publishedAtBefore) {
+      // Match rows that have already gone live: publishedAt set and not
+      // in the future. Status='published' alone isn't enough — embargoed
+      // future-dated rows would otherwise leak through the public list.
+      Object.assign(where, {
+        publishedAt: { [Op.ne]: null, [Op.lte]: publishedAtBefore },
+      });
     }
     if (search) {
       const likeOp = sequelize.getDialect() === 'postgres' ? Op.iLike : Op.like;
