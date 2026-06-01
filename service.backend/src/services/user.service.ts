@@ -33,6 +33,25 @@ import {
 import { UserActivity } from '../types/user';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { diffSequelize } from '../utils/audit-diff';
+
+/**
+ * Sensitive User fields tracked with structured before/after in audit rows.
+ * Restricted allowlist keeps audit rows compact and prevents bulky
+ * `location` GeoJSON / preference JSON from bloating forensic storage.
+ * The full list of mutated field NAMES is still captured under
+ * `updatedFields` so a forensic query can answer "what changed?" even when
+ * the value falls outside the diff allowlist.
+ */
+const USER_AUDIT_DIFF_ALLOWLIST = [
+  'email',
+  'phoneNumber',
+  'firstName',
+  'lastName',
+  'status',
+  'userType',
+  'emailVerified',
+] as const;
 import {
   BadRequestError,
   NotFoundError,
@@ -40,7 +59,6 @@ import {
   ConflictError,
 } from '../middleware/error-handler';
 import { isAdminRole } from '../utils/is-admin-role';
-import { redactSensitiveFields } from '../utils/redact';
 import RefreshToken from '../models/RefreshToken';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { emitAuthRoleChanged } from '../socket/socket-registry';
@@ -251,9 +269,6 @@ export class UserService {
         throw new NotFoundError('User not found');
       }
 
-      // Store original data for audit
-      const originalData = user.toJSON();
-
       // Validate and whitelist allowed fields to prevent mass assignment
       const safeData = UpdateProfileSchema.parse(updateData);
 
@@ -293,8 +308,16 @@ export class UserService {
         }
       }
 
-      // Update user
-      await user.update(processedUpdateData);
+      // Update user via set() + save() so the diff helper can read
+      // instance.changed() + _previousDataValues to produce a structured
+      // before/after for the sensitive-field allowlist. The previous
+      // approach dumped a redacted snapshot of the entire user object into
+      // the audit row, which was bulky and only marginally useful for
+      // forensics — a structured diff of the fields that actually changed
+      // is both smaller and easier to query.
+      user.set(processedUpdateData);
+      const diff = diffSequelize(user, USER_AUDIT_DIFF_ALLOWLIST);
+      await user.save();
 
       // Log the update
       await AuditLogService.log({
@@ -302,12 +325,8 @@ export class UserService {
         entity: 'User',
         entityId: userId,
         details: {
-          originalData: redactSensitiveFields(
-            JSON.parse(JSON.stringify(originalData))
-          ) as JsonObject,
-          updateData: redactSensitiveFields(
-            JSON.parse(JSON.stringify(processedUpdateData))
-          ) as JsonObject,
+          ...(diff ? { diff } : {}),
+          updatedFields: Object.keys(processedUpdateData),
         },
         userId,
       });

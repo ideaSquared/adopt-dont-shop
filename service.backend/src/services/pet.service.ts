@@ -36,9 +36,26 @@ import {
 import { BadRequestError, NotFoundError, ConflictError } from '../middleware/error-handler';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { diffSequelize } from '../utils/audit-diff';
 import User, { UserType } from '../models/User';
 import StaffMember from '../models/StaffMember';
 import { PLAN_LIMITS, type RescuePlan } from '../config/plans';
+
+/**
+ * Sensitive fields tracked with structured before/after in the audit row.
+ * Anything outside this list is omitted from the diff (the full list of
+ * updated field NAMES is still captured under `updatedFields`). Restricting
+ * to an allowlist keeps audit rows compact and prevents an accidental dump
+ * of bulky description fields into forensic storage.
+ */
+const PET_AUDIT_DIFF_ALLOWLIST = [
+  'status',
+  'adoptionFeeMinor',
+  'adoptionFeeCurrency',
+  'microchipId',
+  'specialNeeds',
+  'specialNeedsDescription',
+] as const;
 
 const PET_SEARCH_SORT_FIELDS = [
   'createdAt',
@@ -848,8 +865,14 @@ export class PetService {
         }
       });
 
-      // Update pet
-      await pet.update(dbUpdateData);
+      // Update pet using set() + save() (instead of .update()) so the diff
+      // helper can read instance.changed() + _previousDataValues to produce
+      // a structured before/after for the sensitive-field allowlist. The
+      // previous approach dumped the entire pet object into the audit row,
+      // which was bulky and leaked unrelated fields into forensic storage.
+      pet.set(dbUpdateData);
+      const diff = diffSequelize(pet, PET_AUDIT_DIFF_ALLOWLIST);
+      await pet.save();
 
       // Log the update with performance metrics
       await AuditLogService.log({
@@ -857,8 +880,8 @@ export class PetService {
         entity: 'Pet',
         entityId: petId,
         details: {
-          originalData: JSON.parse(JSON.stringify(originalData)),
-          updateData: JSON.parse(JSON.stringify(dbUpdateData)),
+          ...(diff ? { diff } : {}),
+          updatedFields: Object.keys(dbUpdateData),
           updatedBy,
         },
         userId: updatedBy,
