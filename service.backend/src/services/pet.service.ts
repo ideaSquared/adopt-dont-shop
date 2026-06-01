@@ -533,8 +533,19 @@ export class PetService {
     }
   }
 
-  private static async assertActivePetLimit(rescueId: string): Promise<void> {
-    const rescue = await Rescue.findByPk(rescueId, { attributes: ['plan'] });
+  private static async assertActivePetLimit(
+    rescueId: string,
+    transaction?: Transaction
+  ): Promise<void> {
+    // When a transaction is supplied, lock the rescue row so concurrent
+    // createPet calls serialize on the plan-limit check. Without the
+    // lock, two parallel requests can both pass the count check and
+    // both INSERT, putting the rescue over its plan ceiling.
+    const rescue = await Rescue.findByPk(rescueId, {
+      attributes: ['plan'],
+      transaction,
+      ...(transaction ? { lock: transaction.LOCK.UPDATE } : {}),
+    });
     if (!rescue) return;
     const plan: RescuePlan = (rescue.plan as RescuePlan) ?? 'free';
     const limit = PLAN_LIMITS[plan].maxActivePets;
@@ -552,6 +563,7 @@ export class PetService {
           ],
         },
       },
+      transaction,
     });
     if (active >= limit) {
       const err = new Error('Active pet listing limit reached for current plan') as Error & {
@@ -579,14 +591,17 @@ export class PetService {
     const startTime = Date.now();
 
     try {
-      await PetService.assertActivePetLimit(rescueId);
-
       const { initialImages, initialVideos, ...petAttributes } = petData;
 
-      // Create pet first; media rows reference the new pet_id (plan 2.1).
-      const pet = await Pet.create({
-        ...petAttributes,
-        rescueId,
+      // Plan-limit check + create run atomically against a SELECT FOR
+      // UPDATE on the rescue row so concurrent createPet calls
+      // serialize. Without this, two parallel requests can both pass
+      // the count check and both INSERT, exceeding the plan ceiling.
+      // The follow-on writes (media, transition log, audit) are
+      // independent of the limit and stay outside the critical section.
+      const pet = await sequelize.transaction(async tx => {
+        await PetService.assertActivePetLimit(rescueId, tx);
+        return Pet.create({ ...petAttributes, rescueId }, { transaction: tx });
       });
 
       // Initial gallery — images and videos are rows in pet_media now,

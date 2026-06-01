@@ -100,7 +100,15 @@ vi.mock('../../models', () => ({
 }));
 vi.mock('../../sequelize', () => ({
   __esModule: true,
-  default: { getDialect: vi.fn().mockReturnValue('sqlite') },
+  default: {
+    getDialect: vi.fn().mockReturnValue('sqlite'),
+    // PetService.createPet now wraps the plan-limit check + Pet.create
+    // in a sequelize.transaction() so concurrent creates serialise on
+    // a SELECT FOR UPDATE of the rescue row. The transaction body is
+    // executed as a callback receiving a fake tx; passing it through
+    // to the model mocks is enough for the tests in this file.
+    transaction: (fn: (tx: unknown) => Promise<unknown>) => fn(shared.fakeTx),
+  },
 }));
 vi.mock('../../cache/redis-cache', () => ({
   cached: vi.fn((_, fn: () => unknown) => fn()),
@@ -153,6 +161,23 @@ describe('Plan limit enforcement', () => {
       await expect(
         PetService.createPet({ name: 'Buddy', type: 'dog' } as never, 'rescue-1', 'user-1')
       ).resolves.toBeDefined();
+    });
+
+    it('locks the rescue row when checking the plan limit so concurrent creates serialise', async () => {
+      // The TOCTOU fix takes a SELECT FOR UPDATE on the rescue inside
+      // the createPet transaction. Without that lock, two parallel
+      // createPet calls can both pass the count check below the limit
+      // and both INSERT, putting the rescue over its plan ceiling.
+      mockRescue.findByPk.mockResolvedValue({ plan: 'free' });
+      mockPet.count.mockResolvedValue(10);
+      mockPet.create.mockResolvedValue({ petId: 'pet-1', status: PetStatus.AVAILABLE });
+
+      const { PetService } = await import('../../services/pet.service');
+      await PetService.createPet({ name: 'Buddy', type: 'dog' } as never, 'rescue-1', 'user-1');
+
+      const callOpts = mockRescue.findByPk.mock.calls[0]?.[1] as { lock?: unknown } | undefined;
+      expect(callOpts).toBeDefined();
+      expect(callOpts!.lock).toBeDefined();
     });
 
     it('throws PLAN_LIMIT_EXCEEDED when free tier limit is reached', async () => {

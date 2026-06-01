@@ -409,12 +409,15 @@ describe('PetService - Business Logic', () => {
       // When: Creating a new pet
       const result = await PetService.createPet(petData, mockRescueId, mockUserId);
 
-      // Then: Pet is created with correct rescueId
+      // Then: Pet is created with correct rescueId (now inside a
+      // transaction — the second arg is the transaction options
+      // wrapper, which we don't care about here).
       expect(MockedPet.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...petData,
           rescueId: mockRescueId,
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
       expect(result).toEqual(mockCreatedPet);
     });
@@ -842,11 +845,14 @@ describe('PetService - Business Logic', () => {
       // When: Creating pet
       await PetService.createPet(petData, mockRescueId, mockUserId);
 
-      // Then: rescueId is set from parameter, not data
+      // Then: rescueId is set from parameter, not data (the second
+      // arg is the transaction wrapper from the plan-limit critical
+      // section).
       expect(MockedPet.create).toHaveBeenCalledWith(
         expect.objectContaining({
           rescueId: mockRescueId, // From parameter
-        })
+        }),
+        expect.objectContaining({ transaction: expect.anything() })
       );
     });
 
