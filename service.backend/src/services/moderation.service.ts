@@ -174,9 +174,12 @@ class ModerationService {
         await this.autoAssignReport(report.reportId, transaction);
       }
 
-      await transaction.commit();
-
-      // Log the submission
+      // Log the submission inside the transaction so the audit row commits
+      // (or rolls back) atomically with the report + status-transition
+      // writes. Previously this fired AFTER commit, so an audit failure
+      // propagated as a submitReport error even though the report had
+      // already been persisted — the catch then attempted to rollback an
+      // already-committed transaction.
       await AuditLogService.log({
         userId: reporterId,
         action: 'REPORT_SUBMITTED',
@@ -189,7 +192,10 @@ class ModerationService {
         },
         ipAddress: requestContext?.ip,
         userAgent: requestContext?.userAgent,
+        transaction,
       });
+
+      await transaction.commit();
 
       logger.info(`Report submitted: ${report.reportId} by user ${reporterId}`);
       return report;
