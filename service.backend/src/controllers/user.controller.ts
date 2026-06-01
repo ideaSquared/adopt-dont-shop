@@ -13,6 +13,7 @@ import {
 import { AuthenticatedRequest } from '../types';
 import { logger, loggerHelpers } from '../utils/logger';
 import { validateBody } from '../middleware/zod-validate';
+import { RichTextProcessingService } from '../services/rich-text-processing.service';
 
 // Validation rules
 export const userValidation = {
@@ -110,17 +111,19 @@ export class UserController {
    */
   async updateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
     const { userId } = req.params;
-    const updateData = req.body;
     const requestingUserId = req.user!.userId;
     const requestingUserType = req.user!.userType as UserType;
 
-    // Check permissions
     if (requestingUserId !== userId && requestingUserType !== UserType.ADMIN) {
       res.status(403).json({ error: "Cannot update another user's profile" });
       return;
     }
 
-    const updatedUser = await UserService.updateUserProfile(userId, updateData);
+    if (typeof req.body.bio === 'string') {
+      req.body.bio = RichTextProcessingService.sanitize(req.body.bio);
+    }
+
+    const updatedUser = await UserService.updateUserProfile(userId, req.body);
     res.json(updatedUser);
   }
 

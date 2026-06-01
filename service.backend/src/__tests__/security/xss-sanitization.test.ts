@@ -19,6 +19,11 @@ vi.mock('../../services/supportTicket.service', () => ({
   },
 }));
 vi.mock('../../services/notification.service');
+vi.mock('../../services/user.service', () => ({
+  default: {
+    updateUserProfile: vi.fn(),
+  },
+}));
 vi.mock('../../services/email.service', () => ({
   default: {
     sendEmail: vi.fn(),
@@ -47,6 +52,8 @@ vi.mock('../../utils/logger', () => ({
   },
 }));
 
+import { UserController } from '../../controllers/user.controller';
+import UserService from '../../services/user.service';
 import { ApplicationController } from '../../controllers/application.controller';
 import { ApplicationService } from '../../services/application.service';
 import { RescueController } from '../../controllers/rescue.controller';
@@ -398,6 +405,54 @@ describe('NotificationController - XSS sanitization', () => {
       const [, notifData] = vi.mocked(NotificationService.createBulkNotifications).mock.calls[0];
       expect((notifData as Record<string, string>).message).not.toContain('<script>');
       expect((notifData as Record<string, string>).message).toContain('Important content');
+    });
+  });
+});
+
+// ============================================================
+// UserController
+// ============================================================
+
+describe('UserController - XSS sanitization', () => {
+  let controller: UserController;
+  let res: Partial<Response>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    controller = new UserController();
+    res = mockRes();
+    vi.mocked(UserService.updateUserProfile).mockResolvedValue({
+      userId: 'user-123',
+    } as unknown as Awaited<ReturnType<typeof UserService.updateUserProfile>>);
+  });
+
+  describe('updateUser', () => {
+    it('sanitizes XSS from bio before calling service', async () => {
+      const req = {
+        user: mockUser,
+        body: { bio: XSS_WITH_TEXT },
+        params: { userId: 'user-123' },
+      } as unknown as AuthenticatedRequest;
+
+      await controller.updateUser(req, res as Response);
+
+      const [, updateData] = vi.mocked(UserService.updateUserProfile).mock.calls[0];
+      expect((updateData as Record<string, string>).bio).not.toContain('<script>');
+      expect((updateData as Record<string, string>).bio).toContain('Important content');
+    });
+
+    it('passes plain text bio through unchanged', async () => {
+      const plainBio = 'I love animals and have a big yard';
+      const req = {
+        user: mockUser,
+        body: { bio: plainBio },
+        params: { userId: 'user-123' },
+      } as unknown as AuthenticatedRequest;
+
+      await controller.updateUser(req, res as Response);
+
+      const [, updateData] = vi.mocked(UserService.updateUserProfile).mock.calls[0];
+      expect((updateData as Record<string, string>).bio).toBe(plainBio);
     });
   });
 });
