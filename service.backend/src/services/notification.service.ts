@@ -572,7 +572,8 @@ export class NotificationService {
       });
       await prefs.update(apiPatchToPrefsRow(preferences), { transaction });
 
-      // Log the action
+      // Log the action — paired with the prefs.update via `transaction`
+      // so the audit row commits atomically with the preference change.
       await AuditLogService.log({
         userId,
         action: 'UPDATE_NOTIFICATION_PREFERENCES',
@@ -581,6 +582,7 @@ export class NotificationService {
         details: {
           updatedPreferences: preferences,
         },
+        transaction,
       });
 
       loggerHelpers.logBusiness(
