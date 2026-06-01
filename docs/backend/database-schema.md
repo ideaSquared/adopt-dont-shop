@@ -229,18 +229,24 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 
 ### Swipe Actions
 
-**Purpose**: User swipe behavior tracking
+**Purpose**: User swipe behavior tracking. See `service.backend/src/models/SwipeAction.ts` for the authoritative shape.
 
-| Field       | Type      | Description            |
-| ----------- | --------- | ---------------------- |
-| action_id   | UUID (PK) | Primary identifier     |
-| user_id     | UUID (FK) | User performing action |
-| pet_id      | UUID (FK) | Pet swiped             |
-| action_type | ENUM      | LIKE, PASS, SUPER_LIKE |
-| session_id  | VARCHAR   | Session identifier     |
-| created_at  | TIMESTAMP | Action time            |
+| Field            | Type           | Description                                                  |
+| ---------------- | -------------- | ------------------------------------------------------------ |
+| swipe_action_id  | UUID (PK)      | Primary identifier (UUIDv7)                                  |
+| session_id       | UUID (FK)      | Discovery session identifier                                 |
+| pet_id           | UUID (FK)      | Pet swiped                                                   |
+| user_id          | UUID (FK)      | User performing action (nullable for anonymous sessions)     |
+| action           | ENUM           | `like`, `pass`, `super_like`, `info`                         |
+| timestamp        | TIMESTAMP      | When the swipe occurred (client-supplied)                    |
+| response_time    | INTEGER        | Optional reaction time in ms                                 |
+| device_type      | VARCHAR        | Optional device label                                        |
+| coordinates      | JSONB          | Optional `{ x, y }` gesture endpoint                         |
+| gesture_data     | JSONB          | Optional `{ distance, velocity, direction }`                 |
+| created_at       | TIMESTAMP      | Row insert time                                              |
+| updated_at       | TIMESTAMP      | Row update time                                              |
 
-**Indexes**: user_id, pet_id, action_type, session_id
+**Indexes**: user_id, pet_id, action, session_id
 
 ### User Favorites
 
