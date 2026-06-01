@@ -90,7 +90,14 @@ describe('CMS routes', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.items).toHaveLength(1);
       expect(authenticateTokenMock).not.toHaveBeenCalled();
-      expect(mockList).toHaveBeenCalledWith(expect.objectContaining({ status: 'published' }));
+      expect(mockList).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'published',
+          // Public listing must also gate on publishedAt being in the
+          // past to keep embargoed-but-status-published rows hidden.
+          publishedAtBefore: expect.any(Date),
+        })
+      );
     });
 
     it('forwards search and pagination query params', async () => {
@@ -100,14 +107,24 @@ describe('CMS routes', () => {
         .query({ search: 'cats', page: '2', limit: '20' });
 
       expect(mockList).toHaveBeenCalledWith(
-        expect.objectContaining({ search: 'cats', page: 2, limit: 20, status: 'published' })
+        expect.objectContaining({
+          search: 'cats',
+          page: 2,
+          limit: 20,
+          status: 'published',
+          publishedAtBefore: expect.any(Date),
+        })
       );
     });
   });
 
   describe('GET /api/v1/cms/public/content/:slug', () => {
     it('returns 200 when the slug resolves to a published page', async () => {
-      mockGetBySlug.mockResolvedValue({ slug: 'about', status: 'published' });
+      mockGetBySlug.mockResolvedValue({
+        slug: 'about',
+        status: 'published',
+        publishedAt: new Date('2024-01-01'),
+      });
       const res = await request(buildApp()).get('/api/v1/cms/public/content/about');
       expect(res.status).toBe(200);
       expect(res.body.content.slug).toBe('about');
@@ -115,6 +132,20 @@ describe('CMS routes', () => {
 
     it('returns 404 when the resolved page is not published', async () => {
       mockGetBySlug.mockResolvedValue({ slug: 'about', status: 'draft' });
+      const res = await request(buildApp()).get('/api/v1/cms/public/content/about');
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('returns 404 when the resolved page has a future publishedAt (embargo)', async () => {
+      // An admin can flip status to 'published' while leaving publishedAt
+      // in the future for a scheduled release. The public endpoint must
+      // hide it until the embargo lifts.
+      mockGetBySlug.mockResolvedValue({
+        slug: 'about',
+        status: 'published',
+        publishedAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
       const res = await request(buildApp()).get('/api/v1/cms/public/content/about');
       expect(res.status).toBe(404);
       expect(res.body.success).toBe(false);

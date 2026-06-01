@@ -95,6 +95,11 @@ export const listPublicContent = async (
   const result = await CmsService.listContent({
     contentType: contentType as ContentType | undefined,
     status: 'published' as ContentStatus,
+    // Hide content whose publishedAt is in the future (embargo) — the
+    // admin author route lets editors schedule a future publishedAt
+    // while flipping status to 'published'; without this filter the
+    // public list would surface that row immediately.
+    publishedAtBefore: new Date(),
     search,
     page: page ? parseInt(page, 10) : undefined,
     limit: limit ? parseInt(limit, 10) : undefined,
@@ -107,7 +112,11 @@ export const getPublicContentBySlug = async (
   res: Response
 ): Promise<void> => {
   const item = await CmsService.getContentBySlug(req.params.slug);
-  if (item.status !== 'published') {
+  if (item.status !== 'published' || !item.publishedAt || item.publishedAt.getTime() > Date.now()) {
+    // 404 covers three cases that public callers shouldn't distinguish:
+    // not-yet-published draft/scheduled, embargoed (status=published but
+    // publishedAt in the future), and never-published. Returning the
+    // same 404 prevents enumeration of unreleased slugs.
     res.status(404).json({ success: false, error: 'Content not found' });
     return;
   }
