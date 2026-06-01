@@ -469,6 +469,30 @@ export const authenticate = async (
 };
 ```
 
+### Logging vs. Auditing — two layers
+
+The backend separates **operational logs** (Layer 1) from **audit events** (Layer 2). Use the right tool for the job:
+
+| | Layer 1 — `logger.*` | Layer 2 — audit |
+|---|---|---|
+| **Purpose** | Debugging, ops, "what happened" | Forensics, "who did what to what" |
+| **Storage** | console + files + Loki (when `LOKI_URL` set) | immutable `audit_logs` table + mirrored to Loki |
+| **How to emit** | `logger.info/warn/error(...)` or `loggerHelpers.log*` | one of the two paths below |
+
+**Decision rule for emitting audit events — pick exactly ONE path per action:**
+
+- **Service runs inside a Sequelize transaction?** Call `AuditLogService.log({..., transaction: t})` explicitly inside the service so the audit row commits atomically with the business write. Pattern: `pet.service.ts:157`, `application.service.ts:524`, `invitation.service.ts`, `foster.service.ts`, `field-permission.service.ts`.
+- **Route-level CRUD with no service transaction?** Attach `auditRoute({...})` middleware to the route — it fires on `res.on('finish')` after a 2xx response. Pattern: `application-draft.routes.ts`, `cms.routes.ts`, `reports.routes.ts`.
+- **Background job / cron / event consumer?** Call `AuditLogService.log(...)` explicitly. No transaction needed.
+
+**Never combine both** on the same action. `auditRoute()` and `AuditLogService.log()` writing for the same handler produces duplicate rows and breaks transactional atomicity (the route-level audit fires *outside* the service transaction). If you're adding audit to a route whose service uses transactions, move the call into the service.
+
+**For UPDATE operations on sensitive entities**, capture before/after deltas. Two options:
+1. Read the previous row inside the same transaction, then include `{ before, after }` in `details` (see `field-permission.service.ts upsert()`).
+2. For Sequelize models you mutate with `instance.set()` before `instance.save()`, use `diffSequelize(instance, allowlist)` from `service.backend/src/utils/audit-diff.ts`.
+
+**Never** log secrets or PII to Layer 1 without going through `loggerHelpers` — the redaction format only protects known fields. Audit-row metadata is also redacted by Winston, but treat it as durable storage.
+
 ---
 
 ## Frontend Patterns (React + Vite)

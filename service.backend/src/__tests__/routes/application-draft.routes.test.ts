@@ -5,7 +5,13 @@ import type { AuthenticatedRequest } from '../../types/auth';
 
 vi.mock('../../utils/logger', () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
-  loggerHelpers: { logSecurity: vi.fn(), logBusiness: vi.fn() },
+  loggerHelpers: { logSecurity: vi.fn(), logBusiness: vi.fn(), logAudit: vi.fn() },
+}));
+
+// auditRoute middleware writes to audit_logs after res.finish — stub the
+// service so route tests don't need DB setup or hit a real audit row.
+vi.mock('../../services/auditLog.service', () => ({
+  AuditLogService: { log: vi.fn().mockResolvedValue(undefined) },
 }));
 
 vi.mock('../../config/env', () => ({

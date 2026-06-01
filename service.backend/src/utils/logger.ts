@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import path from 'path';
 import winston from 'winston';
+import LokiTransport from 'winston-loki';
 import { JsonValue, JsonObject } from '../types/common';
 import { redactLogPayload } from './redact';
 import { getCorrelationId } from './request-context';
@@ -260,6 +261,33 @@ transports.push(
   })
 );
 
+// Loki transport (optional). Enabled whenever LOKI_URL is set, regardless of
+// NODE_ENV, so dev compose can opt-in via the `observability` profile without
+// having to flip NODE_ENV. Labels are intentionally low-cardinality so Loki
+// indexes stay small; dynamic fields (correlationId, userId, action) live in
+// the log body and are queried with `|=` / JSON parsers instead.
+const lokiUrl = process.env.LOKI_URL?.trim();
+if (lokiUrl) {
+  transports.push(
+    new LokiTransport({
+      host: lokiUrl,
+      labels: {
+        service: 'adopt-dont-shop-backend',
+        env: process.env.NODE_ENV || 'development',
+      },
+      json: true,
+      format: logFormat,
+      batching: true,
+      interval: 5,
+      replaceTimestamp: true,
+      // Don't crash the app if Loki is unreachable — degrade to console + file.
+      onConnectionError: err => {
+        console.error('Loki transport connection error:', err);
+      },
+    })
+  );
+}
+
 // File transports for production with better organization
 if (isProduction) {
   // Error logs
@@ -455,6 +483,35 @@ export const loggerHelpers = {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('Failed to write audit log to database', { error: errorMessage, action, data });
     }
+  },
+
+  /**
+   * Emit an audit event line to the log stream tagged `audit: true`. Used by
+   * the new audit-route middleware (Layer 2) and by transactional explicit
+   * audit calls inside services to mirror the DB row into the log aggregator
+   * so dashboards in Grafana/Loki can correlate audit events with the
+   * surrounding operational logs by correlationId.
+   *
+   * This does NOT write to the audit_logs table — the caller is expected to
+   * have already written (or queued) the immutable DB row via
+   * AuditLogService.log. Keeping the two emit points separate keeps the
+   * transactional contract of the DB write intact.
+   */
+  logAudit: (
+    action: string,
+    data: LogData & {
+      entity?: string;
+      entityId?: string;
+      userId?: string;
+      status?: 'success' | 'failure';
+    }
+  ) => {
+    logger.info(`Audit: ${action}`, {
+      category: 'AUDIT',
+      audit: true,
+      action,
+      ...data,
+    });
   },
 };
 

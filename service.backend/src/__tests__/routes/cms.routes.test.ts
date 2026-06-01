@@ -5,7 +5,11 @@ import { AuthenticatedRequest } from '../../types';
 
 vi.mock('../../utils/logger', () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
-  loggerHelpers: { logSecurity: vi.fn() },
+  loggerHelpers: { logSecurity: vi.fn(), logAudit: vi.fn() },
+}));
+
+vi.mock('../../services/auditLog.service', () => ({
+  AuditLogService: { log: vi.fn().mockResolvedValue(undefined) },
 }));
 
 vi.mock('../../config/env', () => ({

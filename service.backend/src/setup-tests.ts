@@ -65,6 +65,7 @@ vi.mock('./utils/logger', () => ({
     logLifecycle: vi.fn(),
     logExternalService: vi.fn(),
     logAuditableAction: vi.fn(),
+    logAudit: vi.fn(),
     logRequest: vi.fn(),
   },
   safeLoggerHelpers: {
