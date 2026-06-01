@@ -71,6 +71,14 @@ const createMockPet = (overrides = {}) => ({
   created_at: new Date(),
   updated_at: new Date(),
   update: vi.fn().mockResolvedValue(undefined),
+  // PetService.updatePet now uses set() + save() so the audit-diff helper
+  // can read changed()/_previousDataValues. Stub these so the mock pet
+  // satisfies the updated call sequence without changing test intent.
+  set: vi.fn(),
+  save: vi.fn().mockResolvedValue(undefined),
+  changed: vi.fn().mockReturnValue(false),
+  _previousDataValues: {},
+  dataValues: {},
   reload: vi.fn(),
   destroy: vi.fn().mockResolvedValue(undefined),
   increment: vi.fn().mockResolvedValue(undefined),
@@ -536,12 +544,15 @@ describe('PetService - Business Logic', () => {
       // When: Updating pet information
       await PetService.updatePet(mockPetId, updateData, mockUserId);
 
-      // Then: Fields are updated with correct snake_case conversion
-      expect(mockPet.update).toHaveBeenCalledWith({
+      // Then: Fields are passed to the model via set() + save() so the
+      // audit-diff helper can read changed()/_previousDataValues. The net
+      // persisted update is identical to the previous .update() call shape.
+      expect(mockPet.set).toHaveBeenCalledWith({
         name: 'Max',
         shortDescription: 'Friendly and energetic',
         longDescription: 'A wonderful companion who loves to play and cuddle.',
       });
+      expect(mockPet.save).toHaveBeenCalled();
     });
 
     it('should update medical information', async () => {
@@ -561,8 +572,9 @@ describe('PetService - Business Logic', () => {
       // When: Updating medical info
       await PetService.updatePet(mockPetId, updateData, mockUserId);
 
-      // Then: Medical fields are updated
-      expect(mockPet.update).toHaveBeenCalledWith(
+      // Then: Medical fields are passed to set() before save() — see the
+      // first updatePet test for the rationale on set/save vs update.
+      expect(mockPet.set).toHaveBeenCalledWith(
         expect.objectContaining({
           vaccinationStatus: VaccinationStatus.UP_TO_DATE,
           vaccinationDate: expect.any(Date),
@@ -592,8 +604,8 @@ describe('PetService - Business Logic', () => {
       // When: Updating behavioral info
       await PetService.updatePet(mockPetId, updateData, mockUserId);
 
-      // Then: Behavioral fields are updated
-      expect(mockPet.update).toHaveBeenCalledWith(
+      // Then: Behavioral fields are passed to set() before save().
+      expect(mockPet.set).toHaveBeenCalledWith(
         expect.objectContaining({
           goodWithChildren: true,
           goodWithDogs: true,
@@ -630,7 +642,7 @@ describe('PetService - Business Logic', () => {
       const result = await PetService.updatePet(mockPetId, updateData, mockUserId);
 
       // Then: Update succeeds (service allows this)
-      expect(mockPet.update).toHaveBeenCalledWith({ name: 'Updated Name' });
+      expect(mockPet.set).toHaveBeenCalledWith({ name: 'Updated Name' });
       expect(result).toBeDefined();
     });
 
@@ -646,7 +658,7 @@ describe('PetService - Business Logic', () => {
       const result = await PetService.updatePet(mockPetId, updateData, mockUserId);
 
       // Then: Update succeeds (service allows this for administrative purposes)
-      expect(mockPet.update).toHaveBeenCalledWith({ name: 'Updated Name' });
+      expect(mockPet.set).toHaveBeenCalledWith({ name: 'Updated Name' });
       expect(result).toBeDefined();
     });
   });
@@ -862,8 +874,8 @@ describe('PetService - Business Logic', () => {
       // When: Updating pet
       await PetService.updatePet(mockPetId, updateData, mockUserId);
 
-      // Then: rescueId is not in the update call (immutable)
-      expect(mockPet.update).toHaveBeenCalledWith({ name: 'Updated Name' });
+      // Then: rescueId is not in the persisted payload (immutable).
+      expect(mockPet.set).toHaveBeenCalledWith({ name: 'Updated Name' });
     });
 
     it('should maintain image order_index integrity when adding images', async () => {
@@ -913,9 +925,10 @@ describe('PetService - Business Logic', () => {
     });
 
     it('should handle database errors during pet update', async () => {
-      // Given: Pet exists but update fails
+      // Given: Pet exists but save fails. updatePet now uses set() + save()
+      // rather than update(), so the rejection has to happen on save.
       const mockPet = createMockPet();
-      mockPet.update.mockRejectedValue(new Error('Database error'));
+      mockPet.save.mockRejectedValue(new Error('Database error'));
       MockedPet.findByPk = vi.fn().mockResolvedValue(mockPet);
 
       const updateData: PetUpdateData = { name: 'Updated Name' };

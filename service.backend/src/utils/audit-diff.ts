@@ -1,4 +1,3 @@
-import type { Model } from 'sequelize';
 import type { JsonObject, JsonValue } from '../types/common';
 
 /**
@@ -27,7 +26,22 @@ import type { JsonObject, JsonValue } from '../types/common';
  * leaks of bulky / sensitive fields that weren't intended to be tracked.
  */
 
-type AnyModel = Model<Record<string, unknown>>;
+/**
+ * Runtime shape we need. We accept `unknown` at the boundary because
+ * Sequelize models do not publicly expose `_previousDataValues`, but it
+ * exists at runtime — narrowing it ourselves keeps the call sites free of
+ * `as` casts while still being type-safe inside the helper.
+ */
+type DiffableModel = {
+  changed: () => string[] | false;
+  _previousDataValues: Record<string, unknown>;
+  dataValues: Record<string, unknown>;
+};
+
+const isDiffable = (instance: unknown): instance is DiffableModel =>
+  typeof instance === 'object' &&
+  instance !== null &&
+  typeof (instance as { changed?: unknown }).changed === 'function';
 
 const toJsonSafe = (value: unknown): JsonValue => {
   if (value === null || value === undefined) {
@@ -46,11 +60,11 @@ const toJsonSafe = (value: unknown): JsonValue => {
   }
 };
 
-export const diffSequelize = <T extends AnyModel>(
-  instance: T,
+export const diffSequelize = (
+  instance: unknown,
   allowlist: ReadonlyArray<string>
 ): JsonObject | null => {
-  if (!instance || typeof instance.changed !== 'function') {
+  if (!isDiffable(instance)) {
     return null;
   }
   const changed = instance.changed();
@@ -64,11 +78,8 @@ export const diffSequelize = <T extends AnyModel>(
     if (!allowed.has(field)) {
       continue;
     }
-    const previous = (instance as unknown as { _previousDataValues: Record<string, unknown> })
-      ._previousDataValues?.[field];
-    const next = (instance as unknown as { dataValues: Record<string, unknown> }).dataValues?.[
-      field
-    ];
+    const previous = instance._previousDataValues?.[field];
+    const next = instance.dataValues?.[field];
     diff[field] = {
       before: toJsonSafe(previous),
       after: toJsonSafe(next),
