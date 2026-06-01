@@ -13,6 +13,7 @@ import ScheduledReport, {
 } from '../models/ScheduledReport';
 import User, { UserType } from '../models/User';
 import { logger } from '../utils/logger';
+import { AuditLogService } from '../services/auditLog.service';
 import type { ReportConfig } from '../schemas/reports.schema';
 
 /**
@@ -287,6 +288,30 @@ const handleRenderAndEmail = async (data: RenderAndEmailJob): Promise<void> => {
       schedule.last_status = ScheduledReportStatus.SUCCESS;
       schedule.last_error = null;
       await schedule.save();
+
+      // System-level audit so admins can answer "did the scheduled
+      // report run at 9am?" from audit_logs without trawling worker
+      // logs. Mirrors the pattern used by retention.job /
+      // weekly-digest.job. No transaction (background job, single op).
+      await AuditLogService.log({
+        userId: '',
+        action: 'SCHEDULED_REPORT_EXECUTED',
+        entity: 'ScheduledReport',
+        entityId: data.scheduleId,
+        service: 'reports-worker',
+        details: {
+          savedReportId: data.savedReportId,
+          format: data.format,
+          recipientCount: data.recipients?.length ?? 0,
+        },
+      }).catch(err => {
+        // Audit failure must not poison the worker's success path —
+        // the schedule's last_status is already SUCCESS in the DB.
+        logger.warn('Failed to write SCHEDULED_REPORT_EXECUTED audit row', {
+          scheduleId: data.scheduleId,
+          err: err instanceof Error ? err.message : String(err),
+        });
+      });
     }
   }
 };
@@ -346,6 +371,27 @@ export const startReportsWorker = (): Worker<ScheduledRunJob | RenderAndEmailJob
           schedule.last_status = ScheduledReportStatus.FAILED;
           schedule.last_error = err.message.slice(0, 1000);
           await schedule.save().catch(() => undefined);
+
+          // Audit the failure at WARNING level — same forensic
+          // story as the success path, just the bad branch.
+          await AuditLogService.log({
+            userId: '',
+            action: 'SCHEDULED_REPORT_FAILED',
+            entity: 'ScheduledReport',
+            entityId: parsed.data.scheduleId,
+            service: 'reports-worker',
+            level: 'WARNING',
+            status: 'failure',
+            details: {
+              savedReportId: parsed.data.savedReportId,
+              error: err.message.slice(0, 500),
+            },
+          }).catch(auditErr => {
+            logger.warn('Failed to write SCHEDULED_REPORT_FAILED audit row', {
+              scheduleId: parsed.data.scheduleId,
+              err: auditErr instanceof Error ? auditErr.message : String(auditErr),
+            });
+          });
         }
       }
     }
