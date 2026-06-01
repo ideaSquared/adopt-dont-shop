@@ -79,7 +79,7 @@ await authService.logout();
 Session:
 
 - `login(credentials: LoginRequest): Promise<AuthResponse>`
-- `register(userData: RegisterRequest): Promise<AuthResponse>`
+- `register(userData: RegisterRequest): Promise<{ user: User; message: string }>` — registration requires email verification before login, so this returns just the user record and a server-supplied message; route the user to a "check your email" screen rather than treating the response as a successful session.
 - `logout(): Promise<void>`
 - `refreshToken(): Promise<string>`
 - `getCurrentUser(): User | null`
@@ -108,8 +108,8 @@ Two-factor:
 
 Token storage (local):
 
-- `getToken(): string | null`
-- `setToken(token: string | null | undefined): void`
+- `getToken(): null` — kept for compatibility; always returns `null`. The access token lives in an httpOnly cookie managed by the backend and is not readable from JavaScript. HTTP requests send it automatically via `credentials: 'include'`; Socket.IO uses the same cookie on the WebSocket upgrade.
+- `setToken(token: string | null | undefined): void` — no-op for the same reason.
 - `clearTokens(): void`
 
 ## useAuth hook
