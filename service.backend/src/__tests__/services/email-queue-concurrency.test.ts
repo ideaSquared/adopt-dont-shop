@@ -92,6 +92,71 @@ describe('EmailService.processEmailQueue concurrency [ADS-477]', () => {
     }
   };
 
+  it('reclaims SENDING rows whose worker crashed mid-send (older than the threshold)', async () => {
+    // Worker dies after markAsSending+save but before markAsSent.
+    // Without the reaper the row would stay SENDING forever and the
+    // email would silently be lost — processEmailQueue only ever pulls
+    // QUEUED rows.
+    const tracker = { peak: 0, current: 0 };
+    const provider = makeSlowProvider(0, tracker);
+
+    const service = new EmailService() as EmailServiceInternals;
+    await new Promise(resolve => setImmediate(resolve));
+    service.setProvider(provider);
+
+    // Stale SENDING row — lastAttemptAt 10 minutes ago (well past the
+    // 5-minute floor).
+    await EmailQueue.create({
+      toEmail: 'stuck@test.com',
+      fromEmail: 'noreply@test.com',
+      subject: 'stuck',
+      htmlContent: '<p>x</p>',
+      textContent: 'x',
+      type: EmailType.TRANSACTIONAL,
+      status: EmailStatus.SENDING,
+      priority: EmailPriority.NORMAL,
+      createdBy: 'admin',
+      ccEmails: [],
+      bccEmails: [],
+      attachments: [],
+      templateData: {},
+      attempts: 0,
+      maxAttempts: 3,
+      lastAttemptAt: new Date(Date.now() - 10 * 60 * 1000),
+    } as any);
+
+    // Fresh SENDING row — only 30s old, must NOT be reclaimed (a real
+    // worker may still be talking to the provider).
+    await EmailQueue.create({
+      toEmail: 'fresh@test.com',
+      fromEmail: 'noreply@test.com',
+      subject: 'fresh',
+      htmlContent: '<p>x</p>',
+      textContent: 'x',
+      type: EmailType.TRANSACTIONAL,
+      status: EmailStatus.SENDING,
+      priority: EmailPriority.NORMAL,
+      createdBy: 'admin',
+      ccEmails: [],
+      bccEmails: [],
+      attachments: [],
+      templateData: {},
+      attempts: 0,
+      maxAttempts: 3,
+      lastAttemptAt: new Date(Date.now() - 30 * 1000),
+    } as any);
+
+    await service.processEmailQueue();
+
+    // Stuck row was reclaimed (QUEUED) then sent on the same loop tick.
+    const stuck = await EmailQueue.findOne({ where: { toEmail: 'stuck@test.com' } });
+    expect(stuck?.status).toBe(EmailStatus.SENT);
+
+    // Fresh row was left alone.
+    const fresh = await EmailQueue.findOne({ where: { toEmail: 'fresh@test.com' } });
+    expect(fresh?.status).toBe(EmailStatus.SENDING);
+  });
+
   it('processes a batch in parallel up to EMAIL_QUEUE_CONCURRENCY', async () => {
     process.env.EMAIL_QUEUE_CONCURRENCY = '4';
     const tracker = { peak: 0, current: 0 };
