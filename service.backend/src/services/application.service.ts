@@ -520,7 +520,12 @@ export class ApplicationService {
           },
         });
 
-        // Log creation
+        // Log creation — paired with the application + status-transition
+        // writes via `transaction: t` so the audit row commits atomically
+        // with the create. Previously the call sat inside the tx callback
+        // but wasn't bound to it, so an audit succeeding then tx
+        // committing could still leave the trail drifted if the tx itself
+        // rolled back after the audit row was written.
         await AuditLogService.log({
           action: 'CREATE',
           entity: 'Application',
@@ -531,6 +536,7 @@ export class ApplicationService {
             priority: application.priority,
           },
           userId,
+          transaction: t,
         });
 
         loggerHelpers.logBusiness(
