@@ -3,6 +3,7 @@ import { DEFAULT_PAGE_SIZE, LARGE_PAGE_SIZE } from '../constants/pagination';
 import User, { UserStatus, UserType } from '../models/User';
 import Rescue from '../models/Rescue';
 import AdminService from '../services/admin.service';
+import { UserService } from '../services/user.service';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from '../services/auditLog.service';
 import type { RescuePlan } from '../config/plans';
@@ -97,6 +98,11 @@ export class AdminController {
         error: 'Action is required',
       });
     }
+
+    // Block self-actions: an admin must not be able to suspend, delete
+    // or otherwise act on their own account through the admin API
+    // surface (would lock themselves out / drift role state).
+    UserService.validateUserOperation(adminId, userId, action);
 
     let result;
     switch (action) {
@@ -703,6 +709,16 @@ export class AdminController {
     const { userId } = req.params;
     const { firstName, lastName, email, phoneNumber, userType } = req.body;
     const adminId = req.user!.userId;
+
+    // Self-action guard: an admin must not be able to change their own
+    // userType via the admin API — that's a lock-out / role-drift hazard
+    // (e.g. demoting yourself out of ADMIN with no other admin around).
+    // Editing your own name/email/phone here is still allowed.
+    if (userId === adminId && userType !== undefined && userType !== null) {
+      return res.status(403).json({
+        error: 'Cannot change your own userType',
+      });
+    }
 
     const user = await User.findByPk(userId);
     if (!user) {
