@@ -51,10 +51,6 @@ vi.mock('../../services/swipe.service', () => {
   return { SwipeService };
 });
 
-vi.mock('../../sequelize', () => ({
-  default: { query: vi.fn() },
-}));
-
 vi.mock('../../middleware/auth', () => ({
   authenticateToken: (req: AuthenticatedRequest, res: Response, next: NextFunction) =>
     authenticateTokenMock(req, res, next),
@@ -348,7 +344,7 @@ describe('GET /api/v1/discovery/swipe/stats/:userId', () => {
     expect(getUserSwipeStatsMock).toHaveBeenCalledWith(OWNER_ID);
   });
 
-  it('rejects with 403 when reading another user’s stats and does not leak data', async () => {
+  it("rejects with 403 when reading another user's stats and does not leak data", async () => {
     setAuthedUser({ userId: OWNER_ID, userType: UserType.ADOPTER });
 
     const res = await request(buildApp()).get(`/api/v1/discovery/swipe/stats/${OTHER_ID}`);
@@ -368,7 +364,7 @@ describe('GET /api/v1/discovery/swipe/stats/:userId', () => {
     expect(getUserSwipeStatsMock).not.toHaveBeenCalled();
   });
 
-  it('allows an admin to read another user’s stats', async () => {
+  it("allows an admin to read another user's stats", async () => {
     setAuthedUser({ userId: ADMIN_ID, userType: UserType.ADMIN });
 
     const res = await request(buildApp()).get(`/api/v1/discovery/swipe/stats/${OWNER_ID}`);
@@ -376,5 +372,17 @@ describe('GET /api/v1/discovery/swipe/stats/:userId', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(getUserSwipeStatsMock).toHaveBeenCalledWith(OWNER_ID);
+  });
+});
+
+describe('Discovery debug endpoints removed (security)', () => {
+  it('GET /api/v1/discovery/db-test returns 404 — route no longer exists', async () => {
+    const res = await request(buildApp()).get('/api/v1/discovery/db-test');
+    expect(res.status).toBe(404);
+  });
+
+  it('GET /api/v1/discovery/test returns 404 — route no longer exists', async () => {
+    const res = await request(buildApp()).get('/api/v1/discovery/test');
+    expect(res.status).toBe(404);
   });
 });
