@@ -571,3 +571,44 @@ jobs:
       - name: Tear down stack
         if: always()
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
+
+  # ============================================================================
+  # CI REQUIRED — single aggregator gate for branch protection.
+  #
+  # Branch protection / Rulesets reference this one job name. It fans-in to
+  # every regression-blocking job above so adding/renaming a job below does
+  # not require touching the ruleset.
+  #
+  # Path-filtered jobs (test-backend, test-frontend, test-libs, dev-auth-guard,
+  # test-e2e) report `skipped` on PRs that do not touch their paths; classic
+  # branch protection treats `skipped` as a failure, which is why a plain list
+  # of required checks is fragile. This aggregator only fails on `failure`
+  # or `cancelled`, treating `skipped` as success — the standard "merge gate"
+  # pattern.
+  # ============================================================================
+  ci-required:
+    name: CI Required
+    if: always()
+    needs:
+      - workspace-drift
+      - build-libs
+      - test-backend
+      - test-frontend
+      - test-libs
+      - dev-auth-guard
+      - test-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify required jobs succeeded or skipped
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS_JSON" | jq .
+          failed=$(echo "$NEEDS_JSON" | jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key')
+          if [ -n "$failed" ]; then
+            echo "::error::Required jobs failed or were cancelled:"
+            echo "$failed"
+            exit 1
+          fi
+          echo "All required jobs passed or were skipped (path filter)."
