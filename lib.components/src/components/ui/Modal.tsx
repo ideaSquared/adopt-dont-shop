@@ -146,9 +146,7 @@ export const Modal: React.FC<ModalProps> = ({
     // Escape handling are both managed via the inner dialog's onKeyDown
     // below (with a document-level Escape listener as backup) — no
     // keyboard handler is needed on the overlay itself.
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div className={styles.overlay} onClick={handleOverlayClick}>
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
         ref={modalRef}
         className={clsx(styles.modalContainer({ size, centered }), className)}

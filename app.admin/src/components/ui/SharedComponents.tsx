@@ -59,7 +59,6 @@ export const FilterLabel = ({
   className,
   ...props
 }: React.LabelHTMLAttributes<HTMLLabelElement>) => (
-  // eslint-disable-next-line jsx-a11y/label-has-associated-control
   <label className={`${styles.filterLabel}${className ? ` ${className}` : ''}`} {...props} />
 );
 
@@ -113,7 +112,6 @@ export const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDiv
 );
 
 export const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  // eslint-disable-next-line jsx-a11y/heading-has-content
   <h3 className={`${styles.cardTitle}${className ? ` ${className}` : ''}`} {...props} />
 );
 
