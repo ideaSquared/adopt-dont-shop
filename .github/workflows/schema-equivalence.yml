@@ -14,26 +14,52 @@ name: Schema Equivalence
 # after normalisation. As per-domain baselines land, DB-A's bootstrap shifts
 # to explicit createTable calls; the gate then has teeth.
 #
-# Expensive (Postgres + 2x bootstrap + dump). Therefore PR-only and
-# path-filtered to migrations/models. Add as a separate required check in
-# branch protection settings rather than embedding it in `ci.yml`.
+# Expensive (Postgres + 2x bootstrap + dump). Therefore the heavy job is
+# gated by an in-workflow path-detection job rather than the workflow-level
+# `paths:` filter — the latter would prevent the required check name from
+# reporting on PRs that don't touch migrations, blocking those PRs forever
+# under GitHub Rulesets.
 
 on:
   pull_request:
-    paths:
-      - 'service.backend/src/migrations/**'
-      - 'service.backend/src/models/**'
-      - 'service.backend/scripts/normalise-pg-dump.sh'
-      - 'service.backend/scripts/schema-equivalence.sh'
-      - '.github/workflows/schema-equivalence.yml'
 
 concurrency:
   group: schema-equivalence-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  schema-equivalence:
-    name: Schema Equivalence (migrate vs sync)
+  # ============================================================================
+  # PATH DETECTION — always runs, fast (~10s). Outputs whether any schema-
+  # relevant files changed; downstream jobs gate on this.
+  # ============================================================================
+  detect-changes:
+    name: Detect schema-relevant changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d  # v4.0.1
+        id: filter
+        with:
+          filters: |
+            relevant:
+              - 'service.backend/src/migrations/**'
+              - 'service.backend/src/models/**'
+              - 'service.backend/scripts/normalise-pg-dump.sh'
+              - 'service.backend/scripts/schema-equivalence.sh'
+              - '.github/workflows/schema-equivalence.yml'
+
+  # ============================================================================
+  # COMPUTE — the expensive bootstrap-and-diff job. Conditional on the path
+  # detection above. Renamed from `schema-equivalence` so the aggregator below
+  # owns the required-check name.
+  # ============================================================================
+  schema-equivalence-compute:
+    name: Schema Equivalence (compute)
+    needs: detect-changes
+    if: needs.detect-changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -219,3 +245,40 @@ jobs:
           path: schema-equivalence-out/
           retention-days: 14
           if-no-files-found: warn
+
+  # ============================================================================
+  # AGGREGATOR — owns the `Schema Equivalence (migrate vs sync)` status check
+  # name that branch-protection / the ruleset depends on. Always runs, so the
+  # check always reports. Passes when the compute job succeeded OR was skipped
+  # (no relevant changes); fails when the compute job failed or was cancelled.
+  # ============================================================================
+  schema-equivalence:
+    name: Schema Equivalence (migrate vs sync)
+    needs: [detect-changes, schema-equivalence-compute]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify compute job result
+        env:
+          COMPUTE_RESULT: ${{ needs.schema-equivalence-compute.result }}
+          RELEVANT: ${{ needs.detect-changes.outputs.relevant }}
+        run: |
+          echo "compute result: $COMPUTE_RESULT"
+          echo "schema-relevant change detected: $RELEVANT"
+          case "$COMPUTE_RESULT" in
+            failure|cancelled)
+              echo "::error::Schema equivalence check failed."
+              exit 1
+              ;;
+            skipped)
+              echo "No schema-relevant changes — no-op pass."
+              ;;
+            success)
+              echo "Schema equivalence check passed."
+              ;;
+            *)
+              echo "::error::Unexpected compute result: $COMPUTE_RESULT"
+              exit 1
+              ;;
+          esac
