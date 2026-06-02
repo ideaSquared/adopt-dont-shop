@@ -161,20 +161,58 @@ GHCR_TOKEN=read-only-personal-access-token         # scope: read:packages
 
 ### Branch Protection
 
-Recommended branch protection rules for `main`:
+We use the **aggregator (merge-gate) pattern**: branch protection points at a
+single `CI Required` job in `ci.yml` that fans-in to every regression-blocking
+job. Renaming or adding a job under that fan-in doesn't require touching the
+ruleset.
 
-- ✅ Require status checks to pass before merging
-- ✅ Require branches to be up to date before merging
-- ✅ Required status checks (names taken directly from the workflow files):
-  - `Verify Workspace ↔ Filesystem Alignment` (from `ci.yml`)
-  - `Detect Changes` (from `ci.yml`)
-  - `Backend Tests` (from `ci.yml`, gated by path filter)
-  - `Frontend Tests (app.client)` (from `ci.yml`, gated by path filter)
-  - `Frontend Tests (app.admin)` (from `ci.yml`, gated by path filter)
-  - `Frontend Tests (app.rescue)` (from `ci.yml`, gated by path filter)
-  - `Library Tests` (from `ci.yml`, gated by path filter)
-  - `E2E Tests (Playwright)` (from `ci.yml`, ADS-419 blocking signal)
-  - `Verify every lib.* package has tests` (from `lib-test-guard.yml`)
+The ruleset itself lives in the repo at
+`.github/rulesets/main-required-checks.json` and is imported via
+**Settings → Rules → Rulesets → New ruleset → Import a ruleset**.
+
+Three required status checks on `main`:
+
+| Check                                       | Source workflow            | Why required                                                                                                       |
+| ------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `CI Required`                               | `ci.yml`                   | Aggregates workspace-drift, build-libs, backend/frontend/library tests (with coverage gates), dev-auth-guard, E2E. |
+| `Verify every lib.* package has tests`      | `lib-test-guard.yml`       | Deterministic script; always runs; prevents `--passWithNoTests` regressions (ADS-186 / ADS-328).                   |
+| `Schema Equivalence (migrate vs sync)`      | `schema-equivalence.yml`   | Deterministic pg_dump diff; path-filtered to migrations/models. Required to block schema drift on relevant PRs.    |
+
+#### Why these three (and not the others)
+
+The set is filtered to **HIGH-accuracy, no-regression-allowed** signals:
+- **Workspace drift, dev-auth-guard, lib-test-guard, schema-equivalence** —
+  deterministic checks. No flake, no false positives.
+- **Backend / Frontend / Library Tests** — coverage-thresholded in
+  `vitest.config.ts`, so a behaviour regression fails the build directly.
+- **E2E (Playwright)** — designed as the integration blocking signal under
+  ADS-419. Retries are set to `2` in `e2e/playwright.config.ts` to absorb
+  browser/timing flake without hiding real breakage.
+
+Intentionally **not** required:
+- `Detect Changes` — pure metadata helper, not a regression signal.
+- `Quality` (dependency check) — advisory only (`continue-on-error: true`).
+- `Security` (npm audit) — fails on new external CVEs unrelated to the PR.
+- `CodeQL` — possible false positives; runs weekly anyway for drift detection.
+- `Docker` — covered by E2E's `docker compose up --build`; prod images run
+  only on push to `main`/`develop` ahead of `deploy.yml`.
+- `Storybook`, `Release`, `Release Please`, `Deploy`, `Rollback`, `Labeler`,
+  `Sync Labels` — publishing or housekeeping; not PR gates.
+
+#### How `CI Required` handles path-filtered jobs
+
+The aggregator runs with `if: always()` and only fails when a needed job's
+`result` is `failure` or `cancelled`. A job that is `skipped` because its
+path filter didn't match is treated as success — so a PR touching only
+`app.admin/` doesn't get blocked by a skipped backend job.
+
+#### Updating the ruleset
+
+If you add a new HIGH-accuracy regression-blocking job, the preferred path is
+to add it as a `needs:` entry on `ci-required` in `ci.yml` so it rolls up into
+the existing required check. Only add a new entry to the ruleset JSON if the
+job lives in a *separate* workflow file (as `lib-test-guard` and
+`schema-equivalence` do).
 
 ---
 
