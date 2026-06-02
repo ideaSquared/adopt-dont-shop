@@ -99,6 +99,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [lib.feature-flags](../lib.feature-flags/README.md) — Statsig hooks and typed gate constants
 - [lib.invitations](../lib.invitations/README.md) — staff / user invitation flows
 - [lib.legal](../lib.legal/README.md) — re-acceptance modal, cookie banner, consent service
+- [lib.matching](../lib.matching/README.md) — shared types for pet-adopter matching
 - [lib.moderation](../lib.moderation/README.md) — reporting and moderation workflow
 - [lib.notifications](../lib.notifications/README.md) — email / push / in-app / SMS delivery
 - [lib.observability](../lib.observability/README.md) — Sentry init, Web Vitals, consent gate

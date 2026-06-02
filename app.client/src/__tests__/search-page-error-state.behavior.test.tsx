@@ -10,13 +10,24 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 
 import { renderWithProviders, screen, userEvent, waitFor } from '../test-utils';
 
+// Stable function references shared across renders. The real useAnalytics /
+// useStatsig hooks memoise their returned callbacks, so the mocks must do the
+// same — otherwise SearchPage's loadPets useCallback (which depends on
+// trackEvent/logEvent) is recreated every render, re-firing its useEffect and
+// triggering an infinite update loop.
+const { mockTrackEvent, mockTrackPageView, mockLogEvent } = vi.hoisted(() => ({
+  mockTrackEvent: vi.fn(),
+  mockTrackPageView: vi.fn(),
+  mockLogEvent: vi.fn(),
+}));
+
 vi.mock('@/contexts/AnalyticsContext', () => ({
-  useAnalytics: () => ({ trackEvent: vi.fn(), trackPageView: vi.fn() }),
+  useAnalytics: () => ({ trackEvent: mockTrackEvent, trackPageView: mockTrackPageView }),
 }));
 
 vi.mock('@/hooks/useStatsig', () => ({
   useStatsig: () => ({
-    logEvent: vi.fn(),
+    logEvent: mockLogEvent,
     checkGate: () => false,
     client: null,
     getExperiment: () => null,

@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { validationResult } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import { DEFAULT_PAGE_SIZE } from '../constants/pagination';
 import { NotificationService } from '../services/notification.service';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
@@ -18,13 +18,8 @@ export class NotificationController {
    * Get user notifications with pagination and filtering
    */
   getUserNotifications = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { page = 1, status, type, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
@@ -56,13 +51,8 @@ export class NotificationController {
    * Get notification by ID
    */
   getNotificationById = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { notificationId } = req.params;
@@ -82,13 +72,8 @@ export class NotificationController {
    * Create new notification (admin/system only)
    */
   createNotification = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const notificationData = {
@@ -120,13 +105,8 @@ export class NotificationController {
    * Mark notification as read
    */
   markNotificationAsRead = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { notificationId } = req.params;
@@ -156,13 +136,8 @@ export class NotificationController {
    * Delete notification
    */
   deleteNotification = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { notificationId } = req.params;
@@ -203,13 +178,8 @@ export class NotificationController {
    * Update user notification preferences
    */
   updateNotificationPreferences = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const preferences = req.body;
@@ -230,13 +200,8 @@ export class NotificationController {
    * Create bulk notifications (admin only)
    */
   createBulkNotifications = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { userIds, ...notificationData } = req.body;

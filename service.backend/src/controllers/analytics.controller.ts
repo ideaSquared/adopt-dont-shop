@@ -1,5 +1,6 @@
 import { Response } from 'express';
-import { body, validationResult } from 'express-validator';
+import { body } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import { AuthenticatedRequest } from '../types/auth';
 import { logger } from '../utils/logger';
 
@@ -8,13 +9,7 @@ export class AnalyticsController {
    * Record a pageview
    */
   async recordPageview(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
       return;
     }
 
@@ -50,13 +45,7 @@ export class AnalyticsController {
    * Record multiple analytics events in a batch
    */
   async recordEventsBatch(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
       return;
     }
 
@@ -97,13 +86,7 @@ export class AnalyticsController {
    * Record a single analytics event
    */
   async recordEvent(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
       return;
     }
 

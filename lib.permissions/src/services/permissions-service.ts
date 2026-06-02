@@ -14,6 +14,8 @@ import {
   SystemPermissionsResponse,
 } from '../types';
 
+const MAX_PERMISSIONS_CACHE_SIZE = 500;
+
 /**
  * PermissionsService - Handles role-based access control and permissions
  */
@@ -137,8 +139,14 @@ export class PermissionsService {
       )) as UserPermissionsResponse;
       const permissions: Permission[] = response.permissions || [];
 
-      // Cache the permissions
+      // Cache the permissions; evict oldest entry if at capacity
       if (useCache) {
+        if (this.permissionsCache.size >= MAX_PERMISSIONS_CACHE_SIZE) {
+          const oldestKey = this.permissionsCache.keys().next().value;
+          if (oldestKey !== undefined) {
+            this.permissionsCache.delete(oldestKey);
+          }
+        }
         this.permissionsCache.set(userId, {
           permissions,
           expires: Date.now() + this.cacheTimeout,

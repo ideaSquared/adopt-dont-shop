@@ -69,7 +69,11 @@ const buildOfflineAdapter = (): OfflineAdapter => {
     },
     queueMessageForOffline,
     forceSync: () => offlineManager.forceSync(),
-    setSyncCallback: (callback: OfflineSyncCallback) => {
+    setSyncCallback: (callback: OfflineSyncCallback | null) => {
+      if (callback === null) {
+        offlineManager.setSyncCallback(null);
+        return;
+      }
       offlineManager.setSyncCallback(async (messages, actions) =>
         callback(
           messages.map(m => ({ id: m.id, conversationId: m.conversationId, content: m.content })),

@@ -33,6 +33,25 @@ import {
 import { UserActivity } from '../types/user';
 import { logger, loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
+import { diffSequelize } from '../utils/audit-diff';
+
+/**
+ * Sensitive User fields tracked with structured before/after in audit rows.
+ * Restricted allowlist keeps audit rows compact and prevents bulky
+ * `location` GeoJSON / preference JSON from bloating forensic storage.
+ * The full list of mutated field NAMES is still captured under
+ * `updatedFields` so a forensic query can answer "what changed?" even when
+ * the value falls outside the diff allowlist.
+ */
+const USER_AUDIT_DIFF_ALLOWLIST = [
+  'email',
+  'phoneNumber',
+  'firstName',
+  'lastName',
+  'status',
+  'userType',
+  'emailVerified',
+] as const;
 import {
   BadRequestError,
   NotFoundError,
@@ -40,7 +59,6 @@ import {
   ConflictError,
 } from '../middleware/error-handler';
 import { isAdminRole } from '../utils/is-admin-role';
-import { redactSensitiveFields } from '../utils/redact';
 import RefreshToken from '../models/RefreshToken';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { emitAuthRoleChanged } from '../socket/socket-registry';
@@ -111,21 +129,25 @@ type UserActivitySummaryInternal = {
   };
 };
 
+// ADS-784: this service-side schema previously had `.min(1)` but no `.max()`,
+// so an oversized firstName/lastName/bio could reach the DB unbounded. Caps
+// mirror the canonical lib.validation UpdateProfileRequestSchema (name max 100,
+// bio max 500, address fields max 255).
 const UpdateProfileSchema = z.object({
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
-  phoneNumber: z.string().optional(),
-  bio: z.string().optional(),
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  phoneNumber: z.string().max(32).optional(),
+  bio: z.string().max(500).optional(),
   profileImageUrl: z.string().url().optional().nullable(),
   location: z
     .object({
-      type: z.string().optional(),
+      type: z.string().max(64).optional(),
       coordinates: z.tuple([z.number(), z.number()]).optional(),
-      country: z.string().optional(),
-      city: z.string().optional(),
-      addressLine1: z.string().optional(),
-      addressLine2: z.string().optional(),
-      postalCode: z.string().optional(),
+      country: z.string().max(255).optional(),
+      city: z.string().max(255).optional(),
+      addressLine1: z.string().max(255).optional(),
+      addressLine2: z.string().max(255).optional(),
+      postalCode: z.string().max(20).optional(),
     })
     .optional(),
   privacySettings: z
@@ -247,9 +269,6 @@ export class UserService {
         throw new NotFoundError('User not found');
       }
 
-      // Store original data for audit
-      const originalData = user.toJSON();
-
       // Validate and whitelist allowed fields to prevent mass assignment
       const safeData = UpdateProfileSchema.parse(updateData);
 
@@ -289,8 +308,16 @@ export class UserService {
         }
       }
 
-      // Update user
-      await user.update(processedUpdateData);
+      // Update user via set() + save() so the diff helper can read
+      // instance.changed() + _previousDataValues to produce a structured
+      // before/after for the sensitive-field allowlist. The previous
+      // approach dumped a redacted snapshot of the entire user object into
+      // the audit row, which was bulky and only marginally useful for
+      // forensics — a structured diff of the fields that actually changed
+      // is both smaller and easier to query.
+      user.set(processedUpdateData);
+      const diff = diffSequelize(user, USER_AUDIT_DIFF_ALLOWLIST);
+      await user.save();
 
       // Log the update
       await AuditLogService.log({
@@ -298,12 +325,8 @@ export class UserService {
         entity: 'User',
         entityId: userId,
         details: {
-          originalData: redactSensitiveFields(
-            JSON.parse(JSON.stringify(originalData))
-          ) as JsonObject,
-          updateData: redactSensitiveFields(
-            JSON.parse(JSON.stringify(processedUpdateData))
-          ) as JsonObject,
+          ...(diff ? { diff } : {}),
+          updatedFields: Object.keys(processedUpdateData),
         },
         userId,
       });
@@ -1138,18 +1161,14 @@ export class UserService {
       // admin nav, etc.) without waiting for the next page refresh.
       emitAuthRoleChanged(userId);
 
-      // Audit log
-      await AuditLog.create({
+      await AuditLogService.log({
+        userId: adminUserId,
+        action: 'USER_ROLE_UPDATED',
+        entity: 'User',
+        entityId: userId,
         service: 'user',
-        user: adminUserId,
-        action: 'User role update',
-        level: 'INFO',
-        timestamp: new Date(),
-        category: 'USER_MANAGEMENT',
-        metadata: {
-          targetUserId: userId,
-          oldRole: oldUserType,
-          newRole: newUserType,
+        details: {
+          diff: { userType: { before: oldUserType, after: newUserType } },
         },
       });
 
@@ -1408,56 +1427,51 @@ export class UserService {
         ? { ...payload, tokensInvalidBefore: new Date() }
         : payload;
 
-      // Per-id updates with allSettled so a failure on one user (validation,
-      // hook reject, etc.) doesn't take down the whole batch and we can return
-      // the precise list of failedIds for per-item retry in the admin UI.
-      const settled = await Promise.allSettled(
-        targetUserIds.map(async userId => {
-          const [affected] = await User.update(effectiveUpdates, {
-            where: { userId },
-            individualHooks: true,
+      // Per-id updates processed SEQUENTIALLY so the audit row commits in the
+      // same transaction as the user row (atomic pairing — drift impossible).
+      // Sequential rather than concurrent because Sequelize's single-
+      // connection sqlite driver and pooled-connection Postgres setups both
+      // serialise transactions in practice; running them concurrently caused
+      // "cannot commit - no transaction is active" on sqlite and unnecessary
+      // pool pressure on Postgres. A single failure (validation, hook reject)
+      // is caught per-item so the rest of the batch still proceeds and
+      // failedIds can be returned for per-item retry in the admin UI.
+      const reason = updates[0].reason ?? null;
+      const updateFields = Object.keys(updates[0].updates);
+      const results: Array<{ id: string; success: boolean; error?: string }> = [];
+      for (const userId of targetUserIds) {
+        try {
+          await sequelize.transaction(async tx => {
+            const [affected] = await User.update(effectiveUpdates, {
+              where: { userId },
+              individualHooks: true,
+              transaction: tx,
+            });
+            if (affected === 0) {
+              throw new NotFoundError('User not found');
+            }
+            await AuditLogService.log({
+              action: 'BULK_UPDATE',
+              entity: 'User',
+              entityId: userId,
+              details: {
+                fields: updateFields,
+                reason,
+                bulk_operation: true,
+              },
+              userId: updatedBy,
+              transaction: tx,
+            });
           });
-          if (affected === 0) {
-            throw new NotFoundError('User not found');
-          }
-          return userId;
-        })
-      );
-
-      const results = settled.map((outcome, index) => {
-        const id = targetUserIds[index];
-        if (outcome.status === 'fulfilled') {
-          return { id, success: true };
+          results.push({ id: userId, success: true });
+        } catch (error) {
+          const reasonMessage = error instanceof Error ? error.message : String(error);
+          results.push({ id: userId, success: false, error: reasonMessage });
         }
-        const reasonMessage =
-          outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason);
-        return { id, success: false, error: reasonMessage };
-      });
+      }
 
       const failedIds = results.filter(r => !r.success).map(r => r.id);
       const successCount = results.length - failedIds.length;
-
-      // Log bulk update — ADS-651: per-user entries each carry the
-      // operator reason so the audit log captures *why* every affected
-      // user changed state, not just that they were part of a bulk job.
-      // Only audit the successful rows; failed updates didn't change state.
-      const reason = updates[0].reason ?? null;
-      const successfulIds = results.filter(r => r.success).map(r => r.id);
-      await Promise.all(
-        successfulIds.map(userId =>
-          AuditLogService.log({
-            action: 'BULK_UPDATE',
-            entity: 'User',
-            entityId: userId,
-            details: {
-              fields: Object.keys(updates[0].updates),
-              reason,
-              bulk_operation: true,
-            },
-            userId: updatedBy,
-          })
-        )
-      );
 
       if (loggerHelpers && loggerHelpers.logBusiness) {
         loggerHelpers.logBusiness(

@@ -13,13 +13,29 @@ export const LegalPage: React.FC<LegalPageProps> = ({ slug }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError(null);
     cmsPublicService
       .getStaticPage(slug)
-      .then(setContent)
-      .catch(() => setError('Content not found.'))
-      .finally(() => setLoading(false));
+      .then(result => {
+        if (!cancelled) {
+          setContent(result);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError('Content not found.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [slug]);
 
   if (loading) {

@@ -1,4 +1,5 @@
 import HomeVisit, { HomeVisitStatus, HomeVisitOutcome } from '../models/HomeVisit';
+import { bulkInsert } from './lib/bulk-insert';
 
 const homeVisitData = [
   // Emily's completed home visit for Whiskers (based on existing home_visit_notes)
@@ -129,12 +130,17 @@ const homeVisitData = [
 ];
 
 export async function seedHomeVisits(): Promise<void> {
-  // Drop and recreate the table with correct schema
-  await HomeVisit.drop({ cascade: true });
-  await HomeVisit.sync({ force: true });
+  // ADS-784: idempotent. Previously this dropped + force-synced the table
+  // (drifting from migrations) and bulkCreate'd, so a re-run wiped and
+  // re-inserted. Guard on count and insert with ignoreDuplicates so re-runs
+  // are no-ops, matching the sibling seeders.
+  const existing = await HomeVisit.count();
+  if (existing > 0) {
+    console.log(`⏭️  Home visits already seeded (${existing}). Skipping.`);
+    return;
+  }
 
-  // Insert new home visits data
-  await HomeVisit.bulkCreate(homeVisitData);
+  await bulkInsert(HomeVisit, homeVisitData);
 }
 
 // Export data for other seeders if needed

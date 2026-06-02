@@ -133,6 +133,16 @@ describeIfPostgres('03-create-foster-placements (round trip)', () => {
     expect(partialDef).toMatch(/deleted_at IS NULL/);
   });
 
+  it('up() is idempotent when the table already exists (ADS-784 guard)', async () => {
+    // sync() / a prior apply already made the table — the guard must no-op
+    // rather than abort trying to re-create it.
+    await createFosterPlacements.up(queryInterface);
+    expect(await tableExists('foster_placements')).toBe(true);
+
+    await expect(createFosterPlacements.up(queryInterface)).resolves.not.toThrow();
+    expect(await tableExists('foster_placements')).toBe(true);
+  });
+
   it('down() refuses without the destructive-down acknowledgement', async () => {
     await createFosterPlacements.up(queryInterface);
 

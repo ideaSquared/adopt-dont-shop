@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { validationResult } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import { ApplicationProfileService } from '../services/application-profile.service';
 import { AuthenticatedRequest } from '../types/auth';
 
@@ -56,13 +56,7 @@ export class ApplicationProfileController {
    * ```
    */
   static async updateApplicationDefaults(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
       return;
     }
 
@@ -130,13 +124,7 @@ export class ApplicationProfileController {
     req: AuthenticatedRequest,
     res: Response
   ): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
       return;
     }
 
@@ -188,13 +176,7 @@ export class ApplicationProfileController {
    * Process quick application request
    */
   static async processQuickApplication(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
       return;
     }
 

@@ -112,6 +112,45 @@ export function assertDestructiveDownAcknowledged(migrationKey: string): void {
 }
 
 /**
+ * Schema-neutral existence guards for idempotent migrations.
+ *
+ * ADS-784. The legacy `00-baseline.ts` runs `sequelize.sync()`, which creates
+ * every model-registered table/column up front. That migration sorts BEFORE
+ * the post-baseline forward migrations, so those later migrations would then
+ * try to re-create objects sync() already made and abort `db:migrate` on a
+ * clean DB. These guards let a forward migration no-op when the object already
+ * exists (whether created by sync() or a prior apply) and still create it on a
+ * truly fresh object.
+ *
+ * `describeTable` works on both Postgres and SQLite and throws when the table
+ * is absent — we treat the throw as "does not exist".
+ */
+export async function tableExists(
+  queryInterface: QueryInterface,
+  tableName: string
+): Promise<boolean> {
+  try {
+    const description = await queryInterface.describeTable(tableName);
+    return Object.keys(description).length > 0;
+  } catch {
+    return false;
+  }
+}
+
+export async function columnExists(
+  queryInterface: QueryInterface,
+  tableName: string,
+  columnName: string
+): Promise<boolean> {
+  try {
+    const description = await queryInterface.describeTable(tableName);
+    return columnName in description;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Phantom no-op default export. sequelize-cli 6.x's umzug adapter pattern is
  * `/^(?!.*\.d\.ts$).*\.(cjs|js|cts|ts)$/` — it picks up EVERY `.ts` file in
  * the migrations directory (including this helper) and tries to call its

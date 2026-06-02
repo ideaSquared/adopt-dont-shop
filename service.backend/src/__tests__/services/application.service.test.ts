@@ -1135,10 +1135,26 @@ describe('ApplicationService - Business Logic', () => {
       expect(notifArgs.type).toBe('adoption_rejected');
     });
 
-    it('does not notify when application is approved (no symmetric send on approval here)', async () => {
+    it('notifies the applicant by email and in-app when application is approved', async () => {
+      // Symmetric with rejection: the adopter should hear about a positive
+      // decision through both channels instead of only seeing it on next
+      // dashboard refresh / socket push.
       const mockApplication = createMockApplication(ApplicationStatus.SUBMITTED);
       (mockApplication.canTransitionTo as vi.Mock).mockReturnValue(true);
       MockedApplication.findByPk = vi.fn().mockResolvedValue(mockApplication);
+      MockedUser.findByPk = vi.fn().mockResolvedValue({
+        userId: mockUserId,
+        email: 'applicant@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+      });
+      MockedPet.findByPk = vi.fn().mockResolvedValue({
+        petId: mockPetId,
+        name: 'Buddy',
+      });
+      vi.mocked(emailService.getTemplateByName).mockResolvedValue({
+        templateId: 'tmpl-approved',
+      } as never);
 
       await ApplicationService.updateApplicationStatus(
         mockApplicationId,
@@ -1146,8 +1162,15 @@ describe('ApplicationService - Business Logic', () => {
         'rescue-staff-123'
       );
 
-      expect(mockEmailSend).not.toHaveBeenCalled();
-      expect(mockCreateNotification).not.toHaveBeenCalled();
+      expect(mockEmailSend).toHaveBeenCalledTimes(1);
+      const emailArgs = mockEmailSend.mock.calls[0][0];
+      expect(emailArgs.toEmail).toBe('applicant@example.com');
+      expect(emailArgs.templateId).toBe('tmpl-approved');
+
+      expect(mockCreateNotification).toHaveBeenCalledTimes(1);
+      const notifArgs = mockCreateNotification.mock.calls[0][0];
+      expect(notifArgs.userId).toBe(mockUserId);
+      expect(notifArgs.type).toBe('adoption_approved');
     });
 
     it('does not fail the status update when the email send throws', async () => {

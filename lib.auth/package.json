@@ -40,6 +40,7 @@
   "dependencies": {
     "@adopt-dont-shop/lib.components": "*",
     "@adopt-dont-shop/lib.api": "*",
+    "@adopt-dont-shop/lib.permissions": "*",
     "@adopt-dont-shop/lib.types": "*",
     "@adopt-dont-shop/lib.validation": "*",
     "@types/node": "^25.9.1",

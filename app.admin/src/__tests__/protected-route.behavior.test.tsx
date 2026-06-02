@@ -1,13 +1,12 @@
 /**
- * Behavioral tests for ProtectedRoute component (Admin App)
+ * Behavioral tests for ProtectedRoute (Admin App).
  *
- * Tests access-control behavior:
- * - Shows a loading state while authentication status is being verified
- * - Redirects unauthenticated visitors to the login page
- * - Shows "Access Denied" for authenticated non-admin users (adopters, rescue staff)
- * - Renders protected content for admin users
- * - Renders protected content for moderator users
- * - Shows "Insufficient Permissions" when a specific role is required and not met
+ * The component combines two checks:
+ *   1. Identity — the signed-in user must be an admin-tier UserType
+ *      (admin, super_admin, moderator, support_agent). This is "who you are"
+ *      and gates access to the admin app shell.
+ *   2. Capability — when `requiredPermission` or `anyOf` is set, the user
+ *      must hold the named permission(s). This is "what you can do".
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -17,9 +16,11 @@ import { ProtectedRoute } from '../components/ProtectedRoute';
 // ── Module mocks ──────────────────────────────────────────────────────────────
 
 const mockUseAuth = vi.fn();
+const mockUsePermissions = vi.fn();
 
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => mockUseAuth(),
+  usePermissions: () => mockUsePermissions(),
 }));
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -49,16 +50,42 @@ const makeUser = (userType: string) => ({
 
 const ProtectedContent = () => <div>Protected Admin Content</div>;
 
+const setup = ({
+  userType,
+  isAuthenticated = true,
+  isAuthLoading = false,
+  permissions = [] as string[],
+  permissionsLoading = false,
+}: {
+  userType?: string;
+  isAuthenticated?: boolean;
+  isAuthLoading?: boolean;
+  permissions?: string[];
+  permissionsLoading?: boolean;
+}) => {
+  mockUseAuth.mockReturnValue({
+    isAuthenticated,
+    isLoading: isAuthLoading,
+    user: userType ? makeUser(userType) : null,
+  });
+  mockUsePermissions.mockReturnValue({
+    permissions,
+    isLoading: permissionsLoading,
+    refresh: vi.fn(),
+  });
+};
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('ProtectedRoute', () => {
   beforeEach(() => {
     mockUseAuth.mockReset();
+    mockUsePermissions.mockReset();
   });
 
-  describe('while authentication is loading', () => {
-    it('shows a verifying message instead of the protected content', () => {
-      mockUseAuth.mockReturnValue({ isAuthenticated: false, isLoading: true, user: null });
+  describe('while loading', () => {
+    it('shows a verifying message while auth is loading', () => {
+      setup({ isAuthenticated: false, isAuthLoading: true });
 
       renderWithProviders(
         <ProtectedRoute>
@@ -69,23 +96,23 @@ describe('ProtectedRoute', () => {
       expect(screen.getByText('Verifying admin access...')).toBeInTheDocument();
       expect(screen.queryByText('Protected Admin Content')).not.toBeInTheDocument();
     });
+
+    it('shows a verifying message while permissions are loading', () => {
+      setup({ userType: 'admin', permissionsLoading: true });
+
+      renderWithProviders(
+        <ProtectedRoute>
+          <ProtectedContent />
+        </ProtectedRoute>
+      );
+
+      expect(screen.getByText('Verifying admin access...')).toBeInTheDocument();
+    });
   });
 
   describe('when user is not authenticated', () => {
-    it('redirects to the login page', () => {
-      mockUseAuth.mockReturnValue({ isAuthenticated: false, isLoading: false, user: null });
-
-      renderWithProviders(
-        <ProtectedRoute>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.queryByText('Protected Admin Content')).not.toBeInTheDocument();
-    });
-
-    it('does not show the protected content', () => {
-      mockUseAuth.mockReturnValue({ isAuthenticated: false, isLoading: false, user: null });
+    it('does not render the protected content', () => {
+      setup({ isAuthenticated: false });
 
       renderWithProviders(
         <ProtectedRoute>
@@ -97,13 +124,22 @@ describe('ProtectedRoute', () => {
     });
   });
 
-  describe('when an adopter tries to access admin area', () => {
-    it('shows an Access Denied message', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('adopter'),
-      });
+  describe('identity check (admin-tier user)', () => {
+    it('blocks adopters with "Access Denied"', () => {
+      setup({ userType: 'adopter' });
+
+      renderWithProviders(
+        <ProtectedRoute>
+          <ProtectedContent />
+        </ProtectedRoute>
+      );
+
+      expect(screen.getByText('Access Denied')).toBeInTheDocument();
+      expect(screen.queryByText('Protected Admin Content')).not.toBeInTheDocument();
+    });
+
+    it('blocks rescue staff with "Access Denied"', () => {
+      setup({ userType: 'rescue_staff' });
 
       renderWithProviders(
         <ProtectedRoute>
@@ -114,64 +150,8 @@ describe('ProtectedRoute', () => {
       expect(screen.getByText('Access Denied')).toBeInTheDocument();
     });
 
-    it('explains that the admin panel is restricted', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('adopter'),
-      });
-
-      renderWithProviders(
-        <ProtectedRoute>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText(/restricted to platform administrators/i)).toBeInTheDocument();
-    });
-
-    it('does not show the protected content', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('adopter'),
-      });
-
-      renderWithProviders(
-        <ProtectedRoute>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.queryByText('Protected Admin Content')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('when rescue staff tries to access admin area', () => {
-    it('shows an Access Denied message', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('rescue_staff'),
-      });
-
-      renderWithProviders(
-        <ProtectedRoute>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText('Access Denied')).toBeInTheDocument();
-    });
-  });
-
-  describe('when an admin user accesses the admin area', () => {
-    it('renders the protected content', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('admin'),
-      });
+    it('allows admins through when no capability gate is set', () => {
+      setup({ userType: 'admin' });
 
       renderWithProviders(
         <ProtectedRoute>
@@ -182,12 +162,8 @@ describe('ProtectedRoute', () => {
       expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
     });
 
-    it('does not show any access denied message', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('admin'),
-      });
+    it('allows moderators through when no capability gate is set', () => {
+      setup({ userType: 'moderator' });
 
       renderWithProviders(
         <ProtectedRoute>
@@ -195,17 +171,11 @@ describe('ProtectedRoute', () => {
         </ProtectedRoute>
       );
 
-      expect(screen.queryByText('Access Denied')).not.toBeInTheDocument();
+      expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
     });
-  });
 
-  describe('when a moderator user accesses the admin area', () => {
-    it('renders the protected content', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('moderator'),
-      });
+    it('allows super_admins through when no capability gate is set', () => {
+      setup({ userType: 'super_admin' });
 
       renderWithProviders(
         <ProtectedRoute>
@@ -217,152 +187,12 @@ describe('ProtectedRoute', () => {
     });
   });
 
-  describe('when a super_admin user accesses the admin area', () => {
-    it('renders the protected content', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('super_admin'),
-      });
+  describe('capability check via requiredPermission', () => {
+    it('renders content when the user holds the required permission', () => {
+      setup({ userType: 'admin', permissions: ['admin.config.update'] });
 
       renderWithProviders(
-        <ProtectedRoute>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
-    });
-
-    it('does not show any access denied message', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('super_admin'),
-      });
-
-      renderWithProviders(
-        <ProtectedRoute>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.queryByText('Access Denied')).not.toBeInTheDocument();
-    });
-
-    it('renders content even when a specific requiredRole is set', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('super_admin'),
-      });
-
-      renderWithProviders(
-        <ProtectedRoute requiredRole='moderator'>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
-      expect(screen.queryByText('Insufficient Permissions')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('when a specific role is required', () => {
-    it('shows Insufficient Permissions when admin tries to access moderator-only area', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('admin'),
-      });
-
-      renderWithProviders(
-        <ProtectedRoute requiredRole='moderator'>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText('Insufficient Permissions')).toBeInTheDocument();
-      expect(screen.queryByText('Protected Admin Content')).not.toBeInTheDocument();
-    });
-
-    it('explains the required role for access', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('admin'),
-      });
-
-      renderWithProviders(
-        <ProtectedRoute requiredRole='moderator'>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText(/requires moderator privileges/i)).toBeInTheDocument();
-    });
-
-    it('renders content when the user has exactly the required role', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('moderator'),
-      });
-
-      renderWithProviders(
-        <ProtectedRoute requiredRole='moderator'>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
-    });
-  });
-
-  describe('when allowedRoles restricts access to admin/super_admin only', () => {
-    it('denies a support_agent', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('support_agent'),
-      });
-
-      renderWithProviders(
-        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText('Insufficient Permissions')).toBeInTheDocument();
-      expect(screen.queryByText('Protected Admin Content')).not.toBeInTheDocument();
-    });
-
-    it('denies a moderator', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('moderator'),
-      });
-
-      renderWithProviders(
-        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
-          <ProtectedContent />
-        </ProtectedRoute>
-      );
-
-      expect(screen.getByText('Insufficient Permissions')).toBeInTheDocument();
-      expect(screen.queryByText('Protected Admin Content')).not.toBeInTheDocument();
-    });
-
-    it('allows an admin', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('admin'),
-      });
-
-      renderWithProviders(
-        <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+        <ProtectedRoute requiredPermission='admin.config.update'>
           <ProtectedContent />
         </ProtectedRoute>
       );
@@ -371,21 +201,43 @@ describe('ProtectedRoute', () => {
       expect(screen.queryByText('Insufficient Permissions')).not.toBeInTheDocument();
     });
 
-    it('allows a super_admin even when allowedRoles does not include super_admin explicitly', () => {
-      mockUseAuth.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: makeUser('super_admin'),
-      });
+    it('shows "Insufficient Permissions" when the user lacks it', () => {
+      setup({ userType: 'moderator', permissions: ['users.read'] });
 
       renderWithProviders(
-        <ProtectedRoute allowedRoles={['admin']}>
+        <ProtectedRoute requiredPermission='admin.config.update'>
+          <ProtectedContent />
+        </ProtectedRoute>
+      );
+
+      expect(screen.getByText('Insufficient Permissions')).toBeInTheDocument();
+      expect(screen.queryByText('Protected Admin Content')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('capability check via anyOf', () => {
+    it('renders content when the user holds at least one of the permissions', () => {
+      setup({ userType: 'admin', permissions: ['admin.audit.read'] });
+
+      renderWithProviders(
+        <ProtectedRoute anyOf={['admin.audit.read', 'admin.security.read']}>
           <ProtectedContent />
         </ProtectedRoute>
       );
 
       expect(screen.getByText('Protected Admin Content')).toBeInTheDocument();
-      expect(screen.queryByText('Insufficient Permissions')).not.toBeInTheDocument();
+    });
+
+    it('blocks the user when none of the listed permissions are held', () => {
+      setup({ userType: 'moderator', permissions: ['users.read'] });
+
+      renderWithProviders(
+        <ProtectedRoute anyOf={['admin.audit.read', 'admin.security.read']}>
+          <ProtectedContent />
+        </ProtectedRoute>
+      );
+
+      expect(screen.getByText('Insufficient Permissions')).toBeInTheDocument();
     });
   });
 });

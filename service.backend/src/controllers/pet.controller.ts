@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { validationResult } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import { z } from 'zod';
 import {
   BulkPetOperationRequestSchema,
@@ -59,13 +59,8 @@ export class PetController {
 
   // Search pets with filters and pagination
   searchPets = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const filters: PetSearchFilters = {
@@ -218,17 +213,8 @@ export class PetController {
       bodyKeys: Object.keys(req.body),
     });
 
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      logger.warn('Pet creation validation failed', {
-        errors: errors.array(),
-        userId: req.user?.userId,
-      });
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const user = req.user;
@@ -310,13 +296,8 @@ export class PetController {
 
   // Get pet by ID
   getPetById = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const userId = req.user?.userId;
@@ -337,13 +318,8 @@ export class PetController {
 
   // Update pet
   updatePet = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     // Sanitize request body - convert empty strings to null for numeric fields
@@ -372,13 +348,8 @@ export class PetController {
 
   // Delete pet
   deletePet = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const reason = req.body.reason;
@@ -392,13 +363,8 @@ export class PetController {
 
   // Update pet images
   updatePetImages = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const images = req.body.images || [];
@@ -413,13 +379,8 @@ export class PetController {
 
   // Remove pet image
   removePetImage = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const pet = await this.petService.removePetImage(
@@ -541,13 +502,8 @@ export class PetController {
 
   // Update pet status
   updatePetStatus = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const statusUpdate = {
@@ -597,13 +553,8 @@ export class PetController {
 
   // Get pet activity
   getPetActivity = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const petId = req.params.petId;
@@ -636,13 +587,8 @@ export class PetController {
 
   // Favorite pets functionality
   addToFavorites = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const petId = req.params.petId;
@@ -657,13 +603,8 @@ export class PetController {
   };
 
   removeFromFavorites = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const petId = req.params.petId;
@@ -736,13 +677,8 @@ export class PetController {
   static validatePetType = [validateParams(PetTypeParamSchema)];
 
   getPetBreedsByType = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { type } = req.params;
@@ -772,13 +708,8 @@ export class PetController {
    * Get similar pets
    */
   getSimilarPets = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const { petId } = req.params;
@@ -812,13 +743,8 @@ export class PetController {
   ];
 
   reportPet = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const userId = req.user!.userId;
@@ -836,13 +762,8 @@ export class PetController {
   static validateBulkUpdate = [validateBody(BulkPetOperationRequestSchema)];
 
   bulkUpdatePets = async (req: AuthenticatedRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
 
     const updatedBy = req.user!.userId;

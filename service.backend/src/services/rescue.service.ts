@@ -794,7 +794,10 @@ export class RescueService {
       const oldData = rescue.toJSON();
       await rescue.update(updateData, { transaction });
 
-      // Log the action
+      // Log the action — paired with the business writes by passing
+      // `transaction` so the audit row commits atomically with the rescue
+      // update. Without it the audit could commit standalone while the
+      // business update rolled back, leaving the trail drifted.
       await AuditLogService.log({
         userId: updatedBy,
         action: 'update',
@@ -809,6 +812,7 @@ export class RescueService {
             status: oldData.status,
           },
         },
+        transaction,
       });
 
       loggerHelpers.logBusiness(
@@ -888,6 +892,8 @@ export class RescueService {
 
       // Log the action — `auditAction` lets bulk callers preserve their
       // original verb ('approve' vs 'verify') rather than collapsing them.
+      // `transaction` pairs the audit write with the verification update so
+      // they commit (or rollback) atomically.
       await AuditLogService.log({
         userId: verifiedBy,
         action: auditAction,
@@ -898,6 +904,7 @@ export class RescueService {
           name: rescue.name,
           verificationNotes: notes || null,
         },
+        transaction,
       });
 
       loggerHelpers.logBusiness(
@@ -1009,6 +1016,7 @@ export class RescueService {
           rejectionReason: reason || null,
           rejectionNotes: notes || null,
         },
+        transaction,
       });
 
       loggerHelpers.logBusiness(
@@ -1075,6 +1083,7 @@ export class RescueService {
           name: rescue.name,
           reason: reason ?? null,
         },
+        transaction,
       });
 
       loggerHelpers.logBusiness(
@@ -1355,7 +1364,9 @@ export class RescueService {
         logger.warn('rescue_staff role not found in database');
       }
 
-      // Log the action
+      // Log the action — `transaction` pairs the audit row with the
+      // StaffMember.create + UserRole.create writes above so the
+      // permission-grant audit row can never drift from the actual grant.
       await AuditLogService.log({
         userId: addedBy,
         action: 'addStaff',
@@ -1368,6 +1379,7 @@ export class RescueService {
           staffName: `${user.firstName} ${user.lastName}`,
           roleAssigned: rescueStaffRole ? 'rescue_staff' : 'none',
         },
+        transaction,
       });
 
       await transaction.commit();
@@ -1416,7 +1428,9 @@ export class RescueService {
       // This allows them to be re-added easily and maintains their capability level
       // Roles represent what they CAN do, not what they ARE currently doing
 
-      // Log the action
+      // Log the action — `transaction` pairs the audit row with the
+      // staffMember.destroy() so the permission-revoke audit row commits
+      // (or rolls back) atomically with the actual revoke.
       await AuditLogService.log({
         userId: removedBy,
         action: 'removeStaff',
@@ -1428,9 +1442,17 @@ export class RescueService {
           staffName: `${user.firstName} ${user.lastName}`,
           method: 'soft_delete',
         },
+        transaction,
       });
 
       await transaction.commit();
+
+      // ADS-253 mirror: bust the auth cache so requireRescueTenant /
+      // permission checks on the removed user's next request re-read the
+      // (now soft-deleted) StaffMember row instead of serving the stale
+      // verified-staff entry. Without this, a removed user keeps their
+      // rescue access for the full cache TTL.
+      invalidateAuthCache(userId);
 
       logger.info(`Soft deleted staff member ${userId} from rescue ${rescueId}`);
       return { success: true, message: 'Staff member removed successfully' };
@@ -1488,6 +1510,7 @@ export class RescueService {
           staffName: `${staffMember.user.firstName} ${staffMember.user.lastName}`,
           updates,
         },
+        transaction,
       });
 
       await transaction.commit();
@@ -1669,7 +1692,8 @@ export class RescueService {
       // paranoid soft-delete sets deletedAt; the audit log captures who.
       await rescue.destroy({ transaction });
 
-      // Log the action
+      // Log the action — `transaction` pairs the audit row with the
+      // rescue deletion so they commit (or rollback) atomically.
       await AuditLogService.log({
         userId: deletedBy,
         action: 'delete',
@@ -1680,6 +1704,7 @@ export class RescueService {
           name: rescue.name,
           reason: reason || null,
         },
+        transaction,
       });
 
       await transaction.commit();

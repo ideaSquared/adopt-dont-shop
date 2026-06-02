@@ -1,5 +1,5 @@
 import { type Response } from 'express';
-import { validationResult } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import fosterService from '../services/foster.service';
 import { FosterPlacementStatus } from '../models/FosterPlacement';
 import { UserType } from '../models/User';
@@ -21,9 +21,8 @@ export class FosterController {
   }
 
   static async createPlacement(req: AuthenticatedRequest, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
     if (!FosterController.rescueScopeOrAdmin(req, req.body.rescueId)) {
       return res.status(403).json({ error: 'Cannot create placements for this rescue' });
@@ -42,9 +41,8 @@ export class FosterController {
   }
 
   static async listPlacements(req: AuthenticatedRequest, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
     if (!FosterController.isAdmin(req) && !req.user?.rescueId) {
       return res.status(403).json({ error: 'No rescue scope' });
@@ -72,9 +70,8 @@ export class FosterController {
   }
 
   static async getPlacement(req: AuthenticatedRequest, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
     const placement = await fosterService.getById(req.params.id);
     if (!placement) {
@@ -87,9 +84,8 @@ export class FosterController {
   }
 
   static async endPlacement(req: AuthenticatedRequest, res: Response) {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
+      return;
     }
     const existing = await fosterService.getById(req.params.id);
     if (!existing) {

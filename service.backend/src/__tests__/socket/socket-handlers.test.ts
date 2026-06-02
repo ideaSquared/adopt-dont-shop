@@ -84,6 +84,7 @@ vi.mock('../socket-registry', () => ({
 
 import RevokedToken from '../../models/RevokedToken';
 import ChatParticipant from '../../models/ChatParticipant';
+import MessageReaction from '../../models/MessageReaction';
 import StaffMember from '../../models/StaffMember';
 import { ChatService } from '../../services/chat.service';
 import { verifyAccessToken } from '../../utils/jwt';
@@ -472,5 +473,127 @@ describe('socket-handlers get_presence scoping (ADS-739)', () => {
 
     expect(payload).toBeDefined();
     expect(payload![requesterId]).toBeDefined();
+  });
+});
+
+/**
+ * Reaction handlers (add_reaction / remove_reaction) must authorise the
+ * caller against the chat BEFORE acting or broadcasting — otherwise a JWT
+ * holder could mutate reactions on, and leak reactor user_ids into, a chat
+ * they are not a participant of. The broadcast room is derived from the
+ * message's REAL chat_id (returned by the service), not the payload chatId.
+ */
+describe('socket-handlers reaction authorisation', () => {
+  const memberId = '00000000-0000-4000-8000-000000000001';
+  const memberChatId = '00000000-0000-4000-8000-0000000000c1';
+  const foreignChatId = '00000000-0000-4000-8000-0000000000c2';
+  const messageId = '00000000-0000-4000-8000-0000000000d1';
+
+  type EmitRecord = { room: string; event: string; payload: unknown };
+
+  const buildWithEmitCapture = (): { socket: FakeSocket; emits: EmitRecord[] } => {
+    const emits: EmitRecord[] = [];
+    const io: FakeIo = {
+      connectionHandler: null,
+      use: () => undefined,
+      on(event, fn) {
+        if (event === 'connection') {
+          this.connectionHandler = fn;
+        }
+      },
+      to: (room?: string) => ({
+        emit: (event: string, payload: unknown) => emits.push({ room: room ?? '', event, payload }),
+      }),
+    };
+    new SocketHandlers(io as unknown as ConstructorParameters<typeof SocketHandlers>[0]);
+    const socket = createFakeSocket({ userId: memberId });
+    io.connectionHandler?.(socket);
+    return { socket, emits };
+  };
+
+  beforeEach(() => {
+    vi.mocked(verifyAccessToken).mockReturnValue({
+      userId: memberId,
+      email: 'u@example.com',
+      jti: 'jti-1',
+    });
+    vi.mocked(RevokedToken.findByPk).mockResolvedValue(null);
+    vi.mocked(MessageReaction.findAll).mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('rejects add_reaction for a chat the user cannot access (no mutation, no emit)', async () => {
+    vi.mocked(ChatService.getChatById).mockRejectedValue(new Error('Access denied'));
+
+    const { socket, emits } = buildWithEmitCapture();
+    const handler = socket.handlers.get('add_reaction');
+    expect(handler).toBeDefined();
+
+    await handler!({ messageId, emoji: '👍', chatId: foreignChatId });
+
+    expect(vi.mocked(ChatService.getChatById)).toHaveBeenCalledWith(foreignChatId, memberId, false);
+    expect(vi.mocked(ChatService.addMessageReaction)).not.toHaveBeenCalled();
+    expect(emits).toHaveLength(0);
+    expect(socket.emitted.some(e => e.event === 'error')).toBe(true);
+  });
+
+  it('rejects remove_reaction for a chat the user cannot access (no mutation, no emit)', async () => {
+    vi.mocked(ChatService.getChatById).mockRejectedValue(new Error('Access denied'));
+
+    const { socket, emits } = buildWithEmitCapture();
+    const handler = socket.handlers.get('remove_reaction');
+    await handler!({ messageId, emoji: '👍', chatId: foreignChatId });
+
+    expect(vi.mocked(ChatService.removeMessageReaction)).not.toHaveBeenCalled();
+    expect(emits).toHaveLength(0);
+    expect(socket.emitted.some(e => e.event === 'error')).toBe(true);
+  });
+
+  it("broadcasts add_reaction to the message's real chat for an authorised participant", async () => {
+    vi.mocked(ChatService.getChatById).mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<typeof ChatService.getChatById>>
+    );
+    // Service returns the message carrying its REAL chat_id.
+    vi.mocked(ChatService.addMessageReaction).mockResolvedValue({
+      chat_id: memberChatId,
+    } as unknown as Awaited<ReturnType<typeof ChatService.addMessageReaction>>);
+
+    const { socket, emits } = buildWithEmitCapture();
+    const handler = socket.handlers.get('add_reaction');
+    await handler!({ messageId, emoji: '👍', chatId: memberChatId });
+
+    expect(vi.mocked(ChatService.getChatById)).toHaveBeenCalledWith(memberChatId, memberId, false);
+    expect(vi.mocked(ChatService.addMessageReaction)).toHaveBeenCalledWith(
+      messageId,
+      memberId,
+      '👍'
+    );
+    expect(emits).toHaveLength(1);
+    expect(emits[0].room).toBe(`chat:${memberChatId}`);
+    expect(emits[0].event).toBe('reaction_added');
+  });
+
+  it('derives the broadcast room from the message chat_id, not the payload chatId', async () => {
+    // Payload claims memberChatId, but the message actually belongs to a
+    // different chat the user is also in — the broadcast must follow the
+    // service's chat_id rather than the client-supplied value.
+    const realChatId = '00000000-0000-4000-8000-0000000000c9';
+    vi.mocked(ChatService.getChatById).mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<typeof ChatService.getChatById>>
+    );
+    vi.mocked(ChatService.removeMessageReaction).mockResolvedValue({
+      chat_id: realChatId,
+    } as unknown as Awaited<ReturnType<typeof ChatService.removeMessageReaction>>);
+
+    const { socket, emits } = buildWithEmitCapture();
+    const handler = socket.handlers.get('remove_reaction');
+    await handler!({ messageId, emoji: '👍', chatId: memberChatId });
+
+    expect(emits).toHaveLength(1);
+    expect(emits[0].room).toBe(`chat:${realChatId}`);
+    expect(emits[0].event).toBe('reaction_removed');
   });
 });

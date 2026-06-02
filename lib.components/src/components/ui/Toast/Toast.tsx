@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { ToastMessage } from '../../../hooks/useToast';
 import * as styles from './Toast.css';
@@ -90,20 +90,39 @@ export const Toast: React.FC<ToastProps> = ({
   autoClose = true,
 }) => {
   const [isExiting, setIsExiting] = useState(false);
+  // Tracks the inner 200ms exit-animation timer so it can be cleared on unmount.
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (exitTimerRef.current !== null) {
+        clearTimeout(exitTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (autoClose && duration && duration > 0 && onClose) {
       const timer = setTimeout(() => {
         setIsExiting(true);
-        setTimeout(() => onClose(id), 200);
+        exitTimerRef.current = setTimeout(() => onClose(id), 200);
       }, duration);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        if (exitTimerRef.current !== null) {
+          clearTimeout(exitTimerRef.current);
+          exitTimerRef.current = null;
+        }
+      };
     }
   }, [duration, autoClose, onClose, id]);
 
   const handleClose = () => {
+    if (exitTimerRef.current !== null) {
+      clearTimeout(exitTimerRef.current);
+    }
     setIsExiting(true);
-    setTimeout(() => onClose?.(id), 200);
+    exitTimerRef.current = setTimeout(() => onClose?.(id), 200);
   };
 
   return (

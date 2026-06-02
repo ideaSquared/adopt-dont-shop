@@ -12,20 +12,29 @@ export const HelpPage: React.FC = () => {
   const loadArticles = useCallback(() => {
     setLoading(true);
     setError(null);
+    let cancelled = false;
     cmsPublicService
       .listHelpArticles()
       .then(result => {
-        setArticles(result.content);
-        setLoading(false);
+        if (!cancelled) {
+          setArticles(result.content);
+          setLoading(false);
+        }
       })
       .catch(() => {
-        setError('We couldn’t load help articles. Please try again.');
-        setLoading(false);
+        if (!cancelled) {
+          setError('We couldn’t load help articles. Please try again.');
+          setLoading(false);
+        }
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    loadArticles();
+    const cancel = loadArticles();
+    return cancel;
   }, [loadArticles]);
 
   return (

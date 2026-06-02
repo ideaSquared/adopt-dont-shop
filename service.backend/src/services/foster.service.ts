@@ -6,6 +6,7 @@ import FosterPlacement, {
   type FosterPlacementAttributes,
 } from '../models/FosterPlacement';
 import PetStatusTransition from '../models/PetStatusTransition';
+import { AuditLogService } from './auditLog.service';
 import { logger } from '../utils/logger';
 import { NotFoundError, ConflictError } from '../middleware/error-handler';
 
@@ -85,6 +86,20 @@ class FosterService {
       pet.status = PetStatus.FOSTER;
       await pet.save({ transaction: t });
 
+      await AuditLogService.log({
+        userId: actorUserId ?? '',
+        action: 'FOSTER_PLACEMENT_CREATED',
+        entity: 'FosterPlacement',
+        entityId: placement.placementId,
+        details: {
+          petId: input.petId,
+          fosterUserId: input.fosterUserId,
+          rescueId: input.rescueId,
+          startDate: input.startDate.toISOString(),
+        },
+        transaction: t,
+      });
+
       return placement.get({ plain: true });
     });
   }
@@ -135,6 +150,19 @@ class FosterService {
         pet.status = nextStatus;
         await pet.save({ transaction: t });
       }
+
+      await AuditLogService.log({
+        userId: actorUserId ?? '',
+        action: 'FOSTER_PLACEMENT_ENDED',
+        entity: 'FosterPlacement',
+        entityId: placement.placementId,
+        details: {
+          petId: placement.petId,
+          outcome: input.outcome,
+          endDate: placement.endDate?.toISOString(),
+        },
+        transaction: t,
+      });
 
       return placement.get({ plain: true });
     });

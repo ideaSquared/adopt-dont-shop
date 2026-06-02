@@ -10,6 +10,11 @@ on:
         options:
           - staging
           - production
+      skip_ci_check:
+        description: 'Skip the CI check-suites gate (use only for emergency deploys)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -52,8 +57,13 @@ jobs:
             jq '[.check_suites[] | select(.app.slug == "github-actions" and .status == "completed")]')
           total=$(echo "$completed" | jq 'length')
           if [ "$total" -eq 0 ]; then
-            echo "WARNING: No completed GitHub Actions check-suites found for $SHA — proceeding."
-            exit 0
+            if [ "${{ github.event.inputs.skip_ci_check }}" = "true" ]; then
+              echo "WARNING: No completed GitHub Actions check-suites found for $SHA — skip_ci_check=true, proceeding."
+            else
+              echo "ERROR: No completed GitHub Actions check-suites found for $SHA. CI may not have run yet."
+              echo "Use the skip_ci_check input to override for emergency deploys."
+              exit 1
+            fi
           fi
           failed=$(echo "$completed" | jq '[.[] | select(.conclusion != "success" and .conclusion != "neutral" and .conclusion != "skipped")] | length')
           if [ "$failed" -gt 0 ]; then
@@ -186,13 +196,21 @@ jobs:
         # exclusively for `docker pull` during deployment.
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          SECRET_JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SECRET_JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+          SECRET_SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          SECRET_CSRF_SECRET: ${{ secrets.CSRF_SECRET }}
+          SECRET_ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          SECRET_UPLOAD_SIGNING_SECRET: ${{ secrets.UPLOAD_SIGNING_SECRET }}
+          SECRET_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          SECRET_REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          envs: GHCR_TOKEN
+          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_SESSION_SECRET,SECRET_CSRF_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_REDIS_PASSWORD
           script: |
             set -euo pipefail
             ENV="${{ github.event.inputs.environment }}"
@@ -220,6 +238,23 @@ jobs:
               COMPOSE_FILE="docker-compose.staging.yml"
             fi
 
+            # Materialize Docker secret files for production (consumed via
+            # file: ./secrets/<name> in docker-compose.prod.yml). Staging uses
+            # plaintext env vars and does not need secret files. [ADS-675]
+            if [ "$ENV" = "production" ]; then
+              mkdir -p secrets
+              chmod 700 secrets
+              printf '%s' "$SECRET_JWT_SECRET"           > secrets/jwt_secret
+              printf '%s' "$SECRET_JWT_REFRESH_SECRET"   > secrets/jwt_refresh_secret
+              printf '%s' "$SECRET_SESSION_SECRET"       > secrets/session_secret
+              printf '%s' "$SECRET_CSRF_SECRET"          > secrets/csrf_secret
+              printf '%s' "$SECRET_ENCRYPTION_KEY"       > secrets/encryption_key
+              printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET" > secrets/upload_signing_secret
+              printf '%s' "$SECRET_DB_PASSWORD"          > secrets/db_password
+              printf '%s' "$SECRET_REDIS_PASSWORD"       > secrets/redis_password
+              chmod 600 secrets/*
+            fi
+
             # Bring up new containers. The service-backend-migrate sidecar
             # runs `sequelize-cli db:migrate` to completion before the backend
             # starts (depends_on: service_completed_successfully). [ADS-393]
@@ -238,6 +273,12 @@ jobs:
               fi
               sleep 2
             done
+
+            # Remove secret files now that containers have started (they hold
+            # in-memory copies; the files on disk are no longer needed). [ADS-675]
+            if [ "$ENV" = "production" ]; then
+              rm -f secrets/*
+            fi
 
             # Record deployed SHA
             echo "$SHA" > .last_sha

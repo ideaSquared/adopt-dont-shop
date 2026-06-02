@@ -126,7 +126,7 @@ describe('Notification routes', () => {
       const res = await request(buildApp())
         .get('/api/v1/notifications')
         .query({ status: 'pending' });
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
       expect(mockGetUserNotifications).not.toHaveBeenCalled();
     });
   });
@@ -171,14 +171,14 @@ describe('Notification routes', () => {
     it('rejects a non-UUID notificationId with 400 and never reaches the service', async () => {
       mockMarkAsRead.mockResolvedValue(undefined);
       const res = await request(buildApp()).patch('/api/v1/notifications/not-a-uuid/read');
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
       expect(mockMarkAsRead).not.toHaveBeenCalled();
     });
 
     it('rejects an oddly-shaped string that looks like a legacy id', async () => {
       mockMarkAsRead.mockResolvedValue(undefined);
       const res = await request(buildApp()).patch('/api/v1/notifications/abc_123/read');
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
       expect(mockMarkAsRead).not.toHaveBeenCalled();
     });
 

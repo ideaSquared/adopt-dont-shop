@@ -6,10 +6,17 @@
  * live directly on the match profile so the matching engine can use them.
  */
 import { DataTypes, type QueryInterface } from 'sequelize';
-import { runInTransaction } from './_helpers';
+import { columnExists, runInTransaction } from './_helpers';
 
 export default {
   up: async (queryInterface: QueryInterface) => {
+    // ADS-784: idempotency guard. `00-baseline.ts` sync() already adds this
+    // column on a clean DB (the model declares it) and sorts before this
+    // migration; no-op when present, add when truly fresh. (Approved edit to
+    // an existing migration — it never worked from a clean DB.)
+    if (await columnExists(queryInterface, 'adopter_match_profile', 'allergies')) {
+      return;
+    }
     await runInTransaction(queryInterface, async transaction => {
       await queryInterface.addColumn(
         'adopter_match_profile',

@@ -148,7 +148,8 @@ describe('PUT /api/v1/match/profile', () => {
       allergies: 123,
     });
 
-    expect(response.status).toBe(400);
+    // ADS-784: validation errors now use the canonical 422 `details` envelope.
+    expect(response.status).toBe(422);
     expect(upsertMock).not.toHaveBeenCalled();
   });
 });

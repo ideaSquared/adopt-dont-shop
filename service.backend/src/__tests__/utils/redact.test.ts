@@ -51,4 +51,39 @@ describe('redactLogPayload', () => {
     expect(redactLogPayload(42)).toBe(42);
     expect(redactLogPayload('hello')).toBe('hello');
   });
+
+  it('does not throw on a deeply nested object and truncates beyond the depth cap', () => {
+    // Build an object 50 levels deep — well past the cap.
+    type Nested = { next?: Nested; password?: string };
+    let deep: Nested = { password: 'leaf-secret' };
+    for (let i = 0; i < 50; i += 1) {
+      deep = { next: deep };
+    }
+
+    let result: Nested = { password: '' };
+    expect(() => {
+      result = redactLogPayload(deep);
+    }).not.toThrow();
+
+    // Walk down to the cap and confirm it was truncated rather than recursed
+    // all the way (which would otherwise be the leaf object).
+    let cursor: unknown = result;
+    for (let i = 0; i < 10; i += 1) {
+      cursor = (cursor as { next?: unknown }).next;
+    }
+    expect(cursor).toBe('[TRUNCATED]');
+  });
+
+  it('does not throw on a cyclic object and marks the back-reference', () => {
+    const cyclic: Record<string, unknown> = { name: 'root', password: 'p' };
+    cyclic.self = cyclic;
+
+    let result: Record<string, unknown> = {};
+    expect(() => {
+      result = redactLogPayload(cyclic);
+    }).not.toThrow();
+
+    expect(result.password).toBe('[REDACTED]');
+    expect(result.self).toBe('[CIRCULAR]');
+  });
 });

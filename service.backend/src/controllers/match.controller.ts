@@ -1,5 +1,6 @@
 import { Response } from 'express';
-import { body, query, validationResult } from 'express-validator';
+import { body, query } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import { matchService } from '../matching';
 import AdopterMatchProfile from '../models/AdopterMatchProfile';
 import Breed from '../models/Breed';
@@ -72,9 +73,7 @@ export class MatchController {
   }
 
   static async upsertProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ success: false, errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
       return;
     }
 
@@ -94,9 +93,7 @@ export class MatchController {
   }
 
   static async getTopPicks(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({ success: false, errors: errors.array() });
+    if (sendValidationErrors(req, res)) {
       return;
     }
 

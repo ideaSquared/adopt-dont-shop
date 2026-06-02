@@ -308,11 +308,24 @@ export const OnboardingWizardPage: React.FC = () => {
       yard: form.yard,
     };
 
+    // Step 1 collects household activity_level (low/medium/high) but the
+    // backend profile only has preferred_energy. If the adopter answered
+    // Step 1 but skipped the Step 2 energy chips, the activity_level
+    // answer would otherwise be silently dropped — mirror the legacy
+    // quiz migration (10-migrate-quiz-data-to-match-profile.ts) and
+    // derive preferred_energy from activity_level when chips are empty.
+    const preferredEnergy =
+      form.preferred_energy.length > 0
+        ? form.preferred_energy
+        : form.activity_level
+          ? [form.activity_level]
+          : [];
+
     return {
       preferred_types: form.preferred_types,
       preferred_sizes: form.preferred_sizes,
       preferred_age_groups: form.preferred_age_groups,
-      preferred_energy: form.preferred_energy,
+      preferred_energy: preferredEnergy,
       lifestyle,
       max_distance_km: form.max_distance_km === '' ? null : form.max_distance_km,
       open_to_special_needs: form.open_to_special_needs,

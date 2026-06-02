@@ -20,6 +20,8 @@ runs:
           eslint-config-*/node_modules
           e2e/node_modules
         key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          node-modules-${{ runner.os }}-
     - name: Install workspace dependencies
       if: steps.cache-node-modules.outputs.cache-hit != 'true'
       shell: bash

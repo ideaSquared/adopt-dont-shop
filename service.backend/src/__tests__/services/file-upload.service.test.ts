@@ -128,6 +128,10 @@ const setupSuccessfulUpload = (mimetype = 'image/jpeg') => {
   });
   vi.mocked(fs.promises.stat).mockResolvedValue({
     mtime: new Date('2024-01-01'),
+    // The service now reads the on-disk size after processing so the DB
+    // row reflects compressed bytes, not the original multer-reported
+    // size. Existing assertions use file.size, so mirror that here.
+    size: 2048,
   } as unknown as import('fs').Stats);
   vi.mocked(fs.promises.readFile).mockResolvedValue(Buffer.from('file-content'));
   vi.mocked(FileUpload.create).mockResolvedValue(makeMockRecord({ mime_type: mimetype }));

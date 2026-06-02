@@ -14,26 +14,52 @@ name: Schema Equivalence
 # after normalisation. As per-domain baselines land, DB-A's bootstrap shifts
 # to explicit createTable calls; the gate then has teeth.
 #
-# Expensive (Postgres + 2x bootstrap + dump). Therefore PR-only and
-# path-filtered to migrations/models. Add as a separate required check in
-# branch protection settings rather than embedding it in `ci.yml`.
+# Expensive (Postgres + 2x bootstrap + dump). Therefore the heavy job is
+# gated by an in-workflow path-detection job rather than the workflow-level
+# `paths:` filter — the latter would prevent the required check name from
+# reporting on PRs that don't touch migrations, blocking those PRs forever
+# under GitHub Rulesets.
 
 on:
   pull_request:
-    paths:
-      - 'service.backend/src/migrations/**'
-      - 'service.backend/src/models/**'
-      - 'service.backend/scripts/normalise-pg-dump.sh'
-      - 'service.backend/scripts/schema-equivalence.sh'
-      - '.github/workflows/schema-equivalence.yml'
 
 concurrency:
   group: schema-equivalence-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  schema-equivalence:
-    name: Schema Equivalence (migrate vs sync)
+  # ============================================================================
+  # PATH DETECTION — always runs, fast (~10s). Outputs whether any schema-
+  # relevant files changed; downstream jobs gate on this.
+  # ============================================================================
+  detect-changes:
+    name: Detect schema-relevant changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d  # v4.0.1
+        id: filter
+        with:
+          filters: |
+            relevant:
+              - 'service.backend/src/migrations/**'
+              - 'service.backend/src/models/**'
+              - 'service.backend/scripts/normalise-pg-dump.sh'
+              - 'service.backend/scripts/schema-equivalence.sh'
+              - '.github/workflows/schema-equivalence.yml'
+
+  # ============================================================================
+  # COMPUTE — the expensive bootstrap-and-diff job. Conditional on the path
+  # detection above. Renamed from `schema-equivalence` so the aggregator below
+  # owns the required-check name.
+  # ============================================================================
+  schema-equivalence-compute:
+    name: Schema Equivalence (compute)
+    needs: detect-changes
+    if: needs.detect-changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -118,11 +144,15 @@ jobs:
 
       - name: Bootstrap DB-A via db:migrate
         working-directory: service.backend
-        # Test-env env-vars required by validate-env at `00-baseline.ts`
-        # import time. Deterministic test-only values.
+        # NODE_ENV=development (not `test`) so `src/sequelize.ts` connects to
+        # the Postgres service container above instead of falling through to
+        # its `:memory:` SQLite shim — the shim is reserved for the unit test
+        # suite, and routing migrations through it generates SQLite-dialect
+        # DDL (backtick quoting, no array types) that crashes against
+        # Postgres on the very first table. Deterministic test-only secrets.
         env:
-          NODE_ENV: test
-          TEST_DB_NAME: schema_equiv_a
+          NODE_ENV: development
+          DEV_DB_NAME: schema_equiv_a
           JWT_SECRET: test-jwt-secret-min-32-characters-long
           JWT_REFRESH_SECRET: test-jwt-refresh-secret-min-32-characters-long
           SESSION_SECRET: test-session-secret-min-32-characters-long
@@ -133,8 +163,8 @@ jobs:
       - name: Bootstrap DB-B via sequelize.sync()
         working-directory: service.backend
         env:
-          NODE_ENV: test
-          TEST_DB_NAME: schema_equiv_b
+          NODE_ENV: development
+          DEV_DB_NAME: schema_equiv_b
           JWT_SECRET: test-jwt-secret-min-32-characters-long
           JWT_REFRESH_SECRET: test-jwt-refresh-secret-min-32-characters-long
           SESSION_SECRET: test-session-secret-min-32-characters-long
@@ -179,19 +209,14 @@ jobs:
 
       - name: Diff the normalised dumps
         id: diff
-        # Advisory only until ADS-rebaseline-2 lands. The DB-B bootstrap path
-        # imports `src/sequelize.ts`, which routes `NODE_ENV=test` to an
-        # in-memory SQLite shim. Multiple models then hard-code
-        # `defaultValue: process.env.NODE_ENV === 'test' ? '[]' : []` so the
-        # SQLite TEXT column accepts a string default. Even with the Postgres
-        # service container running, sync() either falls through to SQLite
-        # (no drift but DB-B is empty) or crashes on the array-default type
-        # mismatch (`values.map is not a function`) when forced to Postgres.
-        # Making DB-B real-Postgres needs a dialect-aware default helper
-        # refactor across ~6 models — out of scope. `continue-on-error: true`
-        # keeps the gate visible as a TODO without failing PR checks. The
-        # artefacts (raw + normalised dumps, diff) still upload for manual
-        # inspection.
+        # Advisory only until ADS-rebaseline-2 lands. Both bootstraps now
+        # run against real Postgres (NODE_ENV=development above), so the
+        # diff genuinely reflects migrate-vs-sync drift — but the rebaseline
+        # work that aligns the two paths isn't complete yet, so failing the
+        # PR check on every drift here would block unrelated work.
+        # `continue-on-error: true` keeps the gate visible as a TODO without
+        # failing PR checks. The artefacts (raw + normalised dumps, diff)
+        # still upload for manual inspection.
         continue-on-error: true
         run: |
           if diff -u \
@@ -220,3 +245,40 @@ jobs:
           path: schema-equivalence-out/
           retention-days: 14
           if-no-files-found: warn
+
+  # ============================================================================
+  # AGGREGATOR — owns the `Schema Equivalence (migrate vs sync)` status check
+  # name that branch-protection / the ruleset depends on. Always runs, so the
+  # check always reports. Passes when the compute job succeeded OR was skipped
+  # (no relevant changes); fails when the compute job failed or was cancelled.
+  # ============================================================================
+  schema-equivalence:
+    name: Schema Equivalence (migrate vs sync)
+    needs: [detect-changes, schema-equivalence-compute]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify compute job result
+        env:
+          COMPUTE_RESULT: ${{ needs.schema-equivalence-compute.result }}
+          RELEVANT: ${{ needs.detect-changes.outputs.relevant }}
+        run: |
+          echo "compute result: $COMPUTE_RESULT"
+          echo "schema-relevant change detected: $RELEVANT"
+          case "$COMPUTE_RESULT" in
+            failure|cancelled)
+              echo "::error::Schema equivalence check failed."
+              exit 1
+              ;;
+            skipped)
+              echo "No schema-relevant changes — no-op pass."
+              ;;
+            success)
+              echo "Schema equivalence check passed."
+              ;;
+            *)
+              echo "::error::Unexpected compute result: $COMPUTE_RESULT"
+              exit 1
+              ;;
+          esac

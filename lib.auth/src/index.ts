@@ -7,8 +7,24 @@ export { AuthService, authService } from './services/auth-service';
 export { AuthProvider, AuthContext } from './contexts/AuthContext';
 export type { AuthContextType, AuthProviderProps } from './contexts/AuthContext';
 export { useAuth } from './hooks/useAuth';
+export {
+  PermissionsProvider,
+  PermissionsContext,
+  usePermissions,
+} from './contexts/PermissionsContext';
+export type {
+  PermissionsProviderProps,
+  PermissionsContextValue,
+} from './contexts/PermissionsContext';
+export {
+  useHasPermission,
+  useHasAnyPermission,
+  useHasAllPermissions,
+} from './hooks/useHasPermission';
 
 // Components
+export { PermissionGate } from './components/PermissionGate';
+export type { PermissionGateProps } from './components/PermissionGate';
 export { AuthLayout } from './components/AuthLayout';
 export type { AuthLayoutProps } from './components/AuthLayout';
 export { LoginForm } from './components/LoginForm';

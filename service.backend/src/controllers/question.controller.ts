@@ -1,5 +1,6 @@
 import { Response } from 'express';
-import { body, param, validationResult } from 'express-validator';
+import { body, param } from 'express-validator';
+import { sendValidationErrors } from '../middleware/validation';
 import { QuestionCategory, QuestionType } from '../models/ApplicationQuestion';
 import { AuthenticatedRequest } from '../types/api';
 import QuestionService from '../services/question.service';
@@ -101,17 +102,10 @@ export class QuestionController {
       .withMessage('Display order must be 0-9999'),
   ];
 
+  // ADS-784: delegate to the shared helper so this controller emits the same
+  // canonical 422 `details` envelope as every other validated endpoint.
   private static sendValidationError(res: Response, req: AuthenticatedRequest): boolean {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      res.status(400).json({
-        success: false,
-        error: 'Validation Error',
-        details: errors.array(),
-      });
-      return true;
-    }
-    return false;
+    return sendValidationErrors(req, res);
   }
 
   async getQuestions(req: AuthenticatedRequest, res: Response): Promise<void> {

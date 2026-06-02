@@ -62,6 +62,8 @@
     "00-baseline-059-idempotency-keys",
     "00-baseline-060-cms-content",
     "00-baseline-061-cms-navigation-menus",
+    "00-baseline-062-adopter-match-profile",
+    "00-baseline-063-user-preferences",
     "00-baseline-999-foreign-keys"
   ]
 }

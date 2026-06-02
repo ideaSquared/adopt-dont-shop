@@ -190,7 +190,7 @@ class OfflineManager {
   }
 
   // Public API
-  setSyncCallback(callback: SyncCallback) {
+  setSyncCallback(callback: SyncCallback | null) {
     this.syncCallback = callback;
   }
 

@@ -11,7 +11,6 @@ import EmailTemplate, {
 } from '../models/EmailTemplate';
 import { JsonObject, JsonValue, TemplateData, TemplateVariable } from '../types/common';
 import { BulkEmailOptions, EmailAnalytics, SendEmailOptions } from '../types/email';
-import { AuditLog } from '../models/AuditLog';
 import logger, { loggerHelpers } from '../utils/logger';
 import { AuditLogService } from './auditLog.service';
 import { EmailProvider } from './email-providers/base-provider';
@@ -140,23 +139,18 @@ class EmailService {
       provider,
       environment: process.env.NODE_ENV,
     });
-    // System-level audit row (no user actor) — mirror the pattern used by
-    // the legal-reminder worker so the immutable-trigger doesn't reject
-    // the write and so the operator can answer "which provider was
-    // active at deploy time?" by querying audit_logs.
-    AuditLog.create({
-      service: 'adopt-dont-shop-backend',
-      user: null,
-      user_email_snapshot: null,
+    // System-level audit row (no user actor). Routed through AuditLogService
+    // so the email-snapshot capture, redaction and entity-activity queries
+    // line up with the rest of the codebase — direct AuditLog.create bypasses
+    // all of that. Boot-time so we tolerate failure (logger.warn + swallow);
+    // we don't want a deploy to fail because of a transient audit-log error.
+    AuditLogService.log({
+      userId: '',
       action: 'EMAIL_PROVIDER_INITIALIZED',
-      level: 'INFO',
-      timestamp: new Date(),
-      metadata: {
-        entity: 'EmailService',
-        entityId: 'boot',
-        details: { provider, environment: process.env.NODE_ENV ?? 'unknown' },
-      },
-      category: 'System',
+      entity: 'EmailService',
+      entityId: 'boot',
+      service: 'adopt-dont-shop-backend',
+      details: { provider, environment: process.env.NODE_ENV ?? 'unknown' },
     }).catch(error => {
       logger.warn('Failed to write EMAIL_PROVIDER_INITIALIZED audit row', { error });
     });
@@ -778,6 +772,15 @@ class EmailService {
     this.isProcessing = true;
 
     try {
+      // Reclaim stuck SENDING rows before pulling the next batch. If a
+      // worker / container crashed mid-send after `markAsSending` but
+      // before `markAsSent` or `markAsFailed`, the row would otherwise
+      // sit pinned in SENDING forever — nothing else queries that
+      // state, so the email is silently lost. A 5-minute floor on
+      // lastAttemptAt is well beyond any legitimate provider call so
+      // it won't race a real in-flight send.
+      await this.reclaimStuckSendingRows();
+
       const concurrency = this.getQueueConcurrency();
       // Pull a batch sized to the concurrency window so we don't
       // hold rows in QUEUED state any longer than necessary.
@@ -822,6 +825,36 @@ class EmailService {
       logger.error('Error processing email queue:', error);
     } finally {
       this.isProcessing = false;
+    }
+  }
+
+  // Rows stuck in SENDING for this long are assumed to be from a
+  // crashed worker. 5 minutes is well beyond any legitimate provider
+  // send call (Resend / SES finish in under a second under normal
+  // conditions) so a real in-flight row won't be reclaimed mid-send.
+  private static readonly STUCK_SENDING_THRESHOLD_MS = 5 * 60 * 1000;
+
+  private async reclaimStuckSendingRows(): Promise<void> {
+    try {
+      const cutoff = new Date(Date.now() - EmailService.STUCK_SENDING_THRESHOLD_MS);
+      const [reclaimed] = await EmailQueue.update(
+        { status: EmailStatus.QUEUED },
+        {
+          where: {
+            status: EmailStatus.SENDING,
+            lastAttemptAt: { [Op.lt]: cutoff },
+          } as WhereOptions,
+        }
+      );
+      if (reclaimed > 0) {
+        logger.warn(
+          `Reclaimed ${reclaimed} stuck SENDING email row(s) older than ${EmailService.STUCK_SENDING_THRESHOLD_MS}ms`
+        );
+      }
+    } catch (error) {
+      // Reclaim failure must not block the main processor loop — the
+      // worst case is the stuck rows wait another cycle.
+      logger.error('Failed to reclaim stuck SENDING email rows', { error });
     }
   }
 

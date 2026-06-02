@@ -21,7 +21,12 @@ export class ConsoleSmsProvider extends BaseSmsProvider {
       };
     }
 
-    // Console-style banner so this is easy to spot in dev logs.
+    const maskedTo = ConsoleSmsProvider.maskPhone(normalised);
+
+    // Console-style banner so this is easy to spot in dev logs. Defense in
+    // depth: the recipient phone number is masked and the message body is
+    // NOT logged, so even if this dev-only provider is reached in a misconfig
+    // it does not leak PII or message content to the logs.
 
     console.log('\n' + '='.repeat(60));
 
@@ -31,19 +36,26 @@ export class ConsoleSmsProvider extends BaseSmsProvider {
 
     console.log(`📨 Message ID: ${messageId}`);
 
-    console.log(`📤 To: ${normalised}`);
+    console.log(`📤 To: ${maskedTo}`);
 
-    console.log(`📝 Body: ${request.message}`);
+    console.log(`📝 Body: [redacted — ${request.message.length} chars]`);
 
     console.log('='.repeat(60) + '\n');
 
-    logger.info(`Console SMS sent: ${messageId} to ${normalised}`);
+    logger.info(`Console SMS sent: ${messageId} to ${maskedTo}`);
 
     return {
       success: true,
       messageId,
       status: 'sent',
     };
+  }
+
+  /** Mask all but the last 2 digits of a phone number for logging. */
+  static maskPhone(phone: string): string {
+    const visible = phone.slice(-2);
+    const masked = '*'.repeat(Math.max(0, phone.length - 2));
+    return `${masked}${visible}`;
   }
 
   getName(): string {

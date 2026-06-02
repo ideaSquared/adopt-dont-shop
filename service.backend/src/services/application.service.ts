@@ -520,7 +520,12 @@ export class ApplicationService {
           },
         });
 
-        // Log creation
+        // Log creation — paired with the application + status-transition
+        // writes via `transaction: t` so the audit row commits atomically
+        // with the create. Previously the call sat inside the tx callback
+        // but wasn't bound to it, so an audit succeeding then tx
+        // committing could still leave the trail drifted if the tx itself
+        // rolled back after the audit row was written.
         await AuditLogService.log({
           action: 'CREATE',
           entity: 'Application',
@@ -531,6 +536,7 @@ export class ApplicationService {
             priority: application.priority,
           },
           userId,
+          transaction: t,
         });
 
         loggerHelpers.logBusiness(
@@ -1323,6 +1329,8 @@ export class ApplicationService {
       // change, but it must be logged so a human can chase it up.
       if (statusUpdate.status === ApplicationStatus.REJECTED) {
         await ApplicationService.notifyApplicantOfRejection(application, statusUpdate);
+      } else if (statusUpdate.status === ApplicationStatus.APPROVED) {
+        await ApplicationService.notifyApplicantOfApproval(application);
       }
 
       await application.reload();
@@ -1395,6 +1403,7 @@ export class ApplicationService {
           applicationId: application.applicationId,
           petId: application.petId,
           rejectionReason,
+          action_url: `/applications/${application.applicationId}`,
         },
       });
 
@@ -1425,6 +1434,71 @@ export class ApplicationService {
       }
     } catch (error) {
       logger.error('Rejection notification failed (non-fatal):', {
+        applicationId: application.applicationId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Notify an applicant their adoption application was approved.
+   * Mirrors notifyApplicantOfRejection — best-effort, never throws,
+   * so a transient notification failure can't roll back the approval.
+   */
+  private static async notifyApplicantOfApproval(application: Application): Promise<void> {
+    try {
+      const [applicant, pet] = await Promise.all([
+        User.findByPk(application.userId),
+        Pet.findByPk(application.petId),
+      ]);
+
+      if (!applicant) {
+        logger.warn('Approval notification skipped: applicant not found', {
+          applicationId: application.applicationId,
+          userId: application.userId,
+        });
+        return;
+      }
+
+      const applicantName = [applicant.firstName, applicant.lastName].filter(Boolean).join(' ');
+      const petName = pet?.name ?? 'the pet';
+
+      await NotificationService.createNotification({
+        userId: application.userId,
+        type: NotificationType.ADOPTION_APPROVED,
+        title: `Your application for ${petName} was approved!`,
+        message: `Great news — your application to adopt ${petName} has been approved. Log in to see next steps.`,
+        data: {
+          applicationId: application.applicationId,
+          petId: application.petId,
+          action_url: `/applications/${application.applicationId}`,
+        },
+      });
+
+      if (applicant.email) {
+        const template = await emailService.getTemplateByName('Application Approved');
+        if (template) {
+          await emailService.sendEmail({
+            toEmail: applicant.email,
+            toName: applicantName || undefined,
+            templateId: template.templateId,
+            templateData: {
+              applicantName: applicantName || 'there',
+              petName,
+              applicationId: application.applicationId,
+            },
+            userId: application.userId,
+            type: 'transactional',
+            priority: 'normal',
+          });
+        } else {
+          logger.warn("Approval email template 'Application Approved' not found; skipping email", {
+            applicationId: application.applicationId,
+          });
+        }
+      }
+    } catch (error) {
+      logger.error('Approval notification failed (non-fatal):', {
         applicationId: application.applicationId,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -1494,9 +1568,39 @@ export class ApplicationService {
         userId,
       });
 
+      // Cancel any non-terminal home visits scheduled for this application.
+      // Without this, withdrawing leaves SCHEDULED / IN_PROGRESS HomeVisit
+      // rows pointing at a withdrawn application — rescue staff see a zombie
+      // visit on a deal that's already off the table. COMPLETED / CANCELLED
+      // rows are historical and left alone.
+      await HomeVisit.update(
+        { status: HomeVisitStatus.CANCELLED, cancelled_reason: 'Application withdrawn' },
+        {
+          where: {
+            application_id: applicationId,
+            status: { [Op.notIn]: [HomeVisitStatus.COMPLETED, HomeVisitStatus.CANCELLED] },
+          },
+        }
+      );
+
       logger.info('Application withdrawn', { applicationId, userId });
 
       await application.reload();
+
+      // Mirror the broadcast pattern in updateApplicationStatus: the rescue
+      // dashboard needs to know the application moved to WITHDRAWN so staff
+      // don't keep reviewing it, and the adopter's own connected sessions
+      // need the state change to flow to other tabs / devices.
+      emitToUser(application.userId, 'application_status_changed', {
+        applicationId,
+        status: application.status,
+        stage: application.stage,
+        updatedAt: application.updatedAt,
+      });
+      emitToRescue(application.rescueId, 'application_updated', {
+        applicationId,
+      });
+
       return {
         ...(application.toJSON() as ApplicationData),
         answers: await loadAnswersJson(applicationId),
@@ -1644,12 +1748,24 @@ export class ApplicationService {
   static async updateReference(
     applicationId: string,
     referenceUpdate: ReferenceUpdateRequest,
-    userId: string
+    userId: string,
+    userType: UserType
   ): Promise<ApplicationData> {
     try {
       const application = await Application.findByPk(applicationId);
       if (!application) {
         throw new NotFoundError('Application not found');
+      }
+
+      // Authorize: rescue staff may only act on their own rescue's
+      // applications. The route's requireRole only checks the role —
+      // without this, a staff member at rescue A could PATCH references
+      // on rescue B's application. Admins / moderators are allowed.
+      if (userType !== UserType.ADMIN && userType !== UserType.MODERATOR) {
+        const staffRescueId = await ApplicationService.getStaffRescueIdForUser(userId);
+        if (!staffRescueId || staffRescueId !== application.rescueId) {
+          throw new ForbiddenError('Access denied');
+        }
       }
 
       // Determine the reference index to update

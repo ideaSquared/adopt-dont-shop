@@ -12,6 +12,7 @@ import logger, { loggerHelpers } from '../utils/logger';
 import { NotFoundError } from '../middleware/error-handler';
 import { AuditLogService } from './auditLog.service';
 import { NotificationChannelService } from './notificationChannelService';
+import { getPushProvider } from './push-providers';
 import { smsService } from './sms.service';
 
 export interface NotificationSearchOptions {
@@ -571,7 +572,8 @@ export class NotificationService {
       });
       await prefs.update(apiPatchToPrefsRow(preferences), { transaction });
 
-      // Log the action
+      // Log the action — paired with the prefs.update via `transaction`
+      // so the audit row commits atomically with the preference change.
       await AuditLogService.log({
         userId,
         action: 'UPDATE_NOTIFICATION_PREFERENCES',
@@ -580,6 +582,7 @@ export class NotificationService {
         details: {
           updatedPreferences: preferences,
         },
+        transaction,
       });
 
       loggerHelpers.logBusiness(
@@ -780,16 +783,34 @@ export class NotificationService {
     const startTime = Date.now();
 
     try {
+      // Resolve user_id -> email. Without this the EmailService gets a UUID
+      // as the toEmail and silently fails delivery while the notification row
+      // is marked as created.
+      const user = await User.findByPk(notification.user_id, {
+        attributes: ['email'],
+      });
+      if (!user?.email) {
+        logger.warn('Email notification skipped: user has no email', {
+          notificationId: notification.notification_id,
+          userId: notification.user_id,
+        });
+        return;
+      }
+
       const EmailService = (await import('./email.service')).default;
 
+      const actionUrl =
+        (notification.data?.action_url as string | undefined) ??
+        (notification.data?.actionUrl as string | undefined);
+
       await EmailService.sendEmail({
-        toEmail: notification.user_id, // This would need to be resolved to email
+        toEmail: user.email,
         subject: notification.title,
         htmlContent: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>${notification.title}</h2>
             <p>${notification.message}</p>
-            ${notification.data?.actionUrl ? `<a href="${notification.data.actionUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Details</a>` : ''}
+            ${actionUrl ? `<a href="${actionUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Details</a>` : ''}
           </div>
         `,
         type: 'notification',
@@ -804,7 +825,6 @@ export class NotificationService {
       loggerHelpers.logExternalService('Email Notification', 'Delivered', {
         notificationId: notification.notification_id,
         userId: notification.user_id,
-        email: notification.user_id,
         duration: Date.now() - startTime,
       });
     } catch (error) {
@@ -838,32 +858,46 @@ export class NotificationService {
         return;
       }
 
-      // Send to each device
+      // Route through the prod-guarded push provider factory. In non-prod the
+      // console provider honestly logs; in prod the factory throws unless a
+      // real provider is configured, so we never emit a false 'Delivered'
+      // signal for a notification that was not actually dispatched.
+      // TODO: real FCM/APNS delivery is implemented by FcmPushProvider; until a
+      // provider is configured (PUSH_PROVIDER), production push is intentionally
+      // unimplemented and fails safe rather than silently dropping.
+      const provider = getPushProvider();
+
       const pushPromises = deviceTokens.map(async deviceToken => {
         try {
-          // This would integrate with FCM, APNS, or other push service
-          const payload = {
-            notification: {
-              title: notification.title,
-              body: notification.message,
-              icon: '/icon-192x192.png',
-              badge: '/badge-icon.png',
-              data: notification.data,
-            },
+          const result = await provider.send({
             token: deviceToken.device_token,
-          };
+            platform: deviceToken.platform,
+            title: notification.title,
+            body: notification.message,
+            data: notification.data,
+          });
 
-          // Mock push notification sending
-          loggerHelpers.logExternalService('Push Notification', 'Delivered', {
+          if (result.success) {
+            loggerHelpers.logExternalService('Push Notification', 'Delivered', {
+              notificationId: notification.notification_id,
+              deviceToken: deviceToken.token_id,
+              userId: notification.user_id,
+              provider: provider.getName(),
+              messageId: result.messageId,
+            });
+            // Update last used timestamp
+            deviceToken.last_used_at = new Date();
+            await deviceToken.save();
+            return;
+          }
+
+          loggerHelpers.logExternalService('Push Notification', 'Failed', {
             notificationId: notification.notification_id,
             deviceToken: deviceToken.token_id,
             userId: notification.user_id,
-            payload: payload.notification.title, // Include payload info in logs
+            provider: provider.getName(),
+            error: result.error,
           });
-
-          // Update last used timestamp
-          deviceToken.last_used_at = new Date();
-          await deviceToken.save();
         } catch (deviceError) {
           logger.error(`Failed to send push to device ${deviceToken.token_id}:`, deviceError);
 

@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import { useAuth, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
+import { useAuth, useHasPermission, TwoFactorSettings } from '@adopt-dont-shop/lib.auth';
 import { ThemeToggle, toast } from '@adopt-dont-shop/lib.components';
 import { SettingsFormSkeleton } from '../components/skeletons';
-import { usePermissions } from '../contexts/PermissionsContext';
 import { apiService, rescueService } from '../services/libraryServices';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
 import RescueProfileForm from '../components/rescue/RescueProfileForm';
@@ -32,7 +31,7 @@ const parseTabFromHash = (hash: string): TabType => {
 
 const RescueSettings: React.FC = () => {
   const { user } = useAuth();
-  const { hasPermission } = usePermissions();
+  const canEdit = useHasPermission(RESCUE_SETTINGS_UPDATE);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -48,8 +47,6 @@ const RescueSettings: React.FC = () => {
   const [rescue, setRescue] = useState<RescueProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const canEdit = hasPermission(RESCUE_SETTINGS_UPDATE);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,7 +67,9 @@ const RescueSettings: React.FC = () => {
           data: RescueProfile & { settings?: { adoptionPolicies?: AdoptionPolicy } };
         }>(`/api/v1/rescues/${rescueId}`);
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         // Extract adoption policies from settings if they exist
         const { settings, ...rest } = rescueData.data;

@@ -173,7 +173,7 @@ Fully typed with comprehensive interfaces:
 
 - `DateFormatOptions`
 - `TruncateOptions`
-- `SlugifyOptions`
+- `SlugOptions`
 - `ValidationResult`
 - `CurrencyOptions`
 - `AddressData`

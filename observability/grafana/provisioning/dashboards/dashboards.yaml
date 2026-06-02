@@ -1,0 +1,15 @@
+apiVersion: 1
+
+# Auto-provisioned dashboard provider. Grafana scans
+# /etc/grafana/provisioning/dashboards on boot and loads every JSON file in
+# the path below. New dashboards are picked up after a 30s reload poll.
+providers:
+  - name: 'adopt-dont-shop'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

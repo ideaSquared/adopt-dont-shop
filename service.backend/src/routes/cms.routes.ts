@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as cmsController from '../controllers/cms.controller';
 import { authenticateToken } from '../middleware/auth';
+import { auditRoute } from '../middleware/audit-route';
 import { requireRole } from '../middleware/rbac';
 import { UserType } from '../models/User';
 import { handleValidationErrors } from '../middleware/validation';
@@ -39,6 +40,11 @@ router.post(
   '/content',
   authenticateToken,
   requireRole(...adminRoles),
+  auditRoute({
+    action: 'CMS_CONTENT_CREATED',
+    entity: 'CmsContent',
+    metadataFrom: ['body.slug', 'body.title', 'body.type'],
+  }),
   cmsValidation.createContent,
   handleValidationErrors,
   cmsController.createContent
@@ -66,6 +72,11 @@ router.put(
   '/content/:contentId',
   authenticateToken,
   requireRole(...adminRoles),
+  auditRoute({
+    action: 'CMS_CONTENT_UPDATED',
+    entity: 'CmsContent',
+    entityIdFrom: 'params.contentId',
+  }),
   cmsValidation.updateContent,
   handleValidationErrors,
   cmsController.updateContent
@@ -75,6 +86,11 @@ router.delete(
   '/content/:contentId',
   authenticateToken,
   requireRole(...adminRoles),
+  auditRoute({
+    action: 'CMS_CONTENT_DELETED',
+    entity: 'CmsContent',
+    entityIdFrom: 'params.contentId',
+  }),
   cmsValidation.deleteContent,
   handleValidationErrors,
   cmsController.deleteContent
@@ -86,6 +102,11 @@ router.post(
   '/content/:contentId/publish',
   authenticateToken,
   requireRole(...adminRoles),
+  auditRoute({
+    action: 'CMS_CONTENT_PUBLISHED',
+    entity: 'CmsContent',
+    entityIdFrom: 'params.contentId',
+  }),
   cmsValidation.publishContent,
   handleValidationErrors,
   cmsController.publishContent
@@ -95,6 +116,11 @@ router.post(
   '/content/:contentId/unpublish',
   authenticateToken,
   requireRole(...adminRoles),
+  auditRoute({
+    action: 'CMS_CONTENT_UNPUBLISHED',
+    entity: 'CmsContent',
+    entityIdFrom: 'params.contentId',
+  }),
   cmsValidation.unpublishContent,
   handleValidationErrors,
   cmsController.unpublishContent
@@ -104,6 +130,11 @@ router.post(
   '/content/:contentId/archive',
   authenticateToken,
   requireRole(...adminRoles),
+  auditRoute({
+    action: 'CMS_CONTENT_ARCHIVED',
+    entity: 'CmsContent',
+    entityIdFrom: 'params.contentId',
+  }),
   cmsValidation.archiveContent,
   handleValidationErrors,
   cmsController.archiveContent
@@ -124,6 +155,12 @@ router.post(
   '/content/:contentId/versions/:version/restore',
   authenticateToken,
   requireRole(...adminRoles),
+  auditRoute({
+    action: 'CMS_CONTENT_VERSION_RESTORED',
+    entity: 'CmsContent',
+    entityIdFrom: 'params.contentId',
+    metadataFrom: ['params.version'],
+  }),
   cmsValidation.restoreVersion,
   handleValidationErrors,
   cmsController.restoreVersion
@@ -144,6 +181,11 @@ router.post(
   '/menus',
   authenticateToken,
   requireRole(...adminRoles),
+  auditRoute({
+    action: 'CMS_MENU_CREATED',
+    entity: 'CmsMenu',
+    metadataFrom: ['body.name', 'body.location'],
+  }),
   cmsValidation.createMenu,
   handleValidationErrors,
   cmsController.createMenu
@@ -162,6 +204,11 @@ router.put(
   '/menus/:menuId',
   authenticateToken,
   requireRole(...adminRoles),
+  auditRoute({
+    action: 'CMS_MENU_UPDATED',
+    entity: 'CmsMenu',
+    entityIdFrom: 'params.menuId',
+  }),
   cmsValidation.updateMenu,
   handleValidationErrors,
   cmsController.updateMenu
@@ -171,6 +218,11 @@ router.delete(
   '/menus/:menuId',
   authenticateToken,
   requireRole(...adminRoles),
+  auditRoute({
+    action: 'CMS_MENU_DELETED',
+    entity: 'CmsMenu',
+    entityIdFrom: 'params.menuId',
+  }),
   cmsValidation.deleteMenu,
   handleValidationErrors,
   cmsController.deleteMenu

@@ -699,8 +699,8 @@ netstat -tulpn | grep :5000
 2. **Container exits:**
 
    ```dockerfile
-   # Fix Dockerfile
-   FROM node:18-alpine
+   # Fix Dockerfile — project pins Node 22 (engines: ">=22 <23")
+   FROM node:22-alpine
    WORKDIR /app
    COPY package*.json ./
    RUN npm ci --only=production

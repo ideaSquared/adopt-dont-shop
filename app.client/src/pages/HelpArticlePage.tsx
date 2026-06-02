@@ -15,11 +15,27 @@ export const HelpArticlePage: React.FC = () => {
     if (!slug) {
       return;
     }
+    let cancelled = false;
     cmsPublicService
       .getHelpArticle(slug)
-      .then(setArticle)
-      .catch(() => navigate('/help', { replace: true }))
-      .finally(() => setLoading(false));
+      .then(result => {
+        if (!cancelled) {
+          setArticle(result);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          navigate('/help', { replace: true });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [slug, navigate]);
 
   if (loading) {

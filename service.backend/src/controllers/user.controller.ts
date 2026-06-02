@@ -13,36 +13,13 @@ import {
 import { AuthenticatedRequest } from '../types';
 import { logger, loggerHelpers } from '../utils/logger';
 import { validateBody } from '../middleware/zod-validate';
+import { RichTextProcessingService } from '../services/rich-text-processing.service';
 
 // Validation rules
 export const userValidation = {
-  updateProfile: [
-    body('first_name')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('First name must be between 1 and 50 characters'),
-    body('last_name')
-      .optional()
-      .trim()
-      .isLength({ min: 1, max: 50 })
-      .withMessage('Last name must be between 1 and 50 characters'),
-    body('phone_number')
-      .optional()
-      .isMobilePhone('en-GB')
-      .withMessage('Please provide a valid UK mobile number'),
-    body('bio')
-      .optional()
-      .isLength({ max: 500 })
-      .withMessage('Bio must be less than 500 characters'),
-    body('location')
-      .optional()
-      .trim()
-      .isLength({ max: 100 })
-      .withMessage('Location must be less than 100 characters'),
-    body('profile_image_url').optional().isURL().withMessage('Profile image must be a valid URL'),
-  ],
-
+  // ADS-784: the snake_case `updateProfile` express-validator chain was removed.
+  // The FE sends camelCase, so it never matched; the users.* update routes now
+  // use validateBody(UpdateProfileRequestSchema) (camelCase) directly.
   searchUsers: [
     query('search')
       .optional()
@@ -134,17 +111,19 @@ export class UserController {
    */
   async updateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
     const { userId } = req.params;
-    const updateData = req.body;
     const requestingUserId = req.user!.userId;
     const requestingUserType = req.user!.userType as UserType;
 
-    // Check permissions
     if (requestingUserId !== userId && requestingUserType !== UserType.ADMIN) {
       res.status(403).json({ error: "Cannot update another user's profile" });
       return;
     }
 
-    const updatedUser = await UserService.updateUserProfile(userId, updateData);
+    if (typeof req.body.bio === 'string') {
+      req.body.bio = RichTextProcessingService.sanitize(req.body.bio);
+    }
+
+    const updatedUser = await UserService.updateUserProfile(userId, req.body);
     res.json(updatedUser);
   }
 

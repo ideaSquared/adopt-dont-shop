@@ -8,10 +8,12 @@ import User from '../models/User';
 import { Op, Transaction, WhereOptions } from 'sequelize';
 import sequelize from '../sequelize';
 import { logger } from '../utils/logger';
+import { getUserId } from '../utils/request-context';
 import { NotFoundError, BadRequestError } from '../middleware/error-handler';
 import { JsonObject } from '../types/common';
 import { validateSortField } from '../utils/sort-validation';
 import { escapeLikePattern } from '../utils/escape-like';
+import { MAX_PAGE_SIZE } from '../constants/pagination';
 import type { EntityActivity, EntityActivityFilters } from '@adopt-dont-shop/lib.types';
 import { AuditLogService } from './auditLog.service';
 import { auditLogToActivity } from './audit-log-formatting';
@@ -57,7 +59,9 @@ class SupportTicketService {
    */
   async getTickets(filters: TicketFilters = {}, pagination: PaginationOptions = {}) {
     try {
-      const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
+      const { page = 1, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
+      // Defense-in-depth: clamp limit even if a caller bypasses route validation.
+      const limit = Math.min(pagination.limit ?? 20, MAX_PAGE_SIZE);
 
       const offset = (page - 1) * limit;
       const safeSortBy = validateSortField(sortBy, SUPPORT_TICKET_SORT_FIELDS, 'createdAt');
@@ -230,6 +234,19 @@ class SupportTicketService {
         tags: ticketData.tags || [],
       });
 
+      await AuditLogService.log({
+        userId: ticketData.userId ?? getUserId() ?? '',
+        action: 'SUPPORT_TICKET_CREATED',
+        entity: SUPPORT_TICKET_AUDIT_CATEGORY,
+        entityId: ticket.ticketId,
+        details: {
+          subject: ticket.subject,
+          category: ticket.category,
+          priority: ticket.priority,
+          userEmail: ticketData.userEmail,
+        },
+      });
+
       logger.info(`Support ticket created: ${ticket.ticketId}`);
 
       return ticket;
@@ -256,6 +273,8 @@ class SupportTicketService {
   ) {
     try {
       const ticket = await this.getTicketById(ticketId);
+      const previousStatus = ticket.status;
+      const previousAssignedTo = ticket.assignedTo;
 
       // Handle status transitions
       if (updates.status) {
@@ -272,6 +291,28 @@ class SupportTicketService {
 
       await ticket.update(updates);
 
+      await AuditLogService.log({
+        userId: getUserId() ?? '',
+        action: 'SUPPORT_TICKET_UPDATED',
+        entity: SUPPORT_TICKET_AUDIT_CATEGORY,
+        entityId: ticket.ticketId,
+        details: {
+          diff: {
+            ...(updates.status ? { status: { before: previousStatus, after: ticket.status } } : {}),
+            ...(updates.assignedTo
+              ? {
+                  assignedTo: {
+                    before: previousAssignedTo ?? null,
+                    after: ticket.assignedTo ?? null,
+                  },
+                }
+              : {}),
+            ...(updates.priority ? { priority: updates.priority } : {}),
+            ...(updates.category ? { category: updates.category } : {}),
+          },
+        },
+      });
+
       logger.info(`Support ticket updated: ${ticketId}`);
 
       return ticket;
@@ -287,8 +328,19 @@ class SupportTicketService {
   async assignTicket(ticketId: string, assignedTo: string) {
     try {
       const ticket = await this.getTicketById(ticketId);
+      const previousAssignedTo = ticket.assignedTo;
 
       await ticket.update({ assignedTo });
+
+      await AuditLogService.log({
+        userId: getUserId() ?? '',
+        action: 'SUPPORT_TICKET_ASSIGNED',
+        entity: SUPPORT_TICKET_AUDIT_CATEGORY,
+        entityId: ticket.ticketId,
+        details: {
+          diff: { assignedTo: { before: previousAssignedTo ?? null, after: assignedTo } },
+        },
+      });
 
       logger.info(`Ticket ${ticketId} assigned to ${assignedTo}`);
 
@@ -379,6 +431,19 @@ class SupportTicketService {
 
       await ticket.update(updateData, { transaction });
 
+      await AuditLogService.log({
+        userId: response.responderId,
+        action: 'SUPPORT_TICKET_RESPONSE_ADDED',
+        entity: SUPPORT_TICKET_AUDIT_CATEGORY,
+        entityId: ticket.ticketId,
+        details: {
+          responderType: response.responderType,
+          isInternal: response.isInternal ?? false,
+          attachmentCount: response.attachments?.length ?? 0,
+        },
+        transaction,
+      });
+
       // Commit transaction
       await transaction.commit();
 
@@ -400,12 +465,26 @@ class SupportTicketService {
   async escalateTicket(ticketId: string, escalatedTo: string, reason: string) {
     try {
       const ticket = await this.getTicketById(ticketId);
+      const previousStatus = ticket.status;
 
       await ticket.update({
         status: TicketStatus.ESCALATED,
         escalatedTo,
         escalatedAt: new Date(),
         escalationReason: reason,
+      });
+
+      await AuditLogService.log({
+        userId: getUserId() ?? '',
+        action: 'SUPPORT_TICKET_ESCALATED',
+        entity: SUPPORT_TICKET_AUDIT_CATEGORY,
+        entityId: ticket.ticketId,
+        level: 'WARNING',
+        details: {
+          escalatedTo,
+          reason,
+          diff: { status: { before: previousStatus, after: TicketStatus.ESCALATED } },
+        },
       });
 
       logger.info(`Ticket ${ticketId} escalated to ${escalatedTo}`);
@@ -514,7 +593,9 @@ class SupportTicketService {
     pagination: PaginationOptions = {}
   ) {
     try {
-      const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
+      const { page = 1, sortBy = 'createdAt', sortOrder = 'DESC' } = pagination;
+      // Defense-in-depth: clamp limit even if a caller bypasses route validation.
+      const limit = Math.min(pagination.limit ?? 20, MAX_PAGE_SIZE);
 
       const offset = (page - 1) * limit;
       const safeSortBy = validateSortField(sortBy, SUPPORT_TICKET_SORT_FIELDS, 'createdAt');

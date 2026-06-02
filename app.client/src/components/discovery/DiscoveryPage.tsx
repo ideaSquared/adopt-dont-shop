@@ -7,7 +7,7 @@ import {
 } from '@/services';
 import { Container } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { loadDiscoveryState, recordViewedPet } from '@/utils/discoverySession';
 import {
   hasReachedAnonSwipeLimit,
@@ -42,7 +42,9 @@ export const DiscoveryPage: React.FC = () => {
     superLikes: 0,
     filters: {} as PetSearchFilters,
   });
-  const [viewedPetIds, setViewedPetIds] = useState<string[]>(persistedState.viewedPetIds);
+  // Ref so the load-pets effect always reads the latest viewedPetIds without
+  // adding it to its deps (which would re-trigger a fetch on every swipe).
+  const viewedPetIdsRef = useRef<string[]>(persistedState.viewedPetIds);
   const [currentPetIndex, setCurrentPetIndex] = useState(0);
   const [undoStack, setUndoStack] = useState<SwipeAction[]>([]);
   // ADS-625 + ADS-626: anonymous-user state — first-like celebration modal
@@ -70,6 +72,8 @@ export const DiscoveryPage: React.FC = () => {
 
   // Load initial pets
   useEffect(() => {
+    let cancelled = false;
+
     const loadPets = async () => {
       try {
         setLoading(true);
@@ -77,18 +81,34 @@ export const DiscoveryPage: React.FC = () => {
         // New filter set → assume there's more until proven otherwise.
         setHasMore(true);
         const discoveryQueue = await discoveryService.getDiscoveryQueue(filters);
-        const filtered = discoveryQueue.pets.filter(pet => !viewedPetIds.includes(pet.petId));
+        if (cancelled) {
+          return;
+        }
+        // Read the latest viewedPetIds via ref so we don't add it to deps
+        // (which would re-trigger a fetch on every swipe).
+        const filtered = discoveryQueue.pets.filter(
+          pet => !viewedPetIdsRef.current.includes(pet.petId)
+        );
         setPets(filtered);
         setCurrentPetIndex(0); // Reset to first pet when filters change
       } catch (error) {
+        if (cancelled) {
+          return;
+        }
         console.error('Failed to load pets:', error);
         setError('Failed to load pets. Please try again.');
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     loadPets();
+
+    return () => {
+      cancelled = true;
+    };
   }, [filters]);
 
   // Handle filter changes
@@ -156,9 +176,10 @@ export const DiscoveryPage: React.FC = () => {
       // Track for undo
       setUndoStack(prev => [...prev, action].slice(-10));
 
-      // Persist viewed pet so next session resumes correctly
+      // Persist viewed pet so next session resumes correctly and the ref
+      // is up-to-date for the next filter-change fetch.
       const next = recordViewedPet(action.petId);
-      setViewedPetIds(next.viewedPetIds);
+      viewedPetIdsRef.current = next.viewedPetIds;
 
       // Record swipe action
       try {

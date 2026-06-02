@@ -152,22 +152,34 @@ The library reads API URL from `VITE_API_BASE_URL` (canonical) or `VITE_API_URL`
 
 ## Error Handling
 
-Errors are thrown as `ApiError` subclasses with HTTP status attached. Import from the package and narrow with `instanceof`:
+The package exports several error classes that each extend the built-in `Error` directly — they are **not** subclasses of `ApiError`. `ApiError` itself is one of those classes and carries an HTTP status; the others are sibling classes for non-HTTP failure modes (network, timeout, validation) or HTTP-specific cases that arrive with their own shape (`NotFoundError`, `AuthenticationError`, `AuthorizationError`, `ConflictError`, `ValidationError`). Narrow with `instanceof` on the specific class you care about:
 
 ```typescript
-import { apiService, ApiError } from '@adopt-dont-shop/lib.api';
+import {
+  apiService,
+  ApiError,
+  NetworkError,
+  NotFoundError,
+  AuthenticationError,
+} from '@adopt-dont-shop/lib.api';
 
 try {
   await apiService.get('/api/v1/pets');
 } catch (err) {
-  if (err instanceof ApiError && err.status === 401) {
-    // handle unauthenticated
+  if (err instanceof AuthenticationError) {
+    // 401 — surface a sign-in prompt
+  } else if (err instanceof NotFoundError) {
+    // 404 — surface an empty state
+  } else if (err instanceof ApiError) {
+    // any other HTTP status — err.status, err.code, err.details
+  } else if (err instanceof NetworkError) {
+    // request never reached the server
   }
   throw err;
 }
 ```
 
-See `src/errors` for the concrete error classes.
+The `createHttpError(status, ...)` factory in `src/errors/index.ts` chooses the appropriate class based on status code. See that file for the authoritative list.
 
 ## Development
 

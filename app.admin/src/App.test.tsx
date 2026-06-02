@@ -14,6 +14,11 @@ const useAuthMock = vi.fn();
 
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => useAuthMock(),
+  PermissionsProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('./services/libraryServices', () => ({
+  permissionsService: { getUserPermissions: vi.fn().mockResolvedValue([]), clearCache: vi.fn() },
 }));
 
 // Replace the modal + banner with sentinels so the test asserts wiring

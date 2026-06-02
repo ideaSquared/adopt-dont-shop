@@ -24,6 +24,10 @@ export default mergeConfig(
     resolve: {
       alias: {
         '@adopt-dont-shop/lib.api': path.resolve(__dirname, '../lib.api/src/index.ts'),
+        '@adopt-dont-shop/lib.permissions': path.resolve(
+          __dirname,
+          '../lib.permissions/src/index.ts'
+        ),
         '@adopt-dont-shop/lib.components/theme': path.resolve(
           __dirname,
           '../lib.components/src/styles/theme.css.ts'

@@ -881,6 +881,28 @@ export class ChatService {
         { where: { chat_id: data.chatId }, transaction }
       );
 
+      // Determine the actual message type for the audit row. We resolve it
+      // here (rather than after commit) so the audit write can be paired
+      // with the message + chat-touch inside the same transaction.
+      const auditMessageType = this.inferMessageType(data.attachments);
+
+      // Log the action inside the transaction so the audit row commits
+      // (or rolls back) atomically with the message write. Previously
+      // this fired AFTER commit, so a thrown audit error left the message
+      // committed but propagated as if the send failed, and the catch's
+      // transaction.rollback() then no-op'd on an already-committed tx.
+      await AuditLogService.log({
+        userId: data.senderId,
+        action: 'MESSAGE_SENT',
+        entity: 'Message',
+        entityId: messageWithSender.message_id,
+        details: {
+          chatId: data.chatId,
+          messageType: auditMessageType,
+        },
+        transaction,
+      });
+
       await transaction.commit();
 
       // Auto-report HIGH/CRITICAL violations after commit
@@ -936,6 +958,10 @@ export class ChatService {
                 chatId: data.chatId,
                 messageId: messageWithSender.message_id,
                 senderId: data.senderId,
+                // Deep-link for NotificationCenter / NotificationBell click
+                // handlers (currently surfaced in app.client). Other apps
+                // ignore action_url if their notification UI doesn't read it.
+                action_url: `/chat/${data.chatId}`,
               },
               priority: NotificationPriority.NORMAL,
             }))
@@ -946,21 +972,8 @@ export class ChatService {
         // Don't fail the message send if notifications fail
       }
 
-      // Determine the actual message type for logging
-      const actualMessageType = this.inferMessageType(data.attachments);
-
-      // Log the action
-      await AuditLogService.log({
-        userId: data.senderId,
-        action: 'MESSAGE_SENT',
-        entity: 'Message',
-        entityId: messageWithSender.message_id,
-        details: {
-          chatId: data.chatId,
-          messageType: actualMessageType,
-        },
-      });
-
+      // Audit row was written inside the transaction above; nothing
+      // to do post-commit beyond returning the resolved message.
       return messageWithSender;
     } catch (error) {
       await transaction.rollback();

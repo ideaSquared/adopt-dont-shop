@@ -1,6 +1,7 @@
 import express from 'express';
 import { ReportsController } from '../controllers/reports.controller';
 import { authenticateToken } from '../middleware/auth';
+import { auditRoute } from '../middleware/audit-route';
 import { requirePermission } from '../middleware/rbac';
 import { requirePlanFeature } from '../middleware/plan-gate';
 import { generalLimiter, reportLimiter } from '../middleware/rate-limiter';
@@ -35,6 +36,11 @@ router.post(
   '/',
   requirePermission(PERMISSIONS.REPORTS_CREATE),
   requirePlanFeature('reports'),
+  auditRoute({
+    action: 'REPORT_CREATED',
+    entity: 'Report',
+    metadataFrom: ['body.name', 'body.type'],
+  }),
   ReportsController.create
 );
 
@@ -61,12 +67,22 @@ router.put(
   '/:id',
   requirePermission(PERMISSIONS.REPORTS_UPDATE),
   requirePlanFeature('reports'),
+  auditRoute({
+    action: 'REPORT_UPDATED',
+    entity: 'Report',
+    entityIdFrom: 'params.id',
+  }),
   ReportsController.update
 );
 router.delete(
   '/:id',
   requirePermission(PERMISSIONS.REPORTS_DELETE),
   requirePlanFeature('reports'),
+  auditRoute({
+    action: 'REPORT_DELETED',
+    entity: 'Report',
+    entityIdFrom: 'params.id',
+  }),
   ReportsController.remove
 );
 
@@ -81,23 +97,45 @@ router.post(
   '/:id/schedule',
   requirePermission(PERMISSIONS.REPORTS_SCHEDULE),
   requirePlanFeature('scheduled_reports'),
+  auditRoute({
+    action: 'REPORT_SCHEDULE_UPSERTED',
+    entity: 'Report',
+    entityIdFrom: 'params.id',
+    metadataFrom: ['body.cron', 'body.recipients'],
+  }),
   ReportsController.upsertSchedule
 );
 router.delete(
   '/schedules/:scheduleId',
   requirePermission(PERMISSIONS.REPORTS_SCHEDULE),
   requirePlanFeature('scheduled_reports'),
+  auditRoute({
+    action: 'REPORT_SCHEDULE_DELETED',
+    entity: 'ReportSchedule',
+    entityIdFrom: 'params.scheduleId',
+  }),
   ReportsController.deleteSchedule
 );
 
 router.post(
   '/:id/share',
   requirePermission(PERMISSIONS.REPORTS_SHARE),
+  auditRoute({
+    action: 'REPORT_SHARED',
+    entity: 'Report',
+    entityIdFrom: 'params.id',
+    metadataFrom: ['body.recipients', 'body.expiresAt'],
+  }),
   ReportsController.createShare
 );
 router.delete(
   '/shares/:shareId',
   requirePermission(PERMISSIONS.REPORTS_SHARE),
+  auditRoute({
+    action: 'REPORT_SHARE_REVOKED',
+    entity: 'ReportShare',
+    entityIdFrom: 'params.shareId',
+  }),
   ReportsController.revokeShare
 );
 

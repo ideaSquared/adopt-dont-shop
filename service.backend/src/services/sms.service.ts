@@ -5,7 +5,7 @@ import {
   type SmsSendRequest,
   type SmsSendResult,
 } from './sms-providers/base-provider';
-import { ConsoleSmsProvider } from './sms-providers/console-provider';
+import { getSmsProvider } from './sms-providers';
 
 export type SmsServiceConfig = {
   /** Pre-built provider, used by tests and by callers that swap providers at runtime. */
@@ -26,22 +26,32 @@ export type SmsServiceConfig = {
  * The notification service does NOT need to change.
  */
 export class SmsService {
-  private readonly provider: SmsProvider;
+  private readonly injectedProvider?: SmsProvider;
   private readonly defaultCountryCode?: string;
 
   constructor(config: SmsServiceConfig = {}) {
-    this.provider = config.provider ?? new ConsoleSmsProvider();
+    this.injectedProvider = config.provider;
     this.defaultCountryCode = config.defaultCountryCode;
-    // NB: deliberately NOT logging in the constructor. The default singleton
-    // below is instantiated at module load, which happens before some test
-    // files' `vi.mock('../utils/logger', ...)` factories return their default
-    // export. Calling `logger.info(...)` here would crash those test imports.
-    // We log on first send() instead, which is enough for production
-    // observability.
+    // NB: deliberately NOT resolving the provider in the constructor. The
+    // default singleton below is instantiated at module load, which happens
+    // before some test files' `vi.mock('../utils/logger', ...)` factories
+    // return their default export. The factory (`getSmsProvider`) logs on
+    // resolution, so we resolve lazily on first send() instead — which also
+    // lets the factory's production guard (throw on console-in-prod) surface
+    // at send time, where the notification service already catches it.
+  }
+
+  /**
+   * Resolve the provider. An explicitly-injected provider wins (tests, runtime
+   * swaps); otherwise we go through the prod-guarded `getSmsProvider()` factory
+   * so production never silently falls back to the console provider.
+   */
+  private resolveProvider(): SmsProvider {
+    return this.injectedProvider ?? getSmsProvider();
   }
 
   getProviderName(): string {
-    return this.provider.getName();
+    return this.resolveProvider().getName();
   }
 
   async send(request: SmsSendRequest): Promise<SmsSendResult> {
@@ -61,9 +71,10 @@ export class SmsService {
     }
 
     try {
-      const result = await this.provider.send({ ...request, to: normalised });
+      const provider = this.resolveProvider();
+      const result = await provider.send({ ...request, to: normalised });
       if (!result.success) {
-        logger.error(`SMS send failed via ${this.provider.getName()}: ${result.error}`);
+        logger.error(`SMS send failed via ${provider.getName()}: ${result.error}`);
       }
       return result;
     } catch (error) {

@@ -19,7 +19,7 @@ describe('SwipeService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    swipeService = new SwipeService(true); // Skip table creation in tests
+    swipeService = new SwipeService();
   });
 
   describe('recordSwipeAction', () => {
@@ -39,13 +39,15 @@ describe('SwipeService', () => {
       expect(mockSequelize.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO swipe_actions'),
         {
-          replacements: {
+          replacements: expect.objectContaining({
             action: 'like',
             petId: 'pet123',
             sessionId: 'session123',
             userId: 'user123',
             timestamp: '2025-01-01T12:00:00Z',
-          },
+            // PK generated in JS for the raw INSERT (no DB-side default).
+            swipeActionId: expect.any(String),
+          }),
         }
       );
     });
@@ -59,13 +61,14 @@ describe('SwipeService', () => {
       expect(mockSequelize.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO swipe_actions'),
         {
-          replacements: {
+          replacements: expect.objectContaining({
             action: 'like',
             petId: 'pet123',
             sessionId: 'session123',
             userId: null,
             timestamp: '2025-01-01T12:00:00Z',
-          },
+            swipeActionId: expect.any(String),
+          }),
         }
       );
     });
@@ -188,23 +191,21 @@ describe('SwipeService', () => {
       );
     });
 
-    it('issues the table-creation DDL at most once across many swipes (no per-request DDL)', async () => {
-      // skipTableCreation defaults to false here, exercising the lazy
-      // fallback. The CREATE TABLE statement must fire only on the first
-      // swipe — subsequent swipes must not re-run DDL on the hot path.
-      const ddlService = new SwipeService();
+    it('never issues runtime CREATE TABLE DDL (the table is owned by the migration)', async () => {
+      // The swipe_actions table is created by migration
+      // 00-baseline-052-swipe-actions.ts, so recording a swipe must never
+      // issue table-creation DDL on the request path.
+      const service = new SwipeService();
       mockSequelize.query = vi.fn().mockResolvedValue([[]]);
 
       const swipe = { ...mockSwipeAction, userId: undefined };
-      await ddlService.recordSwipeAction(swipe);
-      await ddlService.recordSwipeAction(swipe);
-      await ddlService.recordSwipeAction(swipe);
+      await service.recordSwipeAction(swipe);
+      await service.recordSwipeAction(swipe);
 
       const createTableCalls = mockSequelize.query.mock.calls.filter(
-        ([sql]: [string]) =>
-          typeof sql === 'string' && sql.includes('CREATE TABLE IF NOT EXISTS swipe_actions')
+        ([sql]: [string]) => typeof sql === 'string' && /CREATE TABLE/i.test(sql)
       );
-      expect(createTableCalls).toHaveLength(1);
+      expect(createTableCalls).toHaveLength(0);
     });
 
     it('should handle error when recording swipe action fails', async () => {

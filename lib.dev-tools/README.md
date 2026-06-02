@@ -35,7 +35,7 @@ See [src/index.ts](./src/index.ts) for the authoritative list.
 
 ### Environment guards
 
-- **`isDevelopmentMode()`** — true when running on `localhost`, `127.0.0.1`, a `*dev*` hostname, or `NODE_ENV === 'development'`.
+- **`isDevelopmentMode()`** — in the browser, true only when `window.location.hostname` is exactly `localhost` or `127.0.0.1`. The previous `*dev*` substring match was removed intentionally because it would have exposed dev tooling on production-adjacent hosts like `dev.example.com`. On the server it falls back to `NODE_ENV === 'development'`.
 
 ## Quick start
 

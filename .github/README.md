@@ -2,11 +2,24 @@
 
 ## Workflow Files
 
+See [workflows/README.md](./workflows/README.md) for the full reference. The high-level picture:
+
 | File | Purpose |
 |---|---|
-| `ci.yml` | Main CI: lint, test, build for all packages + E2E |
+| `ci.yml` | Main CI: workspace drift, change detection, backend / frontend / library tests, Playwright E2E |
 | `quality.yml` | Dependency freshness check across all workspaces |
 | `security.yml` | `npm audit` vulnerability scan across all workspaces |
+| `codeql.yml` | CodeQL static analysis for JavaScript / TypeScript |
+| `docker.yml` | Build validation for backend and per-app Docker images |
+| `lib-test-guard.yml` | Fails when any `lib.*` package has zero test files |
+| `schema-equivalence.yml` | Diffs migrated vs synced schemas to detect drift |
+| `deploy.yml` | Manual deploy to staging or production via GHCR + SSH |
+| `rollback.yml` | Manual rollback to a previously published image SHA |
+| `release.yml` | Builds and pushes Docker images on tag / push to `main` |
+| `release-please.yml` | Generates release PRs, tags, and GitHub Releases from conventional commits |
+| `storybook.yml` | Builds and deploys `lib.components` Storybook |
+| `labeler.yml` | Auto-labels pull requests |
+| `sync-labels.yml` | Syncs `.github/labels.yml` to repository labels |
 
 ## Lib Build Artifact Caching (ADS-390)
 
@@ -30,6 +43,6 @@ This covers all workspace packages via the deduplicated `package-lock.json`.
 
 ## E2E Gate (ADS-386 / ADS-419)
 
-The `test-e2e` job in `ci.yml` is a blocking signal — a failure fails the PR check. The previous `continue-on-error: true` escape hatch was removed by ADS-419; see the comment block at `ci.yml:339`.
+The `test-e2e` job in `ci.yml` is a blocking signal — a failure fails the PR check. The previous `continue-on-error: true` escape hatch was removed by ADS-419; see the comment block at `ci.yml:398`.
 
 Playwright is configured with `retries: 2` in CI (see `e2e/playwright.config.ts`). Flaky-retry counts are surfaced in the "Report E2E retry counts" step after each run.

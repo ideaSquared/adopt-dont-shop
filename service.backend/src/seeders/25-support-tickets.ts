@@ -70,6 +70,13 @@ export async function seedSupportTickets() {
       return;
     }
 
+    // ADS-784: idempotency guard — re-runs must not duplicate rows.
+    const existing = await SupportTicket.count();
+    if (existing > 0) {
+      console.log(`⏭️  Support tickets already seeded (${existing}). Skipping.`);
+      return;
+    }
+
     const ticketsData: TicketData[] = [
       // Open tickets
       {

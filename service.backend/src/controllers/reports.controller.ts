@@ -294,8 +294,18 @@ class ReportsControllerImpl extends BaseController {
       return this.sendUnauthorized(res);
     }
     try {
-      const schedule = await ReportsService.deleteSchedule(req.params.scheduleId);
-      await removeScheduleRepeat(schedule);
+      // Mirror upsertSchedule's gating: only callers with edit access on
+      // the parent report may delete its schedule. Without this any
+      // authenticated user could enumerate scheduleId and drop other
+      // rescues' or other staff members' schedules.
+      const schedule = await ReportsService.getSchedule(req.params.scheduleId);
+      const report = await ReportsService.getReport(schedule.saved_report_id);
+      const canEdit = await ReportsService.canEdit(report, { userId: req.user.userId });
+      if (!canEdit) {
+        return this.sendForbidden(res);
+      }
+      const deleted = await ReportsService.deleteSchedule(req.params.scheduleId);
+      await removeScheduleRepeat(deleted);
       return this.sendSuccess(res, { deleted: true }, 'Schedule deleted');
     } catch (err) {
       if (err instanceof ApiError) {
@@ -347,8 +357,18 @@ class ReportsControllerImpl extends BaseController {
       return this.sendUnauthorized(res);
     }
     try {
-      const share = await ReportsService.revokeShare(req.params.shareId);
-      return this.sendSuccess(res, share, 'Share revoked');
+      // Mirror createShare's gating: only callers with edit access on
+      // the parent report may revoke its share. Without this any
+      // authenticated user could enumerate shareId and pull the rug
+      // out from under other rescues' / staff members' shared links.
+      const share = await ReportsService.getShare(req.params.shareId);
+      const report = await ReportsService.getReport(share.saved_report_id);
+      const canEdit = await ReportsService.canEdit(report, { userId: req.user.userId });
+      if (!canEdit) {
+        return this.sendForbidden(res);
+      }
+      const revoked = await ReportsService.revokeShare(req.params.shareId);
+      return this.sendSuccess(res, revoked, 'Share revoked');
     } catch (err) {
       if (err instanceof ApiError) {
         return this.sendError(res, err.message, err.statusCode);

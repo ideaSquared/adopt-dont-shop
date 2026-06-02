@@ -277,8 +277,10 @@ const EditTab: React.FC<{
             onChange={e => setFormData({ ...formData, userType: e.target.value as UserType })}
           >
             <option value='adopter'>Adopter</option>
-            <option value='admin'>Admin</option>
+            <option value='rescue_staff'>Rescue Staff</option>
+            <option value='support_agent'>Support Agent</option>
             <option value='moderator'>Moderator</option>
+            <option value='admin'>Admin</option>
             <option value='super_admin'>Super Admin</option>
           </select>
         </div>

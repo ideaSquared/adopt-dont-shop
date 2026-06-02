@@ -171,6 +171,30 @@ const mockAdminUsers: AdminUser[] = [
     createdAt: '2024-01-04T00:00:00Z',
     updatedAt: '2024-01-04T00:00:00Z',
   },
+  {
+    userId: 'user-5',
+    email: 'sara.agent@example.com',
+    firstName: 'Sara',
+    lastName: 'Agent',
+    userType: 'support_agent',
+    status: 'active',
+    emailVerified: true,
+    phoneNumber: null,
+    phoneVerified: false,
+    profileImageUrl: null,
+    bio: null,
+    country: null,
+    city: null,
+    addressLine1: null,
+    addressLine2: null,
+    postalCode: null,
+    rescueId: null,
+    rescueName: null,
+    lastLoginAt: '2024-01-12T00:00:00Z',
+    lastLogin: '2024-01-12T00:00:00Z',
+    createdAt: '2024-01-05T00:00:00Z',
+    updatedAt: '2024-01-05T00:00:00Z',
+  },
 ];
 
 const mockMutationResult = {
@@ -621,6 +645,58 @@ describe('User Management page', () => {
       vi.mocked(apiService.patch).mockClear();
       setupSuccessfulLoad(mockAdminUsers);
       renderUsersPage('/users/user-4');
+
+      await user.click(screen.getByRole('tab', { name: 'Edit' }));
+      await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Saved')).toBeInTheDocument();
+      });
+      expect(apiService.patch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('role dropdown for non-standard user types', () => {
+    it('shows Rescue Staff selected in the Role dropdown for a rescue_staff user', async () => {
+      const user = userEvent.setup();
+      setupSuccessfulLoad(mockAdminUsers);
+      renderUsersPage('/users/user-2');
+
+      await user.click(screen.getByRole('tab', { name: 'Edit' }));
+
+      expect(screen.getByDisplayValue('Rescue Staff')).toBeInTheDocument();
+    });
+
+    it('does not include userType in the API call when saving without changing the role for a rescue_staff user', async () => {
+      const user = userEvent.setup();
+      vi.mocked(apiService.patch).mockClear();
+      setupSuccessfulLoad(mockAdminUsers);
+      renderUsersPage('/users/user-2');
+
+      await user.click(screen.getByRole('tab', { name: 'Edit' }));
+      await user.click(screen.getByRole('button', { name: /save changes/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Saved')).toBeInTheDocument();
+      });
+      expect(apiService.patch).not.toHaveBeenCalled();
+    });
+
+    it('shows Support Agent selected in the Role dropdown for a support_agent user', async () => {
+      const user = userEvent.setup();
+      setupSuccessfulLoad(mockAdminUsers);
+      renderUsersPage('/users/user-5');
+
+      await user.click(screen.getByRole('tab', { name: 'Edit' }));
+
+      expect(screen.getByDisplayValue('Support Agent')).toBeInTheDocument();
+    });
+
+    it('does not include userType in the API call when saving without changing the role for a support_agent user', async () => {
+      const user = userEvent.setup();
+      vi.mocked(apiService.patch).mockClear();
+      setupSuccessfulLoad(mockAdminUsers);
+      renderUsersPage('/users/user-5');
 
       await user.click(screen.getByRole('tab', { name: 'Edit' }));
       await user.click(screen.getByRole('button', { name: /save changes/i }));

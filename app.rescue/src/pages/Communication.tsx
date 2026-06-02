@@ -1,5 +1,5 @@
 import { useChat } from '@/contexts/ChatContext';
-import { usePermissions } from '@/contexts/PermissionsContext';
+import { useHasPermission } from '@adopt-dont-shop/lib.auth';
 import {
   ChatWindow,
   ConversationList,
@@ -54,7 +54,7 @@ const persistFilter = (filter: 'active' | 'resolved'): void => {
 function Communication() {
   const { activeConversation, conversations, setActiveConversation, updateConversationStatus } =
     useChat();
-  const { hasPermission } = usePermissions();
+  const canManageChat = useHasPermission(CHAT_UPDATE);
   const { confirm, confirmProps } = useConfirm();
   const [isMobile, setIsMobile] = useState(false);
   const [filter, setFilter] = useState<'active' | 'resolved'>(loadInitialFilter);
@@ -93,7 +93,6 @@ function Communication() {
   }, [searchParams, conversations, setActiveConversation, setSearchParams]);
 
   const showChat = isMobile && activeConversation !== null;
-  const canManageChat = hasPermission(CHAT_UPDATE);
 
   const handleFilterChange = (next: 'active' | 'resolved') => {
     setFilter(next);

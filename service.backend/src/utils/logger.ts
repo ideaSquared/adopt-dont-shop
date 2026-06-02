@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import path from 'path';
 import winston from 'winston';
+import LokiTransport from 'winston-loki';
 import { JsonValue, JsonObject } from '../types/common';
 import { redactLogPayload } from './redact';
 import { getCorrelationId } from './request-context';
@@ -128,22 +129,55 @@ const stripSecretQueryParams = (raw: string): string => {
   return kept ? `${pathPart}?${kept}` : pathPart;
 };
 
-const redactUrlsInValue = (value: unknown): unknown => {
+// ADS-784: JSON.stringify that never throws on circular references or BigInt.
+// Log meta can carry Node internals (timers, sockets) and Sequelize instances
+// with cyclic references — notably when the migration runner logs umzug error
+// objects, which previously crashed `db:migrate` outright.
+const safeJsonStringify = (value: unknown): string => {
+  const seen = new WeakSet<object>();
+  return JSON.stringify(value, (_key, val) => {
+    if (typeof val === 'bigint') {
+      return val.toString();
+    }
+    if (typeof val === 'object' && val !== null) {
+      if (seen.has(val)) {
+        return '[Circular]';
+      }
+      seen.add(val);
+    }
+    return val;
+  });
+};
+
+// ADS-784: bounded depth + cycle guard so a deep/cyclic meta object cannot
+// blow the stack (this format runs on every log line).
+const redactUrlsInValue = (value: unknown, depth = 0, seen = new WeakSet<object>()): unknown => {
   if (value === null || value === undefined) {
     return value;
   }
   if (typeof value === 'string') {
     return stripSecretQueryParams(value);
   }
+  if (depth >= 8) {
+    return value;
+  }
   if (Array.isArray(value)) {
-    return value.map(redactUrlsInValue);
+    if (seen.has(value)) {
+      return '[Circular]';
+    }
+    seen.add(value);
+    return value.map(v => redactUrlsInValue(v, depth + 1, seen));
   }
   if (typeof value === 'object') {
+    if (seen.has(value)) {
+      return '[Circular]';
+    }
+    seen.add(value);
     const entries = Object.entries(value as Record<string, unknown>).map(([k, v]) => {
       if (URL_LOG_KEYS.has(k.toLowerCase()) && typeof v === 'string') {
         return [k, stripSecretQueryParams(v)];
       }
-      return [k, redactUrlsInValue(v)];
+      return [k, redactUrlsInValue(v, depth + 1, seen)];
     });
     return Object.fromEntries(entries);
   }
@@ -197,7 +231,7 @@ const logFormat = winston.format.combine(
       logEntry.meta = meta as Record<string, LogEntryValue>;
     }
 
-    return JSON.stringify(logEntry);
+    return safeJsonStringify(logEntry);
   })
 );
 
@@ -211,7 +245,7 @@ const devFormat = winston.format.combine(
   winston.format.printf(info => {
     const { timestamp, level, message, correlationId, ...meta } = info;
     const correlationStr = correlationId ? ` [${correlationId}]` : '';
-    const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
+    const metaStr = Object.keys(meta).length > 0 ? ` ${safeJsonStringify(meta)}` : '';
     return `${timestamp}${correlationStr} [${level}]: ${message}${metaStr}`;
   })
 );
@@ -226,6 +260,33 @@ transports.push(
     format: isDevelopment ? devFormat : logFormat,
   })
 );
+
+// Loki transport (optional). Enabled whenever LOKI_URL is set, regardless of
+// NODE_ENV, so dev compose can opt-in via the `observability` profile without
+// having to flip NODE_ENV. Labels are intentionally low-cardinality so Loki
+// indexes stay small; dynamic fields (correlationId, userId, action) live in
+// the log body and are queried with `|=` / JSON parsers instead.
+const lokiUrl = process.env.LOKI_URL?.trim();
+if (lokiUrl) {
+  transports.push(
+    new LokiTransport({
+      host: lokiUrl,
+      labels: {
+        service: 'adopt-dont-shop-backend',
+        env: process.env.NODE_ENV || 'development',
+      },
+      json: true,
+      format: logFormat,
+      batching: true,
+      interval: 5,
+      replaceTimestamp: true,
+      // Don't crash the app if Loki is unreachable — degrade to console + file.
+      onConnectionError: err => {
+        console.error('Loki transport connection error:', err);
+      },
+    })
+  );
+}
 
 // File transports for production with better organization
 if (isProduction) {
@@ -422,6 +483,35 @@ export const loggerHelpers = {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('Failed to write audit log to database', { error: errorMessage, action, data });
     }
+  },
+
+  /**
+   * Emit an audit event line to the log stream tagged `audit: true`. Used by
+   * the new audit-route middleware (Layer 2) and by transactional explicit
+   * audit calls inside services to mirror the DB row into the log aggregator
+   * so dashboards in Grafana/Loki can correlate audit events with the
+   * surrounding operational logs by correlationId.
+   *
+   * This does NOT write to the audit_logs table — the caller is expected to
+   * have already written (or queued) the immutable DB row via
+   * AuditLogService.log. Keeping the two emit points separate keeps the
+   * transactional contract of the DB write intact.
+   */
+  logAudit: (
+    action: string,
+    data: LogData & {
+      entity?: string;
+      entityId?: string;
+      userId?: string;
+      status?: 'success' | 'failure';
+    }
+  ) => {
+    logger.info(`Audit: ${action}`, {
+      category: 'AUDIT',
+      audit: true,
+      action,
+      ...data,
+    });
   },
 };
 
