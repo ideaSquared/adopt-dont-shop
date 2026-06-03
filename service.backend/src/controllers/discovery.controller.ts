@@ -204,10 +204,22 @@ export class DiscoveryController {
     }
 
     const { sessionId } = req.params;
+    const callerId = req.user?.userId;
+    const callerType = req.user?.userType;
+    const isAdmin = callerType === UserType.ADMIN || callerType === UserType.SUPER_ADMIN;
+
+    const ownerId = await this.swipeService.getSessionOwner(sessionId);
+    if (ownerId !== null && ownerId !== callerId && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden',
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     const stats = await this.swipeService.getSessionStats(sessionId);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Session statistics retrieved successfully',
       data: stats,
