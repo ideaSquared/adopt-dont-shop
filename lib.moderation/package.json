@@ -42,13 +42,13 @@
   "dependencies": {
     "@adopt-dont-shop/lib.api": "*",
     "@types/node": "^25.9.1",
-    "react": "^19.0.0",
+    "react": "^19.2.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",
     "@testing-library/react": "^16.3.2",
-    "@types/react": "^19.2.15",
+    "@types/react": "^19.2.16",
     "@typescript-eslint/eslint-plugin": "^8.60.1",
     "@typescript-eslint/parser": "^8.60.1",
     "eslint": "^10.4.1",
