@@ -160,9 +160,7 @@ export const MessagesTab: React.FC<MessagesTabProps> = ({ chatId, onMessageDelet
       </div>
 
       {showDeleteReasonPrompt && (
-        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div className={styles.deletePrompt} onClick={handleCancelDelete}>
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div className={styles.deletePromptContent} onClick={e => e.stopPropagation()}>
             <div className={styles.deletePromptTitle}>
               <FiAlertTriangle />

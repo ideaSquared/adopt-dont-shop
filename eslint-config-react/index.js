@@ -2,12 +2,11 @@ import baseConfig from '@adopt-dont-shop/eslint-config-base';
 import pluginReact from 'eslint-plugin-react';
 import pluginReactHooks from 'eslint-plugin-react-hooks';
 import pluginReactRefresh from 'eslint-plugin-react-refresh';
-import pluginJsxA11y from 'eslint-plugin-jsx-a11y';
 
+// TODO: re-add eslint-plugin-jsx-a11y once it supports eslint 10
 export default [
   ...baseConfig,
   pluginReact.configs.flat.recommended,
-  pluginJsxA11y.flatConfigs.recommended,
   {
     plugins: {
       'react-hooks': pluginReactHooks,
@@ -15,7 +14,11 @@ export default [
     },
     settings: {
       react: {
-        version: 'detect',
+        // Pinned instead of 'detect': eslint-plugin-react@7.37.5's version
+        // auto-detection calls the removed `context.getFilename()` and crashes
+        // under eslint 10. TODO: revert to 'detect' once eslint-plugin-react
+        // ships an eslint-10-compatible release.
+        version: '19.0',
       },
     },
     rules: {
@@ -32,11 +35,6 @@ export default [
 
       // React Refresh (for Vite HMR)
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-
-      // Accessibility rules
-      'jsx-a11y/no-autofocus': 'warn',
-      'jsx-a11y/anchor-is-valid': 'warn',
-      'jsx-a11y/mouse-events-have-key-events': 'warn',
 
       // ADS-522: discourage inline styles — prefer Vanilla Extract classes
       'react/forbid-component-props': [
