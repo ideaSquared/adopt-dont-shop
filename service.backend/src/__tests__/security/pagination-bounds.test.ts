@@ -38,11 +38,21 @@ vi.mock('../../models/AdopterMatchProfile', () => ({
   default: { findByPk: vi.fn() },
 }));
 
+vi.mock('../../services/security.service', () => ({
+  default: {
+    listSessions: vi.fn(),
+    getLoginHistory: vi.fn(),
+    getSuspiciousActivity: vi.fn(),
+  },
+}));
+
 import { MatchController } from '../../controllers/match.controller';
 import { NotificationController } from '../../controllers/notification.controller';
+import { SecurityController } from '../../controllers/security.controller';
 import { NotificationService } from '../../services/notification.service';
+import SecurityService from '../../services/security.service';
 import Pet from '../../models/Pet';
-import { DEFAULT_PAGE_SIZE } from '../../constants/pagination';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../../constants/pagination';
 import { AuthenticatedRequest } from '../../types/auth';
 
 const mockUser = { userId: 'user-1' } as AuthenticatedRequest['user'];
@@ -154,6 +164,164 @@ describe('Pagination bounds — defense-in-depth', () => {
 
       const [, options] = vi.mocked(NotificationService.getUserNotifications).mock.calls[0];
       expect(options?.limit).toBe(DEFAULT_PAGE_SIZE);
+    });
+  });
+
+  describe('SecurityController.listSessions', () => {
+    const buildReq = (limit?: string) =>
+      ({
+        user: mockUser,
+        query: limit === undefined ? {} : { limit },
+      }) as unknown as AuthenticatedRequest;
+
+    beforeEach(() => {
+      vi.mocked(SecurityService.listSessions).mockResolvedValue({
+        sessions: [],
+        total: 0,
+        page: 1,
+        totalPages: 1,
+      });
+    });
+
+    it('caps an oversized limit at MAX_PAGE_SIZE', async () => {
+      const req = buildReq('999999');
+      const res = mockRes();
+
+      await SecurityController.listSessions(req, res as Response);
+
+      const [args] = vi.mocked(SecurityService.listSessions).mock.calls[0];
+      expect(args?.limit).toBe(MAX_PAGE_SIZE);
+    });
+
+    it('honours a valid in-range limit', async () => {
+      const req = buildReq('25');
+      const res = mockRes();
+
+      await SecurityController.listSessions(req, res as Response);
+
+      const [args] = vi.mocked(SecurityService.listSessions).mock.calls[0];
+      expect(args?.limit).toBe(25);
+    });
+
+    it('passes undefined limit when none is provided, letting the service use its default', async () => {
+      const req = buildReq();
+      const res = mockRes();
+
+      await SecurityController.listSessions(req, res as Response);
+
+      const [args] = vi.mocked(SecurityService.listSessions).mock.calls[0];
+      expect(args?.limit).toBeUndefined();
+    });
+
+    it('clamps a limit of zero up to 1', async () => {
+      const req = buildReq('0');
+      const res = mockRes();
+
+      await SecurityController.listSessions(req, res as Response);
+
+      const [args] = vi.mocked(SecurityService.listSessions).mock.calls[0];
+      expect(args?.limit).toBe(1);
+    });
+  });
+
+  describe('SecurityController.getLoginHistory', () => {
+    const buildReq = (limit?: string) =>
+      ({
+        user: mockUser,
+        query: limit === undefined ? {} : { limit },
+      }) as unknown as AuthenticatedRequest;
+
+    beforeEach(() => {
+      vi.mocked(SecurityService.getLoginHistory).mockResolvedValue({
+        entries: [],
+        total: 0,
+        page: 1,
+        totalPages: 1,
+      });
+    });
+
+    it('caps an oversized limit at MAX_PAGE_SIZE', async () => {
+      const req = buildReq('999999');
+      const res = mockRes();
+
+      await SecurityController.getLoginHistory(req, res as Response);
+
+      const [args] = vi.mocked(SecurityService.getLoginHistory).mock.calls[0];
+      expect(args?.limit).toBe(MAX_PAGE_SIZE);
+    });
+
+    it('honours a valid in-range limit', async () => {
+      const req = buildReq('20');
+      const res = mockRes();
+
+      await SecurityController.getLoginHistory(req, res as Response);
+
+      const [args] = vi.mocked(SecurityService.getLoginHistory).mock.calls[0];
+      expect(args?.limit).toBe(20);
+    });
+
+    it('passes undefined limit when none is provided, letting the service use its default', async () => {
+      const req = buildReq();
+      const res = mockRes();
+
+      await SecurityController.getLoginHistory(req, res as Response);
+
+      const [args] = vi.mocked(SecurityService.getLoginHistory).mock.calls[0];
+      expect(args?.limit).toBeUndefined();
+    });
+  });
+
+  describe('SecurityController.getSuspiciousActivity', () => {
+    const buildReq = (query: { failureThreshold?: string; windowHours?: string } = {}) =>
+      ({
+        user: mockUser,
+        query,
+      }) as unknown as AuthenticatedRequest;
+
+    beforeEach(() => {
+      vi.mocked(SecurityService.getSuspiciousActivity).mockResolvedValue([]);
+    });
+
+    it('clamps windowHours at the 720-hour ceiling', async () => {
+      const req = buildReq({ windowHours: '99999' });
+      const res = mockRes();
+
+      await SecurityController.getSuspiciousActivity(req, res as Response);
+
+      const [args] = vi.mocked(SecurityService.getSuspiciousActivity).mock.calls[0];
+      expect(args?.windowHours).toBe(720);
+    });
+
+    it('clamps failureThreshold up to minimum 1', async () => {
+      const req = buildReq({ failureThreshold: '0' });
+      const res = mockRes();
+
+      await SecurityController.getSuspiciousActivity(req, res as Response);
+
+      const [args] = vi.mocked(SecurityService.getSuspiciousActivity).mock.calls[0];
+      expect(args?.failureThreshold).toBe(1);
+    });
+
+    it('honours valid in-range params', async () => {
+      const req = buildReq({ failureThreshold: '5', windowHours: '48' });
+      const res = mockRes();
+
+      await SecurityController.getSuspiciousActivity(req, res as Response);
+
+      const [args] = vi.mocked(SecurityService.getSuspiciousActivity).mock.calls[0];
+      expect(args?.failureThreshold).toBe(5);
+      expect(args?.windowHours).toBe(48);
+    });
+
+    it('passes undefined params when none are provided', async () => {
+      const req = buildReq();
+      const res = mockRes();
+
+      await SecurityController.getSuspiciousActivity(req, res as Response);
+
+      const [args] = vi.mocked(SecurityService.getSuspiciousActivity).mock.calls[0];
+      expect(args?.failureThreshold).toBeUndefined();
+      expect(args?.windowHours).toBeUndefined();
     });
   });
 });

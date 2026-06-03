@@ -201,8 +201,38 @@ export class AuthController {
    * Get current user profile
    */
   async getCurrentUser(req: AuthenticatedRequest, res: Response): Promise<void> {
-    // Simply return the authenticated user from the request
-    res.json(req.user);
+    const u = req.user!;
+    res.json({
+      userId: u.userId,
+      email: u.email,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      phoneNumber: u.phoneNumber,
+      emailVerified: u.emailVerified,
+      userType: u.userType,
+      status: u.status,
+      profileImageUrl: u.profileImageUrl,
+      bio: u.bio,
+      dateOfBirth: u.dateOfBirth,
+      country: u.country,
+      city: u.city,
+      addressLine1: u.addressLine1,
+      addressLine2: u.addressLine2,
+      postalCode: u.postalCode,
+      location: u.location,
+      timezone: u.timezone,
+      language: u.language,
+      twoFactorEnabled: u.twoFactorEnabled,
+      lastLoginAt: u.lastLoginAt,
+      termsAcceptedAt: u.termsAcceptedAt,
+      privacyPolicyAcceptedAt: u.privacyPolicyAcceptedAt,
+      applicationDefaults: u.applicationDefaults,
+      profileCompletionStatus: u.profileCompletionStatus,
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
+      Roles: u.Roles,
+      rescueId: u.rescueId,
+    });
   }
 
   /**
