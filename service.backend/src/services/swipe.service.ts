@@ -1,3 +1,4 @@
+import { QueryTypes } from 'sequelize';
 import sequelize from '../sequelize';
 import { JsonObject } from '../types/common';
 import { NotFoundError } from '../middleware/error-handler';
@@ -241,11 +242,11 @@ export class SwipeService {
   }
 
   async getSessionOwner(sessionId: string): Promise<string | null> {
-    const [rows] = await sequelize.query<{ user_id: string | null }>(
+    const rows = await sequelize.query<{ user_id: string | null }>(
       `SELECT user_id FROM swipe_sessions WHERE session_id = :sessionId LIMIT 1`,
-      { replacements: { sessionId } }
+      { replacements: { sessionId }, type: QueryTypes.SELECT }
     );
-    return rows.length > 0 ? (rows[0].user_id ?? null) : null;
+    return rows[0]?.user_id ?? null;
   }
 
   /**
