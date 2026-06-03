@@ -1,3 +1,4 @@
+import { QueryTypes } from 'sequelize';
 import sequelize from '../sequelize';
 import { JsonObject } from '../types/common';
 import { NotFoundError } from '../middleware/error-handler';
@@ -238,6 +239,14 @@ export class SwipeService {
       logger.error('Error getting user swipe stats', { error, userId });
       throw new Error('Failed to get user swipe statistics');
     }
+  }
+
+  async getSessionOwner(sessionId: string): Promise<string | null> {
+    const rows = await sequelize.query<{ user_id: string | null }>(
+      `SELECT user_id FROM swipe_sessions WHERE session_id = :sessionId LIMIT 1`,
+      { replacements: { sessionId }, type: QueryTypes.SELECT }
+    );
+    return rows[0]?.user_id ?? null;
   }
 
   /**

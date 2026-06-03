@@ -22,6 +22,7 @@ const {
   getDiscoveryQueueMock,
   recordSwipeActionMock,
   getSessionStatsMock,
+  getSessionOwnerMock,
   getUserSwipeStatsMock,
   authenticateTokenMock,
   optionalAuthMock,
@@ -29,6 +30,7 @@ const {
   getDiscoveryQueueMock: vi.fn(),
   recordSwipeActionMock: vi.fn(),
   getSessionStatsMock: vi.fn(),
+  getSessionOwnerMock: vi.fn(),
   getUserSwipeStatsMock: vi.fn(),
   authenticateTokenMock: vi.fn(),
   optionalAuthMock: vi.fn(),
@@ -47,6 +49,7 @@ vi.mock('../../services/swipe.service', () => {
     recordSwipeAction = recordSwipeActionMock;
     getUserSwipeStats = getUserSwipeStatsMock;
     getSessionStats = getSessionStatsMock;
+    getSessionOwner = getSessionOwnerMock;
   }
   return { SwipeService };
 });
@@ -261,10 +264,31 @@ describe('POST /api/v1/discovery/swipe/action', () => {
   });
 });
 
-describe('Discovery routes — session stats', () => {
+const SESSION_ID = 'session_abcdef1234567890abcdef1234567890';
+const SESSION_OWNER_ID = AUTH_USER_ID;
+const NON_OWNER_ID = OTHER_USER_ID;
+const ADMIN_USER_ID = 'c3333333-3333-4333-8333-333333333333';
+
+const setSessionUser = (user: { userId: string; userType?: string } | null) => {
+  authenticateTokenMock.mockImplementation(
+    (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+      if (!user) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+      req.user = user as AuthenticatedRequest['user'];
+      next();
+    }
+  );
+};
+
+describe('Discovery routes — session stats (IDOR guard)', () => {
+  const stats = { sessionId: SESSION_ID, totalSwipes: 5 };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    authenticateTokenMock.mockImplementation(passAuth);
+    getSessionStatsMock.mockResolvedValue(stats);
+    getSessionOwnerMock.mockResolvedValue(SESSION_OWNER_ID);
+    setSessionUser({ userId: SESSION_OWNER_ID, userType: 'adopter' });
     optionalAuthMock.mockImplementation(
       (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next()
     );
@@ -272,30 +296,60 @@ describe('Discovery routes — session stats', () => {
 
   describe('GET /api/v1/discovery/swipe/session/:sessionId', () => {
     it('returns 401 when unauthenticated', async () => {
-      authenticateTokenMock.mockImplementation((_req: AuthenticatedRequest, res: Response) => {
-        res.status(401).json({ error: 'unauthenticated' });
-      });
+      setSessionUser(null);
 
-      const res = await request(buildApp()).get(
-        '/api/v1/discovery/swipe/session/session_abcdef1234567890abcdef1234567890'
-      );
+      const res = await request(buildApp()).get(`/api/v1/discovery/swipe/session/${SESSION_ID}`);
 
       expect(res.status).toBe(401);
       expect(getSessionStatsMock).not.toHaveBeenCalled();
     });
 
-    it('returns 200 with session stats when authenticated', async () => {
-      const stats = { sessionId: 'session_abc', totalSwipes: 3 };
-      getSessionStatsMock.mockResolvedValue(stats);
+    it('returns 403 when authenticated caller does not own the session', async () => {
+      setSessionUser({ userId: NON_OWNER_ID, userType: 'adopter' });
 
-      const res = await request(buildApp()).get(
-        '/api/v1/discovery/swipe/session/session_abcdef1234567890abcdef1234567890'
-      );
+      const res = await request(buildApp()).get(`/api/v1/discovery/swipe/session/${SESSION_ID}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(getSessionStatsMock).not.toHaveBeenCalled();
+    });
+
+    it('returns 200 with stats when caller is the session owner', async () => {
+      const res = await request(buildApp()).get(`/api/v1/discovery/swipe/session/${SESSION_ID}`);
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data).toEqual(stats);
-      expect(getSessionStatsMock).toHaveBeenCalledWith('session_abcdef1234567890abcdef1234567890');
+      expect(getSessionStatsMock).toHaveBeenCalledWith(SESSION_ID);
+    });
+
+    it("returns 200 when an admin reads another user's session", async () => {
+      setSessionUser({ userId: ADMIN_USER_ID, userType: UserType.ADMIN });
+
+      const res = await request(buildApp()).get(`/api/v1/discovery/swipe/session/${SESSION_ID}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toEqual(stats);
+    });
+
+    it("returns 200 for a super_admin reading another user's session", async () => {
+      setSessionUser({ userId: ADMIN_USER_ID, userType: UserType.SUPER_ADMIN });
+
+      const res = await request(buildApp()).get(`/api/v1/discovery/swipe/session/${SESSION_ID}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('returns 200 when session is anonymous (no owner)', async () => {
+      getSessionOwnerMock.mockResolvedValue(null);
+      setSessionUser({ userId: NON_OWNER_ID, userType: 'adopter' });
+
+      const res = await request(buildApp()).get(`/api/v1/discovery/swipe/session/${SESSION_ID}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
     });
   });
 });
