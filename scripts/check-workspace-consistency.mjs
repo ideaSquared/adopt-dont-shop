@@ -268,6 +268,30 @@ function main() {
     failures.push(`[jest-refs] stale 'jest' reference in tracked file: ${file}`);
   }
 
+  // 6. Hoisted devDependencies must not reappear in lib.* packages (ADS-730)
+  const HOISTED_DEVDEPS = [
+    '@typescript-eslint/eslint-plugin',
+    '@typescript-eslint/parser',
+    'eslint',
+    'eslint-config-prettier',
+    'eslint-plugin-prettier',
+    'prettier',
+    'typescript',
+    'vitest',
+    '@vitest/coverage-v8',
+    'typescript-eslint',
+  ];
+  for (const lib of libs) {
+    const pkg = readPkg(lib);
+    const devDeps = pkg?.devDependencies ?? {};
+    const reintroduced = HOISTED_DEVDEPS.filter(dep => dep in devDeps);
+    if (reintroduced.length > 0) {
+      failures.push(
+        `[${lib}] re-introduces hoisted devDependencies: ${reintroduced.join(', ')} (declare them only in the root package.json — see ADS-730)`,
+      );
+    }
+  }
+
   if (warnings.length > 0) {
     console.warn('Warnings (non-fatal — script body drift):');
     for (const w of warnings) {
