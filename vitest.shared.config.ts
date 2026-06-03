@@ -1,10 +1,11 @@
-import { defineConfig } from 'vitest/config';
+import { basename } from 'path';
+import { defineConfig, mergeConfig, type UserConfig } from 'vitest/config';
 
 /**
  * Shared Vitest configuration for all lib.* packages.
  * Each lib extends this and overrides only what it needs.
  */
-export default defineConfig({
+const sharedConfig = defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
@@ -46,3 +47,20 @@ export default defineConfig({
     },
   },
 });
+
+export default sharedConfig;
+
+/**
+ * ADS-729: helper that removes the per-lib mergeConfig + imports boilerplate.
+ *
+ * The lib's `name` is derived from its directory (the basename of process.cwd()
+ * at config-load time), so every lib's `vitest.config.ts` collapses to a single
+ * `defineLibConfig({ ...overrides })` call. Pass any overrides to extend or
+ * override the shared defaults — typically `test.coverage.thresholds` and
+ * optionally `test.setupFiles` / `test.environment`.
+ */
+export function defineLibConfig(overrides: UserConfig = {}): UserConfig {
+  const name = basename(process.cwd());
+  const withName = mergeConfig(sharedConfig, defineConfig({ test: { name } }));
+  return mergeConfig(withName, overrides);
+}
