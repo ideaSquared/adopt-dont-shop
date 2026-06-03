@@ -323,7 +323,7 @@ describe('Discovery routes — session stats (IDOR guard)', () => {
       expect(getSessionStatsMock).toHaveBeenCalledWith(SESSION_ID);
     });
 
-    it('returns 200 when an admin reads another user\'s session', async () => {
+    it("returns 200 when an admin reads another user's session", async () => {
       setSessionUser({ userId: ADMIN_USER_ID, userType: UserType.ADMIN });
 
       const res = await request(buildApp()).get(`/api/v1/discovery/swipe/session/${SESSION_ID}`);
@@ -333,7 +333,7 @@ describe('Discovery routes — session stats (IDOR guard)', () => {
       expect(res.body.data).toEqual(stats);
     });
 
-    it('returns 200 for a super_admin reading another user\'s session', async () => {
+    it("returns 200 for a super_admin reading another user's session", async () => {
       setSessionUser({ userId: ADMIN_USER_ID, userType: UserType.SUPER_ADMIN });
 
       const res = await request(buildApp()).get(`/api/v1/discovery/swipe/session/${SESSION_ID}`);
