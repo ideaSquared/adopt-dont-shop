@@ -168,11 +168,6 @@ const JEST_REF_FILE_ALLOWLIST = new Set([
   // tests that are themselves Vitest. Pure prose, no wiring.
   'lib.feature-flags/src/hooks/useDynamicConfig.test.ts',
   'lib.feature-flags/src/hooks/useFeatureGate.test.ts',
-  // Generator templates (introduced by #594) still produce jest-based
-  // package.json. Porting the templates to vitest is a follow-up.
-  'scripts/templates/app/enterprise/package.json',
-  'scripts/templates/app/minimal/package.json',
-  'scripts/templates/app/standard/package.json',
 ]);
 
 // Patterns that indicate active Jest wiring (as opposed to merely
