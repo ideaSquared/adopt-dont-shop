@@ -175,6 +175,13 @@ describe('AuthService - Security Business Logic', () => {
     MockedJwt.sign = vi.fn().mockReturnValue('mock-token');
     MockedJwt.verify = vi.fn();
 
+    // Setup bcrypt mocks. hashSync is invoked on the no-user login path
+    // (ADS-750 timing equaliser) so it must return a real-shaped hash for
+    // any test that exercises the missing-email branch.
+    MockedBcrypt.hashSync = vi
+      .fn()
+      .mockReturnValue('$2b$12$abcdefghijklmnopqrstuuW9zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz');
+
     // Setup RefreshToken mock defaults
     MockedRefreshToken.create = vi.fn().mockResolvedValue({});
     MockedRefreshToken.update = vi.fn().mockResolvedValue([0]);
@@ -331,6 +338,36 @@ describe('AuthService - Security Business Logic', () => {
 
       // When & Then: Generic error message
       await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
+    });
+
+    it('should still run bcrypt.compare on the no-user path to equalise login timing (ADS-750)', async () => {
+      // Regression for ADS-750: the "no such email" branch must perform a
+      // dummy bcrypt.compare so its response time matches the
+      // "wrong password" branch. Skipping the compare creates a timing
+      // oracle attackers can use to enumerate registered emails.
+      MockedUser.scope = vi.fn().mockReturnValue({
+        findOne: vi.fn().mockResolvedValue(null),
+      });
+      // Mocked bcrypt.hashSync returns a real-shaped string so the dummy
+      // hash matches the production cost-factor expectation.
+      MockedBcrypt.hashSync = vi
+        .fn()
+        .mockReturnValue('$2b$12$abcdefghijklmnopqrstuuW9zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz');
+      MockedBcrypt.compare = vi.fn().mockResolvedValue(false);
+
+      const credentials = createValidLoginCredentials({ email: 'nobody@example.com' });
+
+      await expect(AuthService.login(credentials)).rejects.toThrow('Invalid credentials');
+
+      // bcrypt.compare must have been invoked exactly once (against the
+      // dummy hash) even though no user exists.
+      expect(MockedBcrypt.compare).toHaveBeenCalledTimes(1);
+      const [submittedPassword, dummyHash] = (MockedBcrypt.compare as vi.Mock).mock.calls[0];
+      expect(submittedPassword).toBe(validPassword);
+      // bcrypt hashes start with $2a$/$2b$/$2y$ and embed the cost factor;
+      // the dummy must look like a real hash so timing matches production.
+      expect(typeof dummyHash).toBe('string');
+      expect(dummyHash).toMatch(/^\$2[aby]\$\d{2}\$/);
     });
   });
 

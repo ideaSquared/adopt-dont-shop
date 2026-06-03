@@ -38,6 +38,23 @@ import {
 } from '../types';
 import { JsonObject } from '../types/common';
 
+/**
+ * Pre-computed dummy bcrypt hash used to equalise login response timing for
+ * the "no such email" code path (ADS-750). Computed once lazily with the
+ * same cost factor as production password hashes so the duration of the
+ * dummy `bcrypt.compare` matches the real password-check branch.
+ */
+let dummyBcryptHash: string | null = null;
+const getDummyBcryptHash = (): string => {
+  if (dummyBcryptHash === null) {
+    dummyBcryptHash = bcrypt.hashSync(
+      'adopt-dont-shop-timing-equaliser',
+      config.security.bcryptRounds
+    );
+  }
+  return dummyBcryptHash;
+};
+
 export class AuthService {
   private static readonly JWT_SECRET = env.JWT_SECRET;
   private static readonly JWT_REFRESH_SECRET = env.JWT_REFRESH_SECRET;
@@ -264,6 +281,11 @@ export class AuthService {
         });
 
         if (!user) {
+          // ADS-750: equalise timing against the password-check path so a
+          // missing email is not distinguishable from a present-but-wrong
+          // password one. The dummy hash is sized at the same cost factor
+          // as production hashes.
+          await bcrypt.compare(credentials.password, getDummyBcryptHash());
           await transaction.rollback();
           loggerHelpers.logSecurity('Login attempt with non-existent email', {
             email: redactEmail(credentials.email),
