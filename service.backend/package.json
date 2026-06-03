@@ -109,7 +109,7 @@
     "@types/supertest": "^7.2.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
-    "@types/uuid": "^9.0.0",
+    "@types/uuid": "^11.0.0",
     "@types/validator": "^13.7.10",
     "@types/yamljs": "^0.2.34",
     "@typescript-eslint/eslint-plugin": "^8.60.1",
