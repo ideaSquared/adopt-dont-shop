@@ -26,7 +26,7 @@ type ConfirmationModalProps = {
   confirmButtonText?: string;
 };
 
-const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
+export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
