@@ -114,6 +114,16 @@ Full guidelines are in [.claude/CLAUDE.md](./.claude/CLAUDE.md). Key rules:
 - Immutable data; pure functions; no nested if/else (use early returns)
 - Functional components only in React; no class components
 
+### Editor configuration
+
+A repo-root `.editorconfig` enforces 2-space indent, LF line endings, UTF-8, final newline, and trimmed trailing whitespace — matching Prettier so format-only diffs don't show up in code review. VSCode picks this up out of the box (see `.vscode/extensions.json`). For other editors, install the EditorConfig plugin:
+
+- **WebStorm / IntelliJ**: bundled, no install needed
+- **Vim**: [editorconfig-vim](https://github.com/editorconfig/editorconfig-vim)
+- **Neovim**: [editorconfig.nvim](https://github.com/gpanders/editorconfig.nvim) (or built-in since 0.9)
+- **Sublime Text**: [EditorConfig](https://github.com/sindresorhus/editorconfig-sublime)
+- **Zed / Helix**: built-in support
+
 ## Test requirements
 
 Every package uses **Vitest** (`vitest run`). The React apps and `lib.components` add React Testing Library on top. Use the `npm test` / `npm run test:watch` / `npm run test:coverage` scripts defined in each package.
