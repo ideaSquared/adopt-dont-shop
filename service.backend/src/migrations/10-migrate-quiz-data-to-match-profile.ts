@@ -16,7 +16,7 @@
  */
 import { type QueryInterface } from 'sequelize';
 
-import { assertDestructiveDownAcknowledged, columnExists, runInTransaction } from './_helpers';
+import { columnExists, runInTransaction } from './_helpers';
 
 type QuizBlob = {
   homeType?: string;
@@ -194,9 +194,11 @@ export default {
   },
 
   down: async (): Promise<void> => {
-    // Data migration — no automatic rollback. The quiz blob data is still
-    // intact in user_preferences for manual recovery if needed. Operators
-    // must opt in explicitly before any future destructive down() is added.
-    assertDestructiveDownAcknowledged('10-migrate-quiz-data-to-match-profile');
+    // Intentional no-op: this is a non-destructive data backfill. The source
+    // quiz data still lives in user_preferences.preferences -> 'quiz' and the
+    // up() used ON CONFLICT DO NOTHING, so existing adopter_match_profile rows
+    // were not modified. Leaving the backfilled rows in place on rollback is
+    // safe. If a future change makes the down() destructive, reinstate the
+    // assertDestructiveDownAcknowledged guard from _helpers.
   },
 };
