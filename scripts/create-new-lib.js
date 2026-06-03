@@ -195,9 +195,6 @@ function printSuccess(libName, libType) {
   }
 
   log('', 'reset');
-  log('🐳 Standalone development:', 'bright');
-  log(`   docker compose -f lib.${libName}/docker-compose.lib.yml up`, 'cyan');
-  log('', 'reset');
   log('📦 Use in apps:', 'bright');
   log('   Add to package.json dependencies:', 'cyan');
   log(`   "@adopt-dont-shop/lib-${libName}": "workspace:*"`, 'cyan');
