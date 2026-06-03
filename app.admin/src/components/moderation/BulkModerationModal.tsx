@@ -111,9 +111,7 @@ export const BulkModerationModal: React.FC<BulkModerationModalProps> = ({
     (requiresTypedConfirm && confirmPhrase.trim() !== CONFIRM_PHRASE);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div className={styles.overlay} onClick={handleClose}>
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
         className={styles.modal}
         role='dialog'
