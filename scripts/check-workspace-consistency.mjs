@@ -161,7 +161,6 @@ const JEST_REF_FILE_ALLOWLIST = new Set([
   'app.rescue/src/__mocks__/lib-rescue.ts',
   'app.rescue/src/setup-tests.tsx',
   'app.rescue/src/test-utils/setup-tests.ts',
-  'lib.auth/__tests__/auth-service.test.ts',
   'service.backend/src/__mocks__/logger.ts',
   'service.backend/src/__mocks__/models/ApplicationTimeline.ts',
   // Documentation-style comments referencing jest.mock semantics in
