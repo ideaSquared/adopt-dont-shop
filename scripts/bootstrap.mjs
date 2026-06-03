@@ -7,12 +7,16 @@
  *                       Useful for CI containers or lightweight dev environments
  *                       that won't run E2E tests locally. You can install them
  *                       later with `npm run test:e2e:install`.
+ *   --start             Skip the interactive prompt and start the docker dev
+ *                       stack at the end of setup.
+ *   --no-start          Skip the interactive prompt and DO NOT start the stack.
  */
 import { execSync } from 'child_process';
 import { existsSync, copyFileSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { randomBytes } from 'crypto';
+import { createInterface } from 'readline';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -124,10 +128,102 @@ function ensureSecretsInEnv(envPath) {
   return { wrote: true, replaced, missing };
 }
 
+function dockerAvailable() {
+  try {
+    execSync('docker info', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function promptYesNo(question, defaultYes = true) {
+  if (!process.stdin.isTTY) {
+    return Promise.resolve(defaultYes);
+  }
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const suffix = defaultYes ? ' (Y/n) ' : ' (y/N) ';
+  return new Promise(resolve => {
+    rl.question(`${question}${suffix}`, answer => {
+      rl.close();
+      const trimmed = answer.trim().toLowerCase();
+      if (trimmed === '') {
+        resolve(defaultYes);
+      } else {
+        resolve(trimmed === 'y' || trimmed === 'yes');
+      }
+    });
+  });
+}
+
+async function waitForHealth(url, timeoutMs = 60000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      execSync(`curl -fsS ${url}`, { stdio: 'ignore' });
+      return true;
+    } catch {
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+  return false;
+}
+
+async function startStack() {
+  logStep('8', 'Starting docker dev stack (docker compose up -d)...');
+  if (!dockerAvailable()) {
+    logError('Docker is not running — skipping stack start. Run `npm run docker:dev` once Docker is up.');
+    return false;
+  }
+  try {
+    runCommand('npm run docker:dev:detach');
+  } catch (err) {
+    logError(`Failed to start stack: ${err.message}`);
+    return false;
+  }
+  runCommand('docker compose ps');
+  logInfo('Waiting for backend /health (up to 60s)...');
+  const ok = await waitForHealth('http://localhost:5000/health', 60000);
+  if (!ok) {
+    logError('Backend did not become healthy within 60s. Run `npm run docker:logs` to investigate.');
+    return false;
+  }
+  logSuccess('Backend is healthy.');
+  log('', RESET);
+  log('Access the stack at:', BLUE);
+  log('   http://localhost:3000   # app.client', RESET);
+  log('   http://localhost:3001   # app.admin', RESET);
+  log('   http://localhost:3002   # app.rescue', RESET);
+  log('   http://localhost:5000   # service.backend', RESET);
+  log('', RESET);
+  return true;
+}
+
+function printNextSteps() {
+  log('', GREEN);
+  log('Next steps:', `${BOLD}${GREEN}`);
+  log('', RESET);
+  log('1. Review your .env file:', BLUE);
+  log('   - Secrets have been generated for you.', RESET);
+  log('   - Set POSTGRES_PASSWORD and any third-party API keys you need.', RESET);
+  log('', RESET);
+  log('2. Start the development stack:', BLUE);
+  log('   npm run docker:dev          # recommended (includes database + redis)', RESET);
+  log('   npm run dev                 # native (requires local Postgres + Redis)', RESET);
+  log('', RESET);
+  log('For more information, see:', BLUE);
+  log('   README.md                   # Project overview', RESET);
+  log('   docs/README.md              # Detailed documentation', RESET);
+  log('   .claude/CLAUDE.md           # Development guidelines', RESET);
+  log('', GREEN);
+}
+
 async function setup() {
   logHeader("Adopt Don't Shop - Developer Setup");
 
   const skipPlaywright = process.argv.includes('--skip-playwright');
+  const forceStart = process.argv.includes('--start');
+  const forceNoStart = process.argv.includes('--no-start');
 
   try {
     // Step 1: Check Node.js version
@@ -241,22 +337,26 @@ async function setup() {
 
     // Success message
     logHeader('Setup Complete! 🎉');
-    log('', GREEN);
-    log('Next steps:', `${BOLD}${GREEN}`);
-    log('', RESET);
-    log('1. Review your .env file:', BLUE);
-    log('   - Secrets have been generated for you.', RESET);
-    log('   - Set POSTGRES_PASSWORD and any third-party API keys you need.', RESET);
-    log('', RESET);
-    log('2. Start the development stack:', BLUE);
-    log('   npm run docker:dev          # recommended (includes database + redis)', RESET);
-    log('   npm run dev                 # native (requires local Postgres + Redis)', RESET);
-    log('', RESET);
-    log('For more information, see:', BLUE);
-    log('   README.md                   # Project overview', RESET);
-    log('   docs/README.md              # Detailed documentation', RESET);
-    log('   .claude/CLAUDE.md           # Development guidelines', RESET);
-    log('', GREEN);
+
+    // Step 8: Offer to start the docker dev stack
+    let shouldStart;
+    if (forceStart) {
+      shouldStart = true;
+    } else if (forceNoStart) {
+      shouldStart = false;
+    } else {
+      shouldStart = await promptYesNo('Start the development stack now?', true);
+    }
+
+    if (shouldStart) {
+      const ok = await startStack();
+      if (!ok) {
+        printNextSteps();
+      }
+    } else {
+      printNextSteps();
+    }
+
     logSuccess('Happy coding!');
     log('', RESET);
   } catch (error) {

@@ -26,10 +26,11 @@ That's it. `npm run setup` is the one-shot bootstrap and it will:
 5. Build shared libraries (required by apps)
 6. Run `npm run validate:env` to surface any remaining required values
 7. Install Playwright browsers so `npm run test:e2e` works out of the box (~200 MB download)
+8. Offer to start the docker dev stack and wait until `http://localhost:5000/health` returns 200
 
 Skip the Playwright step with `npm run setup -- --skip-playwright` if you don't plan to run E2E tests locally; install them later with `npm run test:e2e:install`.
 
-After it finishes, set `POSTGRES_PASSWORD` and any third-party API keys in `.env`, then start the stack with `npm run docker:dev`.
+Pass `--no-start` to skip the stack-start prompt (default when stdin is not a TTY, e.g. CI sandboxes), or `--start` to force it without prompting. After setup, set `POSTGRES_PASSWORD` and any third-party API keys in `.env` — if you accepted the prompt, the stack is already running on the URLs printed above.
 
 ### Run (Docker — recommended)
 
