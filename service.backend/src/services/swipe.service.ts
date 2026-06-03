@@ -240,6 +240,14 @@ export class SwipeService {
     }
   }
 
+  async getSessionOwner(sessionId: string): Promise<string | null> {
+    const [rows] = await sequelize.query<{ user_id: string | null }>(
+      `SELECT user_id FROM swipe_sessions WHERE session_id = :sessionId LIMIT 1`,
+      { replacements: { sessionId } }
+    );
+    return rows.length > 0 ? (rows[0].user_id ?? null) : null;
+  }
+
   /**
    * Get session statistics
    */
