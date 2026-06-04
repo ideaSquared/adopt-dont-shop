@@ -1,4 +1,6 @@
-import { resolve } from 'path';
+import { existsSync } from 'fs';
+import path, { resolve } from 'path';
+import type { Plugin } from 'vite';
 
 /**
  * Get development aliases for all workspace libraries
@@ -39,6 +41,52 @@ export function getLibraryAliases(appDir: string, mode: string) {
 
   return libraryAliases;
 }
+
+/**
+ * ADS-761: Vanilla-Extract CSS stub used by the three app vitest configs.
+ *
+ * Stubs all Vanilla-Extract .css.ts modules with callable Proxy factories so
+ * vitest does not need to evaluate the real vanilla-extract pipeline. Handles
+ * both `import styles from '...'` (default) and `import * as styles from '...'`
+ * (namespace) by discovering named exports via regex.
+ */
+export const veCssMock: Plugin = {
+  name: 've-css-stub',
+  enforce: 'pre',
+
+  resolveId(id, importer) {
+    if (!importer || !id.endsWith('.css') || id.endsWith('.module.css')) {
+      return;
+    }
+    const base = id.startsWith('.') ? path.resolve(path.dirname(importer), id) : id;
+    if (existsSync(base + '.ts')) {
+      return base + '.ts';
+    }
+    return `\0ve-stub:${id}`;
+  },
+
+  load(id) {
+    if (id.startsWith('\0ve-stub:')) {
+      return 'export default {};';
+    }
+  },
+
+  transform(code, id) {
+    if (!id.endsWith('.css.ts')) {
+      return;
+    }
+    const names: string[] = [];
+    const re = /^export\s+(?:const|let|var|function)\s+(\w+)/gm;
+    let m;
+    while ((m = re.exec(code)) !== null) {
+      names.push(m[1]);
+    }
+
+    const factory = `function _p(){const f=(..._a)=>'';return new Proxy(f,{get:(_,k)=>typeof k==='string'?_p():f[k],apply:()=>''});}`;
+    const named = names.map(n => `export const ${n}=_p();`).join('\n');
+    return { code: `${factory}\n${named}\nexport default _p();`, map: null };
+  },
+};
 
 /**
  * Standard app aliases for internal imports
