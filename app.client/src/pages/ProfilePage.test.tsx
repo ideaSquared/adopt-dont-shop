@@ -3,21 +3,21 @@ import { MemoryRouter } from 'react-router-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@adopt-dont-shop/lib.components';
+import { createMockUser } from '@adopt-dont-shop/lib.dev-tools';
 
 const updateProfileMock = vi.fn();
 const updatePreferencesMock = vi.fn();
 const getPreferencesMock = vi.fn();
 
 const mockUser = {
-  userId: 'user-1',
-  email: 'adopter@example.com',
-  firstName: 'Ada',
-  lastName: 'Lovelace',
-  emailVerified: true,
-  userType: 'adopter' as const,
-  status: 'active' as const,
-  createdAt: '2024-01-01T00:00:00.000Z',
-  updatedAt: '2024-01-01T00:00:00.000Z',
+  ...createMockUser({
+    userId: 'user-1',
+    email: 'adopter@example.com',
+    firstName: 'Ada',
+    lastName: 'Lovelace',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+  }),
   notificationPreferences: {
     emailNotifications: true,
     pushNotifications: false,

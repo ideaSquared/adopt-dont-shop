@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Guard: every variable that `scripts/validate-env.mjs` marks as required
+ * Guard: every variable that `scripts/validate-env.ts` marks as required
  * for development must be mentioned in the REQUIRED banner block at the top
  * of `.env.example`. Stops contributors from adding a hard-required var to
  * the validator without surfacing it in the onboarding file.
@@ -14,8 +14,9 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.dirname(__dirname);
 
-// Keep this list in sync with the unconditional `required: true` calls
-// (and dev-mode required vars) in scripts/validate-env.mjs.
+// Keep this list in sync with the required fields in
+// lib.validation/src/schemas/env.ts (envBaseSchema) and the per-env
+// dbName checks consumed by scripts/validate-env.ts.
 const REQUIRED_KEYS = [
   'NODE_ENV',
   'POSTGRES_USER',

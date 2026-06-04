@@ -7,6 +7,7 @@ import {
   PROFILE_METER_CELEBRATED_STORAGE_KEY,
   PROFILE_METER_DISMISSED_STORAGE_KEY,
 } from '@/utils/profileCompletion';
+import { createMockUser } from '@adopt-dont-shop/lib.dev-tools';
 
 const mockLogEvent = vi.fn();
 
@@ -19,17 +20,14 @@ vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => useAuthMock(),
 }));
 
-const incompleteUser = {
+const incompleteUser = createMockUser({
   userId: 'u-1',
   email: 'jane@example.org',
   firstName: 'Jane',
   lastName: 'Doe',
-  emailVerified: true,
-  userType: 'adopter' as const,
-  status: 'active' as const,
   createdAt: '2026-01-01',
   updatedAt: '2026-01-01',
-};
+});
 
 const completeUser = {
   ...incompleteUser,

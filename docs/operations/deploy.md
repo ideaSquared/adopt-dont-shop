@@ -54,7 +54,7 @@ development or staging environment.
 
 ### 2. Verify secrets are valid and distinct
 
-`validate-env.mjs` enforces that all six secrets are present, at least 32 characters
+`validate-env.ts` enforces that all six secrets are present, at least 32 characters
 long, not a placeholder (`CHANGE_THIS…`), and distinct from each other. Run it against
 your production env file before deploying:
 
@@ -71,7 +71,7 @@ value, or is duplicated across secrets — fix it before proceeding.
 
 ### 3. Confirm staging values are not reused
 
-`validate-env.mjs` already rejects known placeholder patterns. For an extra check,
+`validate-env.ts` already rejects known placeholder patterns. For an extra check,
 verify that no production secret shares a value with your staging env file:
 
 ```bash
@@ -97,6 +97,16 @@ or secured ops log. At minimum: `date`, `rotated_by`, `reason`.
 | Suspected compromise | Immediate rotation of affected secret(s); full rotation if scope is unclear |
 | Team member off-boarding | Rotate any secret the person had access to |
 | Staging value detected in prod | Immediate full rotation |
+
+## Image signing & verification
+
+Images published by `.github/workflows/deploy.yml` are cosign-signed
+(keyless OIDC) and verified before the deploy job runs. A deploy whose
+images cannot be verified against this repo's `main`-branch identity
+will FAIL at the `verify-images` job, before any container reaches the
+host. See [`docs/security/image-signing.md`](../security/image-signing.md)
+for the trust model, the manual verification command, and the documented
+emergency-bypass procedure.
 
 ## Release deploy
 
@@ -226,6 +236,19 @@ enabled before going live. [ADS-665]
 ## Backup / snapshot
 
 See [`snapshot-policy.md`](./snapshot-policy.md). [ADS-500]
+
+## WebSocket sticky sessions (ADS-678)
+
+The Socket.IO per-user connection cap is enforced per backend instance,
+not globally. Multi-replica deploys MUST configure load-balancer
+stickiness on the `/socket.io` route so a given user's sockets land on
+one backend. With nginx in front, add `ip_hash;` to the backend
+upstream block; with AWS ALB, enable `lb_cookie` stickiness on the
+target group.
+
+See [`../architecture/adr-socket-sticky-sessions.md`](../architecture/adr-socket-sticky-sessions.md)
+for the full rationale, alternatives considered, and the explicit LB
+settings the ops team must apply.
 
 ## Known limitations
 
