@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import { trace } from '@opentelemetry/api';
 import { logger } from '../utils/logger';
 
 type SentryConfig = {
@@ -189,6 +190,29 @@ export const initializeSentry = (): void => {
           nodeVersion: process.version,
           platform: process.platform,
         };
+
+        // ADS-660: stamp the OTel trace_id on every Sentry event so an
+        // exception in Sentry pivots to the matching trace in Tempo /
+        // Jaeger. No-op when the OTel SDK is not started — the call
+        // returns undefined and we don't touch contexts/tags.
+        const activeSpan = trace.getActiveSpan();
+        if (activeSpan) {
+          const spanContext = activeSpan.spanContext();
+          if (spanContext.traceId) {
+            event.contexts = {
+              ...event.contexts,
+              trace: {
+                ...event.contexts?.trace,
+                trace_id: spanContext.traceId,
+                span_id: spanContext.spanId,
+              },
+            };
+            event.tags = {
+              ...event.tags,
+              trace_id: spanContext.traceId,
+            };
+          }
+        }
 
         // Scrub auth headers / cookies / secret-shaped fields from the
         // request payload and breadcrumbs before shipping to Sentry.
