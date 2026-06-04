@@ -108,6 +108,50 @@ describe('PermissionsProvider', () => {
     expect(result.current.permissions).toEqual(['pets.read']);
   });
 
+  it('exposes the error and clears isLoading when the initial fetch rejects (ADS-755)', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failure = new Error('permissions fetch failed');
+    const service = {
+      getUserPermissions: vi.fn().mockRejectedValue(failure),
+      clearCache: vi.fn(),
+    } as unknown as PermissionsService;
+
+    const { result } = renderHook(() => usePermissions(), { wrapper: wrap(buildAuth(), service) });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.error).toBe(failure);
+    expect(result.current.permissions).toEqual([]);
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it('refresh() surfaces and rethrows errors while always clearing isLoading (ADS-755)', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const service = buildService(['pets.read' as Permission]);
+    const { result } = renderHook(() => usePermissions(), { wrapper: wrap(buildAuth(), service) });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBeNull();
+
+    const failure = new Error('refresh failed');
+    service.getUserPermissions.mockRejectedValueOnce(failure);
+
+    let thrown: unknown;
+    await act(async () => {
+      try {
+        await result.current.refresh();
+      } catch (caught) {
+        thrown = caught;
+      }
+    });
+
+    expect(thrown).toBe(failure);
+    expect(result.current.error).toBe(failure);
+    expect(result.current.isLoading).toBe(false);
+    consoleError.mockRestore();
+  });
+
   it('renders children once the provider is mounted', () => {
     render(
       <AuthContext.Provider value={buildAuth()}>
