@@ -35,6 +35,28 @@ services:
       timeout: 5s
       retries: 5
 
+  # NATS JetStream — async event bus between backend microservices.
+  # Phase 0 foundation (ADS-microservices migration). Mirrors the CAD pattern:
+  # publish-after-commit from each service, idempotent subscribers fan out to
+  # consumers. JetStream enables durable consumers + replay; without `-js`
+  # NATS is core pub/sub only (lost on disconnect). Monitoring port 8222 is
+  # used by the healthcheck and by `nats-top` / curl probes for ops.
+  nats:
+    image: nats:2.10-alpine
+    restart: always
+    ports:
+      - '127.0.0.1:4222:4222'  # client protocol
+      - '127.0.0.1:8222:8222'  # monitoring + healthz
+    command: '-js -sd /data -m 8222'
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8222/healthz | grep -q ok || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # Redis for caching and sessions
   redis:
     image: redis:7-alpine
@@ -365,6 +387,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  nats_data:
   lib_types_node_modules:
   loki_data:
   grafana_data:

@@ -36,7 +36,9 @@
     "lib.utils",
     "lib.validation",
     "service.backend",
-    "e2e"
+    "e2e",
+    "packages/*",
+    "services/*"
   ],
   "scripts": {
     "setup": "node scripts/bootstrap.mjs",
