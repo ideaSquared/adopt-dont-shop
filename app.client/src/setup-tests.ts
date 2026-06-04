@@ -304,6 +304,8 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       errored ? errorFallback : null
     );
   },
+  PetImage: ({ src, alt }: { src?: string; alt: string }) =>
+    React.createElement('img', { src, alt }),
   toast: Object.assign(vi.fn(), {
     success: vi.fn(),
     error: vi.fn(),
