@@ -39,6 +39,12 @@ This project follows strict Test-Driven Development — **no new behaviour witho
 2. **Green** — write the minimum code to make it pass
 3. **Refactor** — clean up while keeping tests green
 
+### Test DOM environment
+
+All tests run on **jsdom**. Do not switch test environments per package or
+re-introduce `happy-dom` — the workspace consistency check (ADS-764) will
+fail CI if it reappears.
+
 ## Before opening a PR
 
 CI runs **ten** checks across `.github/workflows/ci.yml`, `lib-test-guard.yml`, `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.

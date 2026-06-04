@@ -16,6 +16,8 @@
  *      they must come from getLibraryAliases() (ADS-762).
  *  3c. No app.* / lib.* package.json lists an @types/* package in
  *      `dependencies` — type packages belong in devDependencies (ADS-765).
+ *  3d. No workspace package.json declares `happy-dom` — jsdom is the
+ *      canonical test-DOM environment (ADS-764).
  *  4. No nested package-lock.json outside the repo root.
  *  5. No stale Jest references in source (excluding docs/ and *.md changelog files).
  *  6. No *.test.ts(x) / *.spec.ts(x) files outside src/ (ADS-737). The shared
@@ -130,6 +132,20 @@ function checkViteAliases(libs) {
   const path = join(ROOT, 'vite.shared.config.ts');
   const contents = readFileSync(path, 'utf8');
   return libs.filter(lib => !contents.includes(`'@adopt-dont-shop/${lib}'`));
+}
+
+// ADS-764: jsdom is the canonical test-DOM environment. happy-dom must not
+// re-appear in any workspace package.json.
+function checkBannedDomEnv(workspaces) {
+  const offenders = [];
+  for (const ws of workspaces) {
+    const pkg = readPkg(ws);
+    const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+    if ('happy-dom' in deps) {
+      offenders.push(ws);
+    }
+  }
+  return offenders;
 }
 
 // ADS-765: @types/* packages must live in devDependencies, not dependencies —
@@ -353,6 +369,15 @@ function main() {
     failures.push(
       `[${workspace}/package.json] @types/* in 'dependencies': ${types.join(', ')}. ` +
         `Move to devDependencies — type-only packages must not be runtime deps (ADS-765).`,
+    );
+  }
+
+  // 3d. ADS-764: happy-dom must not re-appear (jsdom is canonical)
+  const domOffenders = checkBannedDomEnv([...libs, ...apps]);
+  for (const ws of domOffenders) {
+    failures.push(
+      `[${ws}/package.json] declares 'happy-dom'. ` +
+        `jsdom is the canonical test-DOM environment — remove happy-dom (ADS-764).`,
     );
   }
 
