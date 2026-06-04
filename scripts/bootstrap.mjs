@@ -12,11 +12,12 @@
  *   --no-start          Skip the interactive prompt and DO NOT start the stack.
  */
 import { execSync } from 'child_process';
-import { existsSync, copyFileSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, copyFileSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { randomBytes } from 'crypto';
 import { createInterface } from 'readline';
+import { platform } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -272,6 +273,34 @@ async function setup() {
     }
     if (!result.wrote) {
       logInfo('All required secrets already configured in .env');
+    }
+
+    // Host-OS-aware CHOKIDAR polling (ADS-766). Polling is only useful when
+    // Docker bind-mounts cross a host-VM boundary (macOS, Windows). On Linux
+    // it burns CPU for nothing — leave the vars unset so docker-compose's
+    // ${CHOKIDAR_*:-} interpolation produces empty values.
+    const host = platform();
+    if (host === 'darwin' || host === 'win32') {
+      const envContents = readFileSync(envPath, 'utf8');
+      if (!/^\s*CHOKIDAR_USEPOLLING\s*=/m.test(envContents)) {
+        appendFileSync(
+          envPath,
+          [
+            '',
+            `# ADS-766: ${host} host needs CHOKIDAR polling for Docker HMR.`,
+            'CHOKIDAR_USEPOLLING=true',
+            'CHOKIDAR_INTERVAL=1000',
+            'CHOKIDAR_AWAITWRITEFINISH=2000',
+            'WATCHPACK_POLLING=true',
+            '',
+          ].join('\n'),
+        );
+        logSuccess(`Appended CHOKIDAR polling vars to .env for ${host} host`);
+      } else {
+        logInfo('CHOKIDAR polling already configured in .env');
+      }
+    } else {
+      logInfo(`Linux host detected — leaving CHOKIDAR polling disabled (ADS-766)`);
     }
     log('', RESET);
 

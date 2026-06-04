@@ -94,14 +94,22 @@ npm run docker:down              # stop when done
 
 ### Hot Reload Details
 
-The dev stack is configured for HMR on Windows/macOS/Linux:
+The dev stack is configured for HMR on Windows/macOS/Linux. Since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) the CHOKIDAR polling vars are **only set on macOS and Windows** — Linux uses native inotify and saves the steady-state CPU that polling burns.
 
 | Layer | Mechanism | Latency |
 | --- | --- | --- |
-| Frontend apps (`app.*/src/**`) | Vite HMR with polling (`CHOKIDAR_USEPOLLING=true`, `CHOKIDAR_INTERVAL=1000`) | ~1-2s |
+| Frontend apps (`app.*/src/**`) | Vite HMR — native inotify on Linux, polling on macOS/Windows (`CHOKIDAR_USEPOLLING`, `CHOKIDAR_INTERVAL`, `CHOKIDAR_AWAITWRITEFINISH`) | ~<500ms (Linux) / ~1-2s (macOS, Windows) |
 | Frontend libs (`lib.*/src/**` except `lib.types`) | Vite aliases point at lib `src/` — HMR picks them up | ~1-2s |
 | Backend (`service.backend/src/**`) | `ts-node-dev --poll` | ~2s |
 | `lib.types/src/**` | `lib-types-watcher` sidecar runs `tsc --watch`; backend picks up dist changes via workspace symlink | ~2-5s |
+
+`npm run setup` auto-detects the host OS and appends the polling vars to `.env` on macOS/Windows. To verify per-container:
+
+```bash
+docker compose exec app-client env | grep CHOKIDAR    # Linux: empty. macOS/Windows: USEPOLLING=true ...
+```
+
+If you need to force polling (e.g. testing a Linux VM that uses a shared filesystem) copy the relevant snippet from `docker-compose.override.yml.example`'s "macOS / Windows" section, or set `CHOKIDAR_USEPOLLING=true` in `.env`.
 
 ### Targeting Specific Services
 
@@ -282,10 +290,13 @@ Fixes:
 
 ### Slow / No File Watching (Windows/macOS)
 
-Polling is enabled by default (`CHOKIDAR_USEPOLLING=true`). If HMR still misfires:
+Since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) polling is opt-in per host: `npm run setup` writes `CHOKIDAR_USEPOLLING=true` to `.env` on macOS/Windows; Linux leaves it unset on purpose. If HMR misfires on macOS or Windows:
 
 - Confirm the env var is set inside the container: `docker compose exec app-client env | grep CHOKIDAR`
+- If empty, re-run `npm run setup` or copy the polling snippet from `docker-compose.override.yml.example` into a real `docker-compose.override.yml`
 - Reduce watch scope in the relevant `vite.config.ts`
+
+If HMR misfires on **Linux**, the cause is almost certainly not polling — check that the file system has inotify watches available (`cat /proc/sys/fs/inotify/max_user_watches`).
 
 
 ### Port Already in Use

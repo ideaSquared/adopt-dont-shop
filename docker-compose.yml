@@ -125,9 +125,12 @@ services:
       # line (including audit events tagged `audit: true`) to the Loki
       # service. Leave unset in dev to keep logs to console + file only.
       LOKI_URL: ${LOKI_URL:-}
-      # File watching for hot reload (critical for Windows/Docker)
-      CHOKIDAR_USEPOLLING: true
-      CHOKIDAR_INTERVAL: 1000
+      # File watching for hot reload — polling is only needed on macOS/Windows
+      # where Docker bind-mounts cross a VM boundary and don't propagate
+      # inotify events. Linux contributors should leave these unset.
+      # See docs/DOCKER.md "Hot reload" and ADS-766.
+      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-}
+      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-}
     depends_on:
       database:
         condition: service_healthy
@@ -187,10 +190,10 @@ services:
       DOCKER_ENV: 'true'
       VITE_API_BASE_URL: ''
       VITE_WS_BASE_URL: ws://localhost:5000
-      # Memory and file watching optimizations
-      CHOKIDAR_USEPOLLING: true
-      CHOKIDAR_INTERVAL: 1000
-      CHOKIDAR_AWAITWRITEFINISH: 2000
+      # File-watcher polling — only set on macOS/Windows (see ADS-766).
+      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-}
+      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-}
+      CHOKIDAR_AWAITWRITEFINISH: ${CHOKIDAR_AWAITWRITEFINISH:-}
       NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     depends_on:
       - service-backend
@@ -225,10 +228,10 @@ services:
       DOCKER_ENV: 'true'
       VITE_API_BASE_URL: ''
       VITE_WS_BASE_URL: ws://localhost:5000
-      # Memory and file watching optimizations
-      CHOKIDAR_USEPOLLING: true
-      CHOKIDAR_INTERVAL: 1000
-      CHOKIDAR_AWAITWRITEFINISH: 2000
+      # File-watcher polling — only set on macOS/Windows (see ADS-766).
+      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-}
+      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-}
+      CHOKIDAR_AWAITWRITEFINISH: ${CHOKIDAR_AWAITWRITEFINISH:-}
       NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     depends_on:
       - service-backend
@@ -263,11 +266,11 @@ services:
       DOCKER_ENV: 'true'
       VITE_API_BASE_URL: ''
       VITE_WS_BASE_URL: ws://localhost:5000
-      # Memory and file watching optimizations - Enable polling for Windows
-      CHOKIDAR_USEPOLLING: true
-      CHOKIDAR_INTERVAL: 1000
-      CHOKIDAR_AWAITWRITEFINISH: 2000
-      WATCHPACK_POLLING: true
+      # File-watcher polling — only set on macOS/Windows (see ADS-766).
+      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-}
+      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-}
+      CHOKIDAR_AWAITWRITEFINISH: ${CHOKIDAR_AWAITWRITEFINISH:-}
+      WATCHPACK_POLLING: ${WATCHPACK_POLLING:-}
       FAST_REFRESH: true
       NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     depends_on:
