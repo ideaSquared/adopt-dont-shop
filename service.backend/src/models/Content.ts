@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getArrayType, getUuidType } from '../sequelize';
+import { setStringArrayAttr } from '../utils/sequelize-jsonb';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
@@ -190,13 +191,7 @@ Content.init(
         return raw || [];
       },
       set(value: string[]) {
-        if (process.env.NODE_ENV === 'test') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.setDataValue('metaKeywords', JSON.stringify(value || []) as any);
-        } else {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.setDataValue('metaKeywords', value || ([] as any));
-        }
+        setStringArrayAttr(this, 'metaKeywords', value);
       },
     },
     featuredImageUrl: {

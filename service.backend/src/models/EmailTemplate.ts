@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { setStringArrayAttr } from '../utils/sequelize-jsonb';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
@@ -376,14 +377,7 @@ EmailTemplate.init(
         return rawValue || [];
       },
       set(value: string[]) {
-        // In SQLite, store as JSON string
-        if (process.env.NODE_ENV === 'test') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.setDataValue('tags', JSON.stringify(value || []) as any);
-        } else {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.setDataValue('tags', value || ([] as any));
-        }
+        setStringArrayAttr(this, 'tags', value);
       },
     },
     // createdBy column dropped — superseded by auditColumns.created_by.
