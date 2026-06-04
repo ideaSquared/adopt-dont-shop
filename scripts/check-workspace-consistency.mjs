@@ -12,6 +12,8 @@
  *  2. vitest.workspace.ts references every lib.* package that has a
  *     vitest.config.ts on disk.
  *  3. vite.shared.config.ts getLibraryAliases() has an entry for every lib.*.
+ *  3b. No app.* vitest.config.ts hand-rolls @adopt-dont-shop/lib.* aliases —
+ *      they must come from getLibraryAliases() (ADS-762).
  *  4. No nested package-lock.json outside the repo root.
  *  5. No stale Jest references in source (excluding docs/ and *.md changelog files).
  *  6. No *.test.ts(x) / *.spec.ts(x) files outside src/ (ADS-737). The shared
@@ -126,6 +128,33 @@ function checkViteAliases(libs) {
   const path = join(ROOT, 'vite.shared.config.ts');
   const contents = readFileSync(path, 'utf8');
   return libs.filter(lib => !contents.includes(`'@adopt-dont-shop/${lib}'`));
+}
+
+// ADS-762: app vitest.config.ts files must build their `@adopt-dont-shop/lib.*`
+// aliases via getLibraryAliases(__dirname, 'development'), not hand-rolled
+// entries. The lone exception is `lib.components/theme` which is a sub-path
+// alias not covered by the helper.
+function checkAppVitestAliases(apps) {
+  const offenders = [];
+  for (const app of apps) {
+    const cfgPath = join(ROOT, app, 'vitest.config.ts');
+    let contents;
+    try {
+      contents = readFileSync(cfgPath, 'utf8');
+    } catch {
+      continue;
+    }
+    const re = /['"]@adopt-dont-shop\/(lib\.[a-z-]+)['"]/g;
+    const found = new Set();
+    let m;
+    while ((m = re.exec(contents)) !== null) {
+      found.add(m[1]);
+    }
+    if (found.size > 0) {
+      offenders.push({ app, libs: [...found].sort() });
+    }
+  }
+  return offenders;
 }
 
 function findNestedLockfiles() {
@@ -288,6 +317,15 @@ function main() {
   for (const lib of missingAliases) {
     failures.push(
       `[vite.shared.config.ts] getLibraryAliases() missing entry for '@adopt-dont-shop/${lib}'`,
+    );
+  }
+
+  // 3b. ADS-762: app vitest.config.ts must not hand-roll lib aliases
+  const appAliasOffenders = checkAppVitestAliases(apps);
+  for (const { app, libs: handRolled } of appAliasOffenders) {
+    failures.push(
+      `[${app}/vitest.config.ts] hand-rolled @adopt-dont-shop alias(es): ${handRolled.join(', ')}. ` +
+        `Use getLibraryAliases(__dirname, 'development') from vite.shared.config.ts instead (ADS-762).`,
     );
   }
 

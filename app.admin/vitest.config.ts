@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vitest/config';
-import { veCssMock } from '../vite.shared.config';
+import { getLibraryAliases, veCssMock } from '../vite.shared.config';
 
 export default defineConfig({
   plugins: [
@@ -46,45 +46,17 @@ export default defineConfig({
       '@/utils': path.resolve(__dirname, './src/utils'),
       '@/types': path.resolve(__dirname, './src/types'),
       '@/services': path.resolve(__dirname, './src/services'),
-      '@adopt-dont-shop/lib.moderation': path.resolve(__dirname, '../lib.moderation/src/index.ts'),
-      '@adopt-dont-shop/lib.support-tickets': path.resolve(
-        __dirname,
-        '../lib.support-tickets/src/index.ts'
-      ),
+      // ADS-762: theme sub-path must be declared before the lib.components
+      // alias below so vite resolves it first.
       '@adopt-dont-shop/lib.components/theme': path.resolve(
         __dirname,
         '../lib.components/src/theme.ts'
       ),
-      '@adopt-dont-shop/lib.components': path.resolve(__dirname, '../lib.components/src/index.ts'),
-      '@adopt-dont-shop/lib.auth': path.resolve(__dirname, '../lib.auth/src/index.ts'),
-      '@adopt-dont-shop/lib.rescue': path.resolve(__dirname, '../lib.rescue/src/index.ts'),
-      '@adopt-dont-shop/lib.api': path.resolve(__dirname, '../lib.api/src/index.ts'),
-      '@adopt-dont-shop/lib.applications': path.resolve(
-        __dirname,
-        '../lib.applications/src/index.ts'
-      ),
-      '@adopt-dont-shop/lib.chat': path.resolve(__dirname, '../lib.chat/src/index.ts'),
-      '@adopt-dont-shop/lib.analytics': path.resolve(__dirname, '../lib.analytics/src/index.ts'),
-      '@adopt-dont-shop/lib.notifications': path.resolve(
-        __dirname,
-        '../lib.notifications/src/index.ts'
-      ),
-      '@adopt-dont-shop/lib.observability': path.resolve(
-        __dirname,
-        '../lib.observability/src/index.ts'
-      ),
-      '@adopt-dont-shop/lib.feature-flags': path.resolve(
-        __dirname,
-        '../lib.feature-flags/src/index.ts'
-      ),
-      '@adopt-dont-shop/lib.legal': path.resolve(__dirname, '../lib.legal/src/index.ts'),
-      '@adopt-dont-shop/lib.permissions': path.resolve(
-        __dirname,
-        '../lib.permissions/src/index.ts'
-      ),
-      '@adopt-dont-shop/lib.search': path.resolve(__dirname, '../lib.search/src/index.ts'),
-      '@adopt-dont-shop/lib.validation': path.resolve(__dirname, '../lib.validation/src/index.ts'),
-      '@adopt-dont-shop/lib.utils': path.resolve(__dirname, '../lib.utils/src/index.ts'),
+      // ADS-762: all @adopt-dont-shop/lib.* aliases come from the shared
+      // getLibraryAliases() helper — the single source of truth also used
+      // by each app's vite.config.ts and verified by the workspace-drift
+      // CI guard. Do not hand-roll new lib aliases here.
+      ...getLibraryAliases(__dirname, 'development'),
     },
   },
 });
