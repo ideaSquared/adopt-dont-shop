@@ -98,6 +98,16 @@ or secured ops log. At minimum: `date`, `rotated_by`, `reason`.
 | Team member off-boarding | Rotate any secret the person had access to |
 | Staging value detected in prod | Immediate full rotation |
 
+## Image signing & verification
+
+Images published by `.github/workflows/deploy.yml` are cosign-signed
+(keyless OIDC) and verified before the deploy job runs. A deploy whose
+images cannot be verified against this repo's `main`-branch identity
+will FAIL at the `verify-images` job, before any container reaches the
+host. See [`docs/security/image-signing.md`](../security/image-signing.md)
+for the trust model, the manual verification command, and the documented
+emergency-bypass procedure.
+
 ## Release deploy
 
 The `service-backend-migrate` init container runs `npm run db:migrate`
@@ -226,6 +236,19 @@ enabled before going live. [ADS-665]
 ## Backup / snapshot
 
 See [`snapshot-policy.md`](./snapshot-policy.md). [ADS-500]
+
+## WebSocket sticky sessions (ADS-678)
+
+The Socket.IO per-user connection cap is enforced per backend instance,
+not globally. Multi-replica deploys MUST configure load-balancer
+stickiness on the `/socket.io` route so a given user's sockets land on
+one backend. With nginx in front, add `ip_hash;` to the backend
+upstream block; with AWS ALB, enable `lb_cookie` stickiness on the
+target group.
+
+See [`../architecture/adr-socket-sticky-sessions.md`](../architecture/adr-socket-sticky-sessions.md)
+for the full rationale, alternatives considered, and the explicit LB
+settings the ops team must apply.
 
 ## Known limitations
 

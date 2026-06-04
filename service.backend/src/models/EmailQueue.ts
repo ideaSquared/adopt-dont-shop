@@ -1,6 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getJsonType, getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { JsonObject } from '../types/common';
+import { setStringArrayAttr } from '../utils/sequelize-jsonb';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 
@@ -351,15 +352,7 @@ EmailQueue.init(
         return rawValue || [];
       },
       set(value: string[]) {
-        if (process.env.NODE_ENV === 'test') {
-          // In test mode (SQLite), store as JSON string
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.setDataValue('ccEmails', JSON.stringify(value || []) as any);
-        } else {
-          // In production (PostgreSQL), store as native array
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.setDataValue('ccEmails', value || ([] as any));
-        }
+        setStringArrayAttr(this, 'ccEmails', value);
       },
     },
     bccEmails: {
@@ -379,15 +372,7 @@ EmailQueue.init(
         return rawValue || [];
       },
       set(value: string[]) {
-        if (process.env.NODE_ENV === 'test') {
-          // In test mode (SQLite), store as JSON string
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.setDataValue('bccEmails', JSON.stringify(value || []) as any);
-        } else {
-          // In production (PostgreSQL), store as native array
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.setDataValue('bccEmails', value || ([] as any));
-        }
+        setStringArrayAttr(this, 'bccEmails', value);
       },
     },
     replyToEmail: {
@@ -534,15 +519,7 @@ EmailQueue.init(
         return rawValue || [];
       },
       set(value: string[]) {
-        if (process.env.NODE_ENV === 'test') {
-          // In test mode (SQLite), store as JSON string
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.setDataValue('tags', JSON.stringify(value || []) as any);
-        } else {
-          // In production (PostgreSQL), store as native array
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          this.setDataValue('tags', value || ([] as any));
-        }
+        setStringArrayAttr(this, 'tags', value);
       },
     },
     idempotencyKey: {
