@@ -2,7 +2,7 @@
   "name": "@adopt-dont-shop/authz",
   "version": "0.1.0",
   "private": true,
-  "description": "CASL ability model for backend microservices. Ported from CAD's @cad/lib.authz with adopt-dont-shop's role + scope model. Includes the CAD lesson #10 fix for the bare-string vs tagged-subject CASL gotcha.",
+  "description": "Backend-side authorisation helpers that mirror adopt-dont-shop's existing permission-string model. Wraps the DB-driven Permission set (sourced via UserRole → Role → RolePermission) with hasPermission + requirePermission helpers plus optional rescue/owner scope checks. No new vocabulary, no CASL — same shape as lib.permissions, just usable from any extracted backend service.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -29,9 +29,6 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "type-check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@casl/ability": "^7.0.0"
   },
   "peerDependencies": {
     "@adopt-dont-shop/lib.types": "*"

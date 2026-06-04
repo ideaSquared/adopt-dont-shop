@@ -1,4 +1,4 @@
-export { defineAbilitiesFor } from './abilities.js';
-export type { AppAbility, AbilityAction, AbilitySubject, Principal } from './abilities.js';
-export { requireAbility } from './require-ability.js';
-export type { SubjectScope } from './require-ability.js';
+export type { Principal } from './principal.js';
+export { hasPermission } from './has-permission.js';
+export { requirePermission } from './require-permission.js';
+export type { Scope } from './require-permission.js';
