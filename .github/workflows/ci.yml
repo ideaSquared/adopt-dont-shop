@@ -49,6 +49,12 @@ jobs:
       - name: Verify workspace consistency
         run: node scripts/check-workspace-consistency.mjs
 
+      # ADS-767: workflow `paths:` filters must match the canonical source
+      # in .github/workflow-source-paths.yml so adding a new top-level
+      # workspace only requires editing one place.
+      - name: Verify workflow path filters
+        run: node scripts/check-workflow-paths.mjs
+
   # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes
   # ============================================================================

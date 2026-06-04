@@ -1,6 +1,9 @@
 name: Security
 
 on:
+  # The two `paths:` blocks below mirror .github/workflow-source-paths.yml
+  # (ADS-767). Drift fails scripts/check-workflow-paths.mjs — update the
+  # canonical source first, then mirror here.
   push:
     branches: [main, develop]
     paths:

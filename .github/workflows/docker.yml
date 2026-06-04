@@ -16,17 +16,24 @@ name: Docker
 on:
   push:
     branches: [main, develop]
+    # Source-path block below mirrors .github/workflow-source-paths.yml plus
+    # the Docker-specific `extra:` entries (ADS-767). Drift fails
+    # scripts/check-workflow-paths.mjs.
     paths:
-      - '**/Dockerfile*'
       - 'service.backend/**'
       - 'app.client/**'
       - 'app.admin/**'
       - 'app.rescue/**'
       - 'lib.*/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '**/Dockerfile*'
       - 'docker-compose*.yml'
       - '.dockerignore'
   pull_request:
     branches: [main, develop]
+    # Intentionally narrower than the canonical list: source-only PRs are
+    # covered by ci.yml + E2E. See workflow-source-paths.yml comments.
     paths:
       - '**/Dockerfile*'
       - 'docker-compose*.yml'
