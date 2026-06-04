@@ -47,6 +47,7 @@ import Address from './Address';
 import AuditLog from './AuditLog';
 import IdempotencyKey from './IdempotencyKey';
 import Invitation from './Invitation';
+import WebhookEventId from './WebhookEventId';
 import Rating from './Rating';
 import StaffMember from './StaffMember';
 import TwoFactorRecovery from './TwoFactorRecovery';
@@ -157,6 +158,7 @@ const models = {
   SavedReport,
   ScheduledReport,
   ReportShare,
+  WebhookEventId,
 };
 
 // Setup associations (done explicitly below instead of using associate methods)
@@ -777,6 +779,7 @@ export {
   UserSanction,
   Content,
   NavigationMenu,
+  WebhookEventId,
 };
 
 export default models;
