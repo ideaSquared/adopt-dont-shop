@@ -1,3 +1,10 @@
+// ADS-660: Initialize OpenTelemetry SDK FIRST — must run before any
+// other import so the auto-instrumentations (http, express, pg,
+// ioredis, etc.) can patch the modules before they are loaded.
+// `instrumentation.ts` no-ops when OTEL_EXPORTER_OTLP_ENDPOINT is
+// unset so local dev / tests boot unchanged.
+import './instrumentation';
+
 // Initialize Sentry FIRST - must be before any other imports
 import { initializeSentry, Sentry } from './config/sentry';
 initializeSentry();
