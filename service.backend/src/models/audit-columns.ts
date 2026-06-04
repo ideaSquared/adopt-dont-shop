@@ -70,23 +70,30 @@ const stampUpdatedBy = (instance: Model): void => {
  * generic over the model class — model-specific options literals widen
  * cleanly to this signature on the way in and the way out.
  */
+// Narrow shape of the hook handlers we wrap. Sequelize's hook callback
+// types are awkward to import directly (they're generic over the model
+// class), so we describe just the surface this helper touches. (ADS-705)
+type HookFn = (instance: Model, opts: unknown) => unknown | Promise<unknown>;
+type Hooks = {
+  beforeCreate?: HookFn;
+  beforeUpdate?: HookFn;
+  [key: string]: unknown;
+};
+
 export const withAuditHooks = <M extends Model>(options: InitOptions<M>): InitOptions<M> => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const existing: any = options.hooks ?? {};
+  const existing: Hooks = (options.hooks as Hooks | undefined) ?? {};
   return {
     ...options,
     version: true,
     hooks: {
       ...existing,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      beforeCreate: async (instance: Model, opts: any) => {
+      beforeCreate: async (instance: Model, opts: unknown) => {
         stampCreatedBy(instance);
         if (existing.beforeCreate) {
           await existing.beforeCreate(instance, opts);
         }
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      beforeUpdate: async (instance: Model, opts: any) => {
+      beforeUpdate: async (instance: Model, opts: unknown) => {
         stampUpdatedBy(instance);
         if (existing.beforeUpdate) {
           await existing.beforeUpdate(instance, opts);

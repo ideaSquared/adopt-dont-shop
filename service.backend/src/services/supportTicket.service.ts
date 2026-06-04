@@ -235,7 +235,7 @@ class SupportTicketService {
       });
 
       await AuditLogService.log({
-        userId: ticketData.userId ?? getUserId() ?? '',
+        userId: ticketData.userId ?? getUserId() ?? null,
         action: 'SUPPORT_TICKET_CREATED',
         entity: SUPPORT_TICKET_AUDIT_CATEGORY,
         entityId: ticket.ticketId,
@@ -292,7 +292,7 @@ class SupportTicketService {
       await ticket.update(updates);
 
       await AuditLogService.log({
-        userId: getUserId() ?? '',
+        userId: getUserId() ?? null,
         action: 'SUPPORT_TICKET_UPDATED',
         entity: SUPPORT_TICKET_AUDIT_CATEGORY,
         entityId: ticket.ticketId,
@@ -333,7 +333,7 @@ class SupportTicketService {
       await ticket.update({ assignedTo });
 
       await AuditLogService.log({
-        userId: getUserId() ?? '',
+        userId: getUserId() ?? null,
         action: 'SUPPORT_TICKET_ASSIGNED',
         entity: SUPPORT_TICKET_AUDIT_CATEGORY,
         entityId: ticket.ticketId,
@@ -475,7 +475,7 @@ class SupportTicketService {
       });
 
       await AuditLogService.log({
-        userId: getUserId() ?? '',
+        userId: getUserId() ?? null,
         action: 'SUPPORT_TICKET_ESCALATED',
         entity: SUPPORT_TICKET_AUDIT_CATEGORY,
         entityId: ticket.ticketId,

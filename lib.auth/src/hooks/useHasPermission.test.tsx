@@ -32,61 +32,159 @@ const wrap =
     );
   };
 
+const wrapWithService =
+  (service: PermissionsService) =>
+  ({ children }: { children: ReactNode }) => (
+    <AuthContext.Provider value={auth}>
+      <PermissionsProvider service={service}>{children}</PermissionsProvider>
+    </AuthContext.Provider>
+  );
+
 describe('useHasPermission', () => {
-  it('returns true when the user holds the permission', async () => {
+  it('returns allowed=true when the user holds the permission', async () => {
     const { result } = renderHook(() => useHasPermission('pets.create' as Permission), {
       wrapper: wrap(['pets.read', 'pets.create'] as Permission[]),
     });
 
-    await waitFor(() => expect(result.current).toBe(true));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.allowed).toBe(true);
+    expect(result.current.error).toBeNull();
   });
 
-  it('returns false when the user lacks the permission', async () => {
+  it('returns allowed=false when the user lacks the permission', async () => {
     const { result } = renderHook(() => useHasPermission('pets.delete' as Permission), {
       wrapper: wrap(['pets.read'] as Permission[]),
     });
 
-    // Initial render returns false (empty array); confirm it stays false after load.
-    await waitFor(() => expect(result.current).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.allowed).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('reports isLoading=true during the initial fetch so callers can distinguish "loading" from "denied"', async () => {
+    let resolveFetch: (perms: Permission[]) => void = () => {};
+    const pending = new Promise<Permission[]>((resolve) => {
+      resolveFetch = resolve;
+    });
+    const service = {
+      getUserPermissions: vi.fn().mockReturnValue(pending),
+      clearCache: vi.fn(),
+    } as unknown as PermissionsService;
+
+    const { result } = renderHook(() => useHasPermission('pets.create' as Permission), {
+      wrapper: wrapWithService(service),
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.allowed).toBe(false);
+    expect(result.current.error).toBeNull();
+
+    resolveFetch(['pets.create'] as Permission[]);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.allowed).toBe(true);
+  });
+
+  it('surfaces the error when the permissions fetch fails', async () => {
+    const failure = new Error('boom');
+    const service = {
+      getUserPermissions: vi.fn().mockRejectedValue(failure),
+      clearCache: vi.fn(),
+    } as unknown as PermissionsService;
+
+    const { result } = renderHook(() => useHasPermission('pets.create' as Permission), {
+      wrapper: wrapWithService(service),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBe(failure);
+    expect(result.current.allowed).toBe(false);
   });
 });
 
 describe('useHasAnyPermission', () => {
-  it('returns true when at least one permission matches', async () => {
+  it('returns allowed=true when at least one permission matches', async () => {
     const { result } = renderHook(
       () => useHasAnyPermission(['pets.delete', 'pets.create'] as Permission[]),
       { wrapper: wrap(['pets.create'] as Permission[]) }
     );
 
-    await waitFor(() => expect(result.current).toBe(true));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.allowed).toBe(true);
   });
 
-  it('returns false when none of the required permissions match', async () => {
+  it('returns allowed=false when none of the required permissions match', async () => {
     const { result } = renderHook(
       () => useHasAnyPermission(['pets.delete', 'pets.archive'] as Permission[]),
       { wrapper: wrap(['pets.read'] as Permission[]) }
     );
 
-    await waitFor(() => expect(result.current).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.allowed).toBe(false);
+  });
+
+  it('reports isLoading=true during the initial fetch', async () => {
+    let resolveFetch: (perms: Permission[]) => void = () => {};
+    const pending = new Promise<Permission[]>((resolve) => {
+      resolveFetch = resolve;
+    });
+    const service = {
+      getUserPermissions: vi.fn().mockReturnValue(pending),
+      clearCache: vi.fn(),
+    } as unknown as PermissionsService;
+
+    const { result } = renderHook(() => useHasAnyPermission(['pets.create'] as Permission[]), {
+      wrapper: wrapWithService(service),
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.allowed).toBe(false);
+
+    resolveFetch(['pets.create'] as Permission[]);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.allowed).toBe(true);
   });
 });
 
 describe('useHasAllPermissions', () => {
-  it('returns true only when every required permission is held', async () => {
+  it('returns allowed=true only when every required permission is held', async () => {
     const { result } = renderHook(
       () => useHasAllPermissions(['pets.read', 'pets.create'] as Permission[]),
       { wrapper: wrap(['pets.read', 'pets.create', 'pets.update'] as Permission[]) }
     );
 
-    await waitFor(() => expect(result.current).toBe(true));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.allowed).toBe(true);
   });
 
-  it('returns false when any required permission is missing', async () => {
+  it('returns allowed=false when any required permission is missing', async () => {
     const { result } = renderHook(
       () => useHasAllPermissions(['pets.read', 'pets.delete'] as Permission[]),
       { wrapper: wrap(['pets.read'] as Permission[]) }
     );
 
-    await waitFor(() => expect(result.current).toBe(false));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.allowed).toBe(false);
+  });
+
+  it('reports isLoading=true during the initial fetch', async () => {
+    let resolveFetch: (perms: Permission[]) => void = () => {};
+    const pending = new Promise<Permission[]>((resolve) => {
+      resolveFetch = resolve;
+    });
+    const service = {
+      getUserPermissions: vi.fn().mockReturnValue(pending),
+      clearCache: vi.fn(),
+    } as unknown as PermissionsService;
+
+    const { result } = renderHook(() => useHasAllPermissions(['pets.read'] as Permission[]), {
+      wrapper: wrapWithService(service),
+    });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.allowed).toBe(false);
+
+    resolveFetch(['pets.read'] as Permission[]);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.allowed).toBe(true);
   });
 });

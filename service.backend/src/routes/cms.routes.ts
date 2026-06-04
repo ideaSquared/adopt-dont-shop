@@ -43,6 +43,11 @@ router.post(
   auditRoute({
     action: 'CMS_CONTENT_CREATED',
     entity: 'CmsContent',
+    // ADS-754: controller responds with `{ success, message, content: { contentId, ... } }`
+    entityIdFrom: ctx => {
+      const r = ctx.response as { content?: { contentId?: string } } | undefined;
+      return r?.content?.contentId;
+    },
     metadataFrom: ['body.slug', 'body.title', 'body.type'],
   }),
   cmsValidation.createContent,
@@ -184,6 +189,11 @@ router.post(
   auditRoute({
     action: 'CMS_MENU_CREATED',
     entity: 'CmsMenu',
+    // ADS-754: controller responds with `{ success, message, menu: { menuId, ... } }`
+    entityIdFrom: ctx => {
+      const r = ctx.response as { menu?: { menuId?: string } } | undefined;
+      return r?.menu?.menuId;
+    },
     metadataFrom: ['body.name', 'body.location'],
   }),
   cmsValidation.createMenu,

@@ -11,8 +11,8 @@
  * - An unknown petId redirects to /pets without crashing and surfaces a toast.
  */
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider, toast } from '@adopt-dont-shop/lib.components';
@@ -24,13 +24,17 @@ import type { AdminPet } from '../services/petService';
 let mockPetsResponse: { data: AdminPet[]; pagination?: { pages: number } } | undefined;
 let mockIsLoading = false;
 let mockError: Error | null = null;
+const mockUsePetsCalls: Array<Record<string, unknown>> = [];
 
 vi.mock('../hooks', () => ({
-  usePets: () => ({
-    data: mockPetsResponse,
-    isLoading: mockIsLoading,
-    error: mockError,
-  }),
+  usePets: (filters: Record<string, unknown>) => {
+    mockUsePetsCalls.push(filters);
+    return {
+      data: mockPetsResponse,
+      isLoading: mockIsLoading,
+      error: mockError,
+    };
+  },
   useBulkUpdatePets: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useRescuesList: () => ({ data: { data: [] } }),
 }));
@@ -108,6 +112,7 @@ beforeEach(() => {
   mockPetsResponse = undefined;
   mockIsLoading = false;
   mockError = null;
+  mockUsePetsCalls.length = 0;
   vi.mocked(toast.error).mockClear();
 });
 
@@ -181,5 +186,39 @@ describe('Pets page deep-linking', () => {
     });
     expect(toast.error).toHaveBeenCalledWith('Pet not found');
     expect(screen.queryByTestId('pet-detail-panel')).not.toBeInTheDocument();
+  });
+});
+
+// ADS-741: each list page must debounce its search input so the API is not
+// called on every keystroke. Pet list stands in for the shared behaviour.
+describe('Pets page search debouncing (ADS-741)', () => {
+  beforeEach(() => {
+    setPetsState([]);
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('does not pass the search term to usePets until the user stops typing for 300ms', () => {
+    renderWithProviders(<Pets />);
+    mockUsePetsCalls.length = 0;
+
+    const searchInput = screen.getByPlaceholderText(/search by name or breed/i);
+
+    act(() => {
+      fireEvent.change(searchInput, { target: { value: 'buddy' } });
+    });
+
+    const immediate = mockUsePetsCalls.at(-1);
+    expect(immediate?.search).toBeUndefined();
+
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    const debounced = mockUsePetsCalls.at(-1);
+    expect(debounced?.search).toBe('buddy');
   });
 });

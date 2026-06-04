@@ -54,8 +54,78 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
     onMobileClose?.();
   }, [pathname, onMobileClose]);
 
+  // ADS-743: drawer must behave as a modal dialog on mobile — trap focus,
+  // close on Escape, move focus to the close button on open, and restore
+  // focus to whatever was focused before opening (the hamburger trigger).
+  const asideRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      const toFocus = previouslyFocused.current;
+      if (toFocus && document.body.contains(toFocus)) {
+        toFocus.focus();
+      }
+      previouslyFocused.current = null;
+      return;
+    }
+    const active = document.activeElement;
+    previouslyFocused.current = active instanceof HTMLElement ? active : null;
+    // Defer so the drawer mounts and the close button is focusable.
+    const handle = setTimeout(() => {
+      closeButtonRef.current?.focus();
+    }, 0);
+    return () => clearTimeout(handle);
+  }, [mobileOpen]);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (!mobileOpen) {
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      onMobileClose?.();
+      return;
+    }
+    if (event.key !== 'Tab' || !asideRef.current) {
+      return;
+    }
+    const focusable = asideRef.current.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) {
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const activeEl = document.activeElement;
+    if (!event.shiftKey && activeEl === last) {
+      event.preventDefault();
+      first.focus();
+    } else if (event.shiftKey && activeEl === first) {
+      event.preventDefault();
+      last.focus();
+    }
+  };
+
+  // Only apply dialog semantics while the drawer is open on mobile. Desktop
+  // always-visible state should not be announced as a modal.
+  const dialogProps = mobileOpen
+    ? ({
+        role: 'dialog' as const,
+        'aria-modal': true as const,
+        'aria-label': 'Main navigation',
+        onKeyDown: handleKeyDown,
+      } as const)
+    : {};
+
   return (
-    <aside className={styles.sidebarContainer({ collapsed, mobileOpen })}>
+    <aside
+      ref={asideRef}
+      className={styles.sidebarContainer({ collapsed, mobileOpen })}
+      {...dialogProps}
+    >
       <div className={styles.sidebarHeader({ collapsed })}>
         <div className={styles.logo({ collapsed })}>
           <Logo size={32} showWordmark={!collapsed} darkBg />
@@ -66,6 +136,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({
           </button>
         )}
         <button
+          ref={closeButtonRef}
           className={styles.mobileCloseButton}
           onClick={onMobileClose}
           aria-label='Close navigation menu'

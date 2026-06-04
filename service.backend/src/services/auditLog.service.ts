@@ -15,13 +15,30 @@ export enum AuditLogAction {
   EMAIL_VERIFICATION = 'EMAIL_VERIFICATION',
   USER_SUSPENDED = 'USER_SUSPENDED',
   USER_UNSUSPENDED = 'USER_UNSUSPENDED',
+  // ADS-758: rescue lifecycle — moved off lowercase verbs.
+  RESCUE_REGISTERED = 'RESCUE_REGISTERED',
+  RESCUE_CREATED = 'RESCUE_CREATED',
+  RESCUE_UPDATED = 'RESCUE_UPDATED',
   RESCUE_VERIFIED = 'RESCUE_VERIFIED',
+  RESCUE_APPROVED = 'RESCUE_APPROVED',
   RESCUE_VERIFICATION_REJECTED = 'RESCUE_VERIFICATION_REJECTED',
+  RESCUE_REJECTED = 'RESCUE_REJECTED',
+  RESCUE_SUSPENDED = 'RESCUE_SUSPENDED',
+  RESCUE_DELETED = 'RESCUE_DELETED',
+  RESCUE_STAFF_ADDED = 'RESCUE_STAFF_ADDED',
+  RESCUE_STAFF_REMOVED = 'RESCUE_STAFF_REMOVED',
+  RESCUE_STAFF_UPDATED = 'RESCUE_STAFF_UPDATED',
   // Add other actions as needed
 }
 
 export interface AuditLogData {
-  userId: string;
+  /**
+   * ADS-756: pass `null` for system actors (background workers,
+   * unauthenticated middleware fallbacks). Empty string is reserved as a
+   * programmer-error sentinel and logs a warning before being coerced to
+   * `null` so the audit row still writes but forensics aren't poisoned.
+   */
+  userId: string | null;
   action: string;
   entity: string;
   entityId: string;
@@ -49,14 +66,27 @@ export class AuditLogService {
    */
   static async log(data: AuditLogData): Promise<AuditLog> {
     try {
+      // ADS-756: empty-string userId is a legacy programmer error; coerce
+      // to null so the row writes to the nullable `user` column instead
+      // of polluting forensic queries (`user=''` collides every system
+      // actor and every misconfigured route into one bucket).
+      let userId: string | null = data.userId;
+      if (userId === '') {
+        logger.warn(
+          'AuditLogService.log: empty-string userId is reserved; pass null for system actors',
+          { action: data.action, entity: data.entity }
+        );
+        userId = null;
+      }
+
       // Capture the actor's email at write time so the audit trail
       // stays readable after the user is deleted (plan 2.2 / 4.5).
       // Best-effort — a missing user (or a transient lookup failure)
       // just leaves the snapshot null; the audit log still gets written.
       let userEmailSnapshot: string | null = null;
-      if (data.userId) {
+      if (userId) {
         try {
-          const user = await User.findByPk(data.userId, { attributes: ['email'] });
+          const user = await User.findByPk(userId, { attributes: ['email'] });
           userEmailSnapshot = user?.email ?? null;
         } catch {
           userEmailSnapshot = null;
@@ -66,7 +96,7 @@ export class AuditLogService {
       const auditLog = await AuditLog.create(
         {
           service: data.service || 'adopt-dont-shop-backend',
-          user: data.userId,
+          user: userId,
           user_email_snapshot: userEmailSnapshot,
           action: data.action,
           level: data.level || 'INFO',
@@ -86,7 +116,7 @@ export class AuditLogService {
         data.transaction ? { transaction: data.transaction } : undefined
       );
 
-      logger.info(`Audit log created: ${data.action} on ${data.entity} by ${data.userId}`);
+      logger.info(`Audit log created: ${data.action} on ${data.entity} by ${userId ?? 'system'}`);
       return auditLog;
     } catch (error) {
       logger.error('Failed to create audit log:', error);

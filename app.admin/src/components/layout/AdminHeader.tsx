@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
-import {
-  FiSearch,
-  FiBell,
-  FiUser,
-  FiLogOut,
-  FiSettings,
-  FiChevronDown,
-  FiMenu,
-} from 'react-icons/fi';
+import { FiUser, FiLogOut, FiSettings, FiChevronDown, FiMenu } from 'react-icons/fi';
 import * as styles from './AdminHeader.css';
 
 interface AdminHeaderProps {
@@ -23,7 +15,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed, onMo
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const handleLogout = () => {
     logout();
@@ -53,23 +44,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ sidebarCollapsed, onMo
       >
         <FiMenu />
       </button>
-      <div className={styles.searchContainer}>
-        <FiSearch className={styles.searchIcon} />
-        <input
-          className={styles.searchInput}
-          type='text'
-          aria-label='Search users, rescues, or content'
-          placeholder='Search users, rescues, or content...'
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-        />
-      </div>
+      {/* Global search and notifications removed (ADS-744) — both were non-functional dead UI.
+          Re-add once product specs an actual search/notifications backend. */}
 
       <div className={styles.headerActions}>
-        <button className={styles.iconButton({ hasNotification: true })} aria-label='Notifications'>
-          <FiBell />
-        </button>
-
         <div className={styles.userMenu}>
           <button
             className={styles.userButton}

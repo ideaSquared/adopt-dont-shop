@@ -56,13 +56,19 @@ const validateStep = (step: number, data: FormData): FieldErrors => {
     if (!data.lastName.trim()) errors.lastName = 'Last name is required';
     if (!data.email.trim()) errors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(data.email)) errors.email = 'Invalid email format';
-    if (!data.password) errors.password = 'Password is required';
-    else if (data.password.length < 8) errors.password = 'Must be at least 8 characters';
-    else if (!/[a-z]/.test(data.password)) errors.password = 'Must contain a lowercase letter';
-    else if (!/[A-Z]/.test(data.password)) errors.password = 'Must contain an uppercase letter';
-    else if (!/\d/.test(data.password)) errors.password = 'Must contain a digit';
-    else if (!/[^a-zA-Z0-9]/.test(data.password))
-      errors.password = 'Must contain a special character';
+    if (!data.password) {
+      errors.password = 'Password is required';
+    } else {
+      const missing: string[] = [];
+      if (data.password.length < 8) missing.push('at least 8 characters');
+      if (!/[a-z]/.test(data.password)) missing.push('a lowercase letter');
+      if (!/[A-Z]/.test(data.password)) missing.push('an uppercase letter');
+      if (!/\d/.test(data.password)) missing.push('a digit');
+      if (!/[^a-zA-Z0-9]/.test(data.password)) missing.push('a special character');
+      if (missing.length > 0) {
+        errors.password = `Password must include: ${missing.join(', ')}`;
+      }
+    }
     if (data.password && data.confirmPassword && data.password !== data.confirmPassword)
       errors.confirmPassword = 'Passwords do not match';
     if (!data.confirmPassword) errors.confirmPassword = 'Please confirm your password';

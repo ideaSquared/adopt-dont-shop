@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Heading, Text, Input, toast } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Input, toast, useDebouncedValue } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiPackage, FiArrowLeft } from 'react-icons/fi';
 import clsx from 'clsx';
 import { DataTable, type Column } from '../components/data';
@@ -68,6 +68,7 @@ const Pets: React.FC = () => {
   };
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [rescueFilter, setRescueFilter] = useState<string>('all');
   const [includeArchived, setIncludeArchived] = useState(false);
@@ -78,12 +79,12 @@ const Pets: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, statusFilter, typeFilter, rescueFilter, includeArchived]);
+  }, [debouncedSearchQuery, statusFilter, typeFilter, rescueFilter, includeArchived]);
 
   const { data: rescuesList } = useRescuesList();
 
   const { data, isLoading, error } = usePets({
-    search: searchQuery || undefined,
+    search: debouncedSearchQuery || undefined,
     status: statusFilter !== 'all' ? (statusFilter as PetStatus) : undefined,
     type: typeFilter !== 'all' ? typeFilter : undefined,
     rescueId: rescueFilter !== 'all' ? rescueFilter : undefined,

@@ -171,6 +171,27 @@ export const auditRoute =
       const ipAddress = req.ip || req.socket.remoteAddress || undefined;
       const userAgent = req.get('User-Agent') || undefined;
 
+      // ADS-754: on a successful response, an unresolved entityId means the
+      // descriptor's resolver (or the default precedence) couldn't find the
+      // PK in params / body / response. Writing an empty-string entityId
+      // produces forensically useless rows that all collide on the same
+      // unindexable key, so skip the write and surface a warning instead.
+      // Failure audits (auditFailures: true) are still written because the
+      // entityId may legitimately be absent for those.
+      if (succeeded && entityId === undefined) {
+        logger.warn(
+          'audit-route: skipping audit row — entityId could not be resolved on success response',
+          {
+            action: descriptor.action,
+            entity: descriptor.entity,
+            method: req.method,
+            path: req.originalUrl || req.url,
+            correlationId,
+          }
+        );
+        return;
+      }
+
       // Layer 1 mirror: emit a tagged log line so the event shows up in Loki
       // alongside operational logs, keyed by correlationId.
       loggerHelpers.logAudit(descriptor.action, {
@@ -190,7 +211,9 @@ export const auditRoute =
       // failure here is logged but does not crash the request (the response
       // is already on the wire). Transactional contracts belong in services.
       void AuditLogService.log({
-        userId: userId ?? '',
+        // ADS-756: null for the system/unauthenticated-route case so the
+        // forensic `user` column stays queryable.
+        userId: userId ?? null,
         action: descriptor.action,
         entity: descriptor.entity,
         entityId: entityId ?? '',

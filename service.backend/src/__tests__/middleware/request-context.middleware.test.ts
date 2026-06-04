@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { requestContextMiddleware } from '../../middleware/request-context';
-import { getCorrelationId } from '../../utils/request-context';
+import { getCorrelationId, getTraceparent } from '../../utils/request-context';
 
 describe('requestContextMiddleware (ADS-405)', () => {
   const buildApp = () => {
@@ -42,5 +42,39 @@ describe('requestContextMiddleware (ADS-405)', () => {
     ]);
     expect(a.body.correlationId).toBe('A');
     expect(b.body.correlationId).toBe('B');
+  });
+});
+
+// ADS-660: middleware also threads a W3C traceparent through the request
+// context so downstream services / OTel collectors can stitch a trace.
+describe('requestContextMiddleware W3C traceparent (ADS-660)', () => {
+  const buildApp = () => {
+    const app = express();
+    app.use(requestContextMiddleware);
+    app.get('/probe', (_req, res) => {
+      res.json({ traceparent: getTraceparent() });
+    });
+    return app;
+  };
+
+  it('mints a well-formed traceparent and echoes it back when none is sent', async () => {
+    const res = await request(buildApp()).get('/probe');
+    expect(res.headers.traceparent).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/);
+    expect(res.body.traceparent).toBe(res.headers.traceparent);
+  });
+
+  it('forwards a valid inbound traceparent unchanged', async () => {
+    const inbound = '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01';
+    const res = await request(buildApp()).get('/probe').set('traceparent', inbound);
+    expect(res.headers.traceparent).toBe(inbound);
+    expect(res.body.traceparent).toBe(inbound);
+  });
+
+  it('mints a fresh traceparent when the inbound one is malformed', async () => {
+    const res = await request(buildApp())
+      .get('/probe')
+      .set('traceparent', 'not-a-valid-traceparent');
+    expect(res.headers.traceparent).not.toBe('not-a-valid-traceparent');
+    expect(res.headers.traceparent).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/);
   });
 });

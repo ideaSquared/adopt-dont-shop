@@ -142,12 +142,9 @@ describe('App [ADS-497 slice 5] cookie banner wiring', () => {
 
     renderApp();
 
-    // The banner + modal are sibling sentinels of the routed Suspense
-    // boundary, so they're available before the lazy LoginPage finishes
-    // loading. waitFor handles the React 19 act() flush.
-    await waitFor(() => {
-      expect(screen.getByTestId('cookie-banner-sentinel')).toBeInTheDocument();
-    });
+    // ADS-669 lazy-loaded the legal UI; both sentinels mount under a
+    // single Suspense boundary that resolves off one module load.
+    expect(await screen.findByTestId('cookie-banner-sentinel')).toBeInTheDocument();
     expect(screen.getByTestId('legal-reacceptance-modal-sentinel')).toBeInTheDocument();
   });
 });

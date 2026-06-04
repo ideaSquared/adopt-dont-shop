@@ -22,6 +22,3 @@ export * from './useInbox';
 
 // Generic entity activity (used by EntityInspector across all entity types)
 export * from './useEntityActivity';
-
-// Generic utility hooks
-export * from './useDebouncedValue';

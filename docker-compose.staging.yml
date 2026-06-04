@@ -18,10 +18,15 @@ services:
     container_name: ads_staging_db
     restart: always
     ports: []
+    # ADS-752: read the DB password from the file-mounted Docker secret
+    # rather than the env var. POSTGRES_PASSWORD_FILE is honoured by the
+    # postgres entrypoint and keeps the value out of `docker inspect`.
     environment:
       POSTGRES_USER: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
       POSTGRES_DB: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
+    secrets:
+      - db_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -89,16 +94,15 @@ services:
       DB_HOST: database
       DB_PORT: 5432
       DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
-      # Staging intentionally uses a plaintext env var for DB_PASSWORD rather
-      # than Docker secrets. Staging is a short-lived ephemeral environment
-      # (no production data, not internet-facing) and has no Docker Swarm
-      # secrets infrastructure configured. Production uses /run/secrets/db_password
-      # via readSecretOrEnv() [ADS-675]. Do not copy this pattern to production.
-      DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
+      # ADS-752: DB_PASSWORD is read from /run/secrets/db_password via
+      # readSecretOrEnv() (config/env.ts). Same file-secret pattern as prod;
+      # no plaintext env var is left to leak via `docker inspect`.
       PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
       DB_SSL_MODE: ${DB_SSL_MODE:-require}
       ALLOW_INSECURE_DB: ${ALLOW_INSECURE_DB:-}
       DB_SSL_ROOT_CERT: ${DB_SSL_ROOT_CERT:-}
+    secrets:
+      - db_password
     depends_on:
       database:
         condition: service_healthy
@@ -123,18 +127,16 @@ services:
       DB_HOST: database
       DB_PORT: 5432
       DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
-      DB_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}"
+      # ADS-752: every signing/credential secret below is mounted at
+      # /run/secrets/<lowercase-name> and read by readSecretOrEnv()
+      # (service.backend/src/config/env.ts). Do NOT add plaintext env
+      # equivalents — secret files take priority and the env value would
+      # show up in `docker inspect`.
       PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
       DB_POOL_MAX: ${DB_POOL_MAX:-10}
       DB_POOL_MIN: ${DB_POOL_MIN:-2}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: "${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}"
-      JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET required}"
-      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}"
-      SESSION_SECRET: "${SESSION_SECRET:?Error: SESSION_SECRET required}"
-      CSRF_SECRET: "${CSRF_SECRET:?Error: CSRF_SECRET required}"
-      ENCRYPTION_KEY: "${ENCRYPTION_KEY:?Error: ENCRYPTION_KEY required}"
       API_URL: "${API_URL:?Error: API_URL required}"
       CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required}"
       FRONTEND_URL: "${FRONTEND_URL:?Error: FRONTEND_URL required}"
@@ -150,7 +152,7 @@ services:
       LOG_DIR: ${LOG_DIR:-logs}
       SMS_DEFAULT_COUNTRY_CODE: ${SMS_DEFAULT_COUNTRY_CODE:-GB}
       JWT_REPORT_SHARE_SECRET: ${JWT_REPORT_SHARE_SECRET:-}
-      UPLOAD_SIGNING_SECRET: "${UPLOAD_SIGNING_SECRET:?Error: UPLOAD_SIGNING_SECRET required}"
+      # UPLOAD_SIGNING_SECRET now read from /run/secrets/upload_signing_secret (ADS-752).
       # Staging has no per-stack nginx; backend serves /uploads itself.
       SERVE_LOCAL_UPLOADS: "true"
       FORCE_SEED: "false"
@@ -170,6 +172,17 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    # ADS-752: secrets mounted at /run/secrets/<name>; backend reads via
+    # readSecretOrEnv() (config/env.ts) with env-var fallback.
+    secrets:
+      - jwt_secret
+      - jwt_refresh_secret
+      - session_secret
+      - csrf_secret
+      - encryption_key
+      - upload_signing_secret
+      - db_password
+      - redis_password
     depends_on:
       database:
         condition: service_healthy
@@ -281,3 +294,30 @@ networks:
   default:
     name: ads-staging-network
     external: false
+
+# ============================================================================
+# Docker Secrets (ADS-752)
+# ============================================================================
+# Mounted as in-memory tmpfs files at /run/secrets/<name>; never written to
+# disk and invisible to `docker inspect`. The backend reads these via
+# readSecretOrEnv() (service.backend/src/config/env.ts). The deploy workflow
+# (.github/workflows/deploy.yml) is responsible for materialising each
+# secrets/<name> file on the host before running `docker compose up -d`
+# (and removing them afterwards) — mirrors the existing production path.
+secrets:
+  jwt_secret:
+    file: ./secrets/jwt_secret
+  jwt_refresh_secret:
+    file: ./secrets/jwt_refresh_secret
+  session_secret:
+    file: ./secrets/session_secret
+  csrf_secret:
+    file: ./secrets/csrf_secret
+  encryption_key:
+    file: ./secrets/encryption_key
+  upload_signing_secret:
+    file: ./secrets/upload_signing_secret
+  db_password:
+    file: ./secrets/db_password
+  redis_password:
+    file: ./secrets/redis_password

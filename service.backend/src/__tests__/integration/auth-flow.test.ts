@@ -87,6 +87,9 @@ describe('Authentication Flow Integration Tests', () => {
     mockedBcrypt.hash = vi.fn().mockResolvedValue(hashedPassword as never);
     mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
     mockedBcrypt.genSalt = vi.fn().mockResolvedValue('salt' as never);
+    // ADS-750: the unknown-email branch calls hashSync against a dummy to
+    // equalise login timing — needs a mock or the test throws TypeError.
+    mockedBcrypt.hashSync = vi.fn().mockReturnValue(hashedPassword as never);
 
     // Setup default crypto mocks
     (mockedCrypto.randomBytes as unknown as vi.Mock) = vi.fn().mockReturnValue({

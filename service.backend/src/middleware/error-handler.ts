@@ -2,6 +2,17 @@ import { Request, Response, NextFunction } from 'express';
 import { BaseError as SequelizeBaseError } from 'sequelize';
 import { logger } from '../utils/logger';
 
+/**
+ * ADS-753: gate verbose error disclosure on the documented `DEBUG_ERRORS`
+ * flag rather than `NODE_ENV === 'development'`. The startup env-validator
+ * already refuses to boot when `DEBUG_ERRORS=true && NODE_ENV=production`,
+ * so this is the canonical operator toggle.
+ *
+ * Read fresh on each request so tests (and live ops reconfig) take effect
+ * without process restart — the cost is one env lookup per error.
+ */
+const isErrorDebugEnabled = (): boolean => process.env.DEBUG_ERRORS === 'true';
+
 // Custom error class for API errors
 export class ApiError extends Error {
   statusCode: number;
@@ -70,8 +81,8 @@ export const errorHandler = (
       status: 'error',
       message: err.message,
       code: err.statusCode,
-      // Include stack trace in development
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+      // ADS-753: gated on DEBUG_ERRORS, not NODE_ENV
+      ...(isErrorDebugEnabled() && { stack: err.stack }),
     });
   }
 
@@ -144,6 +155,7 @@ export const errorHandler = (
     status: 'error',
     message: 'Internal server error',
     code: 500,
-    ...(process.env.NODE_ENV === 'development' && { detail: err.message, stack: err.stack }),
+    // ADS-753: gated on DEBUG_ERRORS, not NODE_ENV
+    ...(isErrorDebugEnabled() && { detail: err.message, stack: err.stack }),
   });
 };

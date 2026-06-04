@@ -23,6 +23,7 @@ import {
 import clsx from 'clsx';
 import type { AdminUser, UserType, UserStatus } from '@/types';
 import { useEntityActivity } from '../../hooks';
+import { ConfirmationModal } from '../modals/UserActionsMenu';
 import * as styles from './UserDetailPanel.css';
 
 type UserDetailPanelProps = {
@@ -323,60 +324,93 @@ const ActionsTab: React.FC<{
   onDelete: (userId: string, reason?: string) => Promise<void>;
   onResetPassword: (userId: string) => Promise<void>;
   onMessage: (user: AdminUser) => void;
-}> = ({ user, onSuspend, onUnsuspend, onVerify, onDelete, onResetPassword, onMessage }) => (
-  <div className={styles.actionsSection}>
-    <div className={styles.actionGroup}>
-      <span className={styles.actionGroupLabel}>Communication</span>
-      <button type='button' className={styles.actionButton} onClick={() => onMessage(user)}>
-        <FiMail /> Send Message
-      </button>
-    </div>
+}> = ({ user, onSuspend, onUnsuspend, onVerify, onDelete, onResetPassword, onMessage }) => {
+  const [confirmType, setConfirmType] = useState<'suspend' | 'delete' | null>(null);
+  const userName = `${user.firstName ?? ''} ${user.lastName ?? ''} (${user.email})`.trim();
 
-    <div className={styles.actionGroup}>
-      <span className={styles.actionGroupLabel}>Account</span>
-      {user.status === 'suspended' ? (
+  return (
+    <div className={styles.actionsSection}>
+      <div className={styles.actionGroup}>
+        <span className={styles.actionGroupLabel}>Communication</span>
+        <button type='button' className={styles.actionButton} onClick={() => onMessage(user)}>
+          <FiMail /> Send Message
+        </button>
+      </div>
+
+      <div className={styles.actionGroup}>
+        <span className={styles.actionGroupLabel}>Account</span>
+        {user.status === 'suspended' ? (
+          <button
+            type='button'
+            className={styles.actionButton}
+            onClick={() => onUnsuspend(user.userId)}
+          >
+            <FiPlay /> Unsuspend User
+          </button>
+        ) : (
+          <button
+            type='button'
+            className={styles.actionButton}
+            onClick={() => setConfirmType('suspend')}
+          >
+            <FiPause /> Suspend User
+          </button>
+        )}
+        {!user.emailVerified && (
+          <button
+            type='button'
+            className={styles.actionButton}
+            onClick={() => onVerify(user.userId)}
+          >
+            <FiCheckCircle /> Verify Email
+          </button>
+        )}
         <button
           type='button'
           className={styles.actionButton}
-          onClick={() => onUnsuspend(user.userId)}
+          onClick={() => onResetPassword(user.userId)}
         >
-          <FiPlay /> Unsuspend User
+          <FiKey /> Reset Password
         </button>
-      ) : (
+      </div>
+
+      <div className={styles.actionGroup}>
+        <span className={styles.actionGroupLabel}>Danger Zone</span>
         <button
           type='button'
-          className={styles.actionButton}
-          onClick={() => onSuspend(user.userId)}
+          className={clsx(styles.actionButton, styles.actionButtonDanger)}
+          onClick={() => setConfirmType('delete')}
         >
-          <FiPause /> Suspend User
+          <FiTrash2 /> Delete User
         </button>
-      )}
-      {!user.emailVerified && (
-        <button type='button' className={styles.actionButton} onClick={() => onVerify(user.userId)}>
-          <FiCheckCircle /> Verify Email
-        </button>
-      )}
-      <button
-        type='button'
-        className={styles.actionButton}
-        onClick={() => onResetPassword(user.userId)}
-      >
-        <FiKey /> Reset Password
-      </button>
-    </div>
+      </div>
 
-    <div className={styles.actionGroup}>
-      <span className={styles.actionGroupLabel}>Danger Zone</span>
-      <button
-        type='button'
-        className={clsx(styles.actionButton, styles.actionButtonDanger)}
-        onClick={() => onDelete(user.userId)}
-      >
-        <FiTrash2 /> Delete User
-      </button>
+      <ConfirmationModal
+        isOpen={confirmType === 'suspend'}
+        onClose={() => setConfirmType(null)}
+        onConfirm={reason => onSuspend(user.userId, reason)}
+        title='Suspend User'
+        message='Are you sure you want to suspend this user? They will not be able to access their account.'
+        userName={userName}
+        isDanger
+        requiresReason
+        confirmButtonText='Suspend User'
+      />
+
+      <ConfirmationModal
+        isOpen={confirmType === 'delete'}
+        onClose={() => setConfirmType(null)}
+        onConfirm={reason => onDelete(user.userId, reason)}
+        title='Delete User'
+        message='Are you sure you want to delete this user? This action cannot be undone and will permanently remove all user data.'
+        userName={userName}
+        isDanger
+        requiresReason
+        confirmButtonText='Delete User'
+      />
     </div>
-  </div>
-);
+  );
+};
 
 // ── Activity Tab ──────────────────────────────────────────────────
 
