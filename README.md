@@ -129,7 +129,7 @@ npx turbo test --filter=@adopt-dont-shop/service-backend
 The Docker dev stack is configured for HMR on Windows/macOS/Linux:
 
 - **Frontend apps** — Vite HMR with polling (`CHOKIDAR_USEPOLLING=true`). Edits to `app.*/src/**` and `lib.*/src/**` reload in the browser within ~1-2 seconds.
-- **Backend** — `ts-node-dev --poll` restarts on edits to `service.backend/src/**` within ~2 seconds.
+- **Backend** — `tsx watch` reloads on edits to `service.backend/src/**` within ~1 second.
 - **lib.types** — the `lib-types-watcher` sidecar runs `tsc --watch` and writes to `dist/` continuously; the backend picks up changes automatically via the workspace symlink.
 - **Other libraries** (`lib.api`, `lib.auth`, etc.) — Vite aliases point at their `src/` folders, so HMR picks up changes automatically.
 

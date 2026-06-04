@@ -58,7 +58,7 @@ If you prefer to run the backend on the host (you must provide Postgres and Redi
 
 ```bash
 cd service.backend
-npm run dev                  # ts-node-dev --respawn --transpile-only --poll --watch src src/index.ts
+npm run dev                  # tsx watch --clear-screen=false src/index.ts
 ```
 
 ## Environment Configuration
