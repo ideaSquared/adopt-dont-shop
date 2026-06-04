@@ -40,7 +40,7 @@
   "dependencies": {},
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",
-    "@types/node": "^22.10.5"
+    "@types/node": "^25.9.1"
   },
   "peerDependencies": {
     "typescript": "^6.0.0"
