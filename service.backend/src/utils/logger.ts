@@ -4,7 +4,7 @@ import winston from 'winston';
 import LokiTransport from 'winston-loki';
 import { JsonValue, JsonObject } from '../types/common';
 import { redactLogPayload } from './redact';
-import { getCorrelationId } from './request-context';
+import { getCorrelationId, getTraceparent } from './request-context';
 import { AuthenticatedRequest } from '../types/auth';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -73,6 +73,14 @@ const correlationFormat = winston.format(info => {
     const fromCtx = getCorrelationId();
     if (fromCtx) {
       info.correlationId = fromCtx;
+    }
+  }
+  // ADS-660: also stamp the W3C traceparent if one is in scope so log
+  // exporters (Loki, OTLP) can pivot from a log line to the matching trace.
+  if (!info.traceparent) {
+    const fromCtx = getTraceparent();
+    if (fromCtx) {
+      info.traceparent = fromCtx;
     }
   }
   return info;

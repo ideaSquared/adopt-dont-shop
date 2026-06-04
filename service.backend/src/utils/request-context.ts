@@ -20,6 +20,12 @@ import { AsyncLocalStorage } from 'async_hooks';
 type RequestContextStore = {
   userId?: string;
   correlationId?: string;
+  /**
+   * W3C `traceparent` header value carried through the request lifetime.
+   * ADS-660: makes the existing correlation-id stack interoperable with
+   * OpenTelemetry collectors without yet pulling in the full sdk-node.
+   */
+  traceparent?: string;
 };
 
 const storage = new AsyncLocalStorage<RequestContextStore>();
@@ -55,4 +61,56 @@ export const setCorrelationId = (correlationId: string): void => {
   if (store) {
     store.correlationId = correlationId;
   }
+};
+
+/**
+ * ADS-660: W3C traceparent helpers. Parse / mint / read the traceparent
+ * header so the existing correlation-id middleware can propagate trace
+ * context across services in a format OpenTelemetry collectors recognise.
+ * The full SDK (sdk-node + auto-instrumentation) is still pending; this
+ * is the wire-format scaffold so callers don't need to change later.
+ */
+const TRACEPARENT_VERSION = '00';
+
+/** Read the traceparent for the current request, if any. */
+export const getTraceparent = (): string | undefined => storage.getStore()?.traceparent;
+
+/** Set the traceparent for the current request. */
+export const setTraceparent = (traceparent: string): void => {
+  const store = storage.getStore();
+  if (store) {
+    store.traceparent = traceparent;
+  }
+};
+
+/**
+ * Validate a candidate traceparent against the W3C trace context spec:
+ * `<version>-<32-hex trace-id>-<16-hex span-id>-<2-hex flags>` with all
+ * fields hex and the trace/span ids non-zero.
+ */
+export const isValidTraceparent = (value: string): boolean => {
+  const match = /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/.exec(value);
+  if (!match) {
+    return false;
+  }
+  const [, , traceId, spanId] = match;
+  if (traceId === '0'.repeat(32)) {
+    return false;
+  }
+  if (spanId === '0'.repeat(16)) {
+    return false;
+  }
+  return true;
+};
+
+/**
+ * Mint a fresh traceparent using a 32-char trace-id and 16-char span-id.
+ * `randomHex` is injected so callers can use either node:crypto or a test
+ * shim without this module depending on either.
+ */
+export const mintTraceparent = (randomHex: (bytes: number) => string): string => {
+  const traceId = randomHex(16);
+  const spanId = randomHex(8);
+  // Sampled flag (01) — sampling decisions are made by the exporter.
+  return `${TRACEPARENT_VERSION}-${traceId}-${spanId}-01`;
 };
