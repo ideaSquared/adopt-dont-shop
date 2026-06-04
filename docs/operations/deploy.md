@@ -237,6 +237,19 @@ enabled before going live. [ADS-665]
 
 See [`snapshot-policy.md`](./snapshot-policy.md). [ADS-500]
 
+## WebSocket sticky sessions (ADS-678)
+
+The Socket.IO per-user connection cap is enforced per backend instance,
+not globally. Multi-replica deploys MUST configure load-balancer
+stickiness on the `/socket.io` route so a given user's sockets land on
+one backend. With nginx in front, add `ip_hash;` to the backend
+upstream block; with AWS ALB, enable `lb_cookie` stickiness on the
+target group.
+
+See [`../architecture/adr-socket-sticky-sessions.md`](../architecture/adr-socket-sticky-sessions.md)
+for the full rationale, alternatives considered, and the explicit LB
+settings the ops team must apply.
+
 ## Known limitations
 
 - nginx hostname substitution is manual (placeholder string). A future
