@@ -82,7 +82,7 @@ describe('verifyEmailDeliveryWebhook (ADS-397)', () => {
     expect(res.body.body).toEqual({ event: 'bounced', email: 'a@b.test' });
   });
 
-  it('rejects replays older than the 5-minute tolerance window', async () => {
+  it('rejects replays older than the timestamp-skew tolerance window (ADS-734)', async () => {
     process.env.NODE_ENV = 'production';
     process.env.EMAIL_WEBHOOK_PROVIDER = 'generic';
     process.env.EMAIL_WEBHOOK_SECRET = SECRET;

@@ -13,14 +13,30 @@
  *   mounted with `express.raw({ type: '*\/*' })` (or `application/json`) so
  *   `req.body` arrives as a Buffer; we then JSON.parse it ourselves and
  *   re-attach the parsed value before downstream validators run.
- * - Replay protection: we accept a +/- 5 minute timestamp tolerance. Older
- *   payloads are rejected even if the signature checks out.
+ * - Replay protection: timestamp tolerance defaults to 120 s (ADS-734).
+ *   Production webhooks land within seconds; the wider 5-minute window the
+ *   middleware used to enforce gave an attacker who captured one signed
+ *   payload an unnecessarily long replay window. Override via
+ *   `EMAIL_WEBHOOK_TIMESTAMP_SKEW_MS` if a provider needs more headroom.
+ *   Per-event idempotency (a `webhook_events` table keyed on
+ *   provider+event-id) is tracked separately — see
+ *   `docs/security/webhook-replay-protection.md`.
  */
 import crypto from 'crypto';
 import { NextFunction, Request, Response } from 'express';
 import { logger } from '../utils/logger';
 
-const FIVE_MINUTES_MS = 5 * 60 * 1000;
+// ADS-734: timestamp skew tolerated by replay-protection. 120 s by default.
+// SendGrid / Postmark / SES typically deliver in <10 s; 120 s leaves room
+// for clock drift without giving attackers a wide replay window. Override
+// with EMAIL_WEBHOOK_TIMESTAMP_SKEW_MS if a provider requires more.
+const DEFAULT_SKEW_MS = 120 * 1000;
+const getSkewMs = (): number => {
+  const raw = process.env.EMAIL_WEBHOOK_TIMESTAMP_SKEW_MS;
+  if (!raw) return DEFAULT_SKEW_MS;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_SKEW_MS;
+};
 
 export type WebhookProvider = 'sendgrid' | 'ses' | 'postmark' | 'generic' | 'none';
 
@@ -76,7 +92,7 @@ const verifySendGrid = (req: Request, raw: Buffer): boolean => {
     return false;
   }
   const ts = Number.parseInt(timestamp, 10);
-  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts * 1000) > FIVE_MINUTES_MS) {
+  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts * 1000) > getSkewMs()) {
     return false;
   }
   try {
@@ -166,7 +182,7 @@ const verifyGeneric = (req: Request, raw: Buffer): boolean => {
     return false;
   }
   const ts = Number.parseInt(timestamp, 10);
-  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > FIVE_MINUTES_MS) {
+  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > getSkewMs()) {
     return false;
   }
   const expected = crypto
