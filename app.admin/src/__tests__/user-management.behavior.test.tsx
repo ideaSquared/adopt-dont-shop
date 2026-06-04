@@ -494,7 +494,13 @@ describe('User Management page', () => {
       renderUsersPage('/users/user-1');
 
       await user.click(screen.getByRole('tab', { name: 'Actions' }));
-      await user.click(screen.getByText('Suspend User'));
+      // ADS-690: the panel renders a Suspend User trigger AND a ConfirmDialog
+      // with a Suspend User confirm button. Both nodes are in the DOM (the
+      // dialog is hidden via isOpen, not unmounted). Click the trigger (the
+      // first node in DOM order) then the confirm button (the second).
+      const suspendButtons = screen.getAllByText('Suspend User');
+      await user.click(suspendButtons[0]);
+      await user.click(screen.getAllByText('Suspend User')[1]);
 
       await waitFor(() => {
         expect(screen.getByText('User suspended successfully')).toBeInTheDocument();
@@ -511,7 +517,13 @@ describe('User Management page', () => {
       renderUsersPage('/users/user-1');
 
       await user.click(screen.getByRole('tab', { name: 'Actions' }));
-      await user.click(screen.getByText('Suspend User'));
+      // ADS-690: the panel renders a Suspend User trigger AND a ConfirmDialog
+      // with a Suspend User confirm button. Both nodes are in the DOM (the
+      // dialog is hidden via isOpen, not unmounted). Click the trigger (the
+      // first node in DOM order) then the confirm button (the second).
+      const suspendButtons = screen.getAllByText('Suspend User');
+      await user.click(suspendButtons[0]);
+      await user.click(screen.getAllByText('Suspend User')[1]);
 
       await waitFor(() => {
         expect(screen.getByText('Failed to suspend user — Permission denied')).toBeInTheDocument();
@@ -528,7 +540,13 @@ describe('User Management page', () => {
       renderUsersPage('/users/user-1');
 
       await user.click(screen.getByRole('tab', { name: 'Actions' }));
-      await user.click(screen.getByText('Suspend User'));
+      // ADS-690: the panel renders a Suspend User trigger AND a ConfirmDialog
+      // with a Suspend User confirm button. Both nodes are in the DOM (the
+      // dialog is hidden via isOpen, not unmounted). Click the trigger (the
+      // first node in DOM order) then the confirm button (the second).
+      const suspendButtons = screen.getAllByText('Suspend User');
+      await user.click(suspendButtons[0]);
+      await user.click(screen.getAllByText('Suspend User')[1]);
 
       await waitFor(() => {
         expect(screen.getByText('Failed to suspend user — please try again')).toBeInTheDocument();
@@ -616,9 +634,10 @@ describe('User Management page', () => {
 
       await user.click(screen.getByRole('tab', { name: 'Actions' }));
 
-      expect(screen.getByText('Suspend User')).toBeInTheDocument();
+      // ADS-690: trigger + ConfirmDialog both render "Suspend User" / "Delete User"
+      expect(screen.getAllByText('Suspend User').length).toBeGreaterThan(0);
       expect(screen.getByText('Reset Password')).toBeInTheDocument();
-      expect(screen.getByText('Delete User')).toBeInTheDocument();
+      expect(screen.getAllByText('Delete User').length).toBeGreaterThan(0);
     });
 
     it('shows Activity tab when clicked', async () => {

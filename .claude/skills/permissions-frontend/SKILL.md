@@ -97,22 +97,48 @@ enforce this.
 ### `useHasPermission` — for boolean checks
 
 When you need the decision as a value (passed to a child as a prop, used in
-a condition, or feeding `disabled`), use the hook:
+a condition, or feeding `disabled`), use the hook. **ADS-757**: the hook
+returns `{ allowed, isLoading, error }` — gate on `!isLoading` before
+trusting `allowed`, otherwise the empty initial permission set will read as
+"denied" during the post-login fetch and your gated UI will flash hidden /
+flash an Access Denied screen:
 
 ```typescript
 import { useHasPermission } from '@adopt-dont-shop/lib.auth';
 import { RESCUE_SETTINGS_UPDATE } from '@adopt-dont-shop/lib.permissions';
 
 const RescueSettings = () => {
-  const canEdit = useHasPermission(RESCUE_SETTINGS_UPDATE);
+  const { allowed: canEdit, isLoading } = useHasPermission(RESCUE_SETTINGS_UPDATE);
 
-  return <SettingsForm disabled={!canEdit} />;
+  if (isLoading) return <SettingsFormSkeleton />;
+  if (!canEdit) return <AccessDenied />;
+  return <SettingsForm />;
 };
 ```
 
+If you only need the boolean for UI toggling (no separate denied state), the
+common pattern is `allowed && !isLoading`:
+
+```typescript
+const { allowed, isLoading } = useHasPermission(CHAT_UPDATE);
+const canManage = allowed && !isLoading;
+{canManage && <ManageButton />}
+```
+
+`error` is populated when the permission fetch rejects (ADS-755). Most
+consumers can ignore it — `<PermissionGate>` renders nothing on error — but
+top-level screens may want to render a retry CTA.
+
 Variants:
-- `useHasAnyPermission(permissions: Permission[])` — true if user has at least one
-- `useHasAllPermissions(permissions: Permission[])` — true only if user has all
+- `useHasAnyPermission(permissions: Permission[])` — `allowed` is true if user has at least one
+- `useHasAllPermissions(permissions: Permission[])` — `allowed` is true only if user has all
+
+Both share the same return shape.
+
+**Prefer `<PermissionGate>` for declarative inline gating** — it already
+handles the loading and error states for you and renders nothing until the
+fetch settles. Reach for the hook only when you need the boolean to drive
+something other than direct conditional rendering.
 
 ## Choosing between the two
 
@@ -220,9 +246,9 @@ the delete button. Disabled-but-visible is acceptable when:
 - The disabled state communicates *why* via tooltip / aria-describedby
 
 ```typescript
-const canDelete = useHasPermission(PETS_DELETE);
+const { allowed: canDelete, isLoading } = useHasPermission(PETS_DELETE);
 
-{canDelete ? (
+{canDelete && !isLoading ? (
   <DangerButton onClick={onDelete}>Delete</DangerButton>
 ) : (
   <DangerButton disabled aria-describedby="delete-disabled-reason">Delete</DangerButton>
@@ -241,8 +267,9 @@ If a whole page or section has zero permitted content, show an explanation,
 not a blank screen:
 
 ```typescript
-const canRead = useHasPermission(PETS_READ);
+const { allowed: canRead, isLoading } = useHasPermission(PETS_READ);
 
+if (isLoading) return <LoadingSkeleton />;
 if (!canRead) {
   return <EmptyState title="No access" message="You don't have access to any pets in this rescue." />;
 }
@@ -277,8 +304,12 @@ vi.mock('@adopt-dont-shop/lib.auth', async () => {
   };
 });
 
-// In tests:
-mockedUseHasPermission.mockImplementation((p) => p === 'pets.create');
+// In tests — ADS-757: hook returns { allowed, isLoading, error }.
+mockedUseHasPermission.mockImplementation((p) => ({
+  allowed: p === 'pets.create',
+  isLoading: false,
+  error: null,
+}));
 ```
 
 For components that read the whole permission set (e.g. via `usePermissions()`

@@ -17,9 +17,14 @@ import * as styles from './StaffManagement.css';
 
 const StaffManagement: React.FC = () => {
   const { user } = useAuth();
-  const canDeleteStaff = useHasPermission(STAFF_DELETE);
-  const canEditStaff = useHasPermission(STAFF_UPDATE);
-  const canAddStaff = useHasPermission(STAFF_CREATE);
+  // ADS-757: gate controls on permissions having loaded so they don't flash
+  // hidden during the initial fetch.
+  const { allowed: hasDeleteStaff, isLoading: deletePermLoading } = useHasPermission(STAFF_DELETE);
+  const { allowed: hasEditStaff, isLoading: editPermLoading } = useHasPermission(STAFF_UPDATE);
+  const { allowed: hasAddStaff, isLoading: addPermLoading } = useHasPermission(STAFF_CREATE);
+  const canDeleteStaff = hasDeleteStaff && !deletePermLoading;
+  const canEditStaff = hasEditStaff && !editPermLoading;
+  const canAddStaff = hasAddStaff && !addPermLoading;
   const { staff, loading, error, refetch, addStaffMember, removeStaffMember, updateStaffMember } =
     useStaff();
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
-import { Input, toast } from '@adopt-dont-shop/lib.components';
+import { Input, toast, useDebouncedValue } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiAlertTriangle, FiCheckCircle, FiEye, FiShield } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
 import { BulkActionToolbar } from '../components/ui';
@@ -130,8 +130,14 @@ const Moderation: React.FC = () => {
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [entityTypeFilter, setEntityTypeFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery]);
+
   const [pageSize] = useState(20);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -153,7 +159,7 @@ const Moderation: React.FC = () => {
     severity: severityFilter === 'all' ? undefined : severityFilter,
     reportedEntityType:
       entityTypeFilter === 'all' ? undefined : (entityTypeFilter as ReportedEntityType),
-    search: searchQuery || undefined,
+    search: debouncedSearchQuery || undefined,
     page: currentPage,
     limit: pageSize,
     sortBy: 'createdAt' as const,

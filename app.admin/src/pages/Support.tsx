@@ -7,6 +7,7 @@ import {
   useToast,
   Toast,
   ToastContainer,
+  useDebouncedValue,
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiMessageSquare, FiClock, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
@@ -95,6 +96,7 @@ const Support: React.FC = () => {
   };
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [priorityFilter, setPriorityFilter] = useState<TicketPriority | 'all'>('all');
   const [categoryFilter, setCategoryFilter] = useState<TicketCategory | 'all'>('all');
   const [page, setPage] = useState(1);
@@ -103,7 +105,7 @@ const Support: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, statusFilter, priorityFilter, categoryFilter]);
+  }, [debouncedSearchQuery, statusFilter, priorityFilter, categoryFilter]);
 
   // Build filters for API
   const filters = useMemo(() => {
@@ -132,12 +134,12 @@ const Support: React.FC = () => {
     if (categoryFilter !== 'all') {
       apiFilters.category = categoryFilter as TicketCategory;
     }
-    if (searchQuery) {
-      apiFilters.search = searchQuery;
+    if (debouncedSearchQuery) {
+      apiFilters.search = debouncedSearchQuery;
     }
 
     return apiFilters;
-  }, [statusFilter, priorityFilter, categoryFilter, searchQuery, page]);
+  }, [statusFilter, priorityFilter, categoryFilter, debouncedSearchQuery, page]);
 
   // Fetch tickets and stats using hooks
   const {

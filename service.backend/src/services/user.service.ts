@@ -72,21 +72,6 @@ const USER_SORT_FIELDS = [
   'status',
 ] as const;
 
-// Safe wrapper for loggerHelpers to prevent test failures
-const safeLoggerHelpers = {
-  logBusiness: (event: string, data: JsonObject, userId?: string) => {
-    try {
-      if (loggerHelpers && loggerHelpers.logBusiness) {
-        loggerHelpers.logBusiness(event, data, userId);
-      } else {
-        logger.info(`Business: ${event}`, { category: 'BUSINESS', userId, ...data });
-      }
-    } catch (error) {
-      logger.info(`Business: ${event}`, { category: 'BUSINESS', userId, ...data });
-    }
-  },
-};
-
 // Internal user shape for service-layer returns
 interface UserWithPermissions {
   userId: string;
@@ -512,7 +497,7 @@ export class UserService {
         userId,
       });
 
-      safeLoggerHelpers.logBusiness(
+      loggerHelpers.logBusiness(
         'User Preferences Updated',
         {
           userId,
@@ -1551,7 +1536,7 @@ export class UserService {
         userId,
       });
 
-      safeLoggerHelpers.logBusiness(
+      loggerHelpers.logBusiness(
         'User Account Self-Deleted',
         {
           userId,

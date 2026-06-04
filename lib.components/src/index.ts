@@ -10,6 +10,7 @@ export { useConfirm } from './hooks/useConfirm';
 export type { ConfirmOptions, UseConfirmReturn } from './hooks/useConfirm';
 export { useToast } from './hooks/useToast';
 export type { ToastMessage, UseToastReturn } from './hooks/useToast';
+export { useDebouncedValue } from './hooks/useDebouncedValue';
 
 // Foundation Components
 export { Logo } from './components/ui/Logo';

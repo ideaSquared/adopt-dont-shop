@@ -1,4 +1,10 @@
 /**
+ * Depends on `09-add-allergies-to-adopter-match-profile.ts` (the `allergies`
+ * column must exist before this migration writes to it). umzug runs
+ * migrations in alphabetical-filename order, so the dependency is
+ * satisfied by the `09 < 10` prefix — see scripts/check-migration-prefixes.mjs
+ * for the CI guard that prevents future collisions inside prefix 09. (ADS-702)
+ *
  * ADS-635: Migrate existing quiz blob data into adopter_match_profile.
  *
  * Users who completed the old onboarding quiz have answers stored in
@@ -16,7 +22,7 @@
  */
 import { type QueryInterface } from 'sequelize';
 
-import { assertDestructiveDownAcknowledged, columnExists, runInTransaction } from './_helpers';
+import { columnExists, runInTransaction } from './_helpers';
 
 type QuizBlob = {
   homeType?: string;
@@ -194,9 +200,11 @@ export default {
   },
 
   down: async (): Promise<void> => {
-    // Data migration — no automatic rollback. The quiz blob data is still
-    // intact in user_preferences for manual recovery if needed. Operators
-    // must opt in explicitly before any future destructive down() is added.
-    assertDestructiveDownAcknowledged('10-migrate-quiz-data-to-match-profile');
+    // Intentional no-op: this is a non-destructive data backfill. The source
+    // quiz data still lives in user_preferences.preferences -> 'quiz' and the
+    // up() used ON CONFLICT DO NOTHING, so existing adopter_match_profile rows
+    // were not modified. Leaving the backfilled rows in place on rollback is
+    // safe. If a future change makes the down() destructive, reinstate the
+    // assertDestructiveDownAcknowledged guard from _helpers.
   },
 };

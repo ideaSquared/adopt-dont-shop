@@ -1510,7 +1510,7 @@ export class RescueService {
         details: {
           rescueId,
           updatedUserId: userId,
-          staffName: `${staffMember.user.firstName} ${staffMember.user.lastName}`,
+          staffName: `${staffMember.user?.firstName ?? ''} ${staffMember.user?.lastName ?? ''}`,
           updates,
         },
         transaction,

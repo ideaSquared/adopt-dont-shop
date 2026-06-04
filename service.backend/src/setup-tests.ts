@@ -68,9 +68,6 @@ vi.mock('./utils/logger', () => ({
     logAudit: vi.fn(),
     logRequest: vi.fn(),
   },
-  safeLoggerHelpers: {
-    logBusiness: vi.fn(),
-  },
 }));
 
 // Mock bcryptjs for password hashing (slow operation, doesn't need real testing)

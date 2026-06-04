@@ -6,7 +6,8 @@ import RescueSettings from './RescueSettings';
 // Mock all heavy dependencies to focus on tab/hash behaviour
 vi.mock('@adopt-dont-shop/lib.auth', () => ({
   useAuth: () => ({ user: { userId: '1', rescueId: 'r1' } }),
-  useHasPermission: () => true,
+  // ADS-757: hook now returns { allowed, isLoading, error }.
+  useHasPermission: () => ({ allowed: true, isLoading: false, error: null }),
   TwoFactorSettings: () => null,
 }));
 

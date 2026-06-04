@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Modal,
@@ -175,6 +175,14 @@ const ResponsesTab: React.FC<{
   const [replyContent, setReplyContent] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset the reply form whenever the user navigates to a different ticket so
+  // draft text and the internal-reply toggle never leak across tickets (ADS-704).
+  useEffect(() => {
+    setReplyContent('');
+    setIsInternal(false);
+    setIsSubmitting(false);
+  }, [ticket.ticketId]);
 
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();

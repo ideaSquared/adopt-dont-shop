@@ -103,9 +103,11 @@ const chatToInboxItem = (chat: Chat): InboxItem => {
   };
 };
 
-const fetchReports = async (filters: InboxFilters): Promise<ReadonlyArray<InboxItem>> => {
+type SourceFetch = { items: ReadonlyArray<InboxItem>; total: number };
+
+const fetchReports = async (filters: InboxFilters): Promise<SourceFetch> => {
   if (filters.source && filters.source !== 'moderation') {
-    return [];
+    return { items: [], total: 0 };
   }
 
   const where: Record<string, unknown> = {};
@@ -128,18 +130,19 @@ const fetchReports = async (filters: InboxFilters): Promise<ReadonlyArray<InboxI
     });
   }
 
-  const reports = await Report.findAll({
+  // findAndCountAll gives the accurate total even when we cap rows for merging.
+  const { rows, count } = await Report.findAndCountAll({
     where,
     limit: OVER_FETCH_LIMIT,
     order: [[filters.sortBy ?? 'createdAt', filters.sortOrder ?? 'desc']],
   });
 
-  return reports.map(reportToInboxItem);
+  return { items: rows.map(reportToInboxItem), total: count };
 };
 
-const fetchTickets = async (filters: InboxFilters): Promise<ReadonlyArray<InboxItem>> => {
+const fetchTickets = async (filters: InboxFilters): Promise<SourceFetch> => {
   if (filters.source && filters.source !== 'support') {
-    return [];
+    return { items: [], total: 0 };
   }
 
   const where: Record<string, unknown> = {};
@@ -162,18 +165,27 @@ const fetchTickets = async (filters: InboxFilters): Promise<ReadonlyArray<InboxI
     });
   }
 
-  const tickets = await SupportTicket.findAll({
+  const { rows, count } = await SupportTicket.findAndCountAll({
     where,
     limit: OVER_FETCH_LIMIT,
     order: [[filters.sortBy ?? 'createdAt', filters.sortOrder ?? 'desc']],
   });
 
-  return tickets.map(ticketToInboxItem);
+  return { items: rows.map(ticketToInboxItem), total: count };
 };
 
-const fetchChats = async (filters: InboxFilters): Promise<ReadonlyArray<InboxItem>> => {
+const fetchChats = async (filters: InboxFilters): Promise<SourceFetch> => {
   if (filters.source && filters.source !== 'message') {
-    return [];
+    return { items: [], total: 0 };
+  }
+
+  // Chat severity is derived in JS (LOCKED → high, else medium). The DB has no
+  // severity column, so a severity filter narrower than these derived values
+  // cannot be expressed at the SQL level. Exclude chats entirely when the user
+  // is filtering by a severity that the derived rule can't produce, keeping
+  // results consistent with the filter. (ADS-696)
+  if (filters.severity && !['high', 'medium'].includes(filters.severity)) {
+    return { items: [], total: 0 };
   }
 
   const where: Record<string, unknown> = {};
@@ -186,6 +198,15 @@ const fetchChats = async (filters: InboxFilters): Promise<ReadonlyArray<InboxIte
   }
   if (filters.assignedTo) {
     where.assigned_to = filters.assignedTo;
+  }
+  // Map the derivable severity values back to status: high → LOCKED, medium → everything else.
+  if (filters.severity === 'high') {
+    where.status = ChatStatus.LOCKED;
+  } else if (filters.severity === 'medium') {
+    where.status =
+      where.status === undefined
+        ? { [Op.in]: [ChatStatus.ACTIVE] }
+        : { [Op.and]: [where.status, { [Op.ne]: ChatStatus.LOCKED }] };
   }
 
   const chats = await Chat.findAll({
@@ -209,20 +230,26 @@ const fetchChats = async (filters: InboxFilters): Promise<ReadonlyArray<InboxIte
     ],
   });
 
+  // Apply text search filter in-memory for chats (no title/description columns).
+  // Then ask for an accurate total via count() with the same where clause.
   const items = chats.map(chatToInboxItem);
+  const filtered = filters.search
+    ? items.filter(item => {
+        const term = filters.search!.toLowerCase();
+        return (
+          item.title.toLowerCase().includes(term) ||
+          item.summary.toLowerCase().includes(term) ||
+          (item.relatedUserEmail !== null && item.relatedUserEmail.toLowerCase().includes(term))
+        );
+      })
+    : items;
 
-  // Apply text search filter in-memory for chats (no title/description columns)
-  if (filters.search) {
-    const term = filters.search.toLowerCase();
-    return items.filter(
-      item =>
-        item.title.toLowerCase().includes(term) ||
-        item.summary.toLowerCase().includes(term) ||
-        (item.relatedUserEmail && item.relatedUserEmail.toLowerCase().includes(term))
-    );
-  }
+  // When the in-memory text filter is active we can't get an accurate DB count
+  // without scanning every row, so we fall back to the filtered slice length.
+  // Without text search, count() reflects all matching chats (not just the cap).
+  const total = filters.search ? filtered.length : await Chat.count({ where });
 
-  return items;
+  return { items: filtered, total };
 };
 
 export const getInboxItems = async (
@@ -237,11 +264,11 @@ export const getInboxItems = async (
     fetchChats(filters),
   ]);
 
-  const merged = [...reports, ...tickets, ...chats];
+  const merged = [...reports.items, ...tickets.items, ...chats.items];
 
   const sortField = filters.sortBy ?? 'createdAt';
   const sortDir = filters.sortOrder ?? 'desc';
-  merged.sort((a, b) => {
+  const sorted = [...merged].sort((a, b) => {
     const aVal = new Date(a[sortField]).getTime();
     const bVal = new Date(b[sortField]).getTime();
     return sortDir === 'desc' ? bVal - aVal : aVal - bVal;
@@ -249,10 +276,12 @@ export const getInboxItems = async (
 
   const page = filters.page ?? 1;
   const limit = filters.limit ?? 20;
-  const total = merged.length;
+  // True total is the sum of per-source totals — not the merged.length which
+  // is capped by OVER_FETCH_LIMIT per source. (ADS-696)
+  const total = reports.total + tickets.total + chats.total;
   const totalPages = Math.ceil(total / limit);
   const start = (page - 1) * limit;
-  const data = merged.slice(start, start + limit);
+  const data = sorted.slice(start, start + limit);
 
   return { data, pagination: { page, limit, total, totalPages } };
 };

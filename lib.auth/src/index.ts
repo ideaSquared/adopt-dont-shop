@@ -21,6 +21,7 @@ export {
   useHasAnyPermission,
   useHasAllPermissions,
 } from './hooks/useHasPermission';
+export type { PermissionCheckResult } from './hooks/useHasPermission';
 
 // Components
 export { PermissionGate } from './components/PermissionGate';

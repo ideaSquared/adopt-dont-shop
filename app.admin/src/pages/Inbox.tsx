@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Input, toast } from '@adopt-dont-shop/lib.components';
+import { Input, toast, useDebouncedValue } from '@adopt-dont-shop/lib.components';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import { FiSearch, FiUserPlus, FiUser } from 'react-icons/fi';
 import { DataTable, type Column } from '../components/data';
@@ -11,7 +11,6 @@ import {
   type InboxFilters,
   type InboxSource,
 } from '../hooks/useInbox';
-import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import * as styles from './Inbox.css';
 
 const formatRelativeTime = (iso: string): string => {
