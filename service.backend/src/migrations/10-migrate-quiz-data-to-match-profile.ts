@@ -1,4 +1,10 @@
 /**
+ * Depends on `09-add-allergies-to-adopter-match-profile.ts` (the `allergies`
+ * column must exist before this migration writes to it). umzug runs
+ * migrations in alphabetical-filename order, so the dependency is
+ * satisfied by the `09 < 10` prefix — see scripts/check-migration-prefixes.mjs
+ * for the CI guard that prevents future collisions inside prefix 09. (ADS-702)
+ *
  * ADS-635: Migrate existing quiz blob data into adopter_match_profile.
  *
  * Users who completed the old onboarding quiz have answers stored in
