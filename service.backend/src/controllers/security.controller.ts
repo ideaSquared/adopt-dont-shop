@@ -2,21 +2,27 @@ import { Response } from 'express';
 import SecurityService from '../services/security.service';
 import { IpRuleType } from '../models/IpRule';
 import { AuthenticatedRequest } from '../types/auth';
+import { MAX_PAGE_SIZE } from '../constants/pagination';
+
+const SESSION_DEFAULT_LIMIT = 50;
 
 export class SecurityController {
   static async listSessions(req: AuthenticatedRequest, res: Response) {
     const { userId, page, limit } = req.query;
+    const parsedLimit = limit ? parseInt(limit as string, 10) : undefined;
+    const clampedLimit =
+      parsedLimit !== undefined ? Math.min(Math.max(1, parsedLimit), MAX_PAGE_SIZE) : undefined;
     const result = await SecurityService.listSessions({
       userId: userId as string | undefined,
       page: page ? parseInt(page as string, 10) : undefined,
-      limit: limit ? parseInt(limit as string, 10) : undefined,
+      limit: clampedLimit,
     });
     return res.json({
       success: true,
       data: result.sessions,
       pagination: {
         page: result.page,
-        limit: parseInt((limit as string) || '50', 10),
+        limit: clampedLimit ?? SESSION_DEFAULT_LIMIT,
         total: result.total,
         pages: result.totalPages,
       },
@@ -103,20 +109,23 @@ export class SecurityController {
 
   static async getLoginHistory(req: AuthenticatedRequest, res: Response) {
     const { userId, status, startDate, endDate, page, limit } = req.query;
+    const parsedLimit = limit ? parseInt(limit as string, 10) : undefined;
+    const clampedLimit =
+      parsedLimit !== undefined ? Math.min(Math.max(1, parsedLimit), MAX_PAGE_SIZE) : undefined;
     const result = await SecurityService.getLoginHistory({
       userId: userId as string | undefined,
       status: status as 'success' | 'failure' | undefined,
       startDate: startDate ? new Date(startDate as string) : undefined,
       endDate: endDate ? new Date(endDate as string) : undefined,
       page: page ? parseInt(page as string, 10) : undefined,
-      limit: limit ? parseInt(limit as string, 10) : undefined,
+      limit: clampedLimit,
     });
     return res.json({
       success: true,
       data: result.entries,
       pagination: {
         page: result.page,
-        limit: parseInt((limit as string) || '50', 10),
+        limit: clampedLimit ?? SESSION_DEFAULT_LIMIT,
         total: result.total,
         pages: result.totalPages,
       },
@@ -125,9 +134,11 @@ export class SecurityController {
 
   static async getSuspiciousActivity(req: AuthenticatedRequest, res: Response) {
     const { failureThreshold, windowHours } = req.query;
+    const parsedThreshold = failureThreshold ? parseInt(failureThreshold as string, 10) : undefined;
+    const parsedWindowHours = windowHours ? parseInt(windowHours as string, 10) : undefined;
     const data = await SecurityService.getSuspiciousActivity({
-      failureThreshold: failureThreshold ? parseInt(failureThreshold as string, 10) : undefined,
-      windowHours: windowHours ? parseInt(windowHours as string, 10) : undefined,
+      failureThreshold: parsedThreshold !== undefined ? Math.max(1, parsedThreshold) : undefined,
+      windowHours: parsedWindowHours !== undefined ? Math.min(parsedWindowHours, 720) : undefined,
     });
     return res.json({ success: true, data });
   }
