@@ -28,9 +28,22 @@ export type ReasonChip = {
 export type AdopterLifestyle = {
   hours_alone_daily?: number;
   has_children?: boolean;
+  /**
+   * Granular selection the user actually made in the onboarding wizard.
+   * Persists alongside the `has_children` boolean so round-tripping the
+   * profile through the UI doesn't lose fidelity. (ADS-688)
+   */
+  children_type?: 'none' | 'young' | 'older';
   has_other_pets?: boolean;
+  /** See `children_type`. (ADS-688) */
+  other_pets_type?: 'none' | 'dogs' | 'cats' | 'mixed';
   yard?: boolean;
   housing_type?: 'apartment' | 'house' | 'condo' | 'other';
+  /**
+   * Self-reported activity level. Surfaced to the matching engine as a
+   * secondary signal alongside `preferred_energy`. (ADS-688)
+   */
+  activity_level?: 'low' | 'medium' | 'high';
 };
 
 export type AdopterMatchProfile = {

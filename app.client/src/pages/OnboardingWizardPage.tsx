@@ -244,6 +244,13 @@ export const OnboardingWizardPage: React.FC = () => {
           };
         }>('/api/v1/match/profile');
         const p = res.data;
+        // ADS-688: prefer the granular `*_type` field the wizard now persists.
+        // Fall back to the boolean for profiles created before that field
+        // existed (true → first non-"none" choice; false → "none").
+        const restoredChildren =
+          p.lifestyle?.children_type ?? (p.lifestyle?.has_children ? 'young' : 'none');
+        const restoredOtherPets =
+          p.lifestyle?.other_pets_type ?? (p.lifestyle?.has_other_pets ? 'dogs' : 'none');
         setForm(f => ({
           ...f,
           preferred_types: p.preferred_types ?? [],
@@ -251,8 +258,9 @@ export const OnboardingWizardPage: React.FC = () => {
           preferred_age_groups: p.preferred_age_groups ?? [],
           preferred_energy: p.preferred_energy ?? [],
           housing_type: p.lifestyle?.housing_type ?? '',
-          has_children: p.lifestyle?.has_children ? 'young' : '',
-          has_other_pets: p.lifestyle?.has_other_pets ? 'dogs' : '',
+          has_children: restoredChildren,
+          has_other_pets: restoredOtherPets,
+          activity_level: p.lifestyle?.activity_level ?? '',
           hours_alone_daily: p.lifestyle?.hours_alone_daily ?? 0,
           yard: p.lifestyle?.yard ?? false,
           max_distance_km: p.max_distance_km ?? '',
@@ -303,7 +311,22 @@ export const OnboardingWizardPage: React.FC = () => {
           ? undefined
           : (form.housing_type as AdopterLifestyle['housing_type']),
       has_children: form.has_children !== '' && form.has_children !== 'none',
+      // ADS-688: persist the original selection alongside the boolean so the
+      // wizard can show it on reload.
+      children_type:
+        form.has_children === ''
+          ? undefined
+          : (form.has_children as AdopterLifestyle['children_type']),
       has_other_pets: form.has_other_pets !== '' && form.has_other_pets !== 'none',
+      other_pets_type:
+        form.has_other_pets === ''
+          ? undefined
+          : (form.has_other_pets as AdopterLifestyle['other_pets_type']),
+      // ADS-688: activity_level was collected but silently dropped before.
+      activity_level:
+        form.activity_level === ''
+          ? undefined
+          : (form.activity_level as AdopterLifestyle['activity_level']),
       hours_alone_daily: form.hours_alone_daily,
       yard: form.yard,
     };

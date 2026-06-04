@@ -252,4 +252,110 @@ describe('OnboardingWizardPage', () => {
     // 'Medium' appears in multiple review rows (sizes + energy); verify at least one exists
     expect(screen.getAllByText('Medium').length).toBeGreaterThanOrEqual(1);
   });
+
+  // ADS-688: profile reload must preserve the granular children/pets selection
+  // (not collapse everything to "young"/"dogs") and activity_level must reach
+  // the API payload.
+  describe('ADS-688 persistence fixes', () => {
+    it('restores the original children_type selection on reload', async () => {
+      getMock.mockResolvedValue({
+        data: {
+          preferred_types: [],
+          preferred_sizes: [],
+          preferred_age_groups: [],
+          preferred_energy: [],
+          lifestyle: { children_type: 'older', has_children: true },
+          max_distance_km: null,
+          open_to_special_needs: false,
+          notify_new_matches: false,
+          allergies: null,
+        },
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+      });
+
+      const olderRadio = screen.getByRole('radio', { name: /older children/i });
+      expect(olderRadio).toBeChecked();
+    });
+
+    it('restores the original other_pets_type selection on reload', async () => {
+      getMock.mockResolvedValue({
+        data: {
+          preferred_types: [],
+          preferred_sizes: [],
+          preferred_age_groups: [],
+          preferred_energy: [],
+          lifestyle: { other_pets_type: 'cats', has_other_pets: true },
+          max_distance_km: null,
+          open_to_special_needs: false,
+          notify_new_matches: false,
+          allergies: null,
+        },
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('radio', { name: /^cat\(s\)$/i })).toBeChecked();
+    });
+
+    it('restores "A mix" selection on reload', async () => {
+      getMock.mockResolvedValue({
+        data: {
+          preferred_types: [],
+          preferred_sizes: [],
+          preferred_age_groups: [],
+          preferred_energy: [],
+          lifestyle: { other_pets_type: 'mixed', has_other_pets: true },
+          max_distance_km: null,
+          open_to_special_needs: false,
+          notify_new_matches: false,
+          allergies: null,
+        },
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('radio', { name: /a mix/i })).toBeChecked();
+    });
+
+    it('includes activity_level and children_type/other_pets_type in the submitted payload', async () => {
+      const user = userEvent.setup();
+      putMock.mockResolvedValue({ data: {} });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Home & Lifestyle')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('radio', { name: /older children/i }));
+      await user.click(screen.getByRole('radio', { name: /^cat\(s\)$/i }));
+      await user.click(screen.getByRole('radio', { name: /very active/i }));
+
+      await user.click(screen.getByRole('button', { name: /^next$/i }));
+      await user.click(screen.getByRole('button', { name: /^next$/i }));
+      await user.click(screen.getByRole('button', { name: /^next$/i }));
+      await user.click(screen.getByRole('button', { name: /save preferences/i }));
+
+      await waitFor(() => {
+        expect(putMock).toHaveBeenCalledTimes(1);
+      });
+
+      const [, payload] = putMock.mock.calls[0] as [string, { lifestyle: Record<string, unknown> }];
+      expect(payload.lifestyle.children_type).toBe('older');
+      expect(payload.lifestyle.other_pets_type).toBe('cats');
+      expect(payload.lifestyle.activity_level).toBe('high');
+    });
+  });
 });
