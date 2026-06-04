@@ -32,10 +32,7 @@ export class WebhookReplayError extends Error {
  * surface a 500 (provider will retry on 5xx, which is the safe default
  * when we genuinely failed to persist the dedup row).
  */
-export const assertNotReplayed = async (
-  provider: string,
-  eventId: string
-): Promise<void> => {
+export const assertNotReplayed = async (provider: string, eventId: string): Promise<void> => {
   try {
     await WebhookEventId.create({ provider, event_id: eventId });
   } catch (err) {

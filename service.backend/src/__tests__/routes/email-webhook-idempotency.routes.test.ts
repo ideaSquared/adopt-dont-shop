@@ -76,8 +76,12 @@ describe('email delivery webhook — per-event idempotency (ADS-734)', () => {
   it('treats a different status for the same messageId as a distinct event', async () => {
     const app = buildApp();
 
-    await request(app).post('/webhook').send({ ...EVENT, status: 'delivered' });
-    await request(app).post('/webhook').send({ ...EVENT, status: 'opened' });
+    await request(app)
+      .post('/webhook')
+      .send({ ...EVENT, status: 'delivered' });
+    await request(app)
+      .post('/webhook')
+      .send({ ...EVENT, status: 'opened' });
 
     expect(handleDeliveryWebhookMock).toHaveBeenCalledTimes(2);
   });

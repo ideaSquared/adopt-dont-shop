@@ -60,9 +60,7 @@ WebhookEventId.init(
     modelName: 'WebhookEventId',
     timestamps: false,
     underscored: true,
-    indexes: [
-      { fields: ['received_at'], name: 'webhook_event_ids_received_at_idx' },
-    ],
+    indexes: [{ fields: ['received_at'], name: 'webhook_event_ids_received_at_idx' }],
   }
 );
 
