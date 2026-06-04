@@ -98,6 +98,16 @@ or secured ops log. At minimum: `date`, `rotated_by`, `reason`.
 | Team member off-boarding | Rotate any secret the person had access to |
 | Staging value detected in prod | Immediate full rotation |
 
+## Image signing & verification
+
+Images published by `.github/workflows/deploy.yml` are cosign-signed
+(keyless OIDC) and verified before the deploy job runs. A deploy whose
+images cannot be verified against this repo's `main`-branch identity
+will FAIL at the `verify-images` job, before any container reaches the
+host. See [`docs/security/image-signing.md`](../security/image-signing.md)
+for the trust model, the manual verification command, and the documented
+emergency-bypass procedure.
+
 ## Release deploy
 
 The `service-backend-migrate` init container runs `npm run db:migrate`
