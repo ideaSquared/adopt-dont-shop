@@ -9,7 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/cjs/index.js",
       "default": "./dist/index.js"
     }
   },
@@ -18,7 +17,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json','{\\\"type\\\":\\\"commonjs\\\"}')\"",
+    "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "test": "vitest run",
