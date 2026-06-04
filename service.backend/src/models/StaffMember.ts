@@ -2,6 +2,10 @@ import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize, { getUuidType, getArrayType, getGeometryType } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
+// Type-only imports avoid the circular value import that would otherwise
+// break Sequelize model initialisation order. (ADS-705)
+import type User from './User';
+import type Rescue from './Rescue';
 
 interface StaffMemberAttributes {
   staffMemberId: string;
@@ -41,11 +45,9 @@ class StaffMember
   public createdAt!: Date;
   public updatedAt!: Date;
 
-  // Associations
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public user?: any; // Sequelize association - will be User at runtime
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public rescue?: any; // Sequelize association - will be Rescue at runtime
+  // Associations populated by Sequelize at runtime via include. (ADS-705)
+  public user?: User;
+  public rescue?: Rescue;
 }
 
 StaffMember.init(

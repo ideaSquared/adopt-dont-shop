@@ -103,6 +103,22 @@ describe('RegisterRescue wizard', () => {
     expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
   });
 
+  it('reports all missing password requirements in a single message (ADS-704)', () => {
+    renderComponent();
+    fillField('First Name', 'Jane');
+    fillField('Last Name', 'Doe');
+    fillField('Email', 'jane@example.com');
+    // "abc" is short, missing uppercase, digit, and special — all should be flagged together.
+    fillField('Password', 'abc');
+    fillField('Confirm Password', 'abc');
+    clickNext();
+    const errorText = screen.getByText(/Password must include:/i).textContent ?? '';
+    expect(errorText).toMatch(/at least 8 characters/);
+    expect(errorText).toMatch(/uppercase letter/);
+    expect(errorText).toMatch(/a digit/);
+    expect(errorText).toMatch(/special character/);
+  });
+
   it('reaches the review step and shows entered data', () => {
     renderComponent();
 

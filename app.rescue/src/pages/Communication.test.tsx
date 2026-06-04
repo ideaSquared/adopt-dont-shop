@@ -169,7 +169,12 @@ const setupHooks = (opts: BuildOptions = {}) => {
   const updateConversationStatus =
     opts.updateConversationStatus ?? vi.fn().mockResolvedValue(undefined);
   mockedUseHasPermission.mockReset();
-  mockedUseHasPermission.mockImplementation(() => opts.hasPermission ?? true);
+  // ADS-757: hook returns { allowed, isLoading, error } shape.
+  mockedUseHasPermission.mockImplementation(() => ({
+    allowed: opts.hasPermission ?? true,
+    isLoading: false,
+    error: null,
+  }));
   mockedUseChat.mockReset();
   mockedUseChat.mockReturnValue({
     conversations: opts.conversations ?? [],

@@ -13,7 +13,7 @@ import { UserStatus, UserType } from '../models/User';
 import { logger, loggerHelpers } from '../utils/logger';
 import { invalidateAuthCache } from '../lib/auth-cache';
 import { cached, invalidateNamespace } from '../cache/redis-cache';
-import { AuditLogService } from './auditLog.service';
+import { AuditLogService, AuditLogAction } from './auditLog.service';
 import { auditLogToActivity } from './audit-log-formatting';
 import type {
   EntityActivity as SharedEntityActivity,
@@ -317,7 +317,7 @@ export class RescueService {
       try {
         await AuditLogService.log({
           userId: user.userId,
-          action: 'register',
+          action: AuditLogAction.RESCUE_REGISTERED,
           entity: 'rescue',
           entityId: rescue.rescueId,
           details: {
@@ -711,7 +711,7 @@ export class RescueService {
     try {
       await AuditLogService.log({
         userId: createdBy,
-        action: 'create',
+        action: AuditLogAction.RESCUE_CREATED,
         entity: 'rescue',
         entityId: rescue.rescueId,
         details: {
@@ -800,7 +800,7 @@ export class RescueService {
       // business update rolled back, leaving the trail drifted.
       await AuditLogService.log({
         userId: updatedBy,
-        action: 'update',
+        action: AuditLogAction.RESCUE_UPDATED,
         entity: 'rescue',
         entityId: rescueId,
         details: {
@@ -894,9 +894,12 @@ export class RescueService {
       // original verb ('approve' vs 'verify') rather than collapsing them.
       // `transaction` pairs the audit write with the verification update so
       // they commit (or rollback) atomically.
+      // ADS-758: map to SCREAMING_SNAKE_CASE enum values for query parity.
+      const normalisedAction =
+        auditAction === 'approve' ? AuditLogAction.RESCUE_APPROVED : AuditLogAction.RESCUE_VERIFIED;
       await AuditLogService.log({
         userId: verifiedBy,
-        action: auditAction,
+        action: normalisedAction,
         entity: 'rescue',
         entityId: rescueId,
         details: {
@@ -1007,7 +1010,7 @@ export class RescueService {
       // Log the action
       await AuditLogService.log({
         userId: rejectedBy,
-        action: 'reject',
+        action: AuditLogAction.RESCUE_REJECTED,
         entity: 'rescue',
         entityId: rescueId,
         details: {
@@ -1075,7 +1078,7 @@ export class RescueService {
 
       await AuditLogService.log({
         userId: suspendedBy,
-        action: 'suspend',
+        action: AuditLogAction.RESCUE_SUSPENDED,
         entity: 'rescue',
         entityId: rescueId,
         details: {
@@ -1369,7 +1372,7 @@ export class RescueService {
       // permission-grant audit row can never drift from the actual grant.
       await AuditLogService.log({
         userId: addedBy,
-        action: 'addStaff',
+        action: AuditLogAction.RESCUE_STAFF_ADDED,
         entity: 'rescue',
         entityId: rescueId,
         details: {
@@ -1433,7 +1436,7 @@ export class RescueService {
       // (or rolls back) atomically with the actual revoke.
       await AuditLogService.log({
         userId: removedBy,
-        action: 'removeStaff',
+        action: AuditLogAction.RESCUE_STAFF_REMOVED,
         entity: 'rescue',
         entityId: rescueId,
         details: {
@@ -1501,13 +1504,13 @@ export class RescueService {
       // Log the action
       await AuditLogService.log({
         userId: updatedBy,
-        action: 'updateStaff',
+        action: AuditLogAction.RESCUE_STAFF_UPDATED,
         entity: 'rescue',
         entityId: rescueId,
         details: {
           rescueId,
           updatedUserId: userId,
-          staffName: `${staffMember.user.firstName} ${staffMember.user.lastName}`,
+          staffName: `${staffMember.user?.firstName ?? ''} ${staffMember.user?.lastName ?? ''}`,
           updates,
         },
         transaction,
@@ -1696,7 +1699,7 @@ export class RescueService {
       // rescue deletion so they commit (or rollback) atomically.
       await AuditLogService.log({
         userId: deletedBy,
-        action: 'delete',
+        action: AuditLogAction.RESCUE_DELETED,
         entity: 'rescue',
         entityId: rescueId,
         details: {
@@ -1836,7 +1839,7 @@ export class RescueService {
       // Log the action
       await AuditLogService.log({
         userId: updatedBy,
-        action: 'update',
+        action: AuditLogAction.RESCUE_UPDATED,
         entity: 'rescue',
         entityId: rescueId,
         details: {

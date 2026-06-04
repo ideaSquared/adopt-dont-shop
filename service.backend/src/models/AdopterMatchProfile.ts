@@ -13,9 +13,22 @@ import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
 export type AdopterLifestyle = {
   hours_alone_daily?: number;
   has_children?: boolean;
+  /**
+   * Granular selection captured by the onboarding wizard. Persists
+   * alongside `has_children` so the wizard can show the original choice
+   * on reload. (ADS-688)
+   */
+  children_type?: 'none' | 'young' | 'older';
   has_other_pets?: boolean;
+  /** See `children_type`. (ADS-688) */
+  other_pets_type?: 'none' | 'dogs' | 'cats' | 'mixed';
   yard?: boolean;
   housing_type?: 'apartment' | 'house' | 'condo' | 'other';
+  /**
+   * Self-reported activity level. Wired through from the onboarding wizard
+   * as a secondary matching signal. (ADS-688)
+   */
+  activity_level?: 'low' | 'medium' | 'high';
 };
 
 export type InferredPrefs = {

@@ -12,7 +12,24 @@ import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { AppShell } from './components/layout/AppShell';
 import { PublicAuthLayout } from './components/layout/PublicAuthLayout';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
+// ADS-669: legal UI is non-critical to first paint — split it into the
+// `legal-lib` chunk via lazy imports so it loads in parallel with the
+// initial route rather than blocking the main entry bundle. The CookieBanner
+// and LegalReacceptanceModal are mounted side-by-side under separate
+// Suspense boundaries; package them into a single lazy() so they share
+// one module load and React commits both boundaries off the same
+// resolution (separate lazy() calls of the same module can leave the
+// second Suspense stuck under vitest's mock resolution).
+const LegalUI = lazy(() =>
+  import('@adopt-dont-shop/lib.legal').then(m => ({
+    default: () => (
+      <>
+        <m.CookieBanner />
+        <m.LegalReacceptanceModal />
+      </>
+    ),
+  }))
+);
 import * as styles from './App.css';
 
 const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -107,13 +124,13 @@ function App() {
             <FavoritesProvider>
               <MatchAcknowledgementProvider>
                 <DevLoginPanel />
-                {/* ADS-497 (slice 5): on-page cookie banner. Bottom-anchored, does
-                  not block the page. Mounted before the modal so the modal
-                  renders on top if both ever surface together. */}
-                <CookieBanner />
-                {/* ADS-497 (slice 2): hard-block modal for users whose last
-                  accepted ToS / Privacy version is older than current. */}
-                <LegalReacceptanceModal />
+                {/* ADS-497 slice 5 (CookieBanner) + slice 2 (LegalReacceptanceModal).
+                  Bundled into one lazy boundary so they share a single module
+                  load — see LegalUI declaration above. The banner is anchored
+                  to the bottom and never overlaps the modal stack. */}
+                <Suspense fallback={null}>
+                  <LegalUI />
+                </Suspense>
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                     <Route element={<PublicAuthLayout />}>

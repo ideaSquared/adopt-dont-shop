@@ -54,7 +54,10 @@ const persistFilter = (filter: 'active' | 'resolved'): void => {
 function Communication() {
   const { activeConversation, conversations, setActiveConversation, updateConversationStatus } =
     useChat();
-  const canManageChat = useHasPermission(CHAT_UPDATE);
+  // ADS-757: gate on both `allowed` AND `!isLoading` so the action buttons
+  // don't flash hidden during the initial permission fetch.
+  const { allowed: hasChatUpdate, isLoading: permissionsLoading } = useHasPermission(CHAT_UPDATE);
+  const canManageChat = hasChatUpdate && !permissionsLoading;
   const { confirm, confirmProps } = useConfirm();
   const [isMobile, setIsMobile] = useState(false);
   const [filter, setFilter] = useState<'active' | 'resolved'>(loadInitialFilter);

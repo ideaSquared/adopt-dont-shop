@@ -9,6 +9,7 @@ describe('Error Handler Middleware', () => {
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
   let originalNodeEnv: string | undefined;
+  let originalDebugErrors: string | undefined;
 
   beforeEach(() => {
     mockRequest = {
@@ -22,19 +23,25 @@ describe('Error Handler Middleware', () => {
     };
     mockNext = vi.fn();
 
-    // Store original NODE_ENV
+    // Store original env
     originalNodeEnv = process.env.NODE_ENV;
+    originalDebugErrors = process.env.DEBUG_ERRORS;
 
     // Clear all mocks
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    // Restore original NODE_ENV
+    // Restore original env
     if (originalNodeEnv !== undefined) {
       process.env.NODE_ENV = originalNodeEnv;
     } else {
       delete process.env.NODE_ENV;
+    }
+    if (originalDebugErrors !== undefined) {
+      process.env.DEBUG_ERRORS = originalDebugErrors;
+    } else {
+      delete process.env.DEBUG_ERRORS;
     }
   });
 
@@ -91,8 +98,8 @@ describe('Error Handler Middleware', () => {
       );
     });
 
-    it('should include stack trace in development mode', () => {
-      process.env.NODE_ENV = 'development';
+    it('should include stack trace when DEBUG_ERRORS is enabled', () => {
+      process.env.DEBUG_ERRORS = 'true';
       const error = new ApiError(400, 'Bad request');
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
@@ -104,8 +111,20 @@ describe('Error Handler Middleware', () => {
       );
     });
 
-    it('should not include stack trace in production mode', () => {
+    it('should not include stack trace when DEBUG_ERRORS is not enabled', () => {
       process.env.NODE_ENV = 'production';
+      delete process.env.DEBUG_ERRORS;
+      const error = new ApiError(400, 'Bad request');
+
+      errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
+
+      const jsonCall = (mockResponse.json as vi.Mock).mock.calls[0][0];
+      expect(jsonCall.stack).toBeUndefined();
+    });
+
+    it('does not leak stack when NODE_ENV=development but DEBUG_ERRORS is unset (ADS-753)', () => {
+      process.env.NODE_ENV = 'development';
+      delete process.env.DEBUG_ERRORS;
       const error = new ApiError(400, 'Bad request');
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
@@ -265,8 +284,8 @@ describe('Error Handler Middleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
     });
 
-    it('should return detailed message in development mode', () => {
-      process.env.NODE_ENV = 'development';
+    it('should return detailed message when DEBUG_ERRORS is enabled', () => {
+      process.env.DEBUG_ERRORS = 'true';
       const error = new Error('Database connection failed');
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
@@ -281,8 +300,9 @@ describe('Error Handler Middleware', () => {
       );
     });
 
-    it('should return generic message in production mode', () => {
+    it('should return generic message when DEBUG_ERRORS is not enabled', () => {
       process.env.NODE_ENV = 'production';
+      delete process.env.DEBUG_ERRORS;
       const error = new Error('Internal database error');
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
@@ -296,8 +316,8 @@ describe('Error Handler Middleware', () => {
       );
     });
 
-    it('should include stack trace in development mode for generic errors', () => {
-      process.env.NODE_ENV = 'development';
+    it('should include stack trace when DEBUG_ERRORS is enabled for generic errors', () => {
+      process.env.DEBUG_ERRORS = 'true';
       const error = new Error('Test error');
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
@@ -309,14 +329,16 @@ describe('Error Handler Middleware', () => {
       );
     });
 
-    it('should not include stack trace in production mode for generic errors', () => {
+    it('should not include stack/detail when DEBUG_ERRORS is unset for generic errors', () => {
       process.env.NODE_ENV = 'production';
+      delete process.env.DEBUG_ERRORS;
       const error = new Error('Test error');
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
       const jsonCall = (mockResponse.json as vi.Mock).mock.calls[0][0];
       expect(jsonCall.stack).toBeUndefined();
+      expect(jsonCall.detail).toBeUndefined();
     });
 
     it('should log generic errors with request details', () => {

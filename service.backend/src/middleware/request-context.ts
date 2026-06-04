@@ -1,6 +1,12 @@
 import { NextFunction, Request, Response } from 'express';
-import { randomUUID } from 'crypto';
-import { runWithContext, setCorrelationId } from '../utils/request-context';
+import { randomBytes, randomUUID } from 'crypto';
+import {
+  isValidTraceparent,
+  mintTraceparent,
+  runWithContext,
+  setCorrelationId,
+  setTraceparent,
+} from '../utils/request-context';
 
 /**
  * Establish a fresh AsyncLocalStorage context for the lifetime of one
@@ -15,6 +21,9 @@ import { runWithContext, setCorrelationId } from '../utils/request-context';
  */
 const CORRELATION_HEADER = 'x-correlation-id';
 const REQUEST_ID_HEADER = 'x-request-id';
+const TRACEPARENT_HEADER = 'traceparent';
+
+const randomHex = (bytes: number): string => randomBytes(bytes).toString('hex');
 
 export const requestContextMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   runWithContext({}, () => {
@@ -23,6 +32,17 @@ export const requestContextMiddleware = (req: Request, res: Response, next: Next
     const correlationId = incoming ?? randomUUID();
     setCorrelationId(correlationId);
     res.setHeader('X-Correlation-ID', correlationId);
+
+    // ADS-660: thread W3C trace context so downstream calls and collectors
+    // can stitch end-to-end traces. Accept an inbound `traceparent` only
+    // when it passes a strict regex check; otherwise mint a fresh one.
+    const inboundTraceparent = (req.get(TRACEPARENT_HEADER) ?? '').trim();
+    const traceparent =
+      inboundTraceparent && isValidTraceparent(inboundTraceparent)
+        ? inboundTraceparent
+        : mintTraceparent(randomHex);
+    setTraceparent(traceparent);
+    res.setHeader('traceparent', traceparent);
     next();
   });
 };

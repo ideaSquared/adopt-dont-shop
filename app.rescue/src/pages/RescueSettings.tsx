@@ -31,7 +31,10 @@ const parseTabFromHash = (hash: string): TabType => {
 
 const RescueSettings: React.FC = () => {
   const { user } = useAuth();
-  const canEdit = useHasPermission(RESCUE_SETTINGS_UPDATE);
+  // ADS-757: wait for permissions to load before deciding access. Otherwise
+  // the Access Denied screen flashes before the real settings render.
+  const { allowed: canEdit, isLoading: permissionsLoading } =
+    useHasPermission(RESCUE_SETTINGS_UPDATE);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -172,6 +175,18 @@ const RescueSettings: React.FC = () => {
           <h3>Unable to Load Settings</h3>
           <p>{error}</p>
         </div>
+      </div>
+    );
+  }
+
+  if (permissionsLoading) {
+    return (
+      <div className={styles.pageContainer}>
+        <div className={styles.pageHeader}>
+          <h1>Rescue Settings</h1>
+          <p>Configure your rescue profile, adoption policies, and application questions.</p>
+        </div>
+        <SettingsFormSkeleton />
       </div>
     );
   }

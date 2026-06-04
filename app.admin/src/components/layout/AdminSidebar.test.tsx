@@ -146,3 +146,111 @@ describe('AdminSidebar mobile off-canvas drawer', () => {
     expect(onMobileClose).toHaveBeenCalled();
   });
 });
+
+// ADS-743: drawer is a modal dialog on mobile. Verifies dialog semantics,
+// focus management, focus trap, Escape-to-close, and focus restore.
+describe('AdminSidebar mobile drawer accessibility (ADS-743)', () => {
+  it('exposes role="dialog" with aria-modal while the drawer is open', () => {
+    mockCount.mockReturnValue(0);
+    render(
+      <MemoryRouter>
+        <AdminSidebar
+          collapsed={false}
+          onToggle={() => undefined}
+          mobileOpen
+          onMobileClose={() => undefined}
+        />
+      </MemoryRouter>
+    );
+
+    const dialog = screen.getByRole('dialog', { name: 'Main navigation' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+  });
+
+  it('does not apply dialog semantics when the drawer is closed', () => {
+    mockCount.mockReturnValue(0);
+    render(
+      <MemoryRouter>
+        <AdminSidebar collapsed={false} onToggle={() => undefined} mobileOpen={false} />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('moves focus to the close button when the drawer opens', async () => {
+    mockCount.mockReturnValue(0);
+    const { rerender } = render(
+      <MemoryRouter>
+        <AdminSidebar
+          collapsed={false}
+          onToggle={() => undefined}
+          mobileOpen={false}
+          onMobileClose={() => undefined}
+        />
+      </MemoryRouter>
+    );
+
+    rerender(
+      <MemoryRouter>
+        <AdminSidebar
+          collapsed={false}
+          onToggle={() => undefined}
+          mobileOpen
+          onMobileClose={() => undefined}
+        />
+      </MemoryRouter>
+    );
+
+    const closeButton = screen.getByRole('button', { name: 'Close navigation menu' });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(document.activeElement).toBe(closeButton);
+  });
+
+  it('calls onMobileClose when Escape is pressed inside the drawer', async () => {
+    mockCount.mockReturnValue(0);
+    const onMobileClose = vi.fn();
+    render(
+      <MemoryRouter>
+        <AdminSidebar
+          collapsed={false}
+          onToggle={() => undefined}
+          mobileOpen
+          onMobileClose={onMobileClose}
+        />
+      </MemoryRouter>
+    );
+
+    const closeButton = screen.getByRole('button', { name: 'Close navigation menu' });
+    closeButton.focus();
+    await userEvent.keyboard('{Escape}');
+
+    expect(onMobileClose).toHaveBeenCalled();
+  });
+
+  it('restores focus to the previously focused element when the drawer closes', async () => {
+    mockCount.mockReturnValue(0);
+    const Harness: React.FC<{ open: boolean }> = ({ open }) => (
+      <MemoryRouter>
+        <button data-testid='external-trigger'>Trigger</button>
+        <AdminSidebar
+          collapsed={false}
+          onToggle={() => undefined}
+          mobileOpen={open}
+          onMobileClose={() => undefined}
+        />
+      </MemoryRouter>
+    );
+
+    const { rerender } = render(<Harness open={false} />);
+    const trigger = screen.getByTestId('external-trigger');
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    rerender(<Harness open={true} />);
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    rerender(<Harness open={false} />);
+    expect(document.activeElement).toBe(trigger);
+  });
+});

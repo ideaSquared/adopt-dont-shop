@@ -251,4 +251,32 @@ describe('TicketDetailModal — EntityInspector tabs', () => {
 
     expect(onReply).toHaveBeenCalledWith('Looking into this', false);
   });
+
+  it('resets the reply form when the ticket prop changes (ADS-704)', async () => {
+    const { rerender } = render(
+      <TicketDetailModal
+        isOpen
+        onClose={vi.fn()}
+        ticket={makeTicket({ ticketId: 'ticket_a' })}
+        onReply={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('tab', { name: /responses/i }));
+    const replyField = screen.getByPlaceholderText(/type your response here/i);
+    await userEvent.type(replyField, 'draft for ticket A');
+    expect(replyField).toHaveValue('draft for ticket A');
+
+    rerender(
+      <TicketDetailModal
+        isOpen
+        onClose={vi.fn()}
+        ticket={makeTicket({ ticketId: 'ticket_b' })}
+        onReply={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('tab', { name: /responses/i }));
+    expect(screen.getByPlaceholderText(/type your response here/i)).toHaveValue('');
+  });
 });

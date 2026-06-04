@@ -1114,6 +1114,9 @@ export class FileUploadService {
         uploadedAt: new Date().toISOString(),
         lastModified: stats.mtime.toISOString(),
         checksum: await this.generateChecksum(file.path),
+        // ADS-751: explicitly tag the algorithm. Historical rows without
+        // this field were MD5; new rows are SHA-256.
+        checksumAlgo: 'sha256',
       },
     };
   }
@@ -1138,16 +1141,25 @@ export class FileUploadService {
   }
 
   /**
-   * Generate file checksum
+   * Generate file checksum.
+   *
+   * ADS-751: SHA-256, not MD5. Streamed from disk so multi-MB uploads
+   * don't get buffered into memory. The accompanying
+   * `metadata.checksumAlgo` field documents the algorithm so downstream
+   * consumers can interpret the value without guessing.
    */
   private static async generateChecksum(filePath: string): Promise<string> {
     try {
-      const crypto = await import('crypto');
-      const fs = await import('fs');
+      const { createHash } = await import('crypto');
+      const { createReadStream } = await import('fs');
+      const { pipeline } = await import('stream/promises');
 
-      const fileBuffer = await fs.promises.readFile(filePath);
-      const hash = crypto.createHash('md5');
-      hash.update(fileBuffer);
+      // Route through the same containment helper every other fs op in
+      // this service uses so CodeQL's js/path-injection rule sees the
+      // explicit "inside uploads root" check on this dataflow too.
+      const safePath = this.safeResolveUploadPath(filePath);
+      const hash = createHash('sha256');
+      await pipeline(createReadStream(safePath), hash);
       return hash.digest('hex');
     } catch (error) {
       logger.error('Error generating file checksum:', error);
@@ -1267,6 +1279,12 @@ export interface FileUploadMetadata {
   uploadedAt: string; // ISO date string for JSON compatibility
   lastModified: string; // ISO date string for JSON compatibility
   checksum: string;
+  /**
+   * Algorithm used to compute `checksum`. ADS-751: SHA-256 going forward;
+   * historical (pre-ADS-751) DB rows may lack this field on read — the
+   * type reflects the producer contract, not the legacy on-disk shape.
+   */
+  checksumAlgo: 'sha256';
   // Allow for additional metadata fields while maintaining type safety
   [key: string]: string | number | boolean | null | JsonObject;
 }
