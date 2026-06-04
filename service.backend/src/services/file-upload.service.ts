@@ -1154,8 +1154,12 @@ export class FileUploadService {
       const { createReadStream } = await import('fs');
       const { pipeline } = await import('stream/promises');
 
+      // Route through the same containment helper every other fs op in
+      // this service uses so CodeQL's js/path-injection rule sees the
+      // explicit "inside uploads root" check on this dataflow too.
+      const safePath = this.safeResolveUploadPath(filePath);
       const hash = createHash('sha256');
-      await pipeline(createReadStream(filePath), hash);
+      await pipeline(createReadStream(safePath), hash);
       return hash.digest('hex');
     } catch (error) {
       logger.error('Error generating file checksum:', error);
