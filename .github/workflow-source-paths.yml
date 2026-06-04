@@ -14,6 +14,8 @@ paths:
   - 'app.admin/**'
   - 'app.rescue/**'
   - 'lib.*/**'
+  - 'packages/**'
+  - 'services/**'
   - 'package.json'
   - 'package-lock.json'
 
