@@ -54,6 +54,17 @@ npm run ci:local         # full preflight (~3-5min): format + lint + type-check 
 
 `ci:local` covers everything in the fast and slow tiers below except E2E and the backend coverage thresholds — run those separately when relevant.
 
+#### Opt-in pre-push hook (ADS-732)
+
+`.husky/pre-push` will run `ci:local:quick` automatically before every `git push`, but is **off by default** so it doesn't surprise existing contributors. Enable it once per checkout:
+
+```bash
+npm run hooks:enable    # creates .husky/.prepush-enabled (gitignored)
+npm run hooks:disable   # removes the marker
+```
+
+One-off run without enabling: `ADS_PREPUSH=1 git push`. Emergency bypass when the hook is enabled: `git push --no-verify` (the same flag works for the existing pre-commit / commit-msg hooks). The hook is always skipped under `CI=true`.
+
 ### Fast feedback (run every time, ~30s)
 
 These are the quickest signals and cover lint, unit tests, type-check and formatting across every workspace:
