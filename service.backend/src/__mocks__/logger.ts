@@ -20,8 +20,4 @@ export const loggerHelpers = {
   logRequest: jest.fn(),
 };
 
-export const safeLoggerHelpers = {
-  logBusiness: jest.fn(),
-};
-
 export default logger;
