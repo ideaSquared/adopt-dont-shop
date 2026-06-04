@@ -193,7 +193,7 @@ export default defineConfig(({ mode }) => {
             if (id.includes('react-icons')) {
               return 'icons-vendor';
             }
-            if (id.includes('socket.io')) {
+            if (id.includes('/socket.io')) {
               return 'socket-vendor';
             }
             if (id.includes('zod')) {
