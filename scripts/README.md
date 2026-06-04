@@ -8,7 +8,7 @@ Utility scripts referenced from the root `package.json` or mounted into containe
 | --- | --- | --- |
 | `bootstrap.mjs` | `npm run setup` | One-shot onboarding: checks Node, seeds `.env`, generates secrets, runs `npm ci`, builds libs, validates env, and installs Playwright browsers. Pass `-- --skip-playwright` to skip the ~200 MB browser download. |
 | `generate-secrets.mjs` | `npm run secrets:generate` | Print fresh JWT/session/CSRF/encryption secrets to append to `.env`. Pure Node — works on Windows/macOS/Linux without OpenSSL. |
-| `validate-env.mjs` | `npm run validate:env` | Check `.env` against the required-variable list and warn on missing/insecure values. |
+| `validate-env.ts` | `npm run validate:env` | Check `.env` against the required-variable list and warn on missing/insecure values. Uses the shared Zod schema in `@adopt-dont-shop/lib.validation` so the CLI gate and the backend boot validator stay in lockstep. |
 | `check-lib-tests.mjs` | `npm run check:lib-tests` | CI guard: fails when a `lib.*` package ships with zero test files. Allowlist lives inside the script. |
 | `create-new-app.js` | `npm run new-app` | Scaffold a new `app.<name>` package with Vite + React + workspace wiring. |
 | `create-new-lib.js` | `npm run new-lib` | Scaffold a new `lib.<name>` package with TypeScript + Vitest + workspace wiring. |

@@ -14,7 +14,7 @@
 
 #### Required for Production
 
-These variables are enforced by `docker-compose.yml`'s `:?Error: ... required` guards — Compose refuses to start without them. See `.env.example` for the full list and per-variable notes; the authoritative source is the root `.env.example` and `scripts/validate-env.mjs`.
+These variables are enforced by `docker-compose.yml`'s `:?Error: ... required` guards — Compose refuses to start without them. See `.env.example` for the full list and per-variable notes; the authoritative source is the root `.env.example` and `scripts/validate-env.ts`.
 
 ```bash
 # CRITICAL secrets — generate strong values via `npm run secrets:generate`
