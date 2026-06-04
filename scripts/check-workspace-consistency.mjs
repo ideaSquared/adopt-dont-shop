@@ -14,6 +14,10 @@
  *  3. vite.shared.config.ts getLibraryAliases() has an entry for every lib.*.
  *  4. No nested package-lock.json outside the repo root.
  *  5. No stale Jest references in source (excluding docs/ and *.md changelog files).
+ *  6. No *.test.ts(x) / *.spec.ts(x) files outside src/ (ADS-737). The shared
+ *     Vitest `include` glob only picks up tests under src/, so files elsewhere
+ *     are silently skipped. Existing offenders are tracked in
+ *     TEST_LAYOUT_ALLOWLIST and migrated by separate tickets.
  *
  * Common script bodies (lint = 'eslint .'|'eslint src', type-check =
  * 'tsc --noEmit', test = 'vitest run') drift produces a warning, not failure.
@@ -217,6 +221,43 @@ function findJestReferences() {
   return matches;
 }
 
+// Test files (`*.test.ts(x)` / `*.spec.ts(x)`) must live inside a `src/`
+// directory so vitest.shared.config.ts picks them up. Pre-existing offenders
+// stay allowlisted until their separate cleanup ticket lands (e.g. ADS-725
+// for lib.auth/__tests__). New offenders fail the guard.
+const TEST_LAYOUT_ALLOWLIST = new Set([
+  'lib.auth/__tests__/auth-service.test.ts', // ADS-725 will relocate this
+]);
+
+function findStrayTests(workspaces) {
+  const stray = [];
+  const TEST_FILE_RE = /\.(test|spec)\.(ts|tsx|js|jsx)$/;
+  function walk(dir, root) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.turbo')
+        continue;
+      if (entry.name === 'src') continue; // src/ is the allowed location
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full, root);
+        continue;
+      }
+      if (!TEST_FILE_RE.test(entry.name)) continue;
+      const rel = relative(ROOT, full);
+      if (TEST_LAYOUT_ALLOWLIST.has(rel)) continue;
+      stray.push(rel);
+    }
+  }
+  for (const ws of workspaces) {
+    try {
+      walk(join(ROOT, ws), ws);
+    } catch {
+      // Workspace dir missing — other guards will catch it.
+    }
+  }
+  return stray;
+}
+
 function main() {
   const libs = listWorkspaces('lib.');
   const apps = listWorkspaces('app.');
@@ -266,6 +307,38 @@ function main() {
   const jestRefs = findJestReferences();
   for (const file of jestRefs) {
     failures.push(`[jest-refs] stale 'jest' reference in tracked file: ${file}`);
+  }
+
+  // 6. Test files outside src/ (ADS-737)
+  const strayTests = findStrayTests([...libs, ...apps, 'service.backend']);
+  for (const file of strayTests) {
+    failures.push(
+      `[test-layout] test file outside src/: ${file} — move tests under src/ (co-located for React libs/apps, src/__tests__/ for backend/non-UI libs). See CONTRIBUTING.md "Test layout".`,
+    );
+  }
+
+  // 7. Hoisted devDependencies must not reappear in lib.* packages (ADS-730)
+  const HOISTED_DEVDEPS = [
+    '@typescript-eslint/eslint-plugin',
+    '@typescript-eslint/parser',
+    'eslint',
+    'eslint-config-prettier',
+    'eslint-plugin-prettier',
+    'prettier',
+    'typescript',
+    'vitest',
+    '@vitest/coverage-v8',
+    'typescript-eslint',
+  ];
+  for (const lib of libs) {
+    const pkg = readPkg(lib);
+    const devDeps = pkg?.devDependencies ?? {};
+    const reintroduced = HOISTED_DEVDEPS.filter(dep => dep in devDeps);
+    if (reintroduced.length > 0) {
+      failures.push(
+        `[${lib}] re-introduces hoisted devDependencies: ${reintroduced.join(', ')} (declare them only in the root package.json — see ADS-730)`,
+      );
+    }
   }
 
   if (warnings.length > 0) {

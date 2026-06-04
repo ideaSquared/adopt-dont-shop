@@ -1,0 +1,40 @@
+# Canonical list of "source paths that matter" for workflow `paths:` filters.
+# Single source of truth (ADS-767). When you add a new top-level workspace
+# (e.g. lib.foo, app.bar) add it here ONCE and the CI guard
+# `scripts/check-workflow-paths.mjs` will fail any workflow whose `paths:`
+# filter has drifted.
+#
+# Three workflows consume this list with the modifier described in the
+# `consumers` block: any workflow whose `paths:` block diverges from the
+# resolved list will fail the guard.
+
+paths:
+  - 'service.backend/**'
+  - 'app.client/**'
+  - 'app.admin/**'
+  - 'app.rescue/**'
+  - 'lib.*/**'
+  - 'package.json'
+  - 'package-lock.json'
+
+consumers:
+  # quality.yml + security.yml use the canonical list verbatim on both
+  # push and pull_request triggers.
+  - workflow: .github/workflows/quality.yml
+    triggers: [push, pull_request]
+    extra: []
+  - workflow: .github/workflows/security.yml
+    triggers: [push, pull_request]
+    extra: []
+
+  # docker.yml extends the canonical list for `push` only with Docker
+  # plumbing (Dockerfile*, compose, .dockerignore). PR trigger uses ONLY
+  # the docker-plumbing subset (source-only PRs are covered by ci.yml /
+  # E2E), so the canonical list does not apply there — listed for
+  # documentation, the guard tolerates the explicit divergence.
+  - workflow: .github/workflows/docker.yml
+    triggers: [push]
+    extra:
+      - '**/Dockerfile*'
+      - 'docker-compose*.yml'
+      - '.dockerignore'

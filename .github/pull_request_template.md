@@ -12,6 +12,15 @@
 
 -
 
+## Before requesting review
+
+<!-- Quick PR-readiness signal — see CONTRIBUTING.md for context. -->
+
+- [ ] Ran `npm run ci:local:quick` locally (or installed the pre-push hook — see CONTRIBUTING.md)
+- [ ] Tests for new behaviour added (TDD)
+- [ ] If touching `.env` requirements, updated `.env.example`'s REQUIRED block
+- [ ] If touching a `lib.*`, considered consumer impact across `app.*` and `service.backend`
+
 ## Test plan
 
 <!-- How did you verify this works? Check off items as you go. -->

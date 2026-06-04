@@ -43,6 +43,8 @@ This project follows strict Test-Driven Development — **no new behaviour witho
 
 CI runs **ten** checks across `.github/workflows/ci.yml`, `lib-test-guard.yml`, `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
 
+The PR description includes a short "Before requesting review" checklist (see [`.github/pull_request_template.md`](./.github/pull_request_template.md)) that mirrors the most-failed CI checks — tick it off before requesting review.
+
 ### One-shot preflight (recommended before pushing)
 
 Two aggregated scripts run the CI-equivalent checks for you:
@@ -53,6 +55,17 @@ npm run ci:local         # full preflight (~3-5min): format + lint + type-check 
 ```
 
 `ci:local` covers everything in the fast and slow tiers below except E2E and the backend coverage thresholds — run those separately when relevant.
+
+#### Opt-in pre-push hook (ADS-732)
+
+`.husky/pre-push` will run `ci:local:quick` automatically before every `git push`, but is **off by default** so it doesn't surprise existing contributors. Enable it once per checkout:
+
+```bash
+npm run hooks:enable    # creates .husky/.prepush-enabled (gitignored)
+npm run hooks:disable   # removes the marker
+```
+
+One-off run without enabling: `ADS_PREPUSH=1 git push`. Emergency bypass when the hook is enabled: `git push --no-verify` (the same flag works for the existing pre-commit / commit-msg hooks). The hook is always skipped under `CI=true`.
 
 ### Fast feedback (run every time, ~30s)
 
@@ -114,11 +127,31 @@ Full guidelines are in [.claude/CLAUDE.md](./.claude/CLAUDE.md). Key rules:
 - Immutable data; pure functions; no nested if/else (use early returns)
 - Functional components only in React; no class components
 
+### Editor configuration
+
+A repo-root `.editorconfig` enforces 2-space indent, LF line endings, UTF-8, final newline, and trimmed trailing whitespace — matching Prettier so format-only diffs don't show up in code review. VSCode picks this up out of the box (see `.vscode/extensions.json`). For other editors, install the EditorConfig plugin:
+
+- **WebStorm / IntelliJ**: bundled, no install needed
+- **Vim**: [editorconfig-vim](https://github.com/editorconfig/editorconfig-vim)
+- **Neovim**: [editorconfig.nvim](https://github.com/gpanders/editorconfig.nvim) (or built-in since 0.9)
+- **Sublime Text**: [EditorConfig](https://github.com/sindresorhus/editorconfig-sublime)
+- **Zed / Helix**: built-in support
+
 ## Test requirements
 
 Every package uses **Vitest** (`vitest run`). The React apps and `lib.components` add React Testing Library on top. Use the `npm test` / `npm run test:watch` / `npm run test:coverage` scripts defined in each package.
 
 Tests must cover **behaviour**, not implementation. 100% coverage is expected but tests must always be grounded in business requirements, not internal structure.
+
+### Test layout
+
+Pick the layout that matches the package, and keep new tests inside `src/`:
+
+- **React libs / apps** (`app.*`, `lib.components`, anything exporting `.tsx`): co-locate next to the source — `Button.tsx` + `Button.test.tsx`.
+- **Backend and non-UI libs** (`service.backend`, `lib.api`, `lib.utils`, …): tests in `src/__tests__/` mirroring the source structure (e.g. `src/services/foo.ts` → `src/__tests__/services/foo.test.ts`).
+- **Top-level `__tests__/` outside `src/` is disallowed** — the shared Vitest `include` glob only picks up files under `src/`, so anything else is silently skipped. `scripts/check-workspace-consistency.mjs` enforces this.
+
+This is a forward-looking rule (ADS-737); we are not bulk-moving existing tests. If you touch a file that lives in an old location, move it as part of that change.
 
 ### Coverage thresholds
 

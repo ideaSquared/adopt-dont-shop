@@ -214,6 +214,15 @@ such as the in-cluster docker network on the same host.
 Boot logs print `sslMode=<mode>` so the effective setting is observable
 without exec'ing into the container.
 
+## Data at rest
+
+See [`docs/security/data-protection.md`](../security/data-protection.md) for
+the full breakdown: which PII columns use application-layer encryption
+(passwords, 2FA secrets, tokens) vs which rely on the database provider's
+storage-layer encryption (`email`, `phone`, addresses, DOB, free-text
+profile fields). Verify your production provider has at-rest encryption
+enabled before going live. [ADS-665]
+
 ## Backup / snapshot
 
 See [`snapshot-policy.md`](./snapshot-policy.md). [ADS-500]

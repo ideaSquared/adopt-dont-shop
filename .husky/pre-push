@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+# Pre-push hook — opt-in (ADS-732).
+#
+# Off by default to avoid surprising existing contributors. Enable with
+# `npm run hooks:enable` (creates .husky/.prepush-enabled) or by setting
+# `ADS_PREPUSH=1` for one-off pushes. Emergency bypass: `git push --no-verify`.
+#
+# Always skipped under CI=true so this hook doesn't run inside GitHub Actions.
+
+if [ -n "$CI" ]; then
+  exit 0
+fi
+
+if [ -z "$ADS_PREPUSH" ] && [ ! -f ".husky/.prepush-enabled" ]; then
+  exit 0
+fi
+
+echo "pre-push: running npm run ci:local:quick (set ADS_PREPUSH=0 to skip, or use git push --no-verify)"
+npm run ci:local:quick

@@ -45,17 +45,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@adopt-dont-shop/eslint-config-base": "*",
-    "@typescript-eslint/eslint-plugin": "^8.60.1",
-    "@typescript-eslint/parser": "^8.60.1",
-    "eslint": "^10.4.1",
-    "eslint-config-prettier": "^10.0.0",
-    "eslint-plugin-prettier": "^5.5.6",
-    "prettier": "^3.2.5",
-    "typescript": "^6.0.3",
-    "vitest": "^4.0.8",
-    "@vitest/coverage-v8": "^4.1.8",
-    "typescript-eslint": "^8.60.1"
+    "@adopt-dont-shop/eslint-config-base": "*"
   },
   "peerDependencies": {
     "typescript": "^6.0.0"

@@ -21,10 +21,37 @@ services:
   #   environment:
   #     NODE_OPTIONS: '--max-old-space-size=4096'
 
-  # Example: Disable file watching if not needed (improves performance)
+  # ============================================================================
+  # macOS / Windows: re-enable CHOKIDAR polling (ADS-766)
+  # ----------------------------------------------------------------------------
+  # Linux contributors can leave CHOKIDAR_* unset — Docker bind-mounts use real
+  # inotify and HMR works without polling. On macOS (VirtioFS/gRPC-FUSE) and
+  # Windows (WSL2/Hyper-V) the VM does NOT propagate inotify across the shared
+  # filesystem boundary, so HMR requires polling. Uncomment per service:
+  #
+  # service-backend:
+  #   environment:
+  #     CHOKIDAR_USEPOLLING: 'true'
+  #     CHOKIDAR_INTERVAL: '1000'
   # app-admin:
   #   environment:
-  #     CHOKIDAR_USEPOLLING: false
+  #     CHOKIDAR_USEPOLLING: 'true'
+  #     CHOKIDAR_INTERVAL: '1000'
+  #     CHOKIDAR_AWAITWRITEFINISH: '2000'
+  # app-client:
+  #   environment:
+  #     CHOKIDAR_USEPOLLING: 'true'
+  #     CHOKIDAR_INTERVAL: '1000'
+  #     CHOKIDAR_AWAITWRITEFINISH: '2000'
+  # app-rescue:
+  #   environment:
+  #     CHOKIDAR_USEPOLLING: 'true'
+  #     CHOKIDAR_INTERVAL: '1000'
+  #     CHOKIDAR_AWAITWRITEFINISH: '2000'
+  #     WATCHPACK_POLLING: 'true'
+  #
+  # You can also set these in your .env (compose interpolates ${CHOKIDAR_*})
+  # if you prefer a single switch.
 
   # Example: Add volume for backend uploads during development
   # service-backend:
