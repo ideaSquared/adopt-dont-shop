@@ -647,6 +647,24 @@ const startServer = async () => {
         });
       }
 
+      // ADS-734: daily purge of stale webhook_event_ids rows. The table
+      // is bounded by retention rather than by uniqueness explosion, so
+      // a missed run isn't critical — schedule lazily like the other
+      // purges.
+      try {
+        const { scheduleWebhookEventsPurgeJob, startWebhookEventsPurgeWorker } =
+          await import('./jobs/webhook-events-purge.job');
+        await scheduleWebhookEventsPurgeJob();
+        const w = startWebhookEventsPurgeWorker();
+        if (w) {
+          logger.info('Webhook-events purge worker started');
+        }
+      } catch (err) {
+        logger.warn('Webhook-events purge job failed to start (continuing without scheduling)', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
       // ADS-497 (slice 4): legal re-acceptance reminder cron. Gated
       // behind LEGAL_REMINDER_CRON_ENABLED (default off) AND
       // LEGAL_REMINDER_CRON_DRY_RUN (default on) — so the first deploy

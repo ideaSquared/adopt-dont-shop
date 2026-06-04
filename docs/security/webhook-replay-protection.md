@@ -1,9 +1,8 @@
 # Email-delivery webhook replay protection
 
 > Tracked in [ADS-734](https://linear.app/ideasquared/issue/ADS-734).
-> Status: **Partial** — timestamp window tightened; per-event idempotency
-> still to be built. This document is the architecture note for the
-> follow-up work.
+> Status: **Implemented** — timestamp window tightened AND per-event
+> idempotency table now live.
 
 ## Current state
 
@@ -12,6 +11,9 @@ signatures (SendGrid ECDSA, Postmark HMAC, SES shared-secret, generic
 HMAC) and rejects requests whose timestamp is outside the tolerated skew.
 Since ADS-734 that window is **120 seconds** by default (was 5 minutes),
 overridable via `EMAIL_WEBHOOK_TIMESTAMP_SKEW_MS`.
+
+Inside that 120 s window, per-event idempotency is enforced via the
+`webhook_event_ids` table — see "Implementation" below.
 
 ## Threat model
 
@@ -28,51 +30,80 @@ does not, but is plausibly added), an attacker can silently suppress a
 target user's transactional mail (password reset, security alerts).
 Lower-impact: replaying `opened` / `clicked` inflates analytics.
 
-## Proposed dedup design
+## Implementation
 
-Add per-event idempotency in the middleware (after signature verification,
-before `next()`) keyed on `(provider, externalEventId)`:
+Per-event idempotency is enforced before any side effects run. Each
+inbound webhook produces a `(provider, event_id)` pair; the first time
+we see it we record a row, every subsequent attempt collides on the
+composite primary key.
+
+**Files:**
+
+| Layer | Path |
+| --- | --- |
+| Migration | `service.backend/src/migrations/12-create-webhook-event-ids.ts` |
+| Model | `service.backend/src/models/WebhookEventId.ts` |
+| Service | `service.backend/src/services/email/webhook-idempotency.service.ts` |
+| Wiring | `service.backend/src/controllers/email.controller.ts` (`handleDeliveryWebhook`) |
+| Cleanup | `service.backend/src/jobs/webhook-events-purge.job.ts` |
+
+**Table shape:**
+
+```
+webhook_event_ids (
+  provider     VARCHAR(32)  NOT NULL,
+  event_id     VARCHAR(255) NOT NULL,
+  received_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (provider, event_id)
+);
+CREATE INDEX webhook_event_ids_received_at_idx ON webhook_event_ids (received_at);
+```
+
+The composite primary key gives uniqueness across providers without a
+separate constraint and powers the dedup INSERT.
+
+**Event-id derivation:** the controller receives the normalised body
+that `email.validation.deliveryWebhook` enforces (`messageId`, `status`,
+…). The dedup key is `${messageId}.${status}` — a `delivered` and a
+later `opened` event for the same message must NOT collide. The
+provider tag comes from `EMAIL_WEBHOOK_PROVIDER`.
+
+**Failure mode on duplicate:** `assertNotReplayed(provider, eventId)`
+catches `SequelizeUniqueConstraintError` and throws `WebhookReplayError`,
+which the controller maps to `HTTP 200 { deduplicated: true }`. We
+intentionally do not return a 4xx — providers retry on 4xx, and a
+duplicate-replay is by definition not a client error.
+
+**Provider event-id sources** (for future provider-specific extractors,
+should the normalised handler ever be replaced with provider-shaped
+payloads):
 
 | Provider | Event-ID source |
 | --- | --- |
-| SendGrid | `sg_event_id` field on each event in the array body |
+| SendGrid | `sg_event_id` on each event in the array body |
 | Postmark | `MessageID` + `RecordType` |
 | AWS SES via SNS | `Mail.messageId` + `Type` (`Bounce`/`Complaint`/`Delivery`) |
 | Generic | `t` (timestamp) + SHA-256(rawBody) |
 
-Two implementation options:
+**Cleanup:** `jobs/webhook-events-purge.job.ts` deletes rows older than
+7 days, scheduled daily via BullMQ on the shared `reports` queue. Cron:
+`45 4 * * *` UTC, overridable via `WEBHOOK_EVENTS_PURGE_CRON`. The job
+no-ops if Redis is unavailable, mirroring the other system purges
+(retention, revoked-tokens).
 
-1. **`WebhookEventSeen` Sequelize model** — table `webhook_events_seen`
-   with columns `(provider, external_event_id, processed_at)`, UNIQUE on
-   `(provider, external_event_id)`. Insert inside the request; on
-   `SequelizeUniqueConstraintError` return 200 (no-op). Reap rows older
-   than `EMAIL_WEBHOOK_TIMESTAMP_SKEW_MS * 2` via a daily cron.
-2. **Redis `SET … NX EX`** — `SET webhook:{provider}:{eventId} 1 NX EX
-   600` (TTL = 2× skew). Reject if the SET returns null. Cheaper, no
-   migration; pairs well with the existing rate-limit Redis usage.
+## Tests
 
-Option 2 is the recommended starting point because the backend already
-depends on Redis at runtime. Fall back to option 1 if a future audit
-requires durable evidence of which events were ever processed.
+Per-event idempotency behaviour is covered by:
 
-## Tests required for the follow-up
+- `service.backend/src/__tests__/services/webhook-idempotency.service.test.ts`
+  — service-level: new event inserts a row, replay throws
+  `WebhookReplayError`, same event_id across providers is two rows.
+- `service.backend/src/__tests__/routes/email-webhook-idempotency.routes.test.ts`
+  — route-level: replay returns `200 { deduplicated: true }` and does
+  NOT re-invoke `emailService.handleDeliveryWebhook`; different
+  `status` for the same `messageId` is a distinct event.
+- `service.backend/src/__tests__/jobs/webhook-events-purge.test.ts`
+  — purge job deletes rows older than the 7-day cutoff.
 
-- Posting the same SendGrid bounce payload twice within 60 s results in
-  `EmailPreference.recordBounce` being called exactly once.
-- Posting a payload with `timestamp` older than the configured skew
-  returns 401 (covered today).
-- Cross-provider isolation: the same `eventId` from SendGrid and a
-  generic test webhook are stored as two distinct rows / keys.
-
-## What this PR did
-
-- Reduced replay window from 300 s to 120 s (configurable via
-  `EMAIL_WEBHOOK_TIMESTAMP_SKEW_MS`).
-- Wrote this architecture note so the dedup follow-up has a clear plan.
-
-## What this PR did NOT do
-
-- No `WebhookEventSeen` model / migration.
-- No Redis dedup wiring.
-- No new integration test for replay (only the timestamp-window test is
-  updated).
+Existing timestamp-window coverage remains in
+`__tests__/middleware/webhook-signature.middleware.test.ts`.

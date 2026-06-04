@@ -21,6 +21,13 @@ let liveIo: SocketIOServer | null = null;
  * laptop = 3); the cap leaves headroom for occasional brief overlap
  * during reconnects. Without this cap a single authenticated user can
  * exhaust file descriptors via repeated open connections (DoS).
+ *
+ * NOTE: This cap is intentionally per-instance, not global. Multi-
+ * replica deploys rely on load-balancer sticky sessions to pin a
+ * user's sockets to one backend so the per-instance counter behaves
+ * like a global cap. See `docs/architecture/adr-socket-sticky-sessions.md`
+ * (ADS-678) for the rationale and the LB configuration the ops team
+ * must apply.
  */
 export const MAX_CONNECTIONS_PER_USER = 5;
 
