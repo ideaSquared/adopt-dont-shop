@@ -3,7 +3,7 @@ import express from 'express';
 import request from 'supertest';
 import { auditRoute } from '../../middleware/audit-route';
 import { AuditLogService } from '../../services/auditLog.service';
-import { loggerHelpers } from '../../utils/logger';
+import { logger, loggerHelpers } from '../../utils/logger';
 import { requestContextMiddleware } from '../../middleware/request-context';
 
 describe('auditRoute middleware', () => {
@@ -168,6 +168,33 @@ describe('auditRoute middleware', () => {
 
     const details = dbSpy.mock.calls[0][0].details;
     expect(details).toEqual({ rescueId: 'r-7', email: 'new@x.test' });
+  });
+
+  it('skips audit row and warns when entityId cannot be resolved on a 2xx (ADS-754)', async () => {
+    const dbSpy = vi.spyOn(AuditLogService, 'log').mockResolvedValue({} as never);
+    const logAuditSpy = vi.spyOn(loggerHelpers, 'logAudit');
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => logger);
+
+    const app = buildApp();
+    app.post(
+      '/widgets',
+      // No entityIdFrom, and response shape doesn't match the default
+      // precedence (no widget.id, no widgetId, no id).
+      auditRoute({ action: 'WIDGET_CREATED', entity: 'Widget' }),
+      (_req, res) => {
+        res.status(201).json({ success: true, message: 'ok' });
+      }
+    );
+
+    await request(app).post('/widgets').send({ color: 'red' });
+    await new Promise(resolve => setImmediate(resolve));
+
+    expect(dbSpy).not.toHaveBeenCalled();
+    expect(logAuditSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('entityId could not be resolved'),
+      expect.objectContaining({ action: 'WIDGET_CREATED', entity: 'Widget' })
+    );
   });
 
   it('propagates correlationId from AsyncLocalStorage into the log line', async () => {

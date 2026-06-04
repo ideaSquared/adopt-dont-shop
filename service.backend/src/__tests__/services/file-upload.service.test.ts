@@ -3,7 +3,8 @@ import { UserType } from '../../models/User';
 
 // ──── Mocks (hoisted before imports) ──────────────────────────────────────────
 
-vi.mock('fs', () => {
+vi.mock('fs', async () => {
+  const { Readable } = await import('stream');
   const stat = vi.fn().mockResolvedValue({ mtime: new Date('2024-01-01T00:00:00.000Z') });
   const readFile = vi.fn().mockResolvedValue(Buffer.from('file-content'));
   const writeFile = vi.fn().mockResolvedValue(undefined);
@@ -11,10 +12,20 @@ vi.mock('fs', () => {
   const rename = vi.fn().mockResolvedValue(undefined);
   const existsSync = vi.fn().mockReturnValue(true);
   const mkdirSync = vi.fn();
+  // ADS-751: generateChecksum streams the file through crypto's Hash via
+  // stream.pipeline, so the mock must expose a Readable stream factory.
+  // Default to deterministic byte content; tests can override per-case.
+  const createReadStream = vi.fn(() => Readable.from(Buffer.from('file-content')));
   return {
-    default: { existsSync, mkdirSync, promises: { stat, readFile, writeFile, unlink, rename } },
+    default: {
+      existsSync,
+      mkdirSync,
+      createReadStream,
+      promises: { stat, readFile, writeFile, unlink, rename },
+    },
     existsSync,
     mkdirSync,
+    createReadStream,
     promises: { stat, readFile, writeFile, unlink, rename },
   };
 });
@@ -394,8 +405,6 @@ describe('FileUploadService', () => {
     it('returns a result with a non-empty checksum in the file metadata', async () => {
       const file = makeFile();
       setupSuccessfulUpload();
-      // Provide real buffer content so the MD5 hash produces a non-empty hex string
-      vi.mocked(fs.promises.readFile).mockResolvedValue(Buffer.from('real-file-content'));
 
       const result = await FileUploadService.uploadFile(file, 'pets', { uploadedBy: 'user-456' });
 
@@ -403,6 +412,19 @@ describe('FileUploadService', () => {
       expect(result.file?.metadata.checksum).toBeTruthy();
       expect(typeof result.file?.metadata.checksum).toBe('string');
       expect((result.file?.metadata.checksum as string).length).toBeGreaterThan(0);
+    });
+
+    it('uses SHA-256 (not MD5) for the upload checksum and tags the algorithm (ADS-751)', async () => {
+      const file = makeFile();
+      setupSuccessfulUpload();
+
+      const result = await FileUploadService.uploadFile(file, 'pets', { uploadedBy: 'user-456' });
+
+      // SHA-256 hex digests are exactly 64 chars; MD5 is 32 chars. This
+      // shape assertion catches any regression that swaps the algorithm
+      // back without anyone noticing.
+      expect(result.file?.metadata.checksum).toMatch(/^[a-f0-9]{64}$/);
+      expect(result.file?.metadata.checksumAlgo).toBe('sha256');
     });
 
     it('returns upload record and file metadata on success', async () => {

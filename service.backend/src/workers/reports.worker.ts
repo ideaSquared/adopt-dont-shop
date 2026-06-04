@@ -294,7 +294,7 @@ const handleRenderAndEmail = async (data: RenderAndEmailJob): Promise<void> => {
       // logs. Mirrors the pattern used by retention.job /
       // weekly-digest.job. No transaction (background job, single op).
       await AuditLogService.log({
-        userId: '',
+        userId: null,
         action: 'SCHEDULED_REPORT_EXECUTED',
         entity: 'ScheduledReport',
         entityId: data.scheduleId,
@@ -375,7 +375,7 @@ export const startReportsWorker = (): Worker<ScheduledRunJob | RenderAndEmailJob
           // Audit the failure at WARNING level — same forensic
           // story as the success path, just the bad branch.
           await AuditLogService.log({
-            userId: '',
+            userId: null,
             action: 'SCHEDULED_REPORT_FAILED',
             entity: 'ScheduledReport',
             entityId: parsed.data.scheduleId,

@@ -72,6 +72,12 @@ describe('AuthService', () => {
       .fn()
       .mockImplementation((password: string) => Promise.resolve(`hashed_${password}` as never));
     mockedBcrypt.compare = vi.fn().mockResolvedValue(true as never);
+    // ADS-750: AuthService computes a dummy bcrypt hash lazily for the
+    // no-user login path. Provide a real-shaped value so the timing
+    // equaliser doesn't break tests that exercise the missing-email branch.
+    mockedBcrypt.hashSync = vi
+      .fn()
+      .mockReturnValue('$2b$12$abcdefghijklmnopqrstuuW9zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz' as never);
 
     // Mock crypto for verification tokens
     const mockCrypto = crypto as Mock<typeof crypto>;

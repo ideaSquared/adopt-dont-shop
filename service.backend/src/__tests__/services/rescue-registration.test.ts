@@ -6,11 +6,15 @@ import { RescueService } from '../../services/rescue.service';
 import type { RescueRegistrationRequest } from '@adopt-dont-shop/lib.validation';
 
 // Mock external services
-vi.mock('../../services/auditLog.service', () => ({
-  AuditLogService: {
-    log: vi.fn().mockResolvedValue(undefined),
-  },
-}));
+vi.mock('../../services/auditLog.service', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../services/auditLog.service')>();
+  return {
+    ...actual,
+    AuditLogService: {
+      log: vi.fn().mockResolvedValue(undefined),
+    },
+  };
+});
 vi.mock('../../services/companies-house.service', () => ({
   verifyCompaniesHouseNumber: vi.fn().mockResolvedValue({ verified: false, reason: 'No API key' }),
 }));
