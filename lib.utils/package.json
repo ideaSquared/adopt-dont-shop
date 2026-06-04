@@ -39,11 +39,11 @@
   "license": "MIT",
   "dependencies": {
     "@adopt-dont-shop/lib.types": "*",
-    "@types/node": "^25.9.1",
     "date-fns": "^4.4.0"
   },
   "devDependencies": {
-    "@adopt-dont-shop/eslint-config-base": "*"
+    "@adopt-dont-shop/eslint-config-base": "*",
+    "@types/node": "^22.10.5"
   },
   "peerDependencies": {
     "typescript": "^6.0.0"

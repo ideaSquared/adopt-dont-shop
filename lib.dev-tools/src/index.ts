@@ -24,6 +24,9 @@ export {
   getAllDevUsers,
 } from './data/seededUsers';
 
+// Frontend test factories (ADS-718)
+export { createMockUser, resetMockUserCounter, type MockUser } from './test-utils/factories';
+
 // Utils (could add dev utilities here in the future)
 export const isDevelopmentMode = () => {
   if (typeof window !== 'undefined') {

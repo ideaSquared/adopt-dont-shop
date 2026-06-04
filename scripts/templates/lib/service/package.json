@@ -36,11 +36,10 @@
   ],
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
-  "dependencies": {
-    "@types/node": "^20.19.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",
+    "@types/node": "^22.10.5",
     "@typescript-eslint/eslint-plugin": "^8.59.1",
     "@typescript-eslint/parser": "^8.59.1",
     "eslint": "^9.0.0",

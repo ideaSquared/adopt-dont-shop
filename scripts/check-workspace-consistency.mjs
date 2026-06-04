@@ -12,6 +12,12 @@
  *  2. vitest.workspace.ts references every lib.* package that has a
  *     vitest.config.ts on disk.
  *  3. vite.shared.config.ts getLibraryAliases() has an entry for every lib.*.
+ *  3b. No app.* vitest.config.ts hand-rolls @adopt-dont-shop/lib.* aliases —
+ *      they must come from getLibraryAliases() (ADS-762).
+ *  3c. No app.* / lib.* package.json lists an @types/* package in
+ *      `dependencies` — type packages belong in devDependencies (ADS-765).
+ *  3d. No workspace package.json declares `happy-dom` — jsdom is the
+ *      canonical test-DOM environment (ADS-764).
  *  4. No nested package-lock.json outside the repo root.
  *  5. No stale Jest references in source (excluding docs/ and *.md changelog files).
  *  6. No *.test.ts(x) / *.spec.ts(x) files outside src/ (ADS-737). The shared
@@ -128,6 +134,63 @@ function checkViteAliases(libs) {
   return libs.filter(lib => !contents.includes(`'@adopt-dont-shop/${lib}'`));
 }
 
+// ADS-764: jsdom is the canonical test-DOM environment. happy-dom must not
+// re-appear in any workspace package.json.
+function checkBannedDomEnv(workspaces) {
+  const offenders = [];
+  for (const ws of workspaces) {
+    const pkg = readPkg(ws);
+    const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+    if ('happy-dom' in deps) {
+      offenders.push(ws);
+    }
+  }
+  return offenders;
+}
+
+// ADS-765: @types/* packages must live in devDependencies, not dependencies —
+// they're type-only and leak into the public type surface of every consumer
+// when placed in runtime deps.
+function checkTypesInDependencies(workspaces) {
+  const offenders = [];
+  for (const ws of workspaces) {
+    const pkg = readPkg(ws);
+    const deps = pkg.dependencies || {};
+    const stray = Object.keys(deps).filter(k => k.startsWith('@types/'));
+    if (stray.length > 0) {
+      offenders.push({ workspace: ws, types: stray.sort() });
+    }
+  }
+  return offenders;
+}
+
+// ADS-762: app vitest.config.ts files must build their `@adopt-dont-shop/lib.*`
+// aliases via getLibraryAliases(__dirname, 'development'), not hand-rolled
+// entries. The lone exception is `lib.components/theme` which is a sub-path
+// alias not covered by the helper.
+function checkAppVitestAliases(apps) {
+  const offenders = [];
+  for (const app of apps) {
+    const cfgPath = join(ROOT, app, 'vitest.config.ts');
+    let contents;
+    try {
+      contents = readFileSync(cfgPath, 'utf8');
+    } catch {
+      continue;
+    }
+    const re = /['"]@adopt-dont-shop\/(lib\.[a-z-]+)['"]/g;
+    const found = new Set();
+    let m;
+    while ((m = re.exec(contents)) !== null) {
+      found.add(m[1]);
+    }
+    if (found.size > 0) {
+      offenders.push({ app, libs: [...found].sort() });
+    }
+  }
+  return offenders;
+}
+
 function findNestedLockfiles() {
   const found = [];
   function walk(dir) {
@@ -161,18 +224,12 @@ const JEST_REF_FILE_ALLOWLIST = new Set([
   'app.rescue/src/__mocks__/lib-rescue.ts',
   'app.rescue/src/setup-tests.tsx',
   'app.rescue/src/test-utils/setup-tests.ts',
-  'lib.auth/__tests__/auth-service.test.ts',
   'service.backend/src/__mocks__/logger.ts',
   'service.backend/src/__mocks__/models/ApplicationTimeline.ts',
   // Documentation-style comments referencing jest.mock semantics in
   // tests that are themselves Vitest. Pure prose, no wiring.
   'lib.feature-flags/src/hooks/useDynamicConfig.test.ts',
   'lib.feature-flags/src/hooks/useFeatureGate.test.ts',
-  // Generator templates (introduced by #594) still produce jest-based
-  // package.json. Porting the templates to vitest is a follow-up.
-  'scripts/templates/app/enterprise/package.json',
-  'scripts/templates/app/minimal/package.json',
-  'scripts/templates/app/standard/package.json',
 ]);
 
 // Patterns that indicate active Jest wiring (as opposed to merely
@@ -294,6 +351,33 @@ function main() {
   for (const lib of missingAliases) {
     failures.push(
       `[vite.shared.config.ts] getLibraryAliases() missing entry for '@adopt-dont-shop/${lib}'`,
+    );
+  }
+
+  // 3b. ADS-762: app vitest.config.ts must not hand-roll lib aliases
+  const appAliasOffenders = checkAppVitestAliases(apps);
+  for (const { app, libs: handRolled } of appAliasOffenders) {
+    failures.push(
+      `[${app}/vitest.config.ts] hand-rolled @adopt-dont-shop alias(es): ${handRolled.join(', ')}. ` +
+        `Use getLibraryAliases(__dirname, 'development') from vite.shared.config.ts instead (ADS-762).`,
+    );
+  }
+
+  // 3c. ADS-765: @types/* belongs in devDependencies
+  const typesOffenders = checkTypesInDependencies([...libs, ...apps]);
+  for (const { workspace, types } of typesOffenders) {
+    failures.push(
+      `[${workspace}/package.json] @types/* in 'dependencies': ${types.join(', ')}. ` +
+        `Move to devDependencies — type-only packages must not be runtime deps (ADS-765).`,
+    );
+  }
+
+  // 3d. ADS-764: happy-dom must not re-appear (jsdom is canonical)
+  const domOffenders = checkBannedDomEnv([...libs, ...apps]);
+  for (const ws of domOffenders) {
+    failures.push(
+      `[${ws}/package.json] declares 'happy-dom'. ` +
+        `jsdom is the canonical test-DOM environment — remove happy-dom (ADS-764).`,
     );
   }
 
