@@ -157,10 +157,10 @@ const validDevEnv = (): Record<string, string | undefined> => ({
 });
 
 const errorPaths = (result: ReturnType<typeof validateEnv>): string[] =>
-  result.errors.map(e => e.path);
+  result.errors.map((e) => e.path);
 
 const errorMessages = (result: ReturnType<typeof validateEnv>): string =>
-  result.errors.map(e => `${e.path}: ${e.message}`).join('\n');
+  result.errors.map((e) => `${e.path}: ${e.message}`).join('\n');
 
 describe('validateEnv', () => {
   describe('happy paths', () => {
@@ -279,9 +279,7 @@ describe('validateEnv', () => {
       const env = validProdEnv();
       env.JWT_REPORT_SHARE_SECRET = undefined;
       const result = validateEnv(env);
-      const pairPaths = errorPaths(result).filter(p =>
-        p.includes('JWT_REPORT_SHARE_SECRET')
-      );
+      const pairPaths = errorPaths(result).filter((p) => p.includes('JWT_REPORT_SHARE_SECRET'));
       expect(pairPaths).toEqual([]);
     });
   });
@@ -360,7 +358,7 @@ describe('validateEnv', () => {
       env.BCRYPT_ROUNDS = '10';
       const result = validateEnv(env);
       expect(result.ok).toBe(true);
-      const warnPaths = result.warnings.map(w => w.path);
+      const warnPaths = result.warnings.map((w) => w.path);
       expect(warnPaths).toContain('BCRYPT_ROUNDS');
     });
 
@@ -368,7 +366,7 @@ describe('validateEnv', () => {
       const env = validProdEnv();
       env.BCRYPT_ROUNDS = '12';
       const result = validateEnv(env);
-      expect(result.warnings.map(w => w.path)).not.toContain('BCRYPT_ROUNDS');
+      expect(result.warnings.map((w) => w.path)).not.toContain('BCRYPT_ROUNDS');
     });
 
     it('warns when DB_LOGGING=true in production', () => {
@@ -376,7 +374,7 @@ describe('validateEnv', () => {
       env.DB_LOGGING = 'true';
       const result = validateEnv(env);
       expect(result.ok).toBe(true);
-      expect(result.warnings.map(w => w.path)).toContain('DB_LOGGING');
+      expect(result.warnings.map((w) => w.path)).toContain('DB_LOGGING');
     });
   });
 
@@ -387,10 +385,10 @@ describe('validateEnv', () => {
       env.DEBUG_ERRORS = 'true'; // error
       const result = validateEnv(env);
       expect(result.ok).toBe(false);
-      expect(result.errors.every(e => e.level === 'error')).toBe(true);
-      expect(result.warnings.every(w => w.level === 'warning')).toBe(true);
-      expect(result.warnings.map(w => w.path)).toContain('BCRYPT_ROUNDS');
-      expect(result.errors.map(e => e.path)).toContain('DEBUG_ERRORS');
+      expect(result.errors.every((e) => e.level === 'error')).toBe(true);
+      expect(result.warnings.every((w) => w.level === 'warning')).toBe(true);
+      expect(result.warnings.map((w) => w.path)).toContain('BCRYPT_ROUNDS');
+      expect(result.errors.map((e) => e.path)).toContain('DEBUG_ERRORS');
     });
 
     it('accepts an alternate valid ENCRYPTION_KEY (mixed case hex)', () => {
