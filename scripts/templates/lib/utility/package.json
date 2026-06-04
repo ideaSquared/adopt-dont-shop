@@ -39,12 +39,12 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@types/node": "^20.19.0",
     "react": "^18.2.0",
     "styled-components": "^6.1.8"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",
+    "@types/node": "^22.10.5",
     "@typescript-eslint/eslint-plugin": "^8.59.1",
     "@typescript-eslint/parser": "^8.59.1",
     "@types/react": "^18.2.0",

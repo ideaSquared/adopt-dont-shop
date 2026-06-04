@@ -14,6 +14,8 @@
  *  3. vite.shared.config.ts getLibraryAliases() has an entry for every lib.*.
  *  3b. No app.* vitest.config.ts hand-rolls @adopt-dont-shop/lib.* aliases —
  *      they must come from getLibraryAliases() (ADS-762).
+ *  3c. No app.* / lib.* package.json lists an @types/* package in
+ *      `dependencies` — type packages belong in devDependencies (ADS-765).
  *  4. No nested package-lock.json outside the repo root.
  *  5. No stale Jest references in source (excluding docs/ and *.md changelog files).
  *  6. No *.test.ts(x) / *.spec.ts(x) files outside src/ (ADS-737). The shared
@@ -128,6 +130,22 @@ function checkViteAliases(libs) {
   const path = join(ROOT, 'vite.shared.config.ts');
   const contents = readFileSync(path, 'utf8');
   return libs.filter(lib => !contents.includes(`'@adopt-dont-shop/${lib}'`));
+}
+
+// ADS-765: @types/* packages must live in devDependencies, not dependencies —
+// they're type-only and leak into the public type surface of every consumer
+// when placed in runtime deps.
+function checkTypesInDependencies(workspaces) {
+  const offenders = [];
+  for (const ws of workspaces) {
+    const pkg = readPkg(ws);
+    const deps = pkg.dependencies || {};
+    const stray = Object.keys(deps).filter(k => k.startsWith('@types/'));
+    if (stray.length > 0) {
+      offenders.push({ workspace: ws, types: stray.sort() });
+    }
+  }
+  return offenders;
 }
 
 // ADS-762: app vitest.config.ts files must build their `@adopt-dont-shop/lib.*`
@@ -326,6 +344,15 @@ function main() {
     failures.push(
       `[${app}/vitest.config.ts] hand-rolled @adopt-dont-shop alias(es): ${handRolled.join(', ')}. ` +
         `Use getLibraryAliases(__dirname, 'development') from vite.shared.config.ts instead (ADS-762).`,
+    );
+  }
+
+  // 3c. ADS-765: @types/* belongs in devDependencies
+  const typesOffenders = checkTypesInDependencies([...libs, ...apps]);
+  for (const { workspace, types } of typesOffenders) {
+    failures.push(
+      `[${workspace}/package.json] @types/* in 'dependencies': ${types.join(', ')}. ` +
+        `Move to devDependencies — type-only packages must not be runtime deps (ADS-765).`,
     );
   }
 
