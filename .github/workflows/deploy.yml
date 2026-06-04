@@ -15,6 +15,14 @@ on:
         required: false
         type: boolean
         default: false
+      # ADS-673: Bypass cosign signature verification. ONLY for documented
+      # emergency rollback scenarios where the signing infrastructure is
+      # broken — every use is logged loudly in the workflow output.
+      skip_cosign_verify:
+        description: 'Skip cosign signature verification (EMERGENCY ONLY — see docs/security/image-signing.md)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -36,6 +44,9 @@ jobs:
       contents: read
       packages: write
       checks: read
+      # ADS-673: id-token required for cosign keyless signing via the
+      # GitHub Actions OIDC token. No private key is provisioned.
+      id-token: write
     outputs:
       sha: ${{ github.sha }}
     steps:
@@ -91,6 +102,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # ADS-673: install cosign before any push so we can sign each image
+      # by digest after `docker push`. Keyless mode uses the job's OIDC
+      # token (id-token: write) — no secrets required. SHA-pinned to match
+      # the rest of this workflow's pinning strategy.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5  # v3.10.1
+
       - name: Build and push backend
         run: |
           # ADS-rollback: :latest is only updated for production deploys.
@@ -108,6 +126,13 @@ jobs:
             docker tag $IMAGE_PREFIX/backend:${{ github.sha }} $IMAGE_PREFIX/backend:latest
             docker push $IMAGE_PREFIX/backend:latest
           fi
+          # ADS-673: Sign the image by digest (immutable) via cosign keyless
+          # OIDC. RepoDigests is populated by `docker push` from the registry
+          # response. Sign only the SHA tag — :latest resolves to the same
+          # digest so a single signature covers both.
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/backend:${{ github.sha }}" | cut -d@ -f2)
+          echo "Signing $IMAGE_PREFIX/backend@$DIGEST"
+          cosign sign --yes "$IMAGE_PREFIX/backend@$DIGEST"
 
       - name: Build and push app.client
         run: |
@@ -131,6 +156,10 @@ jobs:
             docker tag $IMAGE_PREFIX/app-client:${{ github.sha }} $IMAGE_PREFIX/app-client:latest
             docker push $IMAGE_PREFIX/app-client:latest
           fi
+          # ADS-673: cosign keyless sign by digest. See backend step for rationale.
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-client:${{ github.sha }}" | cut -d@ -f2)
+          echo "Signing $IMAGE_PREFIX/app-client@$DIGEST"
+          cosign sign --yes "$IMAGE_PREFIX/app-client@$DIGEST"
 
       - name: Build and push app.admin
         run: |
@@ -154,6 +183,10 @@ jobs:
             docker tag $IMAGE_PREFIX/app-admin:${{ github.sha }} $IMAGE_PREFIX/app-admin:latest
             docker push $IMAGE_PREFIX/app-admin:latest
           fi
+          # ADS-673: cosign keyless sign by digest. See backend step for rationale.
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-admin:${{ github.sha }}" | cut -d@ -f2)
+          echo "Signing $IMAGE_PREFIX/app-admin@$DIGEST"
+          cosign sign --yes "$IMAGE_PREFIX/app-admin@$DIGEST"
 
       - name: Build and push app.rescue
         run: |
@@ -177,9 +210,70 @@ jobs:
             docker tag $IMAGE_PREFIX/app-rescue:${{ github.sha }} $IMAGE_PREFIX/app-rescue:latest
             docker push $IMAGE_PREFIX/app-rescue:latest
           fi
+          # ADS-673: cosign keyless sign by digest. See backend step for rationale.
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/app-rescue:${{ github.sha }}" | cut -d@ -f2)
+          echo "Signing $IMAGE_PREFIX/app-rescue@$DIGEST"
+          cosign sign --yes "$IMAGE_PREFIX/app-rescue@$DIGEST"
+
+  # ADS-673: Cosign signature verification gate. Runs BEFORE the deploy job
+  # so a tampered or unsigned image cannot reach the production host.
+  # Verification happens on the GitHub Actions runner (which has cosign and
+  # public internet egress to Rekor + Fulcio) rather than on the deploy host,
+  # which avoids installing cosign on every server.
+  verify-images:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5  # v3.10.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee  # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify image signatures
+        env:
+          SHA: ${{ github.sha }}
+          SKIP_VERIFY: ${{ github.event.inputs.skip_cosign_verify }}
+        run: |
+          set -euo pipefail
+          if [ "$SKIP_VERIFY" = "true" ]; then
+            echo "::warning title=Cosign verification skipped::skip_cosign_verify=true was passed to this deploy. This bypasses supply-chain integrity checks and must only be used for documented emergency rollback scenarios. See docs/security/image-signing.md."
+            echo "WARNING: cosign verification SKIPPED for $SHA"
+            exit 0
+          fi
+
+          # Identity expectation: signatures must be produced by THIS repo's
+          # workflows running on main. Any other source (forks, feature
+          # branches, manually-pushed images) will fail verification.
+          IDENTITY_REGEX='^https://github.com/ideaSquared/adopt-dont-shop/\.github/workflows/.+@refs/heads/main$'
+          ISSUER='https://token.actions.githubusercontent.com'
+
+          for image in backend app-client app-admin app-rescue; do
+            ref="$IMAGE_PREFIX/$image:$SHA"
+            # Resolve tag -> digest via the registry API so we verify the
+            # immutable artifact, not whatever the tag happens to point at
+            # right now. `docker buildx imagetools inspect` is pre-installed
+            # on ubuntu-latest runners and does not pull image layers.
+            digest=$(docker buildx imagetools inspect "$ref" --format '{{.Manifest.Digest}}')
+            target="$IMAGE_PREFIX/$image@$digest"
+            echo "Verifying $target"
+            cosign verify \
+              --certificate-identity-regexp "$IDENTITY_REGEX" \
+              --certificate-oidc-issuer "$ISSUER" \
+              "$target" > /dev/null
+            echo "OK: $image signature is valid and produced by main."
+          done
 
   deploy:
-    needs: build-and-push
+    needs: verify-images
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: ${{ github.event.inputs.environment }}
