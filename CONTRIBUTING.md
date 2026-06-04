@@ -43,6 +43,8 @@ This project follows strict Test-Driven Development — **no new behaviour witho
 
 CI runs **ten** checks across `.github/workflows/ci.yml`, `lib-test-guard.yml`, `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
 
+The PR description includes a short "Before requesting review" checklist (see [`.github/pull_request_template.md`](./.github/pull_request_template.md)) that mirrors the most-failed CI checks — tick it off before requesting review.
+
 ### One-shot preflight (recommended before pushing)
 
 Two aggregated scripts run the CI-equivalent checks for you:
