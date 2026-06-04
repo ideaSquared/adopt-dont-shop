@@ -26,17 +26,6 @@ export const petImage = style({
   objectFit: 'cover',
 });
 
-export const placeholderImage = style({
-  width: '100%',
-  height: '100%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '3rem',
-  color: '#9ca3af',
-  background: 'linear-gradient(135deg, #f9fafb, #f3f4f6)',
-});
-
 export const statusBadgeContainer = style({
   position: 'absolute',
   top: '0.75rem',
