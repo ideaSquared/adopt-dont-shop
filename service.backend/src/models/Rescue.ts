@@ -8,6 +8,8 @@ import sequelize, {
 } from '../sequelize';
 import { generateUuidV7 } from '../utils/uuid';
 import { auditColumns, auditIndexes, withAuditHooks } from './audit-columns';
+// Type-only import to avoid the circular value import. (ADS-705)
+import type StaffMember from './StaffMember';
 import type { RescuePlan } from '@adopt-dont-shop/lib.types';
 
 export interface RescueAttributes {
@@ -88,9 +90,8 @@ class Rescue extends Model<RescueAttributes, RescueCreationAttributes> implement
   public createdAt!: Date;
   public updatedAt!: Date;
 
-  // Associations
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public staff?: any[]; // Sequelize association - will be StaffMember[] at runtime
+  // Associations populated by Sequelize at runtime via include. (ADS-705)
+  public staff?: StaffMember[];
 }
 
 // Initialize model

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Socket, Server as SocketIOServer } from 'socket.io';
-import { toFrontendMessage } from '../controllers/chat.controller';
+import { toFrontendMessage, type FrontendMessage } from '../controllers/chat.controller';
 import ChatParticipant from '../models/ChatParticipant';
 import MessageReaction from '../models/MessageReaction';
 import RevokedToken from '../models/RevokedToken';
@@ -242,8 +242,9 @@ export function isUserOnline(userId: string): boolean {
  */
 export function broadcastNewMessage(
   chatId: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  message: any,
+  // Always the FrontendMessage shape returned by toFrontendMessage —
+  // callers must serialise instances before broadcasting. (ADS-705)
+  message: FrontendMessage,
   recipientUserIds: string[]
 ): void {
   const liveIo = getLiveIo();

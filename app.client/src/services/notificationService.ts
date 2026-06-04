@@ -103,23 +103,21 @@ class NotificationService {
    */
   async getUnreadCount(): Promise<number> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await api.get<any>('/api/v1/notifications/unread/count');
+      // The API wrapper may return the count nested at one of three depths
+      // depending on caller; narrow each shape explicitly. (ADS-705)
+      type UnreadCountResponse = {
+        data?: { success?: boolean; data?: { count?: number }; count?: number };
+        count?: number;
+      };
+      const response = await api.get<UnreadCountResponse>('/api/v1/notifications/unread/count');
 
-      // Handle nested response structure: {"success":true,"data":{"count":15}}
-      // The API wrapper might return different structures depending on configuration
       let count = 0;
 
-      // Check if it's a nested structure with success/data
       if (response.data?.success && response.data?.data?.count !== undefined) {
         count = response.data.data.count;
-      }
-      // Check if it's already unwrapped to just the data part
-      else if (response.data?.count !== undefined) {
+      } else if (response.data?.count !== undefined) {
         count = response.data.count;
-      }
-      // Check if the count is at the root level
-      else if (response?.count !== undefined) {
+      } else if (response?.count !== undefined) {
         count = response.count;
       }
 
@@ -180,14 +178,19 @@ class NotificationService {
    */
   async getPreferences(): Promise<NotificationPreferences> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await api.get<any>('/api/v1/notifications/preferences');
+      // Same nested-shape handling as getUnreadCount. (ADS-705)
+      type PreferencesResponse = {
+        data?: {
+          success?: boolean;
+          data?: NotificationPreferences;
+        } & Partial<NotificationPreferences>;
+      };
+      const response = await api.get<PreferencesResponse>('/api/v1/notifications/preferences');
 
-      // Handle nested response structure like other methods
       if (response.data?.success && response.data?.data) {
         return response.data.data;
       } else if (response.data) {
-        return response.data;
+        return response.data as NotificationPreferences;
       }
 
       // Fallback defaults
