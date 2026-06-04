@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Heading, Text, Input } from '@adopt-dont-shop/lib.components';
+import { Heading, Text, Input, useDebouncedValue } from '@adopt-dont-shop/lib.components';
 import {
   FiSearch,
   FiCheckCircle,
@@ -66,6 +66,7 @@ const Rescues: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [statusFilter, setStatusFilter] = useState<string>(
     initialStatusParam && VALID_RESCUE_STATUS_FILTERS.has(initialStatusParam)
       ? initialStatusParam
@@ -76,7 +77,7 @@ const Rescues: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
+  }, [debouncedSearchQuery, statusFilter]);
 
   // The detail pane is driven by the selected rescue id (synced with the URL).
   const [detailRescueId, setDetailRescueId] = useState<string | null>(rescueId ?? null);
@@ -99,7 +100,7 @@ const Rescues: React.FC = () => {
       const result = await rescueService.getAll({
         page: currentPage,
         limit: itemsPerPage,
-        search: searchQuery || undefined,
+        search: debouncedSearchQuery || undefined,
         status:
           statusFilter !== 'all'
             ? (statusFilter as 'pending' | 'verified' | 'suspended' | 'inactive')
@@ -115,7 +116,7 @@ const Rescues: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, itemsPerPage, searchQuery, statusFilter]);
+  }, [currentPage, itemsPerPage, debouncedSearchQuery, statusFilter]);
 
   useEffect(() => {
     fetchRescues();

@@ -180,6 +180,15 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
       message: '',
     },
   }),
+  // ADS-741: real debounce hook so search inputs in list pages can be exercised.
+  useDebouncedValue: <T>(value: T, delayMs: number = 300): T => {
+    const [debounced, setDebounced] = React.useState<T>(value);
+    React.useEffect(() => {
+      const t = setTimeout(() => setDebounced(value), delayMs);
+      return () => clearTimeout(t);
+    }, [value, delayMs]);
+    return debounced;
+  },
   // ADS-585: toast.* is the replacement for native window.alert in app.admin.
   toast: Object.assign(vi.fn(), {
     success: vi.fn(),

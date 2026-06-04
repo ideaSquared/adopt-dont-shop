@@ -8,6 +8,7 @@ import {
   useToast,
   Toast,
   ToastContainer,
+  useDebouncedValue,
   type ToastMessage,
 } from '@adopt-dont-shop/lib.components';
 import { FiSearch, FiUserPlus, FiArrowLeft } from 'react-icons/fi';
@@ -93,6 +94,7 @@ const Users: React.FC = () => {
   const initialStatusParam = searchParams.get('status');
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const [userTypeFilter, setUserTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>(
     initialStatusParam && VALID_USER_STATUS_FILTERS.has(initialStatusParam)
@@ -103,7 +105,7 @@ const Users: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, userTypeFilter, statusFilter]);
+  }, [debouncedSearchQuery, userTypeFilter, statusFilter]);
 
   // Modal state (only for add user and support ticket - detail/edit moved to panel)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -122,7 +124,7 @@ const Users: React.FC = () => {
   const bulkUpdateUsers = useBulkUpdateUsers();
 
   const { data, isLoading, error, refetch } = useUsers({
-    search: searchQuery,
+    search: debouncedSearchQuery,
     userType: userTypeFilter !== 'all' ? userTypeFilter : undefined,
     status: statusFilter !== 'all' ? statusFilter : undefined,
     page,
