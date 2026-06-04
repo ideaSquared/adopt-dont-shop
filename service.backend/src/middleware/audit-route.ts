@@ -211,7 +211,9 @@ export const auditRoute =
       // failure here is logged but does not crash the request (the response
       // is already on the wire). Transactional contracts belong in services.
       void AuditLogService.log({
-        userId: userId ?? '',
+        // ADS-756: null for the system/unauthenticated-route case so the
+        // forensic `user` column stays queryable.
+        userId: userId ?? null,
         action: descriptor.action,
         entity: descriptor.entity,
         entityId: entityId ?? '',

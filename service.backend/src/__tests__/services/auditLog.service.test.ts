@@ -1,6 +1,7 @@
 import { AuditLog } from '../../models/AuditLog';
 import User from '../../models/User';
 import { AuditLogService } from '../../services/auditLog.service';
+import { logger } from '../../utils/logger';
 import { Op } from 'sequelize';
 
 // Logger is already mocked in setup-tests.ts
@@ -150,6 +151,41 @@ describe('AuditLogService', () => {
       });
 
       expect(result.user_email_snapshot).toBeNull();
+    });
+
+    it('writes user=null for system actors and skips the email snapshot lookup (ADS-756)', async () => {
+      const findByPkSpy = vi.spyOn(User, 'findByPk');
+
+      const result = await AuditLogService.log({
+        userId: null,
+        action: 'SCHEDULED_REPORT_EXECUTED',
+        entity: 'ScheduledReport',
+        entityId: 'schedule-1',
+        service: 'reports-worker',
+      });
+
+      expect(result.user).toBeNull();
+      expect(result.user_email_snapshot).toBeNull();
+      expect(findByPkSpy).not.toHaveBeenCalled();
+      findByPkSpy.mockRestore();
+    });
+
+    it('coerces empty-string userId to null and warns (ADS-756 programmer-error guard)', async () => {
+      const warnSpy = vi.spyOn(logger, 'warn');
+
+      const result = await AuditLogService.log({
+        userId: '',
+        action: 'CREATE_PET',
+        entity: 'Pet',
+        entityId: 'pet-1',
+      });
+
+      expect(result.user).toBeNull();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('empty-string userId'),
+        expect.objectContaining({ action: 'CREATE_PET', entity: 'Pet' })
+      );
+      warnSpy.mockRestore();
     });
   });
 
