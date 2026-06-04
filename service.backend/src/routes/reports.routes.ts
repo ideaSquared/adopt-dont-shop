@@ -39,6 +39,12 @@ router.post(
   auditRoute({
     action: 'REPORT_CREATED',
     entity: 'Report',
+    // ADS-754: BaseController.sendSuccess wraps the payload at `data`, and
+    // the SavedReport PK column is `saved_report_id`.
+    entityIdFrom: ctx => {
+      const r = ctx.response as { data?: { saved_report_id?: string } } | undefined;
+      return r?.data?.saved_report_id;
+    },
     metadataFrom: ['body.name', 'body.type'],
   }),
   ReportsController.create
