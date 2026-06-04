@@ -54,7 +54,7 @@ development or staging environment.
 
 ### 2. Verify secrets are valid and distinct
 
-`validate-env.mjs` enforces that all six secrets are present, at least 32 characters
+`validate-env.ts` enforces that all six secrets are present, at least 32 characters
 long, not a placeholder (`CHANGE_THIS…`), and distinct from each other. Run it against
 your production env file before deploying:
 
@@ -71,7 +71,7 @@ value, or is duplicated across secrets — fix it before proceeding.
 
 ### 3. Confirm staging values are not reused
 
-`validate-env.mjs` already rejects known placeholder patterns. For an extra check,
+`validate-env.ts` already rejects known placeholder patterns. For an extra check,
 verify that no production secret shares a value with your staging env file:
 
 ```bash
