@@ -1281,9 +1281,10 @@ export interface FileUploadMetadata {
   checksum: string;
   /**
    * Algorithm used to compute `checksum`. ADS-751: SHA-256 going forward;
-   * historical (pre-ADS-751) rows have no value and were MD5.
+   * historical (pre-ADS-751) DB rows may lack this field on read — the
+   * type reflects the producer contract, not the legacy on-disk shape.
    */
-  checksumAlgo?: 'sha256';
+  checksumAlgo: 'sha256';
   // Allow for additional metadata fields while maintaining type safety
   [key: string]: string | number | boolean | null | JsonObject;
 }
