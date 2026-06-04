@@ -4,6 +4,14 @@ A monorepo containing three React frontends, a Node.js/Express backend, and shar
 
 ## Quick Start
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ideaSquared/adopt-dont-shop)
+
+### Devcontainer / Codespaces (zero local setup)
+
+Click the badge above to open the repo in a GitHub Codespace, or in VS Code locally choose **Reopen in Container**. The devcontainer (`.devcontainer/devcontainer.json`) pins Node 22, runs `npm run setup -- --skip-playwright` on first launch, and ships docker-in-docker so `npm run docker:dev` works inside the container. See [ADS-760](https://linear.app/ideasquared/issue/ADS-760) for the rationale and [`.devcontainer/devcontainer.json`](./.devcontainer/devcontainer.json) for the full config.
+
+For full local control (faster HMR, native Docker performance) follow the prerequisites below.
+
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) v22 — the exact version is pinned in [`.nvmrc`](./.nvmrc) (install via `nvm use`); `package.json` `engines` requires `>=22 <23`

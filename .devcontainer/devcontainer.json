@@ -1,0 +1,54 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
+  "name": "adopt-dont-shop",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": true,
+      "installDockerComposeSwitch": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "forwardPorts": [80, 3000, 3001, 3002, 5000, 5432, 6379],
+  "portsAttributes": {
+    "80": { "label": "nginx (prod-like)", "onAutoForward": "ignore" },
+    "3000": { "label": "app.client", "onAutoForward": "notify" },
+    "3001": { "label": "app.admin", "onAutoForward": "silent" },
+    "3002": { "label": "app.rescue", "onAutoForward": "silent" },
+    "5000": { "label": "service.backend", "onAutoForward": "silent" },
+    "5432": { "label": "postgres", "onAutoForward": "ignore" },
+    "6379": { "label": "redis", "onAutoForward": "ignore" }
+  },
+  "postCreateCommand": "npm run setup -- --skip-playwright",
+  "remoteUser": "node",
+  "containerEnv": {
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  },
+  "mounts": [
+    "source=ads-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
+    "source=ads-turbo-cache,target=${containerWorkspaceFolder}/.turbo,type=volume"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "ms-vscode.vscode-typescript-next",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens",
+        "streetsidesoftware.code-spell-checker",
+        "christian-kohler.npm-intellisense",
+        "redhat.vscode-yaml",
+        "42crunch.vscode-openapi",
+        "humao.rest-client"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "typescript.tsdk": "node_modules/typescript/lib"
+      }
+    }
+  }
+}
