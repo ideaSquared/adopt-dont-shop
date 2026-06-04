@@ -21,7 +21,20 @@ import { AuditLogService } from '../../services/auditLog.service';
 
 // Mock dependencies
 vi.mock('../../models');
-vi.mock('../../services/auditLog.service');
+// Auto-mocking the auditLog module would wipe the AuditLogAction enum that
+// rescue.service now references at runtime (ADS-758). Partial-mock the
+// service so the enum still resolves to its real values.
+vi.mock('../../services/auditLog.service', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../services/auditLog.service')>();
+  return {
+    ...actual,
+    AuditLogService: {
+      log: vi.fn().mockResolvedValue(undefined),
+      getEntityActivityLog: vi.fn(),
+      getLogsByUser: vi.fn(),
+    },
+  };
+});
 vi.mock('../../utils/logger');
 vi.mock('../../services/companies-house.service', () => ({
   verifyCompaniesHouseNumber: vi.fn().mockResolvedValue({ verified: false, reason: 'No API key' }),
@@ -194,7 +207,7 @@ describe('RescueService - Business Logic Tests', () => {
       expect(mockTransaction.commit).toHaveBeenCalled();
       expect(MockedAuditLogService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'create',
+          action: 'RESCUE_CREATED',
           entity: 'rescue',
         })
       );
@@ -406,7 +419,7 @@ describe('RescueService - Business Logic Tests', () => {
       expect(MockedAuditLogService.log).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: mockUserId,
-          action: 'suspend',
+          action: 'RESCUE_SUSPENDED',
           entity: 'rescue',
           entityId: mockRescueId,
         })
@@ -557,10 +570,11 @@ describe('RescueService - Business Logic Tests', () => {
       await RescueService.bulkUpdateRescues([rescueId], 'approve', mockUserId, 'Bulk approval');
 
       // Then: The audit log entry records the 'approve' verb, not 'verify' —
-      // operator intent is preserved per ADS-378.
+      // operator intent is preserved per ADS-378 (now via the SCREAMING_SNAKE
+      // RESCUE_APPROVED / RESCUE_VERIFIED constants per ADS-758).
       expect(MockedAuditLogService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'approve',
+          action: 'RESCUE_APPROVED',
           entity: 'rescue',
           entityId: rescueId,
         })
@@ -584,7 +598,7 @@ describe('RescueService - Business Logic Tests', () => {
 
       expect(MockedAuditLogService.log).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'verify',
+          action: 'RESCUE_VERIFIED',
           entity: 'rescue',
           entityId: rescueId,
         })
@@ -1157,7 +1171,7 @@ describe('RescueService - Business Logic Tests', () => {
       expect(MockedAuditLogService.log).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: mockUserId,
-          action: 'create',
+          action: 'RESCUE_CREATED',
           entity: 'rescue',
           entityId: expect.any(String),
         })

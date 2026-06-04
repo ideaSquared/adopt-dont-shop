@@ -10,12 +10,16 @@ import { emitToRescue } from '../../socket/socket-registry';
 
 // Mock only external services
 const mockGetEntityActivityLog = vi.fn();
-vi.mock('../../services/auditLog.service', () => ({
-  AuditLogService: {
-    log: vi.fn().mockResolvedValue(undefined),
-    getEntityActivityLog: (...args: unknown[]) => mockGetEntityActivityLog(...args),
-  },
-}));
+vi.mock('../../services/auditLog.service', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../services/auditLog.service')>();
+  return {
+    ...actual,
+    AuditLogService: {
+      log: vi.fn().mockResolvedValue(undefined),
+      getEntityActivityLog: (...args: unknown[]) => mockGetEntityActivityLog(...args),
+    },
+  };
+});
 vi.mock('../../services/companies-house.service', () => ({
   verifyCompaniesHouseNumber: vi.fn().mockResolvedValue({ verified: false, reason: 'No API key' }),
 }));
