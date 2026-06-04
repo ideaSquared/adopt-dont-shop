@@ -141,6 +141,16 @@ Every package uses **Vitest** (`vitest run`). The React apps and `lib.components
 
 Tests must cover **behaviour**, not implementation. 100% coverage is expected but tests must always be grounded in business requirements, not internal structure.
 
+### Test layout
+
+Pick the layout that matches the package, and keep new tests inside `src/`:
+
+- **React libs / apps** (`app.*`, `lib.components`, anything exporting `.tsx`): co-locate next to the source — `Button.tsx` + `Button.test.tsx`.
+- **Backend and non-UI libs** (`service.backend`, `lib.api`, `lib.utils`, …): tests in `src/__tests__/` mirroring the source structure (e.g. `src/services/foo.ts` → `src/__tests__/services/foo.test.ts`).
+- **Top-level `__tests__/` outside `src/` is disallowed** — the shared Vitest `include` glob only picks up files under `src/`, so anything else is silently skipped. `scripts/check-workspace-consistency.mjs` enforces this.
+
+This is a forward-looking rule (ADS-737); we are not bulk-moving existing tests. If you touch a file that lives in an old location, move it as part of that change.
+
 ### Coverage thresholds
 
 Since ADS-708, CI runs `test:coverage` (not plain `test`) across `lib.*` and `app.*` and enforces the thresholds declared in `vitest.shared.config.ts`. The baseline is **0%** so existing PRs are not blocked — the infrastructure is in place so individual packages can ratchet upward incrementally (tracked in ADS-717). To raise the bar for a single package, override the inherited thresholds in that package's `vitest.config.ts`:
