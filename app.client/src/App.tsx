@@ -12,7 +12,15 @@ import { DevLoginPanel } from './components/dev/DevLoginPanel';
 import { AppShell } from './components/layout/AppShell';
 import { PublicAuthLayout } from './components/layout/PublicAuthLayout';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { CookieBanner, LegalReacceptanceModal } from '@adopt-dont-shop/lib.legal';
+// ADS-669: legal UI is non-critical to first paint — split it into the
+// `legal-lib` chunk via lazy imports so it loads in parallel with the
+// initial route rather than blocking the main entry bundle.
+const CookieBanner = lazy(() =>
+  import('@adopt-dont-shop/lib.legal').then(m => ({ default: m.CookieBanner }))
+);
+const LegalReacceptanceModal = lazy(() =>
+  import('@adopt-dont-shop/lib.legal').then(m => ({ default: m.LegalReacceptanceModal }))
+);
 import * as styles from './App.css';
 
 const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -110,10 +118,14 @@ function App() {
                 {/* ADS-497 (slice 5): on-page cookie banner. Bottom-anchored, does
                   not block the page. Mounted before the modal so the modal
                   renders on top if both ever surface together. */}
-                <CookieBanner />
+                <Suspense fallback={null}>
+                  <CookieBanner />
+                </Suspense>
                 {/* ADS-497 (slice 2): hard-block modal for users whose last
                   accepted ToS / Privacy version is older than current. */}
-                <LegalReacceptanceModal />
+                <Suspense fallback={null}>
+                  <LegalReacceptanceModal />
+                </Suspense>
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
                     <Route element={<PublicAuthLayout />}>

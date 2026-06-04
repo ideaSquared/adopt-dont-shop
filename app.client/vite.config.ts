@@ -155,10 +155,29 @@ export default defineConfig(({ mode }) => {
       sourcemap: 'hidden',
       rollupOptions: {
         output: {
-          // ADS-475: split heavy vendor deps into stable chunks for cacheability.
+          // ADS-475 / ADS-669: split heavy vendor deps into stable chunks for
+          // cacheability and to keep the initial entry chunk under 500 KB.
           // Vite 8 / rolldown rejects the legacy object form — `manualChunks`
-          // must be a function. Match the same boundaries as the previous map.
+          // must be a function.
           manualChunks(id) {
+            // Split heavy first-party libs so they load alongside the routes
+            // that need them rather than landing in the main entry chunk.
+            if (id.includes('lib.legal')) {
+              return 'legal-lib';
+            }
+            if (id.includes('lib.dev-tools')) {
+              return 'dev-tools-lib';
+            }
+            // lib.chat is eagerly imported via ChatProvider for connection
+            // state, but the bulk of its surface is chat-page UI. Splitting
+            // it into a separate chunk keeps the main entry under 500 KB —
+            // the browser fetches both chunks in parallel.
+            if (id.includes('lib.chat')) {
+              return 'chat-lib';
+            }
+            if (id.includes('lib.notifications')) {
+              return 'notifications-lib';
+            }
             if (!id.includes('node_modules')) {
               return undefined;
             }
@@ -170,6 +189,15 @@ export default defineConfig(({ mode }) => {
             }
             if (id.includes('react-router')) {
               return 'router-vendor';
+            }
+            if (id.includes('react-icons')) {
+              return 'icons-vendor';
+            }
+            if (id.includes('socket.io')) {
+              return 'socket-vendor';
+            }
+            if (id.includes('zod')) {
+              return 'zod-vendor';
             }
             if (id.includes('react-dom') || /\/react\//.test(id)) {
               return 'react-vendor';
