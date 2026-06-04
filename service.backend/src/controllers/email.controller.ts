@@ -3,6 +3,10 @@ import { NotificationType } from '../models/EmailPreference';
 import { EmailPriority, EmailType } from '../models/EmailQueue';
 import { TemplateType, TemplateCategory, TemplateStatus } from '../models/EmailTemplate';
 import emailService from '../services/email.service';
+import {
+  assertNotReplayed,
+  WebhookReplayError,
+} from '../services/email/webhook-idempotency.service';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
 
@@ -292,10 +296,56 @@ export const unsubscribeUser = async (req: Request, res: Response): Promise<void
 export const handleDeliveryWebhook = async (req: Request, res: Response): Promise<void> => {
   const webhookData = req.body;
 
-  // Handle delivery webhook
+  // ADS-734: per-event idempotency. The signature middleware narrows the
+  // replay window to 120 s but does not eliminate it; if we have already
+  // processed this event, short-circuit BEFORE the service runs any
+  // side effects (DB writes, EmailPreference.recordBounce, etc.). Return
+  // 200 — providers retry on 4xx, so we must not reject duplicates with
+  // a client-error status.
+  const provider = (process.env.EMAIL_WEBHOOK_PROVIDER || 'unknown').trim().toLowerCase();
+  const eventId = buildWebhookEventId(webhookData);
+  if (eventId) {
+    try {
+      await assertNotReplayed(provider, eventId);
+    } catch (err) {
+      if (err instanceof WebhookReplayError) {
+        res.status(200).json({ deduplicated: true });
+        return;
+      }
+      throw err;
+    }
+  }
+
   await emailService.handleDeliveryWebhook(webhookData);
 
   res.status(200).json({
     message: 'Webhook processed successfully',
   });
+};
+
+/**
+ * Extract a stable per-event identifier from the parsed webhook body.
+ * Our handler already accepts a normalised `{ messageId, status, ... }`
+ * shape (express-validator enforces the field set), so the canonical
+ * dedup key is `${messageId}.${status}` — a delivered event and a
+ * subsequent opened event for the same message must NOT be deduplicated
+ * against each other. Returns null when the body doesn't carry enough
+ * to key against; in that case dedup is skipped and the legacy path runs.
+ */
+const buildWebhookEventId = (body: unknown): string | null => {
+  if (!body || typeof body !== 'object') {
+    return null;
+  }
+  const record = body as Record<string, unknown>;
+  const messageId = typeof record.messageId === 'string' ? record.messageId : null;
+  const status =
+    typeof record.status === 'string'
+      ? record.status
+      : typeof record.eventType === 'string'
+        ? record.eventType
+        : null;
+  if (!messageId || !status) {
+    return null;
+  }
+  return `${messageId}.${status}`;
 };
