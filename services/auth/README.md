@@ -131,9 +131,27 @@ for adopt-dont-shop's domain.
   verify-email,forgot-password,reset-password}`) bypass token
   validation; everything else returns 401 on invalid / revoked tokens.
 
+**Phase 2.6** — Gateway `/api/auth/*` cutover (lands in
+`services/gateway/src/routes/auth.ts`):
+- The gateway now translates `POST /api/auth/login`,
+  `POST /api/auth/logout`, `POST /api/auth/refresh-token`,
+  `GET /api/auth/me`, and `POST /api/auth/assign-role` into the
+  corresponding `AuthService` gRPC calls. Same shape every
+  extracted vertical will use — REST surface unchanged for the
+  SPA, gRPC under the hood.
+- The Phase 2.5 authenticate middleware sits in front of these
+  routes — Logout / GetMe / AssignRole receive the validated
+  principal via `x-user-*` metadata, Login / RefreshToken don't
+  need it.
+- The monolith's `/api/auth/*` endpoints become dead code; their
+  removal is bundled into Phase 11 (decommission residual
+  monolith) so this PR stays small and reversible.
+
 ## What's NOT here yet
-- **Phase 2.6** — Cutover: gateway routes `/api/auth/*` here; the
-  monolith's auth code deletes.
+- **Phase 3+** — pets, rescue, applications, chat, moderation,
+  matching, audit verticals.
+- **Phase 11** — delete the monolith's now-dead `/api/auth/*`
+  surface.
 
 ## Configuration
 
