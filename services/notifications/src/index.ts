@@ -5,6 +5,7 @@ import { createLogger } from '@adopt-dont-shop/observability';
 
 import { loadConfig } from './config.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
+import { registerSubscribers } from './nats/subscribers.js';
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
@@ -28,6 +29,11 @@ const main = async (): Promise<void> => {
     nats = await connect({ servers: config.natsUrl });
 
     grpc = await startGrpcServer({ config, pool, nats, logger });
+    // NATS subscribers register AFTER gRPC so a fast event arriving on
+    // applications.submitted before we're ready to handle gRPC calls
+    // can't race against partially-constructed deps. Shutdown drains the
+    // whole NATS connection later, which transparently cancels these.
+    registerSubscribers({ nats, deps: { pool, nats }, logger });
     const httpServer = createServer({ config, logger });
     await httpServer.listen({ port: config.port, host: config.host });
 
