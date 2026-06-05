@@ -6,6 +6,7 @@ import { createLogger } from '@adopt-dont-shop/observability';
 import { loadConfig } from './config.js';
 import { createAuthClient } from './grpc-clients/auth-client.js';
 import { createNotificationsClient } from './grpc-clients/notifications-client.js';
+import { createPetsClient } from './grpc-clients/pets-client.js';
 import { createServer } from './server.js';
 import { registerNotificationSubscribers } from './ws/notifications-subscriber.js';
 import { SocketRegistry } from './ws/socket-registry.js';
@@ -18,6 +19,7 @@ const main = async (): Promise<void> => {
   let io: IOServer | undefined;
   let notificationsClient: ReturnType<typeof createNotificationsClient> | undefined;
   let authClient: ReturnType<typeof createAuthClient> | undefined;
+  let petsClient: ReturnType<typeof createPetsClient> | undefined;
 
   try {
     const config = loadConfig();
@@ -26,8 +28,15 @@ const main = async (): Promise<void> => {
     // route plugins / middleware can close over them.
     notificationsClient = createNotificationsClient({ address: config.notificationsGrpcUrl });
     authClient = createAuthClient({ address: config.authGrpcUrl });
+    petsClient = createPetsClient({ address: config.petsGrpcUrl });
 
-    const server = await createServer({ config, logger, notificationsClient, authClient });
+    const server = await createServer({
+      config,
+      logger,
+      notificationsClient,
+      authClient,
+      petsClient,
+    });
 
     await server.listen({ port: config.port, host: config.host });
 
@@ -45,6 +54,7 @@ const main = async (): Promise<void> => {
       natsUrl: config.natsUrl,
       notificationsGrpcUrl: config.notificationsGrpcUrl,
       authGrpcUrl: config.authGrpcUrl,
+      petsGrpcUrl: config.petsGrpcUrl,
       environment: config.environment,
     });
 
@@ -77,6 +87,11 @@ const main = async (): Promise<void> => {
       } catch (err) {
         logger.error('auth client close error', { err });
       }
+      try {
+        petsClient?.close();
+      } catch (err) {
+        logger.error('pets client close error', { err });
+      }
       process.exit(0);
     };
 
@@ -96,6 +111,11 @@ const main = async (): Promise<void> => {
     }
     try {
       authClient?.close();
+    } catch {
+      // Same.
+    }
+    try {
+      petsClient?.close();
     } catch {
       // Same.
     }
