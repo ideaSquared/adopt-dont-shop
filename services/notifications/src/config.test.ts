@@ -8,32 +8,44 @@ describe('loadConfig', () => {
   it('uses the documented defaults when no env vars are set (DATABASE_URL still required)', () => {
     const config = loadConfig({ DATABASE_URL: VALID_DB_URL });
     expect(config.port).toBe(5001);
+    expect(config.grpcPort).toBe(6001);
     expect(config.host).toBe('0.0.0.0');
     expect(config.environment).toBe('development');
     expect(config.databaseUrl).toBe(VALID_DB_URL);
     expect(config.schema).toBe('notifications');
+    expect(config.natsUrl).toBe('nats://nats:4222');
   });
 
   it('honours all env overrides when set', () => {
     const config = loadConfig({
       NOTIFICATIONS_PORT: '5500',
+      NOTIFICATIONS_GRPC_PORT: '6500',
       NOTIFICATIONS_HOST: '127.0.0.1',
       NOTIFICATIONS_SCHEMA: 'notifications_test',
       NODE_ENV: 'production',
       DATABASE_URL: 'postgres://prod:secret@db.example.com:5432/notifications',
+      NATS_URL: 'nats://nats.internal:4222',
     });
 
     expect(config.port).toBe(5500);
+    expect(config.grpcPort).toBe(6500);
     expect(config.host).toBe('127.0.0.1');
     expect(config.environment).toBe('production');
     expect(config.schema).toBe('notifications_test');
     expect(config.databaseUrl).toBe('postgres://prod:secret@db.example.com:5432/notifications');
+    expect(config.natsUrl).toBe('nats://nats.internal:4222');
   });
 
   it('rejects a non-numeric NOTIFICATIONS_PORT', () => {
     expect(() =>
       loadConfig({ NOTIFICATIONS_PORT: 'five-thousand', DATABASE_URL: VALID_DB_URL })
     ).toThrow(/NOTIFICATIONS_PORT must be a positive integer/);
+  });
+
+  it('rejects a non-numeric NOTIFICATIONS_GRPC_PORT', () => {
+    expect(() =>
+      loadConfig({ NOTIFICATIONS_GRPC_PORT: 'six-thousand', DATABASE_URL: VALID_DB_URL })
+    ).toThrow(/NOTIFICATIONS_GRPC_PORT must be a positive integer/);
   });
 
   it('rejects a non-positive NOTIFICATIONS_PORT', () => {

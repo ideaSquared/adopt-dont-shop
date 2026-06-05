@@ -26,17 +26,29 @@ spine online, restated for adopt-dont-shop's domain.
 - `src/migrations/002_create_device_tokens.ts` mirrors `device_tokens`.
 - `src/migrations/003_create_user_notification_prefs.ts` mirrors
   `user_notification_prefs`.
-- `src/db/migrate.ts` runs them via `@adopt-dont-shop/db.runMigrations`
-  (which wraps node-pg-migrate with the four CAD-lesson fixes:
-  createSchema, ignorePattern, search_path, advisory-lock retry).
+- `src/db/migrate.ts` runs them via `@adopt-dont-shop/db.runMigrations`.
 - Run with `npm run db:migrate`.
 
-## What's NOT here yet
+**Phase 1.3** — gRPC `NotificationService`:
+- Proto + grpc-js stubs in `@adopt-dont-shop/proto` (Phase 1.3a, on main).
+- `src/grpc/handlers.ts` — Create / List / Dismiss handlers gated by
+  `@adopt-dont-shop/authz` and using
+  `@adopt-dont-shop/events.withTransaction` for publish-after-commit
+  on `notifications.created` / `notifications.dismissed`.
+- `src/grpc/principal.ts` — extracts the `Principal` from gRPC metadata
+  (`x-user-id`, `x-user-roles`, `x-user-permissions`, `x-rescue-id`).
+- `src/grpc/enum-map.ts` — bidirectional maps between proto3 enums
+  and the Postgres ENUM strings.
+- `src/grpc/adapter.ts` — wraps each handler in the grpc-js
+  `(call, callback)` signature, maps `HandlerError` codes to
+  `grpc.status` constants, scrubs unknown errors to `INTERNAL`.
+- `src/grpc/server.ts` — builds the grpc Server with the three
+  handlers bound to `NotificationServiceService` and binds it on
+  `NOTIFICATIONS_GRPC_PORT` (default 6001).
+- `src/index.ts` connects pg + NATS, starts both Fastify and the
+  gRPC server, and orchestrates graceful shutdown on SIGTERM/SIGINT.
 
-- **gRPC `NotificationService.{Create,List,Dismiss}`.** Phase 1.3 —
-  adds the proto under `packages/proto/proto/notifications/v1/`,
-  flips `outputServices=grpc-js` in `buf.gen.yaml`, brings
-  `@grpc/grpc-js` as a runtime dep.
+## What's NOT here yet
 - **NATS subscriber for fan-out + publish-after-commit on create.**
   Phase 1.4 — uses `@adopt-dont-shop/events` helpers; consumes
   events from other services (pets, applications) and produces
@@ -51,20 +63,20 @@ spine online, restated for adopt-dont-shop's domain.
 
 ## Configuration
 
-| Env var                | Default         | Required | Purpose                                                       |
-| ---------------------- | --------------- | -------- | ------------------------------------------------------------- |
-| `NOTIFICATIONS_PORT`   | `5001`          |          | HTTP port for `/health/simple`.                               |
-| `NOTIFICATIONS_HOST`   | `0.0.0.0`       |          | Bind interface.                                               |
-| `NOTIFICATIONS_SCHEMA` | `notifications` |          | Postgres schema this service owns. Override for parallel test DBs. |
-| `DATABASE_URL`         | —               | ✅       | Postgres connection string. Same physical Postgres as `service.backend`. |
-| `NODE_ENV`             | `development`   |          | Surfaces in health + logs.                                    |
+| Env var                      | Default              | Required | Purpose                                                       |
+| ---------------------------- | -------------------- | -------- | ------------------------------------------------------------- |
+| `NOTIFICATIONS_PORT`         | `5001`               |          | HTTP port for `/health/simple`.                               |
+| `NOTIFICATIONS_GRPC_PORT`    | `6001`               |          | gRPC port `NotificationService` binds.                        |
+| `NOTIFICATIONS_HOST`         | `0.0.0.0`            |          | Bind interface (both HTTP + gRPC).                            |
+| `NOTIFICATIONS_SCHEMA`       | `notifications`      |          | Postgres schema this service owns. Override for parallel test DBs. |
+| `DATABASE_URL`               | —                    | ✅       | Postgres connection string. Same physical Postgres as `service.backend`. |
+| `NATS_URL`                   | `nats://nats:4222`   |          | NATS bus URL.                                                 |
+| `NODE_ENV`                   | `development`        |          | Surfaces in health + logs.                                    |
 
 Plus the standard observability env vars consumed by
 `@adopt-dont-shop/observability`: `OTEL_EXPORTER_OTLP_ENDPOINT`,
 `OTEL_SERVICE_NAME`, `SENTRY_DSN`, `LOG_LEVEL`, `LOKI_URL`. See
 that package's README.
-
-Phase 1.3+ adds `NATS_URL`, `GRPC_PORT`.
 
 ## Running
 
