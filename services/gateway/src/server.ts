@@ -23,6 +23,7 @@ import type { GatewayConfig } from './config.js';
 import type { AuthClient } from './grpc-clients/auth-client.js';
 import type { NotificationsClient } from './grpc-clients/notifications-client.js';
 import { registerAuthenticate } from './middleware/authenticate.js';
+import { registerAuthRoutes } from './routes/auth.js';
 import { registerNotificationsRoutes } from './routes/notifications.js';
 
 export type CreateServerOptions = {
@@ -97,6 +98,13 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // Service-specific routes register BEFORE the catch-all proxy.
   // Fastify's first-registered-wins prefix routing picks them off
   // before the catch-all sees the request.
+  //
+  // Phase 2.6: /api/auth/* now lands here instead of the monolith.
+  // The authClient is re-used from the authenticate middleware so
+  // we don't open a second gRPC channel for the same upstream.
+  if (opts.authClient) {
+    await registerAuthRoutes(server, { client: opts.authClient });
+  }
   if (opts.notificationsClient) {
     await registerNotificationsRoutes(server, { client: opts.notificationsClient });
   }
