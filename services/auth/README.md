@@ -84,15 +84,27 @@ for adopt-dont-shop's domain.
   (`['BEGIN', '…', 'COMMIT', 'NATS_PUBLISH']`), idempotency on
   already-revoked tokens, and `super_admin` bypass.
 
-## What's NOT here yet
+**Phase 2.3c** — gRPC server boot + adapter:
+- `src/grpc/adapter.ts` — `adapt` (principal-required) and
+  `adaptUnauth` (principal-optional, for Login/RefreshToken/
+  ValidateToken). Both map `HandlerError.code → grpc.status` and
+  scrub unknown errors to `INTERNAL` (logged via `logger.error`).
+- `src/grpc/principal.ts` — `extractPrincipal` from the
+  `x-user-id` / `x-user-roles` / `x-user-permissions` / `x-rescue-id`
+  metadata headers (same shape as services/notifications).
+- `src/grpc/password-hasher.ts` — `createBcryptPasswordHasher`
+  wrapping the same `bcryptjs` the monolith uses (existing hashes
+  validate without a re-hash on first login).
+- `src/grpc/token-issuer.ts` — `createJwtTokenIssuer` wrapping
+  `jsonwebtoken`. Access tokens 15m, refresh tokens 30d. Separate
+  secrets — a leaked access secret doesn't compromise refresh.
+- `src/grpc/server.ts` — `createGrpcServer` + `startGrpcServer`.
+  Same shape as services/notifications. Binds all six
+  AuthService RPCs on `AUTH_GRPC_PORT` (default 6002).
+- `src/index.ts` wires `pool` + `nats` + hasher + issuer into the
+  gRPC server and runs it alongside the HTTP /health surface.
 
-- **Phase 2.3c** — gRPC server boot + adapter:
-  - the `(call, callback)` adapter that wraps each handler and maps
-    `HandlerError.code → grpc.status` (port of
-    `services/notifications/src/grpc/adapter.ts`)
-  - production `passwordHasher` (bcryptjs) + `tokenIssuer`
-    (jsonwebtoken) implementations
-  - gRPC server boot inside `createServer` on `AUTH_GRPC_PORT` 6002
+## What's NOT here yet
 - **Phase 2.4** — NATS publishers: `auth.userCreated`,
   `auth.roleAssigned`, `auth.tokenRevoked`. Downstream services
   (notifications, applications) consume these.

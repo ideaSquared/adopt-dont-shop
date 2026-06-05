@@ -1,0 +1,98 @@
+// gRPC server boot — binds AuthServiceService to the six adapter-
+// wrapped handlers and starts listening on AUTH_GRPC_PORT.
+//
+// Same shape as services/notifications/src/grpc/server.ts. Dev uses
+// insecure credentials (TLS terminates at nginx in front); production
+// keeps gRPC HTTP/2 cleartext on the cluster network until a future
+// deploy wants mTLS.
+
+import { promisify } from 'node:util';
+
+import { Server, ServerCredentials } from '@grpc/grpc-js';
+
+import type { NatsConnection } from 'nats';
+import type { Pool } from 'pg';
+import type { Logger } from 'winston';
+
+import { AuthV1 } from '@adopt-dont-shop/proto';
+
+import type { AuthConfig } from '../config.js';
+
+import { adapt, adaptUnauth } from './adapter.js';
+import {
+  assignRole,
+  getMe,
+  login,
+  logout,
+  refreshToken,
+  validateToken,
+  type HandlerDeps,
+} from './handlers.js';
+
+export type CreateGrpcServerOptions = {
+  config: AuthConfig;
+  pool: Pool;
+  nats: NatsConnection;
+  passwordHasher: HandlerDeps['passwordHasher'];
+  tokenIssuer: HandlerDeps['tokenIssuer'];
+  logger: Logger;
+};
+
+export type RunningGrpcServer = {
+  server: Server;
+  port: number;
+  shutdown: () => Promise<void>;
+};
+
+export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
+  const { config, pool, nats, passwordHasher, tokenIssuer, logger } = opts;
+  const deps: HandlerDeps = { pool, nats, passwordHasher, tokenIssuer };
+  const server = new Server();
+
+  server.addService(AuthV1.AuthServiceService, {
+    // Token-minting / verification RPCs — no caller principal required.
+    login: adaptUnauth(login, { deps, logger }),
+    refreshToken: adaptUnauth(refreshToken, { deps, logger }),
+    validateToken: adaptUnauth(validateToken, { deps, logger }),
+    // Principal-required RPCs.
+    logout: adapt(logout, { deps, logger }),
+    getMe: adapt(getMe, { deps, logger }),
+    assignRole: adapt(assignRole, { deps, logger }),
+  });
+
+  logger.info('gRPC AuthService registered', {
+    methods: ['login', 'logout', 'refreshToken', 'validateToken', 'getMe', 'assignRole'],
+    grpcPort: config.grpcPort,
+  });
+
+  return server;
+};
+
+export const startGrpcServer = async (
+  opts: CreateGrpcServerOptions
+): Promise<RunningGrpcServer> => {
+  const { config, logger } = opts;
+  const server = createGrpcServer(opts);
+
+  const bindAsync = promisify<string, ServerCredentials, number>(server.bindAsync.bind(server));
+  const port = await bindAsync(
+    `${opts.config.host}:${config.grpcPort}`,
+    ServerCredentials.createInsecure()
+  );
+
+  logger.info('gRPC server listening', { port, host: opts.config.host });
+
+  return {
+    server,
+    port,
+    shutdown: () =>
+      new Promise<void>(resolve => {
+        server.tryShutdown(err => {
+          if (err) {
+            logger.error('gRPC server shutdown error', { err });
+          }
+          resolve();
+        });
+      }),
+  };
+};
