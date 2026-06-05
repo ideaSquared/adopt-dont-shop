@@ -1,0 +1,76 @@
+# service.auth
+
+Auth vertical — Phase 2 of the microservices migration.
+
+Owns the `auth.*` schema (User, RefreshToken, RevokedToken, Role,
+Permission, UserRole, RolePermission, TwoFactorRecovery, DeviceToken,
+IpRule, UserConsent) and exposes `AuthService.{Login, Logout,
+RefreshToken, ValidateToken, GetMe, AssignRole}` over gRPC.
+
+CAD Phase 4 equivalent — the auth pattern that brought CAD's gate
+online (Lucia + JWT + bcrypt + CASL ability serialisation), restated
+for adopt-dont-shop's domain.
+
+## What's shipped so far
+
+**Phase 2.1** — boot skeleton:
+- `src/index.ts` starts a Fastify server on `AUTH_PORT` (default
+  5002), wires `/health/simple`.
+- `src/instrumentation.ts` boots OpenTelemetry via
+  `@adopt-dont-shop/observability` with `serviceName: 'service.auth'`.
+- `src/config.ts` env validation. Hard-requires `DATABASE_URL`,
+  `JWT_SECRET`, `JWT_REFRESH_SECRET` so misconfiguration fails fast
+  at boot rather than at first login attempt.
+- `src/server.ts` `createServer({ config, logger? })`.
+
+## What's NOT here yet
+
+- **Phase 2.2** — `auth.*` schema + migrations. Ports
+  `service.backend`'s baseline users / roles / permissions tables
+  into the `auth` schema via `@adopt-dont-shop/db`.
+- **Phase 2.3** — gRPC `AuthService`:
+  - proto + grpc-js stubs in `@adopt-dont-shop/proto`
+  - handler logic: Login (bcrypt compare → JWT mint), Logout
+    (revoke refresh), RefreshToken (rotate), ValidateToken (cheap
+    JWT verify — hot path), GetMe (denormalise principal),
+    AssignRole (admin-only)
+  - gRPC server boot + adapter (same pattern as `service.notifications`)
+- **Phase 2.4** — NATS publishers: `auth.userCreated`,
+  `auth.roleAssigned`, `auth.tokenRevoked`. Downstream services
+  (notifications, applications) consume these.
+- **Phase 2.5** — Gateway auth middleware: every non-auth route
+  calls `service.auth.ValidateToken` to populate the
+  `x-user-{id,roles,permissions,rescue-id}` metadata headers (which
+  the Phase 1.6 dev-mode currently trusts from the client). Same
+  middleware also gates HTTP routes by `ability.can` via
+  `@adopt-dont-shop/authz`.
+- **Phase 2.6** — Cutover: gateway routes `/api/auth/*` here; the
+  monolith's auth code deletes.
+
+## Configuration
+
+| Env var               | Default            | Required | Purpose                                                       |
+| --------------------- | ------------------ | -------- | ------------------------------------------------------------- |
+| `AUTH_PORT`           | `5002`             |          | HTTP port for `/health/simple`.                               |
+| `AUTH_GRPC_PORT`      | `6002`             |          | gRPC port `AuthService` will bind (Phase 2.3c).               |
+| `AUTH_HOST`           | `0.0.0.0`          |          | Bind interface (both HTTP + gRPC).                            |
+| `AUTH_SCHEMA`         | `auth`             |          | Postgres schema. Override for parallel test DBs.              |
+| `DATABASE_URL`        | —                  | ✅       | Postgres connection string. Same physical Postgres as `service.backend`. |
+| `NATS_URL`            | `nats://nats:4222` |          | NATS bus URL.                                                 |
+| `JWT_SECRET`          | —                  | ✅       | Access-token signing secret. Boot fails without it.           |
+| `JWT_REFRESH_SECRET`  | —                  | ✅       | Refresh-token signing secret. Distinct from `JWT_SECRET` by design — a leaked access secret doesn't compromise refresh. |
+| `NODE_ENV`            | `development`      |          | Surfaces in health + logs.                                    |
+
+Plus the standard observability env vars consumed by
+`@adopt-dont-shop/observability`.
+
+## Running
+
+```bash
+# Dev — hot reload, OTel SDK loaded via --import
+npm run dev
+
+# Production build
+npm run build
+npm run start
+```

@@ -1,0 +1,38 @@
+{
+  "name": "@adopt-dont-shop/service.auth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Auth service — Phase 2 extraction. Owns the auth.* schema (User, RefreshToken, RevokedToken, Role, Permission, UserRole, RolePermission, TwoFactorRecovery, DeviceToken, IpRule, UserConsent) and exposes gRPC AuthService.{Login, Logout, RefreshToken, ValidateToken, GetMe, AssignRole}. Phase 2.1 commit is just the boot skeleton + health endpoint — schema, gRPC, NATS, gateway wiring land in subsequent commits.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/server.ts",
+      "import": "./src/server.ts",
+      "default": "./src/server.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx watch --import ./src/instrumentation.ts ./src/index.ts",
+    "start": "node --import ./dist/instrumentation.js ./dist/index.js",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@adopt-dont-shop/observability": "*",
+    "fastify": "^5.8.5"
+  }
+}
