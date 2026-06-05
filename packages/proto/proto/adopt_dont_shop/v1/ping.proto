@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package adopt_dont_shop.v1;
+
+// Ping is the canonical smoke service — exists only to exercise the
+// hermetic codegen pipeline. Every real domain (auth, pets, applications,
+// chat, ...) gets its own .proto file in a sibling directory once those
+// services extract. This file stays as a deliberate smoke target so the
+// toolchain has something to compile when no service exists yet.
+service Ping {
+  // Echo returns the request message verbatim. The gateway's
+  // /health/proto endpoint and the dependency-light smoke harness both
+  // call this to assert the proto pipeline is wired end-to-end.
+  rpc Echo(EchoRequest) returns (EchoResponse);
+}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string message = 1;
+  // Server-assigned RFC 3339 timestamp of when the request was received.
+  // Used by smoke tests to assert round-trip latency budgets.
+  string received_at = 2;
+}
