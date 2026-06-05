@@ -19,6 +19,11 @@ export type GatewayConfig = {
   // service.notifications gRPC URL — Phase 1.6 cuts /api/notifications/*
   // over to this address. Phase 2+ services add their own URLs here.
   notificationsGrpcUrl: string;
+  // service.auth gRPC URL — Phase 2.5 onwards the gateway calls
+  // AuthService.ValidateToken for every non-public request so the
+  // x-user-* metadata is server-derived from a JWT instead of being
+  // client-trusted (the Phase 1.5 dev mode).
+  authGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 4000;
@@ -26,6 +31,7 @@ const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_UPSTREAM = 'http://service-backend:5000';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
 const DEFAULT_NOTIFICATIONS_GRPC_URL = 'service-notifications:6001';
+const DEFAULT_AUTH_GRPC_URL = 'service-auth:6002';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig => {
   const portRaw = env.GATEWAY_PORT?.trim();
@@ -41,5 +47,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     environment: env.NODE_ENV?.trim() || 'development',
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     notificationsGrpcUrl: env.NOTIFICATIONS_GRPC_URL?.trim() || DEFAULT_NOTIFICATIONS_GRPC_URL,
+    authGrpcUrl: env.AUTH_GRPC_URL?.trim() || DEFAULT_AUTH_GRPC_URL,
   };
 };

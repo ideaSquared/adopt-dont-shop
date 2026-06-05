@@ -4,6 +4,7 @@ import type { Server as IOServer } from 'socket.io';
 import { createLogger } from '@adopt-dont-shop/observability';
 
 import { loadConfig } from './config.js';
+import { createAuthClient } from './grpc-clients/auth-client.js';
 import { createNotificationsClient } from './grpc-clients/notifications-client.js';
 import { createServer } from './server.js';
 import { registerNotificationSubscribers } from './ws/notifications-subscriber.js';
@@ -16,17 +17,17 @@ const main = async (): Promise<void> => {
   let nats: NatsConnection | undefined;
   let io: IOServer | undefined;
   let notificationsClient: ReturnType<typeof createNotificationsClient> | undefined;
+  let authClient: ReturnType<typeof createAuthClient> | undefined;
 
   try {
     const config = loadConfig();
 
     // gRPC clients to extracted services come up before Fastify so the
-    // route plugins can close over them. service.notifications is the
-    // only one for now (Phase 1.6); auth/pets/applications etc. add
-    // their own URLs + clients here as they extract.
+    // route plugins / middleware can close over them.
     notificationsClient = createNotificationsClient({ address: config.notificationsGrpcUrl });
+    authClient = createAuthClient({ address: config.authGrpcUrl });
 
-    const server = await createServer({ config, logger, notificationsClient });
+    const server = await createServer({ config, logger, notificationsClient, authClient });
 
     await server.listen({ port: config.port, host: config.host });
 
@@ -43,6 +44,7 @@ const main = async (): Promise<void> => {
       upstream: config.upstreamBackendUrl,
       natsUrl: config.natsUrl,
       notificationsGrpcUrl: config.notificationsGrpcUrl,
+      authGrpcUrl: config.authGrpcUrl,
       environment: config.environment,
     });
 
@@ -70,6 +72,11 @@ const main = async (): Promise<void> => {
       } catch (err) {
         logger.error('notifications client close error', { err });
       }
+      try {
+        authClient?.close();
+      } catch (err) {
+        logger.error('auth client close error', { err });
+      }
       process.exit(0);
     };
 
@@ -84,6 +91,11 @@ const main = async (): Promise<void> => {
     }
     try {
       notificationsClient?.close();
+    } catch {
+      // Same.
+    }
+    try {
+      authClient?.close();
     } catch {
       // Same.
     }
