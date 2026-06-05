@@ -45,3 +45,26 @@ export type ApplicationRejectedEvent = {
   rejectedAt: string;
   reason?: string;
 };
+
+// auth.userLoggedIn — service.auth publishes after every successful
+// login (Phase 2.3b). service.notifications surfaces a security
+// notification so the user can spot unrecognised sign-ins. Mirrors
+// what GitHub / Google account-security emails do — the in-app
+// channel is the cheapest first cut; an email worker can subscribe to
+// the same subject later for an additional channel.
+export type AuthUserLoggedInEvent = {
+  userId: UserId;
+  ipAddress: string | null;
+  userAgent: string | null;
+};
+
+// auth.roleAssigned — service.auth publishes when an admin grants a
+// user a role (e.g. promotes an adopter to rescue_staff). The user
+// gets an in-app notification announcing the new role + a hint about
+// the new affordances.
+export type AuthRoleAssignedEvent = {
+  targetUserId: UserId;
+  role: string;
+  assignedBy: UserId;
+  reason: string | null;
+};

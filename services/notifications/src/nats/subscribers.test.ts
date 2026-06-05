@@ -8,6 +8,8 @@ import {
   buildApplicationApprovedCreate,
   buildApplicationRejectedCreate,
   buildApplicationSubmittedCreate,
+  buildAuthRoleAssignedCreate,
+  buildAuthUserLoggedInCreate,
   registerSubscribers,
 } from './subscribers.js';
 
@@ -92,6 +94,61 @@ describe('event → CreateNotificationRequest translation', () => {
       expect(data.reason).toBeNull();
     });
   });
+
+  describe('buildAuthUserLoggedInCreate', () => {
+    it('produces a LOW-priority ACCOUNT_SECURITY in-app notification with the IP + UA', () => {
+      const req = buildAuthUserLoggedInCreate({
+        userId: 'usr-a' as UserId,
+        ipAddress: '203.0.113.7',
+        userAgent: 'Chrome on macOS',
+      });
+      expect(req.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_ACCOUNT_SECURITY);
+      expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_LOW);
+      expect(req.channel).toBe(NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP);
+      expect(req.message).toContain('203.0.113.7');
+      expect(req.message).toContain('Chrome on macOS');
+      expect(req.relatedEntityType).toBe(
+        NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY
+      );
+    });
+
+    it('falls back gracefully when ipAddress / userAgent are null', () => {
+      const req = buildAuthUserLoggedInCreate({
+        userId: 'usr-a' as UserId,
+        ipAddress: null,
+        userAgent: null,
+      });
+      expect(req.message).toContain('unknown location');
+      expect(req.message).not.toContain('null');
+    });
+  });
+
+  describe('buildAuthRoleAssignedCreate', () => {
+    it('announces the new role with NORMAL priority and the canonical role string', () => {
+      const req = buildAuthRoleAssignedCreate({
+        targetUserId: 'usr-a' as UserId,
+        role: 'rescue_staff',
+        assignedBy: 'usr-admin' as UserId,
+        reason: null,
+      });
+      expect(req.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_STAFF_ASSIGNMENT);
+      expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL);
+      expect(req.message).toContain('rescue_staff');
+      const data = JSON.parse(req.dataJson) as Record<string, unknown>;
+      expect(data.role).toBe('rescue_staff');
+      expect(data.assignedBy).toBe('usr-admin');
+    });
+
+    it('appends the reason when supplied', () => {
+      const req = buildAuthRoleAssignedCreate({
+        targetUserId: 'usr-a' as UserId,
+        role: 'moderator',
+        assignedBy: 'usr-admin' as UserId,
+        reason: 'community trust',
+      });
+      expect(req.message).toContain('Reason: community trust');
+    });
+  });
 });
 
 // --- Subscriber registration ----------------------------------------
@@ -130,12 +187,12 @@ describe('registerSubscribers', () => {
     silly: () => undefined,
   } as unknown as Parameters<typeof registerSubscribers>[0]['logger'];
 
-  it('registers a NATS subscription per known application.* subject', () => {
+  it('registers a NATS subscription per known cross-service subject', () => {
     const { nats, subscribeFn } = makeNats();
 
     const subs = registerSubscribers({ nats, deps, logger });
 
-    expect(subs).toHaveLength(3);
+    expect(subs).toHaveLength(5);
     // Subscribed subjects (raw nats.subscribe receives the subject as
     // first arg, then an options object containing `queue`).
     const subjects = subscribeFn.mock.calls.map(call => call[0]);
@@ -143,6 +200,8 @@ describe('registerSubscribers', () => {
       'applications.submitted',
       'applications.approved',
       'applications.rejected',
+      'auth.userLoggedIn',
+      'auth.roleAssigned',
     ]);
   });
 
