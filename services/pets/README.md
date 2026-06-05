@@ -45,12 +45,39 @@ domain + publish-after-commit on `pets.statusChanged`.
 - `src/db/migrate.ts` runs them via `@adopt-dont-shop/db.runMigrations`.
   Run with `npm run db:migrate`.
 
+**Phase 3.3a** — proto + grpc-js stubs:
+- `proto/adopt_dont_shop/pets/v1/pet.proto` in `@adopt-dont-shop/proto`
+  defines `PetService.{Create, Get, List, Update, UpdateStatus,
+  Delete}` + the `Pet` / `PetStatusTransition` messages + 5 enums.
+
+**Phase 3.3b** — handler logic (pure functions, no gRPC transport yet):
+- `src/grpc/status-machine.ts` — the pure, I/O-free legal-transition
+  table for the pet status state machine. `deceased` is terminal;
+  self-transitions rejected.
+- `src/grpc/enum-map.ts` — PetStatus/Type/Gender/Size/AgeGroup mappers
+  between the Postgres ENUM strings and the `PetsV1` proto integers.
+- `src/grpc/handlers.ts` — the six RPCs over
+  `(deps, principal, request)`:
+  - **create** — `pets.create` scoped to the target rescue; INSERT +
+    `pets.created` after commit.
+  - **get** / **list** — `pets.read`; list does keyset pagination +
+    status/type/size/rescue filters (the adopter browse path).
+  - **update** — `pets.update` scoped to the pet's rescue; writes only
+    the supplied optional fields; `pets.updated` after commit.
+  - **updateStatus** — the event-sourced command. Validates the
+    transition against the status-machine, appends a
+    `pet_status_transitions` row + denormalises `pets.status` in ONE
+    transaction, publishes `pets.statusChanged` after commit.
+  - **delete** — `pets.delete` scoped; soft-delete + `pets.deleted`.
+- 73 tests across status-machine, enum-map, and handlers (rescue-scope
+  gating, super_admin bypass, publish-after-commit call ordering,
+  illegal-transition rejection, keyset pagination).
+
 ## What's NOT here yet
 
-- **Phase 3.3** — gRPC `PetService`:
-  - proto + grpc-js stubs in `@adopt-dont-shop/proto`
-  - handler logic (event-sourced status machine + standard CRUD)
-  - gRPC server boot + adapter (same pattern as service.auth)
+- **Phase 3.3c** — gRPC server boot + adapter (port of
+  `services/auth/src/grpc/{adapter,server}.ts`), wired into
+  `index.ts` on `PETS_GRPC_PORT`.
 - **Phase 3.4** — NATS publishers: `pets.created`,
   `pets.statusChanged`, `pets.deleted` etc. Downstream services
   (notifications, matching, moderation, applications) consume these.

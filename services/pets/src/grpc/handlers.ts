@@ -1,0 +1,666 @@
+// gRPC handler implementations for PetService.{Create, Get, List,
+// Update, UpdateStatus, Delete}. Plain async functions over
+// (deps, principal, request); the adapter (Phase 3.3c) wraps them in
+// `(call, callback)` and maps HandlerError → grpc.status. Same
+// pure-handler-plus-thin-adapter shape as service.auth /
+// service.notifications.
+//
+// Discipline:
+//   - State-changing handlers run their DB write + NATS event inside
+//     @adopt-dont-shop/events.withTransaction so events only fire after
+//     commit (publish-after-commit).
+//   - UpdateStatus is the event-sourced command: it validates the
+//     transition against the pure status-machine, writes the new
+//     pets.status + appends a pet_status_transitions row in ONE
+//     transaction, and publishes pets.statusChanged after commit.
+//   - Permission gating uses @adopt-dont-shop/authz.requirePermission
+//     scoped to the pet's rescue (rescue staff can only mutate their
+//     own rescue's pets; super_admin bypasses).
+//   - List is the public-ish browse path — pets.read, no rescue scope
+//     unless the caller filters by rescue_id.
+
+import { randomUUID } from 'node:crypto';
+
+import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
+import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
+import type { Permission, RescueId } from '@adopt-dont-shop/lib.types';
+import {
+  PetsV1,
+  type CreatePetRequest,
+  type CreatePetResponse,
+  type DeletePetRequest,
+  type DeletePetResponse,
+  type GetPetRequest,
+  type GetPetResponse,
+  type ListPetsRequest,
+  type ListPetsResponse,
+  type Pet,
+  type PetStatusTransition,
+  type UpdatePetRequest,
+  type UpdatePetResponse,
+  type UpdatePetStatusRequest,
+  type UpdatePetStatusResponse,
+} from '@adopt-dont-shop/proto';
+
+import {
+  ageGroupFromDb,
+  ageGroupToDb,
+  genderFromDb,
+  genderToDb,
+  sizeFromDb,
+  sizeToDb,
+  statusFromDb,
+  statusToDb,
+  typeFromDb,
+  typeToDb,
+  type PetStatusDb,
+  type PetTypeDb,
+  type PetGenderDb,
+  type PetSizeDb,
+  type PetAgeGroupDb,
+} from './enum-map.js';
+import { isLegalTransition } from './status-machine.js';
+
+export type HandlerDeps = WithTransactionDeps;
+
+export type HandlerErrorCode =
+  | 'INVALID_ARGUMENT'
+  | 'UNAUTHENTICATED'
+  | 'PERMISSION_DENIED'
+  | 'NOT_FOUND'
+  | 'INTERNAL';
+
+export class HandlerError extends Error {
+  constructor(
+    public readonly code: HandlerErrorCode,
+    message: string
+  ) {
+    super(message);
+    this.name = 'HandlerError';
+  }
+}
+
+// --- Row shape (mirrors the columns the proto surfaces) --------------
+
+type PetRow = {
+  pet_id: string;
+  name: string;
+  rescue_id: string | null;
+  type: PetTypeDb;
+  status: PetStatusDb;
+  gender: PetGenderDb;
+  size: PetSizeDb;
+  age_group: PetAgeGroupDb;
+  breed_id: string | null;
+  secondary_breed_id: string | null;
+  short_description: string | null;
+  long_description: string | null;
+  age_years: number | null;
+  age_months: number | null;
+  color: string | null;
+  archived: boolean;
+  featured: boolean;
+  priority_listing: boolean;
+  adoption_fee_minor: number | null;
+  adoption_fee_currency: string | null;
+  special_needs: boolean;
+  house_trained: boolean;
+  temperament: string[] | null;
+  tags: string[] | null;
+  // extra_json is assembled from the long-tail columns the SELECT pulls
+  // back as a jsonb object via row_to_json minus the explicit columns —
+  // but to keep the query simple we just read the columns we surface and
+  // synthesise extra_json from the remaining ones we SELECT explicitly.
+  good_with_children: boolean | null;
+  good_with_dogs: boolean | null;
+  good_with_cats: boolean | null;
+  good_with_small_animals: boolean | null;
+  medical_notes: string | null;
+  behavioral_notes: string | null;
+  view_count: number;
+  favorite_count: number;
+  application_count: number;
+  available_since: Date | null;
+  adopted_date: Date | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+function rowToProto(row: PetRow): Pet {
+  const extra = {
+    color: row.color,
+    goodWithChildren: row.good_with_children,
+    goodWithDogs: row.good_with_dogs,
+    goodWithCats: row.good_with_cats,
+    goodWithSmallAnimals: row.good_with_small_animals,
+    medicalNotes: row.medical_notes,
+    behavioralNotes: row.behavioral_notes,
+  };
+  return {
+    petId: row.pet_id,
+    name: row.name,
+    rescueId: row.rescue_id ?? undefined,
+    type: typeFromDb(row.type),
+    status: statusFromDb(row.status),
+    gender: genderFromDb(row.gender),
+    size: sizeFromDb(row.size),
+    ageGroup: ageGroupFromDb(row.age_group),
+    breedId: row.breed_id ?? undefined,
+    secondaryBreedId: row.secondary_breed_id ?? undefined,
+    shortDescription: row.short_description ?? undefined,
+    longDescription: row.long_description ?? undefined,
+    ageYears: row.age_years ?? undefined,
+    ageMonths: row.age_months ?? undefined,
+    color: row.color ?? undefined,
+    archived: row.archived,
+    featured: row.featured,
+    priorityListing: row.priority_listing,
+    adoptionFeeMinor: row.adoption_fee_minor ?? undefined,
+    adoptionFeeCurrency: row.adoption_fee_currency ?? undefined,
+    specialNeeds: row.special_needs,
+    houseTrained: row.house_trained,
+    temperamentJson: JSON.stringify(row.temperament ?? []),
+    tagsJson: JSON.stringify(row.tags ?? []),
+    extraJson: JSON.stringify(extra),
+    viewCount: row.view_count,
+    favoriteCount: row.favorite_count,
+    applicationCount: row.application_count,
+    availableSince: row.available_since?.toISOString(),
+    adoptedDate: row.adopted_date?.toISOString(),
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
+}
+
+const PETS_SELECT = `
+  pet_id, name, rescue_id, type, status, gender, size, age_group,
+  breed_id, secondary_breed_id, short_description, long_description,
+  age_years, age_months, color, archived, featured, priority_listing,
+  adoption_fee_minor, adoption_fee_currency, special_needs, house_trained,
+  temperament, tags, good_with_children, good_with_dogs, good_with_cats,
+  good_with_small_animals, medical_notes, behavioral_notes,
+  view_count, favorite_count, application_count, available_since,
+  adopted_date, created_at, updated_at
+`;
+
+const PETS_CREATE: Permission = 'pets.create' as Permission;
+const PETS_READ: Permission = 'pets.read' as Permission;
+const PETS_UPDATE: Permission = 'pets.update' as Permission;
+const PETS_DELETE: Permission = 'pets.delete' as Permission;
+
+// --- Create ----------------------------------------------------------
+
+export async function createPet(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: CreatePetRequest
+): Promise<CreatePetResponse> {
+  if (!req.name) {
+    throw new HandlerError('INVALID_ARGUMENT', 'name is required');
+  }
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  if (req.type === PetsV1.PetType.PET_TYPE_UNSPECIFIED) {
+    throw new HandlerError('INVALID_ARGUMENT', 'type is required');
+  }
+
+  // pets.create scoped to the target rescue. super_admin bypasses.
+  if (!requirePermission(principal, PETS_CREATE, { rescueId: req.rescueId as RescueId })) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_CREATE}' required for this rescue`);
+  }
+
+  const petId = randomUUID();
+  let inserted: PetRow | undefined;
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    const result = await client.query<PetRow>(
+      `
+      INSERT INTO pets.pets (
+        pet_id, name, rescue_id, type, gender, size, age_group, status,
+        breed_id, secondary_breed_id, short_description, long_description,
+        age_years, age_months, adoption_fee_minor, adoption_fee_currency,
+        special_needs, house_trained, temperament, tags,
+        view_count, favorite_count, application_count, version,
+        created_at, updated_at, created_by, available_since
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7, 'available',
+        $8, $9, $10, $11,
+        $12, $13, $14, $15,
+        $16, $17, $18::text[], $19::text[],
+        0, 0, 0, 0,
+        now(), now(), $20, now()
+      )
+      RETURNING ${PETS_SELECT}
+      `,
+      [
+        petId,
+        req.name,
+        req.rescueId,
+        typeToDb(req.type),
+        genderToDb(req.gender),
+        sizeToDb(req.size),
+        ageGroupToDb(req.ageGroup),
+        req.breedId ?? null,
+        req.secondaryBreedId ?? null,
+        req.shortDescription ?? null,
+        req.longDescription ?? null,
+        req.ageYears ?? null,
+        req.ageMonths ?? null,
+        req.adoptionFeeMinor ?? null,
+        req.adoptionFeeCurrency ?? 'GBP',
+        req.specialNeeds,
+        req.houseTrained,
+        parseJsonArray(req.temperamentJson),
+        parseJsonArray(req.tagsJson),
+        principal.userId,
+      ]
+    );
+    inserted = result.rows[0];
+
+    publish({
+      type: 'pets.created',
+      id: `pets.created.${petId}`,
+      payload: { petId, rescueId: req.rescueId, type: typeToDb(req.type) },
+    });
+  });
+
+  if (!inserted) {
+    throw new HandlerError('INTERNAL', 'insert returned no rows');
+  }
+  return { pet: rowToProto(inserted) };
+}
+
+// --- Get -------------------------------------------------------------
+
+export async function getPet(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetPetRequest
+): Promise<GetPetResponse> {
+  if (!req.petId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
+  }
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+
+  const row = await fetchPet(deps, req.petId);
+  if (!row) {
+    throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
+  }
+  return { pet: rowToProto(row) };
+}
+
+// --- List ------------------------------------------------------------
+
+type ListCursor = { createdAt: string; petId: string };
+
+const DEFAULT_LIST_LIMIT = 20;
+const MAX_LIST_LIMIT = 100;
+
+export async function listPets(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ListPetsRequest
+): Promise<ListPetsResponse> {
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+
+  const limit = clampLimit(req.limit);
+  const cursor = req.cursor ? parseCursor(req.cursor) : undefined;
+
+  const where: string[] = ['deleted_at IS NULL'];
+  const params: unknown[] = [];
+  let n = 1;
+
+  if (
+    req.statusFilter !== undefined &&
+    req.statusFilter !== PetsV1.PetStatus.PET_STATUS_UNSPECIFIED
+  ) {
+    where.push(`status = $${n}`);
+    params.push(statusToDb(req.statusFilter));
+    n++;
+  }
+  if (req.typeFilter !== undefined && req.typeFilter !== PetsV1.PetType.PET_TYPE_UNSPECIFIED) {
+    where.push(`type = $${n}`);
+    params.push(typeToDb(req.typeFilter));
+    n++;
+  }
+  if (req.sizeFilter !== undefined && req.sizeFilter !== PetsV1.PetSize.PET_SIZE_UNSPECIFIED) {
+    where.push(`size = $${n}`);
+    params.push(sizeToDb(req.sizeFilter));
+    n++;
+  }
+  if (req.rescueIdFilter) {
+    where.push(`rescue_id = $${n}`);
+    params.push(req.rescueIdFilter);
+    n++;
+  }
+  if (cursor) {
+    where.push(`(created_at, pet_id) < ($${n}, $${n + 1})`);
+    params.push(new Date(cursor.createdAt));
+    params.push(cursor.petId);
+    n += 2;
+  }
+
+  const result = await deps.pool.query<PetRow>(
+    `
+    SELECT ${PETS_SELECT} FROM pets.pets
+    WHERE ${where.join(' AND ')}
+    ORDER BY created_at DESC, pet_id DESC
+    LIMIT $${n}
+    `,
+    [...params, limit + 1]
+  );
+
+  const hasMore = result.rows.length > limit;
+  const page = hasMore ? result.rows.slice(0, limit) : result.rows;
+  const last = page[page.length - 1];
+  const nextCursor =
+    hasMore && last
+      ? encodeCursor({ createdAt: last.created_at.toISOString(), petId: last.pet_id })
+      : undefined;
+
+  return { pets: page.map(rowToProto), nextCursor };
+}
+
+// --- Update ----------------------------------------------------------
+
+export async function updatePet(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: UpdatePetRequest
+): Promise<UpdatePetResponse> {
+  if (!req.petId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
+  }
+
+  const existing = await fetchPet(deps, req.petId);
+  if (!existing) {
+    throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
+  }
+  assertRescueScopedUpdate(principal, existing);
+
+  // Build the SET clause from the supplied optional fields only.
+  const sets: string[] = [];
+  const params: unknown[] = [];
+  let n = 1;
+  const set = (col: string, val: unknown): void => {
+    sets.push(`${col} = $${n}`);
+    params.push(val);
+    n++;
+  };
+
+  if (req.name !== undefined) {
+    set('name', req.name);
+  }
+  if (req.shortDescription !== undefined) {
+    set('short_description', req.shortDescription);
+  }
+  if (req.longDescription !== undefined) {
+    set('long_description', req.longDescription);
+  }
+  if (req.gender !== undefined) {
+    set('gender', genderToDb(req.gender));
+  }
+  if (req.size !== undefined) {
+    set('size', sizeToDb(req.size));
+  }
+  if (req.ageGroup !== undefined) {
+    set('age_group', ageGroupToDb(req.ageGroup));
+  }
+  if (req.breedId !== undefined) {
+    set('breed_id', req.breedId);
+  }
+  if (req.secondaryBreedId !== undefined) {
+    set('secondary_breed_id', req.secondaryBreedId);
+  }
+  if (req.adoptionFeeMinor !== undefined) {
+    set('adoption_fee_minor', req.adoptionFeeMinor);
+  }
+  if (req.adoptionFeeCurrency !== undefined) {
+    set('adoption_fee_currency', req.adoptionFeeCurrency);
+  }
+  if (req.specialNeeds !== undefined) {
+    set('special_needs', req.specialNeeds);
+  }
+  if (req.houseTrained !== undefined) {
+    set('house_trained', req.houseTrained);
+  }
+  if (req.featured !== undefined) {
+    set('featured', req.featured);
+  }
+  if (req.priorityListing !== undefined) {
+    set('priority_listing', req.priorityListing);
+  }
+  if (req.temperamentJson !== undefined) {
+    set('temperament', parseJsonArray(req.temperamentJson));
+  }
+  if (req.tagsJson !== undefined) {
+    set('tags', parseJsonArray(req.tagsJson));
+  }
+
+  if (sets.length === 0) {
+    // Nothing to change — return the current row without a write.
+    return { pet: rowToProto(existing) };
+  }
+
+  set('updated_by', principal.userId);
+  sets.push('updated_at = now()');
+  sets.push('version = version + 1');
+
+  let updated: PetRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    const result = await client.query<PetRow>(
+      `UPDATE pets.pets SET ${sets.join(', ')} WHERE pet_id = $${n} RETURNING ${PETS_SELECT}`,
+      [...params, req.petId]
+    );
+    updated = result.rows[0];
+    publish({
+      type: 'pets.updated',
+      id: `pets.updated.${req.petId}.${Date.now()}`,
+      payload: { petId: req.petId, rescueId: existing.rescue_id },
+    });
+  });
+
+  if (!updated) {
+    throw new HandlerError('INTERNAL', 'update returned no rows');
+  }
+  return { pet: rowToProto(updated) };
+}
+
+// --- UpdateStatus (event-sourced command) ----------------------------
+
+export async function updatePetStatus(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: UpdatePetStatusRequest
+): Promise<UpdatePetStatusResponse> {
+  if (!req.petId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
+  }
+  if (req.toStatus === PetsV1.PetStatus.PET_STATUS_UNSPECIFIED) {
+    throw new HandlerError('INVALID_ARGUMENT', 'to_status is required');
+  }
+
+  const existing = await fetchPet(deps, req.petId);
+  if (!existing) {
+    throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
+  }
+  assertRescueScopedUpdate(principal, existing);
+
+  const toStatus = statusToDb(req.toStatus);
+  const fromStatus = existing.status;
+  if (!isLegalTransition(fromStatus, toStatus)) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      `illegal status transition ${fromStatus} → ${toStatus}`
+    );
+  }
+
+  const transitionId = randomUUID();
+  let updated: PetRow | undefined;
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    // 1. Append the transition row (the event log).
+    await client.query(
+      `
+      INSERT INTO pets.pet_status_transitions (
+        transition_id, pet_id, from_status, to_status,
+        transitioned_at, transitioned_by, reason
+      )
+      VALUES ($1, $2, $3, $4, now(), $5, $6)
+      `,
+      [transitionId, req.petId, fromStatus, toStatus, principal.userId, req.reason ?? null]
+    );
+
+    // 2. Denormalise the new status onto the pet row. adopted_date /
+    //    available_since are stamped as the lifecycle dictates.
+    const result = await client.query<PetRow>(
+      `
+      UPDATE pets.pets
+      SET status = $1,
+          adopted_date = CASE WHEN $1 = 'adopted' THEN now() ELSE adopted_date END,
+          available_since = CASE WHEN $1 = 'available' THEN now() ELSE available_since END,
+          updated_at = now(), updated_by = $2, version = version + 1
+      WHERE pet_id = $3
+      RETURNING ${PETS_SELECT}
+      `,
+      [toStatus, principal.userId, req.petId]
+    );
+    updated = result.rows[0];
+
+    publish({
+      type: 'pets.statusChanged',
+      id: `pets.statusChanged.${transitionId}`,
+      payload: {
+        petId: req.petId,
+        rescueId: existing.rescue_id,
+        fromStatus,
+        toStatus,
+        reason: req.reason ?? null,
+      },
+    });
+  });
+
+  if (!updated) {
+    throw new HandlerError('INTERNAL', 'status update returned no rows');
+  }
+
+  const transition: PetStatusTransition = {
+    transitionId,
+    petId: req.petId,
+    fromStatus: statusFromDb(fromStatus),
+    toStatus: req.toStatus,
+    transitionedAt: new Date().toISOString(),
+    transitionedBy: principal.userId,
+    reason: req.reason,
+  };
+  return { pet: rowToProto(updated), transition };
+}
+
+// --- Delete (soft) ---------------------------------------------------
+
+export async function deletePet(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: DeletePetRequest
+): Promise<DeletePetResponse> {
+  if (!req.petId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
+  }
+
+  const existing = await fetchPet(deps, req.petId);
+  if (!existing) {
+    throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
+  }
+  if (!requirePermission(principal, PETS_DELETE, scopeFor(existing))) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_DELETE}' required for this rescue`);
+  }
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    await client.query(
+      `UPDATE pets.pets SET deleted_at = now(), updated_at = now(), updated_by = $1 WHERE pet_id = $2`,
+      [principal.userId, req.petId]
+    );
+    publish({
+      type: 'pets.deleted',
+      id: `pets.deleted.${req.petId}`,
+      payload: { petId: req.petId, rescueId: existing.rescue_id },
+    });
+  });
+
+  return { deleted: true };
+}
+
+// --- Helpers ---------------------------------------------------------
+
+async function fetchPet(deps: HandlerDeps, petId: string): Promise<PetRow | undefined> {
+  const result = await deps.pool.query<PetRow>(
+    `SELECT ${PETS_SELECT} FROM pets.pets WHERE pet_id = $1 AND deleted_at IS NULL`,
+    [petId]
+  );
+  return result.rows[0];
+}
+
+// A pet with no rescue_id (legacy/orphan) can only be mutated by
+// super_admin — requirePermission with an undefined scope rescueId
+// degrades to a plain permission check, which would wrongly let any
+// pets.update holder through, so we gate the no-rescue case explicitly.
+function assertRescueScopedUpdate(principal: Principal, row: PetRow): void {
+  if (!requirePermission(principal, PETS_UPDATE, scopeFor(row))) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_UPDATE}' required for this rescue`);
+  }
+}
+
+function scopeFor(row: PetRow): { rescueId: RescueId } | undefined {
+  return row.rescue_id ? { rescueId: row.rescue_id as RescueId } : undefined;
+}
+
+function clampLimit(requested: number): number {
+  if (requested === 0) {
+    return DEFAULT_LIST_LIMIT;
+  }
+  if (requested > MAX_LIST_LIMIT) {
+    throw new HandlerError('INVALID_ARGUMENT', `limit must be <= ${MAX_LIST_LIMIT}`);
+  }
+  return requested;
+}
+
+function parseCursor(raw: string): ListCursor {
+  try {
+    const decoded = Buffer.from(raw, 'base64').toString('utf8');
+    const parsed = JSON.parse(decoded) as ListCursor;
+    if (!parsed.createdAt || !parsed.petId) {
+      throw new Error('missing fields');
+    }
+    return parsed;
+  } catch {
+    throw new HandlerError('INVALID_ARGUMENT', 'cursor is malformed');
+  }
+}
+
+function encodeCursor(cursor: ListCursor): string {
+  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64');
+}
+
+// Parse a JSON-stringified string[] into a real array for the text[]
+// bind param. Empty / malformed input degrades to an empty array — the
+// caller's INVALID_ARGUMENT surface is reserved for required fields.
+function parseJsonArray(raw: string | undefined): string[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed.filter((x): x is string => typeof x === 'string');
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
