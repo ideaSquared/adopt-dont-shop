@@ -1,0 +1,38 @@
+{
+  "name": "@adopt-dont-shop/service.pets",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pets service — Phase 3 extraction. Owns the pets.* schema (Pet, PetMedia, Breed, UserFavorite, Rating, PetStatusTransition) and exposes gRPC PetService over a status state machine (available → reserved → adopted → unavailable, plus deceased / returned). Pet state transitions are event-sourced — pure apply/fold domain + publish-after-commit on pets.statusChanged. Phase 3.1 commit is just the boot skeleton; schema/gRPC/NATS/gateway land in later phases.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/server.ts",
+      "import": "./src/server.ts",
+      "default": "./src/server.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx watch --import ./src/instrumentation.ts ./src/index.ts",
+    "start": "node --import ./dist/instrumentation.js ./dist/index.js",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@adopt-dont-shop/observability": "*",
+    "fastify": "^5.8.5"
+  }
+}
