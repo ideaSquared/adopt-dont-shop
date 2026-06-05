@@ -68,3 +68,30 @@ export type AuthRoleAssignedEvent = {
   assignedBy: UserId;
   reason: string | null;
 };
+
+// pets.statusChanged — service.pets publishes after every successful
+// status transition (Phase 3.3b). Payload carries the pet + rescue +
+// from/to status pair + optional reason; transitionedBy lives on the
+// pet_status_transitions row but is not yet in the NATS payload.
+//
+// Phase 3.4: this service subscribes to the subject but does NOT yet
+// create user-facing notifications — recipient discovery (rescue staff,
+// users who favourited the pet) requires gRPC lookups into the rescue
+// + pets verticals that don't exist yet (Phases 4 + 9). The subscriber
+// logs receipt so we can confirm the wire path end-to-end + the contract
+// stays anchored here.
+export type PetStatusChangedEvent = {
+  petId: string;
+  rescueId: string | null;
+  fromStatus: string;
+  toStatus: string;
+  reason: string | null;
+};
+
+// pets.deleted — service.pets publishes after soft-delete. Same
+// log-only treatment as pets.statusChanged for the same reason
+// (no recipient yet derivable in this service).
+export type PetDeletedEvent = {
+  petId: string;
+  rescueId: string | null;
+};
