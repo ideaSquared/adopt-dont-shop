@@ -17,10 +17,12 @@ plugins:
       # Message fields are TS optional (more idiomatic; matches how proto3
       # already treats unset scalars).
       - useOptionals=messages
-      # Emit toJSON / fromJSON helpers — useful for the gateway's
-      # REST→gRPC translation layer.
+      # JSON helpers — useful for the gateway's REST→gRPC translation
+      # layer.
       - outputJsonMethods=true
-      # Skip gRPC service stubs for now. We'll re-enable
-      # (outputServices=grpc-js) when the first service ships and brings
-      # the @grpc/grpc-js runtime peer dep.
-      - outputServices=false
+      # gRPC-js service stubs — both server-side Definition tables and
+      # client constructors are emitted. Brings @grpc/grpc-js as a
+      # runtime dep on this package; services that consume the package
+      # get it transitively. Flipped on in Phase 1.3 once
+      # service.notifications brought the first real service surface.
+      - outputServices=grpc-js

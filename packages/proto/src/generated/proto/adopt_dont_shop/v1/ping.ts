@@ -6,6 +6,18 @@
 
 /* eslint-disable */
 import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import {
+  type CallOptions,
+  type ChannelCredentials,
+  Client,
+  type ClientOptions,
+  type ClientUnaryCall,
+  type handleUnaryCall,
+  makeGenericClientConstructor,
+  type Metadata,
+  type ServiceError,
+  type UntypedServiceImplementation,
+} from '@grpc/grpc-js';
 
 export const protobufPackage = 'adopt_dont_shop.v1';
 
@@ -158,6 +170,78 @@ export const EchoResponse: MessageFns<EchoResponse> = {
     message.receivedAt = object.receivedAt ?? '';
     return message;
   },
+};
+
+/**
+ * Ping is the canonical smoke service — exists only to exercise the
+ * hermetic codegen pipeline. Every real domain (auth, pets, applications,
+ * chat, ...) gets its own .proto file in a sibling directory once those
+ * services extract. This file stays as a deliberate smoke target so the
+ * toolchain has something to compile when no service exists yet.
+ */
+export type PingService = typeof PingService;
+export const PingService = {
+  /**
+   * Echo returns the request message verbatim. The gateway's
+   * /health/proto endpoint and the dependency-light smoke harness both
+   * call this to assert the proto pipeline is wired end-to-end.
+   */
+  echo: {
+    path: '/adopt_dont_shop.v1.Ping/Echo' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: EchoRequest): Buffer =>
+      Buffer.from(EchoRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): EchoRequest => EchoRequest.decode(value),
+    responseSerialize: (value: EchoResponse): Buffer =>
+      Buffer.from(EchoResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): EchoResponse => EchoResponse.decode(value),
+  },
+} as const;
+
+export interface PingServer extends UntypedServiceImplementation {
+  /**
+   * Echo returns the request message verbatim. The gateway's
+   * /health/proto endpoint and the dependency-light smoke harness both
+   * call this to assert the proto pipeline is wired end-to-end.
+   */
+  echo: handleUnaryCall<EchoRequest, EchoResponse>;
+}
+
+export interface PingClient extends Client {
+  /**
+   * Echo returns the request message verbatim. The gateway's
+   * /health/proto endpoint and the dependency-light smoke harness both
+   * call this to assert the proto pipeline is wired end-to-end.
+   */
+  echo(
+    request: EchoRequest,
+    callback: (error: ServiceError | null, response: EchoResponse) => void
+  ): ClientUnaryCall;
+  echo(
+    request: EchoRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: EchoResponse) => void
+  ): ClientUnaryCall;
+  echo(
+    request: EchoRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: EchoResponse) => void
+  ): ClientUnaryCall;
+}
+
+export const PingClient = makeGenericClientConstructor(
+  PingService,
+  'adopt_dont_shop.v1.Ping'
+) as unknown as {
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): PingClient;
+  service: typeof PingService;
+  serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
