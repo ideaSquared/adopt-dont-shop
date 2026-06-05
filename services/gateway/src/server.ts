@@ -20,6 +20,8 @@ import { createLogger } from '@adopt-dont-shop/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import type { GatewayConfig } from './config.js';
+import type { NotificationsClient } from './grpc-clients/notifications-client.js';
+import { registerNotificationsRoutes } from './routes/notifications.js';
 
 export type CreateServerOptions = {
   config: GatewayConfig;
@@ -28,9 +30,15 @@ export type CreateServerOptions = {
   // service emits structured lines through the same pipeline as the
   // rest of the stack.
   logger?: ReturnType<typeof createLogger>;
+  // gRPC client to service.notifications. Optional so smoke tests
+  // that only exercise /health/simple don't have to wire the gRPC
+  // transport — when omitted, /api/notifications/* falls through to
+  // the catch-all proxy (i.e. still hits the monolith). Real boot
+  // always supplies it from index.ts.
+  notificationsClient?: NotificationsClient;
 };
 
-export const createServer = (opts: CreateServerOptions): FastifyInstance => {
+export const createServer = async (opts: CreateServerOptions): Promise<FastifyInstance> => {
   const { config } = opts;
   const logger = opts.logger ?? createLogger({ serviceName: 'service.gateway' });
 
@@ -68,19 +76,23 @@ export const createServer = (opts: CreateServerOptions): FastifyInstance => {
     environment: config.environment,
   }));
 
-  // Catch-all proxy. Phase 0f is intentionally dumb — every /api/*
-  // path goes to the residual monolith. Phase 1+ adds per-prefix
-  // service routes BEFORE this registration so first-registered-wins
-  // routes them out before the catch-all sees them.
-  server.register(httpProxy, {
+  // Service-specific routes register BEFORE the catch-all proxy.
+  // Fastify's first-registered-wins prefix routing picks them off
+  // before the catch-all sees the request.
+  if (opts.notificationsClient) {
+    await registerNotificationsRoutes(server, { client: opts.notificationsClient });
+  }
+
+  // Catch-all proxy. Phase 0f shipped this; Phase 1.6 leaves it in
+  // place for every /api/* path that isn't owned by an extracted
+  // service yet. Decommissions at Phase 11 when the monolith is gone.
+  await server.register(httpProxy, {
     upstream: config.upstreamBackendUrl,
     prefix: '/api',
     rewritePrefix: '/api',
-    // Disable WS proxying for now. service.notifications (Phase 1)
-    // will own the WS spine and the gateway will terminate the
-    // socket itself — handing that responsibility to http-proxy
-    // would couple the gateway to the monolith's socket lifecycle
-    // when we want the opposite.
+    // Disable WS proxying. The gateway terminates Socket.IO itself —
+    // handing that to http-proxy would couple us to the monolith's
+    // socket lifecycle when we want the opposite.
     websocket: false,
     http2: false,
   });

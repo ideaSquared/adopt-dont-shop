@@ -16,12 +16,16 @@ export type GatewayConfig = {
   // (and chat.*, applications.* etc. as services extract) and fans the
   // events to connected Socket.IO clients.
   natsUrl: string;
+  // service.notifications gRPC URL — Phase 1.6 cuts /api/notifications/*
+  // over to this address. Phase 2+ services add their own URLs here.
+  notificationsGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 4000;
 const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_UPSTREAM = 'http://service-backend:5000';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
+const DEFAULT_NOTIFICATIONS_GRPC_URL = 'service-notifications:6001';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig => {
   const portRaw = env.GATEWAY_PORT?.trim();
@@ -36,5 +40,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     upstreamBackendUrl: env.UPSTREAM_BACKEND_URL?.trim() || DEFAULT_UPSTREAM,
     environment: env.NODE_ENV?.trim() || 'development',
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
+    notificationsGrpcUrl: env.NOTIFICATIONS_GRPC_URL?.trim() || DEFAULT_NOTIFICATIONS_GRPC_URL,
   };
 };
