@@ -23,11 +23,21 @@ for adopt-dont-shop's domain.
   at boot rather than at first login attempt.
 - `src/server.ts` `createServer({ config, logger? })`.
 
+**Phase 2.2** — `auth.*` schema + migrations:
+- `001_create_users.ts` ports the monolith's `users` table verbatim
+  (all columns, the 6-value `user_type` enum with `super_admin` +
+  `support_agent` folded in from the `01-*` follow-up, `citext` email,
+  PostGIS `location`).
+- `002`-`007` mirror `roles`, `permissions`, `role_permissions`,
+  `user_roles`, `refresh_tokens`, `revoked_tokens`. Intra-schema FKs
+  (role↔permission, user↔role, refresh→user) stay enforced; they're
+  WITHIN the `auth` schema so the no-cross-schema-joins rule doesn't
+  apply.
+- `src/db/migrate.ts` runs them via `@adopt-dont-shop/db.runMigrations`.
+- Run with `npm run db:migrate`.
+
 ## What's NOT here yet
 
-- **Phase 2.2** — `auth.*` schema + migrations. Ports
-  `service.backend`'s baseline users / roles / permissions tables
-  into the `auth` schema via `@adopt-dont-shop/db`.
 - **Phase 2.3** — gRPC `AuthService`:
   - proto + grpc-js stubs in `@adopt-dont-shop/proto`
   - handler logic: Login (bcrypt compare → JWT mint), Logout
