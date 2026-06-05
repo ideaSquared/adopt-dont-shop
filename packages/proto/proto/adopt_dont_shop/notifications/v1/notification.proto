@@ -1,0 +1,203 @@
+syntax = "proto3";
+
+package adopt_dont_shop.notifications.v1;
+
+// NotificationService is the gRPC contract for the in-app notification
+// store. The gateway translates `POST/GET/DELETE /api/notifications/*`
+// REST calls into these RPCs after extracting the principal
+// (auth.userId, auth.roles, auth.permissions, auth.rescueId?) into
+// gRPC metadata. The service uses @adopt-dont-shop/authz.requirePermission
+// to gate each RPC; same shape every extracted service will follow.
+//
+// CAD parallel: this mirrors `cad.incident.v1.IncidentService` —
+// command + query split, opaque cursor pagination, ISO-8601 timestamps
+// as strings (proto's Timestamp adds a tonne of marshalling weight for
+// little gain when downstream consumers are JSON anyway).
+service NotificationService {
+  // Create a new notification. Publishes `notifications.created` on
+  // NATS after the DB commits (publish-after-commit pattern via
+  // @adopt-dont-shop/events.withTransaction). Caller MUST have the
+  // `notifications.create` permission (only system services + admins).
+  rpc Create(CreateNotificationRequest) returns (CreateNotificationResponse);
+
+  // List notifications for the calling principal with keyset pagination.
+  // user_id scope is enforced via gRPC metadata, not the request body —
+  // callers can only list their own notifications. super_admin bypasses
+  // the scope check.
+  rpc List(ListNotificationsRequest) returns (ListNotificationsResponse);
+
+  // Mark a notification as dismissed (status -> read, read_at -> now).
+  // Idempotent: a second Dismiss on the same notification_id returns
+  // the same row without error. Publishes `notifications.dismissed`
+  // on NATS after the DB commits.
+  rpc Dismiss(DismissNotificationRequest) returns (DismissNotificationResponse);
+}
+
+// Notification mirrors the `notifications.notifications` row plus the
+// JSON-stringified `data` / `template_variables` payloads. Kept as
+// strings at the proto layer so the service doesn't have to enumerate
+// every possible event-data shape — the gateway parses them back to
+// JSON when translating to REST.
+message Notification {
+  string notification_id = 1;
+  string user_id = 2;
+  NotificationType type = 3;
+  NotificationChannel channel = 4;
+  NotificationPriority priority = 5;
+  NotificationStatus status = 6;
+  string title = 7;
+  string message = 8;
+  string data_json = 9;
+  optional string template_id = 10;
+  string template_variables_json = 11;
+  optional NotificationRelatedEntityType related_entity_type = 12;
+  optional string related_entity_id = 13;
+  // RFC 3339 timestamps — `optional` markers mirror the table's
+  // NULL columns. created_at / updated_at are never null.
+  optional string scheduled_for = 14;
+  optional string sent_at = 15;
+  optional string delivered_at = 16;
+  optional string read_at = 17;
+  optional string clicked_at = 18;
+  optional string expires_at = 19;
+  uint32 retry_count = 20;
+  uint32 max_retries = 21;
+  optional string error_message = 22;
+  optional string external_id = 23;
+  string created_at = 24;
+  string updated_at = 25;
+}
+
+// --- ENUMs — value lists mirror the Postgres types verbatim ----------
+// Names use the standard proto3 SCREAMING_SNAKE_CASE convention with
+// a type prefix; the handler maps to/from the Postgres value strings
+// via a single switch statement on each side.
+
+enum NotificationType {
+  NOTIFICATION_TYPE_UNSPECIFIED = 0;
+  NOTIFICATION_TYPE_APPLICATION_STATUS = 1;
+  NOTIFICATION_TYPE_MESSAGE_RECEIVED = 2;
+  NOTIFICATION_TYPE_PET_AVAILABLE = 3;
+  NOTIFICATION_TYPE_INTERVIEW_SCHEDULED = 4;
+  NOTIFICATION_TYPE_HOME_VISIT_SCHEDULED = 5;
+  NOTIFICATION_TYPE_ADOPTION_APPROVED = 6;
+  NOTIFICATION_TYPE_ADOPTION_REJECTED = 7;
+  NOTIFICATION_TYPE_REFERENCE_REQUEST = 8;
+  NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT = 9;
+  NOTIFICATION_TYPE_ACCOUNT_SECURITY = 10;
+  NOTIFICATION_TYPE_REMINDER = 11;
+  NOTIFICATION_TYPE_MARKETING = 12;
+  NOTIFICATION_TYPE_RESCUE_INVITATION = 13;
+  NOTIFICATION_TYPE_STAFF_ASSIGNMENT = 14;
+  NOTIFICATION_TYPE_PET_UPDATE = 15;
+  NOTIFICATION_TYPE_FOLLOW_UP = 16;
+}
+
+enum NotificationChannel {
+  NOTIFICATION_CHANNEL_UNSPECIFIED = 0;
+  NOTIFICATION_CHANNEL_IN_APP = 1;
+  NOTIFICATION_CHANNEL_EMAIL = 2;
+  NOTIFICATION_CHANNEL_PUSH = 3;
+  NOTIFICATION_CHANNEL_SMS = 4;
+}
+
+enum NotificationPriority {
+  NOTIFICATION_PRIORITY_UNSPECIFIED = 0;
+  NOTIFICATION_PRIORITY_LOW = 1;
+  NOTIFICATION_PRIORITY_NORMAL = 2;
+  NOTIFICATION_PRIORITY_HIGH = 3;
+  NOTIFICATION_PRIORITY_URGENT = 4;
+}
+
+enum NotificationStatus {
+  NOTIFICATION_STATUS_UNSPECIFIED = 0;
+  NOTIFICATION_STATUS_PENDING = 1;
+  NOTIFICATION_STATUS_SENT = 2;
+  NOTIFICATION_STATUS_DELIVERED = 3;
+  NOTIFICATION_STATUS_READ = 4;
+  NOTIFICATION_STATUS_FAILED = 5;
+  NOTIFICATION_STATUS_CANCELLED = 6;
+}
+
+enum NotificationRelatedEntityType {
+  NOTIFICATION_RELATED_ENTITY_TYPE_UNSPECIFIED = 0;
+  NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION = 1;
+  NOTIFICATION_RELATED_ENTITY_TYPE_PET = 2;
+  NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE = 3;
+  NOTIFICATION_RELATED_ENTITY_TYPE_USER = 4;
+  NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE = 5;
+  NOTIFICATION_RELATED_ENTITY_TYPE_CONVERSATION = 6;
+  NOTIFICATION_RELATED_ENTITY_TYPE_INTERVIEW = 7;
+  NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT = 8;
+  NOTIFICATION_RELATED_ENTITY_TYPE_REMINDER = 9;
+  NOTIFICATION_RELATED_ENTITY_TYPE_ANNOUNCEMENT = 10;
+  NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION = 11;
+  NOTIFICATION_RELATED_ENTITY_TYPE_EVENT = 12;
+  NOTIFICATION_RELATED_ENTITY_TYPE_REFERENCE = 13;
+  NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY = 14;
+}
+
+// --- Create -----------------------------------------------------------
+
+message CreateNotificationRequest {
+  // Target user — the principal calling Create is typically a service
+  // (notifications.create permission), not the recipient.
+  string user_id = 1;
+  NotificationType type = 2;
+  NotificationChannel channel = 3;
+  // Defaults to NOTIFICATION_PRIORITY_NORMAL when UNSPECIFIED.
+  NotificationPriority priority = 4;
+  string title = 5;
+  string message = 6;
+  // JSON-stringified opaque payload. Empty string == `{}`.
+  string data_json = 7;
+  optional string template_id = 8;
+  string template_variables_json = 9;
+  optional NotificationRelatedEntityType related_entity_type = 10;
+  optional string related_entity_id = 11;
+  optional string scheduled_for = 12;
+  optional string expires_at = 13;
+  // External tracking id (e.g. SendGrid message id). Optional at create
+  // time; the email/SMS workers stamp it later when they ship the message.
+  optional string external_id = 14;
+}
+
+message CreateNotificationResponse {
+  Notification notification = 1;
+}
+
+// --- List -------------------------------------------------------------
+
+message ListNotificationsRequest {
+  // Opaque base64-JSON keyset cursor — same shape CAD uses for the
+  // audit query. Callers pass the previous response's next_cursor
+  // back here; the format is the service's private concern.
+  optional string cursor = 1;
+  // Defaults to 20, max 100 — server enforces the bound, returns
+  // INVALID_ARGUMENT on overflow.
+  uint32 limit = 2;
+  // Optional filters. UNSPECIFIED in the enum = "no filter on this
+  // field" — same convention every notification ENUM in this file uses.
+  NotificationStatus status_filter = 3;
+  NotificationChannel channel_filter = 4;
+  NotificationType type_filter = 5;
+}
+
+message ListNotificationsResponse {
+  repeated Notification notifications = 1;
+  // Absent when the result set is exhausted. Same string a future
+  // ListNotificationsRequest.cursor would carry.
+  optional string next_cursor = 2;
+}
+
+// --- Dismiss ----------------------------------------------------------
+
+message DismissNotificationRequest {
+  string notification_id = 1;
+}
+
+message DismissNotificationResponse {
+  // The updated row (status=READ, read_at=now). Idempotent: a second
+  // Dismiss on the same notification_id returns the same payload.
+  Notification notification = 1;
+}

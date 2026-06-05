@@ -38,7 +38,7 @@ plugins:
       - importSuffix=.js
       - useOptionals=messages
       - outputJsonMethods=true
-      - outputServices=false
+      - outputServices=grpc-js
 `;
   writeFileSync(join(tmp, 'buf.gen.yaml'), genYaml);
 

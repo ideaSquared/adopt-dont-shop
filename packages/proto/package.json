@@ -36,7 +36,8 @@
     "check:fresh": "node scripts/check-generated-fresh.mjs"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^2.12.0"
+    "@bufbuild/protobuf": "^2.12.0",
+    "@grpc/grpc-js": "^1.14.4"
   },
   "devDependencies": {
     "@bufbuild/buf": "^1.70.0",

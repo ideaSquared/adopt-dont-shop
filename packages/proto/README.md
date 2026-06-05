@@ -66,15 +66,25 @@ namespace and one `export type { … }` for the flat re-export. Follow
 the `<Package><Version>` convention (`AuthV1`, `PetsV1`, …) for the
 namespace alias.
 
+## What's here today
+
+- `proto/adopt_dont_shop/v1/ping.proto` — smoke target so the toolchain
+  has something to compile, even before any real service exists.
+- `proto/adopt_dont_shop/notifications/v1/notification.proto` —
+  `NotificationService.{Create, List, Dismiss}` plus the Notification
+  message and the five Postgres-ENUM-mirrored enums. Added in Phase 1.3a.
+
+`buf.gen.yaml` is configured with **`outputServices=grpc-js`** — both
+server-side Definition tables (consumed by `server.addService(...)`)
+and client constructors are emitted. `@grpc/grpc-js` is a runtime
+dependency on this package; services that import any namespace get it
+transitively.
+
 ## What's NOT here yet
 
-- **gRPC service stubs.** `outputServices=false` in `buf.gen.yaml` — we
-  emit message types only. Flip to `outputServices=grpc-js` when the
-  first service ships and brings the `@grpc/grpc-js` runtime peer dep
-  (planned for Phase 1).
-- **Real domain protos.** Only `ping.proto` exists today — it's the
-  smoke target so the toolchain has something to compile. Auth / Pets
-  / Applications / etc. land in their respective phase commits.
+- **Real domain protos beyond notifications.** Auth, pets, applications,
+  chat, etc. land in their respective phase commits, each following the
+  same naming pattern: `proto/adopt_dont_shop/<domain>/v1/*.proto`.
 
 ## Commands
 
