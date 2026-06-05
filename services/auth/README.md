@@ -49,14 +49,50 @@ for adopt-dont-shop's domain.
   `AuthUser` etc. — prefixed to avoid collision with
   `NotificationsV1` flat exports).
 
+**Phase 2.3b** — handler logic (pure functions, no gRPC transport yet):
+- `src/grpc/handlers.ts` implements all six RPCs over
+  `(deps, principal, request) → Promise<response>`. Same
+  pure-handler-plus-thin-adapter pattern as `service.notifications`.
+- **`login`** — bcrypt-compare via `deps.passwordHasher`, lock + status
+  checks gate access, JWT mint via `deps.tokenIssuer`, refresh-row
+  persisted inside `withTransaction`, `auth.userLoggedIn` published
+  after commit. Wrong password bumps `login_attempts`.
+- **`logout`** — verify refresh JWT, idempotent denylist insert
+  (`auth.revoked_tokens`), refresh-row revoked, `auth.tokenRevoked`
+  published after commit. Malformed/expired token returns `OK`
+  with `revoked:false` (idempotent).
+- **`refreshToken`** — verify, denylist + stored-revoke check, rotate
+  (old row revoked + jti denylisted, new row inserted),
+  `auth.tokenRefreshed` published after commit.
+- **`validateToken`** — hot path. JWT verify, denylist point-read,
+  then hydrate the principal (roles + permissions). UNAUTHENTICATED
+  on any failure. No user-row fetch unless JWT signature already
+  validated.
+- **`getMe`** — denormalised user row + aggregated roles +
+  flattened permissions.
+- **`assignRole`** — admin-gated (`admin.security.manage` via
+  `requirePermission`; `super_admin` short-circuits), idempotent
+  `INSERT … ON CONFLICT (user_id, role_id) DO UPDATE`,
+  `auth.roleAssigned` published after commit.
+- `passwordHasher` + `tokenIssuer` are injected on `HandlerDeps` so
+  the handler tests stay pure and fast (no real bcrypt rounds, no
+  real JWT signature work). Phase 2.3c wires the production
+  implementations.
+- 39 handler + enum-map tests assert: every INVALID_ARGUMENT /
+  UNAUTHENTICATED / PERMISSION_DENIED / NOT_FOUND path, the
+  publish-after-commit call ordering
+  (`['BEGIN', '…', 'COMMIT', 'NATS_PUBLISH']`), idempotency on
+  already-revoked tokens, and `super_admin` bypass.
+
 ## What's NOT here yet
 
-- **Phase 2.3b–c** — gRPC `AuthService` runtime:
-  - handler logic: Login (bcrypt compare → JWT mint), Logout
-    (revoke refresh), RefreshToken (rotate), ValidateToken (cheap
-    JWT verify — hot path), GetMe (denormalise principal),
-    AssignRole (admin-only)
-  - gRPC server boot + adapter (same pattern as `service.notifications`)
+- **Phase 2.3c** — gRPC server boot + adapter:
+  - the `(call, callback)` adapter that wraps each handler and maps
+    `HandlerError.code → grpc.status` (port of
+    `services/notifications/src/grpc/adapter.ts`)
+  - production `passwordHasher` (bcryptjs) + `tokenIssuer`
+    (jsonwebtoken) implementations
+  - gRPC server boot inside `createServer` on `AUTH_GRPC_PORT` 6002
 - **Phase 2.4** — NATS publishers: `auth.userCreated`,
   `auth.roleAssigned`, `auth.tokenRevoked`. Downstream services
   (notifications, applications) consume these.
