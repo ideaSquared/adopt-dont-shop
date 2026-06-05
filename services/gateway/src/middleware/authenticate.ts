@@ -146,13 +146,25 @@ export const registerAuthenticate = async (
 
 // --- Helpers ---------------------------------------------------------
 
+// Avoid a regex with unbounded `\s+` — CodeQL flagged it as ReDoS-able
+// on uncontrolled input. A plain prefix check + slice is O(n) and
+// can't backtrack.
+const BEARER_PREFIX = 'bearer ';
+
 function extractBearerToken(req: FastifyRequest): string | undefined {
   const raw = req.headers.authorization;
   if (typeof raw !== 'string') {
     return undefined;
   }
-  const match = /^Bearer\s+(.+)$/i.exec(raw.trim());
-  return match?.[1];
+  const trimmed = raw.trim();
+  if (trimmed.length <= BEARER_PREFIX.length) {
+    return undefined;
+  }
+  if (trimmed.slice(0, BEARER_PREFIX.length).toLowerCase() !== BEARER_PREFIX) {
+    return undefined;
+  }
+  const token = trimmed.slice(BEARER_PREFIX.length).trim();
+  return token.length > 0 ? token : undefined;
 }
 
 // The proto enum gives us the integer variant; we need the canonical
