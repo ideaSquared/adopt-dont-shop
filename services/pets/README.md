@@ -73,11 +73,24 @@ domain + publish-after-commit on `pets.statusChanged`.
   gating, super_admin bypass, publish-after-commit call ordering,
   illegal-transition rejection, keyset pagination).
 
+**Phase 3.3c** — gRPC server boot + adapter:
+- `src/grpc/principal.ts` — `extractPrincipal` from the
+  `x-user-{id,roles,permissions,rescue-id}` metadata headers (same
+  shape as `services/auth`).
+- `src/grpc/adapter.ts` — `adapt` wraps a pure handler in grpc-js's
+  `(call, callback)` signature, extracts the principal, maps
+  `HandlerError.code → grpc.status` and scrubs unknown errors to
+  `INTERNAL`. Single variant (no `adaptUnauth`) because every
+  `PetService` RPC requires a principal.
+- `src/grpc/server.ts` — `createGrpcServer` + `startGrpcServer`.
+  Binds all six methods on `PETS_GRPC_PORT` (default 6003) with
+  insecure credentials (TLS terminates at nginx).
+- `src/index.ts` wires `pool` + `nats` into the gRPC server and
+  runs it alongside the HTTP `/health` surface; deps connect FIRST,
+  then start serving.
+
 ## What's NOT here yet
 
-- **Phase 3.3c** — gRPC server boot + adapter (port of
-  `services/auth/src/grpc/{adapter,server}.ts`), wired into
-  `index.ts` on `PETS_GRPC_PORT`.
 - **Phase 3.4** — NATS publishers: `pets.created`,
   `pets.statusChanged`, `pets.deleted` etc. Downstream services
   (notifications, matching, moderation, applications) consume these.
