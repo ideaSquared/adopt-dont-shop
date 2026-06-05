@@ -1,0 +1,39 @@
+{
+  "name": "@adopt-dont-shop/service.gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BFF / API gateway for the microservices migration. Phase 0f stands it up as a pass-through proxy that routes every /api/* request to the residual service.backend monolith — strangler-fig start. Future phases add per-path routes to extracted services (auth, pets, applications, …) until the monolith is empty.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/server.ts",
+      "import": "./src/server.ts",
+      "default": "./src/server.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx watch --import ./src/instrumentation.ts ./src/index.ts",
+    "start": "node --import ./dist/instrumentation.js ./dist/index.js",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@adopt-dont-shop/observability": "*",
+    "@fastify/http-proxy": "^11.5.0",
+    "fastify": "^5.8.5"
+  }
+}
