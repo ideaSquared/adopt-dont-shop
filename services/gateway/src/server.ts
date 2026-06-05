@@ -22,9 +22,11 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { GatewayConfig } from './config.js';
 import type { AuthClient } from './grpc-clients/auth-client.js';
 import type { NotificationsClient } from './grpc-clients/notifications-client.js';
+import type { PetsClient } from './grpc-clients/pets-client.js';
 import { registerAuthenticate } from './middleware/authenticate.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerNotificationsRoutes } from './routes/notifications.js';
+import { registerPetsRoutes } from './routes/pets.js';
 
 export type CreateServerOptions = {
   config: GatewayConfig;
@@ -46,6 +48,9 @@ export type CreateServerOptions = {
   // continues to trust client-supplied x-user-* headers (the Phase 1.5
   // dev-mode behaviour). Real boot ALWAYS supplies it from index.ts.
   authClient?: AuthClient;
+  // gRPC client to service.pets — Phase 3.5 cuts /api/pets/* over to
+  // this address. Same optional shape as the other clients.
+  petsClient?: PetsClient;
 };
 
 export const createServer = async (opts: CreateServerOptions): Promise<FastifyInstance> => {
@@ -107,6 +112,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.notificationsClient) {
     await registerNotificationsRoutes(server, { client: opts.notificationsClient });
+  }
+  if (opts.petsClient) {
+    await registerPetsRoutes(server, { client: opts.petsClient });
   }
 
   // Catch-all proxy. Phase 0f shipped this; Phase 1.6 leaves it in

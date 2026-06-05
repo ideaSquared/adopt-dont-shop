@@ -24,6 +24,9 @@ export type GatewayConfig = {
   // x-user-* metadata is server-derived from a JWT instead of being
   // client-trusted (the Phase 1.5 dev mode).
   authGrpcUrl: string;
+  // service.pets gRPC URL — Phase 3.5 cuts /api/pets/* over to this
+  // address.
+  petsGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 4000;
@@ -32,6 +35,7 @@ const DEFAULT_UPSTREAM = 'http://service-backend:5000';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
 const DEFAULT_NOTIFICATIONS_GRPC_URL = 'service-notifications:6001';
 const DEFAULT_AUTH_GRPC_URL = 'service-auth:6002';
+const DEFAULT_PETS_GRPC_URL = 'service-pets:6003';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig => {
   const portRaw = env.GATEWAY_PORT?.trim();
@@ -48,5 +52,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     notificationsGrpcUrl: env.NOTIFICATIONS_GRPC_URL?.trim() || DEFAULT_NOTIFICATIONS_GRPC_URL,
     authGrpcUrl: env.AUTH_GRPC_URL?.trim() || DEFAULT_AUTH_GRPC_URL,
+    petsGrpcUrl: env.PETS_GRPC_URL?.trim() || DEFAULT_PETS_GRPC_URL,
   };
 };
