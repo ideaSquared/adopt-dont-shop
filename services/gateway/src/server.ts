@@ -20,7 +20,9 @@ import { createLogger } from '@adopt-dont-shop/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import type { GatewayConfig } from './config.js';
+import type { AuthClient } from './grpc-clients/auth-client.js';
 import type { NotificationsClient } from './grpc-clients/notifications-client.js';
+import { registerAuthenticate } from './middleware/authenticate.js';
 import { registerNotificationsRoutes } from './routes/notifications.js';
 
 export type CreateServerOptions = {
@@ -36,6 +38,13 @@ export type CreateServerOptions = {
   // the catch-all proxy (i.e. still hits the monolith). Real boot
   // always supplies it from index.ts.
   notificationsClient?: NotificationsClient;
+  // gRPC client to service.auth — wires the authenticate middleware
+  // (Phase 2.5). Optional for the same reason as notificationsClient:
+  // smoke tests against /health/simple don't need the gRPC transport.
+  // When omitted, the middleware doesn't register and the gateway
+  // continues to trust client-supplied x-user-* headers (the Phase 1.5
+  // dev-mode behaviour). Real boot ALWAYS supplies it from index.ts.
+  authClient?: AuthClient;
 };
 
 export const createServer = async (opts: CreateServerOptions): Promise<FastifyInstance> => {
@@ -75,6 +84,15 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     service: 'service.gateway',
     environment: config.environment,
   }));
+
+  // Authentication middleware runs as an onRequest hook on EVERY
+  // request, BEFORE any route or the catch-all proxy. The order
+  // matters: spoofable identity headers get stripped here, so even a
+  // request that ends up at the catch-all proxy can't carry forged
+  // x-user-* headers to the monolith.
+  if (opts.authClient) {
+    await registerAuthenticate(server, { authClient: opts.authClient, logger });
+  }
 
   // Service-specific routes register BEFORE the catch-all proxy.
   // Fastify's first-registered-wins prefix routing picks them off

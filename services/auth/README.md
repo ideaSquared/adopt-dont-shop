@@ -117,13 +117,21 @@ for adopt-dont-shop's domain.
   `createNotification(SYSTEM_PRINCIPAL, …)` translation layer so
   the publish-after-commit + idempotency disciplines stay intact.
 
+**Phase 2.5** — Gateway authenticate middleware (lands in
+`services/gateway`, not here):
+- An `onRequest` hook strips spoofable `x-user-id` / `x-user-roles` /
+  `x-user-permissions` / `x-rescue-id` headers on EVERY request, then
+  calls `service.auth.ValidateToken` for any inbound
+  `Authorization: Bearer <token>`. The validated principal is
+  stamped back onto those same headers so the downstream services
+  (notifications, future pets/applications) keep consuming them
+  unchanged. Forged headers can no longer reach the catch-all
+  proxy or any extracted service.
+- Public paths (`/health`, `/api/auth/{login,register,refresh-token,
+  verify-email,forgot-password,reset-password}`) bypass token
+  validation; everything else returns 401 on invalid / revoked tokens.
+
 ## What's NOT here yet
-- **Phase 2.5** — Gateway auth middleware: every non-auth route
-  calls `service.auth.ValidateToken` to populate the
-  `x-user-{id,roles,permissions,rescue-id}` metadata headers (which
-  the Phase 1.6 dev-mode currently trusts from the client). Same
-  middleware also gates HTTP routes by `ability.can` via
-  `@adopt-dont-shop/authz`.
 - **Phase 2.6** — Cutover: gateway routes `/api/auth/*` here; the
   monolith's auth code deletes.
 
