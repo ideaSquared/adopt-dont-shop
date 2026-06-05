@@ -12,11 +12,16 @@ export type GatewayConfig = {
   // Environment label, surfaced in health responses and on log lines.
   // Falls back to NODE_ENV.
   environment: string;
+  // NATS bus. Phase 1.5 onwards: gateway subscribes to notifications.*
+  // (and chat.*, applications.* etc. as services extract) and fans the
+  // events to connected Socket.IO clients.
+  natsUrl: string;
 };
 
 const DEFAULT_PORT = 4000;
 const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_UPSTREAM = 'http://service-backend:5000';
+const DEFAULT_NATS_URL = 'nats://nats:4222';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig => {
   const portRaw = env.GATEWAY_PORT?.trim();
@@ -30,5 +35,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     host: env.GATEWAY_HOST?.trim() || DEFAULT_HOST,
     upstreamBackendUrl: env.UPSTREAM_BACKEND_URL?.trim() || DEFAULT_UPSTREAM,
     environment: env.NODE_ENV?.trim() || 'development',
+    natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
   };
 };
