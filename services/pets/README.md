@@ -23,9 +23,30 @@ domain + publish-after-commit on `pets.statusChanged`.
   misconfiguration fails fast at boot rather than at first request.
 - `src/server.ts` `createServer({ config, logger? })`.
 
+**Phase 3.2** — `pets.*` schema + migrations:
+- `001_create_breeds.ts` — lookup table (no soft-delete; `(species,
+  name)` unique). Creates the `postgis` extension in `public` for the
+  pet `location` column.
+- `002_create_pets.ts` — the full pet listing row (ported verbatim
+  from the monolith's `00-baseline-016-pets.ts`): 8 enums (status,
+  type, gender, size, age_group, energy_level, vaccination_status,
+  spay_neuter_status), PostGIS `location`, `tsvector` search_vector,
+  partial-unique microchip index, GIN/GiST indexes. `breed_id` /
+  `secondary_breed_id` keep their intra-schema FK to `breeds`;
+  `rescue_id` / `created_by` / `updated_by` are cross-schema, FK-free.
+- `003_create_pet_media.ts` — media rows, `pet_id` FK (CASCADE),
+  partial-unique one-primary-per-pet.
+- `004_create_pet_status_transitions.ts` — append-only status event
+  log behind the state machine; reuses the shared `pet_status` enum.
+- `005_create_ratings.ts` — polymorphic reviews; only `pet_id` keeps
+  an intra-schema FK.
+- `006_create_user_favorites.ts` — adopter↔pet join; partial-unique
+  one-active-favourite-per-user+pet.
+- `src/db/migrate.ts` runs them via `@adopt-dont-shop/db.runMigrations`.
+  Run with `npm run db:migrate`.
+
 ## What's NOT here yet
 
-- **Phase 3.2** — `pets.*` schema + migrations.
 - **Phase 3.3** — gRPC `PetService`:
   - proto + grpc-js stubs in `@adopt-dont-shop/proto`
   - handler logic (event-sourced status machine + standard CRUD)
