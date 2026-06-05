@@ -62,3 +62,23 @@ export type {
   AuthServiceServer,
   AuthServiceClient,
 } from './generated/proto/adopt_dont_shop/auth/v1/auth.js';
+
+export * as PetsV1 from './generated/proto/adopt_dont_shop/pets/v1/pet.js';
+export type {
+  Pet,
+  PetStatusTransition,
+  CreatePetRequest,
+  CreatePetResponse,
+  GetPetRequest,
+  GetPetResponse,
+  ListPetsRequest,
+  ListPetsResponse,
+  UpdatePetRequest,
+  UpdatePetResponse,
+  UpdatePetStatusRequest,
+  UpdatePetStatusResponse,
+  DeletePetRequest,
+  DeletePetResponse,
+  PetServiceServer,
+  PetServiceClient,
+} from './generated/proto/adopt_dont_shop/pets/v1/pet.js';
