@@ -82,3 +82,23 @@ export type {
   PetServiceServer,
   PetServiceClient,
 } from './generated/proto/adopt_dont_shop/pets/v1/pet.js';
+
+export * as RescueV1 from './generated/proto/adopt_dont_shop/rescue/v1/rescue.js';
+export type {
+  Rescue,
+  Invitation,
+  CreateRescueRequest,
+  CreateRescueResponse,
+  GetRescueRequest,
+  GetRescueResponse,
+  ListRescuesRequest,
+  ListRescuesResponse,
+  UpdateRescueRequest,
+  UpdateRescueResponse,
+  VerifyRescueRequest,
+  VerifyRescueResponse,
+  InviteStaffRequest,
+  InviteStaffResponse,
+  RescueServiceServer,
+  RescueServiceClient,
+} from './generated/proto/adopt_dont_shop/rescue/v1/rescue.js';
