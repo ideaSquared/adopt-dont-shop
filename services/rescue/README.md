@@ -22,9 +22,36 @@ read model).
   misconfiguration fails fast at boot rather than at first request.
 - `src/server.ts` `createServer({ config, logger? })`.
 
+**Phase 4.2** — `rescue.*` schema + migrations:
+- `001_create_rescues.ts` — the headline organisation row (name,
+  contact, address, status / verification machinery, settings JSON).
+  Creates the `citext` extension in `public` for the case-insensitive
+  email column.
+- `002_create_rescue_settings.ts` — 1:1 typed-preference table keyed
+  on `rescue_id` (CASCADE FK to rescues).
+- `003_create_staff_members.ts` — user↔rescue join with verification +
+  onboarding trail. Phase 4.4 subscribes to `auth.userCreated` to
+  denormalise into here when invitees register.
+- `004_create_invitations.ts` — pending-staff invitation row
+  (signed token + expiry). Not paranoid — the monolith hard-deletes
+  on accept; we preserve that contract.
+- `005_create_foster_placements.ts` — active/completed/cancelled
+  foster runs per pet per rescue. Partial-unique on
+  `(pet_id, status='active', deleted_at IS NULL)` enforces "one active
+  placement at a time".
+- `006_create_application_questions.ts` — rescue-configurable
+  adoption questionnaire rows; 3 enums (scope / category /
+  question_type), two partial-unique indexes (per-rescue + global
+  core).
+- All `rescue_id` FKs are INTRA-schema (CASCADE). User pointers and
+  cross-vertical entity IDs (`pet_id`, `foster_user_id`, audit
+  `created_by`/`updated_by`) stay FK-free per the schema-per-service
+  rule.
+- `src/db/migrate.ts` runs them via `@adopt-dont-shop/db.runMigrations`.
+  Run with `npm run db:migrate`.
+
 ## What's NOT here yet
 
-- **Phase 4.2** — `rescue.*` schema + migrations.
 - **Phase 4.3** — gRPC `RescueService`:
   - proto + grpc-js stubs in `@adopt-dont-shop/proto`
   - handler logic (CRUD + verify / invite-staff transitions)
