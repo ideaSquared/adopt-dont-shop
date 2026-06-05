@@ -5,14 +5,17 @@ import {
   NotificationsV1,
   PetsV1,
   PingV1,
+  RescueV1,
   type AuthUser,
   type CreateNotificationRequest,
   type CreatePetRequest,
+  type CreateRescueRequest,
   type EchoRequest,
   type EchoResponse,
   type LoginRequest,
   type Notification,
   type Pet,
+  type Rescue,
   type ValidateTokenResponse,
 } from './index.js';
 
@@ -334,6 +337,85 @@ describe('@adopt-dont-shop/proto', () => {
         updatedAt: '2026-06-01T00:00:00Z',
       };
       expect(p.petId).toBe('pet-1');
+    });
+  });
+
+  describe('RescueV1 namespace (Phase 4.3a — proto + grpc-js stubs)', () => {
+    it('exports the message factories under the RescueV1 namespace', () => {
+      expect(RescueV1.Rescue).toBeDefined();
+      expect(RescueV1.Invitation).toBeDefined();
+      expect(RescueV1.CreateRescueRequest).toBeDefined();
+      expect(RescueV1.GetRescueRequest).toBeDefined();
+      expect(RescueV1.ListRescuesRequest).toBeDefined();
+      expect(RescueV1.UpdateRescueRequest).toBeDefined();
+      expect(RescueV1.VerifyRescueRequest).toBeDefined();
+      expect(RescueV1.InviteStaffRequest).toBeDefined();
+    });
+
+    it('exports the gRPC service definition table for all six RPCs', () => {
+      expect(RescueV1.RescueServiceService).toBeDefined();
+      expect(RescueV1.RescueServiceService).toMatchObject({
+        create: { path: '/adopt_dont_shop.rescue.v1.RescueService/Create' },
+        get: { path: '/adopt_dont_shop.rescue.v1.RescueService/Get' },
+        list: { path: '/adopt_dont_shop.rescue.v1.RescueService/List' },
+        update: { path: '/adopt_dont_shop.rescue.v1.RescueService/Update' },
+        verify: { path: '/adopt_dont_shop.rescue.v1.RescueService/Verify' },
+        inviteStaff: { path: '/adopt_dont_shop.rescue.v1.RescueService/InviteStaff' },
+      });
+    });
+
+    it('exports a gRPC client constructor', () => {
+      expect(RescueV1.RescueServiceClient).toBeDefined();
+      expect(typeof RescueV1.RescueServiceClient).toBe('function');
+    });
+
+    it('RescueStatus enum covers all five Postgres rescue_status values', () => {
+      const populated = Object.values(RescueV1.RescueStatus).filter(
+        v => typeof v === 'number' && v > 0
+      );
+      expect(populated).toHaveLength(5);
+      expect(RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED).toBe(2);
+    });
+
+    it('RescueVerificationSource enum covers all three values', () => {
+      const populated = Object.values(RescueV1.RescueVerificationSource).filter(
+        v => typeof v === 'number' && v > 0
+      );
+      expect(populated).toHaveLength(3);
+    });
+
+    it('round-trips a CreateRescueRequest through the binary wire format', () => {
+      const original: CreateRescueRequest = {
+        name: 'Pawsome Rescue',
+        email: 'hello@pawsome.example',
+        address: '1 High St',
+        city: 'London',
+        postcode: 'SW1A 1AA',
+        contactPerson: 'Alex',
+      };
+      const buf = RescueV1.CreateRescueRequest.encode(original).finish();
+      const decoded = RescueV1.CreateRescueRequest.decode(buf);
+      expect(decoded.name).toBe('Pawsome Rescue');
+      expect(decoded.email).toBe('hello@pawsome.example');
+      expect(decoded.contactPerson).toBe('Alex');
+    });
+
+    it('flat type-only re-exports compile in type position', () => {
+      const r: Rescue = {
+        rescueId: 'rsc-1',
+        name: 'Pawsome',
+        email: 'hi@p.example',
+        address: '1 High St',
+        city: 'London',
+        postcode: 'SW1A 1AA',
+        country: 'GB',
+        contactPerson: 'Alex',
+        status: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
+        settingsJson: '{}',
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+      };
+      expect(r.rescueId).toBe('rsc-1');
     });
   });
 });

@@ -1,0 +1,239 @@
+syntax = "proto3";
+
+package adopt_dont_shop.rescue.v1;
+
+// RescueService is the gRPC contract for the rescue vertical. It owns
+// the `rescue.*` schema (Rescue, RescueSettings, StaffMember, Invitation,
+// FosterPlacement, ApplicationQuestion) and exposes classical CRUD plus
+// a few status transitions (verify, invite-staff, accept-invitation).
+//
+// Classical service (no event sourcing) — but still uses
+// publish-after-commit on NATS for the cross-vertical events
+// downstream services consume.
+//
+// Convention (matches the other extracted services): ISO-8601
+// timestamps as strings, opaque base64-JSON keyset cursors, enums
+// mirroring the Postgres ENUM types verbatim, JSON-stringified blobs
+// for the open-ended fields (settings) so the proto doesn't have to
+// enumerate every nested key.
+service RescueService {
+  // Create a new rescue organisation. Caller MUST have `rescues.create`
+  // (typically admin or self-registration via the verify flow).
+  // Publishes `rescue.created` on NATS after commit.
+  rpc Create(CreateRescueRequest) returns (CreateRescueResponse);
+
+  // Fetch a single rescue by id. NOT_FOUND when missing or
+  // soft-deleted. Public-ish — adopters need to render rescue details
+  // on a pet's listing page.
+  rpc Get(GetRescueRequest) returns (GetRescueResponse);
+
+  // List rescues with keyset pagination + optional status filter.
+  // No rescue-scope on this — the public list returns verified rescues
+  // by default; admins can filter on the other statuses.
+  rpc List(ListRescuesRequest) returns (ListRescuesResponse);
+
+  // Update mutable rescue fields. Does NOT change verification status
+  // — that's Verify's job. Caller MUST have `rescues.update` scoped to
+  // the rescue. Publishes `rescue.updated` on NATS after commit.
+  rpc Update(UpdateRescueRequest) returns (UpdateRescueResponse);
+
+  // Mark a rescue as verified (or transition to rejected/suspended).
+  // Caller MUST have `admin.security.manage` (admin-only).
+  // Publishes `rescue.verified` (or `rescue.rejected` etc.) on NATS
+  // after commit.
+  rpc Verify(VerifyRescueRequest) returns (VerifyRescueResponse);
+
+  // Mint a staff-invitation token + persist the row. Caller MUST have
+  // `staff.create` scoped to the rescue. Publishes
+  // `rescue.staffInvited` on NATS — the notifications service emails
+  // the invitee.
+  rpc InviteStaff(InviteStaffRequest) returns (InviteStaffResponse);
+}
+
+// --- ENUMs — value lists mirror the Postgres types verbatim ----------
+
+enum RescueStatus {
+  RESCUE_STATUS_UNSPECIFIED = 0;
+  RESCUE_STATUS_PENDING = 1;
+  RESCUE_STATUS_VERIFIED = 2;
+  RESCUE_STATUS_SUSPENDED = 3;
+  RESCUE_STATUS_INACTIVE = 4;
+  RESCUE_STATUS_REJECTED = 5;
+}
+
+enum RescueVerificationSource {
+  RESCUE_VERIFICATION_SOURCE_UNSPECIFIED = 0;
+  RESCUE_VERIFICATION_SOURCE_COMPANIES_HOUSE = 1;
+  RESCUE_VERIFICATION_SOURCE_CHARITY_COMMISSION = 2;
+  RESCUE_VERIFICATION_SOURCE_MANUAL = 3;
+}
+
+// --- Rescue — denormalised listing row -------------------------------
+//
+// Carries the columns the SPA + admin app render today: identity,
+// address, status / verification, contact, the registration numbers.
+// Settings rides as a JSON-stringified blob so the proto doesn't have
+// to enumerate every nested key.
+message Rescue {
+  string rescue_id = 1;
+  string name = 2;
+  string email = 3;
+  optional string phone = 4;
+  string address = 5;
+  string city = 6;
+  // Model attribute `county` maps to the legacy column `state` (matches
+  // the monolith's getter/setter pair).
+  optional string county = 7;
+  string postcode = 8;
+  string country = 9;
+  optional string website = 10;
+  optional string description = 11;
+  optional string mission = 12;
+  optional string companies_house_number = 13;
+  optional string charity_registration_number = 14;
+  string contact_person = 15;
+  optional string contact_title = 16;
+  optional string contact_email = 17;
+  optional string contact_phone = 18;
+  RescueStatus status = 19;
+  optional string verified_at = 20;
+  optional string verified_by = 21;
+  optional RescueVerificationSource verification_source = 22;
+  optional string verification_failure_reason = 23;
+  // JSON-stringified blob (the rescue_settings 1:1 row merged in OR the
+  // free-form jsonb settings on the row — depends on whether the
+  // typed-settings table is loaded). Empty string == `{}`.
+  string settings_json = 24;
+  string created_at = 25;
+  string updated_at = 26;
+}
+
+// Invitation mirrors the rescue.invitations row — the pending-staff
+// invitation surfaced to the inviter for revocation / resend.
+message Invitation {
+  string invitation_id = 1;
+  string email = 2;
+  string rescue_id = 3;
+  optional string user_id = 4;
+  optional string title = 5;
+  optional string invited_by = 6;
+  string expiration = 7;
+  bool used = 8;
+  string created_at = 9;
+}
+
+// --- Create ----------------------------------------------------------
+
+message CreateRescueRequest {
+  string name = 1;
+  string email = 2;
+  optional string phone = 3;
+  string address = 4;
+  string city = 5;
+  optional string county = 6;
+  string postcode = 7;
+  // Defaults to 'GB' if omitted/empty.
+  optional string country = 8;
+  optional string website = 9;
+  optional string description = 10;
+  optional string mission = 11;
+  optional string companies_house_number = 12;
+  optional string charity_registration_number = 13;
+  string contact_person = 14;
+  optional string contact_title = 15;
+  optional string contact_email = 16;
+  optional string contact_phone = 17;
+}
+
+message CreateRescueResponse {
+  Rescue rescue = 1;
+}
+
+// --- Get --------------------------------------------------------------
+
+message GetRescueRequest {
+  string rescue_id = 1;
+}
+
+message GetRescueResponse {
+  Rescue rescue = 1;
+}
+
+// --- List -------------------------------------------------------------
+
+message ListRescuesRequest {
+  optional string cursor = 1;
+  // Defaults to 20, max 100.
+  uint32 limit = 2;
+  // Optional status filter. UNSPECIFIED = "verified only" (the public
+  // default). Admins can pass any other status to scope.
+  RescueStatus status_filter = 3;
+}
+
+message ListRescuesResponse {
+  repeated Rescue rescues = 1;
+  optional string next_cursor = 2;
+}
+
+// --- Update -----------------------------------------------------------
+
+message UpdateRescueRequest {
+  string rescue_id = 1;
+  // All optional — only the supplied fields are written.
+  optional string name = 2;
+  optional string phone = 3;
+  optional string address = 4;
+  optional string city = 5;
+  optional string county = 6;
+  optional string postcode = 7;
+  optional string country = 8;
+  optional string website = 9;
+  optional string description = 10;
+  optional string mission = 11;
+  optional string contact_person = 12;
+  optional string contact_title = 13;
+  optional string contact_email = 14;
+  optional string contact_phone = 15;
+  // Replaces the settings JSON blob wholesale when present.
+  optional string settings_json = 16;
+}
+
+message UpdateRescueResponse {
+  Rescue rescue = 1;
+}
+
+// --- Verify -----------------------------------------------------------
+
+message VerifyRescueRequest {
+  string rescue_id = 1;
+  // The target status — typically VERIFIED, but REJECTED + SUSPENDED
+  // pass through here too so the admin app drives the lifecycle from
+  // one RPC. Rejected by the service when the transition is illegal.
+  RescueStatus to_status = 2;
+  // For VERIFIED transitions: how the rescue was verified.
+  optional RescueVerificationSource verification_source = 3;
+  // For REJECTED: optional rejection reason persisted to the row.
+  optional string failure_reason = 4;
+}
+
+message VerifyRescueResponse {
+  Rescue rescue = 1;
+}
+
+// --- InviteStaff ------------------------------------------------------
+
+message InviteStaffRequest {
+  string rescue_id = 1;
+  string email = 2;
+  optional string title = 3;
+  // Optional TTL override; defaults to 7 days when omitted.
+  optional uint32 expires_in_seconds = 4;
+}
+
+message InviteStaffResponse {
+  Invitation invitation = 1;
+  // Plain-text invitation token returned ONCE at creation time so the
+  // caller can dispatch the email. NOT readable through Get/List
+  // afterwards.
+  string token = 2;
+}
