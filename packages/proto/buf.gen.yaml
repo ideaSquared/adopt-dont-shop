@@ -1,0 +1,26 @@
+# Hermetic codegen — the ts-proto plugin runs from node_modules/.bin, no
+# buf.build remote. CAD lesson: the dev environment couldn't reach
+# buf.build (403 from a non-browser client), and CI is even more
+# locked-down. Local plugin = `npm install && buf generate` works
+# anywhere.
+version: v1
+plugins:
+  - plugin: ts_proto
+    path: ../../node_modules/.bin/protoc-gen-ts_proto
+    out: src/generated
+    opt:
+      # ES module interop so consumers can `import { ... }` cleanly.
+      - esModuleInterop=true
+      # ESM-style explicit `.js` import suffix — required by Node's
+      # NodeNext / bundler module resolution when emitting ESM.
+      - importSuffix=.js
+      # Message fields are TS optional (more idiomatic; matches how proto3
+      # already treats unset scalars).
+      - useOptionals=messages
+      # Emit toJSON / fromJSON helpers — useful for the gateway's
+      # REST→gRPC translation layer.
+      - outputJsonMethods=true
+      # Skip gRPC service stubs for now. We'll re-enable
+      # (outputServices=grpc-js) when the first service ships and brings
+      # the @grpc/grpc-js runtime peer dep.
+      - outputServices=false

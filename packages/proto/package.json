@@ -1,0 +1,45 @@
+{
+  "name": "@adopt-dont-shop/proto",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Protobuf schemas + generated TS code for inter-service gRPC and NATS contracts. Codegen is hermetic — runs locally via ts-proto, no buf.build remote plugin (CAD lesson). Generated output is committed; CI verifies it's in sync with the .proto sources.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src",
+    "proto",
+    "buf.yaml",
+    "buf.gen.yaml",
+    "README.md"
+  ],
+  "scripts": {
+    "generate": "buf generate",
+    "build": "buf generate && tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist src/generated",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"proto/**/*.proto\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit",
+    "check:fresh": "node scripts/check-generated-fresh.mjs"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.12.0"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "^1.70.0",
+    "ts-proto": "^2.11.8"
+  }
+}

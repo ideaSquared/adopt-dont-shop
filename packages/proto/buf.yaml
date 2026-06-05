@@ -1,0 +1,15 @@
+# buf v1 module config. Lints + breaking-change checks every .proto here.
+# CAD lesson: keep the discipline tight from day one — proto drift is the
+# most common source of incident-debugging time later.
+version: v1
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT
+  except:
+    # Allow lowercase package names (matches CAD's convention; the default
+    # buf lint rule prefers PascalCase per file but we want one .proto per
+    # message group, organised by domain).
+    - PACKAGE_VERSION_SUFFIX
