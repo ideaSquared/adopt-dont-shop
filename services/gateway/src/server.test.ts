@@ -44,8 +44,8 @@ async function startUpstream(
 describe('createServer — health endpoint', () => {
   let server: FastifyInstance;
 
-  beforeEach(() => {
-    server = createServer({ config: baseConfig, logger: quietLogger });
+  beforeEach(async () => {
+    server = await createServer({ config: baseConfig, logger: quietLogger });
   });
 
   afterEach(async () => {
@@ -63,7 +63,7 @@ describe('createServer — health endpoint', () => {
   });
 
   it('surfaces the configured environment in the health payload', async () => {
-    const stagingServer = createServer({
+    const stagingServer = await createServer({
       config: { ...baseConfig, environment: 'staging' },
       logger: quietLogger,
     });
@@ -89,7 +89,7 @@ describe('createServer — strangler-fig /api/* proxy', () => {
     upstream = await startUpstream(s => {
       s.get('/api/pets', async () => ({ pets: [{ id: 'p1', name: 'Rex' }] }));
     });
-    server = createServer({
+    server = await createServer({
       config: { ...baseConfig, upstreamBackendUrl: upstream.url },
       logger: quietLogger,
     });
@@ -108,7 +108,7 @@ describe('createServer — strangler-fig /api/* proxy', () => {
         return { id: 'app-1' };
       });
     });
-    server = createServer({
+    server = await createServer({
       config: { ...baseConfig, upstreamBackendUrl: upstream.url },
       logger: quietLogger,
     });
@@ -136,7 +136,7 @@ describe('createServer — strangler-fig /api/* proxy', () => {
         reply.code(404).send({ error: 'not_found' });
       });
     });
-    server = createServer({
+    server = await createServer({
       config: { ...baseConfig, upstreamBackendUrl: upstream.url },
       logger: quietLogger,
     });
@@ -157,7 +157,7 @@ describe('createServer — strangler-fig /api/* proxy', () => {
         return { status: 'upstream' };
       });
     });
-    server = createServer({
+    server = await createServer({
       config: { ...baseConfig, upstreamBackendUrl: upstream.url },
       logger: quietLogger,
     });
@@ -176,7 +176,7 @@ describe('createServer — strangler-fig /api/* proxy', () => {
         return { ok: true };
       });
     });
-    server = createServer({
+    server = await createServer({
       config: { ...baseConfig, upstreamBackendUrl: upstream.url },
       logger: quietLogger,
     });
