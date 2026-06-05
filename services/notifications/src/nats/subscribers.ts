@@ -39,6 +39,8 @@ import type {
   ApplicationSubmittedEvent,
   AuthRoleAssignedEvent,
   AuthUserLoggedInEvent,
+  PetDeletedEvent,
+  PetStatusChangedEvent,
 } from './event-types.js';
 import { SYSTEM_PRINCIPAL } from './system-principal.js';
 
@@ -112,6 +114,41 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
       { subject: 'auth.roleAssigned', queue: QUEUE_GROUP, onError },
       async payload => {
         await createNotification(deps, SYSTEM_PRINCIPAL, buildAuthRoleAssignedCreate(payload));
+      }
+    )
+  );
+
+  // pets.statusChanged / pets.deleted (Phase 3.4): the subjects are
+  // wired here so the wire path is exercised end-to-end, but we do
+  // not yet create user-facing notification rows — see event-types.ts
+  // for the recipient-discovery deferral. Subscribing keeps the
+  // contract anchored on the consumer side and means upcoming changes
+  // (rescue staff lookup, favourite fan-out) only need to fill in the
+  // translator, not the registration.
+  subscriptions.push(
+    subscribe<PetStatusChangedEvent>(
+      nats,
+      { subject: 'pets.statusChanged', queue: QUEUE_GROUP, onError },
+      async payload => {
+        logger.info('pets.statusChanged received', {
+          petId: payload.petId,
+          rescueId: payload.rescueId,
+          fromStatus: payload.fromStatus,
+          toStatus: payload.toStatus,
+        });
+      }
+    )
+  );
+
+  subscriptions.push(
+    subscribe<PetDeletedEvent>(
+      nats,
+      { subject: 'pets.deleted', queue: QUEUE_GROUP, onError },
+      async payload => {
+        logger.info('pets.deleted received', {
+          petId: payload.petId,
+          rescueId: payload.rescueId,
+        });
       }
     )
   );

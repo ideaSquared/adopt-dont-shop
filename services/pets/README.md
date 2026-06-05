@@ -89,11 +89,21 @@ domain + publish-after-commit on `pets.statusChanged`.
   runs it alongside the HTTP `/health` surface; deps connect FIRST,
   then start serving.
 
+**Phase 3.4** — downstream NATS event flow:
+- The Phase 3.3b handlers already publish `pets.created`,
+  `pets.updated`, `pets.statusChanged`, and `pets.deleted` via
+  `@adopt-dont-shop/events.withTransaction` (publish-after-commit).
+- `services/notifications` subscribes to `pets.statusChanged` and
+  `pets.deleted` (joins the existing `notifications-workers` queue
+  group). The subscribers currently log receipt only — actually
+  fanning out user-facing notification rows needs recipient
+  discovery (rescue staff, favourite holders) that lands with the
+  rescue + matching verticals (Phases 4 + 9). Wiring the
+  subscriptions now anchors the contract on the consumer side and
+  means upcoming changes only fill in the translator.
+
 ## What's NOT here yet
 
-- **Phase 3.4** — NATS publishers: `pets.created`,
-  `pets.statusChanged`, `pets.deleted` etc. Downstream services
-  (notifications, matching, moderation, applications) consume these.
 - **Phase 3.5** — Gateway routes `/api/pets/*` here (the Phase 2.5
   authenticate middleware already handles auth gating).
 - **Phase 3.6** — Cutover: monolith's pets code becomes dead, removal
