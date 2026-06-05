@@ -9,6 +9,7 @@ the operator-side steps that the compose file alone doesn't capture.
 - TLS cert + key mounted at `nginx/ssl/fullchain.pem` and `nginx/ssl/privkey.pem`,
   or a working letsencrypt volume populated by certbot.
 - All `${VAR:?}` env vars in `docker-compose.prod.yml` set in `.env`.
+- `GHCR_TOKEN` repository secret set to a PAT scoped **`read:packages` only** — used by the deploy and rollback workflows to `docker pull` images on the server. See [`docs/SECRETS-MANAGEMENT.md`](../SECRETS-MANAGEMENT.md#github-actions-repository-secrets). [ADS-671]
 
 ## One-time setup
 
