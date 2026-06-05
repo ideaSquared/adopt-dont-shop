@@ -50,12 +50,48 @@ read model).
 - `src/db/migrate.ts` runs them via `@adopt-dont-shop/db.runMigrations`.
   Run with `npm run db:migrate`.
 
+**Phase 4.3a** — proto + grpc-js stubs:
+- `proto/adopt_dont_shop/rescue/v1/rescue.proto` in `@adopt-dont-shop/proto`
+  defines `RescueService.{Create, Get, List, Update, Verify, InviteStaff}`
+  plus the `Rescue` / `Invitation` messages + 2 enums.
+
+**Phase 4.3b** — handler logic (pure functions, no gRPC transport yet):
+- `src/grpc/status-machine.ts` — the pure, I/O-free legal-transition
+  table for the rescue verification lifecycle
+  (`pending → verified | rejected`, `verified ⇄ suspended | inactive`,
+  `rejected → pending` for re-application). Self-transitions
+  rejected. Same CAD apply/fold discipline as service.pets.
+- `src/grpc/enum-map.ts` — `RescueStatus`/`RescueVerificationSource`
+  mappers between the Postgres ENUM strings and `RescueV1` proto
+  integers.
+- `src/grpc/handlers.ts` — six RPCs over
+  `(deps, principal, request)`:
+  - **create** — `rescues.create`; INSERT + `rescue.created` after commit.
+  - **get** / **list** — `rescues.read`. List defaults to verified-only
+    when the status filter is UNSPECIFIED (the public default), keyset
+    pagination on `(created_at, rescue_id) DESC`.
+  - **update** — `rescues.update` scoped to the rescue; writes only the
+    supplied optional fields; `rescue.updated` after commit.
+  - **verify** — admin-only (`admin.security.manage`). Validates against
+    the status-machine, stamps `verified_at` / `verification_source` /
+    `verification_failure_reason` per the lifecycle, publishes
+    `rescue.verified` (or `rescue.rejected`, or generic
+    `rescue.statusChanged`) after commit.
+  - **inviteStaff** — `staff.create` scoped to the rescue. Mints a
+    high-entropy hex token via `randomBytes(32)`, persists the row,
+    publishes `rescue.staffInvited`. Returns the plain-text token
+    ONCE — NOT readable through Get/List afterwards (monolith
+    contract).
+- 57 tests across status-machine, enum-map, and handlers (rescue-scope
+  gating, admin-only on Verify, publish-after-commit call ordering,
+  illegal-transition rejection, public-default list filter, token
+  shape).
+
 ## What's NOT here yet
 
-- **Phase 4.3** — gRPC `RescueService`:
-  - proto + grpc-js stubs in `@adopt-dont-shop/proto`
-  - handler logic (CRUD + verify / invite-staff transitions)
-  - gRPC server boot + adapter (same pattern as service.pets)
+- **Phase 4.3c** — gRPC server boot + adapter (port of
+  `services/pets/src/grpc/{adapter,server}.ts`), wired into
+  `index.ts` on `RESCUE_GRPC_PORT`.
 - **Phase 4.4** — NATS publishers (`rescue.created`,
   `rescue.verified`, `rescue.staffInvited`, etc.) + subscriber for
   `auth.userCreated` to denormalise staff_member rows.
