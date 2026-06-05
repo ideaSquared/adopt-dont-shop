@@ -36,10 +36,22 @@ for adopt-dont-shop's domain.
 - `src/db/migrate.ts` runs them via `@adopt-dont-shop/db.runMigrations`.
 - Run with `npm run db:migrate`.
 
+**Phase 2.3a** — proto + grpc-js stubs:
+- `proto/adopt_dont_shop/auth/v1/auth.proto` in `@adopt-dont-shop/proto`
+  defines `AuthService.{Login, Logout, RefreshToken, ValidateToken,
+  GetMe, AssignRole}` plus the supporting `Principal`, `User`,
+  `TokenPair`, and `UserRole` / `UserStatus` enums (values mirror the
+  `auth.user_type` / `auth.user_status` Postgres types AND
+  `lib.types.UserRole`).
+- `@adopt-dont-shop/proto` index re-exports the `AuthV1` value
+  namespace (server/client constructors, enums) plus flat type-only
+  re-exports for the request/response shapes (`AuthPrincipal`,
+  `AuthUser` etc. — prefixed to avoid collision with
+  `NotificationsV1` flat exports).
+
 ## What's NOT here yet
 
-- **Phase 2.3** — gRPC `AuthService`:
-  - proto + grpc-js stubs in `@adopt-dont-shop/proto`
+- **Phase 2.3b–c** — gRPC `AuthService` runtime:
   - handler logic: Login (bcrypt compare → JWT mint), Logout
     (revoke refresh), RefreshToken (rotate), ValidateToken (cheap
     JWT verify — hot path), GetMe (denormalise principal),
