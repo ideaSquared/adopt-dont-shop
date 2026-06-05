@@ -1,0 +1,227 @@
+syntax = "proto3";
+
+package adopt_dont_shop.auth.v1;
+
+// AuthService is the gRPC contract for the auth vertical. It owns the
+// `auth.*` schema (User, Role, Permission, RefreshToken, RevokedToken,
+// UserRole, RolePermission) and exposes the six RPCs every other
+// service depends on.
+//
+// CAD parallel: this mirrors `cad.auth.v1.AuthService` — classical
+// CRUD-shaped service (no event sourcing). Bcrypt at rest, short-lived
+// JWT access tokens, opaque-ish refresh tokens stored server-side so
+// Logout/RefreshToken can revoke them.
+//
+// Convention note: Login/RefreshToken/ValidateToken are the only RPCs
+// callable WITHOUT principal metadata — they exist precisely to mint
+// or verify it. Logout, GetMe, AssignRole all require the x-user-*
+// metadata the gateway populates from ValidateToken.
+service AuthService {
+  // Exchange email + password for an access/refresh token pair.
+  // Returns UNAUTHENTICATED on missing/wrong credentials,
+  // PERMISSION_DENIED on locked accounts. Publishes
+  // `auth.userLoggedIn` on NATS after the DB commit (Phase 2.4).
+  rpc Login(LoginRequest) returns (LoginResponse);
+
+  // Revoke a refresh token (adds its jti to the auth.revoked_tokens
+  // denylist). Idempotent — revoking an already-revoked or
+  // already-expired token returns OK without error. Publishes
+  // `auth.tokenRevoked` on NATS.
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+
+  // Rotate a refresh token. Verifies the refresh token, marks it
+  // revoked, and mints a fresh access+refresh pair. Returns
+  // UNAUTHENTICATED on missing/expired/revoked input.
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+
+  // Cheap JWT verification — the gateway calls this for EVERY
+  // non-auth request to populate the x-user-{id,roles,permissions,
+  // rescue-id} metadata downstream services consume. Hot path:
+  // implementation reads the access secret + denylist only; no
+  // user row fetch unless the JWT signature checks out AND the
+  // jti isn't denylisted. Returns UNAUTHENTICATED on any failure.
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+
+  // Return the calling principal's denormalised user row +
+  // current roles + flattened permission strings. Requires
+  // x-user-id metadata. Mirrors the monolith's `/api/auth/me`.
+  rpc GetMe(GetMeRequest) returns (GetMeResponse);
+
+  // Assign a role to a user. Caller MUST have the
+  // `admin.security.manage` permission (only super_admin /
+  // admin in the seed). Publishes `auth.roleAssigned` on NATS.
+  // INVALID_ARGUMENT if the role is unknown; ALREADY_EXISTS is
+  // NOT returned — the operation is idempotent.
+  rpc AssignRole(AssignRoleRequest) returns (AssignRoleResponse);
+}
+
+// --- Shared messages --------------------------------------------------
+
+// UserRole values mirror the auth.user_type Postgres enum AND
+// @adopt-dont-shop/lib.types.UserRole. The handler maps to/from the
+// string values via a single switch on each side.
+enum UserRole {
+  USER_ROLE_UNSPECIFIED = 0;
+  USER_ROLE_ADOPTER = 1;
+  USER_ROLE_RESCUE_STAFF = 2;
+  USER_ROLE_ADMIN = 3;
+  USER_ROLE_MODERATOR = 4;
+  USER_ROLE_SUPER_ADMIN = 5;
+  USER_ROLE_SUPPORT_AGENT = 6;
+}
+
+// UserStatus mirrors the auth.user_status Postgres enum. SUSPENDED and
+// DEACTIVATED block Login at the service layer.
+enum UserStatus {
+  USER_STATUS_UNSPECIFIED = 0;
+  USER_STATUS_ACTIVE = 1;
+  USER_STATUS_INACTIVE = 2;
+  USER_STATUS_SUSPENDED = 3;
+  USER_STATUS_PENDING_VERIFICATION = 4;
+  USER_STATUS_DEACTIVATED = 5;
+}
+
+// Principal is the flattened identity the gateway forwards downstream
+// as gRPC metadata. ValidateToken returns it; GetMe returns a richer
+// User on top of it.
+//
+// permissions is the FULL flattened set (role-derived + direct grants
+// + super_admin-implied), matching what @adopt-dont-shop/authz expects.
+message Principal {
+  string user_id = 1;
+  repeated UserRole roles = 2;
+  // Permission strings — `resource.action` format mirroring
+  // lib.types.Permission. Kept as strings (not a giant enum) because
+  // the set evolves per-feature and we don't want a proto rebuild
+  // every time a new permission is added.
+  repeated string permissions = 3;
+  // Set when the principal is rescue-staff scoped to a single rescue.
+  optional string rescue_id = 4;
+}
+
+// User is the denormalised user row GetMe returns. Subset of the
+// auth.users columns — secrets (password, tokens, 2FA secret) and
+// PII the caller doesn't need (date_of_birth, locked_until) stay
+// server-side.
+message User {
+  string user_id = 1;
+  string email = 2;
+  optional string first_name = 3;
+  optional string last_name = 4;
+  UserRole user_type = 5;
+  UserStatus status = 6;
+  bool email_verified = 7;
+  bool phone_verified = 8;
+  bool two_factor_enabled = 9;
+  optional string profile_image_url = 10;
+  optional string bio = 11;
+  optional string timezone = 12;
+  optional string language = 13;
+  optional string country = 14;
+  optional string city = 15;
+  // RFC 3339 timestamps.
+  optional string last_login_at = 16;
+  string created_at = 17;
+  string updated_at = 18;
+}
+
+// TokenPair is the access+refresh tuple Login and RefreshToken return.
+// expires_at is RFC 3339 to keep the JSON marshalling cheap at the
+// gateway — same convention as NotificationsV1.
+message TokenPair {
+  string access_token = 1;
+  string refresh_token = 2;
+  // Access-token expiry (RFC 3339).
+  string access_expires_at = 3;
+  // Refresh-token expiry (RFC 3339).
+  string refresh_expires_at = 4;
+}
+
+// --- Login -----------------------------------------------------------
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  // Optional context the service threads into audit + lockout logic.
+  // Populated by the gateway from the inbound HTTP request.
+  optional string ip_address = 3;
+  optional string user_agent = 4;
+}
+
+message LoginResponse {
+  User user = 1;
+  TokenPair tokens = 2;
+  // Flattened permissions snapshot at login time. The gateway caches
+  // this for the lifetime of the access token; ValidateToken is the
+  // freshness check for every subsequent request.
+  repeated string permissions = 3;
+}
+
+// --- Logout ----------------------------------------------------------
+
+message LogoutRequest {
+  // The refresh token to revoke. Logout is idempotent — already-revoked
+  // and already-expired tokens both return OK.
+  string refresh_token = 1;
+}
+
+message LogoutResponse {
+  // Empty body — success is signalled by gRPC status OK. The field is
+  // present so future additions don't break the wire format.
+  bool revoked = 1;
+}
+
+// --- RefreshToken ----------------------------------------------------
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  TokenPair tokens = 1;
+}
+
+// --- ValidateToken ---------------------------------------------------
+
+message ValidateTokenRequest {
+  string access_token = 1;
+}
+
+message ValidateTokenResponse {
+  Principal principal = 1;
+  // Access-token expiry (RFC 3339) — the gateway uses this to decide
+  // whether to cache the ValidateToken result or hit the service again.
+  string expires_at = 2;
+}
+
+// --- GetMe -----------------------------------------------------------
+
+message GetMeRequest {
+  // No body — the principal is identified via gRPC metadata
+  // (x-user-id). Kept as an explicit message so the RPC signature
+  // stays stable if future fields (e.g. `include_settings`) appear.
+}
+
+message GetMeResponse {
+  User user = 1;
+  repeated UserRole roles = 2;
+  repeated string permissions = 3;
+  optional string rescue_id = 4;
+}
+
+// --- AssignRole ------------------------------------------------------
+
+message AssignRoleRequest {
+  string target_user_id = 1;
+  UserRole role = 2;
+  // Optional free-text reason persisted to the audit row + emitted
+  // on the `auth.roleAssigned` NATS event.
+  optional string reason = 3;
+}
+
+message AssignRoleResponse {
+  // Snapshot of the target user's roles AFTER the assignment, in
+  // canonical order. Lets the caller (typically the admin app) update
+  // its local cache without a follow-up GetMe.
+  repeated UserRole roles = 1;
+}
