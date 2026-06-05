@@ -104,10 +104,20 @@ for adopt-dont-shop's domain.
 - `src/index.ts` wires `pool` + `nats` + hasher + issuer into the
   gRPC server and runs it alongside the HTTP /health surface.
 
+**Phase 2.4** — downstream NATS event flow:
+- The Phase 2.3b handlers already publish `auth.userLoggedIn`,
+  `auth.tokenRevoked`, `auth.tokenRefreshed`, and `auth.roleAssigned`
+  via `@adopt-dont-shop/events.withTransaction` (publish-after-commit).
+- `services/notifications` now subscribes to two of those subjects:
+  - `auth.userLoggedIn` → `ACCOUNT_SECURITY` in-app notification
+    ("New sign-in to your account from <ip> (<ua>)")
+  - `auth.roleAssigned` → `STAFF_ASSIGNMENT` in-app notification
+    ("You have been granted the <role> role")
+- Both subscribers go through the existing
+  `createNotification(SYSTEM_PRINCIPAL, …)` translation layer so
+  the publish-after-commit + idempotency disciplines stay intact.
+
 ## What's NOT here yet
-- **Phase 2.4** — NATS publishers: `auth.userCreated`,
-  `auth.roleAssigned`, `auth.tokenRevoked`. Downstream services
-  (notifications, applications) consume these.
 - **Phase 2.5** — Gateway auth middleware: every non-auth route
   calls `service.auth.ValidateToken` to populate the
   `x-user-{id,roles,permissions,rescue-id}` metadata headers (which

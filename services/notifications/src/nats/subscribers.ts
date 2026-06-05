@@ -37,6 +37,8 @@ import type {
   ApplicationApprovedEvent,
   ApplicationRejectedEvent,
   ApplicationSubmittedEvent,
+  AuthRoleAssignedEvent,
+  AuthUserLoggedInEvent,
 } from './event-types.js';
 import { SYSTEM_PRINCIPAL } from './system-principal.js';
 
@@ -90,6 +92,26 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
       { subject: 'applications.rejected', queue: QUEUE_GROUP, onError },
       async payload => {
         await createNotification(deps, SYSTEM_PRINCIPAL, buildApplicationRejectedCreate(payload));
+      }
+    )
+  );
+
+  subscriptions.push(
+    subscribe<AuthUserLoggedInEvent>(
+      nats,
+      { subject: 'auth.userLoggedIn', queue: QUEUE_GROUP, onError },
+      async payload => {
+        await createNotification(deps, SYSTEM_PRINCIPAL, buildAuthUserLoggedInCreate(payload));
+      }
+    )
+  );
+
+  subscriptions.push(
+    subscribe<AuthRoleAssignedEvent>(
+      nats,
+      { subject: 'auth.roleAssigned', queue: QUEUE_GROUP, onError },
+      async payload => {
+        await createNotification(deps, SYSTEM_PRINCIPAL, buildAuthRoleAssignedCreate(payload));
       }
     )
   );
@@ -173,4 +195,55 @@ export const buildApplicationRejectedCreate = (
   relatedEntityType:
     NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION,
   relatedEntityId: event.applicationId,
+});
+
+// auth.userLoggedIn — security notification. We surface the IP +
+// user agent so the user can spot unrecognised sign-ins; the message
+// stays generic when neither is supplied (the gateway may strip these
+// in dev / local).
+export const buildAuthUserLoggedInCreate = (
+  event: AuthUserLoggedInEvent
+): CreateNotificationRequest => {
+  const where = event.ipAddress ?? 'an unknown location';
+  const how = event.userAgent ? ` (${event.userAgent})` : '';
+  return {
+    userId: event.userId as string,
+    type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_ACCOUNT_SECURITY,
+    channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+    priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_LOW,
+    title: 'New sign-in to your account',
+    message: `We detected a new sign-in from ${where}${how}. If this wasn't you, change your password immediately.`,
+    dataJson: JSON.stringify({
+      ipAddress: event.ipAddress,
+      userAgent: event.userAgent,
+    }),
+    templateVariablesJson: '{}',
+    relatedEntityType:
+      NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY,
+  };
+};
+
+// auth.roleAssigned — in-app announcement of the new role + a hint
+// about the new affordances. The role string is the canonical DB
+// value (`adopter`, `rescue_staff`, etc.) — keep it as-is so the
+// frontend can render a label/icon from a lookup table.
+export const buildAuthRoleAssignedCreate = (
+  event: AuthRoleAssignedEvent
+): CreateNotificationRequest => ({
+  userId: event.targetUserId as string,
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_STAFF_ASSIGNMENT,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL,
+  title: 'New role assigned',
+  message: event.reason
+    ? `You have been granted the ${event.role} role. Reason: ${event.reason}`
+    : `You have been granted the ${event.role} role.`,
+  dataJson: JSON.stringify({
+    role: event.role,
+    assignedBy: event.assignedBy,
+    reason: event.reason,
+  }),
+  templateVariablesJson: '{}',
+  relatedEntityType:
+    NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_USER,
 });
