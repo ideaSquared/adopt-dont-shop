@@ -1,0 +1,271 @@
+syntax = "proto3";
+
+package adopt_dont_shop.pets.v1;
+
+// PetService is the gRPC contract for the pets vertical. It owns the
+// `pets.*` schema (Pet, PetMedia, Breed, UserFavorite, Rating,
+// PetStatusTransition) and exposes the listing CRUD plus the
+// event-sourced status state machine.
+//
+// CAD parallel: the status transitions mirror `cad.incident.v1`'s
+// command/event split — UpdateStatus is the single command that drives
+// the state machine and appends a PetStatusTransition row, publishing
+// `pets.statusChanged` after commit. The rest is classical CRUD.
+//
+// Convention (matches NotificationsV1 / AuthV1): ISO-8601 timestamps as
+// strings, opaque base64-JSON keyset cursors, enums mirroring the
+// Postgres ENUM types verbatim, JSON-stringified blobs for the
+// open-ended fields (temperament/tags arrays) so the proto doesn't have
+// to enumerate every shape.
+service PetService {
+  // Create a new pet listing. Caller MUST have `pets.create` scoped to
+  // the target rescue. Publishes `pets.created` on NATS after commit.
+  rpc Create(CreatePetRequest) returns (CreatePetResponse);
+
+  // Fetch a single pet by id. NOT_FOUND when missing or soft-deleted.
+  rpc Get(GetPetRequest) returns (GetPetResponse);
+
+  // List pets with keyset pagination + optional filters. Public-ish
+  // read (adopters browse available pets); rescue staff can scope to
+  // their own rescue via the rescue_id filter.
+  rpc List(ListPetsRequest) returns (ListPetsResponse);
+
+  // Update mutable listing fields (descriptions, flags, fee, …). Does
+  // NOT change status — that's UpdateStatus's job. Caller MUST have
+  // `pets.update` scoped to the pet's rescue. Publishes `pets.updated`.
+  rpc Update(UpdatePetRequest) returns (UpdatePetResponse);
+
+  // Drive the status state machine
+  // (available → pending → adopted → … plus foster / holds / deceased).
+  // Appends a PetStatusTransition row in the same transaction and
+  // publishes `pets.statusChanged` after commit. Rejects illegal
+  // transitions with FAILED_PRECONDITION (mapped to INVALID_ARGUMENT at
+  // the handler). Caller MUST have `pets.update` scoped to the rescue.
+  rpc UpdateStatus(UpdatePetStatusRequest) returns (UpdatePetStatusResponse);
+
+  // Soft-delete a pet (sets deleted_at). Caller MUST have `pets.delete`
+  // scoped to the rescue. Publishes `pets.deleted` after commit.
+  rpc Delete(DeletePetRequest) returns (DeletePetResponse);
+}
+
+// --- ENUMs — value lists mirror the Postgres types verbatim ----------
+
+enum PetStatus {
+  PET_STATUS_UNSPECIFIED = 0;
+  PET_STATUS_AVAILABLE = 1;
+  PET_STATUS_PENDING = 2;
+  PET_STATUS_ADOPTED = 3;
+  PET_STATUS_FOSTER = 4;
+  PET_STATUS_MEDICAL_HOLD = 5;
+  PET_STATUS_BEHAVIORAL_HOLD = 6;
+  PET_STATUS_NOT_AVAILABLE = 7;
+  PET_STATUS_DECEASED = 8;
+}
+
+enum PetType {
+  PET_TYPE_UNSPECIFIED = 0;
+  PET_TYPE_DOG = 1;
+  PET_TYPE_CAT = 2;
+  PET_TYPE_RABBIT = 3;
+  PET_TYPE_BIRD = 4;
+  PET_TYPE_REPTILE = 5;
+  PET_TYPE_SMALL_MAMMAL = 6;
+  PET_TYPE_FISH = 7;
+  PET_TYPE_OTHER = 8;
+}
+
+enum PetGender {
+  PET_GENDER_UNSPECIFIED = 0;
+  PET_GENDER_MALE = 1;
+  PET_GENDER_FEMALE = 2;
+  PET_GENDER_UNKNOWN = 3;
+}
+
+enum PetSize {
+  PET_SIZE_UNSPECIFIED = 0;
+  PET_SIZE_EXTRA_SMALL = 1;
+  PET_SIZE_SMALL = 2;
+  PET_SIZE_MEDIUM = 3;
+  PET_SIZE_LARGE = 4;
+  PET_SIZE_EXTRA_LARGE = 5;
+}
+
+enum PetAgeGroup {
+  PET_AGE_GROUP_UNSPECIFIED = 0;
+  PET_AGE_GROUP_BABY = 1;
+  PET_AGE_GROUP_YOUNG = 2;
+  PET_AGE_GROUP_ADULT = 3;
+  PET_AGE_GROUP_SENIOR = 4;
+}
+
+// --- Pet — denormalised listing row ----------------------------------
+//
+// A representative core of the pets.pets row — identity, classification,
+// status, the descriptions + flags the SPA renders, fee, and timestamps.
+// The long tail of care/medical fields rides in `extra_json` (a JSON
+// object) so the proto doesn't have to enumerate all 60 columns; the
+// gateway forwards it through to the SPA unchanged.
+message Pet {
+  string pet_id = 1;
+  string name = 2;
+  optional string rescue_id = 3;
+  PetType type = 4;
+  PetStatus status = 5;
+  PetGender gender = 6;
+  PetSize size = 7;
+  PetAgeGroup age_group = 8;
+  optional string breed_id = 9;
+  optional string secondary_breed_id = 10;
+  optional string short_description = 11;
+  optional string long_description = 12;
+  optional int32 age_years = 13;
+  optional int32 age_months = 14;
+  optional string color = 15;
+  bool archived = 16;
+  bool featured = 17;
+  bool priority_listing = 18;
+  optional int32 adoption_fee_minor = 19;
+  optional string adoption_fee_currency = 20;
+  bool special_needs = 21;
+  bool house_trained = 22;
+  // JSON-stringified arrays — temperament + tags. Empty string == `[]`.
+  string temperament_json = 23;
+  string tags_json = 24;
+  // JSON-stringified object carrying the long tail of fields the core
+  // message omits (medical_notes, behavioral_notes, good_with_*,
+  // vaccination_status, location lat/lng, …). Empty string == `{}`.
+  string extra_json = 25;
+  uint32 view_count = 26;
+  uint32 favorite_count = 27;
+  uint32 application_count = 28;
+  optional string available_since = 29;
+  optional string adopted_date = 30;
+  string created_at = 31;
+  string updated_at = 32;
+}
+
+// PetStatusTransition mirrors the pets.pet_status_transitions row — the
+// append-only audit trail behind the state machine.
+message PetStatusTransition {
+  string transition_id = 1;
+  string pet_id = 2;
+  optional PetStatus from_status = 3;
+  PetStatus to_status = 4;
+  string transitioned_at = 5;
+  optional string transitioned_by = 6;
+  optional string reason = 7;
+}
+
+// --- Create -----------------------------------------------------------
+
+message CreatePetRequest {
+  string name = 1;
+  string rescue_id = 2;
+  PetType type = 3;
+  PetGender gender = 4;
+  PetSize size = 5;
+  PetAgeGroup age_group = 6;
+  optional string breed_id = 7;
+  optional string secondary_breed_id = 8;
+  optional string short_description = 9;
+  optional string long_description = 10;
+  optional int32 age_years = 11;
+  optional int32 age_months = 12;
+  optional int32 adoption_fee_minor = 13;
+  optional string adoption_fee_currency = 14;
+  bool special_needs = 15;
+  bool house_trained = 16;
+  string temperament_json = 17;
+  string tags_json = 18;
+  string extra_json = 19;
+}
+
+message CreatePetResponse {
+  Pet pet = 1;
+}
+
+// --- Get --------------------------------------------------------------
+
+message GetPetRequest {
+  string pet_id = 1;
+}
+
+message GetPetResponse {
+  Pet pet = 1;
+}
+
+// --- List -------------------------------------------------------------
+
+message ListPetsRequest {
+  // Opaque base64-JSON keyset cursor — same shape as NotificationsV1.
+  optional string cursor = 1;
+  // Defaults to 20, max 100 — server enforces the bound.
+  uint32 limit = 2;
+  // Optional filters. UNSPECIFIED in each enum = "no filter".
+  PetStatus status_filter = 3;
+  PetType type_filter = 4;
+  PetSize size_filter = 5;
+  // Scope to a single rescue's pets (rescue staff dashboards).
+  optional string rescue_id_filter = 6;
+}
+
+message ListPetsResponse {
+  repeated Pet pets = 1;
+  optional string next_cursor = 2;
+}
+
+// --- Update -----------------------------------------------------------
+
+message UpdatePetRequest {
+  string pet_id = 1;
+  // All optional — only the supplied fields are written. JSON blobs
+  // replace wholesale when present.
+  optional string name = 2;
+  optional string short_description = 3;
+  optional string long_description = 4;
+  optional PetGender gender = 5;
+  optional PetSize size = 6;
+  optional PetAgeGroup age_group = 7;
+  optional string breed_id = 8;
+  optional string secondary_breed_id = 9;
+  optional int32 adoption_fee_minor = 10;
+  optional string adoption_fee_currency = 11;
+  optional bool special_needs = 12;
+  optional bool house_trained = 13;
+  optional bool featured = 14;
+  optional bool priority_listing = 15;
+  optional string temperament_json = 16;
+  optional string tags_json = 17;
+  optional string extra_json = 18;
+}
+
+message UpdatePetResponse {
+  Pet pet = 1;
+}
+
+// --- UpdateStatus (the state-machine command) ------------------------
+
+message UpdatePetStatusRequest {
+  string pet_id = 1;
+  PetStatus to_status = 2;
+  // Optional free-text reason persisted to the transition row + emitted
+  // on the `pets.statusChanged` event.
+  optional string reason = 3;
+}
+
+message UpdatePetStatusResponse {
+  Pet pet = 1;
+  // The transition row appended by this command.
+  PetStatusTransition transition = 2;
+}
+
+// --- Delete -----------------------------------------------------------
+
+message DeletePetRequest {
+  string pet_id = 1;
+}
+
+message DeletePetResponse {
+  // Soft-delete sets deleted_at; success is signalled by gRPC status OK.
+  bool deleted = 1;
+}

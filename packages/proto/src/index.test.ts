@@ -3,13 +3,16 @@ import { describe, expect, it } from 'vitest';
 import {
   AuthV1,
   NotificationsV1,
+  PetsV1,
   PingV1,
   type AuthUser,
   type CreateNotificationRequest,
+  type CreatePetRequest,
   type EchoRequest,
   type EchoResponse,
   type LoginRequest,
   type Notification,
+  type Pet,
   type ValidateTokenResponse,
 } from './index.js';
 
@@ -242,6 +245,95 @@ describe('@adopt-dont-shop/proto', () => {
         updatedAt: '2026-06-01T00:00:00Z',
       };
       expect(u.email).toBe('alex@example.com');
+    });
+  });
+
+  describe('PetsV1 namespace (Phase 3.3a — proto + grpc-js stubs)', () => {
+    it('exports the message factories under the PetsV1 namespace', () => {
+      expect(PetsV1.Pet).toBeDefined();
+      expect(PetsV1.PetStatusTransition).toBeDefined();
+      expect(PetsV1.CreatePetRequest).toBeDefined();
+      expect(PetsV1.GetPetRequest).toBeDefined();
+      expect(PetsV1.ListPetsRequest).toBeDefined();
+      expect(PetsV1.UpdatePetRequest).toBeDefined();
+      expect(PetsV1.UpdatePetStatusRequest).toBeDefined();
+      expect(PetsV1.DeletePetRequest).toBeDefined();
+    });
+
+    it('exports the gRPC service definition table for all six RPCs', () => {
+      expect(PetsV1.PetServiceService).toBeDefined();
+      expect(PetsV1.PetServiceService).toMatchObject({
+        create: { path: '/adopt_dont_shop.pets.v1.PetService/Create' },
+        get: { path: '/adopt_dont_shop.pets.v1.PetService/Get' },
+        list: { path: '/adopt_dont_shop.pets.v1.PetService/List' },
+        update: { path: '/adopt_dont_shop.pets.v1.PetService/Update' },
+        updateStatus: { path: '/adopt_dont_shop.pets.v1.PetService/UpdateStatus' },
+        delete: { path: '/adopt_dont_shop.pets.v1.PetService/Delete' },
+      });
+    });
+
+    it('exports a gRPC client constructor', () => {
+      expect(PetsV1.PetServiceClient).toBeDefined();
+      expect(typeof PetsV1.PetServiceClient).toBe('function');
+    });
+
+    it('PetStatus enum covers all eight Postgres pet_status values', () => {
+      const populated = Object.values(PetsV1.PetStatus).filter(v => typeof v === 'number' && v > 0);
+      expect(populated).toHaveLength(8);
+      expect(PetsV1.PetStatus.PET_STATUS_AVAILABLE).toBe(1);
+      expect(PetsV1.PetStatus.PET_STATUS_DECEASED).toBe(8);
+    });
+
+    it('PetType enum covers all eight pet_type values', () => {
+      const populated = Object.values(PetsV1.PetType).filter(v => typeof v === 'number' && v > 0);
+      expect(populated).toHaveLength(8);
+    });
+
+    it('round-trips a CreatePetRequest through the binary wire format', () => {
+      const original: CreatePetRequest = {
+        name: 'Rex',
+        rescueId: 'rsc-1',
+        type: PetsV1.PetType.PET_TYPE_DOG,
+        gender: PetsV1.PetGender.PET_GENDER_MALE,
+        size: PetsV1.PetSize.PET_SIZE_LARGE,
+        ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_ADULT,
+        specialNeeds: false,
+        houseTrained: true,
+        temperamentJson: '["friendly","energetic"]',
+        tagsJson: '[]',
+        extraJson: '{}',
+      };
+      const buf = PetsV1.CreatePetRequest.encode(original).finish();
+      const decoded = PetsV1.CreatePetRequest.decode(buf);
+      expect(decoded.name).toBe('Rex');
+      expect(decoded.type).toBe(PetsV1.PetType.PET_TYPE_DOG);
+      expect(decoded.temperamentJson).toBe('["friendly","energetic"]');
+    });
+
+    it('flat type-only re-exports compile in type position', () => {
+      const p: Pet = {
+        petId: 'pet-1',
+        name: 'Rex',
+        type: PetsV1.PetType.PET_TYPE_DOG,
+        status: PetsV1.PetStatus.PET_STATUS_AVAILABLE,
+        gender: PetsV1.PetGender.PET_GENDER_MALE,
+        size: PetsV1.PetSize.PET_SIZE_LARGE,
+        ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_ADULT,
+        archived: false,
+        featured: false,
+        priorityListing: false,
+        specialNeeds: false,
+        houseTrained: true,
+        temperamentJson: '[]',
+        tagsJson: '[]',
+        extraJson: '{}',
+        viewCount: 0,
+        favoriteCount: 0,
+        applicationCount: 0,
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+      };
+      expect(p.petId).toBe('pet-1');
     });
   });
 });
