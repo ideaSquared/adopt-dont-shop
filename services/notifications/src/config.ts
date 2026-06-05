@@ -6,6 +6,13 @@ export type NotificationsConfig = {
   host: string;
   // Environment label, surfaced in health responses and on log lines.
   environment: string;
+  // Postgres connection string. Required for migrations + the runtime
+  // database client. Same physical Postgres as service.backend; this
+  // service owns the `notifications` schema (CAD-style schema-per-service).
+  databaseUrl: string;
+  // Schema name. Defaults to `notifications` — every table in this
+  // service lives here and other services don't read it directly.
+  schema: string;
 };
 
 // Defaults match the wider stack:
@@ -14,6 +21,7 @@ export type NotificationsConfig = {
 //   - service.notifications http :5001 (gRPC will be :6001 in Phase 1.3)
 const DEFAULT_PORT = 5001;
 const DEFAULT_HOST = '0.0.0.0';
+const DEFAULT_SCHEMA = 'notifications';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsConfig => {
   const portRaw = env.NOTIFICATIONS_PORT?.trim();
@@ -22,9 +30,16 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     throw new Error(`NOTIFICATIONS_PORT must be a positive integer, got "${portRaw}"`);
   }
 
+  const databaseUrl = env.DATABASE_URL?.trim();
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL is required (Postgres connection string)');
+  }
+
   return {
     port,
     host: env.NOTIFICATIONS_HOST?.trim() || DEFAULT_HOST,
     environment: env.NODE_ENV?.trim() || 'development',
+    databaseUrl,
+    schema: env.NOTIFICATIONS_SCHEMA?.trim() || DEFAULT_SCHEMA,
   };
 };

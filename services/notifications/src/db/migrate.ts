@@ -1,0 +1,44 @@
+// Migration entry point — runs the notifications.* schema migrations
+// via @adopt-dont-shop/db (which wraps node-pg-migrate with the four
+// CAD-lesson fixes: createSchema, ignorePattern, search_path,
+// advisory-lock retry).
+//
+// Invoked by `npm run db:migrate` (which tsx-runs this file directly
+// in dev). Production deploys run a compiled version against
+// dist/migrations/.
+
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+import { runMigrations } from '@adopt-dont-shop/db';
+import { createLogger } from '@adopt-dont-shop/observability';
+
+import { loadConfig } from '../config.js';
+
+// CAD lesson #2: this path MUST resolve identically in dev (tsx) and
+// prod (bundled). In dev, import.meta.url points at .../src/db/migrate.ts
+// and the migrations sit under ../migrations/. The prod bundler config
+// remaps both to ./migrations/<name>.js so the path stays correct.
+const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
+
+const main = async (): Promise<void> => {
+  const logger = createLogger({ serviceName: 'service.notifications.migrate' });
+  try {
+    const config = loadConfig();
+    logger.info('running migrations', {
+      schema: config.schema,
+      migrationsDir: MIGRATIONS_DIR,
+    });
+    await runMigrations({
+      databaseUrl: config.databaseUrl,
+      schema: config.schema,
+      migrationsDir: MIGRATIONS_DIR,
+    });
+    logger.info('migrations complete');
+  } catch (err) {
+    logger.error('migrations failed', { err });
+    process.exit(1);
+  }
+};
+
+void main();
