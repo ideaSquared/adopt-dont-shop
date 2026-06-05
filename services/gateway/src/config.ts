@@ -1,0 +1,34 @@
+export type GatewayConfig = {
+  // Port the gateway listens on. Distinct from service.backend's 5000 so
+  // both can run side-by-side during the strangler-fig migration. Nginx
+  // (already in docker-compose) routes the public api.localhost host
+  // here once the gateway is in front.
+  port: number;
+  host: string;
+  // URL of the residual service.backend monolith. Every /api/* request
+  // that doesn't yet have a per-path route to an extracted service
+  // proxies here.
+  upstreamBackendUrl: string;
+  // Environment label, surfaced in health responses and on log lines.
+  // Falls back to NODE_ENV.
+  environment: string;
+};
+
+const DEFAULT_PORT = 4000;
+const DEFAULT_HOST = '0.0.0.0';
+const DEFAULT_UPSTREAM = 'http://service-backend:5000';
+
+export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig => {
+  const portRaw = env.GATEWAY_PORT?.trim();
+  const port = portRaw ? Number.parseInt(portRaw, 10) : DEFAULT_PORT;
+  if (Number.isNaN(port) || port <= 0) {
+    throw new Error(`GATEWAY_PORT must be a positive integer, got "${portRaw}"`);
+  }
+
+  return {
+    port,
+    host: env.GATEWAY_HOST?.trim() || DEFAULT_HOST,
+    upstreamBackendUrl: env.UPSTREAM_BACKEND_URL?.trim() || DEFAULT_UPSTREAM,
+    environment: env.NODE_ENV?.trim() || 'development',
+  };
+};
