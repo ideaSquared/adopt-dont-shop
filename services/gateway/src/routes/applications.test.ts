@@ -81,11 +81,11 @@ describe('applications routes', () => {
     await app.close();
   });
 
-  it('PATCH /api/applications/:id/answers threads expectedVersion + patch', async () => {
+  it('PATCH /api/v1/applications/:id/answers threads expectedVersion + patch', async () => {
     mocks.saveDraftAnswers.mockResolvedValue({ application: APP });
     const res = await app.inject({
       method: 'PATCH',
-      url: '/api/applications/app-1/answers',
+      url: '/api/v1/applications/app-1/answers',
       headers: ADOPTER,
       payload: { expectedVersion: 3, answersPatchJson: '{"q1":"a"}' },
     });
@@ -97,11 +97,11 @@ describe('applications routes', () => {
     });
   });
 
-  it('POST /api/applications/:id/submit threads expectedVersion', async () => {
+  it('POST /api/v1/applications/:id/submit threads expectedVersion', async () => {
     mocks.submitDraft.mockResolvedValue({ application: APP });
     await app.inject({
       method: 'POST',
-      url: '/api/applications/app-1/submit',
+      url: '/api/v1/applications/app-1/submit',
       headers: ADOPTER,
       payload: { expectedVersion: 4 },
     });
@@ -111,11 +111,11 @@ describe('applications routes', () => {
     });
   });
 
-  it('POST /api/applications/:id/review forwards the staff note', async () => {
+  it('POST /api/v1/applications/:id/review forwards the staff note', async () => {
     mocks.startReview.mockResolvedValue({ application: APP });
     await app.inject({
       method: 'POST',
-      url: '/api/applications/app-1/review',
+      url: '/api/v1/applications/app-1/review',
       headers: STAFF,
       payload: { note: 'opening' },
     });
@@ -125,11 +125,11 @@ describe('applications routes', () => {
     });
   });
 
-  it('POST /api/applications/:id/home-visit/complete parses the outcome enum', async () => {
+  it('POST /api/v1/applications/:id/home-visit/complete parses the outcome enum', async () => {
     mocks.completeHomeVisit.mockResolvedValue({ application: APP });
     await app.inject({
       method: 'POST',
-      url: '/api/applications/app-1/home-visit/complete',
+      url: '/api/v1/applications/app-1/home-visit/complete',
       headers: STAFF,
       payload: { outcome: 'passed', notes: 'great fit' },
     });
@@ -143,7 +143,7 @@ describe('applications routes', () => {
     mocks.completeHomeVisit.mockResolvedValue({ application: APP });
     await app.inject({
       method: 'POST',
-      url: '/api/applications/app-1/home-visit/complete',
+      url: '/api/v1/applications/app-1/home-visit/complete',
       headers: STAFF,
       payload: { outcome: 'HOME_VISIT_OUTCOME_FAILED' },
     });
@@ -152,11 +152,11 @@ describe('applications routes', () => {
     });
   });
 
-  it('POST /api/applications/:id/reject requires a reason field', async () => {
+  it('POST /api/v1/applications/:id/reject requires a reason field', async () => {
     mocks.reject.mockResolvedValue({ application: APP });
     await app.inject({
       method: 'POST',
-      url: '/api/applications/app-1/reject',
+      url: '/api/v1/applications/app-1/reject',
       headers: STAFF,
       payload: { reason: 'home unsuitable' },
     });
@@ -166,22 +166,22 @@ describe('applications routes', () => {
     });
   });
 
-  it('POST /api/applications/:id/adopt needs no body', async () => {
+  it('POST /api/v1/applications/:id/adopt needs no body', async () => {
     mocks.markAdopted.mockResolvedValue({ application: APP });
     const res = await app.inject({
       method: 'POST',
-      url: '/api/applications/app-1/adopt',
+      url: '/api/v1/applications/app-1/adopt',
       headers: STAFF,
     });
     expect(res.statusCode).toBe(200);
     expect(mocks.markAdopted.mock.calls[0][0]).toMatchObject({ applicationId: 'app-1' });
   });
 
-  it('GET /api/applications → List with parsed status filter + scoping query', async () => {
+  it('GET /api/v1/applications → List with parsed status filter + scoping query', async () => {
     mocks.list.mockResolvedValue({ applications: [APP] });
     await app.inject({
       method: 'GET',
-      url: '/api/applications?status=submitted&limit=10&rescue=rsc-1&adopter=usr-9',
+      url: '/api/v1/applications?status=submitted&limit=10&rescue=rsc-1&adopter=usr-9',
       headers: STAFF,
     });
     expect(mocks.list.mock.calls[0][0]).toMatchObject({
@@ -192,11 +192,11 @@ describe('applications routes', () => {
     });
   });
 
-  it('GET /api/applications/:id passes includeTimeline', async () => {
+  it('GET /api/v1/applications/:id passes includeTimeline', async () => {
     mocks.get.mockResolvedValue({ application: APP, timeline: [] });
     await app.inject({
       method: 'GET',
-      url: '/api/applications/app-1?timeline=true',
+      url: '/api/v1/applications/app-1?timeline=true',
       headers: ADOPTER,
     });
     expect(mocks.get.mock.calls[0][0]).toMatchObject({
@@ -212,7 +212,7 @@ describe('applications routes', () => {
     });
     const res = await app.inject({
       method: 'POST',
-      url: '/api/applications',
+      url: '/api/v1/applications',
       headers: ADOPTER,
       payload: { adopterId: 'usr-1', petId: 'pet-1' },
     });
@@ -221,13 +221,17 @@ describe('applications routes', () => {
 
   it('maps PERMISSION_DENIED → 403 and NOT_FOUND → 404', async () => {
     mocks.list.mockRejectedValue({ code: grpcStatus.PERMISSION_DENIED, details: 'nope' });
-    const denied = await app.inject({ method: 'GET', url: '/api/applications', headers: ADOPTER });
+    const denied = await app.inject({
+      method: 'GET',
+      url: '/api/v1/applications',
+      headers: ADOPTER,
+    });
     expect(denied.statusCode).toBe(403);
 
     mocks.get.mockRejectedValue({ code: grpcStatus.NOT_FOUND, details: 'gone' });
     const missing = await app.inject({
       method: 'GET',
-      url: '/api/applications/app-x',
+      url: '/api/v1/applications/app-x',
       headers: ADOPTER,
     });
     expect(missing.statusCode).toBe(404);
@@ -237,7 +241,7 @@ describe('applications routes', () => {
     mocks.approve.mockResolvedValue({ application: APP });
     await app.inject({
       method: 'POST',
-      url: '/api/applications/app-1/approve',
+      url: '/api/v1/applications/app-1/approve',
       headers: STAFF,
       payload: { notes: 'ok' },
     });

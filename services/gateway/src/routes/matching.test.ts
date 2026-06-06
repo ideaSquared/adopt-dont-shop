@@ -75,7 +75,7 @@ const ADOPTER_HEADERS = {
   'x-user-permissions': 'pets.read',
 };
 
-describe('POST /api/matching/sessions', () => {
+describe('POST /api/v1/matching/sessions', () => {
   let app: FastifyInstance;
   let startSessionMock: ReturnType<typeof vi.fn>;
 
@@ -95,7 +95,7 @@ describe('POST /api/matching/sessions', () => {
 
     const httpRes = await app.inject({
       method: 'POST',
-      url: '/api/matching/sessions',
+      url: '/api/v1/matching/sessions',
       headers: ADOPTER_HEADERS,
       payload: { filtersJson: '{"species":"dog"}', deviceType: 'mobile' },
     });
@@ -112,7 +112,7 @@ describe('POST /api/matching/sessions', () => {
 
     const httpRes = await app.inject({
       method: 'POST',
-      url: '/api/matching/sessions',
+      url: '/api/v1/matching/sessions',
       headers: ADOPTER_HEADERS,
       payload: {},
     });
@@ -125,7 +125,7 @@ describe('POST /api/matching/sessions', () => {
 
     await app.inject({
       method: 'POST',
-      url: '/api/matching/sessions',
+      url: '/api/v1/matching/sessions',
       headers: ADOPTER_HEADERS,
       payload: {},
     });
@@ -140,7 +140,7 @@ describe('POST /api/matching/sessions', () => {
 
     await app.inject({
       method: 'POST',
-      url: '/api/matching/sessions',
+      url: '/api/v1/matching/sessions',
       headers: ADOPTER_HEADERS,
       payload: { deviceType: 'DEVICE_TYPE_TABLET' },
     });
@@ -160,7 +160,7 @@ describe('POST /api/matching/sessions', () => {
 
     const httpRes = await app.inject({
       method: 'POST',
-      url: '/api/matching/sessions',
+      url: '/api/v1/matching/sessions',
       headers: ADOPTER_HEADERS,
       payload: {},
     });
@@ -170,7 +170,7 @@ describe('POST /api/matching/sessions', () => {
   });
 });
 
-describe('POST /api/matching/sessions/:id/end', () => {
+describe('POST /api/v1/matching/sessions/:id/end', () => {
   let app: FastifyInstance;
   let endSessionMock: ReturnType<typeof vi.fn>;
 
@@ -190,7 +190,7 @@ describe('POST /api/matching/sessions/:id/end', () => {
 
     const httpRes = await app.inject({
       method: 'POST',
-      url: '/api/matching/sessions/sess-42/end',
+      url: '/api/v1/matching/sessions/sess-42/end',
       headers: ADOPTER_HEADERS,
       payload: {},
     });
@@ -200,7 +200,7 @@ describe('POST /api/matching/sessions/:id/end', () => {
   });
 });
 
-describe('POST /api/matching/sessions/:id/swipes', () => {
+describe('POST /api/v1/matching/sessions/:id/swipes', () => {
   let app: FastifyInstance;
   let recordSwipeMock: ReturnType<typeof vi.fn>;
 
@@ -220,7 +220,7 @@ describe('POST /api/matching/sessions/:id/swipes', () => {
 
     const httpRes = await app.inject({
       method: 'POST',
-      url: '/api/matching/sessions/sess-1/swipes',
+      url: '/api/v1/matching/sessions/sess-1/swipes',
       headers: ADOPTER_HEADERS,
       payload: { petId: 'pet-1', action: 'like', responseTime: 1234 },
     });
@@ -239,7 +239,7 @@ describe('POST /api/matching/sessions/:id/swipes', () => {
 
     await app.inject({
       method: 'POST',
-      url: '/api/matching/sessions/sess-1/swipes',
+      url: '/api/v1/matching/sessions/sess-1/swipes',
       headers: ADOPTER_HEADERS,
       payload: { petId: 'pet-1', action: 'block' },
     });
@@ -250,7 +250,7 @@ describe('POST /api/matching/sessions/:id/swipes', () => {
   });
 });
 
-describe('GET /api/matching/swipes', () => {
+describe('GET /api/v1/matching/swipes', () => {
   let app: FastifyInstance;
   let listSwipeHistoryMock: ReturnType<typeof vi.fn>;
 
@@ -270,7 +270,7 @@ describe('GET /api/matching/swipes', () => {
 
     const httpRes = await app.inject({
       method: 'GET',
-      url: '/api/matching/swipes?limit=25&cursor=abc&action=super_like',
+      url: '/api/v1/matching/swipes?limit=25&cursor=abc&action=super_like',
       headers: ADOPTER_HEADERS,
     });
 

@@ -65,7 +65,7 @@ const RESCUE_FIXTURE: Rescue = {
   updatedAt: '2026-06-01T00:00:00Z',
 };
 
-describe('GET /api/rescue', () => {
+describe('GET /api/v1/rescue', () => {
   let app: FastifyInstance;
   let listMock: ReturnType<typeof vi.fn>;
 
@@ -85,7 +85,7 @@ describe('GET /api/rescue', () => {
 
     const res = await app.inject({
       method: 'GET',
-      url: '/api/rescue?status=verified&limit=10',
+      url: '/api/v1/rescue?status=verified&limit=10',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
 
@@ -100,7 +100,7 @@ describe('GET /api/rescue', () => {
 
   it('coerces an unknown status to UNSPECIFIED', async () => {
     listMock.mockResolvedValueOnce({ rescues: [] });
-    await app.inject({ method: 'GET', url: '/api/rescue?status=not_a_status' });
+    await app.inject({ method: 'GET', url: '/api/v1/rescue?status=not_a_status' });
     const [req] = listMock.mock.calls[0];
     expect(req.statusFilter).toBe(RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED);
   });
@@ -112,12 +112,12 @@ describe('GET /api/rescue', () => {
         details: 'limit must be <= 100',
       })
     );
-    const res = await app.inject({ method: 'GET', url: '/api/rescue?limit=200' });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/rescue?limit=200' });
     expect(res.statusCode).toBe(400);
   });
 });
 
-describe('GET /api/rescue/:id', () => {
+describe('GET /api/v1/rescue/:id', () => {
   it('threads the path param and returns the rescue', async () => {
     const { client, getMock } = makeClient();
     const app = await makeApp(client);
@@ -126,7 +126,7 @@ describe('GET /api/rescue/:id', () => {
       getMock.mockResolvedValueOnce(getRes);
       const res = await app.inject({
         method: 'GET',
-        url: '/api/rescue/rsc-1',
+        url: '/api/v1/rescue/rsc-1',
         headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
       });
       expect(res.statusCode).toBe(200);
@@ -150,7 +150,7 @@ describe('GET /api/rescue/:id', () => {
           details: 'rescue ghost not found',
         })
       );
-      const res = await app.inject({ method: 'GET', url: '/api/rescue/ghost' });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/rescue/ghost' });
       expect(res.statusCode).toBe(404);
     } finally {
       await app.close();
@@ -158,7 +158,7 @@ describe('GET /api/rescue/:id', () => {
   });
 });
 
-describe('POST /api/rescue', () => {
+describe('POST /api/v1/rescue', () => {
   it('returns 201 + threads body fields into the gRPC request', async () => {
     const { client, createMock } = makeClient();
     const app = await makeApp(client);
@@ -168,7 +168,7 @@ describe('POST /api/rescue', () => {
 
       const res = await app.inject({
         method: 'POST',
-        url: '/api/rescue',
+        url: '/api/v1/rescue',
         headers: { 'x-user-id': 'usr-admin', 'x-user-roles': 'admin' },
         payload: {
           name: 'Pawsome',
@@ -201,7 +201,7 @@ describe('POST /api/rescue', () => {
       );
       const res = await app.inject({
         method: 'POST',
-        url: '/api/rescue',
+        url: '/api/v1/rescue',
         payload: { name: 'Pawsome', email: 'hi@p.example' },
       });
       expect(res.statusCode).toBe(403);
@@ -211,7 +211,7 @@ describe('POST /api/rescue', () => {
   });
 });
 
-describe('PATCH /api/rescue/:id', () => {
+describe('PATCH /api/v1/rescue/:id', () => {
   it('threads path param + body fields', async () => {
     const { client, updateMock } = makeClient();
     const app = await makeApp(client);
@@ -220,7 +220,7 @@ describe('PATCH /api/rescue/:id', () => {
       updateMock.mockResolvedValueOnce(updateRes);
       const res = await app.inject({
         method: 'PATCH',
-        url: '/api/rescue/rsc-1',
+        url: '/api/v1/rescue/rsc-1',
         payload: { name: 'Pawsome 2' },
       });
       expect(res.statusCode).toBe(200);
@@ -235,7 +235,7 @@ describe('PATCH /api/rescue/:id', () => {
   });
 });
 
-describe('POST /api/rescue/:id/verify', () => {
+describe('POST /api/v1/rescue/:id/verify', () => {
   let app: FastifyInstance;
   let verifyMock: ReturnType<typeof vi.fn>;
 
@@ -257,7 +257,7 @@ describe('POST /api/rescue/:id/verify', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/rescue/rsc-1/verify',
+      url: '/api/v1/rescue/rsc-1/verify',
       payload: { toStatus: 'verified', verificationSource: 'companies_house' },
     });
 
@@ -274,7 +274,7 @@ describe('POST /api/rescue/:id/verify', () => {
     verifyMock.mockResolvedValueOnce({ rescue: RESCUE_FIXTURE });
     await app.inject({
       method: 'POST',
-      url: '/api/rescue/rsc-1/verify',
+      url: '/api/v1/rescue/rsc-1/verify',
       payload: { toStatus: 'RESCUE_STATUS_REJECTED', failureReason: 'no docs' },
     });
     const [req] = verifyMock.mock.calls[0];
@@ -291,14 +291,14 @@ describe('POST /api/rescue/:id/verify', () => {
     );
     const res = await app.inject({
       method: 'POST',
-      url: '/api/rescue/rsc-1/verify',
+      url: '/api/v1/rescue/rsc-1/verify',
       payload: { toStatus: 'rejected' },
     });
     expect(res.statusCode).toBe(400);
   });
 });
 
-describe('POST /api/rescue/:id/invitations', () => {
+describe('POST /api/v1/rescue/:id/invitations', () => {
   it('returns 201 + the token alongside the invitation', async () => {
     const { client, inviteStaffMock } = makeClient();
     const app = await makeApp(client);
@@ -318,7 +318,7 @@ describe('POST /api/rescue/:id/invitations', () => {
 
       const res = await app.inject({
         method: 'POST',
-        url: '/api/rescue/rsc-1/invitations',
+        url: '/api/v1/rescue/rsc-1/invitations',
         payload: { email: 'new@p.example', title: 'Volunteer' },
       });
 
@@ -338,7 +338,7 @@ describe('error mapping fallback', () => {
     const app = await makeApp(client);
     try {
       getMock.mockRejectedValueOnce(new Error('connection refused'));
-      const res = await app.inject({ method: 'GET', url: '/api/rescue/rsc-1' });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/rescue/rsc-1' });
       expect(res.statusCode).toBe(500);
     } finally {
       await app.close();

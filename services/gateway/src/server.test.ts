@@ -186,3 +186,81 @@ describe('createServer — strangler-fig /api/* proxy', () => {
     expect(receivedUrl).toBe('/api/pets?species=cat&age=2');
   });
 });
+
+// Stage A — the per-domain cutover gate. With the flag OFF (default) the
+// gateway must NOT register the domain's /api/v1/* routes even when a
+// client is wired, so the frontend's request still proxies to the
+// monolith. With the flag ON the gateway intercepts it.
+describe('createServer — per-domain cutover gate', () => {
+  let upstream: { instance: FastifyInstance; url: string };
+  let server: FastifyInstance;
+
+  const allOff = {
+    auth: false,
+    notifications: false,
+    pets: false,
+    rescue: false,
+    applications: false,
+    moderation: false,
+    matching: false,
+    audit: false,
+  } as const;
+
+  // A stub applications client whose List resolves an empty page. Only
+  // the List path is exercised here.
+  const applicationsClient = {
+    list: () => Promise.resolve({ applications: [] }),
+  } as unknown as Parameters<typeof createServer>[0]['applicationsClient'];
+
+  afterEach(async () => {
+    await server?.close();
+    await upstream?.instance?.close();
+  });
+
+  it('proxies /api/v1/applications to the monolith when cutover.applications is OFF (even with a client)', async () => {
+    let upstreamHits = 0;
+    upstream = await startUpstream(s => {
+      s.get('/api/v1/applications', async () => {
+        upstreamHits++;
+        return { from: 'monolith' };
+      });
+    });
+    server = await createServer({
+      config: { ...baseConfig, upstreamBackendUrl: upstream.url, cutover: { ...allOff } },
+      logger: quietLogger,
+      applicationsClient,
+    });
+
+    const res = await server.inject({ method: 'GET', url: '/api/v1/applications' });
+
+    expect(res.json()).toEqual({ from: 'monolith' });
+    expect(upstreamHits).toBe(1);
+  });
+
+  it('intercepts /api/v1/applications at the gateway route when cutover.applications is ON', async () => {
+    let upstreamHits = 0;
+    upstream = await startUpstream(s => {
+      s.get('/api/v1/applications', async () => {
+        upstreamHits++;
+        return { from: 'monolith' };
+      });
+    });
+    server = await createServer({
+      config: {
+        ...baseConfig,
+        upstreamBackendUrl: upstream.url,
+        cutover: { ...allOff, applications: true },
+      },
+      logger: quietLogger,
+      applicationsClient,
+    });
+
+    const res = await server.inject({ method: 'GET', url: '/api/v1/applications' });
+
+    // The gateway route served it (empty page from the stub client —
+    // ts-proto's toJSON omits the empty repeated field, so {}); the
+    // monolith ({ from: 'monolith' }) was never hit.
+    expect(res.json()).toEqual({});
+    expect(upstreamHits).toBe(0);
+  });
+});

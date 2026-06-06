@@ -62,11 +62,11 @@ describe('moderation report routes', () => {
     await app.close();
   });
 
-  it('POST /api/moderation/reports → FileReport with parsed enums, 201', async () => {
+  it('POST /api/v1/moderation/reports → FileReport with parsed enums, 201', async () => {
     mocks.fileReport.mockResolvedValue({ report: { reportId: 'rpt-1' } });
     const res = await app.inject({
       method: 'POST',
-      url: '/api/moderation/reports',
+      url: '/api/v1/moderation/reports',
       headers: HEADERS,
       payload: {
         reportedEntityType: 'user',
@@ -89,7 +89,7 @@ describe('moderation report routes', () => {
     mocks.fileReport.mockResolvedValue({ report: { reportId: 'rpt-1' } });
     await app.inject({
       method: 'POST',
-      url: '/api/moderation/reports',
+      url: '/api/v1/moderation/reports',
       headers: HEADERS,
       payload: {
         reportedEntityType: 'REPORT_ENTITY_TYPE_PET',
@@ -106,11 +106,11 @@ describe('moderation report routes', () => {
     });
   });
 
-  it('GET /api/moderation/reports → ListReports with filters', async () => {
+  it('GET /api/v1/moderation/reports → ListReports with filters', async () => {
     mocks.listReports.mockResolvedValue({ reports: [] });
     await app.inject({
       method: 'GET',
-      url: '/api/moderation/reports?status=pending&severity=high&limit=10',
+      url: '/api/v1/moderation/reports?status=pending&severity=high&limit=10',
       headers: HEADERS,
     });
     expect(mocks.listReports.mock.calls[0][0]).toMatchObject({
@@ -120,11 +120,11 @@ describe('moderation report routes', () => {
     });
   });
 
-  it('GET /api/moderation/reports/:id passes includeTransitions', async () => {
+  it('GET /api/v1/moderation/reports/:id passes includeTransitions', async () => {
     mocks.getReport.mockResolvedValue({ report: { reportId: 'rpt-1' }, transitions: [] });
     await app.inject({
       method: 'GET',
-      url: '/api/moderation/reports/rpt-1?transitions=true',
+      url: '/api/v1/moderation/reports/rpt-1?transitions=true',
       headers: HEADERS,
     });
     expect(mocks.getReport.mock.calls[0][0]).toMatchObject({
@@ -133,11 +133,11 @@ describe('moderation report routes', () => {
     });
   });
 
-  it('POST /api/moderation/reports/:id/assign threads moderatorId', async () => {
+  it('POST /api/v1/moderation/reports/:id/assign threads moderatorId', async () => {
     mocks.assignReport.mockResolvedValue({ report: { reportId: 'rpt-1' } });
     await app.inject({
       method: 'POST',
-      url: '/api/moderation/reports/rpt-1/assign',
+      url: '/api/v1/moderation/reports/rpt-1/assign',
       headers: HEADERS,
       payload: { moderatorId: 'mod-2' },
     });
@@ -151,7 +151,7 @@ describe('moderation report routes', () => {
     mocks.listReports.mockRejectedValue({ code: grpcStatus.PERMISSION_DENIED, details: 'nope' });
     const res = await app.inject({
       method: 'GET',
-      url: '/api/moderation/reports',
+      url: '/api/v1/moderation/reports',
       headers: HEADERS,
     });
     expect(res.statusCode).toBe(403);
@@ -172,11 +172,11 @@ describe('moderation sanction + ticket routes', () => {
     await app.close();
   });
 
-  it('GET /api/moderation/users/:userId/sanctions → ListUserSanctions', async () => {
+  it('GET /api/v1/moderation/users/:userId/sanctions → ListUserSanctions', async () => {
     mocks.listUserSanctions.mockResolvedValue({ sanctions: [] });
     await app.inject({
       method: 'GET',
-      url: '/api/moderation/users/usr-2/sanctions?includeInactive=true',
+      url: '/api/v1/moderation/users/usr-2/sanctions?includeInactive=true',
       headers: HEADERS,
     });
     expect(mocks.listUserSanctions.mock.calls[0][0]).toMatchObject({
@@ -185,11 +185,11 @@ describe('moderation sanction + ticket routes', () => {
     });
   });
 
-  it('POST /api/moderation/sanctions/:id/appeal → AppealSanction', async () => {
+  it('POST /api/v1/moderation/sanctions/:id/appeal → AppealSanction', async () => {
     mocks.appealSanction.mockResolvedValue({ sanction: { sanctionId: 'sanc-1' } });
     await app.inject({
       method: 'POST',
-      url: '/api/moderation/sanctions/sanc-1/appeal',
+      url: '/api/v1/moderation/sanctions/sanc-1/appeal',
       headers: HEADERS,
       payload: { appealReason: 'provoked' },
     });
@@ -199,11 +199,11 @@ describe('moderation sanction + ticket routes', () => {
     });
   });
 
-  it('POST /api/moderation/tickets → OpenSupportTicket, 201', async () => {
+  it('POST /api/v1/moderation/tickets → OpenSupportTicket, 201', async () => {
     mocks.openSupportTicket.mockResolvedValue({ ticket: { ticketId: 'tkt-1' } });
     const res = await app.inject({
       method: 'POST',
-      url: '/api/moderation/tickets',
+      url: '/api/v1/moderation/tickets',
       headers: HEADERS,
       payload: {
         userEmail: 'u@e.com',
@@ -222,11 +222,11 @@ describe('moderation sanction + ticket routes', () => {
     });
   });
 
-  it('POST /api/moderation/tickets/:id/responses → RespondToTicket', async () => {
+  it('POST /api/v1/moderation/tickets/:id/responses → RespondToTicket', async () => {
     mocks.respondToTicket.mockResolvedValue({ response: { responseId: 'rsp-1' } });
     await app.inject({
       method: 'POST',
-      url: '/api/moderation/tickets/tkt-1/responses',
+      url: '/api/v1/moderation/tickets/tkt-1/responses',
       headers: HEADERS,
       payload: { content: 'Try X', isInternal: true },
     });
@@ -241,7 +241,7 @@ describe('moderation sanction + ticket routes', () => {
     mocks.issueSanction.mockResolvedValue({ sanction: { sanctionId: 'sanc-1' } });
     await app.inject({
       method: 'POST',
-      url: '/api/moderation/sanctions',
+      url: '/api/v1/moderation/sanctions',
       headers: HEADERS,
       payload: {
         userId: 'usr-2',

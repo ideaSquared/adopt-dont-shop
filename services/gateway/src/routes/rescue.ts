@@ -1,18 +1,18 @@
-// REST → gRPC translation for /api/rescue/*.
+// REST → gRPC translation for /api/v1/rescue/*.
 //
 // Phase 4.5 cutover: this Fastify plugin registers BEFORE the
 // strangler-fig http-proxy catch-all, so Fastify's first-registered-
-// wins prefix routing picks it for /api/rescue/* requests before the
+// wins prefix routing picks it for /api/v1/rescue/* requests before the
 // catch-all sees them. Same shape as routes/pets.ts / routes/auth.ts.
 //
-// Route map (mirrors the monolith's existing /api/rescue/* surface):
+// Route map (mirrors the monolith's existing /api/v1/rescue/* surface):
 //
-//   GET    /api/rescue                    → RescueService.List
-//   GET    /api/rescue/:id                → RescueService.Get
-//   POST   /api/rescue                    → RescueService.Create
-//   PATCH  /api/rescue/:id                → RescueService.Update
-//   POST   /api/rescue/:id/verify         → RescueService.Verify
-//   POST   /api/rescue/:id/invitations    → RescueService.InviteStaff
+//   GET    /api/v1/rescue                    → RescueService.List
+//   GET    /api/v1/rescue/:id                → RescueService.Get
+//   POST   /api/v1/rescue                    → RescueService.Create
+//   PATCH  /api/v1/rescue/:id                → RescueService.Update
+//   POST   /api/v1/rescue/:id/verify         → RescueService.Verify
+//   POST   /api/v1/rescue/:id/invitations    → RescueService.InviteStaff
 //
 // The Phase 2.5 authenticate middleware already populates x-user-*
 // metadata; every RescueService RPC requires a principal.
@@ -79,23 +79,27 @@ export const registerRescueRoutes = async (
 
   await app.register(rateLimit, { global: false });
 
-  app.get('/api/rescue', { config: { rateLimit: RESCUE_RATE_LIMITS.list } }, async (req, reply) => {
-    const query = req.query as Record<string, string | undefined>;
-    const grpcReq: ListRescuesRequest = {
-      cursor: query.cursor,
-      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
-      statusFilter: parseStatus(query.status),
-    };
-    try {
-      const res = await client.list(grpcReq, buildMetadata(req));
-      return reply.send(RescueV1.ListRescuesResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.get(
+    '/api/v1/rescue',
+    { config: { rateLimit: RESCUE_RATE_LIMITS.list } },
+    async (req, reply) => {
+      const query = req.query as Record<string, string | undefined>;
+      const grpcReq: ListRescuesRequest = {
+        cursor: query.cursor,
+        limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+        statusFilter: parseStatus(query.status),
+      };
+      try {
+        const res = await client.list(grpcReq, buildMetadata(req));
+        return reply.send(RescueV1.ListRescuesResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   app.get<{ Params: { id: string } }>(
-    '/api/rescue/:id',
+    '/api/v1/rescue/:id',
     { config: { rateLimit: RESCUE_RATE_LIMITS.get } },
     async (req, reply) => {
       try {
@@ -108,7 +112,7 @@ export const registerRescueRoutes = async (
   );
 
   app.post(
-    '/api/rescue',
+    '/api/v1/rescue',
     { config: { rateLimit: RESCUE_RATE_LIMITS.create } },
     async (req, reply) => {
       const body = (req.body ?? {}) as CreateRescueBody;
@@ -141,7 +145,7 @@ export const registerRescueRoutes = async (
   );
 
   app.patch<{ Params: { id: string } }>(
-    '/api/rescue/:id',
+    '/api/v1/rescue/:id',
     { config: { rateLimit: RESCUE_RATE_LIMITS.update } },
     async (req, reply) => {
       const body = (req.body ?? {}) as UpdateRescueBody;
@@ -156,7 +160,7 @@ export const registerRescueRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/rescue/:id/verify',
+    '/api/v1/rescue/:id/verify',
     { config: { rateLimit: RESCUE_RATE_LIMITS.verify } },
     async (req, reply) => {
       const body = (req.body ?? {}) as VerifyBody;
@@ -176,7 +180,7 @@ export const registerRescueRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/rescue/:id/invitations',
+    '/api/v1/rescue/:id/invitations',
     { config: { rateLimit: RESCUE_RATE_LIMITS.inviteStaff } },
     async (req, reply) => {
       const body = (req.body ?? {}) as InviteStaffBody;

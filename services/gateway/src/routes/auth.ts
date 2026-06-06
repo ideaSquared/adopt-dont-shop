@@ -1,18 +1,18 @@
-// REST → gRPC translation for /api/auth/*.
+// REST → gRPC translation for /api/v1/auth/*.
 //
 // Phase 2.6 cutover: this Fastify plugin registers BEFORE the
 // strangler-fig http-proxy catch-all, so Fastify's first-registered-
-// wins prefix routing picks it for /api/auth/* requests before the
+// wins prefix routing picks it for /api/v1/auth/* requests before the
 // catch-all sees them. Same shape as routes/notifications.ts.
 //
-// Route map (matches the monolith's existing /api/auth/* surface so
+// Route map (matches the monolith's existing /api/v1/auth/* surface so
 // the SPA + lib.auth React contexts don't have to change):
 //
-//   POST /api/auth/login           → AuthService.Login
-//   POST /api/auth/logout          → AuthService.Logout
-//   POST /api/auth/refresh-token   → AuthService.RefreshToken
-//   GET  /api/auth/me              → AuthService.GetMe
-//   POST /api/auth/assign-role     → AuthService.AssignRole  (admin-only)
+//   POST /api/v1/auth/login           → AuthService.Login
+//   POST /api/v1/auth/logout          → AuthService.Logout
+//   POST /api/v1/auth/refresh-token   → AuthService.RefreshToken
+//   GET  /api/v1/auth/me              → AuthService.GetMe
+//   POST /api/v1/auth/assign-role     → AuthService.AssignRole  (admin-only)
 //
 // The authenticate middleware (Phase 2.5) already populates the
 // x-user-* metadata headers for routes whose handler relies on the
@@ -98,7 +98,7 @@ export const registerAuthRoutes = async (
   await app.register(rateLimit, { global: false });
 
   app.post(
-    '/api/auth/login',
+    '/api/v1/auth/login',
     { config: { rateLimit: AUTH_RATE_LIMITS.login } },
     async (req, reply) => {
       const body = (req.body ?? {}) as LoginBody;
@@ -119,7 +119,7 @@ export const registerAuthRoutes = async (
   );
 
   app.post(
-    '/api/auth/logout',
+    '/api/v1/auth/logout',
     { config: { rateLimit: AUTH_RATE_LIMITS.logout } },
     async (req, reply) => {
       const body = (req.body ?? {}) as LogoutBody;
@@ -135,7 +135,7 @@ export const registerAuthRoutes = async (
   );
 
   app.post(
-    '/api/auth/refresh-token',
+    '/api/v1/auth/refresh-token',
     { config: { rateLimit: AUTH_RATE_LIMITS.refreshToken } },
     async (req, reply) => {
       const body = (req.body ?? {}) as RefreshTokenBody;
@@ -150,17 +150,21 @@ export const registerAuthRoutes = async (
     }
   );
 
-  app.get('/api/auth/me', { config: { rateLimit: AUTH_RATE_LIMITS.getMe } }, async (req, reply) => {
-    try {
-      const res = await client.getMe({}, buildMetadata(req));
-      return reply.send(AuthV1.GetMeResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.get(
+    '/api/v1/auth/me',
+    { config: { rateLimit: AUTH_RATE_LIMITS.getMe } },
+    async (req, reply) => {
+      try {
+        const res = await client.getMe({}, buildMetadata(req));
+        return reply.send(AuthV1.GetMeResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   app.post(
-    '/api/auth/assign-role',
+    '/api/v1/auth/assign-role',
     { config: { rateLimit: AUTH_RATE_LIMITS.assignRole } },
     async (req, reply) => {
       const body = (req.body ?? {}) as AssignRoleBody;

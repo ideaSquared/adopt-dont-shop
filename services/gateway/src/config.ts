@@ -42,6 +42,24 @@ export type GatewayConfig = {
   // service.audit gRPC URL — Phase 10.5 cuts /api/audit/* over to this
   // address.
   auditGrpcUrl: string;
+  // Per-domain strangler cutover switches. When false (the default), the
+  // gateway does NOT register that domain's /api/v1/* routes, so requests
+  // fall through the catch-all proxy to the residual monolith — today's
+  // behaviour. Flip a domain to true ONLY once its gateway routes return
+  // a frontend-compatible response shape (see ADR 0002 — the gRPC
+  // proto-JSON shape diverges from the frontend contract, so a per-domain
+  // adapter must land before that domain goes live). Env:
+  // CUTOVER_<DOMAIN>=true.
+  cutover: {
+    auth: boolean;
+    notifications: boolean;
+    pets: boolean;
+    rescue: boolean;
+    applications: boolean;
+    moderation: boolean;
+    matching: boolean;
+    audit: boolean;
+  };
 };
 
 const DEFAULT_PORT = 4000;
@@ -78,5 +96,22 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     moderationGrpcUrl: env.MODERATION_GRPC_URL?.trim() || DEFAULT_MODERATION_GRPC_URL,
     matchingGrpcUrl: env.MATCHING_GRPC_URL?.trim() || DEFAULT_MATCHING_GRPC_URL,
     auditGrpcUrl: env.AUDIT_GRPC_URL?.trim() || DEFAULT_AUDIT_GRPC_URL,
+    cutover: {
+      auth: isEnabled(env.CUTOVER_AUTH),
+      notifications: isEnabled(env.CUTOVER_NOTIFICATIONS),
+      pets: isEnabled(env.CUTOVER_PETS),
+      rescue: isEnabled(env.CUTOVER_RESCUE),
+      applications: isEnabled(env.CUTOVER_APPLICATIONS),
+      moderation: isEnabled(env.CUTOVER_MODERATION),
+      matching: isEnabled(env.CUTOVER_MATCHING),
+      audit: isEnabled(env.CUTOVER_AUDIT),
+    },
   };
 };
+
+// A cutover flag is on only for the exact string "true" (case-insensitive).
+// Anything else — unset, "false", "0", "" — leaves the domain proxied to
+// the monolith.
+function isEnabled(raw: string | undefined): boolean {
+  return raw?.trim().toLowerCase() === 'true';
+}
