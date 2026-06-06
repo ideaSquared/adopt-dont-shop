@@ -3,11 +3,14 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   MatchingV1,
   type EndSessionRequest,
+  type ListSwipeHistoryRequest,
+  type RecordSwipeRequest,
   type StartSessionRequest,
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
-import { endSession, startSession } from './handlers.js';
+import { encodeSwipeHistoryCursor } from './cursor.js';
+import { endSession, listSwipeHistory, recordSwipe, startSession } from './handlers.js';
 
 function makePrincipal(
   overrides: Partial<{ userId: string; permissions: string[]; roles: string[] }> = {}
@@ -191,5 +194,208 @@ describe('endSession', () => {
     expect(publish.mock.calls[0][0]).toMatchObject({
       type: 'matching.sessionEnded',
     });
+  });
+});
+
+function swipeRow(overrides: Record<string, unknown> = {}) {
+  return {
+    swipe_action_id: 'swp-1',
+    session_id: 'sess-1',
+    pet_id: 'pet-1',
+    user_id: 'usr-1',
+    action: 'like',
+    timestamp: new Date('2026-06-01T12:01:00.000Z'),
+    response_time: 800,
+    device_type: 'mobile',
+    ...overrides,
+  };
+}
+
+describe('recordSwipe', () => {
+  it('throws INVALID_ARGUMENT on missing session_id', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      recordSwipe(deps, makePrincipal(), {
+        sessionId: '',
+        petId: 'pet-1',
+        action: MatchingV1.SwipeAction.SWIPE_ACTION_LIKE,
+      } as RecordSwipeRequest)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws INVALID_ARGUMENT on missing pet_id', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      recordSwipe(deps, makePrincipal(), {
+        sessionId: 'sess-1',
+        petId: '',
+        action: MatchingV1.SwipeAction.SWIPE_ACTION_LIKE,
+      } as RecordSwipeRequest)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws INVALID_ARGUMENT on UNSPECIFIED action', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      recordSwipe(deps, makePrincipal(), {
+        sessionId: 'sess-1',
+        petId: 'pet-1',
+        action: MatchingV1.SwipeAction.SWIPE_ACTION_UNSPECIFIED,
+      } as RecordSwipeRequest)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws NOT_FOUND when session does not exist', async () => {
+    const { deps } = makeDeps([{ rows: [] }]);
+    await expect(
+      recordSwipe(deps, makePrincipal(), {
+        sessionId: 'gone',
+        petId: 'pet-1',
+        action: MatchingV1.SwipeAction.SWIPE_ACTION_LIKE,
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('throws PERMISSION_DENIED when principal is not the session owner', async () => {
+    const { deps } = makeDeps([{ rows: [sessionRow({ user_id: 'someone-else' })] }]);
+    await expect(
+      recordSwipe(deps, makePrincipal(), {
+        sessionId: 'sess-1',
+        petId: 'pet-1',
+        action: MatchingV1.SwipeAction.SWIPE_ACTION_LIKE,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('throws INVALID_ARGUMENT on a closed session', async () => {
+    const { deps } = makeDeps([{ rows: [sessionRow({ is_active: false })] }]);
+    await expect(
+      recordSwipe(deps, makePrincipal(), {
+        sessionId: 'sess-1',
+        petId: 'pet-1',
+        action: MatchingV1.SwipeAction.SWIPE_ACTION_LIKE,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('records a like + ticks total_swipes + likes counters', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [sessionRow()] }, // SELECT FOR UPDATE
+      { rows: [swipeRow()] }, // INSERT swipe_actions
+      { rows: [sessionRow({ total_swipes: 1, likes: 1 })] }, // UPDATE session
+    ]);
+    const res = await recordSwipe(deps, makePrincipal(), {
+      sessionId: 'sess-1',
+      petId: 'pet-1',
+      action: MatchingV1.SwipeAction.SWIPE_ACTION_LIKE,
+    });
+    expect(res.action.action).toBe(MatchingV1.SwipeAction.SWIPE_ACTION_LIKE);
+    expect(res.session.totalSwipes).toBe(1);
+    expect(res.session.likes).toBe(1);
+    // UPDATE SQL should bump the likes column.
+    const updateSql = query.mock.calls[2][0] as string;
+    expect(updateSql).toContain('likes = likes + 1');
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    expect(publish.mock.calls[0][0]).toMatchObject({ type: 'matching.swipeRecorded' });
+  });
+
+  it('records an info action without bumping like/pass/super_like counters', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [sessionRow()] },
+      { rows: [swipeRow({ action: 'info' })] },
+      { rows: [sessionRow({ total_swipes: 1 })] },
+    ]);
+    await recordSwipe(deps, makePrincipal(), {
+      sessionId: 'sess-1',
+      petId: 'pet-1',
+      action: MatchingV1.SwipeAction.SWIPE_ACTION_INFO,
+    });
+    const updateSql = query.mock.calls[2][0] as string;
+    expect(updateSql).toContain('total_swipes = total_swipes + 1');
+    expect(updateSql).not.toContain('likes = likes + 1');
+    expect(updateSql).not.toContain('passes = passes + 1');
+    expect(updateSql).not.toContain('super_likes = super_likes + 1');
+  });
+
+  it('records a super_like by bumping the super_likes counter', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [sessionRow()] },
+      { rows: [swipeRow({ action: 'super_like' })] },
+      { rows: [sessionRow({ total_swipes: 1, super_likes: 1 })] },
+    ]);
+    await recordSwipe(deps, makePrincipal(), {
+      sessionId: 'sess-1',
+      petId: 'pet-1',
+      action: MatchingV1.SwipeAction.SWIPE_ACTION_SUPER_LIKE,
+    });
+    const updateSql = query.mock.calls[2][0] as string;
+    expect(updateSql).toContain('super_likes = super_likes + 1');
+  });
+});
+
+describe('listSwipeHistory', () => {
+  it('throws PERMISSION_DENIED when principal lacks pets.read', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      listSwipeHistory(deps, makePrincipal({ permissions: [] }), {} as ListSwipeHistoryRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns the calling principal own swipe history scoped to their user_id', async () => {
+    const { deps, query } = makeDeps([{ rows: [swipeRow()] }]);
+    const res = await listSwipeHistory(deps, makePrincipal(), {} as ListSwipeHistoryRequest);
+    expect(res.actions).toHaveLength(1);
+    // First param is the principal user_id.
+    expect(query.mock.calls[0][1][0]).toBe('usr-1');
+  });
+
+  it('filters by action when actionFilter is set', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await listSwipeHistory(deps, makePrincipal(), {
+      actionFilter: MatchingV1.SwipeAction.SWIPE_ACTION_SUPER_LIKE,
+    } as ListSwipeHistoryRequest);
+    const sql = query.mock.calls[0][0] as string;
+    expect(sql).toContain('action = $2');
+    expect(query.mock.calls[0][1][1]).toBe('super_like');
+  });
+
+  it('emits nextCursor when there are more rows than limit', async () => {
+    const eleven = Array.from({ length: 11 }, (_, i) =>
+      swipeRow({
+        swipe_action_id: `swp-${i}`,
+        timestamp: new Date(2026, 5, 1, 12, 0, 0, i),
+      })
+    );
+    const { deps } = makeDeps([{ rows: eleven }]);
+    const res = await listSwipeHistory(deps, makePrincipal(), {
+      limit: 10,
+    } as ListSwipeHistoryRequest);
+    expect(res.actions).toHaveLength(10);
+    expect(res.nextCursor).toBeDefined();
+  });
+
+  it('omits nextCursor when results fit in one page', async () => {
+    const { deps } = makeDeps([{ rows: [swipeRow()] }]);
+    const res = await listSwipeHistory(deps, makePrincipal(), {} as ListSwipeHistoryRequest);
+    expect(res.nextCursor).toBeUndefined();
+  });
+
+  it('throws INVALID_ARGUMENT on a malformed cursor', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      listSwipeHistory(deps, makePrincipal(), { cursor: '!!!' } as ListSwipeHistoryRequest)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('decodes a valid cursor and applies it to the WHERE clause', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    const cursor = encodeSwipeHistoryCursor({
+      timestamp: '2026-06-01T12:00:00.000Z',
+      swipeActionId: 'swp-x',
+    });
+    await listSwipeHistory(deps, makePrincipal(), { cursor } as ListSwipeHistoryRequest);
+    const sql = query.mock.calls[0][0] as string;
+    expect(sql).toContain('timestamp <');
+    expect(sql).toContain('swipe_action_id <');
   });
 });

@@ -1,9 +1,9 @@
 // gRPC handler implementations for MatchingService.
 //
-// Phase 9.3b — ships StartSession + EndSession. The remaining four
-// RPCs (Recommend, RecordSwipe, SearchPets, ListSwipeHistory) follow
-// in a focused follow-up keyed off the same adapter / cursor / mapper
-// foundation.
+// Phase 9.3b — ships StartSession + EndSession + RecordSwipe +
+// ListSwipeHistory. Recommend + SearchPets follow once the service
+// gains a service.pets gRPC client (both RPCs need to read pet
+// candidates from the pets vertical).
 //
 // Discipline:
 //   - State-changing writes wrap @adopt-dont-shop/events.withTransaction
@@ -24,13 +24,27 @@ import {
   MatchingV1,
   type EndSessionRequest,
   type EndSessionResponse,
+  type ListSwipeHistoryRequest,
+  type ListSwipeHistoryResponse,
+  type RecordSwipeRequest,
+  type RecordSwipeResponse,
   type StartSessionRequest,
   type StartSessionResponse,
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
-import { deviceTypeToDb } from './enum-map.js';
-import { sessionRowToProto, type SwipeSessionRow } from './mapper.js';
+import {
+  decodeSwipeHistoryCursor,
+  encodeSwipeHistoryCursor,
+  InvalidCursorError,
+} from './cursor.js';
+import { deviceTypeToDb, swipeActionToDb } from './enum-map.js';
+import {
+  actionRowToProto,
+  sessionRowToProto,
+  type SwipeActionRow,
+  type SwipeSessionRow,
+} from './mapper.js';
 
 function ensureSwipePermission(principal: Principal): void {
   if (!requirePermission(principal, PETS_VIEW)) {
@@ -197,6 +211,223 @@ export async function endSession(
 
     return { session: sessionRowToProto(updated.rows[0]) };
   });
+}
+
+// --- RecordSwipe -----------------------------------------------------
+
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 200;
+
+export async function recordSwipe(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: RecordSwipeRequest
+): Promise<RecordSwipeResponse> {
+  ensureSwipePermission(principal);
+
+  if (req.sessionId === undefined || req.sessionId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'session_id is required');
+  }
+  if (req.petId === undefined || req.petId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
+  }
+  if (req.action === undefined || req.action === 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'action is required');
+  }
+
+  const actionDb = swipeActionToDb(req.action);
+
+  return withTransaction(deps, async ({ client, publish }) => {
+    // Lock the session row so the counter update is consistent under
+    // concurrent swipes. The (user_id, is_active) idx makes the
+    // lookup fast.
+    const session = await client.query<SwipeSessionRow>(
+      `SELECT session_id, user_id, start_time, end_time, total_swipes,
+              likes, passes, super_likes, filters, ip_address,
+              user_agent, device_type, is_active, created_at, updated_at
+       FROM swipe_sessions
+       WHERE session_id = $1
+       FOR UPDATE`,
+      [req.sessionId]
+    );
+
+    if (session.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `session ${req.sessionId} not found`);
+    }
+
+    const sessionRow = session.rows[0];
+
+    // Ownership: only the session owner can record a swipe on it.
+    // super_admin bypasses (CAD pattern).
+    if (
+      sessionRow.user_id !== null &&
+      sessionRow.user_id !== principal.userId &&
+      !principal.roles.includes('super_admin')
+    ) {
+      throw new HandlerError('PERMISSION_DENIED', 'not the session owner');
+    }
+
+    // A swipe on a closed session is a contract violation — the SPA
+    // should have called StartSession before resuming. Surface as
+    // INVALID_ARGUMENT rather than NOT_FOUND so the client knows to
+    // recover via StartSession.
+    if (!sessionRow.is_active) {
+      throw new HandlerError('INVALID_ARGUMENT', `session ${req.sessionId} is closed`);
+    }
+
+    const swipeActionId = randomUUID();
+    const inserted = await client.query<SwipeActionRow>(
+      `INSERT INTO swipe_actions (
+         swipe_action_id, session_id, pet_id, user_id, action,
+         response_time, device_type
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING swipe_action_id, session_id, pet_id, user_id, action,
+                 timestamp, response_time, device_type`,
+      [
+        swipeActionId,
+        req.sessionId,
+        req.petId,
+        principal.userId,
+        actionDb,
+        req.responseTime ?? null,
+        req.deviceType ?? null,
+      ]
+    );
+
+    if (inserted.rows.length !== 1) {
+      throw new HandlerError('INTERNAL', 'insert returned no rows');
+    }
+
+    // Tick the session counters. total_swipes always +1; one of
+    // likes / passes / super_likes also +1 depending on the action.
+    // 'info' increments only total_swipes (it's a trace event, not a
+    // commit).
+    const counterCol =
+      actionDb === 'like'
+        ? 'likes = likes + 1'
+        : actionDb === 'pass'
+          ? 'passes = passes + 1'
+          : actionDb === 'super_like'
+            ? 'super_likes = super_likes + 1'
+            : null;
+
+    const sessionUpdateSql = counterCol
+      ? `UPDATE swipe_sessions
+         SET total_swipes = total_swipes + 1, ${counterCol}, updated_at = NOW()
+         WHERE session_id = $1
+         RETURNING session_id, user_id, start_time, end_time, total_swipes,
+                   likes, passes, super_likes, filters, ip_address,
+                   user_agent, device_type, is_active, created_at, updated_at`
+      : `UPDATE swipe_sessions
+         SET total_swipes = total_swipes + 1, updated_at = NOW()
+         WHERE session_id = $1
+         RETURNING session_id, user_id, start_time, end_time, total_swipes,
+                   likes, passes, super_likes, filters, ip_address,
+                   user_agent, device_type, is_active, created_at, updated_at`;
+
+    const updatedSession = await client.query<SwipeSessionRow>(sessionUpdateSql, [req.sessionId]);
+
+    if (updatedSession.rows.length !== 1) {
+      throw new HandlerError('INTERNAL', 'session counter update returned no rows');
+    }
+
+    publish({
+      type: 'matching.swipeRecorded',
+      id: swipeActionId,
+      payload: {
+        swipeActionId,
+        sessionId: req.sessionId,
+        petId: req.petId,
+        userId: principal.userId,
+        action: actionDb,
+        timestamp: inserted.rows[0].timestamp.toISOString(),
+      },
+    });
+
+    return {
+      action: actionRowToProto(inserted.rows[0]),
+      session: sessionRowToProto(updatedSession.rows[0]),
+    };
+  });
+}
+
+// --- ListSwipeHistory ------------------------------------------------
+
+function clampLimit(raw: number): number {
+  if (!Number.isFinite(raw) || raw <= 0) {
+    return DEFAULT_LIMIT;
+  }
+  return Math.min(Math.trunc(raw), MAX_LIMIT);
+}
+
+export async function listSwipeHistory(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ListSwipeHistoryRequest
+): Promise<ListSwipeHistoryResponse> {
+  ensureSwipePermission(principal);
+
+  const limit = clampLimit(req.limit);
+
+  // Adopters can only list their OWN swipe history. super_admin
+  // bypasses (CAD pattern). hasPermission gate above already
+  // confirmed the basic permission; this is the ownership scope.
+  const targetUserId = principal.userId;
+  if (!hasPermission(principal, PETS_VIEW)) {
+    throw new HandlerError('PERMISSION_DENIED', 'pets.read required');
+  }
+
+  const where: string[] = ['user_id = $1'];
+  const params: unknown[] = [targetUserId];
+  let p = 2;
+
+  if (req.actionFilter !== undefined && req.actionFilter !== 0) {
+    where.push(`action = $${p++}`);
+    params.push(swipeActionToDb(req.actionFilter));
+  }
+
+  if (req.cursor !== undefined && req.cursor !== '') {
+    let cursor;
+    try {
+      cursor = decodeSwipeHistoryCursor(req.cursor);
+    } catch (err) {
+      if (err instanceof InvalidCursorError) {
+        throw new HandlerError('INVALID_ARGUMENT', err.message);
+      }
+      throw err;
+    }
+    where.push(`(timestamp < $${p++} OR (timestamp = $${p - 1} AND swipe_action_id < $${p++}))`);
+    params.push(cursor.timestamp);
+    params.push(cursor.swipeActionId);
+  }
+
+  params.push(limit + 1);
+  const sql = `
+    SELECT swipe_action_id, session_id, pet_id, user_id, action,
+           timestamp, response_time, device_type
+    FROM swipe_actions
+    WHERE ${where.join(' AND ')}
+    ORDER BY timestamp DESC, swipe_action_id DESC
+    LIMIT $${p}
+  `;
+
+  const { rows } = await deps.pool.query<SwipeActionRow>(sql, params);
+
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+  const actions = pageRows.map(actionRowToProto);
+
+  const response: ListSwipeHistoryResponse = { actions };
+  if (hasMore && pageRows.length > 0) {
+    const last = pageRows[pageRows.length - 1];
+    response.nextCursor = encodeSwipeHistoryCursor({
+      timestamp: last.timestamp.toISOString(),
+      swipeActionId: last.swipe_action_id,
+    });
+  }
+
+  return response;
 }
 
 // --- Helpers ---------------------------------------------------------
