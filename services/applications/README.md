@@ -60,6 +60,12 @@ store + publish-after-commit on `applications.*` events.
 ## What's NOT here yet
 
 - **Phase 5.3b** — `applications.*` schema + migrations, persisted gRPC
+## What's NOT here yet
+
+The CAD Phase 2 cadence — six PRs:
+- **Phase 5.2** — pure event-sourced application domain
+  (`apply`/`fold`, commands, invariants). I/O-free, fully unit-tested.
+- **Phase 5.3** — `applications.*` schema + migrations, persisted gRPC
   service (Postgres event store + read model with optimistic
   concurrency on `(aggregate_id, version)`, NATS publish post-commit,
   gRPC handlers).

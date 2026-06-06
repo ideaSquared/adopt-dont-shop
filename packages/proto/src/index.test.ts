@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  ApplicationsV1,
   AuthV1,
+  ChatV1,
   NotificationsV1,
   PetsV1,
   PingV1,
   RescueV1,
+  type Application,
+  type Chat,
+  type SendMessageRequest,
   type AuthUser,
   type CreateNotificationRequest,
   type CreatePetRequest,
@@ -15,6 +20,7 @@ import {
   type LoginRequest,
   type Notification,
   type Pet,
+  type StartDraftRequest,
   type Rescue,
   type ValidateTokenResponse,
 } from './index.js';
@@ -416,6 +422,144 @@ describe('@adopt-dont-shop/proto', () => {
         updatedAt: '2026-06-01T00:00:00Z',
       };
       expect(r.rescueId).toBe('rsc-1');
+    });
+  });
+
+  describe('ApplicationsV1 namespace (Phase 5.3a — proto + grpc-js stubs)', () => {
+    it('exports the message factories under the ApplicationsV1 namespace', () => {
+      expect(ApplicationsV1.Application).toBeDefined();
+      expect(ApplicationsV1.TimelineEntry).toBeDefined();
+      expect(ApplicationsV1.StartDraftRequest).toBeDefined();
+      expect(ApplicationsV1.SaveDraftAnswersRequest).toBeDefined();
+      expect(ApplicationsV1.SubmitDraftRequest).toBeDefined();
+      expect(ApplicationsV1.ApproveRequest).toBeDefined();
+      expect(ApplicationsV1.RejectRequest).toBeDefined();
+      expect(ApplicationsV1.WithdrawRequest).toBeDefined();
+      expect(ApplicationsV1.MarkAdoptedRequest).toBeDefined();
+    });
+
+    it('exports the gRPC service definition table for all twelve RPCs', () => {
+      expect(ApplicationsV1.ApplicationServiceService).toBeDefined();
+      expect(ApplicationsV1.ApplicationServiceService).toMatchObject({
+        startDraft: {
+          path: '/adopt_dont_shop.applications.v1.ApplicationService/StartDraft',
+        },
+        saveDraftAnswers: {
+          path: '/adopt_dont_shop.applications.v1.ApplicationService/SaveDraftAnswers',
+        },
+        submitDraft: {
+          path: '/adopt_dont_shop.applications.v1.ApplicationService/SubmitDraft',
+        },
+        startReview: {
+          path: '/adopt_dont_shop.applications.v1.ApplicationService/StartReview',
+        },
+        scheduleHomeVisit: {
+          path: '/adopt_dont_shop.applications.v1.ApplicationService/ScheduleHomeVisit',
+        },
+        completeHomeVisit: {
+          path: '/adopt_dont_shop.applications.v1.ApplicationService/CompleteHomeVisit',
+        },
+        approve: { path: '/adopt_dont_shop.applications.v1.ApplicationService/Approve' },
+        reject: { path: '/adopt_dont_shop.applications.v1.ApplicationService/Reject' },
+        withdraw: { path: '/adopt_dont_shop.applications.v1.ApplicationService/Withdraw' },
+        markAdopted: {
+          path: '/adopt_dont_shop.applications.v1.ApplicationService/MarkAdopted',
+        },
+        get: { path: '/adopt_dont_shop.applications.v1.ApplicationService/Get' },
+        list: { path: '/adopt_dont_shop.applications.v1.ApplicationService/List' },
+      });
+    });
+
+    it('exports a gRPC client constructor', () => {
+      expect(ApplicationsV1.ApplicationServiceClient).toBeDefined();
+      expect(typeof ApplicationsV1.ApplicationServiceClient).toBe('function');
+    });
+
+    it('ApplicationStatus enum covers all nine lifecycle states', () => {
+      const populated = Object.values(ApplicationsV1.ApplicationStatus).filter(
+        v => typeof v === 'number' && v > 0
+      );
+      expect(populated).toHaveLength(9);
+      expect(ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_DRAFT).toBe(1);
+      expect(ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_ADOPTED).toBe(9);
+    });
+
+    it('HomeVisitOutcome enum covers passed / failed / reschedule', () => {
+      const populated = Object.values(ApplicationsV1.HomeVisitOutcome).filter(
+        v => typeof v === 'number' && v > 0
+      );
+      expect(populated).toHaveLength(3);
+    });
+
+    it('round-trips a StartDraftRequest through the binary wire format', () => {
+      const original: StartDraftRequest = { adopterId: 'usr-1', petId: 'pet-1' };
+      const buf = ApplicationsV1.StartDraftRequest.encode(original).finish();
+      const decoded = ApplicationsV1.StartDraftRequest.decode(buf);
+      expect(decoded).toEqual(original);
+    });
+
+    it('flat type-only re-exports compile in type position', () => {
+      const a: Application = {
+        applicationId: 'app-1',
+        adopterId: 'usr-1',
+        petId: 'pet-1',
+        rescueId: 'rsc-1',
+        status: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_DRAFT,
+        answersJson: '{}',
+        referencesJson: '[]',
+        version: 0,
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+      };
+      expect(a.applicationId).toBe('app-1');
+    });
+  });
+
+  describe('ChatV1 namespace (Phase 6.3a — proto + grpc-js stubs)', () => {
+    it('exports the message factories under the ChatV1 namespace', () => {
+      expect(ChatV1.Chat).toBeDefined();
+      expect(ChatV1.Message).toBeDefined();
+      expect(ChatV1.MessageReaction).toBeDefined();
+      expect(ChatV1.OpenChatRequest).toBeDefined();
+      expect(ChatV1.SendMessageRequest).toBeDefined();
+      expect(ChatV1.ListMessagesRequest).toBeDefined();
+      expect(ChatV1.MarkReadRequest).toBeDefined();
+      expect(ChatV1.ReactRequest).toBeDefined();
+    });
+
+    it('exports the gRPC service definition table for all six RPCs', () => {
+      expect(ChatV1.ChatServiceService).toBeDefined();
+      expect(ChatV1.ChatServiceService).toMatchObject({
+        openChat: { path: '/adopt_dont_shop.chat.v1.ChatService/OpenChat' },
+        sendMessage: { path: '/adopt_dont_shop.chat.v1.ChatService/SendMessage' },
+        listMessages: { path: '/adopt_dont_shop.chat.v1.ChatService/ListMessages' },
+        listChats: { path: '/adopt_dont_shop.chat.v1.ChatService/ListChats' },
+        markRead: { path: '/adopt_dont_shop.chat.v1.ChatService/MarkRead' },
+        react: { path: '/adopt_dont_shop.chat.v1.ChatService/React' },
+      });
+    });
+
+    it('exports a gRPC client constructor', () => {
+      expect(ChatV1.ChatServiceClient).toBeDefined();
+      expect(typeof ChatV1.ChatServiceClient).toBe('function');
+    });
+
+    it('round-trips a SendMessageRequest through the binary wire format', () => {
+      const original: SendMessageRequest = { chatId: 'c-1', body: 'hello' };
+      const buf = ChatV1.SendMessageRequest.encode(original).finish();
+      const decoded = ChatV1.SendMessageRequest.decode(buf);
+      expect(decoded).toEqual(original);
+    });
+
+    it('flat type-only re-exports compile in type position', () => {
+      const c: Chat = {
+        chatId: 'c-1',
+        applicationId: 'app-1',
+        participantUserIds: ['usr-1', 'usr-2'],
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+      };
+      expect(c.chatId).toBe('c-1');
     });
   });
 });

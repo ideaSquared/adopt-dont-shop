@@ -1,0 +1,306 @@
+syntax = "proto3";
+
+package adopt_dont_shop.applications.v1;
+
+// ApplicationService is the gRPC contract for the applications
+// vertical — the EVENT-SOURCED extraction. Owns the `applications.*`
+// schema (Application, ApplicationDraft, ApplicationAnswer,
+// ApplicationTimelineEntry, HomeVisit, Reference) and exposes the
+// command + query split CAD's incident service pioneered.
+//
+// Commands are the only mutation entry points; each one validates
+// invariants against the pure domain (Phase 5.2), appends an event
+// to the Postgres event store, denormalises into the read model, and
+// publishes the corresponding `applications.*` subject AFTER commit.
+// Queries read the denormalised projection.
+//
+// State machine (the canonical lifecycle):
+//
+//   draft → submitted → under_review → home_visit_scheduled →
+//   home_visit_completed → approved | rejected | withdrawn → adopted
+//
+// Plus self-loops `under_review` → `under_review` for additional
+// answers/references, and `withdrawn` as a terminal exit from
+// `draft` / `submitted` / `under_review` at any point.
+service ApplicationService {
+  // Mint a fresh draft for an adopter applying to a specific pet.
+  // Caller MUST be the adopter (own user_id) or super_admin.
+  // Publishes `applications.draftCreated` after commit.
+  rpc StartDraft(StartDraftRequest) returns (StartDraftResponse);
+
+  // Persist answers / reference contacts to an existing draft.
+  // Idempotent on (application_id, version) — the read model
+  // checks optimistic concurrency. Caller MUST be the adopter or
+  // super_admin.
+  rpc SaveDraftAnswers(SaveDraftAnswersRequest) returns (SaveDraftAnswersResponse);
+
+  // Transition draft → submitted. Validates that all required core
+  // questions plus the rescue's required questions are answered.
+  // Publishes `applications.submitted` after commit — the
+  // notifications service consumes this and pings both the adopter
+  // and rescue staff.
+  rpc SubmitDraft(SubmitDraftRequest) returns (SubmitDraftResponse);
+
+  // Transition submitted → under_review (rescue staff opens the
+  // application for review). Idempotent — repeat calls return the
+  // current row. Caller MUST be rescue staff scoped to the
+  // application's rescue.
+  rpc StartReview(StartReviewRequest) returns (StartReviewResponse);
+
+  // Transition under_review → home_visit_scheduled. Carries the
+  // scheduled timestamp + visitor name. Publishes
+  // `applications.homeVisitScheduled`.
+  rpc ScheduleHomeVisit(ScheduleHomeVisitRequest) returns (ScheduleHomeVisitResponse);
+
+  // Transition home_visit_scheduled → home_visit_completed. Carries
+  // the home_visit notes + outcome. Publishes
+  // `applications.homeVisitCompleted`.
+  rpc CompleteHomeVisit(CompleteHomeVisitRequest) returns (CompleteHomeVisitResponse);
+
+  // Terminal: approve the application. Carries optional notes for
+  // the adopter. Publishes `applications.approved`.
+  rpc Approve(ApproveRequest) returns (ApproveResponse);
+
+  // Terminal: reject with a reason. Publishes
+  // `applications.rejected`.
+  rpc Reject(RejectRequest) returns (RejectResponse);
+
+  // Terminal (adopter-initiated): withdraw an application from any
+  // pre-decision state. Publishes `applications.withdrawn`.
+  rpc Withdraw(WithdrawRequest) returns (WithdrawResponse);
+
+  // Final-terminal: mark the pet adopted. Triggered when the
+  // service.pets `pets.statusChanged → adopted` event references
+  // this application, OR via a manual admin override. Publishes
+  // `applications.adopted`.
+  rpc MarkAdopted(MarkAdoptedRequest) returns (MarkAdoptedResponse);
+
+  // Read-side: fetch a single application's current projected state
+  // (status + answers + timeline). NOT_FOUND when missing or soft-
+  // deleted.
+  rpc Get(GetApplicationRequest) returns (GetApplicationResponse);
+
+  // Read-side: keyset paginated list, scoped by status or rescue
+  // for the adopter / staff dashboards. Adopters see their own;
+  // staff see their rescue's; admins see all.
+  rpc List(ListApplicationsRequest) returns (ListApplicationsResponse);
+}
+
+// --- ENUMs — value lists mirror the Postgres types verbatim ----------
+
+enum ApplicationStatus {
+  APPLICATION_STATUS_UNSPECIFIED = 0;
+  APPLICATION_STATUS_DRAFT = 1;
+  APPLICATION_STATUS_SUBMITTED = 2;
+  APPLICATION_STATUS_UNDER_REVIEW = 3;
+  APPLICATION_STATUS_HOME_VISIT_SCHEDULED = 4;
+  APPLICATION_STATUS_HOME_VISIT_COMPLETED = 5;
+  APPLICATION_STATUS_APPROVED = 6;
+  APPLICATION_STATUS_REJECTED = 7;
+  APPLICATION_STATUS_WITHDRAWN = 8;
+  APPLICATION_STATUS_ADOPTED = 9;
+}
+
+enum HomeVisitOutcome {
+  HOME_VISIT_OUTCOME_UNSPECIFIED = 0;
+  HOME_VISIT_OUTCOME_PASSED = 1;
+  HOME_VISIT_OUTCOME_FAILED = 2;
+  HOME_VISIT_OUTCOME_RESCHEDULE = 3;
+}
+
+// --- Application — denormalised read-model row -----------------------
+
+message Application {
+  string application_id = 1;
+  string adopter_id = 2;
+  string pet_id = 3;
+  string rescue_id = 4;
+  ApplicationStatus status = 5;
+  // JSON-stringified key→value answers map. Empty string == `{}`.
+  string answers_json = 6;
+  // JSON-stringified reference contact list. Empty string == `[]`.
+  string references_json = 7;
+  // Optimistic-concurrency version — bumped on every event append.
+  uint32 version = 8;
+  optional string submitted_at = 9;
+  optional string review_started_at = 10;
+  optional string home_visit_scheduled_at = 11;
+  optional string home_visit_completed_at = 12;
+  optional HomeVisitOutcome home_visit_outcome = 13;
+  optional string home_visit_notes = 14;
+  optional string decided_at = 15;
+  optional string decided_by = 16;
+  optional string decision_notes = 17;
+  optional string rejection_reason = 18;
+  optional string adopted_at = 19;
+  string created_at = 20;
+  string updated_at = 21;
+}
+
+// TimelineEntry mirrors the applications.application_timeline_entries
+// audit row — every event-store row gets a denormalised entry the SPA
+// renders chronologically.
+message TimelineEntry {
+  string entry_id = 1;
+  string application_id = 2;
+  ApplicationStatus from_status = 3;
+  ApplicationStatus to_status = 4;
+  string actor_user_id = 5;
+  string occurred_at = 6;
+  optional string note = 7;
+}
+
+// --- StartDraft ------------------------------------------------------
+
+message StartDraftRequest {
+  // adopter_id MUST match the calling principal (adopters own their
+  // drafts). super_admin can pass any.
+  string adopter_id = 1;
+  string pet_id = 2;
+}
+
+message StartDraftResponse {
+  Application application = 1;
+}
+
+// --- SaveDraftAnswers ------------------------------------------------
+
+message SaveDraftAnswersRequest {
+  string application_id = 1;
+  // Optimistic-concurrency guard — the caller's last-known version.
+  // The service rejects with FAILED_PRECONDITION when the row has
+  // moved beyond this version.
+  uint32 expected_version = 2;
+  // JSON-stringified answers patch. The handler merges this into
+  // the existing answers map (NOT replace) so callers can save
+  // partial progress.
+  string answers_patch_json = 3;
+  // Optional reference contact list replacement (wholesale). Empty
+  // string = leave unchanged.
+  optional string references_json = 4;
+}
+
+message SaveDraftAnswersResponse {
+  Application application = 1;
+}
+
+// --- SubmitDraft -----------------------------------------------------
+
+message SubmitDraftRequest {
+  string application_id = 1;
+  uint32 expected_version = 2;
+}
+
+message SubmitDraftResponse {
+  Application application = 1;
+}
+
+// --- StartReview -----------------------------------------------------
+
+message StartReviewRequest {
+  string application_id = 1;
+  // Optional staff note ("opening for review").
+  optional string note = 2;
+}
+
+message StartReviewResponse {
+  Application application = 1;
+}
+
+// --- ScheduleHomeVisit -----------------------------------------------
+
+message ScheduleHomeVisitRequest {
+  string application_id = 1;
+  string scheduled_at = 2;
+  // Optional pre-visit note (visitor name, preferences, etc.).
+  optional string note = 3;
+}
+
+message ScheduleHomeVisitResponse {
+  Application application = 1;
+}
+
+// --- CompleteHomeVisit -----------------------------------------------
+
+message CompleteHomeVisitRequest {
+  string application_id = 1;
+  HomeVisitOutcome outcome = 2;
+  optional string notes = 3;
+}
+
+message CompleteHomeVisitResponse {
+  Application application = 1;
+}
+
+// --- Approve / Reject / Withdraw / MarkAdopted -----------------------
+
+message ApproveRequest {
+  string application_id = 1;
+  optional string notes = 2;
+}
+
+message ApproveResponse {
+  Application application = 1;
+}
+
+message RejectRequest {
+  string application_id = 1;
+  string reason = 2;
+}
+
+message RejectResponse {
+  Application application = 1;
+}
+
+message WithdrawRequest {
+  string application_id = 1;
+  optional string reason = 2;
+}
+
+message WithdrawResponse {
+  Application application = 1;
+}
+
+message MarkAdoptedRequest {
+  string application_id = 1;
+}
+
+message MarkAdoptedResponse {
+  Application application = 1;
+}
+
+// --- Get -------------------------------------------------------------
+
+message GetApplicationRequest {
+  string application_id = 1;
+  // Set true to include the timeline projection in the response.
+  // Defaults false to keep the GET cheap when the SPA already has
+  // the timeline cached.
+  bool include_timeline = 2;
+}
+
+message GetApplicationResponse {
+  Application application = 1;
+  repeated TimelineEntry timeline = 2;
+}
+
+// --- List ------------------------------------------------------------
+
+message ListApplicationsRequest {
+  // Opaque base64-JSON keyset cursor.
+  optional string cursor = 1;
+  // Defaults to 20, max 100.
+  uint32 limit = 2;
+  // Optional filters. UNSPECIFIED in each enum = "no filter".
+  ApplicationStatus status_filter = 3;
+  optional string rescue_id_filter = 4;
+  // Adopters can only see their own (the handler enforces scope
+  // from principal.userId); admins + super_admin can pass any
+  // adopter_id_filter explicitly.
+  optional string adopter_id_filter = 5;
+}
+
+message ListApplicationsResponse {
+  repeated Application applications = 1;
+  optional string next_cursor = 2;
+}
