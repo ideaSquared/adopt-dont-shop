@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package adopt_dont_shop.chat.v1;
+
+// ChatService is the gRPC contract for the chat vertical. It owns
+// the `chat.*` schema (Chat, ChatParticipant, Message, MessageReaction,
+// MessageRead) and exposes the message send / list / read / react
+// surface.
+//
+// WS-heavy on the runtime — the gateway terminates Socket.IO and this
+// service publishes chat.messageCreated / chat.messageRead /
+// chat.reactionAdded on NATS for fan-out via the existing Phase 1.5
+// WS subscriber. The gRPC RPCs are the canonical mutation entry
+// points; the WS layer never writes.
+//
+// Same convention as the other extracted services: ISO-8601
+// timestamps as strings, opaque base64-JSON keyset cursors.
+service ChatService {
+  // Open a new chat between two participants (typically the adopter
+  // and a rescue staff member). Idempotent on the participant pair —
+  // a second OpenChat with the same participants returns the
+  // existing chat. Publishes chat.created on first creation.
+  rpc OpenChat(OpenChatRequest) returns (OpenChatResponse);
+
+  // Send a text message into an existing chat. Publishes
+  // chat.messageCreated after commit — the gateway's WS subscriber
+  // fans this to the other participant's open sockets.
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+
+  // List the recent messages for a chat with keyset pagination.
+  // Caller MUST be a participant or super_admin.
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+
+  // List the chats the calling principal participates in (the SPA
+  // chat picker).
+  rpc ListChats(ListChatsRequest) returns (ListChatsResponse);
+
+  // Mark a message as read by the calling principal. Idempotent.
+  // Publishes chat.messageRead.
+  rpc MarkRead(MarkReadRequest) returns (MarkReadResponse);
+
+  // Add or remove a reaction (emoji) on a message. The presence of
+  // `emoji` indicates add; an explicit Remove uses a separate field.
+  // Idempotent. Publishes chat.reactionAdded or chat.reactionRemoved.
+  rpc React(ReactRequest) returns (ReactResponse);
+}
+
+// --- Messages --------------------------------------------------------
+
+// Chat mirrors the chat.chats row plus the participant ids. Last
+// message preview + unread count are denormalised columns the
+// SendMessage / MarkRead handlers maintain.
+message Chat {
+  string chat_id = 1;
+  // Application this chat is anchored to (every chat in
+  // adopt-dont-shop is application-scoped — adopters can't DM
+  // rescue staff outside an application context).
+  string application_id = 2;
+  // Participant user ids (adopter, rescue staff member). Two-party
+  // chats only in this phase; group threads are a later concern.
+  repeated string participant_user_ids = 3;
+  // Cheap last-message preview the chat list renders.
+  optional string last_message_preview = 4;
+  optional string last_message_at = 5;
+  optional string last_message_sender_id = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+// Message mirrors the chat.messages row. Edited / deleted timestamps
+// are present but the writer never sends `edited` events through
+// SendMessage; edit is a separate (future) RPC.
+message Message {
+  string message_id = 1;
+  string chat_id = 2;
+  string sender_user_id = 3;
+  string body = 4;
+  // Repeated emoji aggregate — one entry per distinct emoji this
+  // message has received. Filled by the read path; SendMessage
+  // returns an empty list.
+  repeated MessageReaction reactions = 5;
+  optional string edited_at = 6;
+  optional string deleted_at = 7;
+  string created_at = 8;
+}
+
+message MessageReaction {
+  string emoji = 1;
+  // User ids that reacted with this emoji. Order is by reaction time.
+  repeated string user_ids = 2;
+}
+
+// --- OpenChat --------------------------------------------------------
+
+message OpenChatRequest {
+  string application_id = 1;
+  // Other participant — the calling principal is the first.
+  string other_user_id = 2;
+}
+
+message OpenChatResponse {
+  Chat chat = 1;
+  // True when this call created the chat; false when an existing
+  // row was returned (idempotency signal).
+  bool created = 2;
+}
+
+// --- SendMessage -----------------------------------------------------
+
+message SendMessageRequest {
+  string chat_id = 1;
+  string body = 2;
+}
+
+message SendMessageResponse {
+  Message message = 1;
+}
+
+// --- ListMessages ----------------------------------------------------
+
+message ListMessagesRequest {
+  string chat_id = 1;
+  // Opaque base64-JSON keyset cursor.
+  optional string cursor = 2;
+  // Defaults to 50, max 200 — chat history is naturally chunkier.
+  uint32 limit = 3;
+}
+
+message ListMessagesResponse {
+  // Newest-first ordering matches the SPA's reverse-scroll pattern.
+  repeated Message messages = 1;
+  optional string next_cursor = 2;
+}
+
+// --- ListChats -------------------------------------------------------
+
+message ListChatsRequest {
+  optional string cursor = 1;
+  uint32 limit = 2;
+  // Optional unread-only filter.
+  bool unread_only = 3;
+}
+
+message ListChatsResponse {
+  repeated Chat chats = 1;
+  optional string next_cursor = 2;
+}
+
+// --- MarkRead --------------------------------------------------------
+
+message MarkReadRequest {
+  string chat_id = 1;
+  // Mark every message up to + including this one as read by the
+  // calling principal. The message MUST belong to the chat.
+  string up_to_message_id = 2;
+}
+
+message MarkReadResponse {
+  // Echo of the message id for ack purposes. The downstream WS
+  // event carries the same.
+  string up_to_message_id = 1;
+}
+
+// --- React -----------------------------------------------------------
+
+message ReactRequest {
+  string message_id = 1;
+  string emoji = 2;
+  // When true, removes the calling principal's existing reaction
+  // with this emoji instead of adding. Idempotent in both directions.
+  bool remove = 3;
+}
+
+message ReactResponse {
+  Message message = 1;
+}
