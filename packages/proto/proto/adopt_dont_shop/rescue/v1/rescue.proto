@@ -168,6 +168,17 @@ message ListRescuesRequest {
   // Optional status filter. UNSPECIFIED = "verified only" (the public
   // default). Admins can pass any other status to scope.
   RescueStatus status_filter = 3;
+  // Free-text search on rescue name (ILIKE). Empty/unset = no filter.
+  optional string name_search = 4;
+  // When set, results are ordered randomly instead of by created_at DESC.
+  // Powers the "featured rescues" surface.
+  optional bool randomize = 5;
+  // Geo filters — when all three are set we approximate "nearby" using
+  // the legacy location columns. Distance math is best-effort (no PostGIS
+  // required); a future revision can switch to earth_distance / GIST.
+  optional double latitude = 6;
+  optional double longitude = 7;
+  optional double radius_km = 8;
 }
 
 message ListRescuesResponse {

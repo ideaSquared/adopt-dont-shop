@@ -227,6 +227,21 @@ export interface ListRescuesRequest {
    * default). Admins can pass any other status to scope.
    */
   statusFilter: RescueStatus;
+  /** Free-text search on rescue name (ILIKE). Empty/unset = no filter. */
+  nameSearch?: string | undefined;
+  /**
+   * When set, results are ordered randomly instead of by created_at DESC.
+   * Powers the "featured rescues" surface.
+   */
+  randomize?: boolean | undefined;
+  /**
+   * Geo filters — when all three are set we approximate "nearby" using
+   * the legacy location columns. Distance math is best-effort (no PostGIS
+   * required); a future revision can switch to earth_distance / GIST.
+   */
+  latitude?: number | undefined;
+  longitude?: number | undefined;
+  radiusKm?: number | undefined;
 }
 
 export interface ListRescuesResponse {
@@ -1605,7 +1620,16 @@ export const GetRescueResponse: MessageFns<GetRescueResponse> = {
 };
 
 function createBaseListRescuesRequest(): ListRescuesRequest {
-  return { cursor: undefined, limit: 0, statusFilter: 0 };
+  return {
+    cursor: undefined,
+    limit: 0,
+    statusFilter: 0,
+    nameSearch: undefined,
+    randomize: undefined,
+    latitude: undefined,
+    longitude: undefined,
+    radiusKm: undefined,
+  };
 }
 
 export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
@@ -1618,6 +1642,21 @@ export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
     }
     if (message.statusFilter !== 0) {
       writer.uint32(24).int32(message.statusFilter);
+    }
+    if (message.nameSearch !== undefined) {
+      writer.uint32(34).string(message.nameSearch);
+    }
+    if (message.randomize !== undefined) {
+      writer.uint32(40).bool(message.randomize);
+    }
+    if (message.latitude !== undefined) {
+      writer.uint32(49).double(message.latitude);
+    }
+    if (message.longitude !== undefined) {
+      writer.uint32(57).double(message.longitude);
+    }
+    if (message.radiusKm !== undefined) {
+      writer.uint32(65).double(message.radiusKm);
     }
     return writer;
   },
@@ -1653,6 +1692,46 @@ export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
           message.statusFilter = reader.int32() as any;
           continue;
         }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.nameSearch = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.randomize = reader.bool();
+          continue;
+        }
+        case 6: {
+          if (tag !== 49) {
+            break;
+          }
+
+          message.latitude = reader.double();
+          continue;
+        }
+        case 7: {
+          if (tag !== 57) {
+            break;
+          }
+
+          message.longitude = reader.double();
+          continue;
+        }
+        case 8: {
+          if (tag !== 65) {
+            break;
+          }
+
+          message.radiusKm = reader.double();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1671,6 +1750,19 @@ export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
         : isSet(object.status_filter)
           ? rescueStatusFromJSON(object.status_filter)
           : 0,
+      nameSearch: isSet(object.nameSearch)
+        ? globalThis.String(object.nameSearch)
+        : isSet(object.name_search)
+          ? globalThis.String(object.name_search)
+          : undefined,
+      randomize: isSet(object.randomize) ? globalThis.Boolean(object.randomize) : undefined,
+      latitude: isSet(object.latitude) ? globalThis.Number(object.latitude) : undefined,
+      longitude: isSet(object.longitude) ? globalThis.Number(object.longitude) : undefined,
+      radiusKm: isSet(object.radiusKm)
+        ? globalThis.Number(object.radiusKm)
+        : isSet(object.radius_km)
+          ? globalThis.Number(object.radius_km)
+          : undefined,
     };
   },
 
@@ -1685,6 +1777,21 @@ export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
     if (message.statusFilter !== 0) {
       obj.statusFilter = rescueStatusToJSON(message.statusFilter);
     }
+    if (message.nameSearch !== undefined) {
+      obj.nameSearch = message.nameSearch;
+    }
+    if (message.randomize !== undefined) {
+      obj.randomize = message.randomize;
+    }
+    if (message.latitude !== undefined) {
+      obj.latitude = message.latitude;
+    }
+    if (message.longitude !== undefined) {
+      obj.longitude = message.longitude;
+    }
+    if (message.radiusKm !== undefined) {
+      obj.radiusKm = message.radiusKm;
+    }
     return obj;
   },
 
@@ -1696,6 +1803,11 @@ export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
     message.cursor = object.cursor ?? undefined;
     message.limit = object.limit ?? 0;
     message.statusFilter = object.statusFilter ?? 0;
+    message.nameSearch = object.nameSearch ?? undefined;
+    message.randomize = object.randomize ?? undefined;
+    message.latitude = object.latitude ?? undefined;
+    message.longitude = object.longitude ?? undefined;
+    message.radiusKm = object.radiusKm ?? undefined;
     return message;
   },
 };
