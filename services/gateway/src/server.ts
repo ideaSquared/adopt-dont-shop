@@ -20,6 +20,7 @@ import { createLogger } from '@adopt-dont-shop/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import type { GatewayConfig } from './config.js';
+import type { ApplicationsClient } from './grpc-clients/applications-client.js';
 import type { AuditClient } from './grpc-clients/audit-client.js';
 import type { AuthClient } from './grpc-clients/auth-client.js';
 import type { MatchingClient } from './grpc-clients/matching-client.js';
@@ -28,6 +29,7 @@ import type { NotificationsClient } from './grpc-clients/notifications-client.js
 import type { PetsClient } from './grpc-clients/pets-client.js';
 import type { RescueClient } from './grpc-clients/rescue-client.js';
 import { registerAuthenticate } from './middleware/authenticate.js';
+import { registerApplicationsRoutes } from './routes/applications.js';
 import { registerAuditRoutes } from './routes/audit.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerMatchingRoutes } from './routes/matching.js';
@@ -71,6 +73,9 @@ export type CreateServerOptions = {
   // gRPC client to service.moderation — Phase 8.5 cuts
   // /api/moderation/* over to this address. Same optional shape.
   moderationClient?: ModerationClient;
+  // gRPC client to service.applications — Phase 5.3d cuts
+  // /api/applications/* over to this address. Same optional shape.
+  applicationsClient?: ApplicationsClient;
 };
 
 export const createServer = async (opts: CreateServerOptions): Promise<FastifyInstance> => {
@@ -147,6 +152,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.moderationClient) {
     await registerModerationRoutes(server, { client: opts.moderationClient });
+  }
+  if (opts.applicationsClient) {
+    await registerApplicationsRoutes(server, { client: opts.applicationsClient });
   }
 
   // Catch-all proxy. Phase 0f shipped this; Phase 1.6 leaves it in

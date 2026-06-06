@@ -4,7 +4,11 @@ import type { Server as IOServer } from 'socket.io';
 import { createLogger } from '@adopt-dont-shop/observability';
 
 import { loadConfig } from './config.js';
+import { createApplicationsClient } from './grpc-clients/applications-client.js';
+import { createAuditClient } from './grpc-clients/audit-client.js';
 import { createAuthClient } from './grpc-clients/auth-client.js';
+import { createMatchingClient } from './grpc-clients/matching-client.js';
+import { createModerationClient } from './grpc-clients/moderation-client.js';
 import { createNotificationsClient } from './grpc-clients/notifications-client.js';
 import { createPetsClient } from './grpc-clients/pets-client.js';
 import { createRescueClient } from './grpc-clients/rescue-client.js';
@@ -22,16 +26,27 @@ const main = async (): Promise<void> => {
   let authClient: ReturnType<typeof createAuthClient> | undefined;
   let petsClient: ReturnType<typeof createPetsClient> | undefined;
   let rescueClient: ReturnType<typeof createRescueClient> | undefined;
+  let auditClient: ReturnType<typeof createAuditClient> | undefined;
+  let matchingClient: ReturnType<typeof createMatchingClient> | undefined;
+  let moderationClient: ReturnType<typeof createModerationClient> | undefined;
+  let applicationsClient: ReturnType<typeof createApplicationsClient> | undefined;
 
   try {
     const config = loadConfig();
 
     // gRPC clients to extracted services come up before Fastify so the
-    // route plugins / middleware can close over them.
+    // route plugins / middleware can close over them. The channels are
+    // lazy — constructing a client doesn't open a connection until the
+    // first call — so a service that isn't running yet doesn't block
+    // gateway boot.
     notificationsClient = createNotificationsClient({ address: config.notificationsGrpcUrl });
     authClient = createAuthClient({ address: config.authGrpcUrl });
     petsClient = createPetsClient({ address: config.petsGrpcUrl });
     rescueClient = createRescueClient({ address: config.rescueGrpcUrl });
+    auditClient = createAuditClient({ address: config.auditGrpcUrl });
+    matchingClient = createMatchingClient({ address: config.matchingGrpcUrl });
+    moderationClient = createModerationClient({ address: config.moderationGrpcUrl });
+    applicationsClient = createApplicationsClient({ address: config.applicationsGrpcUrl });
 
     const server = await createServer({
       config,
@@ -40,6 +55,10 @@ const main = async (): Promise<void> => {
       authClient,
       petsClient,
       rescueClient,
+      auditClient,
+      matchingClient,
+      moderationClient,
+      applicationsClient,
     });
 
     await server.listen({ port: config.port, host: config.host });
@@ -60,6 +79,10 @@ const main = async (): Promise<void> => {
       authGrpcUrl: config.authGrpcUrl,
       petsGrpcUrl: config.petsGrpcUrl,
       rescueGrpcUrl: config.rescueGrpcUrl,
+      auditGrpcUrl: config.auditGrpcUrl,
+      matchingGrpcUrl: config.matchingGrpcUrl,
+      moderationGrpcUrl: config.moderationGrpcUrl,
+      applicationsGrpcUrl: config.applicationsGrpcUrl,
       environment: config.environment,
     });
 
@@ -102,6 +125,26 @@ const main = async (): Promise<void> => {
       } catch (err) {
         logger.error('rescue client close error', { err });
       }
+      try {
+        auditClient?.close();
+      } catch (err) {
+        logger.error('audit client close error', { err });
+      }
+      try {
+        matchingClient?.close();
+      } catch (err) {
+        logger.error('matching client close error', { err });
+      }
+      try {
+        moderationClient?.close();
+      } catch (err) {
+        logger.error('moderation client close error', { err });
+      }
+      try {
+        applicationsClient?.close();
+      } catch (err) {
+        logger.error('applications client close error', { err });
+      }
       process.exit(0);
     };
 
@@ -131,6 +174,26 @@ const main = async (): Promise<void> => {
     }
     try {
       rescueClient?.close();
+    } catch {
+      // Same.
+    }
+    try {
+      auditClient?.close();
+    } catch {
+      // Same.
+    }
+    try {
+      matchingClient?.close();
+    } catch {
+      // Same.
+    }
+    try {
+      moderationClient?.close();
+    } catch {
+      // Same.
+    }
+    try {
+      applicationsClient?.close();
     } catch {
       // Same.
     }

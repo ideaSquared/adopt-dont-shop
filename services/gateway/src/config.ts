@@ -30,6 +30,18 @@ export type GatewayConfig = {
   // service.rescue gRPC URL — Phase 4.5 cuts /api/rescue/* over to
   // this address.
   rescueGrpcUrl: string;
+  // service.applications gRPC URL — Phase 5.3d cuts /api/applications/*
+  // over to this address.
+  applicationsGrpcUrl: string;
+  // service.moderation gRPC URL — Phase 8.5 cuts /api/moderation/* over
+  // to this address.
+  moderationGrpcUrl: string;
+  // service.matching gRPC URL — Phase 9.5 cuts /api/matching/* over to
+  // this address.
+  matchingGrpcUrl: string;
+  // service.audit gRPC URL — Phase 10.5 cuts /api/audit/* over to this
+  // address.
+  auditGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 4000;
@@ -40,6 +52,10 @@ const DEFAULT_NOTIFICATIONS_GRPC_URL = 'service-notifications:6001';
 const DEFAULT_AUTH_GRPC_URL = 'service-auth:6002';
 const DEFAULT_PETS_GRPC_URL = 'service-pets:6003';
 const DEFAULT_RESCUE_GRPC_URL = 'service-rescue:6004';
+const DEFAULT_APPLICATIONS_GRPC_URL = 'service-applications:6005';
+const DEFAULT_MODERATION_GRPC_URL = 'service-moderation:6007';
+const DEFAULT_MATCHING_GRPC_URL = 'service-matching:6008';
+const DEFAULT_AUDIT_GRPC_URL = 'service-audit:6009';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig => {
   const portRaw = env.GATEWAY_PORT?.trim();
@@ -58,5 +74,9 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     authGrpcUrl: env.AUTH_GRPC_URL?.trim() || DEFAULT_AUTH_GRPC_URL,
     petsGrpcUrl: env.PETS_GRPC_URL?.trim() || DEFAULT_PETS_GRPC_URL,
     rescueGrpcUrl: env.RESCUE_GRPC_URL?.trim() || DEFAULT_RESCUE_GRPC_URL,
+    applicationsGrpcUrl: env.APPLICATIONS_GRPC_URL?.trim() || DEFAULT_APPLICATIONS_GRPC_URL,
+    moderationGrpcUrl: env.MODERATION_GRPC_URL?.trim() || DEFAULT_MODERATION_GRPC_URL,
+    matchingGrpcUrl: env.MATCHING_GRPC_URL?.trim() || DEFAULT_MATCHING_GRPC_URL,
+    auditGrpcUrl: env.AUDIT_GRPC_URL?.trim() || DEFAULT_AUDIT_GRPC_URL,
   };
 };
