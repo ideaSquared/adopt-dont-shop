@@ -9,6 +9,7 @@
 //   Frontend contract (what lib.applications calls) — responses use the
 //   collapsed view shape (applications-view.ts) in a `{ data }` envelope:
 //   POST   /api/v1/applications              → StartDraft+SaveDraftAnswers+SubmitDraft
+//   PUT    /api/v1/applications/:id          → Get(version)+SaveDraftAnswers (edit)
 //   PATCH  /api/v1/applications/:id/status   → Approve | Reject | Withdraw
 //   PUT    /api/v1/applications/:id/withdraw → Withdraw
 //   GET    /api/v1/applications/stats        → GetStats (collapsed counts)
@@ -156,6 +157,33 @@ export const registerApplicationsRoutes = async (
         const res = await client.withdraw(
           { applicationId: req.params.id, reason: b.reason as string | undefined },
           buildMetadata(req)
+        );
+        return sendView(reply, res.application);
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // PUT /:id — the SPA's updateApplication (edit answers). The frontend
+  // sends the whole ApplicationData blob without a version, so we Get the
+  // current version first, then SaveDraftAnswers with the blob. NOTE the
+  // behaviour change vs the monolith: the service only allows answer edits
+  // while the application is in `draft` / `under_review`; editing a
+  // decided application surfaces the service's INVALID_ARGUMENT as 400.
+  app.put<{ Params: { id: string } }>(
+    '/api/v1/applications/:id',
+    { config: { rateLimit: RL_WRITE } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const id = req.params.id;
+      const meta = buildMetadata(req);
+      try {
+        const current = await client.get({ applicationId: id, includeTimeline: false }, meta);
+        const version = current.application?.version ?? 0;
+        const res = await client.saveDraftAnswers(
+          { applicationId: id, expectedVersion: version, answersPatchJson: JSON.stringify(b) },
+          meta
         );
         return sendView(reply, res.application);
       } catch (err) {
