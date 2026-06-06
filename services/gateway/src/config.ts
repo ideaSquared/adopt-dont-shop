@@ -27,6 +27,9 @@ export type GatewayConfig = {
   // service.pets gRPC URL — Phase 3.5 cuts /api/pets/* over to this
   // address.
   petsGrpcUrl: string;
+  // service.rescue gRPC URL — Phase 4.5 cuts /api/rescue/* over to
+  // this address.
+  rescueGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 4000;
@@ -36,6 +39,7 @@ const DEFAULT_NATS_URL = 'nats://nats:4222';
 const DEFAULT_NOTIFICATIONS_GRPC_URL = 'service-notifications:6001';
 const DEFAULT_AUTH_GRPC_URL = 'service-auth:6002';
 const DEFAULT_PETS_GRPC_URL = 'service-pets:6003';
+const DEFAULT_RESCUE_GRPC_URL = 'service-rescue:6004';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig => {
   const portRaw = env.GATEWAY_PORT?.trim();
@@ -53,5 +57,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     notificationsGrpcUrl: env.NOTIFICATIONS_GRPC_URL?.trim() || DEFAULT_NOTIFICATIONS_GRPC_URL,
     authGrpcUrl: env.AUTH_GRPC_URL?.trim() || DEFAULT_AUTH_GRPC_URL,
     petsGrpcUrl: env.PETS_GRPC_URL?.trim() || DEFAULT_PETS_GRPC_URL,
+    rescueGrpcUrl: env.RESCUE_GRPC_URL?.trim() || DEFAULT_RESCUE_GRPC_URL,
   };
 };

@@ -23,10 +23,12 @@ import type { GatewayConfig } from './config.js';
 import type { AuthClient } from './grpc-clients/auth-client.js';
 import type { NotificationsClient } from './grpc-clients/notifications-client.js';
 import type { PetsClient } from './grpc-clients/pets-client.js';
+import type { RescueClient } from './grpc-clients/rescue-client.js';
 import { registerAuthenticate } from './middleware/authenticate.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerNotificationsRoutes } from './routes/notifications.js';
 import { registerPetsRoutes } from './routes/pets.js';
+import { registerRescueRoutes } from './routes/rescue.js';
 
 export type CreateServerOptions = {
   config: GatewayConfig;
@@ -51,6 +53,9 @@ export type CreateServerOptions = {
   // gRPC client to service.pets — Phase 3.5 cuts /api/pets/* over to
   // this address. Same optional shape as the other clients.
   petsClient?: PetsClient;
+  // gRPC client to service.rescue — Phase 4.5 cuts /api/rescue/* over
+  // to this address. Same optional shape as the other clients.
+  rescueClient?: RescueClient;
 };
 
 export const createServer = async (opts: CreateServerOptions): Promise<FastifyInstance> => {
@@ -115,6 +120,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.petsClient) {
     await registerPetsRoutes(server, { client: opts.petsClient });
+  }
+  if (opts.rescueClient) {
+    await registerRescueRoutes(server, { client: opts.rescueClient });
   }
 
   // Catch-all proxy. Phase 0f shipped this; Phase 1.6 leaves it in
