@@ -81,6 +81,37 @@ services:
           cpus: '0.1'
           memory: 64m
 
+  # NATS JetStream — the event backbone for the extracted services
+  # (publish-after-commit + idempotent subscribers). Required once any
+  # CUTOVER_<DOMAIN> flag is flipped on; harmless when all are off.
+  nats:
+    image: nats:2.10-alpine
+    container_name: ads_staging_nats
+    restart: always
+    ports: []
+    command: '-js -sd /data -m 8222'
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8222/healthz | grep -q ok || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256m
+        reservations:
+          cpus: '0.1'
+          memory: 64m
+
   # One-shot init container: applies pending migrations before the backend
   # starts. [ADS-393]
   service-backend-migrate:
@@ -288,6 +319,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  nats_data:
   uploads:
 
 networks:
