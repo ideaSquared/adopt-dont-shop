@@ -24,14 +24,21 @@ const config: MatchingConfig = {
   databaseUrl: 'postgres://test',
   schema: 'matching',
   natsUrl: 'nats://localhost:4222',
+  petsGrpcUrl: 'service-pets:6003',
 };
 
 const pool = {} as unknown as Pool;
 const nats = {} as unknown as NatsConnection;
+// Inject a stub pets client so the test doesn't construct a real gRPC
+// channel just to assert handler registration.
+const petsClient = {
+  listPets: () => Promise.reject(new Error('not used')),
+  close: () => undefined,
+} as unknown as Parameters<typeof createGrpcServer>[0]['petsClient'];
 
 describe('createGrpcServer', () => {
   it('registers all six MatchingService methods on the grpc.Server', () => {
-    const server = createGrpcServer({ config, pool, nats, logger: quietLogger });
+    const server = createGrpcServer({ config, pool, nats, logger: quietLogger, petsClient });
     const handlers = (server as unknown as { handlers: Map<string, unknown> }).handlers;
 
     expect(handlers.has('/adopt_dont_shop.matching.v1.MatchingService/StartSession')).toBe(true);
@@ -48,7 +55,7 @@ describe('createGrpcServer', () => {
     const definition = MatchingV1.MatchingServiceService;
     const expectedPaths = Object.values(definition).map(d => (d as { path: string }).path);
 
-    const server = createGrpcServer({ config, pool, nats, logger: quietLogger });
+    const server = createGrpcServer({ config, pool, nats, logger: quietLogger, petsClient });
     const handlers = (server as unknown as { handlers: Map<string, unknown> }).handlers;
 
     for (const p of expectedPaths) {

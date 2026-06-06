@@ -20,6 +20,11 @@ export type MatchingConfig = {
   // The service consumes pet data via gRPC (not events) — it's
   // stateless compute, not a denormalised projection.
   natsUrl: string;
+  // service.pets gRPC URL — Recommend + SearchPets read candidate pets
+  // via PetService.List before ranking / returning them (matching is
+  // stateless compute, not a denormalised projection of pets).
+  // Defaults to the same service-pets:6003 address the gateway uses.
+  petsGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 5008;
@@ -27,6 +32,7 @@ const DEFAULT_GRPC_PORT = 6008;
 const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_SCHEMA = 'matching';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
+const DEFAULT_PETS_GRPC_URL = 'service-pets:6003';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): MatchingConfig => {
   const port = parsePort(env.MATCHING_PORT, DEFAULT_PORT, 'MATCHING_PORT');
@@ -45,6 +51,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): MatchingConfig
     databaseUrl,
     schema: env.MATCHING_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
+    petsGrpcUrl: env.PETS_GRPC_URL?.trim() || DEFAULT_PETS_GRPC_URL,
   };
 };
 
