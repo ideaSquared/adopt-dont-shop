@@ -350,6 +350,25 @@ describe('applications routes', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('PUT /:id (update) reads the current version then SaveDraftAnswers with the blob', async () => {
+    mocks.get.mockResolvedValue({ application: { ...SUBMITTED, version: 5 }, timeline: [] });
+    mocks.saveDraftAnswers.mockResolvedValue({ application: SUBMITTED });
+    const payload = { personalInfo: { firstName: 'Jo' } };
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/applications/app-1',
+      headers: ADOPTER,
+      payload,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.get.mock.calls[0][0]).toMatchObject({ applicationId: 'app-1' });
+    expect(mocks.saveDraftAnswers.mock.calls[0][0]).toEqual({
+      applicationId: 'app-1',
+      expectedVersion: 5,
+      answersPatchJson: JSON.stringify(payload),
+    });
+  });
+
   it('PUT /:id/withdraw → Withdraw, returns the view', async () => {
     mocks.withdraw.mockResolvedValue({ application: SUBMITTED });
     const res = await app.inject({
