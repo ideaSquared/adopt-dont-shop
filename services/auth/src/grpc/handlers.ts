@@ -60,6 +60,7 @@ export type HandlerErrorCode =
   | 'UNAUTHENTICATED'
   | 'PERMISSION_DENIED'
   | 'NOT_FOUND'
+  | 'ALREADY_EXISTS'
   | 'INTERNAL';
 
 export class HandlerError extends Error {
@@ -82,6 +83,7 @@ export class HandlerError extends Error {
 
 export type PasswordHasher = {
   compare: (password: string, hash: string) => Promise<boolean>;
+  hash: (password: string) => Promise<string>;
 };
 
 export type AccessTokenClaims = {
@@ -124,7 +126,7 @@ export type HandlerDeps = WithTransactionDeps & {
 
 // --- Row types -------------------------------------------------------
 
-type UserRow = {
+export type UserRow = {
   user_id: string;
   email: string;
   password: string;
@@ -155,7 +157,7 @@ type RefreshTokenRow = {
   revoked_at: Date | null;
 };
 
-function rowToProtoUser(row: UserRow): AuthUser {
+export function rowToProtoUser(row: UserRow): AuthUser {
   return {
     userId: row.user_id,
     email: row.email,
@@ -184,7 +186,7 @@ function rowToProtoUser(row: UserRow): AuthUser {
 // `super_admin` short-circuits — gateway gates use authz, which already
 // bypasses for super_admin, but we still surface the full string set
 // in GetMe so the UI can render the correct affordances.
-async function loadPrincipal(
+export async function loadPrincipal(
   deps: HandlerDeps,
   userId: string
 ): Promise<{ roles: UserRole[]; permissions: Permission[]; rescueId?: string }> {
@@ -603,6 +605,7 @@ export const ALL_HANDLER_ERROR_CODES: ReadonlyArray<HandlerErrorCode> = [
   'UNAUTHENTICATED',
   'PERMISSION_DENIED',
   'NOT_FOUND',
+  'ALREADY_EXISTS',
   'INTERNAL',
 ];
 

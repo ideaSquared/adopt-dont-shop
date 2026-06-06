@@ -23,6 +23,13 @@ function makeClient(): {
   validateMock: ReturnType<typeof vi.fn>;
   getMeMock: ReturnType<typeof vi.fn>;
   assignMock: ReturnType<typeof vi.fn>;
+  registerMock: ReturnType<typeof vi.fn>;
+  verifyEmailMock: ReturnType<typeof vi.fn>;
+  resendVerificationMock: ReturnType<typeof vi.fn>;
+  forgotPasswordMock: ReturnType<typeof vi.fn>;
+  resetPasswordMock: ReturnType<typeof vi.fn>;
+  changePasswordMock: ReturnType<typeof vi.fn>;
+  updateAccountMock: ReturnType<typeof vi.fn>;
 } {
   const loginMock = vi.fn();
   const logoutMock = vi.fn();
@@ -30,6 +37,13 @@ function makeClient(): {
   const validateMock = vi.fn();
   const getMeMock = vi.fn();
   const assignMock = vi.fn();
+  const registerMock = vi.fn();
+  const verifyEmailMock = vi.fn();
+  const resendVerificationMock = vi.fn();
+  const forgotPasswordMock = vi.fn();
+  const resetPasswordMock = vi.fn();
+  const changePasswordMock = vi.fn();
+  const updateAccountMock = vi.fn();
   const client: AuthClient = {
     login: loginMock,
     logout: logoutMock,
@@ -37,9 +51,31 @@ function makeClient(): {
     validateToken: validateMock,
     getMe: getMeMock,
     assignRole: assignMock,
+    register: registerMock,
+    verifyEmail: verifyEmailMock,
+    resendVerification: resendVerificationMock,
+    forgotPassword: forgotPasswordMock,
+    resetPassword: resetPasswordMock,
+    changePassword: changePasswordMock,
+    updateAccount: updateAccountMock,
     close: vi.fn(),
   };
-  return { client, loginMock, logoutMock, refreshMock, validateMock, getMeMock, assignMock };
+  return {
+    client,
+    loginMock,
+    logoutMock,
+    refreshMock,
+    validateMock,
+    getMeMock,
+    assignMock,
+    registerMock,
+    verifyEmailMock,
+    resendVerificationMock,
+    forgotPasswordMock,
+    resetPasswordMock,
+    changePasswordMock,
+    updateAccountMock,
+  };
 }
 
 async function makeApp(client: AuthClient): Promise<FastifyInstance> {
@@ -315,6 +351,169 @@ describe('error mapping fallback', () => {
         payload: { email: 'a@b', password: 'c' },
       });
       expect(res.statusCode).toBe(500);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('auth account-lifecycle routes', () => {
+  it('POST /auth/register threads body fields + ip/UA, returns 201', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.registerMock.mockResolvedValueOnce({ permissions: [] });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        headers: { 'user-agent': 'vitest' },
+        payload: {
+          email: 'a@example.com',
+          password: 'longenoughpw',
+          firstName: 'A',
+          lastName: 'B',
+          termsAccepted: true,
+          privacyPolicyAccepted: true,
+        },
+      });
+      expect(res.statusCode).toBe(201);
+      expect(m.registerMock.mock.calls[0][0]).toMatchObject({
+        email: 'a@example.com',
+        firstName: 'A',
+        lastName: 'B',
+        termsAccepted: true,
+        privacyPolicyAccepted: true,
+        userAgent: 'vitest',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/register accepts snake_case keys too', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.registerMock.mockResolvedValueOnce({ permissions: [] });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          email: 'a@example.com',
+          password: 'longenoughpw',
+          first_name: 'A',
+          last_name: 'B',
+          terms_accepted: true,
+          privacy_policy_accepted: true,
+        },
+      });
+      expect(m.registerMock.mock.calls[0][0]).toMatchObject({
+        firstName: 'A',
+        termsAccepted: true,
+        privacyPolicyAccepted: true,
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/verify-email threads the token (camel or snake)', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.verifyEmailMock.mockResolvedValueOnce({});
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/verify-email',
+        payload: { verification_token: 'tok' },
+      });
+      expect(m.verifyEmailMock.mock.calls[0][0].verificationToken).toBe('tok');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/forgot-password threads email', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.forgotPasswordMock.mockResolvedValueOnce({ ok: true });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/forgot-password',
+        payload: { email: 'a@example.com' },
+      });
+      expect(m.forgotPasswordMock.mock.calls[0][0].email).toBe('a@example.com');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/reset-password threads token + new password', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.resetPasswordMock.mockResolvedValueOnce({ ok: true });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/reset-password',
+        payload: { resetToken: 't', newPassword: 'longenoughpw' },
+      });
+      expect(m.resetPasswordMock.mock.calls[0][0]).toMatchObject({
+        resetToken: 't',
+        newPassword: 'longenoughpw',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/change-password threads current + new', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.changePasswordMock.mockResolvedValueOnce({ ok: true });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/change-password',
+        payload: { currentPassword: 'old', newPassword: 'longenoughpw' },
+      });
+      expect(m.changePasswordMock.mock.calls[0][0]).toMatchObject({
+        currentPassword: 'old',
+        newPassword: 'longenoughpw',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('PATCH /users/account threads only the supplied fields', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.updateAccountMock.mockResolvedValueOnce({});
+      await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/users/account',
+        payload: { first_name: 'Joey', timezone: 'Europe/London' },
+      });
+      const sent = m.updateAccountMock.mock.calls[0][0];
+      expect(sent.firstName).toBe('Joey');
+      expect(sent.timezone).toBe('Europe/London');
+      expect(sent.lastName).toBeUndefined();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('GET /users/account is an alias for getMe', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.getMeMock.mockResolvedValueOnce({ user: { userId: 'u1' } });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/users/account' });
+      expect(res.statusCode).toBe(200);
+      expect(m.getMeMock).toHaveBeenCalledOnce();
     } finally {
       await app.close();
     }

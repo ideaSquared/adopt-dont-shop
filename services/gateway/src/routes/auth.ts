@@ -47,6 +47,7 @@ const GRPC_TO_HTTP: Record<number, number> = {
   [status.UNAUTHENTICATED]: 401,
   [status.PERMISSION_DENIED]: 403,
   [status.NOT_FOUND]: 404,
+  [status.ALREADY_EXISTS]: 409,
   [status.INTERNAL]: 500,
 };
 
@@ -84,6 +85,15 @@ const AUTH_RATE_LIMITS = {
   refreshToken: { max: 30, timeWindow: '1 minute' },
   getMe: { max: 60, timeWindow: '1 minute' },
   assignRole: { max: 30, timeWindow: '1 minute' },
+  // Account lifecycle — tighter on the unauthenticated paths to slow
+  // enumeration / spam.
+  register: { max: 5, timeWindow: '1 minute' },
+  verifyEmail: { max: 10, timeWindow: '1 minute' },
+  resendVerification: { max: 5, timeWindow: '1 minute' },
+  forgotPassword: { max: 5, timeWindow: '1 minute' },
+  resetPassword: { max: 10, timeWindow: '1 minute' },
+  changePassword: { max: 10, timeWindow: '1 minute' },
+  updateAccount: { max: 30, timeWindow: '1 minute' },
 } as const;
 
 export const registerAuthRoutes = async (
@@ -177,6 +187,183 @@ export const registerAuthRoutes = async (
       try {
         const res = await client.assignRole(grpcReq, buildMetadata(req));
         return reply.send(AuthV1.AssignRoleResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // --- Account lifecycle routes ---------------------------------------
+
+  app.post(
+    '/api/v1/auth/register',
+    { config: { rateLimit: AUTH_RATE_LIMITS.register } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      try {
+        const res = await client.register(
+          {
+            email: (b.email as string) ?? '',
+            password: (b.password as string) ?? '',
+            firstName: (b.firstName as string) ?? (b.first_name as string) ?? '',
+            lastName: (b.lastName as string) ?? (b.last_name as string) ?? '',
+            phoneNumber: (b.phoneNumber as string) ?? (b.phone_number as string),
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'],
+            termsAccepted:
+              (b.termsAccepted as boolean) ??
+              (b.terms_accepted as boolean) ??
+              (b.acceptedTerms as boolean) ??
+              false,
+            privacyPolicyAccepted:
+              (b.privacyPolicyAccepted as boolean) ??
+              (b.privacy_policy_accepted as boolean) ??
+              false,
+          },
+          buildMetadata(req)
+        );
+        return reply.code(201).send(AuthV1.RegisterResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/auth/verify-email',
+    { config: { rateLimit: AUTH_RATE_LIMITS.verifyEmail } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      try {
+        const res = await client.verifyEmail(
+          {
+            verificationToken:
+              (b.verificationToken as string) ?? (b.verification_token as string) ?? '',
+          },
+          buildMetadata(req)
+        );
+        return reply.send(AuthV1.VerifyEmailResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/auth/resend-verification',
+    { config: { rateLimit: AUTH_RATE_LIMITS.resendVerification } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      try {
+        const res = await client.resendVerification(
+          { email: (b.email as string) ?? '' },
+          buildMetadata(req)
+        );
+        return reply.send(AuthV1.ResendVerificationResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/auth/forgot-password',
+    { config: { rateLimit: AUTH_RATE_LIMITS.forgotPassword } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      try {
+        const res = await client.forgotPassword(
+          { email: (b.email as string) ?? '' },
+          buildMetadata(req)
+        );
+        return reply.send(AuthV1.ForgotPasswordResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/auth/reset-password',
+    { config: { rateLimit: AUTH_RATE_LIMITS.resetPassword } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      try {
+        const res = await client.resetPassword(
+          {
+            resetToken: (b.resetToken as string) ?? (b.reset_token as string) ?? '',
+            newPassword: (b.newPassword as string) ?? (b.new_password as string) ?? '',
+          },
+          buildMetadata(req)
+        );
+        return reply.send(AuthV1.ResetPasswordResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/auth/change-password',
+    { config: { rateLimit: AUTH_RATE_LIMITS.changePassword } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      try {
+        const res = await client.changePassword(
+          {
+            currentPassword: (b.currentPassword as string) ?? (b.current_password as string) ?? '',
+            newPassword: (b.newPassword as string) ?? (b.new_password as string) ?? '',
+          },
+          buildMetadata(req)
+        );
+        return reply.send(AuthV1.ChangePasswordResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.patch(
+    '/api/v1/users/account',
+    { config: { rateLimit: AUTH_RATE_LIMITS.updateAccount } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const str = (k1: string, k2?: string): string | undefined => {
+        const v = (b[k1] ?? (k2 ? b[k2] : undefined)) as unknown;
+        return typeof v === 'string' ? v : undefined;
+      };
+      try {
+        const res = await client.updateAccount(
+          {
+            firstName: str('firstName', 'first_name'),
+            lastName: str('lastName', 'last_name'),
+            phoneNumber: str('phoneNumber', 'phone_number'),
+            bio: str('bio'),
+            timezone: str('timezone'),
+            language: str('language'),
+            country: str('country'),
+            city: str('city'),
+            addressLine1: str('addressLine1', 'address_line_1'),
+            addressLine2: str('addressLine2', 'address_line_2'),
+            postalCode: str('postalCode', 'postal_code'),
+          },
+          buildMetadata(req)
+        );
+        return reply.send(AuthV1.UpdateAccountResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /api/v1/users/account — alias for /auth/me.
+  app.get(
+    '/api/v1/users/account',
+    { config: { rateLimit: AUTH_RATE_LIMITS.getMe } },
+    async (req, reply) => {
+      try {
+        const res = await client.getMe({}, buildMetadata(req));
+        return reply.send(AuthV1.GetMeResponse.toJSON(res));
       } catch (err) {
         return handleGrpcError(err, reply);
       }

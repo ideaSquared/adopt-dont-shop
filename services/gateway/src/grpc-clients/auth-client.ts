@@ -15,6 +15,10 @@ import {
   AuthV1,
   type AssignRoleRequest,
   type AssignRoleResponse,
+  type ChangePasswordRequest,
+  type ChangePasswordResponse,
+  type ForgotPasswordRequest,
+  type ForgotPasswordResponse,
   type GetMeRequest,
   type GetMeResponse,
   type LoginRequest,
@@ -23,8 +27,18 @@ import {
   type LogoutResponse,
   type RefreshTokenRequest,
   type RefreshTokenResponse,
+  type RegisterRequest,
+  type RegisterResponse,
+  type ResendVerificationRequest,
+  type ResendVerificationResponse,
+  type ResetPasswordRequest,
+  type ResetPasswordResponse,
+  type UpdateAccountRequest,
+  type UpdateAccountResponse,
   type ValidateTokenRequest,
   type ValidateTokenResponse,
+  type VerifyEmailRequest,
+  type VerifyEmailResponse,
 } from '@adopt-dont-shop/proto';
 
 export type AuthClient = {
@@ -34,6 +48,16 @@ export type AuthClient = {
   validateToken(req: ValidateTokenRequest, metadata: Metadata): Promise<ValidateTokenResponse>;
   getMe(req: GetMeRequest, metadata: Metadata): Promise<GetMeResponse>;
   assignRole(req: AssignRoleRequest, metadata: Metadata): Promise<AssignRoleResponse>;
+  register(req: RegisterRequest, metadata: Metadata): Promise<RegisterResponse>;
+  verifyEmail(req: VerifyEmailRequest, metadata: Metadata): Promise<VerifyEmailResponse>;
+  resendVerification(
+    req: ResendVerificationRequest,
+    metadata: Metadata
+  ): Promise<ResendVerificationResponse>;
+  forgotPassword(req: ForgotPasswordRequest, metadata: Metadata): Promise<ForgotPasswordResponse>;
+  resetPassword(req: ResetPasswordRequest, metadata: Metadata): Promise<ResetPasswordResponse>;
+  changePassword(req: ChangePasswordRequest, metadata: Metadata): Promise<ChangePasswordResponse>;
+  updateAccount(req: UpdateAccountRequest, metadata: Metadata): Promise<UpdateAccountResponse>;
   close(): void;
 };
 
@@ -66,6 +90,13 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     validateToken: (req, metadata) => callUnary(stub.validateToken, req, metadata),
     getMe: (req, metadata) => callUnary(stub.getMe, req, metadata),
     assignRole: (req, metadata) => callUnary(stub.assignRole, req, metadata),
+    register: (req, metadata) => callUnary(stub.register, req, metadata),
+    verifyEmail: (req, metadata) => callUnary(stub.verifyEmail, req, metadata),
+    resendVerification: (req, metadata) => callUnary(stub.resendVerification, req, metadata),
+    forgotPassword: (req, metadata) => callUnary(stub.forgotPassword, req, metadata),
+    resetPassword: (req, metadata) => callUnary(stub.resetPassword, req, metadata),
+    changePassword: (req, metadata) => callUnary(stub.changePassword, req, metadata),
+    updateAccount: (req, metadata) => callUnary(stub.updateAccount, req, metadata),
     close: () => stub.close(),
   };
 };

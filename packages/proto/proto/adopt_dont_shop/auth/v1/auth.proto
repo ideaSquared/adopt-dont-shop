@@ -53,6 +53,34 @@ service AuthService {
   // INVALID_ARGUMENT if the role is unknown; ALREADY_EXISTS is
   // NOT returned — the operation is idempotent.
   rpc AssignRole(AssignRoleRequest) returns (AssignRoleResponse);
+
+  // --- Account lifecycle (round-out) ---------------------------------
+
+  // Create an account. Mints verification_token + sends it via the
+  // notifications stream; status starts as pending_verification.
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  // Consume the verification_token mailed to the user; flips
+  // email_verified=true and status=active.
+  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse);
+
+  // Mint a new verification_token for an unverified account.
+  rpc ResendVerification(ResendVerificationRequest) returns (ResendVerificationResponse);
+
+  // Mint reset_token and trigger the password-reset email. ALWAYS
+  // returns success — never reveals whether the email exists.
+  rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse);
+
+  // Consume reset_token + set a new password. Clears any locked_until.
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+
+  // Authenticated change. Requires the current password.
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+
+  // Authenticated profile edit (first_name, last_name, phone_number,
+  // bio, timezone, language, country, city, address). Email changes go
+  // through a dedicated re-verification flow (deferred).
+  rpc UpdateAccount(UpdateAccountRequest) returns (UpdateAccountResponse);
 }
 
 // --- Shared messages --------------------------------------------------
@@ -224,4 +252,100 @@ message AssignRoleResponse {
   // canonical order. Lets the caller (typically the admin app) update
   // its local cache without a follow-up GetMe.
   repeated UserRole roles = 1;
+}
+
+// --- Account lifecycle messages -------------------------------------
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string first_name = 3;
+  string last_name = 4;
+  optional string phone_number = 5;
+  // Default 'adopter' if omitted — adopters self-register; staff are
+  // invited via the rescue vertical's InviteStaff flow.
+  optional UserRole user_type = 6;
+  // Audit / login provenance — same fields as LoginRequest.
+  optional string ip_address = 7;
+  optional string user_agent = 8;
+  // T&Cs + privacy must be accepted on the form before the row is
+  // created. terms_accepted_at / privacy_policy_accepted_at are
+  // stamped on the row when both are true.
+  bool terms_accepted = 9;
+  bool privacy_policy_accepted = 10;
+}
+
+message RegisterResponse {
+  User user = 1;
+  // The freshly-minted token pair (the SPA logs the user straight in
+  // — verification is a follow-up step the user can complete from the
+  // signed-in app).
+  TokenPair tokens = 2;
+  repeated string permissions = 3;
+}
+
+message VerifyEmailRequest {
+  string verification_token = 1;
+}
+
+message VerifyEmailResponse {
+  User user = 1;
+}
+
+message ResendVerificationRequest {
+  string email = 1;
+}
+
+message ResendVerificationResponse {
+  // Always returns success — the response is the same whether or not
+  // the email matches a row, to avoid leaking account existence.
+  bool ok = 1;
+}
+
+message ForgotPasswordRequest {
+  string email = 1;
+}
+
+message ForgotPasswordResponse {
+  bool ok = 1;
+}
+
+message ResetPasswordRequest {
+  string reset_token = 1;
+  string new_password = 2;
+}
+
+message ResetPasswordResponse {
+  // The reset path doesn't auto-sign the user in — the SPA redirects to
+  // the login screen with a "password updated" flash.
+  bool ok = 1;
+}
+
+message ChangePasswordRequest {
+  // The principal (x-user-id) identifies whose password we're changing;
+  // current_password is required as a defence against session hijacks.
+  string current_password = 1;
+  string new_password = 2;
+}
+
+message ChangePasswordResponse {
+  bool ok = 1;
+}
+
+message UpdateAccountRequest {
+  optional string first_name = 1;
+  optional string last_name = 2;
+  optional string phone_number = 3;
+  optional string bio = 4;
+  optional string timezone = 5;
+  optional string language = 6;
+  optional string country = 7;
+  optional string city = 8;
+  optional string address_line_1 = 9;
+  optional string address_line_2 = 10;
+  optional string postal_code = 11;
+}
+
+message UpdateAccountResponse {
+  User user = 1;
 }

@@ -20,6 +20,15 @@ import type { AuthConfig } from '../config.js';
 
 import { adapt, adaptUnauth } from './adapter.js';
 import {
+  changePassword,
+  forgotPassword,
+  register,
+  resendVerification,
+  resetPassword,
+  updateAccount,
+  verifyEmail,
+} from './account-handlers.js';
+import {
   assignRole,
   getMe,
   login,
@@ -58,10 +67,33 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     logout: adapt(logout, { deps, logger }),
     getMe: adapt(getMe, { deps, logger }),
     assignRole: adapt(assignRole, { deps, logger }),
+    // Account-lifecycle RPCs — unauthenticated entry points + two
+    // principal-required ones (changePassword, updateAccount).
+    register: adaptUnauth(register, { deps, logger }),
+    verifyEmail: adaptUnauth(verifyEmail, { deps, logger }),
+    resendVerification: adaptUnauth(resendVerification, { deps, logger }),
+    forgotPassword: adaptUnauth(forgotPassword, { deps, logger }),
+    resetPassword: adaptUnauth(resetPassword, { deps, logger }),
+    changePassword: adapt(changePassword, { deps, logger }),
+    updateAccount: adapt(updateAccount, { deps, logger }),
   });
 
   logger.info('gRPC AuthService registered', {
-    methods: ['login', 'logout', 'refreshToken', 'validateToken', 'getMe', 'assignRole'],
+    methods: [
+      'login',
+      'logout',
+      'refreshToken',
+      'validateToken',
+      'getMe',
+      'assignRole',
+      'register',
+      'verifyEmail',
+      'resendVerification',
+      'forgotPassword',
+      'resetPassword',
+      'changePassword',
+      'updateAccount',
+    ],
     grpcPort: config.grpcPort,
   });
 
