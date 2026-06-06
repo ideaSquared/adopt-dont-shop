@@ -420,6 +420,387 @@ export function notificationRelatedEntityTypeToJSON(object: NotificationRelatedE
   }
 }
 
+export enum EmailType {
+  EMAIL_TYPE_UNSPECIFIED = 0,
+  EMAIL_TYPE_TRANSACTIONAL = 1,
+  EMAIL_TYPE_NOTIFICATION = 2,
+  EMAIL_TYPE_MARKETING = 3,
+  EMAIL_TYPE_SYSTEM = 4,
+  UNRECOGNIZED = -1,
+}
+
+export function emailTypeFromJSON(object: any): EmailType {
+  switch (object) {
+    case 0:
+    case 'EMAIL_TYPE_UNSPECIFIED':
+      return EmailType.EMAIL_TYPE_UNSPECIFIED;
+    case 1:
+    case 'EMAIL_TYPE_TRANSACTIONAL':
+      return EmailType.EMAIL_TYPE_TRANSACTIONAL;
+    case 2:
+    case 'EMAIL_TYPE_NOTIFICATION':
+      return EmailType.EMAIL_TYPE_NOTIFICATION;
+    case 3:
+    case 'EMAIL_TYPE_MARKETING':
+      return EmailType.EMAIL_TYPE_MARKETING;
+    case 4:
+    case 'EMAIL_TYPE_SYSTEM':
+      return EmailType.EMAIL_TYPE_SYSTEM;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return EmailType.UNRECOGNIZED;
+  }
+}
+
+export function emailTypeToJSON(object: EmailType): string {
+  switch (object) {
+    case EmailType.EMAIL_TYPE_UNSPECIFIED:
+      return 'EMAIL_TYPE_UNSPECIFIED';
+    case EmailType.EMAIL_TYPE_TRANSACTIONAL:
+      return 'EMAIL_TYPE_TRANSACTIONAL';
+    case EmailType.EMAIL_TYPE_NOTIFICATION:
+      return 'EMAIL_TYPE_NOTIFICATION';
+    case EmailType.EMAIL_TYPE_MARKETING:
+      return 'EMAIL_TYPE_MARKETING';
+    case EmailType.EMAIL_TYPE_SYSTEM:
+      return 'EMAIL_TYPE_SYSTEM';
+    case EmailType.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+export enum EmailPriority {
+  EMAIL_PRIORITY_UNSPECIFIED = 0,
+  EMAIL_PRIORITY_LOW = 1,
+  EMAIL_PRIORITY_NORMAL = 2,
+  EMAIL_PRIORITY_HIGH = 3,
+  EMAIL_PRIORITY_URGENT = 4,
+  UNRECOGNIZED = -1,
+}
+
+export function emailPriorityFromJSON(object: any): EmailPriority {
+  switch (object) {
+    case 0:
+    case 'EMAIL_PRIORITY_UNSPECIFIED':
+      return EmailPriority.EMAIL_PRIORITY_UNSPECIFIED;
+    case 1:
+    case 'EMAIL_PRIORITY_LOW':
+      return EmailPriority.EMAIL_PRIORITY_LOW;
+    case 2:
+    case 'EMAIL_PRIORITY_NORMAL':
+      return EmailPriority.EMAIL_PRIORITY_NORMAL;
+    case 3:
+    case 'EMAIL_PRIORITY_HIGH':
+      return EmailPriority.EMAIL_PRIORITY_HIGH;
+    case 4:
+    case 'EMAIL_PRIORITY_URGENT':
+      return EmailPriority.EMAIL_PRIORITY_URGENT;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return EmailPriority.UNRECOGNIZED;
+  }
+}
+
+export function emailPriorityToJSON(object: EmailPriority): string {
+  switch (object) {
+    case EmailPriority.EMAIL_PRIORITY_UNSPECIFIED:
+      return 'EMAIL_PRIORITY_UNSPECIFIED';
+    case EmailPriority.EMAIL_PRIORITY_LOW:
+      return 'EMAIL_PRIORITY_LOW';
+    case EmailPriority.EMAIL_PRIORITY_NORMAL:
+      return 'EMAIL_PRIORITY_NORMAL';
+    case EmailPriority.EMAIL_PRIORITY_HIGH:
+      return 'EMAIL_PRIORITY_HIGH';
+    case EmailPriority.EMAIL_PRIORITY_URGENT:
+      return 'EMAIL_PRIORITY_URGENT';
+    case EmailPriority.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+export enum EmailStatus {
+  EMAIL_STATUS_UNSPECIFIED = 0,
+  EMAIL_STATUS_QUEUED = 1,
+  EMAIL_STATUS_SENDING = 2,
+  EMAIL_STATUS_SENT = 3,
+  EMAIL_STATUS_DELIVERED = 4,
+  EMAIL_STATUS_OPENED = 5,
+  EMAIL_STATUS_CLICKED = 6,
+  EMAIL_STATUS_FAILED = 7,
+  EMAIL_STATUS_BOUNCED = 8,
+  EMAIL_STATUS_UNSUBSCRIBED = 9,
+  UNRECOGNIZED = -1,
+}
+
+export function emailStatusFromJSON(object: any): EmailStatus {
+  switch (object) {
+    case 0:
+    case 'EMAIL_STATUS_UNSPECIFIED':
+      return EmailStatus.EMAIL_STATUS_UNSPECIFIED;
+    case 1:
+    case 'EMAIL_STATUS_QUEUED':
+      return EmailStatus.EMAIL_STATUS_QUEUED;
+    case 2:
+    case 'EMAIL_STATUS_SENDING':
+      return EmailStatus.EMAIL_STATUS_SENDING;
+    case 3:
+    case 'EMAIL_STATUS_SENT':
+      return EmailStatus.EMAIL_STATUS_SENT;
+    case 4:
+    case 'EMAIL_STATUS_DELIVERED':
+      return EmailStatus.EMAIL_STATUS_DELIVERED;
+    case 5:
+    case 'EMAIL_STATUS_OPENED':
+      return EmailStatus.EMAIL_STATUS_OPENED;
+    case 6:
+    case 'EMAIL_STATUS_CLICKED':
+      return EmailStatus.EMAIL_STATUS_CLICKED;
+    case 7:
+    case 'EMAIL_STATUS_FAILED':
+      return EmailStatus.EMAIL_STATUS_FAILED;
+    case 8:
+    case 'EMAIL_STATUS_BOUNCED':
+      return EmailStatus.EMAIL_STATUS_BOUNCED;
+    case 9:
+    case 'EMAIL_STATUS_UNSUBSCRIBED':
+      return EmailStatus.EMAIL_STATUS_UNSUBSCRIBED;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return EmailStatus.UNRECOGNIZED;
+  }
+}
+
+export function emailStatusToJSON(object: EmailStatus): string {
+  switch (object) {
+    case EmailStatus.EMAIL_STATUS_UNSPECIFIED:
+      return 'EMAIL_STATUS_UNSPECIFIED';
+    case EmailStatus.EMAIL_STATUS_QUEUED:
+      return 'EMAIL_STATUS_QUEUED';
+    case EmailStatus.EMAIL_STATUS_SENDING:
+      return 'EMAIL_STATUS_SENDING';
+    case EmailStatus.EMAIL_STATUS_SENT:
+      return 'EMAIL_STATUS_SENT';
+    case EmailStatus.EMAIL_STATUS_DELIVERED:
+      return 'EMAIL_STATUS_DELIVERED';
+    case EmailStatus.EMAIL_STATUS_OPENED:
+      return 'EMAIL_STATUS_OPENED';
+    case EmailStatus.EMAIL_STATUS_CLICKED:
+      return 'EMAIL_STATUS_CLICKED';
+    case EmailStatus.EMAIL_STATUS_FAILED:
+      return 'EMAIL_STATUS_FAILED';
+    case EmailStatus.EMAIL_STATUS_BOUNCED:
+      return 'EMAIL_STATUS_BOUNCED';
+    case EmailStatus.EMAIL_STATUS_UNSUBSCRIBED:
+      return 'EMAIL_STATUS_UNSUBSCRIBED';
+    case EmailStatus.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+export enum EmailDigestFrequency {
+  EMAIL_DIGEST_FREQUENCY_UNSPECIFIED = 0,
+  EMAIL_DIGEST_FREQUENCY_IMMEDIATE = 1,
+  EMAIL_DIGEST_FREQUENCY_DAILY = 2,
+  EMAIL_DIGEST_FREQUENCY_WEEKLY = 3,
+  EMAIL_DIGEST_FREQUENCY_MONTHLY = 4,
+  EMAIL_DIGEST_FREQUENCY_NEVER = 5,
+  UNRECOGNIZED = -1,
+}
+
+export function emailDigestFrequencyFromJSON(object: any): EmailDigestFrequency {
+  switch (object) {
+    case 0:
+    case 'EMAIL_DIGEST_FREQUENCY_UNSPECIFIED':
+      return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_UNSPECIFIED;
+    case 1:
+    case 'EMAIL_DIGEST_FREQUENCY_IMMEDIATE':
+      return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_IMMEDIATE;
+    case 2:
+    case 'EMAIL_DIGEST_FREQUENCY_DAILY':
+      return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_DAILY;
+    case 3:
+    case 'EMAIL_DIGEST_FREQUENCY_WEEKLY':
+      return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_WEEKLY;
+    case 4:
+    case 'EMAIL_DIGEST_FREQUENCY_MONTHLY':
+      return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_MONTHLY;
+    case 5:
+    case 'EMAIL_DIGEST_FREQUENCY_NEVER':
+      return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_NEVER;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return EmailDigestFrequency.UNRECOGNIZED;
+  }
+}
+
+export function emailDigestFrequencyToJSON(object: EmailDigestFrequency): string {
+  switch (object) {
+    case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_UNSPECIFIED:
+      return 'EMAIL_DIGEST_FREQUENCY_UNSPECIFIED';
+    case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_IMMEDIATE:
+      return 'EMAIL_DIGEST_FREQUENCY_IMMEDIATE';
+    case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_DAILY:
+      return 'EMAIL_DIGEST_FREQUENCY_DAILY';
+    case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_WEEKLY:
+      return 'EMAIL_DIGEST_FREQUENCY_WEEKLY';
+    case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_MONTHLY:
+      return 'EMAIL_DIGEST_FREQUENCY_MONTHLY';
+    case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_NEVER:
+      return 'EMAIL_DIGEST_FREQUENCY_NEVER';
+    case EmailDigestFrequency.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+export enum EmailFormat {
+  EMAIL_FORMAT_UNSPECIFIED = 0,
+  EMAIL_FORMAT_HTML = 1,
+  EMAIL_FORMAT_TEXT = 2,
+  EMAIL_FORMAT_BOTH = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function emailFormatFromJSON(object: any): EmailFormat {
+  switch (object) {
+    case 0:
+    case 'EMAIL_FORMAT_UNSPECIFIED':
+      return EmailFormat.EMAIL_FORMAT_UNSPECIFIED;
+    case 1:
+    case 'EMAIL_FORMAT_HTML':
+      return EmailFormat.EMAIL_FORMAT_HTML;
+    case 2:
+    case 'EMAIL_FORMAT_TEXT':
+      return EmailFormat.EMAIL_FORMAT_TEXT;
+    case 3:
+    case 'EMAIL_FORMAT_BOTH':
+      return EmailFormat.EMAIL_FORMAT_BOTH;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return EmailFormat.UNRECOGNIZED;
+  }
+}
+
+export function emailFormatToJSON(object: EmailFormat): string {
+  switch (object) {
+    case EmailFormat.EMAIL_FORMAT_UNSPECIFIED:
+      return 'EMAIL_FORMAT_UNSPECIFIED';
+    case EmailFormat.EMAIL_FORMAT_HTML:
+      return 'EMAIL_FORMAT_HTML';
+    case EmailFormat.EMAIL_FORMAT_TEXT:
+      return 'EMAIL_FORMAT_TEXT';
+    case EmailFormat.EMAIL_FORMAT_BOTH:
+      return 'EMAIL_FORMAT_BOTH';
+    case EmailFormat.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+export enum DevicePlatform {
+  DEVICE_PLATFORM_UNSPECIFIED = 0,
+  DEVICE_PLATFORM_IOS = 1,
+  DEVICE_PLATFORM_ANDROID = 2,
+  DEVICE_PLATFORM_WEB = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function devicePlatformFromJSON(object: any): DevicePlatform {
+  switch (object) {
+    case 0:
+    case 'DEVICE_PLATFORM_UNSPECIFIED':
+      return DevicePlatform.DEVICE_PLATFORM_UNSPECIFIED;
+    case 1:
+    case 'DEVICE_PLATFORM_IOS':
+      return DevicePlatform.DEVICE_PLATFORM_IOS;
+    case 2:
+    case 'DEVICE_PLATFORM_ANDROID':
+      return DevicePlatform.DEVICE_PLATFORM_ANDROID;
+    case 3:
+    case 'DEVICE_PLATFORM_WEB':
+      return DevicePlatform.DEVICE_PLATFORM_WEB;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return DevicePlatform.UNRECOGNIZED;
+  }
+}
+
+export function devicePlatformToJSON(object: DevicePlatform): string {
+  switch (object) {
+    case DevicePlatform.DEVICE_PLATFORM_UNSPECIFIED:
+      return 'DEVICE_PLATFORM_UNSPECIFIED';
+    case DevicePlatform.DEVICE_PLATFORM_IOS:
+      return 'DEVICE_PLATFORM_IOS';
+    case DevicePlatform.DEVICE_PLATFORM_ANDROID:
+      return 'DEVICE_PLATFORM_ANDROID';
+    case DevicePlatform.DEVICE_PLATFORM_WEB:
+      return 'DEVICE_PLATFORM_WEB';
+    case DevicePlatform.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+export enum DeviceTokenStatus {
+  DEVICE_TOKEN_STATUS_UNSPECIFIED = 0,
+  DEVICE_TOKEN_STATUS_ACTIVE = 1,
+  DEVICE_TOKEN_STATUS_INACTIVE = 2,
+  DEVICE_TOKEN_STATUS_EXPIRED = 3,
+  DEVICE_TOKEN_STATUS_INVALID = 4,
+  UNRECOGNIZED = -1,
+}
+
+export function deviceTokenStatusFromJSON(object: any): DeviceTokenStatus {
+  switch (object) {
+    case 0:
+    case 'DEVICE_TOKEN_STATUS_UNSPECIFIED':
+      return DeviceTokenStatus.DEVICE_TOKEN_STATUS_UNSPECIFIED;
+    case 1:
+    case 'DEVICE_TOKEN_STATUS_ACTIVE':
+      return DeviceTokenStatus.DEVICE_TOKEN_STATUS_ACTIVE;
+    case 2:
+    case 'DEVICE_TOKEN_STATUS_INACTIVE':
+      return DeviceTokenStatus.DEVICE_TOKEN_STATUS_INACTIVE;
+    case 3:
+    case 'DEVICE_TOKEN_STATUS_EXPIRED':
+      return DeviceTokenStatus.DEVICE_TOKEN_STATUS_EXPIRED;
+    case 4:
+    case 'DEVICE_TOKEN_STATUS_INVALID':
+      return DeviceTokenStatus.DEVICE_TOKEN_STATUS_INVALID;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return DeviceTokenStatus.UNRECOGNIZED;
+  }
+}
+
+export function deviceTokenStatusToJSON(object: DeviceTokenStatus): string {
+  switch (object) {
+    case DeviceTokenStatus.DEVICE_TOKEN_STATUS_UNSPECIFIED:
+      return 'DEVICE_TOKEN_STATUS_UNSPECIFIED';
+    case DeviceTokenStatus.DEVICE_TOKEN_STATUS_ACTIVE:
+      return 'DEVICE_TOKEN_STATUS_ACTIVE';
+    case DeviceTokenStatus.DEVICE_TOKEN_STATUS_INACTIVE:
+      return 'DEVICE_TOKEN_STATUS_INACTIVE';
+    case DeviceTokenStatus.DEVICE_TOKEN_STATUS_EXPIRED:
+      return 'DEVICE_TOKEN_STATUS_EXPIRED';
+    case DeviceTokenStatus.DEVICE_TOKEN_STATUS_INVALID:
+      return 'DEVICE_TOKEN_STATUS_INVALID';
+    case DeviceTokenStatus.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
 /**
  * Notification mirrors the `notifications.notifications` row plus the
  * JSON-stringified `data` / `template_variables` payloads. Kept as
@@ -530,6 +911,186 @@ export interface DismissNotificationResponse {
    * Dismiss on the same notification_id returns the same payload.
    */
   notification?: Notification | undefined;
+}
+
+export interface SendEmailRequest {
+  /** Recipient. Required. */
+  toEmail: string;
+  toName?: string | undefined;
+  /** Sender override (defaults to the service's configured From). */
+  fromEmail?: string | undefined;
+  fromName?: string | undefined;
+  replyToEmail?: string | undefined;
+  /** CC / BCC. Empty when omitted. */
+  ccEmails: string[];
+  bccEmails: string[];
+  /**
+   * Either supply (subject + html_content) OR (template_id + template_data_json).
+   * When both arrive, template wins and the inline subject/content are ignored.
+   */
+  subject?: string | undefined;
+  htmlContent?: string | undefined;
+  textContent?: string | undefined;
+  templateId?: string | undefined;
+  /**
+   * JSON-stringified payload for template variable substitution.
+   * Empty string == `{}`.
+   */
+  templateDataJson: string;
+  type: EmailType;
+  priority: EmailPriority;
+  /**
+   * Schedule for a future delivery. Absent = send as soon as the worker
+   * picks it up.
+   */
+  scheduledFor?: string | undefined;
+  /** Free-form metadata + tags for the row. JSON-stringified; empty string == `{}`. */
+  metadataJson: string;
+  tags: string[];
+  /** Tie the row to a user (for prefs enforcement + audit). Optional. */
+  userId?: string | undefined;
+  campaignId?: string | undefined;
+  /**
+   * Opt-in idempotency. When set, a duplicate SendEmail with the same
+   * key returns the same email_id without enqueueing a second row.
+   */
+  idempotencyKey?: string | undefined;
+}
+
+export interface SendEmailResponse {
+  /**
+   * The row's emailId. Caller can poll the queue table for status; the
+   * worker publishes status changes on `notifications.email.*` topics.
+   */
+  emailId: string;
+  /** True when the row was already present (idempotency_key collision). */
+  alreadyQueued: boolean;
+}
+
+export interface EmailPreferences {
+  preferenceId: string;
+  userId: string;
+  isEmailEnabled: boolean;
+  globalUnsubscribe: boolean;
+  /**
+   * JSON-stringified array of per-category opt-in/out rows. Shape:
+   * [{type, enabled, frequency?}, ...]. Empty string == `[]`.
+   */
+  preferencesJson: string;
+  language: string;
+  timezone: string;
+  emailFormat: EmailFormat;
+  digestFrequency: EmailDigestFrequency;
+  /** HH:MM 24h. */
+  digestTime: string;
+  unsubscribeToken: string;
+  lastDigestSent?: string | undefined;
+  bounceCount: number;
+  lastBounceAt?: string | undefined;
+  isBlacklisted: boolean;
+  blacklistReason?: string | undefined;
+  blacklistedAt?: string | undefined;
+  metadataJson: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetEmailPreferencesRequest {
+  /**
+   * Optional target. Defaults to the calling principal. Callers without
+   * `email-prefs:read:any` may only read their own row.
+   */
+  userId?: string | undefined;
+}
+
+export interface GetEmailPreferencesResponse {
+  preferences?: EmailPreferences | undefined;
+}
+
+export interface UpdateEmailPreferencesRequest {
+  userId?: string | undefined;
+  /** All fields optional — only present fields are written. */
+  isEmailEnabled?: boolean | undefined;
+  globalUnsubscribe?: boolean | undefined;
+  preferencesJson?: string | undefined;
+  language?: string | undefined;
+  timezone?: string | undefined;
+  emailFormat: EmailFormat;
+  digestFrequency: EmailDigestFrequency;
+  digestTime?: string | undefined;
+}
+
+export interface UpdateEmailPreferencesResponse {
+  preferences?: EmailPreferences | undefined;
+}
+
+export interface DeviceToken {
+  tokenId: string;
+  userId: string;
+  deviceToken: string;
+  platform: DevicePlatform;
+  appVersion?: string | undefined;
+  /** JSON-stringified jsonb payload. Empty string == `{}`. */
+  deviceInfoJson: string;
+  status: DeviceTokenStatus;
+  lastUsedAt?: string | undefined;
+  expiresAt?: string | undefined;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RegisterDeviceTokenRequest {
+  /**
+   * Target user — optional. Defaults to the calling principal when
+   * omitted; cross-user registration requires device-tokens:write:any.
+   */
+  userId?: string | undefined;
+  deviceToken: string;
+  platform: DevicePlatform;
+  appVersion?: string | undefined;
+  /**
+   * Optional jsonb metadata (model, OS version, app build, etc.).
+   * Empty string == `{}`.
+   */
+  deviceInfoJson: string;
+}
+
+export interface RegisterDeviceTokenResponse {
+  token?: DeviceToken | undefined;
+  /**
+   * True when the (user_id, device_token) pair was already present
+   * and the call just refreshed last_used_at.
+   */
+  alreadyRegistered: boolean;
+}
+
+export interface UnregisterDeviceTokenRequest {
+  tokenId: string;
+}
+
+export interface UnregisterDeviceTokenResponse {
+  /**
+   * The soft-deleted row (deleted_at stamped, status='inactive').
+   * Idempotent.
+   */
+  token?: DeviceToken | undefined;
+}
+
+export interface ListDeviceTokensRequest {
+  /**
+   * Optional target. Defaults to the calling principal. Callers without
+   * device-tokens:list:any may only list their own tokens.
+   */
+  userId?: string | undefined;
+  /**
+   * When true, include soft-deleted (deleted_at IS NOT NULL) rows.
+   * Default false.
+   */
+  includeInactive: boolean;
+}
+
+export interface ListDeviceTokensResponse {
+  tokens: DeviceToken[];
 }
 
 function createBaseNotification(): Notification {
@@ -1851,6 +2412,2256 @@ export const DismissNotificationResponse: MessageFns<DismissNotificationResponse
   },
 };
 
+function createBaseSendEmailRequest(): SendEmailRequest {
+  return {
+    toEmail: '',
+    toName: undefined,
+    fromEmail: undefined,
+    fromName: undefined,
+    replyToEmail: undefined,
+    ccEmails: [],
+    bccEmails: [],
+    subject: undefined,
+    htmlContent: undefined,
+    textContent: undefined,
+    templateId: undefined,
+    templateDataJson: '',
+    type: 0,
+    priority: 0,
+    scheduledFor: undefined,
+    metadataJson: '',
+    tags: [],
+    userId: undefined,
+    campaignId: undefined,
+    idempotencyKey: undefined,
+  };
+}
+
+export const SendEmailRequest: MessageFns<SendEmailRequest> = {
+  encode(message: SendEmailRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.toEmail !== '') {
+      writer.uint32(10).string(message.toEmail);
+    }
+    if (message.toName !== undefined) {
+      writer.uint32(18).string(message.toName);
+    }
+    if (message.fromEmail !== undefined) {
+      writer.uint32(26).string(message.fromEmail);
+    }
+    if (message.fromName !== undefined) {
+      writer.uint32(34).string(message.fromName);
+    }
+    if (message.replyToEmail !== undefined) {
+      writer.uint32(42).string(message.replyToEmail);
+    }
+    for (const v of message.ccEmails) {
+      writer.uint32(50).string(v!);
+    }
+    for (const v of message.bccEmails) {
+      writer.uint32(58).string(v!);
+    }
+    if (message.subject !== undefined) {
+      writer.uint32(66).string(message.subject);
+    }
+    if (message.htmlContent !== undefined) {
+      writer.uint32(74).string(message.htmlContent);
+    }
+    if (message.textContent !== undefined) {
+      writer.uint32(82).string(message.textContent);
+    }
+    if (message.templateId !== undefined) {
+      writer.uint32(90).string(message.templateId);
+    }
+    if (message.templateDataJson !== '') {
+      writer.uint32(98).string(message.templateDataJson);
+    }
+    if (message.type !== 0) {
+      writer.uint32(104).int32(message.type);
+    }
+    if (message.priority !== 0) {
+      writer.uint32(112).int32(message.priority);
+    }
+    if (message.scheduledFor !== undefined) {
+      writer.uint32(122).string(message.scheduledFor);
+    }
+    if (message.metadataJson !== '') {
+      writer.uint32(130).string(message.metadataJson);
+    }
+    for (const v of message.tags) {
+      writer.uint32(138).string(v!);
+    }
+    if (message.userId !== undefined) {
+      writer.uint32(146).string(message.userId);
+    }
+    if (message.campaignId !== undefined) {
+      writer.uint32(154).string(message.campaignId);
+    }
+    if (message.idempotencyKey !== undefined) {
+      writer.uint32(162).string(message.idempotencyKey);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SendEmailRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSendEmailRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.toEmail = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.toName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.fromEmail = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.fromName = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.replyToEmail = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.ccEmails.push(reader.string());
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.bccEmails.push(reader.string());
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.subject = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.htmlContent = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.textContent = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.templateId = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.templateDataJson = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+
+          message.priority = reader.int32() as any;
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.scheduledFor = reader.string();
+          continue;
+        }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+
+          message.metadataJson = reader.string();
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.tags.push(reader.string());
+          continue;
+        }
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 19: {
+          if (tag !== 154) {
+            break;
+          }
+
+          message.campaignId = reader.string();
+          continue;
+        }
+        case 20: {
+          if (tag !== 162) {
+            break;
+          }
+
+          message.idempotencyKey = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SendEmailRequest {
+    return {
+      toEmail: isSet(object.toEmail)
+        ? globalThis.String(object.toEmail)
+        : isSet(object.to_email)
+          ? globalThis.String(object.to_email)
+          : '',
+      toName: isSet(object.toName)
+        ? globalThis.String(object.toName)
+        : isSet(object.to_name)
+          ? globalThis.String(object.to_name)
+          : undefined,
+      fromEmail: isSet(object.fromEmail)
+        ? globalThis.String(object.fromEmail)
+        : isSet(object.from_email)
+          ? globalThis.String(object.from_email)
+          : undefined,
+      fromName: isSet(object.fromName)
+        ? globalThis.String(object.fromName)
+        : isSet(object.from_name)
+          ? globalThis.String(object.from_name)
+          : undefined,
+      replyToEmail: isSet(object.replyToEmail)
+        ? globalThis.String(object.replyToEmail)
+        : isSet(object.reply_to_email)
+          ? globalThis.String(object.reply_to_email)
+          : undefined,
+      ccEmails: globalThis.Array.isArray(object?.ccEmails)
+        ? object.ccEmails.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.cc_emails)
+          ? object.cc_emails.map((e: any) => globalThis.String(e))
+          : [],
+      bccEmails: globalThis.Array.isArray(object?.bccEmails)
+        ? object.bccEmails.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.bcc_emails)
+          ? object.bcc_emails.map((e: any) => globalThis.String(e))
+          : [],
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : undefined,
+      htmlContent: isSet(object.htmlContent)
+        ? globalThis.String(object.htmlContent)
+        : isSet(object.html_content)
+          ? globalThis.String(object.html_content)
+          : undefined,
+      textContent: isSet(object.textContent)
+        ? globalThis.String(object.textContent)
+        : isSet(object.text_content)
+          ? globalThis.String(object.text_content)
+          : undefined,
+      templateId: isSet(object.templateId)
+        ? globalThis.String(object.templateId)
+        : isSet(object.template_id)
+          ? globalThis.String(object.template_id)
+          : undefined,
+      templateDataJson: isSet(object.templateDataJson)
+        ? globalThis.String(object.templateDataJson)
+        : isSet(object.template_data_json)
+          ? globalThis.String(object.template_data_json)
+          : '',
+      type: isSet(object.type) ? emailTypeFromJSON(object.type) : 0,
+      priority: isSet(object.priority) ? emailPriorityFromJSON(object.priority) : 0,
+      scheduledFor: isSet(object.scheduledFor)
+        ? globalThis.String(object.scheduledFor)
+        : isSet(object.scheduled_for)
+          ? globalThis.String(object.scheduled_for)
+          : undefined,
+      metadataJson: isSet(object.metadataJson)
+        ? globalThis.String(object.metadataJson)
+        : isSet(object.metadata_json)
+          ? globalThis.String(object.metadata_json)
+          : '',
+      tags: globalThis.Array.isArray(object?.tags)
+        ? object.tags.map((e: any) => globalThis.String(e))
+        : [],
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+      campaignId: isSet(object.campaignId)
+        ? globalThis.String(object.campaignId)
+        : isSet(object.campaign_id)
+          ? globalThis.String(object.campaign_id)
+          : undefined,
+      idempotencyKey: isSet(object.idempotencyKey)
+        ? globalThis.String(object.idempotencyKey)
+        : isSet(object.idempotency_key)
+          ? globalThis.String(object.idempotency_key)
+          : undefined,
+    };
+  },
+
+  toJSON(message: SendEmailRequest): unknown {
+    const obj: any = {};
+    if (message.toEmail !== '') {
+      obj.toEmail = message.toEmail;
+    }
+    if (message.toName !== undefined) {
+      obj.toName = message.toName;
+    }
+    if (message.fromEmail !== undefined) {
+      obj.fromEmail = message.fromEmail;
+    }
+    if (message.fromName !== undefined) {
+      obj.fromName = message.fromName;
+    }
+    if (message.replyToEmail !== undefined) {
+      obj.replyToEmail = message.replyToEmail;
+    }
+    if (message.ccEmails?.length) {
+      obj.ccEmails = message.ccEmails;
+    }
+    if (message.bccEmails?.length) {
+      obj.bccEmails = message.bccEmails;
+    }
+    if (message.subject !== undefined) {
+      obj.subject = message.subject;
+    }
+    if (message.htmlContent !== undefined) {
+      obj.htmlContent = message.htmlContent;
+    }
+    if (message.textContent !== undefined) {
+      obj.textContent = message.textContent;
+    }
+    if (message.templateId !== undefined) {
+      obj.templateId = message.templateId;
+    }
+    if (message.templateDataJson !== '') {
+      obj.templateDataJson = message.templateDataJson;
+    }
+    if (message.type !== 0) {
+      obj.type = emailTypeToJSON(message.type);
+    }
+    if (message.priority !== 0) {
+      obj.priority = emailPriorityToJSON(message.priority);
+    }
+    if (message.scheduledFor !== undefined) {
+      obj.scheduledFor = message.scheduledFor;
+    }
+    if (message.metadataJson !== '') {
+      obj.metadataJson = message.metadataJson;
+    }
+    if (message.tags?.length) {
+      obj.tags = message.tags;
+    }
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    if (message.campaignId !== undefined) {
+      obj.campaignId = message.campaignId;
+    }
+    if (message.idempotencyKey !== undefined) {
+      obj.idempotencyKey = message.idempotencyKey;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SendEmailRequest>, I>>(base?: I): SendEmailRequest {
+    return SendEmailRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SendEmailRequest>, I>>(object: I): SendEmailRequest {
+    const message = createBaseSendEmailRequest();
+    message.toEmail = object.toEmail ?? '';
+    message.toName = object.toName ?? undefined;
+    message.fromEmail = object.fromEmail ?? undefined;
+    message.fromName = object.fromName ?? undefined;
+    message.replyToEmail = object.replyToEmail ?? undefined;
+    message.ccEmails = object.ccEmails?.map(e => e) || [];
+    message.bccEmails = object.bccEmails?.map(e => e) || [];
+    message.subject = object.subject ?? undefined;
+    message.htmlContent = object.htmlContent ?? undefined;
+    message.textContent = object.textContent ?? undefined;
+    message.templateId = object.templateId ?? undefined;
+    message.templateDataJson = object.templateDataJson ?? '';
+    message.type = object.type ?? 0;
+    message.priority = object.priority ?? 0;
+    message.scheduledFor = object.scheduledFor ?? undefined;
+    message.metadataJson = object.metadataJson ?? '';
+    message.tags = object.tags?.map(e => e) || [];
+    message.userId = object.userId ?? undefined;
+    message.campaignId = object.campaignId ?? undefined;
+    message.idempotencyKey = object.idempotencyKey ?? undefined;
+    return message;
+  },
+};
+
+function createBaseSendEmailResponse(): SendEmailResponse {
+  return { emailId: '', alreadyQueued: false };
+}
+
+export const SendEmailResponse: MessageFns<SendEmailResponse> = {
+  encode(message: SendEmailResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.emailId !== '') {
+      writer.uint32(10).string(message.emailId);
+    }
+    if (message.alreadyQueued !== false) {
+      writer.uint32(16).bool(message.alreadyQueued);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SendEmailResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSendEmailResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.emailId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.alreadyQueued = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SendEmailResponse {
+    return {
+      emailId: isSet(object.emailId)
+        ? globalThis.String(object.emailId)
+        : isSet(object.email_id)
+          ? globalThis.String(object.email_id)
+          : '',
+      alreadyQueued: isSet(object.alreadyQueued)
+        ? globalThis.Boolean(object.alreadyQueued)
+        : isSet(object.already_queued)
+          ? globalThis.Boolean(object.already_queued)
+          : false,
+    };
+  },
+
+  toJSON(message: SendEmailResponse): unknown {
+    const obj: any = {};
+    if (message.emailId !== '') {
+      obj.emailId = message.emailId;
+    }
+    if (message.alreadyQueued !== false) {
+      obj.alreadyQueued = message.alreadyQueued;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SendEmailResponse>, I>>(base?: I): SendEmailResponse {
+    return SendEmailResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SendEmailResponse>, I>>(object: I): SendEmailResponse {
+    const message = createBaseSendEmailResponse();
+    message.emailId = object.emailId ?? '';
+    message.alreadyQueued = object.alreadyQueued ?? false;
+    return message;
+  },
+};
+
+function createBaseEmailPreferences(): EmailPreferences {
+  return {
+    preferenceId: '',
+    userId: '',
+    isEmailEnabled: false,
+    globalUnsubscribe: false,
+    preferencesJson: '',
+    language: '',
+    timezone: '',
+    emailFormat: 0,
+    digestFrequency: 0,
+    digestTime: '',
+    unsubscribeToken: '',
+    lastDigestSent: undefined,
+    bounceCount: 0,
+    lastBounceAt: undefined,
+    isBlacklisted: false,
+    blacklistReason: undefined,
+    blacklistedAt: undefined,
+    metadataJson: '',
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const EmailPreferences: MessageFns<EmailPreferences> = {
+  encode(message: EmailPreferences, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.preferenceId !== '') {
+      writer.uint32(10).string(message.preferenceId);
+    }
+    if (message.userId !== '') {
+      writer.uint32(18).string(message.userId);
+    }
+    if (message.isEmailEnabled !== false) {
+      writer.uint32(24).bool(message.isEmailEnabled);
+    }
+    if (message.globalUnsubscribe !== false) {
+      writer.uint32(32).bool(message.globalUnsubscribe);
+    }
+    if (message.preferencesJson !== '') {
+      writer.uint32(42).string(message.preferencesJson);
+    }
+    if (message.language !== '') {
+      writer.uint32(50).string(message.language);
+    }
+    if (message.timezone !== '') {
+      writer.uint32(58).string(message.timezone);
+    }
+    if (message.emailFormat !== 0) {
+      writer.uint32(64).int32(message.emailFormat);
+    }
+    if (message.digestFrequency !== 0) {
+      writer.uint32(72).int32(message.digestFrequency);
+    }
+    if (message.digestTime !== '') {
+      writer.uint32(82).string(message.digestTime);
+    }
+    if (message.unsubscribeToken !== '') {
+      writer.uint32(90).string(message.unsubscribeToken);
+    }
+    if (message.lastDigestSent !== undefined) {
+      writer.uint32(98).string(message.lastDigestSent);
+    }
+    if (message.bounceCount !== 0) {
+      writer.uint32(104).uint32(message.bounceCount);
+    }
+    if (message.lastBounceAt !== undefined) {
+      writer.uint32(114).string(message.lastBounceAt);
+    }
+    if (message.isBlacklisted !== false) {
+      writer.uint32(120).bool(message.isBlacklisted);
+    }
+    if (message.blacklistReason !== undefined) {
+      writer.uint32(130).string(message.blacklistReason);
+    }
+    if (message.blacklistedAt !== undefined) {
+      writer.uint32(138).string(message.blacklistedAt);
+    }
+    if (message.metadataJson !== '') {
+      writer.uint32(146).string(message.metadataJson);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(154).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(162).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EmailPreferences {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEmailPreferences();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.preferenceId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.isEmailEnabled = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.globalUnsubscribe = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.preferencesJson = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.language = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.timezone = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.emailFormat = reader.int32() as any;
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.digestFrequency = reader.int32() as any;
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.digestTime = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.unsubscribeToken = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.lastDigestSent = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.bounceCount = reader.uint32();
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.lastBounceAt = reader.string();
+          continue;
+        }
+        case 15: {
+          if (tag !== 120) {
+            break;
+          }
+
+          message.isBlacklisted = reader.bool();
+          continue;
+        }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+
+          message.blacklistReason = reader.string();
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.blacklistedAt = reader.string();
+          continue;
+        }
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.metadataJson = reader.string();
+          continue;
+        }
+        case 19: {
+          if (tag !== 154) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 20: {
+          if (tag !== 162) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EmailPreferences {
+    return {
+      preferenceId: isSet(object.preferenceId)
+        ? globalThis.String(object.preferenceId)
+        : isSet(object.preference_id)
+          ? globalThis.String(object.preference_id)
+          : '',
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      isEmailEnabled: isSet(object.isEmailEnabled)
+        ? globalThis.Boolean(object.isEmailEnabled)
+        : isSet(object.is_email_enabled)
+          ? globalThis.Boolean(object.is_email_enabled)
+          : false,
+      globalUnsubscribe: isSet(object.globalUnsubscribe)
+        ? globalThis.Boolean(object.globalUnsubscribe)
+        : isSet(object.global_unsubscribe)
+          ? globalThis.Boolean(object.global_unsubscribe)
+          : false,
+      preferencesJson: isSet(object.preferencesJson)
+        ? globalThis.String(object.preferencesJson)
+        : isSet(object.preferences_json)
+          ? globalThis.String(object.preferences_json)
+          : '',
+      language: isSet(object.language) ? globalThis.String(object.language) : '',
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : '',
+      emailFormat: isSet(object.emailFormat)
+        ? emailFormatFromJSON(object.emailFormat)
+        : isSet(object.email_format)
+          ? emailFormatFromJSON(object.email_format)
+          : 0,
+      digestFrequency: isSet(object.digestFrequency)
+        ? emailDigestFrequencyFromJSON(object.digestFrequency)
+        : isSet(object.digest_frequency)
+          ? emailDigestFrequencyFromJSON(object.digest_frequency)
+          : 0,
+      digestTime: isSet(object.digestTime)
+        ? globalThis.String(object.digestTime)
+        : isSet(object.digest_time)
+          ? globalThis.String(object.digest_time)
+          : '',
+      unsubscribeToken: isSet(object.unsubscribeToken)
+        ? globalThis.String(object.unsubscribeToken)
+        : isSet(object.unsubscribe_token)
+          ? globalThis.String(object.unsubscribe_token)
+          : '',
+      lastDigestSent: isSet(object.lastDigestSent)
+        ? globalThis.String(object.lastDigestSent)
+        : isSet(object.last_digest_sent)
+          ? globalThis.String(object.last_digest_sent)
+          : undefined,
+      bounceCount: isSet(object.bounceCount)
+        ? globalThis.Number(object.bounceCount)
+        : isSet(object.bounce_count)
+          ? globalThis.Number(object.bounce_count)
+          : 0,
+      lastBounceAt: isSet(object.lastBounceAt)
+        ? globalThis.String(object.lastBounceAt)
+        : isSet(object.last_bounce_at)
+          ? globalThis.String(object.last_bounce_at)
+          : undefined,
+      isBlacklisted: isSet(object.isBlacklisted)
+        ? globalThis.Boolean(object.isBlacklisted)
+        : isSet(object.is_blacklisted)
+          ? globalThis.Boolean(object.is_blacklisted)
+          : false,
+      blacklistReason: isSet(object.blacklistReason)
+        ? globalThis.String(object.blacklistReason)
+        : isSet(object.blacklist_reason)
+          ? globalThis.String(object.blacklist_reason)
+          : undefined,
+      blacklistedAt: isSet(object.blacklistedAt)
+        ? globalThis.String(object.blacklistedAt)
+        : isSet(object.blacklisted_at)
+          ? globalThis.String(object.blacklisted_at)
+          : undefined,
+      metadataJson: isSet(object.metadataJson)
+        ? globalThis.String(object.metadataJson)
+        : isSet(object.metadata_json)
+          ? globalThis.String(object.metadata_json)
+          : '',
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: EmailPreferences): unknown {
+    const obj: any = {};
+    if (message.preferenceId !== '') {
+      obj.preferenceId = message.preferenceId;
+    }
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.isEmailEnabled !== false) {
+      obj.isEmailEnabled = message.isEmailEnabled;
+    }
+    if (message.globalUnsubscribe !== false) {
+      obj.globalUnsubscribe = message.globalUnsubscribe;
+    }
+    if (message.preferencesJson !== '') {
+      obj.preferencesJson = message.preferencesJson;
+    }
+    if (message.language !== '') {
+      obj.language = message.language;
+    }
+    if (message.timezone !== '') {
+      obj.timezone = message.timezone;
+    }
+    if (message.emailFormat !== 0) {
+      obj.emailFormat = emailFormatToJSON(message.emailFormat);
+    }
+    if (message.digestFrequency !== 0) {
+      obj.digestFrequency = emailDigestFrequencyToJSON(message.digestFrequency);
+    }
+    if (message.digestTime !== '') {
+      obj.digestTime = message.digestTime;
+    }
+    if (message.unsubscribeToken !== '') {
+      obj.unsubscribeToken = message.unsubscribeToken;
+    }
+    if (message.lastDigestSent !== undefined) {
+      obj.lastDigestSent = message.lastDigestSent;
+    }
+    if (message.bounceCount !== 0) {
+      obj.bounceCount = Math.round(message.bounceCount);
+    }
+    if (message.lastBounceAt !== undefined) {
+      obj.lastBounceAt = message.lastBounceAt;
+    }
+    if (message.isBlacklisted !== false) {
+      obj.isBlacklisted = message.isBlacklisted;
+    }
+    if (message.blacklistReason !== undefined) {
+      obj.blacklistReason = message.blacklistReason;
+    }
+    if (message.blacklistedAt !== undefined) {
+      obj.blacklistedAt = message.blacklistedAt;
+    }
+    if (message.metadataJson !== '') {
+      obj.metadataJson = message.metadataJson;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EmailPreferences>, I>>(base?: I): EmailPreferences {
+    return EmailPreferences.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EmailPreferences>, I>>(object: I): EmailPreferences {
+    const message = createBaseEmailPreferences();
+    message.preferenceId = object.preferenceId ?? '';
+    message.userId = object.userId ?? '';
+    message.isEmailEnabled = object.isEmailEnabled ?? false;
+    message.globalUnsubscribe = object.globalUnsubscribe ?? false;
+    message.preferencesJson = object.preferencesJson ?? '';
+    message.language = object.language ?? '';
+    message.timezone = object.timezone ?? '';
+    message.emailFormat = object.emailFormat ?? 0;
+    message.digestFrequency = object.digestFrequency ?? 0;
+    message.digestTime = object.digestTime ?? '';
+    message.unsubscribeToken = object.unsubscribeToken ?? '';
+    message.lastDigestSent = object.lastDigestSent ?? undefined;
+    message.bounceCount = object.bounceCount ?? 0;
+    message.lastBounceAt = object.lastBounceAt ?? undefined;
+    message.isBlacklisted = object.isBlacklisted ?? false;
+    message.blacklistReason = object.blacklistReason ?? undefined;
+    message.blacklistedAt = object.blacklistedAt ?? undefined;
+    message.metadataJson = object.metadataJson ?? '';
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseGetEmailPreferencesRequest(): GetEmailPreferencesRequest {
+  return { userId: undefined };
+}
+
+export const GetEmailPreferencesRequest: MessageFns<GetEmailPreferencesRequest> = {
+  encode(
+    message: GetEmailPreferencesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetEmailPreferencesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetEmailPreferencesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetEmailPreferencesRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+    };
+  },
+
+  toJSON(message: GetEmailPreferencesRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetEmailPreferencesRequest>, I>>(
+    base?: I
+  ): GetEmailPreferencesRequest {
+    return GetEmailPreferencesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetEmailPreferencesRequest>, I>>(
+    object: I
+  ): GetEmailPreferencesRequest {
+    const message = createBaseGetEmailPreferencesRequest();
+    message.userId = object.userId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseGetEmailPreferencesResponse(): GetEmailPreferencesResponse {
+  return { preferences: undefined };
+}
+
+export const GetEmailPreferencesResponse: MessageFns<GetEmailPreferencesResponse> = {
+  encode(
+    message: GetEmailPreferencesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.preferences !== undefined) {
+      EmailPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetEmailPreferencesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetEmailPreferencesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.preferences = EmailPreferences.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetEmailPreferencesResponse {
+    return {
+      preferences: isSet(object.preferences)
+        ? EmailPreferences.fromJSON(object.preferences)
+        : undefined,
+    };
+  },
+
+  toJSON(message: GetEmailPreferencesResponse): unknown {
+    const obj: any = {};
+    if (message.preferences !== undefined) {
+      obj.preferences = EmailPreferences.toJSON(message.preferences);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetEmailPreferencesResponse>, I>>(
+    base?: I
+  ): GetEmailPreferencesResponse {
+    return GetEmailPreferencesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetEmailPreferencesResponse>, I>>(
+    object: I
+  ): GetEmailPreferencesResponse {
+    const message = createBaseGetEmailPreferencesResponse();
+    message.preferences =
+      object.preferences !== undefined && object.preferences !== null
+        ? EmailPreferences.fromPartial(object.preferences)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateEmailPreferencesRequest(): UpdateEmailPreferencesRequest {
+  return {
+    userId: undefined,
+    isEmailEnabled: undefined,
+    globalUnsubscribe: undefined,
+    preferencesJson: undefined,
+    language: undefined,
+    timezone: undefined,
+    emailFormat: 0,
+    digestFrequency: 0,
+    digestTime: undefined,
+  };
+}
+
+export const UpdateEmailPreferencesRequest: MessageFns<UpdateEmailPreferencesRequest> = {
+  encode(
+    message: UpdateEmailPreferencesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.isEmailEnabled !== undefined) {
+      writer.uint32(16).bool(message.isEmailEnabled);
+    }
+    if (message.globalUnsubscribe !== undefined) {
+      writer.uint32(24).bool(message.globalUnsubscribe);
+    }
+    if (message.preferencesJson !== undefined) {
+      writer.uint32(34).string(message.preferencesJson);
+    }
+    if (message.language !== undefined) {
+      writer.uint32(42).string(message.language);
+    }
+    if (message.timezone !== undefined) {
+      writer.uint32(50).string(message.timezone);
+    }
+    if (message.emailFormat !== 0) {
+      writer.uint32(56).int32(message.emailFormat);
+    }
+    if (message.digestFrequency !== 0) {
+      writer.uint32(64).int32(message.digestFrequency);
+    }
+    if (message.digestTime !== undefined) {
+      writer.uint32(74).string(message.digestTime);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateEmailPreferencesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateEmailPreferencesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.isEmailEnabled = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.globalUnsubscribe = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.preferencesJson = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.language = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.timezone = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.emailFormat = reader.int32() as any;
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.digestFrequency = reader.int32() as any;
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.digestTime = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateEmailPreferencesRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+      isEmailEnabled: isSet(object.isEmailEnabled)
+        ? globalThis.Boolean(object.isEmailEnabled)
+        : isSet(object.is_email_enabled)
+          ? globalThis.Boolean(object.is_email_enabled)
+          : undefined,
+      globalUnsubscribe: isSet(object.globalUnsubscribe)
+        ? globalThis.Boolean(object.globalUnsubscribe)
+        : isSet(object.global_unsubscribe)
+          ? globalThis.Boolean(object.global_unsubscribe)
+          : undefined,
+      preferencesJson: isSet(object.preferencesJson)
+        ? globalThis.String(object.preferencesJson)
+        : isSet(object.preferences_json)
+          ? globalThis.String(object.preferences_json)
+          : undefined,
+      language: isSet(object.language) ? globalThis.String(object.language) : undefined,
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : undefined,
+      emailFormat: isSet(object.emailFormat)
+        ? emailFormatFromJSON(object.emailFormat)
+        : isSet(object.email_format)
+          ? emailFormatFromJSON(object.email_format)
+          : 0,
+      digestFrequency: isSet(object.digestFrequency)
+        ? emailDigestFrequencyFromJSON(object.digestFrequency)
+        : isSet(object.digest_frequency)
+          ? emailDigestFrequencyFromJSON(object.digest_frequency)
+          : 0,
+      digestTime: isSet(object.digestTime)
+        ? globalThis.String(object.digestTime)
+        : isSet(object.digest_time)
+          ? globalThis.String(object.digest_time)
+          : undefined,
+    };
+  },
+
+  toJSON(message: UpdateEmailPreferencesRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    if (message.isEmailEnabled !== undefined) {
+      obj.isEmailEnabled = message.isEmailEnabled;
+    }
+    if (message.globalUnsubscribe !== undefined) {
+      obj.globalUnsubscribe = message.globalUnsubscribe;
+    }
+    if (message.preferencesJson !== undefined) {
+      obj.preferencesJson = message.preferencesJson;
+    }
+    if (message.language !== undefined) {
+      obj.language = message.language;
+    }
+    if (message.timezone !== undefined) {
+      obj.timezone = message.timezone;
+    }
+    if (message.emailFormat !== 0) {
+      obj.emailFormat = emailFormatToJSON(message.emailFormat);
+    }
+    if (message.digestFrequency !== 0) {
+      obj.digestFrequency = emailDigestFrequencyToJSON(message.digestFrequency);
+    }
+    if (message.digestTime !== undefined) {
+      obj.digestTime = message.digestTime;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateEmailPreferencesRequest>, I>>(
+    base?: I
+  ): UpdateEmailPreferencesRequest {
+    return UpdateEmailPreferencesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateEmailPreferencesRequest>, I>>(
+    object: I
+  ): UpdateEmailPreferencesRequest {
+    const message = createBaseUpdateEmailPreferencesRequest();
+    message.userId = object.userId ?? undefined;
+    message.isEmailEnabled = object.isEmailEnabled ?? undefined;
+    message.globalUnsubscribe = object.globalUnsubscribe ?? undefined;
+    message.preferencesJson = object.preferencesJson ?? undefined;
+    message.language = object.language ?? undefined;
+    message.timezone = object.timezone ?? undefined;
+    message.emailFormat = object.emailFormat ?? 0;
+    message.digestFrequency = object.digestFrequency ?? 0;
+    message.digestTime = object.digestTime ?? undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateEmailPreferencesResponse(): UpdateEmailPreferencesResponse {
+  return { preferences: undefined };
+}
+
+export const UpdateEmailPreferencesResponse: MessageFns<UpdateEmailPreferencesResponse> = {
+  encode(
+    message: UpdateEmailPreferencesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.preferences !== undefined) {
+      EmailPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateEmailPreferencesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateEmailPreferencesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.preferences = EmailPreferences.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateEmailPreferencesResponse {
+    return {
+      preferences: isSet(object.preferences)
+        ? EmailPreferences.fromJSON(object.preferences)
+        : undefined,
+    };
+  },
+
+  toJSON(message: UpdateEmailPreferencesResponse): unknown {
+    const obj: any = {};
+    if (message.preferences !== undefined) {
+      obj.preferences = EmailPreferences.toJSON(message.preferences);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateEmailPreferencesResponse>, I>>(
+    base?: I
+  ): UpdateEmailPreferencesResponse {
+    return UpdateEmailPreferencesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateEmailPreferencesResponse>, I>>(
+    object: I
+  ): UpdateEmailPreferencesResponse {
+    const message = createBaseUpdateEmailPreferencesResponse();
+    message.preferences =
+      object.preferences !== undefined && object.preferences !== null
+        ? EmailPreferences.fromPartial(object.preferences)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseDeviceToken(): DeviceToken {
+  return {
+    tokenId: '',
+    userId: '',
+    deviceToken: '',
+    platform: 0,
+    appVersion: undefined,
+    deviceInfoJson: '',
+    status: 0,
+    lastUsedAt: undefined,
+    expiresAt: undefined,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const DeviceToken: MessageFns<DeviceToken> = {
+  encode(message: DeviceToken, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.tokenId !== '') {
+      writer.uint32(10).string(message.tokenId);
+    }
+    if (message.userId !== '') {
+      writer.uint32(18).string(message.userId);
+    }
+    if (message.deviceToken !== '') {
+      writer.uint32(26).string(message.deviceToken);
+    }
+    if (message.platform !== 0) {
+      writer.uint32(32).int32(message.platform);
+    }
+    if (message.appVersion !== undefined) {
+      writer.uint32(42).string(message.appVersion);
+    }
+    if (message.deviceInfoJson !== '') {
+      writer.uint32(50).string(message.deviceInfoJson);
+    }
+    if (message.status !== 0) {
+      writer.uint32(56).int32(message.status);
+    }
+    if (message.lastUsedAt !== undefined) {
+      writer.uint32(66).string(message.lastUsedAt);
+    }
+    if (message.expiresAt !== undefined) {
+      writer.uint32(74).string(message.expiresAt);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(82).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(90).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeviceToken {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeviceToken();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.tokenId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deviceToken = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.platform = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.appVersion = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.deviceInfoJson = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.lastUsedAt = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.expiresAt = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeviceToken {
+    return {
+      tokenId: isSet(object.tokenId)
+        ? globalThis.String(object.tokenId)
+        : isSet(object.token_id)
+          ? globalThis.String(object.token_id)
+          : '',
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      deviceToken: isSet(object.deviceToken)
+        ? globalThis.String(object.deviceToken)
+        : isSet(object.device_token)
+          ? globalThis.String(object.device_token)
+          : '',
+      platform: isSet(object.platform) ? devicePlatformFromJSON(object.platform) : 0,
+      appVersion: isSet(object.appVersion)
+        ? globalThis.String(object.appVersion)
+        : isSet(object.app_version)
+          ? globalThis.String(object.app_version)
+          : undefined,
+      deviceInfoJson: isSet(object.deviceInfoJson)
+        ? globalThis.String(object.deviceInfoJson)
+        : isSet(object.device_info_json)
+          ? globalThis.String(object.device_info_json)
+          : '',
+      status: isSet(object.status) ? deviceTokenStatusFromJSON(object.status) : 0,
+      lastUsedAt: isSet(object.lastUsedAt)
+        ? globalThis.String(object.lastUsedAt)
+        : isSet(object.last_used_at)
+          ? globalThis.String(object.last_used_at)
+          : undefined,
+      expiresAt: isSet(object.expiresAt)
+        ? globalThis.String(object.expiresAt)
+        : isSet(object.expires_at)
+          ? globalThis.String(object.expires_at)
+          : undefined,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: DeviceToken): unknown {
+    const obj: any = {};
+    if (message.tokenId !== '') {
+      obj.tokenId = message.tokenId;
+    }
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.deviceToken !== '') {
+      obj.deviceToken = message.deviceToken;
+    }
+    if (message.platform !== 0) {
+      obj.platform = devicePlatformToJSON(message.platform);
+    }
+    if (message.appVersion !== undefined) {
+      obj.appVersion = message.appVersion;
+    }
+    if (message.deviceInfoJson !== '') {
+      obj.deviceInfoJson = message.deviceInfoJson;
+    }
+    if (message.status !== 0) {
+      obj.status = deviceTokenStatusToJSON(message.status);
+    }
+    if (message.lastUsedAt !== undefined) {
+      obj.lastUsedAt = message.lastUsedAt;
+    }
+    if (message.expiresAt !== undefined) {
+      obj.expiresAt = message.expiresAt;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeviceToken>, I>>(base?: I): DeviceToken {
+    return DeviceToken.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeviceToken>, I>>(object: I): DeviceToken {
+    const message = createBaseDeviceToken();
+    message.tokenId = object.tokenId ?? '';
+    message.userId = object.userId ?? '';
+    message.deviceToken = object.deviceToken ?? '';
+    message.platform = object.platform ?? 0;
+    message.appVersion = object.appVersion ?? undefined;
+    message.deviceInfoJson = object.deviceInfoJson ?? '';
+    message.status = object.status ?? 0;
+    message.lastUsedAt = object.lastUsedAt ?? undefined;
+    message.expiresAt = object.expiresAt ?? undefined;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseRegisterDeviceTokenRequest(): RegisterDeviceTokenRequest {
+  return {
+    userId: undefined,
+    deviceToken: '',
+    platform: 0,
+    appVersion: undefined,
+    deviceInfoJson: '',
+  };
+}
+
+export const RegisterDeviceTokenRequest: MessageFns<RegisterDeviceTokenRequest> = {
+  encode(
+    message: RegisterDeviceTokenRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.deviceToken !== '') {
+      writer.uint32(18).string(message.deviceToken);
+    }
+    if (message.platform !== 0) {
+      writer.uint32(24).int32(message.platform);
+    }
+    if (message.appVersion !== undefined) {
+      writer.uint32(34).string(message.appVersion);
+    }
+    if (message.deviceInfoJson !== '') {
+      writer.uint32(42).string(message.deviceInfoJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterDeviceTokenRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterDeviceTokenRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.deviceToken = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.platform = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.appVersion = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.deviceInfoJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterDeviceTokenRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+      deviceToken: isSet(object.deviceToken)
+        ? globalThis.String(object.deviceToken)
+        : isSet(object.device_token)
+          ? globalThis.String(object.device_token)
+          : '',
+      platform: isSet(object.platform) ? devicePlatformFromJSON(object.platform) : 0,
+      appVersion: isSet(object.appVersion)
+        ? globalThis.String(object.appVersion)
+        : isSet(object.app_version)
+          ? globalThis.String(object.app_version)
+          : undefined,
+      deviceInfoJson: isSet(object.deviceInfoJson)
+        ? globalThis.String(object.deviceInfoJson)
+        : isSet(object.device_info_json)
+          ? globalThis.String(object.device_info_json)
+          : '',
+    };
+  },
+
+  toJSON(message: RegisterDeviceTokenRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    if (message.deviceToken !== '') {
+      obj.deviceToken = message.deviceToken;
+    }
+    if (message.platform !== 0) {
+      obj.platform = devicePlatformToJSON(message.platform);
+    }
+    if (message.appVersion !== undefined) {
+      obj.appVersion = message.appVersion;
+    }
+    if (message.deviceInfoJson !== '') {
+      obj.deviceInfoJson = message.deviceInfoJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterDeviceTokenRequest>, I>>(
+    base?: I
+  ): RegisterDeviceTokenRequest {
+    return RegisterDeviceTokenRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterDeviceTokenRequest>, I>>(
+    object: I
+  ): RegisterDeviceTokenRequest {
+    const message = createBaseRegisterDeviceTokenRequest();
+    message.userId = object.userId ?? undefined;
+    message.deviceToken = object.deviceToken ?? '';
+    message.platform = object.platform ?? 0;
+    message.appVersion = object.appVersion ?? undefined;
+    message.deviceInfoJson = object.deviceInfoJson ?? '';
+    return message;
+  },
+};
+
+function createBaseRegisterDeviceTokenResponse(): RegisterDeviceTokenResponse {
+  return { token: undefined, alreadyRegistered: false };
+}
+
+export const RegisterDeviceTokenResponse: MessageFns<RegisterDeviceTokenResponse> = {
+  encode(
+    message: RegisterDeviceTokenResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.token !== undefined) {
+      DeviceToken.encode(message.token, writer.uint32(10).fork()).join();
+    }
+    if (message.alreadyRegistered !== false) {
+      writer.uint32(16).bool(message.alreadyRegistered);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterDeviceTokenResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterDeviceTokenResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.token = DeviceToken.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.alreadyRegistered = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterDeviceTokenResponse {
+    return {
+      token: isSet(object.token) ? DeviceToken.fromJSON(object.token) : undefined,
+      alreadyRegistered: isSet(object.alreadyRegistered)
+        ? globalThis.Boolean(object.alreadyRegistered)
+        : isSet(object.already_registered)
+          ? globalThis.Boolean(object.already_registered)
+          : false,
+    };
+  },
+
+  toJSON(message: RegisterDeviceTokenResponse): unknown {
+    const obj: any = {};
+    if (message.token !== undefined) {
+      obj.token = DeviceToken.toJSON(message.token);
+    }
+    if (message.alreadyRegistered !== false) {
+      obj.alreadyRegistered = message.alreadyRegistered;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterDeviceTokenResponse>, I>>(
+    base?: I
+  ): RegisterDeviceTokenResponse {
+    return RegisterDeviceTokenResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterDeviceTokenResponse>, I>>(
+    object: I
+  ): RegisterDeviceTokenResponse {
+    const message = createBaseRegisterDeviceTokenResponse();
+    message.token =
+      object.token !== undefined && object.token !== null
+        ? DeviceToken.fromPartial(object.token)
+        : undefined;
+    message.alreadyRegistered = object.alreadyRegistered ?? false;
+    return message;
+  },
+};
+
+function createBaseUnregisterDeviceTokenRequest(): UnregisterDeviceTokenRequest {
+  return { tokenId: '' };
+}
+
+export const UnregisterDeviceTokenRequest: MessageFns<UnregisterDeviceTokenRequest> = {
+  encode(
+    message: UnregisterDeviceTokenRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.tokenId !== '') {
+      writer.uint32(10).string(message.tokenId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UnregisterDeviceTokenRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUnregisterDeviceTokenRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.tokenId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UnregisterDeviceTokenRequest {
+    return {
+      tokenId: isSet(object.tokenId)
+        ? globalThis.String(object.tokenId)
+        : isSet(object.token_id)
+          ? globalThis.String(object.token_id)
+          : '',
+    };
+  },
+
+  toJSON(message: UnregisterDeviceTokenRequest): unknown {
+    const obj: any = {};
+    if (message.tokenId !== '') {
+      obj.tokenId = message.tokenId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UnregisterDeviceTokenRequest>, I>>(
+    base?: I
+  ): UnregisterDeviceTokenRequest {
+    return UnregisterDeviceTokenRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UnregisterDeviceTokenRequest>, I>>(
+    object: I
+  ): UnregisterDeviceTokenRequest {
+    const message = createBaseUnregisterDeviceTokenRequest();
+    message.tokenId = object.tokenId ?? '';
+    return message;
+  },
+};
+
+function createBaseUnregisterDeviceTokenResponse(): UnregisterDeviceTokenResponse {
+  return { token: undefined };
+}
+
+export const UnregisterDeviceTokenResponse: MessageFns<UnregisterDeviceTokenResponse> = {
+  encode(
+    message: UnregisterDeviceTokenResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.token !== undefined) {
+      DeviceToken.encode(message.token, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UnregisterDeviceTokenResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUnregisterDeviceTokenResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.token = DeviceToken.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UnregisterDeviceTokenResponse {
+    return { token: isSet(object.token) ? DeviceToken.fromJSON(object.token) : undefined };
+  },
+
+  toJSON(message: UnregisterDeviceTokenResponse): unknown {
+    const obj: any = {};
+    if (message.token !== undefined) {
+      obj.token = DeviceToken.toJSON(message.token);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UnregisterDeviceTokenResponse>, I>>(
+    base?: I
+  ): UnregisterDeviceTokenResponse {
+    return UnregisterDeviceTokenResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UnregisterDeviceTokenResponse>, I>>(
+    object: I
+  ): UnregisterDeviceTokenResponse {
+    const message = createBaseUnregisterDeviceTokenResponse();
+    message.token =
+      object.token !== undefined && object.token !== null
+        ? DeviceToken.fromPartial(object.token)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseListDeviceTokensRequest(): ListDeviceTokensRequest {
+  return { userId: undefined, includeInactive: false };
+}
+
+export const ListDeviceTokensRequest: MessageFns<ListDeviceTokensRequest> = {
+  encode(
+    message: ListDeviceTokensRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.includeInactive !== false) {
+      writer.uint32(16).bool(message.includeInactive);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDeviceTokensRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListDeviceTokensRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.includeInactive = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListDeviceTokensRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+      includeInactive: isSet(object.includeInactive)
+        ? globalThis.Boolean(object.includeInactive)
+        : isSet(object.include_inactive)
+          ? globalThis.Boolean(object.include_inactive)
+          : false,
+    };
+  },
+
+  toJSON(message: ListDeviceTokensRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    if (message.includeInactive !== false) {
+      obj.includeInactive = message.includeInactive;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListDeviceTokensRequest>, I>>(
+    base?: I
+  ): ListDeviceTokensRequest {
+    return ListDeviceTokensRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListDeviceTokensRequest>, I>>(
+    object: I
+  ): ListDeviceTokensRequest {
+    const message = createBaseListDeviceTokensRequest();
+    message.userId = object.userId ?? undefined;
+    message.includeInactive = object.includeInactive ?? false;
+    return message;
+  },
+};
+
+function createBaseListDeviceTokensResponse(): ListDeviceTokensResponse {
+  return { tokens: [] };
+}
+
+export const ListDeviceTokensResponse: MessageFns<ListDeviceTokensResponse> = {
+  encode(
+    message: ListDeviceTokensResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.tokens) {
+      DeviceToken.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDeviceTokensResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListDeviceTokensResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.tokens.push(DeviceToken.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListDeviceTokensResponse {
+    return {
+      tokens: globalThis.Array.isArray(object?.tokens)
+        ? object.tokens.map((e: any) => DeviceToken.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListDeviceTokensResponse): unknown {
+    const obj: any = {};
+    if (message.tokens?.length) {
+      obj.tokens = message.tokens.map(e => DeviceToken.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListDeviceTokensResponse>, I>>(
+    base?: I
+  ): ListDeviceTokensResponse {
+    return ListDeviceTokensResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListDeviceTokensResponse>, I>>(
+    object: I
+  ): ListDeviceTokensResponse {
+    const message = createBaseListDeviceTokensResponse();
+    message.tokens = object.tokens?.map(e => DeviceToken.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * NotificationService is the gRPC contract for the in-app notification
  * store. The gateway translates `POST/GET/DELETE /api/notifications/*`
@@ -1923,6 +4734,111 @@ export const NotificationServiceService = {
     responseDeserialize: (value: Buffer): DismissNotificationResponse =>
       DismissNotificationResponse.decode(value),
   },
+  /**
+   * Enqueue an email. Returns the email_id immediately; delivery happens
+   * asynchronously in the worker. Callers can supply a templateId +
+   * templateData OR a pre-rendered subject + html_content; if both are
+   * present the template wins. `idempotency_key` is optional — when set
+   * a duplicate Send with the same key returns the same email_id.
+   */
+  sendEmail: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/SendEmail' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: SendEmailRequest): Buffer =>
+      Buffer.from(SendEmailRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): SendEmailRequest => SendEmailRequest.decode(value),
+    responseSerialize: (value: SendEmailResponse): Buffer =>
+      Buffer.from(SendEmailResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): SendEmailResponse => SendEmailResponse.decode(value),
+  },
+  /**
+   * Read the calling principal's email preferences (or a target user's
+   * when the caller has email-prefs:read:any). Returns the canonical
+   * row, creating defaults on first read.
+   */
+  getEmailPreferences: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/GetEmailPreferences' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetEmailPreferencesRequest): Buffer =>
+      Buffer.from(GetEmailPreferencesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetEmailPreferencesRequest =>
+      GetEmailPreferencesRequest.decode(value),
+    responseSerialize: (value: GetEmailPreferencesResponse): Buffer =>
+      Buffer.from(GetEmailPreferencesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetEmailPreferencesResponse =>
+      GetEmailPreferencesResponse.decode(value),
+  },
+  /**
+   * Partially update email preferences. Only provided fields are
+   * touched — unset fields keep their current value.
+   */
+  updateEmailPreferences: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/UpdateEmailPreferences' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateEmailPreferencesRequest): Buffer =>
+      Buffer.from(UpdateEmailPreferencesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateEmailPreferencesRequest =>
+      UpdateEmailPreferencesRequest.decode(value),
+    responseSerialize: (value: UpdateEmailPreferencesResponse): Buffer =>
+      Buffer.from(UpdateEmailPreferencesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateEmailPreferencesResponse =>
+      UpdateEmailPreferencesResponse.decode(value),
+  },
+  /**
+   * Idempotent on (user_id, device_token): a second Register with the
+   * same pair refreshes `last_used_at` and returns the existing row.
+   */
+  registerDeviceToken: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/RegisterDeviceToken' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RegisterDeviceTokenRequest): Buffer =>
+      Buffer.from(RegisterDeviceTokenRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RegisterDeviceTokenRequest =>
+      RegisterDeviceTokenRequest.decode(value),
+    responseSerialize: (value: RegisterDeviceTokenResponse): Buffer =>
+      Buffer.from(RegisterDeviceTokenResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RegisterDeviceTokenResponse =>
+      RegisterDeviceTokenResponse.decode(value),
+  },
+  /**
+   * Soft-delete by token_id. Called when the client logs out or the
+   * user disables push. Idempotent: a second Unregister on the same
+   * token_id returns the same row without error.
+   */
+  unregisterDeviceToken: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/UnregisterDeviceToken' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UnregisterDeviceTokenRequest): Buffer =>
+      Buffer.from(UnregisterDeviceTokenRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UnregisterDeviceTokenRequest =>
+      UnregisterDeviceTokenRequest.decode(value),
+    responseSerialize: (value: UnregisterDeviceTokenResponse): Buffer =>
+      Buffer.from(UnregisterDeviceTokenResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UnregisterDeviceTokenResponse =>
+      UnregisterDeviceTokenResponse.decode(value),
+  },
+  /**
+   * List active tokens for the calling principal. Self-scoped (admins
+   * need device-tokens:list:any to read another user's tokens).
+   */
+  listDeviceTokens: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/ListDeviceTokens' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListDeviceTokensRequest): Buffer =>
+      Buffer.from(ListDeviceTokensRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListDeviceTokensRequest =>
+      ListDeviceTokensRequest.decode(value),
+    responseSerialize: (value: ListDeviceTokensResponse): Buffer =>
+      Buffer.from(ListDeviceTokensResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListDeviceTokensResponse =>
+      ListDeviceTokensResponse.decode(value),
+  },
 } as const;
 
 export interface NotificationServiceServer extends UntypedServiceImplementation {
@@ -1947,6 +4863,47 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
    * on NATS after the DB commits.
    */
   dismiss: handleUnaryCall<DismissNotificationRequest, DismissNotificationResponse>;
+  /**
+   * Enqueue an email. Returns the email_id immediately; delivery happens
+   * asynchronously in the worker. Callers can supply a templateId +
+   * templateData OR a pre-rendered subject + html_content; if both are
+   * present the template wins. `idempotency_key` is optional — when set
+   * a duplicate Send with the same key returns the same email_id.
+   */
+  sendEmail: handleUnaryCall<SendEmailRequest, SendEmailResponse>;
+  /**
+   * Read the calling principal's email preferences (or a target user's
+   * when the caller has email-prefs:read:any). Returns the canonical
+   * row, creating defaults on first read.
+   */
+  getEmailPreferences: handleUnaryCall<GetEmailPreferencesRequest, GetEmailPreferencesResponse>;
+  /**
+   * Partially update email preferences. Only provided fields are
+   * touched — unset fields keep their current value.
+   */
+  updateEmailPreferences: handleUnaryCall<
+    UpdateEmailPreferencesRequest,
+    UpdateEmailPreferencesResponse
+  >;
+  /**
+   * Idempotent on (user_id, device_token): a second Register with the
+   * same pair refreshes `last_used_at` and returns the existing row.
+   */
+  registerDeviceToken: handleUnaryCall<RegisterDeviceTokenRequest, RegisterDeviceTokenResponse>;
+  /**
+   * Soft-delete by token_id. Called when the client logs out or the
+   * user disables push. Idempotent: a second Unregister on the same
+   * token_id returns the same row without error.
+   */
+  unregisterDeviceToken: handleUnaryCall<
+    UnregisterDeviceTokenRequest,
+    UnregisterDeviceTokenResponse
+  >;
+  /**
+   * List active tokens for the calling principal. Self-scoped (admins
+   * need device-tokens:list:any to read another user's tokens).
+   */
+  listDeviceTokens: handleUnaryCall<ListDeviceTokensRequest, ListDeviceTokensResponse>;
 }
 
 export interface NotificationServiceClient extends Client {
@@ -2012,6 +4969,125 @@ export interface NotificationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DismissNotificationResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Enqueue an email. Returns the email_id immediately; delivery happens
+   * asynchronously in the worker. Callers can supply a templateId +
+   * templateData OR a pre-rendered subject + html_content; if both are
+   * present the template wins. `idempotency_key` is optional — when set
+   * a duplicate Send with the same key returns the same email_id.
+   */
+  sendEmail(
+    request: SendEmailRequest,
+    callback: (error: ServiceError | null, response: SendEmailResponse) => void
+  ): ClientUnaryCall;
+  sendEmail(
+    request: SendEmailRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: SendEmailResponse) => void
+  ): ClientUnaryCall;
+  sendEmail(
+    request: SendEmailRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: SendEmailResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Read the calling principal's email preferences (or a target user's
+   * when the caller has email-prefs:read:any). Returns the canonical
+   * row, creating defaults on first read.
+   */
+  getEmailPreferences(
+    request: GetEmailPreferencesRequest,
+    callback: (error: ServiceError | null, response: GetEmailPreferencesResponse) => void
+  ): ClientUnaryCall;
+  getEmailPreferences(
+    request: GetEmailPreferencesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetEmailPreferencesResponse) => void
+  ): ClientUnaryCall;
+  getEmailPreferences(
+    request: GetEmailPreferencesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetEmailPreferencesResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Partially update email preferences. Only provided fields are
+   * touched — unset fields keep their current value.
+   */
+  updateEmailPreferences(
+    request: UpdateEmailPreferencesRequest,
+    callback: (error: ServiceError | null, response: UpdateEmailPreferencesResponse) => void
+  ): ClientUnaryCall;
+  updateEmailPreferences(
+    request: UpdateEmailPreferencesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateEmailPreferencesResponse) => void
+  ): ClientUnaryCall;
+  updateEmailPreferences(
+    request: UpdateEmailPreferencesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateEmailPreferencesResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Idempotent on (user_id, device_token): a second Register with the
+   * same pair refreshes `last_used_at` and returns the existing row.
+   */
+  registerDeviceToken(
+    request: RegisterDeviceTokenRequest,
+    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  registerDeviceToken(
+    request: RegisterDeviceTokenRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  registerDeviceToken(
+    request: RegisterDeviceTokenRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Soft-delete by token_id. Called when the client logs out or the
+   * user disables push. Idempotent: a second Unregister on the same
+   * token_id returns the same row without error.
+   */
+  unregisterDeviceToken(
+    request: UnregisterDeviceTokenRequest,
+    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  unregisterDeviceToken(
+    request: UnregisterDeviceTokenRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  unregisterDeviceToken(
+    request: UnregisterDeviceTokenRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * List active tokens for the calling principal. Self-scoped (admins
+   * need device-tokens:list:any to read another user's tokens).
+   */
+  listDeviceTokens(
+    request: ListDeviceTokensRequest,
+    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void
+  ): ClientUnaryCall;
+  listDeviceTokens(
+    request: ListDeviceTokensRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void
+  ): ClientUnaryCall;
+  listDeviceTokens(
+    request: ListDeviceTokensRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void
   ): ClientUnaryCall;
 }
 

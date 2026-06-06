@@ -1,0 +1,276 @@
+// Email queue persistence — INSERT, claim-for-send, mark-sent/failed.
+// Pure data-access; the sender + worker compose these.
+//
+// `claimDueEmails` uses `SELECT ... FOR UPDATE SKIP LOCKED` so multiple
+// workers can drain the same queue without stepping on each other —
+// each row is locked, marked `status=sending`, and released back to the
+// pool when the dispatch completes (sent / failed update).
+
+import type { Pool, PoolClient } from 'pg';
+
+import type {
+  EmailAttachment,
+  EmailPriority,
+  EmailStatus,
+  EmailType,
+  QueuedEmail,
+} from './types.js';
+
+type EmailQueueRow = {
+  email_id: string;
+  template_id: string | null;
+  from_email: string;
+  from_name: string | null;
+  to_email: string;
+  to_name: string | null;
+  cc_emails: string[];
+  bcc_emails: string[];
+  reply_to_email: string | null;
+  subject: string;
+  html_content: string;
+  text_content: string | null;
+  template_data: Record<string, unknown>;
+  attachments: EmailAttachment[];
+  type: EmailType;
+  priority: EmailPriority;
+  status: EmailStatus;
+  scheduled_for: Date | null;
+  max_retries: number;
+  current_retries: number;
+  last_attempt_at: Date | null;
+  sent_at: Date | null;
+  failure_reason: string | null;
+  provider_id: string | null;
+  provider_message_id: string | null;
+  tracking: Record<string, unknown> | null;
+  metadata: Record<string, unknown>;
+  campaign_id: string | null;
+  user_id: string | null;
+  tags: string[];
+  idempotency_key: string | null;
+};
+
+export const rowToQueuedEmail = (row: EmailQueueRow): QueuedEmail => ({
+  emailId: row.email_id,
+  templateId: row.template_id,
+  fromEmail: row.from_email,
+  fromName: row.from_name,
+  toEmail: row.to_email,
+  toName: row.to_name,
+  ccEmails: row.cc_emails,
+  bccEmails: row.bcc_emails,
+  replyToEmail: row.reply_to_email,
+  subject: row.subject,
+  htmlContent: row.html_content,
+  textContent: row.text_content,
+  templateData: row.template_data,
+  attachments: row.attachments,
+  type: row.type,
+  priority: row.priority,
+  status: row.status,
+  scheduledFor: row.scheduled_for,
+  maxRetries: row.max_retries,
+  currentRetries: row.current_retries,
+  lastAttemptAt: row.last_attempt_at,
+  sentAt: row.sent_at,
+  failureReason: row.failure_reason,
+  providerId: row.provider_id,
+  providerMessageId: row.provider_message_id,
+  tracking: row.tracking,
+  metadata: row.metadata,
+  campaignId: row.campaign_id,
+  userId: row.user_id,
+  tags: row.tags,
+  idempotencyKey: row.idempotency_key,
+});
+
+export type InsertEmailQueueInput = {
+  emailId: string;
+  templateId?: string | null;
+  fromEmail: string;
+  fromName?: string | null;
+  toEmail: string;
+  toName?: string | null;
+  ccEmails?: string[];
+  bccEmails?: string[];
+  replyToEmail?: string | null;
+  subject: string;
+  htmlContent: string;
+  textContent?: string | null;
+  templateData?: Record<string, unknown>;
+  attachments?: EmailAttachment[];
+  type: EmailType;
+  priority: EmailPriority;
+  scheduledFor?: Date | null;
+  maxRetries?: number;
+  metadata?: Record<string, unknown>;
+  campaignId?: string | null;
+  userId?: string | null;
+  tags?: string[];
+  idempotencyKey?: string | null;
+  createdBy?: string | null;
+};
+
+// Conn type — accepts either a Pool or a PoolClient so callers can run
+// in their own transaction (the SendEmail handler uses a withTransaction
+// for publish-after-commit).
+export type DbConn = Pool | PoolClient;
+
+export const insertEmail = async (
+  conn: DbConn,
+  input: InsertEmailQueueInput
+): Promise<EmailQueueRow> => {
+  const res = await conn.query<EmailQueueRow>(
+    `
+    INSERT INTO email_queue (
+      email_id, template_id,
+      from_email, from_name, to_email, to_name,
+      cc_emails, bcc_emails, reply_to_email,
+      subject, html_content, text_content,
+      template_data, attachments,
+      type, priority, status,
+      scheduled_for, max_retries, current_retries,
+      metadata, campaign_id, user_id, tags,
+      idempotency_key,
+      created_by, updated_by, version,
+      created_at, updated_at
+    )
+    VALUES (
+      $1, $2,
+      $3, $4, $5, $6,
+      $7::text[], $8::text[], $9,
+      $10, $11, $12,
+      $13::jsonb, $14::jsonb,
+      $15, $16, 'queued',
+      $17, $18, 0,
+      $19::jsonb, $20, $21, $22::text[],
+      $23,
+      $24, $24, 0,
+      now(), now()
+    )
+    RETURNING *
+    `,
+    [
+      input.emailId,
+      input.templateId ?? null,
+      input.fromEmail,
+      input.fromName ?? null,
+      input.toEmail,
+      input.toName ?? null,
+      input.ccEmails ?? [],
+      input.bccEmails ?? [],
+      input.replyToEmail ?? null,
+      input.subject,
+      input.htmlContent,
+      input.textContent ?? null,
+      JSON.stringify(input.templateData ?? {}),
+      JSON.stringify(input.attachments ?? []),
+      input.type,
+      input.priority,
+      input.scheduledFor ?? null,
+      input.maxRetries ?? 3,
+      JSON.stringify(input.metadata ?? {}),
+      input.campaignId ?? null,
+      input.userId ?? null,
+      input.tags ?? [],
+      input.idempotencyKey ?? null,
+      input.createdBy ?? null,
+    ]
+  );
+  return res.rows[0];
+};
+
+// Look up an existing row by idempotency_key. Returns null when absent.
+export const findByIdempotencyKey = async (
+  conn: DbConn,
+  idempotencyKey: string
+): Promise<EmailQueueRow | null> => {
+  const res = await conn.query<EmailQueueRow>(
+    `SELECT * FROM email_queue WHERE idempotency_key = $1 LIMIT 1`,
+    [idempotencyKey]
+  );
+  return res.rows[0] ?? null;
+};
+
+// Claim up to `limit` rows that are due to send: status='queued' AND
+// (scheduled_for IS NULL OR scheduled_for <= now()). Sets them to
+// `sending` and stamps `last_attempt_at`. Returns the claimed rows.
+//
+// SKIP LOCKED so multiple worker instances draining the same queue
+// don't block each other.
+export const claimDueEmails = async (conn: DbConn, limit: number): Promise<QueuedEmail[]> => {
+  const res = await conn.query<EmailQueueRow>(
+    `
+    WITH due AS (
+      SELECT email_id
+      FROM email_queue
+      WHERE status = 'queued'
+        AND (scheduled_for IS NULL OR scheduled_for <= now())
+      ORDER BY
+        CASE priority
+          WHEN 'urgent' THEN 1
+          WHEN 'high'   THEN 2
+          WHEN 'normal' THEN 3
+          WHEN 'low'    THEN 4
+        END,
+        created_at
+      LIMIT $1
+      FOR UPDATE SKIP LOCKED
+    )
+    UPDATE email_queue q
+    SET status = 'sending',
+        last_attempt_at = now(),
+        updated_at = now(),
+        version = q.version + 1
+    FROM due
+    WHERE q.email_id = due.email_id
+    RETURNING q.*
+    `,
+    [limit]
+  );
+  return res.rows.map(rowToQueuedEmail);
+};
+
+export const markSent = async (
+  conn: DbConn,
+  emailId: string,
+  providerMessageId: string | null
+): Promise<void> => {
+  await conn.query(
+    `
+    UPDATE email_queue
+    SET status = 'sent',
+        sent_at = now(),
+        provider_message_id = COALESCE($2, provider_message_id),
+        updated_at = now(),
+        version = version + 1
+    WHERE email_id = $1
+    `,
+    [emailId, providerMessageId]
+  );
+};
+
+export const markFailed = async (
+  conn: DbConn,
+  emailId: string,
+  reason: string,
+  retriable: boolean
+): Promise<void> => {
+  // Retriable failures go back to 'queued' and bump `current_retries`;
+  // when current_retries >= max_retries the row terminates as 'failed'.
+  await conn.query(
+    `
+    UPDATE email_queue
+    SET status = CASE
+        WHEN $3::boolean AND current_retries + 1 < max_retries THEN 'queued'::email_queue_status
+        ELSE 'failed'::email_queue_status
+      END,
+      current_retries = current_retries + 1,
+      failure_reason = $2,
+      updated_at = now(),
+      version = version + 1
+    WHERE email_id = $1
+    `,
+    [emailId, reason, retriable]
+  );
+};
