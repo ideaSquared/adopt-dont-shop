@@ -17,6 +17,8 @@ import {
   type CompleteHomeVisitResponse,
   type GetApplicationRequest,
   type GetApplicationResponse,
+  type GetStatsRequest,
+  type GetStatsResponse,
   type ListApplicationsRequest,
   type ListApplicationsResponse,
   type MarkAdoptedRequest,
@@ -59,6 +61,7 @@ export type ApplicationsClient = {
   markAdopted(req: MarkAdoptedRequest, metadata: Metadata): Promise<MarkAdoptedResponse>;
   get(req: GetApplicationRequest, metadata: Metadata): Promise<GetApplicationResponse>;
   list(req: ListApplicationsRequest, metadata: Metadata): Promise<ListApplicationsResponse>;
+  getStats(req: GetStatsRequest, metadata: Metadata): Promise<GetStatsResponse>;
   close(): void;
 };
 
@@ -102,6 +105,7 @@ export const createApplicationsClient = (
     markAdopted: (req, metadata) => callUnary(stub.markAdopted, req, metadata),
     get: (req, metadata) => callUnary(stub.get, req, metadata),
     list: (req, metadata) => callUnary(stub.list, req, metadata),
+    getStats: (req, metadata) => callUnary(stub.getStats, req, metadata),
     close: () => stub.close(),
   };
 };

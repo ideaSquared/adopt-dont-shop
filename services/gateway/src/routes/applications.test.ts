@@ -41,6 +41,7 @@ function makeClient(): {
     'markAdopted',
     'get',
     'list',
+    'getStats',
   ]) {
     mocks[m] = vi.fn();
   }
@@ -247,6 +248,36 @@ describe('applications routes', () => {
       headers: ADOPTER,
     });
     expect(res.statusCode).toBe(404);
+  });
+
+  it('GET /api/v1/applications/stats collapses the counts to the frontend stats shape', async () => {
+    mocks.getStats.mockResolvedValue({
+      total: 10,
+      draft: 2,
+      submitted: 3,
+      underReview: 1,
+      homeVisitScheduled: 1,
+      homeVisitCompleted: 1,
+      approved: 1,
+      rejected: 1,
+      withdrawn: 0,
+      adopted: 0,
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/applications/stats?rescue=rsc-1',
+      headers: STAFF,
+    });
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as { data: Record<string, number> }).data).toEqual({
+      total: 8, // 10 - 2 drafts
+      submitted: 3,
+      underReview: 3, // under_review + home_visit_scheduled + home_visit_completed
+      approved: 1,
+      rejected: 1,
+      pendingReferences: 0,
+    });
+    expect(mocks.getStats.mock.calls[0][0]).toMatchObject({ rescueIdFilter: 'rsc-1' });
   });
 
   it('POST orchestrates StartDraft→SaveDraftAnswers→SubmitDraft and returns the view', async () => {
