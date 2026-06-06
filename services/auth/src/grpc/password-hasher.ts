@@ -12,8 +12,14 @@ import bcrypt from 'bcryptjs';
 
 import type { PasswordHasher } from './handlers.js';
 
+// 12 rounds is what the monolith uses (service.backend's auth.service.ts).
+// Keeping the cost identical means a per-call latency budget the rest of
+// the codebase already accepts.
+const BCRYPT_ROUNDS = 12;
+
 export function createBcryptPasswordHasher(): PasswordHasher {
   return {
     compare: (password, hash) => bcrypt.compare(password, hash),
+    hash: password => bcrypt.hash(password, BCRYPT_ROUNDS),
   };
 }

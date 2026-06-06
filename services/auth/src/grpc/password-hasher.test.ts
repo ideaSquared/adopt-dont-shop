@@ -20,4 +20,13 @@ describe('createBcryptPasswordHasher', () => {
     const hash = await fastHash('hunter2');
     expect(await hasher.compare('wrong', hash)).toBe(false);
   });
+
+  it('hash() produces a string that the same hasher can compare()', async () => {
+    const hasher = createBcryptPasswordHasher();
+    const hash = await hasher.hash('hunter2');
+    expect(typeof hash).toBe('string');
+    expect(hash.startsWith('$2')).toBe(true); // bcrypt format
+    expect(await hasher.compare('hunter2', hash)).toBe(true);
+    expect(await hasher.compare('wrong', hash)).toBe(false);
+  }, 10_000); // cost 12 → ~250ms per hash; give it plenty of headroom
 });

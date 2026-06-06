@@ -306,6 +306,112 @@ export interface AssignRoleResponse {
   roles: UserRole[];
 }
 
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string | undefined;
+  /**
+   * Default 'adopter' if omitted — adopters self-register; staff are
+   * invited via the rescue vertical's InviteStaff flow.
+   */
+  userType?: UserRole | undefined;
+  /** Audit / login provenance — same fields as LoginRequest. */
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
+  /**
+   * T&Cs + privacy must be accepted on the form before the row is
+   * created. terms_accepted_at / privacy_policy_accepted_at are
+   * stamped on the row when both are true.
+   */
+  termsAccepted: boolean;
+  privacyPolicyAccepted: boolean;
+}
+
+export interface RegisterResponse {
+  user?: User | undefined;
+  /**
+   * The freshly-minted token pair (the SPA logs the user straight in
+   * — verification is a follow-up step the user can complete from the
+   * signed-in app).
+   */
+  tokens?: TokenPair | undefined;
+  permissions: string[];
+}
+
+export interface VerifyEmailRequest {
+  verificationToken: string;
+}
+
+export interface VerifyEmailResponse {
+  user?: User | undefined;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface ResendVerificationResponse {
+  /**
+   * Always returns success — the response is the same whether or not
+   * the email matches a row, to avoid leaking account existence.
+   */
+  ok: boolean;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  ok: boolean;
+}
+
+export interface ResetPasswordRequest {
+  resetToken: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  /**
+   * The reset path doesn't auto-sign the user in — the SPA redirects to
+   * the login screen with a "password updated" flash.
+   */
+  ok: boolean;
+}
+
+export interface ChangePasswordRequest {
+  /**
+   * The principal (x-user-id) identifies whose password we're changing;
+   * current_password is required as a defence against session hijacks.
+   */
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  ok: boolean;
+}
+
+export interface UpdateAccountRequest {
+  firstName?: string | undefined;
+  lastName?: string | undefined;
+  phoneNumber?: string | undefined;
+  bio?: string | undefined;
+  timezone?: string | undefined;
+  language?: string | undefined;
+  country?: string | undefined;
+  city?: string | undefined;
+  addressLine1?: string | undefined;
+  addressLine2?: string | undefined;
+  postalCode?: string | undefined;
+}
+
+export interface UpdateAccountResponse {
+  user?: User | undefined;
+}
+
 function createBasePrincipal(): Principal {
   return { userId: '', roles: [], permissions: [], rescueId: undefined };
 }
@@ -1915,6 +2021,1341 @@ export const AssignRoleResponse: MessageFns<AssignRoleResponse> = {
   },
 };
 
+function createBaseRegisterRequest(): RegisterRequest {
+  return {
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    phoneNumber: undefined,
+    userType: undefined,
+    ipAddress: undefined,
+    userAgent: undefined,
+    termsAccepted: false,
+    privacyPolicyAccepted: false,
+  };
+}
+
+export const RegisterRequest: MessageFns<RegisterRequest> = {
+  encode(message: RegisterRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.email !== '') {
+      writer.uint32(10).string(message.email);
+    }
+    if (message.password !== '') {
+      writer.uint32(18).string(message.password);
+    }
+    if (message.firstName !== '') {
+      writer.uint32(26).string(message.firstName);
+    }
+    if (message.lastName !== '') {
+      writer.uint32(34).string(message.lastName);
+    }
+    if (message.phoneNumber !== undefined) {
+      writer.uint32(42).string(message.phoneNumber);
+    }
+    if (message.userType !== undefined) {
+      writer.uint32(48).int32(message.userType);
+    }
+    if (message.ipAddress !== undefined) {
+      writer.uint32(58).string(message.ipAddress);
+    }
+    if (message.userAgent !== undefined) {
+      writer.uint32(66).string(message.userAgent);
+    }
+    if (message.termsAccepted !== false) {
+      writer.uint32(72).bool(message.termsAccepted);
+    }
+    if (message.privacyPolicyAccepted !== false) {
+      writer.uint32(80).bool(message.privacyPolicyAccepted);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.password = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.phoneNumber = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.userType = reader.int32() as any;
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.ipAddress = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.userAgent = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.termsAccepted = reader.bool();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.privacyPolicyAccepted = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterRequest {
+    return {
+      email: isSet(object.email) ? globalThis.String(object.email) : '',
+      password: isSet(object.password) ? globalThis.String(object.password) : '',
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+          ? globalThis.String(object.first_name)
+          : '',
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+          ? globalThis.String(object.last_name)
+          : '',
+      phoneNumber: isSet(object.phoneNumber)
+        ? globalThis.String(object.phoneNumber)
+        : isSet(object.phone_number)
+          ? globalThis.String(object.phone_number)
+          : undefined,
+      userType: isSet(object.userType)
+        ? userRoleFromJSON(object.userType)
+        : isSet(object.user_type)
+          ? userRoleFromJSON(object.user_type)
+          : undefined,
+      ipAddress: isSet(object.ipAddress)
+        ? globalThis.String(object.ipAddress)
+        : isSet(object.ip_address)
+          ? globalThis.String(object.ip_address)
+          : undefined,
+      userAgent: isSet(object.userAgent)
+        ? globalThis.String(object.userAgent)
+        : isSet(object.user_agent)
+          ? globalThis.String(object.user_agent)
+          : undefined,
+      termsAccepted: isSet(object.termsAccepted)
+        ? globalThis.Boolean(object.termsAccepted)
+        : isSet(object.terms_accepted)
+          ? globalThis.Boolean(object.terms_accepted)
+          : false,
+      privacyPolicyAccepted: isSet(object.privacyPolicyAccepted)
+        ? globalThis.Boolean(object.privacyPolicyAccepted)
+        : isSet(object.privacy_policy_accepted)
+          ? globalThis.Boolean(object.privacy_policy_accepted)
+          : false,
+    };
+  },
+
+  toJSON(message: RegisterRequest): unknown {
+    const obj: any = {};
+    if (message.email !== '') {
+      obj.email = message.email;
+    }
+    if (message.password !== '') {
+      obj.password = message.password;
+    }
+    if (message.firstName !== '') {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== '') {
+      obj.lastName = message.lastName;
+    }
+    if (message.phoneNumber !== undefined) {
+      obj.phoneNumber = message.phoneNumber;
+    }
+    if (message.userType !== undefined) {
+      obj.userType = userRoleToJSON(message.userType);
+    }
+    if (message.ipAddress !== undefined) {
+      obj.ipAddress = message.ipAddress;
+    }
+    if (message.userAgent !== undefined) {
+      obj.userAgent = message.userAgent;
+    }
+    if (message.termsAccepted !== false) {
+      obj.termsAccepted = message.termsAccepted;
+    }
+    if (message.privacyPolicyAccepted !== false) {
+      obj.privacyPolicyAccepted = message.privacyPolicyAccepted;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterRequest>, I>>(base?: I): RegisterRequest {
+    return RegisterRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterRequest>, I>>(object: I): RegisterRequest {
+    const message = createBaseRegisterRequest();
+    message.email = object.email ?? '';
+    message.password = object.password ?? '';
+    message.firstName = object.firstName ?? '';
+    message.lastName = object.lastName ?? '';
+    message.phoneNumber = object.phoneNumber ?? undefined;
+    message.userType = object.userType ?? undefined;
+    message.ipAddress = object.ipAddress ?? undefined;
+    message.userAgent = object.userAgent ?? undefined;
+    message.termsAccepted = object.termsAccepted ?? false;
+    message.privacyPolicyAccepted = object.privacyPolicyAccepted ?? false;
+    return message;
+  },
+};
+
+function createBaseRegisterResponse(): RegisterResponse {
+  return { user: undefined, tokens: undefined, permissions: [] };
+}
+
+export const RegisterResponse: MessageFns<RegisterResponse> = {
+  encode(message: RegisterResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    if (message.tokens !== undefined) {
+      TokenPair.encode(message.tokens, writer.uint32(18).fork()).join();
+    }
+    for (const v of message.permissions) {
+      writer.uint32(26).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.tokens = TokenPair.decode(reader, reader.uint32());
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.permissions.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterResponse {
+    return {
+      user: isSet(object.user) ? User.fromJSON(object.user) : undefined,
+      tokens: isSet(object.tokens) ? TokenPair.fromJSON(object.tokens) : undefined,
+      permissions: globalThis.Array.isArray(object?.permissions)
+        ? object.permissions.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: RegisterResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    if (message.tokens !== undefined) {
+      obj.tokens = TokenPair.toJSON(message.tokens);
+    }
+    if (message.permissions?.length) {
+      obj.permissions = message.permissions;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterResponse>, I>>(base?: I): RegisterResponse {
+    return RegisterResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterResponse>, I>>(object: I): RegisterResponse {
+    const message = createBaseRegisterResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.tokens =
+      object.tokens !== undefined && object.tokens !== null
+        ? TokenPair.fromPartial(object.tokens)
+        : undefined;
+    message.permissions = object.permissions?.map(e => e) || [];
+    return message;
+  },
+};
+
+function createBaseVerifyEmailRequest(): VerifyEmailRequest {
+  return { verificationToken: '' };
+}
+
+export const VerifyEmailRequest: MessageFns<VerifyEmailRequest> = {
+  encode(message: VerifyEmailRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.verificationToken !== '') {
+      writer.uint32(10).string(message.verificationToken);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): VerifyEmailRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseVerifyEmailRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.verificationToken = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): VerifyEmailRequest {
+    return {
+      verificationToken: isSet(object.verificationToken)
+        ? globalThis.String(object.verificationToken)
+        : isSet(object.verification_token)
+          ? globalThis.String(object.verification_token)
+          : '',
+    };
+  },
+
+  toJSON(message: VerifyEmailRequest): unknown {
+    const obj: any = {};
+    if (message.verificationToken !== '') {
+      obj.verificationToken = message.verificationToken;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<VerifyEmailRequest>, I>>(base?: I): VerifyEmailRequest {
+    return VerifyEmailRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<VerifyEmailRequest>, I>>(object: I): VerifyEmailRequest {
+    const message = createBaseVerifyEmailRequest();
+    message.verificationToken = object.verificationToken ?? '';
+    return message;
+  },
+};
+
+function createBaseVerifyEmailResponse(): VerifyEmailResponse {
+  return { user: undefined };
+}
+
+export const VerifyEmailResponse: MessageFns<VerifyEmailResponse> = {
+  encode(message: VerifyEmailResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): VerifyEmailResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseVerifyEmailResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): VerifyEmailResponse {
+    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+  },
+
+  toJSON(message: VerifyEmailResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<VerifyEmailResponse>, I>>(base?: I): VerifyEmailResponse {
+    return VerifyEmailResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<VerifyEmailResponse>, I>>(
+    object: I
+  ): VerifyEmailResponse {
+    const message = createBaseVerifyEmailResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    return message;
+  },
+};
+
+function createBaseResendVerificationRequest(): ResendVerificationRequest {
+  return { email: '' };
+}
+
+export const ResendVerificationRequest: MessageFns<ResendVerificationRequest> = {
+  encode(
+    message: ResendVerificationRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.email !== '') {
+      writer.uint32(10).string(message.email);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ResendVerificationRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseResendVerificationRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ResendVerificationRequest {
+    return { email: isSet(object.email) ? globalThis.String(object.email) : '' };
+  },
+
+  toJSON(message: ResendVerificationRequest): unknown {
+    const obj: any = {};
+    if (message.email !== '') {
+      obj.email = message.email;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ResendVerificationRequest>, I>>(
+    base?: I
+  ): ResendVerificationRequest {
+    return ResendVerificationRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ResendVerificationRequest>, I>>(
+    object: I
+  ): ResendVerificationRequest {
+    const message = createBaseResendVerificationRequest();
+    message.email = object.email ?? '';
+    return message;
+  },
+};
+
+function createBaseResendVerificationResponse(): ResendVerificationResponse {
+  return { ok: false };
+}
+
+export const ResendVerificationResponse: MessageFns<ResendVerificationResponse> = {
+  encode(
+    message: ResendVerificationResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.ok !== false) {
+      writer.uint32(8).bool(message.ok);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ResendVerificationResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseResendVerificationResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.ok = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ResendVerificationResponse {
+    return { ok: isSet(object.ok) ? globalThis.Boolean(object.ok) : false };
+  },
+
+  toJSON(message: ResendVerificationResponse): unknown {
+    const obj: any = {};
+    if (message.ok !== false) {
+      obj.ok = message.ok;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ResendVerificationResponse>, I>>(
+    base?: I
+  ): ResendVerificationResponse {
+    return ResendVerificationResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ResendVerificationResponse>, I>>(
+    object: I
+  ): ResendVerificationResponse {
+    const message = createBaseResendVerificationResponse();
+    message.ok = object.ok ?? false;
+    return message;
+  },
+};
+
+function createBaseForgotPasswordRequest(): ForgotPasswordRequest {
+  return { email: '' };
+}
+
+export const ForgotPasswordRequest: MessageFns<ForgotPasswordRequest> = {
+  encode(message: ForgotPasswordRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.email !== '') {
+      writer.uint32(10).string(message.email);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ForgotPasswordRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseForgotPasswordRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ForgotPasswordRequest {
+    return { email: isSet(object.email) ? globalThis.String(object.email) : '' };
+  },
+
+  toJSON(message: ForgotPasswordRequest): unknown {
+    const obj: any = {};
+    if (message.email !== '') {
+      obj.email = message.email;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ForgotPasswordRequest>, I>>(base?: I): ForgotPasswordRequest {
+    return ForgotPasswordRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ForgotPasswordRequest>, I>>(
+    object: I
+  ): ForgotPasswordRequest {
+    const message = createBaseForgotPasswordRequest();
+    message.email = object.email ?? '';
+    return message;
+  },
+};
+
+function createBaseForgotPasswordResponse(): ForgotPasswordResponse {
+  return { ok: false };
+}
+
+export const ForgotPasswordResponse: MessageFns<ForgotPasswordResponse> = {
+  encode(message: ForgotPasswordResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ok !== false) {
+      writer.uint32(8).bool(message.ok);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ForgotPasswordResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseForgotPasswordResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.ok = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ForgotPasswordResponse {
+    return { ok: isSet(object.ok) ? globalThis.Boolean(object.ok) : false };
+  },
+
+  toJSON(message: ForgotPasswordResponse): unknown {
+    const obj: any = {};
+    if (message.ok !== false) {
+      obj.ok = message.ok;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ForgotPasswordResponse>, I>>(
+    base?: I
+  ): ForgotPasswordResponse {
+    return ForgotPasswordResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ForgotPasswordResponse>, I>>(
+    object: I
+  ): ForgotPasswordResponse {
+    const message = createBaseForgotPasswordResponse();
+    message.ok = object.ok ?? false;
+    return message;
+  },
+};
+
+function createBaseResetPasswordRequest(): ResetPasswordRequest {
+  return { resetToken: '', newPassword: '' };
+}
+
+export const ResetPasswordRequest: MessageFns<ResetPasswordRequest> = {
+  encode(message: ResetPasswordRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.resetToken !== '') {
+      writer.uint32(10).string(message.resetToken);
+    }
+    if (message.newPassword !== '') {
+      writer.uint32(18).string(message.newPassword);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ResetPasswordRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseResetPasswordRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.resetToken = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.newPassword = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ResetPasswordRequest {
+    return {
+      resetToken: isSet(object.resetToken)
+        ? globalThis.String(object.resetToken)
+        : isSet(object.reset_token)
+          ? globalThis.String(object.reset_token)
+          : '',
+      newPassword: isSet(object.newPassword)
+        ? globalThis.String(object.newPassword)
+        : isSet(object.new_password)
+          ? globalThis.String(object.new_password)
+          : '',
+    };
+  },
+
+  toJSON(message: ResetPasswordRequest): unknown {
+    const obj: any = {};
+    if (message.resetToken !== '') {
+      obj.resetToken = message.resetToken;
+    }
+    if (message.newPassword !== '') {
+      obj.newPassword = message.newPassword;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ResetPasswordRequest>, I>>(base?: I): ResetPasswordRequest {
+    return ResetPasswordRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ResetPasswordRequest>, I>>(
+    object: I
+  ): ResetPasswordRequest {
+    const message = createBaseResetPasswordRequest();
+    message.resetToken = object.resetToken ?? '';
+    message.newPassword = object.newPassword ?? '';
+    return message;
+  },
+};
+
+function createBaseResetPasswordResponse(): ResetPasswordResponse {
+  return { ok: false };
+}
+
+export const ResetPasswordResponse: MessageFns<ResetPasswordResponse> = {
+  encode(message: ResetPasswordResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ok !== false) {
+      writer.uint32(8).bool(message.ok);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ResetPasswordResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseResetPasswordResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.ok = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ResetPasswordResponse {
+    return { ok: isSet(object.ok) ? globalThis.Boolean(object.ok) : false };
+  },
+
+  toJSON(message: ResetPasswordResponse): unknown {
+    const obj: any = {};
+    if (message.ok !== false) {
+      obj.ok = message.ok;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ResetPasswordResponse>, I>>(base?: I): ResetPasswordResponse {
+    return ResetPasswordResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ResetPasswordResponse>, I>>(
+    object: I
+  ): ResetPasswordResponse {
+    const message = createBaseResetPasswordResponse();
+    message.ok = object.ok ?? false;
+    return message;
+  },
+};
+
+function createBaseChangePasswordRequest(): ChangePasswordRequest {
+  return { currentPassword: '', newPassword: '' };
+}
+
+export const ChangePasswordRequest: MessageFns<ChangePasswordRequest> = {
+  encode(message: ChangePasswordRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.currentPassword !== '') {
+      writer.uint32(10).string(message.currentPassword);
+    }
+    if (message.newPassword !== '') {
+      writer.uint32(18).string(message.newPassword);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ChangePasswordRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseChangePasswordRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.currentPassword = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.newPassword = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ChangePasswordRequest {
+    return {
+      currentPassword: isSet(object.currentPassword)
+        ? globalThis.String(object.currentPassword)
+        : isSet(object.current_password)
+          ? globalThis.String(object.current_password)
+          : '',
+      newPassword: isSet(object.newPassword)
+        ? globalThis.String(object.newPassword)
+        : isSet(object.new_password)
+          ? globalThis.String(object.new_password)
+          : '',
+    };
+  },
+
+  toJSON(message: ChangePasswordRequest): unknown {
+    const obj: any = {};
+    if (message.currentPassword !== '') {
+      obj.currentPassword = message.currentPassword;
+    }
+    if (message.newPassword !== '') {
+      obj.newPassword = message.newPassword;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ChangePasswordRequest>, I>>(base?: I): ChangePasswordRequest {
+    return ChangePasswordRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ChangePasswordRequest>, I>>(
+    object: I
+  ): ChangePasswordRequest {
+    const message = createBaseChangePasswordRequest();
+    message.currentPassword = object.currentPassword ?? '';
+    message.newPassword = object.newPassword ?? '';
+    return message;
+  },
+};
+
+function createBaseChangePasswordResponse(): ChangePasswordResponse {
+  return { ok: false };
+}
+
+export const ChangePasswordResponse: MessageFns<ChangePasswordResponse> = {
+  encode(message: ChangePasswordResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ok !== false) {
+      writer.uint32(8).bool(message.ok);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ChangePasswordResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseChangePasswordResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.ok = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ChangePasswordResponse {
+    return { ok: isSet(object.ok) ? globalThis.Boolean(object.ok) : false };
+  },
+
+  toJSON(message: ChangePasswordResponse): unknown {
+    const obj: any = {};
+    if (message.ok !== false) {
+      obj.ok = message.ok;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ChangePasswordResponse>, I>>(
+    base?: I
+  ): ChangePasswordResponse {
+    return ChangePasswordResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ChangePasswordResponse>, I>>(
+    object: I
+  ): ChangePasswordResponse {
+    const message = createBaseChangePasswordResponse();
+    message.ok = object.ok ?? false;
+    return message;
+  },
+};
+
+function createBaseUpdateAccountRequest(): UpdateAccountRequest {
+  return {
+    firstName: undefined,
+    lastName: undefined,
+    phoneNumber: undefined,
+    bio: undefined,
+    timezone: undefined,
+    language: undefined,
+    country: undefined,
+    city: undefined,
+    addressLine1: undefined,
+    addressLine2: undefined,
+    postalCode: undefined,
+  };
+}
+
+export const UpdateAccountRequest: MessageFns<UpdateAccountRequest> = {
+  encode(message: UpdateAccountRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.firstName !== undefined) {
+      writer.uint32(10).string(message.firstName);
+    }
+    if (message.lastName !== undefined) {
+      writer.uint32(18).string(message.lastName);
+    }
+    if (message.phoneNumber !== undefined) {
+      writer.uint32(26).string(message.phoneNumber);
+    }
+    if (message.bio !== undefined) {
+      writer.uint32(34).string(message.bio);
+    }
+    if (message.timezone !== undefined) {
+      writer.uint32(42).string(message.timezone);
+    }
+    if (message.language !== undefined) {
+      writer.uint32(50).string(message.language);
+    }
+    if (message.country !== undefined) {
+      writer.uint32(58).string(message.country);
+    }
+    if (message.city !== undefined) {
+      writer.uint32(66).string(message.city);
+    }
+    if (message.addressLine1 !== undefined) {
+      writer.uint32(74).string(message.addressLine1);
+    }
+    if (message.addressLine2 !== undefined) {
+      writer.uint32(82).string(message.addressLine2);
+    }
+    if (message.postalCode !== undefined) {
+      writer.uint32(90).string(message.postalCode);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateAccountRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateAccountRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.phoneNumber = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.bio = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.timezone = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.language = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.country = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.city = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.addressLine1 = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.addressLine2 = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.postalCode = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateAccountRequest {
+    return {
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+          ? globalThis.String(object.first_name)
+          : undefined,
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+          ? globalThis.String(object.last_name)
+          : undefined,
+      phoneNumber: isSet(object.phoneNumber)
+        ? globalThis.String(object.phoneNumber)
+        : isSet(object.phone_number)
+          ? globalThis.String(object.phone_number)
+          : undefined,
+      bio: isSet(object.bio) ? globalThis.String(object.bio) : undefined,
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : undefined,
+      language: isSet(object.language) ? globalThis.String(object.language) : undefined,
+      country: isSet(object.country) ? globalThis.String(object.country) : undefined,
+      city: isSet(object.city) ? globalThis.String(object.city) : undefined,
+      addressLine1: isSet(object.addressLine1)
+        ? globalThis.String(object.addressLine1)
+        : isSet(object.address_line_1)
+          ? globalThis.String(object.address_line_1)
+          : undefined,
+      addressLine2: isSet(object.addressLine2)
+        ? globalThis.String(object.addressLine2)
+        : isSet(object.address_line_2)
+          ? globalThis.String(object.address_line_2)
+          : undefined,
+      postalCode: isSet(object.postalCode)
+        ? globalThis.String(object.postalCode)
+        : isSet(object.postal_code)
+          ? globalThis.String(object.postal_code)
+          : undefined,
+    };
+  },
+
+  toJSON(message: UpdateAccountRequest): unknown {
+    const obj: any = {};
+    if (message.firstName !== undefined) {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== undefined) {
+      obj.lastName = message.lastName;
+    }
+    if (message.phoneNumber !== undefined) {
+      obj.phoneNumber = message.phoneNumber;
+    }
+    if (message.bio !== undefined) {
+      obj.bio = message.bio;
+    }
+    if (message.timezone !== undefined) {
+      obj.timezone = message.timezone;
+    }
+    if (message.language !== undefined) {
+      obj.language = message.language;
+    }
+    if (message.country !== undefined) {
+      obj.country = message.country;
+    }
+    if (message.city !== undefined) {
+      obj.city = message.city;
+    }
+    if (message.addressLine1 !== undefined) {
+      obj.addressLine1 = message.addressLine1;
+    }
+    if (message.addressLine2 !== undefined) {
+      obj.addressLine2 = message.addressLine2;
+    }
+    if (message.postalCode !== undefined) {
+      obj.postalCode = message.postalCode;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateAccountRequest>, I>>(base?: I): UpdateAccountRequest {
+    return UpdateAccountRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateAccountRequest>, I>>(
+    object: I
+  ): UpdateAccountRequest {
+    const message = createBaseUpdateAccountRequest();
+    message.firstName = object.firstName ?? undefined;
+    message.lastName = object.lastName ?? undefined;
+    message.phoneNumber = object.phoneNumber ?? undefined;
+    message.bio = object.bio ?? undefined;
+    message.timezone = object.timezone ?? undefined;
+    message.language = object.language ?? undefined;
+    message.country = object.country ?? undefined;
+    message.city = object.city ?? undefined;
+    message.addressLine1 = object.addressLine1 ?? undefined;
+    message.addressLine2 = object.addressLine2 ?? undefined;
+    message.postalCode = object.postalCode ?? undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateAccountResponse(): UpdateAccountResponse {
+  return { user: undefined };
+}
+
+export const UpdateAccountResponse: MessageFns<UpdateAccountResponse> = {
+  encode(message: UpdateAccountResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateAccountResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateAccountResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateAccountResponse {
+    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+  },
+
+  toJSON(message: UpdateAccountResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateAccountResponse>, I>>(base?: I): UpdateAccountResponse {
+    return UpdateAccountResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateAccountResponse>, I>>(
+    object: I
+  ): UpdateAccountResponse {
+    const message = createBaseUpdateAccountResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    return message;
+  },
+};
+
 /**
  * AuthService is the gRPC contract for the auth vertical. It owns the
  * `auth.*` schema (User, Role, Permission, RefreshToken, RevokedToken,
@@ -2038,6 +3479,111 @@ export const AuthServiceService = {
       Buffer.from(AssignRoleResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): AssignRoleResponse => AssignRoleResponse.decode(value),
   },
+  /**
+   * Create an account. Mints verification_token + sends it via the
+   * notifications stream; status starts as pending_verification.
+   */
+  register: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/Register' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RegisterRequest): Buffer =>
+      Buffer.from(RegisterRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RegisterRequest => RegisterRequest.decode(value),
+    responseSerialize: (value: RegisterResponse): Buffer =>
+      Buffer.from(RegisterResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RegisterResponse => RegisterResponse.decode(value),
+  },
+  /**
+   * Consume the verification_token mailed to the user; flips
+   * email_verified=true and status=active.
+   */
+  verifyEmail: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/VerifyEmail' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: VerifyEmailRequest): Buffer =>
+      Buffer.from(VerifyEmailRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): VerifyEmailRequest => VerifyEmailRequest.decode(value),
+    responseSerialize: (value: VerifyEmailResponse): Buffer =>
+      Buffer.from(VerifyEmailResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): VerifyEmailResponse => VerifyEmailResponse.decode(value),
+  },
+  /** Mint a new verification_token for an unverified account. */
+  resendVerification: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ResendVerification' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ResendVerificationRequest): Buffer =>
+      Buffer.from(ResendVerificationRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ResendVerificationRequest =>
+      ResendVerificationRequest.decode(value),
+    responseSerialize: (value: ResendVerificationResponse): Buffer =>
+      Buffer.from(ResendVerificationResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ResendVerificationResponse =>
+      ResendVerificationResponse.decode(value),
+  },
+  /**
+   * Mint reset_token and trigger the password-reset email. ALWAYS
+   * returns success — never reveals whether the email exists.
+   */
+  forgotPassword: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ForgotPassword' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ForgotPasswordRequest): Buffer =>
+      Buffer.from(ForgotPasswordRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ForgotPasswordRequest =>
+      ForgotPasswordRequest.decode(value),
+    responseSerialize: (value: ForgotPasswordResponse): Buffer =>
+      Buffer.from(ForgotPasswordResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ForgotPasswordResponse =>
+      ForgotPasswordResponse.decode(value),
+  },
+  /** Consume reset_token + set a new password. Clears any locked_until. */
+  resetPassword: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ResetPassword' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ResetPasswordRequest): Buffer =>
+      Buffer.from(ResetPasswordRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ResetPasswordRequest => ResetPasswordRequest.decode(value),
+    responseSerialize: (value: ResetPasswordResponse): Buffer =>
+      Buffer.from(ResetPasswordResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ResetPasswordResponse =>
+      ResetPasswordResponse.decode(value),
+  },
+  /** Authenticated change. Requires the current password. */
+  changePassword: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ChangePassword' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ChangePasswordRequest): Buffer =>
+      Buffer.from(ChangePasswordRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ChangePasswordRequest =>
+      ChangePasswordRequest.decode(value),
+    responseSerialize: (value: ChangePasswordResponse): Buffer =>
+      Buffer.from(ChangePasswordResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ChangePasswordResponse =>
+      ChangePasswordResponse.decode(value),
+  },
+  /**
+   * Authenticated profile edit (first_name, last_name, phone_number,
+   * bio, timezone, language, country, city, address). Email changes go
+   * through a dedicated re-verification flow (deferred).
+   */
+  updateAccount: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/UpdateAccount' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateAccountRequest): Buffer =>
+      Buffer.from(UpdateAccountRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateAccountRequest => UpdateAccountRequest.decode(value),
+    responseSerialize: (value: UpdateAccountResponse): Buffer =>
+      Buffer.from(UpdateAccountResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateAccountResponse =>
+      UpdateAccountResponse.decode(value),
+  },
 } as const;
 
 export interface AuthServiceServer extends UntypedServiceImplementation {
@@ -2084,6 +3630,33 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * NOT returned — the operation is idempotent.
    */
   assignRole: handleUnaryCall<AssignRoleRequest, AssignRoleResponse>;
+  /**
+   * Create an account. Mints verification_token + sends it via the
+   * notifications stream; status starts as pending_verification.
+   */
+  register: handleUnaryCall<RegisterRequest, RegisterResponse>;
+  /**
+   * Consume the verification_token mailed to the user; flips
+   * email_verified=true and status=active.
+   */
+  verifyEmail: handleUnaryCall<VerifyEmailRequest, VerifyEmailResponse>;
+  /** Mint a new verification_token for an unverified account. */
+  resendVerification: handleUnaryCall<ResendVerificationRequest, ResendVerificationResponse>;
+  /**
+   * Mint reset_token and trigger the password-reset email. ALWAYS
+   * returns success — never reveals whether the email exists.
+   */
+  forgotPassword: handleUnaryCall<ForgotPasswordRequest, ForgotPasswordResponse>;
+  /** Consume reset_token + set a new password. Clears any locked_until. */
+  resetPassword: handleUnaryCall<ResetPasswordRequest, ResetPasswordResponse>;
+  /** Authenticated change. Requires the current password. */
+  changePassword: handleUnaryCall<ChangePasswordRequest, ChangePasswordResponse>;
+  /**
+   * Authenticated profile edit (first_name, last_name, phone_number,
+   * bio, timezone, language, country, city, address). Email changes go
+   * through a dedicated re-verification flow (deferred).
+   */
+  updateAccount: handleUnaryCall<UpdateAccountRequest, UpdateAccountResponse>;
 }
 
 export interface AuthServiceClient extends Client {
@@ -2213,6 +3786,131 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: AssignRoleResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Create an account. Mints verification_token + sends it via the
+   * notifications stream; status starts as pending_verification.
+   */
+  register(
+    request: RegisterRequest,
+    callback: (error: ServiceError | null, response: RegisterResponse) => void
+  ): ClientUnaryCall;
+  register(
+    request: RegisterRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RegisterResponse) => void
+  ): ClientUnaryCall;
+  register(
+    request: RegisterRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RegisterResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Consume the verification_token mailed to the user; flips
+   * email_verified=true and status=active.
+   */
+  verifyEmail(
+    request: VerifyEmailRequest,
+    callback: (error: ServiceError | null, response: VerifyEmailResponse) => void
+  ): ClientUnaryCall;
+  verifyEmail(
+    request: VerifyEmailRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: VerifyEmailResponse) => void
+  ): ClientUnaryCall;
+  verifyEmail(
+    request: VerifyEmailRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: VerifyEmailResponse) => void
+  ): ClientUnaryCall;
+  /** Mint a new verification_token for an unverified account. */
+  resendVerification(
+    request: ResendVerificationRequest,
+    callback: (error: ServiceError | null, response: ResendVerificationResponse) => void
+  ): ClientUnaryCall;
+  resendVerification(
+    request: ResendVerificationRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ResendVerificationResponse) => void
+  ): ClientUnaryCall;
+  resendVerification(
+    request: ResendVerificationRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ResendVerificationResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Mint reset_token and trigger the password-reset email. ALWAYS
+   * returns success — never reveals whether the email exists.
+   */
+  forgotPassword(
+    request: ForgotPasswordRequest,
+    callback: (error: ServiceError | null, response: ForgotPasswordResponse) => void
+  ): ClientUnaryCall;
+  forgotPassword(
+    request: ForgotPasswordRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ForgotPasswordResponse) => void
+  ): ClientUnaryCall;
+  forgotPassword(
+    request: ForgotPasswordRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ForgotPasswordResponse) => void
+  ): ClientUnaryCall;
+  /** Consume reset_token + set a new password. Clears any locked_until. */
+  resetPassword(
+    request: ResetPasswordRequest,
+    callback: (error: ServiceError | null, response: ResetPasswordResponse) => void
+  ): ClientUnaryCall;
+  resetPassword(
+    request: ResetPasswordRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ResetPasswordResponse) => void
+  ): ClientUnaryCall;
+  resetPassword(
+    request: ResetPasswordRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ResetPasswordResponse) => void
+  ): ClientUnaryCall;
+  /** Authenticated change. Requires the current password. */
+  changePassword(
+    request: ChangePasswordRequest,
+    callback: (error: ServiceError | null, response: ChangePasswordResponse) => void
+  ): ClientUnaryCall;
+  changePassword(
+    request: ChangePasswordRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ChangePasswordResponse) => void
+  ): ClientUnaryCall;
+  changePassword(
+    request: ChangePasswordRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ChangePasswordResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Authenticated profile edit (first_name, last_name, phone_number,
+   * bio, timezone, language, country, city, address). Email changes go
+   * through a dedicated re-verification flow (deferred).
+   */
+  updateAccount(
+    request: UpdateAccountRequest,
+    callback: (error: ServiceError | null, response: UpdateAccountResponse) => void
+  ): ClientUnaryCall;
+  updateAccount(
+    request: UpdateAccountRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateAccountResponse) => void
+  ): ClientUnaryCall;
+  updateAccount(
+    request: UpdateAccountRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateAccountResponse) => void
   ): ClientUnaryCall;
 }
 
