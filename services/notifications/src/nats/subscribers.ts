@@ -34,7 +34,10 @@ import { NotificationsV1, type CreateNotificationRequest } from '@adopt-dont-sho
 import { createNotification, type HandlerDeps } from '../grpc/handlers.js';
 
 import type {
+  ApplicationAdoptedEvent,
   ApplicationApprovedEvent,
+  ApplicationHomeVisitCompletedEvent,
+  ApplicationHomeVisitScheduledEvent,
   ApplicationRejectedEvent,
   ApplicationSubmittedEvent,
   AuthRoleAssignedEvent,
@@ -97,6 +100,44 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
       { subject: 'applications.rejected', queue: QUEUE_GROUP, onError },
       async payload => {
         await createNotification(deps, SYSTEM_PRINCIPAL, buildApplicationRejectedCreate(payload));
+      }
+    )
+  );
+
+  subscriptions.push(
+    subscribe<ApplicationHomeVisitScheduledEvent>(
+      nats,
+      { subject: 'applications.homeVisitScheduled', queue: QUEUE_GROUP, onError },
+      async payload => {
+        await createNotification(
+          deps,
+          SYSTEM_PRINCIPAL,
+          buildApplicationHomeVisitScheduledCreate(payload)
+        );
+      }
+    )
+  );
+
+  subscriptions.push(
+    subscribe<ApplicationHomeVisitCompletedEvent>(
+      nats,
+      { subject: 'applications.homeVisitCompleted', queue: QUEUE_GROUP, onError },
+      async payload => {
+        await createNotification(
+          deps,
+          SYSTEM_PRINCIPAL,
+          buildApplicationHomeVisitCompletedCreate(payload)
+        );
+      }
+    )
+  );
+
+  subscriptions.push(
+    subscribe<ApplicationAdoptedEvent>(
+      nats,
+      { subject: 'applications.adopted', queue: QUEUE_GROUP, onError },
+      async payload => {
+        await createNotification(deps, SYSTEM_PRINCIPAL, buildApplicationAdoptedCreate(payload));
       }
     )
   );
@@ -279,6 +320,75 @@ export const buildApplicationRejectedCreate = (
   templateVariablesJson: '{}',
   relatedEntityType:
     NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION,
+  relatedEntityId: event.applicationId,
+});
+
+// applications.homeVisitScheduled — the adopter needs the date, so a
+// HIGH-priority in-app ping. The timestamp rides in data_json (not the
+// message body) so the SPA formats it in the user's locale.
+export const buildApplicationHomeVisitScheduledCreate = (
+  event: ApplicationHomeVisitScheduledEvent
+): CreateNotificationRequest => ({
+  userId: event.adopterId as string,
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_HOME_VISIT_SCHEDULED,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH,
+  title: 'Home visit scheduled',
+  message: 'A home visit has been scheduled for your application. Check the details for the date.',
+  dataJson: JSON.stringify({
+    applicationId: event.applicationId,
+    rescueId: event.rescueId,
+    scheduledAt: event.scheduledAt,
+  }),
+  templateVariablesJson: '{}',
+  relatedEntityType:
+    NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT,
+  relatedEntityId: event.applicationId,
+});
+
+// applications.homeVisitCompleted — tell the adopter the visit is done.
+// The pass/fail outcome stays in data_json so the dashboard frames it
+// appropriately rather than the raw enum landing in a notification body.
+export const buildApplicationHomeVisitCompletedCreate = (
+  event: ApplicationHomeVisitCompletedEvent
+): CreateNotificationRequest => ({
+  userId: event.adopterId as string,
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_APPLICATION_STATUS,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL,
+  title: 'Home visit completed',
+  message: 'Your home visit is complete. The rescue will be in touch with the next steps.',
+  dataJson: JSON.stringify({
+    applicationId: event.applicationId,
+    rescueId: event.rescueId,
+    outcome: event.outcome,
+  }),
+  templateVariablesJson: '{}',
+  relatedEntityType:
+    NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT,
+  relatedEntityId: event.applicationId,
+});
+
+// applications.adopted — the celebratory final event. HIGH priority so
+// the SPA pinger surfaces it prominently.
+export const buildApplicationAdoptedCreate = (
+  event: ApplicationAdoptedEvent
+): CreateNotificationRequest => ({
+  userId: event.adopterId as string,
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_APPLICATION_STATUS,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH,
+  title: 'Adoption complete! 🎉',
+  message:
+    'Congratulations — your adoption is now complete. Thank you for giving a pet a loving home!',
+  dataJson: JSON.stringify({
+    applicationId: event.applicationId,
+    petId: event.petId,
+    rescueId: event.rescueId,
+  }),
+  templateVariablesJson: '{}',
+  relatedEntityType:
+    NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION,
   relatedEntityId: event.applicationId,
 });
 
