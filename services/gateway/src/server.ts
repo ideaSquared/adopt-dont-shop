@@ -23,6 +23,7 @@ import type { GatewayConfig } from './config.js';
 import type { ApplicationsClient } from './grpc-clients/applications-client.js';
 import type { AuditClient } from './grpc-clients/audit-client.js';
 import type { AuthClient } from './grpc-clients/auth-client.js';
+import type { ChatClient } from './grpc-clients/chat-client.js';
 import type { MatchingClient } from './grpc-clients/matching-client.js';
 import type { ModerationClient } from './grpc-clients/moderation-client.js';
 import type { NotificationsClient } from './grpc-clients/notifications-client.js';
@@ -33,6 +34,7 @@ import { registerApplicationDocumentsRoutes } from './routes/application-documen
 import { registerApplicationsRoutes } from './routes/applications.js';
 import { registerAuditRoutes } from './routes/audit.js';
 import { registerAuthRoutes } from './routes/auth.js';
+import { registerChatRoutes } from './routes/chat.js';
 import { registerMatchingRoutes } from './routes/matching.js';
 import { registerModerationAdminRoutes } from './routes/moderation-admin.js';
 import { registerModerationRoutes } from './routes/moderation.js';
@@ -79,6 +81,10 @@ export type CreateServerOptions = {
   // gRPC client to service.applications — Phase 5.3d cuts
   // /api/applications/* over to this address. Same optional shape.
   applicationsClient?: ApplicationsClient;
+  // gRPC client to service.chat — Phase 6.x cuts /api/v1/chats/* and
+  // the message-level reaction endpoint over to this address. Same
+  // optional shape.
+  chatClient?: ChatClient;
 };
 
 export const createServer = async (opts: CreateServerOptions): Promise<FastifyInstance> => {
@@ -185,6 +191,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       client: opts.applicationsClient,
       storage: storageConfig,
     });
+  }
+  if (opts.chatClient && cutover.chat) {
+    await registerChatRoutes(server, { client: opts.chatClient });
   }
 
   // Catch-all proxy. Phase 0f shipped this; Phase 1.6 leaves it in

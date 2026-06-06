@@ -1,0 +1,66 @@
+// Promise-wrapped client for service.chat.
+//
+// Mirrors notifications-client / pets-client: the gRPC stub's
+// callback-shaped methods get wrapped in Promises, and the interface
+// is exported so route tests can substitute a mock.
+
+import { credentials, Metadata } from '@grpc/grpc-js';
+
+import {
+  ChatV1,
+  type ListChatsRequest,
+  type ListChatsResponse,
+  type ListMessagesRequest,
+  type ListMessagesResponse,
+  type MarkReadRequest,
+  type MarkReadResponse,
+  type OpenChatRequest,
+  type OpenChatResponse,
+  type ReactRequest,
+  type ReactResponse,
+  type SendMessageRequest,
+  type SendMessageResponse,
+} from '@adopt-dont-shop/proto';
+
+export type ChatClient = {
+  openChat(req: OpenChatRequest, metadata: Metadata): Promise<OpenChatResponse>;
+  sendMessage(req: SendMessageRequest, metadata: Metadata): Promise<SendMessageResponse>;
+  listMessages(req: ListMessagesRequest, metadata: Metadata): Promise<ListMessagesResponse>;
+  listChats(req: ListChatsRequest, metadata: Metadata): Promise<ListChatsResponse>;
+  markRead(req: MarkReadRequest, metadata: Metadata): Promise<MarkReadResponse>;
+  react(req: ReactRequest, metadata: Metadata): Promise<ReactResponse>;
+  close(): void;
+};
+
+export type CreateChatClientOptions = {
+  address: string;
+};
+
+export const createChatClient = (opts: CreateChatClientOptions): ChatClient => {
+  const stub = new ChatV1.ChatServiceClient(opts.address, credentials.createInsecure());
+
+  const callUnary = <Req, Res>(
+    fn: (req: Req, metadata: Metadata, cb: (err: unknown, res: Res) => void) => unknown,
+    req: Req,
+    metadata: Metadata
+  ): Promise<Res> =>
+    new Promise<Res>((resolve, reject) => {
+      fn.call(stub, req, metadata, (err: unknown, res: Res) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(res);
+      });
+    });
+
+  return {
+    openChat: (req, metadata) => callUnary(stub.openChat, req, metadata),
+    sendMessage: (req, metadata) => callUnary(stub.sendMessage, req, metadata),
+    listMessages: (req, metadata) => callUnary(stub.listMessages, req, metadata),
+    listChats: (req, metadata) => callUnary(stub.listChats, req, metadata),
+    markRead: (req, metadata) => callUnary(stub.markRead, req, metadata),
+    react: (req, metadata) => callUnary(stub.react, req, metadata),
+    close: () => stub.close(),
+  };
+};

@@ -23,6 +23,7 @@ describe('loadConfig', () => {
       moderation: false,
       matching: false,
       audit: false,
+      chat: false,
     });
   });
 

@@ -42,6 +42,9 @@ export type GatewayConfig = {
   // service.audit gRPC URL — Phase 10.5 cuts /api/audit/* over to this
   // address.
   auditGrpcUrl: string;
+  // service.chat gRPC URL — Phase 6.x cuts /api/v1/chats/* + the
+  // message-level reaction endpoint over to this address.
+  chatGrpcUrl: string;
   // Storage for uploaded files (e.g. application documents). The gateway
   // stores bytes via @adopt-dont-shop/storage, then records metadata via
   // the owning service's RPC. Defaults to local under ./uploads — set
@@ -77,6 +80,7 @@ export type GatewayConfig = {
     moderation: boolean;
     matching: boolean;
     audit: boolean;
+    chat: boolean;
   };
 };
 
@@ -92,6 +96,7 @@ const DEFAULT_APPLICATIONS_GRPC_URL = 'service-applications:6005';
 const DEFAULT_MODERATION_GRPC_URL = 'service-moderation:6007';
 const DEFAULT_MATCHING_GRPC_URL = 'service-matching:6008';
 const DEFAULT_AUDIT_GRPC_URL = 'service-audit:6009';
+const DEFAULT_CHAT_GRPC_URL = 'service-chat:6006';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig => {
   const portRaw = env.GATEWAY_PORT?.trim();
@@ -114,6 +119,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     moderationGrpcUrl: env.MODERATION_GRPC_URL?.trim() || DEFAULT_MODERATION_GRPC_URL,
     matchingGrpcUrl: env.MATCHING_GRPC_URL?.trim() || DEFAULT_MATCHING_GRPC_URL,
     auditGrpcUrl: env.AUDIT_GRPC_URL?.trim() || DEFAULT_AUDIT_GRPC_URL,
+    chatGrpcUrl: env.CHAT_GRPC_URL?.trim() || DEFAULT_CHAT_GRPC_URL,
     storage: buildStorageConfig(env),
     cutover: {
       auth: isEnabled(env.CUTOVER_AUTH),
@@ -124,6 +130,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
       moderation: isEnabled(env.CUTOVER_MODERATION),
       matching: isEnabled(env.CUTOVER_MATCHING),
       audit: isEnabled(env.CUTOVER_AUDIT),
+      chat: isEnabled(env.CUTOVER_CHAT),
     },
   };
 };
