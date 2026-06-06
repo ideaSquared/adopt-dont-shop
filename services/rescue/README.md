@@ -87,11 +87,24 @@ read model).
   illegal-transition rejection, public-default list filter, token
   shape).
 
+**Phase 4.3c** — gRPC server boot + adapter:
+- `src/grpc/principal.ts` — `extractPrincipal` from the
+  `x-user-{id,roles,permissions,rescue-id}` metadata headers
+  (same shape as `services/pets`).
+- `src/grpc/adapter.ts` — `adapt` wraps a pure handler in
+  grpc-js's `(call, callback)` signature, extracts the principal,
+  maps `HandlerError.code → grpc.status` and scrubs unknown errors
+  to `INTERNAL`. Single variant (no `adaptUnauth`) because every
+  `RescueService` RPC requires a principal.
+- `src/grpc/server.ts` — `createGrpcServer` + `startGrpcServer`.
+  Binds all six methods on `RESCUE_GRPC_PORT` (default 6004) with
+  insecure credentials (TLS terminates at nginx).
+- `src/index.ts` wires `pool` + `nats` into the gRPC server and
+  runs it alongside the HTTP `/health` surface; deps connect FIRST,
+  then start serving.
+
 ## What's NOT here yet
 
-- **Phase 4.3c** — gRPC server boot + adapter (port of
-  `services/pets/src/grpc/{adapter,server}.ts`), wired into
-  `index.ts` on `RESCUE_GRPC_PORT`.
 - **Phase 4.4** — NATS publishers (`rescue.created`,
   `rescue.verified`, `rescue.staffInvited`, etc.) + subscriber for
   `auth.userCreated` to denormalise staff_member rows.
