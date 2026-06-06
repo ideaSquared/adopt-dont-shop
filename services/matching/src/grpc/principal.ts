@@ -7,7 +7,7 @@
 // surface (matches the monolith's public /api/search/*); the gateway
 // will route it through an unauth adapter variant in Phase 9.3c.
 
-import type { Metadata } from '@grpc/grpc-js';
+import { Metadata } from '@grpc/grpc-js';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, RescueId, UserId, UserRole } from '@adopt-dont-shop/lib.types';
@@ -50,6 +50,23 @@ export function extractPrincipal(metadata: Metadata): Principal {
     permissions,
     rescueId,
   };
+}
+
+// Inverse of extractPrincipal — serialises a Principal back into the
+// x-user-* metadata headers for an OUTBOUND service-to-service call.
+// Recommend + SearchPets use this to forward the caller's identity to
+// service.pets (whose List gate requires the caller's `pets.read`), so
+// the downstream service runs its own authz against the real principal
+// rather than a synthesized system identity.
+export function principalToMetadata(principal: Principal): Metadata {
+  const metadata = new Metadata();
+  metadata.set('x-user-id', principal.userId);
+  metadata.set('x-user-roles', principal.roles.join(','));
+  metadata.set('x-user-permissions', principal.permissions.join(','));
+  if (principal.rescueId !== undefined) {
+    metadata.set('x-rescue-id', principal.rescueId);
+  }
+  return metadata;
 }
 
 function headerOne(metadata: Metadata, key: string): string | undefined {

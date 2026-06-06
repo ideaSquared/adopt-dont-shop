@@ -10,6 +10,7 @@ describe('loadConfig', () => {
     expect(config.port).toBe(5008);
     expect(config.grpcPort).toBe(6008);
     expect(config.schema).toBe('matching');
+    expect(config.petsGrpcUrl).toBe('service-pets:6003');
   });
 
   it('honours all env overrides when set', () => {
@@ -21,10 +22,12 @@ describe('loadConfig', () => {
       NODE_ENV: 'production',
       DATABASE_URL: 'postgres://x',
       NATS_URL: 'nats://nats.internal:4222',
+      PETS_GRPC_URL: 'pets.internal:6003',
     });
     expect(config.port).toBe(5500);
     expect(config.grpcPort).toBe(6500);
     expect(config.schema).toBe('matching_test');
+    expect(config.petsGrpcUrl).toBe('pets.internal:6003');
   });
 
   it('rejects a non-numeric MATCHING_PORT', () => {
