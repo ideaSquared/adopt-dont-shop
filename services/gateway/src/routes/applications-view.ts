@@ -157,3 +157,48 @@ function parseAnswers(answersJson: string | undefined): Record<string, unknown> 
     return undefined;
   }
 }
+
+// --- Document view -----------------------------------------------------
+//
+// The proto Document carries `documentId`; the frontend Document /
+// DocumentUpload schemas want `id`. Otherwise a 1:1 field rename.
+
+export type DocumentView = {
+  id: string;
+  applicationId: string;
+  type: string;
+  filename: string;
+  url: string;
+  uploadedAt: string;
+  size?: number;
+  mimeType?: string;
+};
+
+type ProtoDocument = {
+  documentId: string;
+  applicationId: string;
+  type: string;
+  filename: string;
+  url: string;
+  uploadedAt: string;
+  size?: number;
+  mimeType?: string;
+};
+
+export function documentToView(d: ProtoDocument): DocumentView {
+  const view: DocumentView = {
+    id: d.documentId,
+    applicationId: d.applicationId,
+    type: d.type,
+    filename: d.filename,
+    url: d.url,
+    uploadedAt: d.uploadedAt,
+  };
+  if (d.size !== undefined) {
+    view.size = d.size;
+  }
+  if (d.mimeType !== undefined) {
+    view.mimeType = d.mimeType;
+  }
+  return view;
+}

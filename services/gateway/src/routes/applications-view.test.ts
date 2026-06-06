@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { ApplicationsV1, type Application } from '@adopt-dont-shop/proto';
 
-import { applicationToView, isHiddenFromFrontend, statsToView } from './applications-view.js';
+import {
+  applicationToView,
+  documentToView,
+  isHiddenFromFrontend,
+  statsToView,
+} from './applications-view.js';
 
 const S = ApplicationsV1.ApplicationStatus;
 
@@ -137,5 +142,43 @@ describe('statsToView — count collapse', () => {
       rejected: 1,
       pendingReferences: 0,
     });
+  });
+});
+
+describe('documentToView', () => {
+  it('renames documentId → id and copies the rest', () => {
+    const v = documentToView({
+      documentId: 'doc-1',
+      applicationId: 'app-1',
+      type: 'id_verification',
+      filename: 'aaa.pdf',
+      url: '/uploads/documents/aaa.pdf',
+      uploadedAt: '2026-06-06T12:00:00.000Z',
+      size: 1234,
+      mimeType: 'application/pdf',
+    });
+    expect(v).toEqual({
+      id: 'doc-1',
+      applicationId: 'app-1',
+      type: 'id_verification',
+      filename: 'aaa.pdf',
+      url: '/uploads/documents/aaa.pdf',
+      uploadedAt: '2026-06-06T12:00:00.000Z',
+      size: 1234,
+      mimeType: 'application/pdf',
+    });
+  });
+
+  it('omits size/mimeType when absent', () => {
+    const v = documentToView({
+      documentId: 'doc-1',
+      applicationId: 'app-1',
+      type: 'x',
+      filename: 'x',
+      url: '/x',
+      uploadedAt: '2026',
+    });
+    expect('size' in v).toBe(false);
+    expect('mimeType' in v).toBe(false);
   });
 });

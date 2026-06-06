@@ -29,6 +29,7 @@ import type { NotificationsClient } from './grpc-clients/notifications-client.js
 import type { PetsClient } from './grpc-clients/pets-client.js';
 import type { RescueClient } from './grpc-clients/rescue-client.js';
 import { registerAuthenticate } from './middleware/authenticate.js';
+import { registerApplicationDocumentsRoutes } from './routes/application-documents.js';
 import { registerApplicationsRoutes } from './routes/applications.js';
 import { registerAuditRoutes } from './routes/audit.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -161,6 +162,21 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.applicationsClient && cutover.applications) {
     await registerApplicationsRoutes(server, { client: opts.applicationsClient });
+    // Application document routes (multipart upload → storage → AddDocument).
+    // Registered as part of the applications cutover surface; multipart is
+    // scoped here so non-applications routes are unaffected. The
+    // gateway-only `maxFileSize` field is stripped before passing to the
+    // storage package (which doesn't carry it).
+    const { default: multipart } = await import('@fastify/multipart');
+    await server.register(multipart, {
+      limits: { fileSize: config.storage.maxFileSize, files: 1 },
+    });
+    const { maxFileSize: _ignored, ...storageConfig } = config.storage;
+    void _ignored;
+    await registerApplicationDocumentsRoutes(server, {
+      client: opts.applicationsClient,
+      storage: storageConfig,
+    });
   }
 
   // Catch-all proxy. Phase 0f shipped this; Phase 1.6 leaves it in
