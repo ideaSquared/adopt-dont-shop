@@ -15,7 +15,13 @@
 // and `meta.total`/`totalPages` are best-effort (the proto List is keyset,
 // so there's no global count without a separate query).
 
-import { PetsV1, type ListPetsResponse, type Pet } from '@adopt-dont-shop/proto';
+import {
+  PetsV1,
+  type CreatePetRequest,
+  type ListPetsResponse,
+  type Pet,
+  type UpdatePetRequest,
+} from '@adopt-dont-shop/proto';
 
 // A proto int enum → the frontend's lowercase token (strip the SCREAMING
 // prefix). 0 (UNSPECIFIED) / -1 (UNRECOGNIZED) → undefined (omit — the
@@ -131,4 +137,225 @@ export function listToEnvelope(res: ListPetsResponse): {
     data,
     meta: { page: 1, total: data.length, totalPages: 1, hasNext, hasPrev: false },
   };
+}
+
+// --- Inverse adapter: frontend payload → proto request -----------------
+//
+// The SPA's create/update payload is the snake_case Pet shape (string enum
+// tokens, arrays, the long-tail good_with_*/vaccination_status/… fields),
+// produced by lib.pets' transformPetDataForAPI. These map it back to the
+// proto request: enum tokens → ints, arrays → *_json, and every field the
+// core proto message doesn't carry is packed into extra_json.
+
+// snake_case (and camelCase fallback) keys consumed by the core proto
+// fields — everything else in the body is packed into extra_json.
+const CORE_KEYS = new Set([
+  'name',
+  'rescue_id',
+  'rescueId',
+  'type',
+  'status',
+  'gender',
+  'size',
+  'age_group',
+  'ageGroup',
+  'breed_id',
+  'breedId',
+  'secondary_breed_id',
+  'secondaryBreedId',
+  'short_description',
+  'shortDescription',
+  'long_description',
+  'longDescription',
+  'age_years',
+  'ageYears',
+  'age_months',
+  'ageMonths',
+  'adoption_fee',
+  'adoptionFee',
+  'adoption_fee_minor',
+  'adoption_fee_currency',
+  'special_needs',
+  'specialNeeds',
+  'house_trained',
+  'houseTrained',
+  'featured',
+  'priority_listing',
+  'priorityListing',
+  'temperament',
+  'tags',
+]);
+
+function str(v: unknown): string | undefined {
+  return typeof v === 'string' && v !== '' ? v : undefined;
+}
+function int(v: unknown): number | undefined {
+  if (typeof v === 'number') {
+    return Math.trunc(v);
+  }
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number.parseInt(v, 10);
+    return Number.isNaN(n) ? undefined : n;
+  }
+  return undefined;
+}
+function boolean(v: unknown): boolean | undefined {
+  return typeof v === 'boolean' ? v : undefined;
+}
+function jsonArray(v: unknown): string | undefined {
+  return Array.isArray(v) ? JSON.stringify(v) : undefined;
+}
+// adoption_fee arrives as a decimal string/number; the proto wants minor units.
+function feeToMinor(v: unknown): number | undefined {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number.parseFloat(v) : NaN;
+  return Number.isFinite(n) ? Math.round(n * 100) : undefined;
+}
+
+// Accept the lowercase token ('dog') OR the SCREAMING proto name; unknown /
+// absent → UNSPECIFIED (the service then validates).
+function tokenToEnum(
+  fromJSON: (s: string) => number,
+  prefix: string,
+  raw: unknown,
+  unspecified: number
+): number {
+  if (typeof raw !== 'string' || raw === '') {
+    return unspecified;
+  }
+  const candidate = raw.startsWith(prefix) ? raw : `${prefix}${raw.toUpperCase()}`;
+  try {
+    const v = fromJSON(candidate);
+    return v < 0 ? unspecified : v;
+  } catch {
+    return unspecified;
+  }
+}
+
+function pickExtra(b: Record<string, unknown>): string {
+  const extra = Object.fromEntries(Object.entries(b).filter(([k]) => !CORE_KEYS.has(k)));
+  return JSON.stringify(extra);
+}
+
+export function viewToCreateRequest(body: unknown): CreatePetRequest {
+  const b = (body ?? {}) as Record<string, unknown>;
+  return {
+    name: str(b.name) ?? '',
+    rescueId: str(b.rescue_id ?? b.rescueId) ?? '',
+    type: tokenToEnum(
+      PetsV1.petTypeFromJSON,
+      'PET_TYPE_',
+      b.type,
+      PetsV1.PetType.PET_TYPE_UNSPECIFIED
+    ),
+    gender: tokenToEnum(
+      PetsV1.petGenderFromJSON,
+      'PET_GENDER_',
+      b.gender,
+      PetsV1.PetGender.PET_GENDER_UNSPECIFIED
+    ),
+    size: tokenToEnum(
+      PetsV1.petSizeFromJSON,
+      'PET_SIZE_',
+      b.size,
+      PetsV1.PetSize.PET_SIZE_UNSPECIFIED
+    ),
+    ageGroup: tokenToEnum(
+      PetsV1.petAgeGroupFromJSON,
+      'PET_AGE_GROUP_',
+      b.age_group ?? b.ageGroup,
+      PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED
+    ),
+    breedId: str(b.breed_id ?? b.breedId),
+    secondaryBreedId: str(b.secondary_breed_id ?? b.secondaryBreedId),
+    shortDescription: str(b.short_description ?? b.shortDescription),
+    longDescription: str(b.long_description ?? b.longDescription),
+    ageYears: int(b.age_years ?? b.ageYears),
+    ageMonths: int(b.age_months ?? b.ageMonths),
+    adoptionFeeMinor: feeToMinor(b.adoption_fee ?? b.adoptionFee ?? b.adoption_fee_minor),
+    adoptionFeeCurrency: str(b.adoption_fee_currency),
+    specialNeeds: boolean(b.special_needs ?? b.specialNeeds) ?? false,
+    houseTrained: boolean(b.house_trained ?? b.houseTrained) ?? false,
+    temperamentJson: jsonArray(b.temperament) ?? '[]',
+    tagsJson: jsonArray(b.tags) ?? '[]',
+    extraJson: pickExtra(b),
+  };
+}
+
+// Partial: only fields present in the body are set (the proto Update message
+// writes just the supplied ones). extra_json is always sent so long-tail
+// edits land; enum/scalars only when present.
+export function viewToUpdateRequest(petId: string, body: unknown): UpdatePetRequest {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const req: UpdatePetRequest = { petId, extraJson: pickExtra(b) };
+
+  const name = str(b.name);
+  if (name !== undefined) {
+    req.name = name;
+  }
+  const shortDescription = str(b.short_description ?? b.shortDescription);
+  if (shortDescription !== undefined) {
+    req.shortDescription = shortDescription;
+  }
+  const longDescription = str(b.long_description ?? b.longDescription);
+  if (longDescription !== undefined) {
+    req.longDescription = longDescription;
+  }
+  if (b.gender !== undefined) {
+    req.gender = tokenToEnum(
+      PetsV1.petGenderFromJSON,
+      'PET_GENDER_',
+      b.gender,
+      PetsV1.PetGender.PET_GENDER_UNSPECIFIED
+    );
+  }
+  if (b.size !== undefined) {
+    req.size = tokenToEnum(
+      PetsV1.petSizeFromJSON,
+      'PET_SIZE_',
+      b.size,
+      PetsV1.PetSize.PET_SIZE_UNSPECIFIED
+    );
+  }
+  if (b.age_group !== undefined || b.ageGroup !== undefined) {
+    req.ageGroup = tokenToEnum(
+      PetsV1.petAgeGroupFromJSON,
+      'PET_AGE_GROUP_',
+      b.age_group ?? b.ageGroup,
+      PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED
+    );
+  }
+  const breedId = str(b.breed_id ?? b.breedId);
+  if (breedId !== undefined) {
+    req.breedId = breedId;
+  }
+  const fee = feeToMinor(b.adoption_fee ?? b.adoptionFee ?? b.adoption_fee_minor);
+  if (fee !== undefined) {
+    req.adoptionFeeMinor = fee;
+  }
+  const specialNeeds = boolean(b.special_needs ?? b.specialNeeds);
+  if (specialNeeds !== undefined) {
+    req.specialNeeds = specialNeeds;
+  }
+  const houseTrained = boolean(b.house_trained ?? b.houseTrained);
+  if (houseTrained !== undefined) {
+    req.houseTrained = houseTrained;
+  }
+  const featured = boolean(b.featured);
+  if (featured !== undefined) {
+    req.featured = featured;
+  }
+  const priorityListing = boolean(b.priority_listing ?? b.priorityListing);
+  if (priorityListing !== undefined) {
+    req.priorityListing = priorityListing;
+  }
+  const temperament = jsonArray(b.temperament);
+  if (temperament !== undefined) {
+    req.temperamentJson = temperament;
+  }
+  const tags = jsonArray(b.tags);
+  if (tags !== undefined) {
+    req.tagsJson = tags;
+  }
+
+  return req;
 }

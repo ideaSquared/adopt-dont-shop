@@ -23,17 +23,16 @@ import rateLimit from '@fastify/rate-limit';
 import { Metadata, status } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import {
-  PetsV1,
-  type CreatePetRequest,
-  type ListPetsRequest,
-  type UpdatePetRequest,
-  type UpdatePetStatusRequest,
-} from '@adopt-dont-shop/proto';
+import { PetsV1, type ListPetsRequest, type UpdatePetStatusRequest } from '@adopt-dont-shop/proto';
 
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 
-import { listToEnvelope, petToView } from './pets-view.js';
+import {
+  listToEnvelope,
+  petToView,
+  viewToCreateRequest,
+  viewToUpdateRequest,
+} from './pets-view.js';
 
 export type PetsRoutesOptions = {
   client: PetsClient;
@@ -62,10 +61,8 @@ const PETS_RATE_LIMITS = {
   delete: { max: 30, timeWindow: '1 minute' },
 } as const;
 
-// Body shapes — kept narrow so a client typo doesn't get silently
-// forwarded as undefined to the proto encoder.
-type CreatePetBody = Partial<CreatePetRequest>;
-type UpdatePetBody = Partial<Omit<UpdatePetRequest, 'petId'>>;
+// The status route still takes a small bespoke body (the create/update
+// payloads are adapted from the frontend shape in pets-view.ts).
 type UpdateStatusBody = {
   toStatus?: string;
   reason?: string;
@@ -118,31 +115,14 @@ export const registerPetsRoutes = async (
     '/api/v1/pets',
     { config: { rateLimit: PETS_RATE_LIMITS.create } },
     async (req, reply) => {
-      const body = (req.body ?? {}) as CreatePetBody;
-      const grpcReq: CreatePetRequest = {
-        name: body.name ?? '',
-        rescueId: body.rescueId ?? '',
-        type: body.type ?? PetsV1.PetType.PET_TYPE_UNSPECIFIED,
-        gender: body.gender ?? PetsV1.PetGender.PET_GENDER_UNSPECIFIED,
-        size: body.size ?? PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
-        ageGroup: body.ageGroup ?? PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED,
-        breedId: body.breedId,
-        secondaryBreedId: body.secondaryBreedId,
-        shortDescription: body.shortDescription,
-        longDescription: body.longDescription,
-        ageYears: body.ageYears,
-        ageMonths: body.ageMonths,
-        adoptionFeeMinor: body.adoptionFeeMinor,
-        adoptionFeeCurrency: body.adoptionFeeCurrency,
-        specialNeeds: body.specialNeeds ?? false,
-        houseTrained: body.houseTrained ?? false,
-        temperamentJson: body.temperamentJson ?? '[]',
-        tagsJson: body.tagsJson ?? '[]',
-        extraJson: body.extraJson ?? '{}',
-      };
+      // Stage B: adapt the frontend snake_case/token payload → proto.
+      const grpcReq = viewToCreateRequest(req.body);
       try {
         const res = await client.create(grpcReq, buildMetadata(req));
-        return reply.code(201).send(PetsV1.CreatePetResponse.toJSON(res));
+        if (res.pet === undefined) {
+          return reply.code(500).send({ success: false, error: 'create returned no pet' });
+        }
+        return reply.code(201).send({ success: true, data: petToView(res.pet) });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -153,11 +133,13 @@ export const registerPetsRoutes = async (
     '/api/v1/pets/:id',
     { config: { rateLimit: PETS_RATE_LIMITS.update } },
     async (req, reply) => {
-      const body = (req.body ?? {}) as UpdatePetBody;
-      const grpcReq: UpdatePetRequest = { petId: req.params.id, ...body };
+      const grpcReq = viewToUpdateRequest(req.params.id, req.body);
       try {
         const res = await client.update(grpcReq, buildMetadata(req));
-        return reply.send(PetsV1.UpdatePetResponse.toJSON(res));
+        if (res.pet === undefined) {
+          return reply.code(404).send({ success: false, error: 'pet not found' });
+        }
+        return reply.send({ success: true, data: petToView(res.pet) });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -176,7 +158,10 @@ export const registerPetsRoutes = async (
       };
       try {
         const res = await client.updateStatus(grpcReq, buildMetadata(req));
-        return reply.send(PetsV1.UpdatePetStatusResponse.toJSON(res));
+        if (res.pet === undefined) {
+          return reply.code(404).send({ success: false, error: 'pet not found' });
+        }
+        return reply.send({ success: true, data: petToView(res.pet) });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -188,8 +173,8 @@ export const registerPetsRoutes = async (
     { config: { rateLimit: PETS_RATE_LIMITS.delete } },
     async (req, reply) => {
       try {
-        const res = await client.delete({ petId: req.params.id }, buildMetadata(req));
-        return reply.send(PetsV1.DeletePetResponse.toJSON(res));
+        await client.delete({ petId: req.params.id }, buildMetadata(req));
+        return reply.send({ success: true });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

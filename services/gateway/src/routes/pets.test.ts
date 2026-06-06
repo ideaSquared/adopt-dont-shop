@@ -196,26 +196,34 @@ describe('POST /api/v1/pets', () => {
         method: 'POST',
         url: '/api/v1/pets',
         headers: { 'x-user-id': 'usr-staff', 'x-user-roles': 'rescue_staff' },
+        // Frontend (lib.pets) payload: snake_case + token enums + long tail.
         payload: {
           name: 'Rex',
-          rescueId: 'rsc-1',
-          type: PetsV1.PetType.PET_TYPE_DOG,
-          gender: PetsV1.PetGender.PET_GENDER_MALE,
-          size: PetsV1.PetSize.PET_SIZE_LARGE,
-          ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_ADULT,
-          specialNeeds: false,
-          houseTrained: true,
-          temperamentJson: '["friendly"]',
-          tagsJson: '[]',
-          extraJson: '{}',
+          rescue_id: 'rsc-1',
+          type: 'dog',
+          gender: 'male',
+          size: 'large',
+          age_group: 'adult',
+          house_trained: true,
+          temperament: ['friendly'],
+          good_with_children: true,
+          adoption_fee: '125.00',
         },
       });
 
       expect(res.statusCode).toBe(201);
+      // Response is the frontend view envelope.
+      expect((res.json() as { success: boolean }).success).toBe(true);
       const [req] = createMock.mock.calls[0];
       expect(req.name).toBe('Rex');
       expect(req.rescueId).toBe('rsc-1');
       expect(req.type).toBe(PetsV1.PetType.PET_TYPE_DOG);
+      expect(req.ageGroup).toBe(PetsV1.PetAgeGroup.PET_AGE_GROUP_ADULT);
+      expect(req.houseTrained).toBe(true);
+      expect(req.temperamentJson).toBe('["friendly"]');
+      expect(req.adoptionFeeMinor).toBe(12500);
+      // long-tail field not on the core message is packed into extra_json.
+      expect(JSON.parse(req.extraJson)).toMatchObject({ good_with_children: true });
     } finally {
       await app.close();
     }
@@ -256,8 +264,9 @@ describe('PATCH /api/v1/pets/:id', () => {
         payload: { name: 'Rexy' },
       });
       expect(res.statusCode).toBe(200);
-      const body = res.json() as { pet: { name: string } };
-      expect(body.pet.name).toBe('Rexy');
+      const body = res.json() as { success: boolean; data: { name: string } };
+      expect(body.success).toBe(true);
+      expect(body.data.name).toBe('Rexy');
       const [req] = updateMock.mock.calls[0];
       expect(req.petId).toBe('pet-1');
       expect(req.name).toBe('Rexy');
@@ -335,7 +344,7 @@ describe('POST /api/v1/pets/:id/status', () => {
 });
 
 describe('DELETE /api/v1/pets/:id', () => {
-  it('soft-deletes and returns { deleted: true }', async () => {
+  it('soft-deletes and returns { success: true }', async () => {
     const { client, deleteMock } = makeClient();
     const app = await makeApp(client);
     try {
@@ -344,7 +353,7 @@ describe('DELETE /api/v1/pets/:id', () => {
 
       const res = await app.inject({ method: 'DELETE', url: '/api/v1/pets/pet-1' });
       expect(res.statusCode).toBe(200);
-      expect(res.json()).toMatchObject({ deleted: true });
+      expect(res.json()).toMatchObject({ success: true });
       const [req] = deleteMock.mock.calls[0];
       expect(req.petId).toBe('pet-1');
     } finally {
