@@ -13,9 +13,19 @@ discovery + search + swipe modules.
 **Phase 9.1** — boot skeleton: `/health/simple` on `MATCHING_PORT`
 (default 5008), OpenTelemetry boot, env-validated config.
 
+**Phase 9.2** — `matching.*` schema + migrations:
+- `001_create_swipe_sessions.ts` — behavioural session log;
+  `swipe_session_device_type` enum (desktop/mobile/tablet/unknown);
+  JSONB `filters` for schema-less filter evolution; non-paranoid,
+  no audit hooks.
+- `002_create_swipe_actions.ts` — high-volume action log;
+  `swipe_action_type` enum (like/pass/super_like/info);
+  `session_id` FK intra-schema CASCADE; `pet_id` / `user_id` soft
+  pointers; recommender hot-path idx `(user_id, action)`.
+- Run via `npm run db:migrate` (uses `@adopt-dont-shop/db`).
+
 ## What's NOT here yet
 
-- **Phase 9.2** — `matching.*` schema + migrations.
 - **Phase 9.3** — gRPC `MatchingService` (recommend, record-swipe,
   discover, search). Reads pets via gRPC from `service.pets`.
 - **Phase 9.4** — NATS publishers (`matching.swipeRecorded` etc.).
