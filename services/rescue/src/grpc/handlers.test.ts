@@ -436,3 +436,51 @@ describe('HandlerError', () => {
     expect(new HandlerError('NOT_FOUND', 'x').code).toBe('NOT_FOUND');
   });
 });
+
+describe('listRescues — new filters', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('threads a free-text name search as ILIKE %term%', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listRescues(mocks.deps, ADOPTER, {
+      limit: 0,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
+      nameSearch: 'happy',
+    } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(sql).toContain('ILIKE');
+    expect(params).toContain('%happy%');
+  });
+
+  it('randomize switches ORDER BY to random()', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listRescues(mocks.deps, ADOPTER, {
+      limit: 0,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
+      randomize: true,
+    } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    expect(sql).toContain('ORDER BY random()');
+    expect(sql).not.toContain('created_at DESC');
+  });
+
+  it('lat/lng/radius today maps to an impossible WHERE (no geo columns in the schema yet)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listRescues(mocks.deps, ADOPTER, {
+      limit: 0,
+      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
+      latitude: 53.96,
+      longitude: -1.08,
+      radiusKm: 25,
+    } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    expect(sql).toContain('FALSE');
+  });
+});

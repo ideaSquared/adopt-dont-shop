@@ -315,18 +315,45 @@ export async function listRescues(
     n++;
   }
 
-  if (cursor) {
+  // Free-text name search (case-insensitive substring).
+  if (req.nameSearch !== undefined && req.nameSearch !== '') {
+    where.push(`name ILIKE $${n}`);
+    params.push(`%${req.nameSearch}%`);
+    n++;
+  }
+
+  // "Nearby" — the rescue.rescues schema doesn't carry lat/lng columns
+  // today (postcode + city only). Accept the filter at the API boundary
+  // so the SPA's /rescues/nearby route is wired, but return an empty
+  // result-shape signal by forcing an impossible predicate. A future
+  // migration can replace this with a real geo filter (PostGIS, or
+  // lat/lng columns + earth_distance) without changing the wire shape.
+  if (
+    req.latitude !== undefined &&
+    req.longitude !== undefined &&
+    req.radiusKm !== undefined &&
+    req.radiusKm > 0
+  ) {
+    where.push('FALSE');
+  }
+
+  // Keyset cursor is only meaningful in the default (created_at DESC)
+  // ordering; randomize bypasses it.
+  const useRandom = req.randomize === true;
+  if (cursor && !useRandom) {
     where.push(`(created_at, rescue_id) < ($${n}, $${n + 1})`);
     params.push(new Date(cursor.createdAt));
     params.push(cursor.rescueId);
     n += 2;
   }
 
+  const orderBy = useRandom ? 'random()' : 'created_at DESC, rescue_id DESC';
+
   const result = await deps.pool.query<RescueRow>(
     `
     SELECT ${RESCUES_SELECT} FROM rescue.rescues
     WHERE ${where.join(' AND ')}
-    ORDER BY created_at DESC, rescue_id DESC
+    ORDER BY ${orderBy}
     LIMIT $${n}
     `,
     [...params, limit + 1]

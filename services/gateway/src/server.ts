@@ -39,6 +39,7 @@ import { registerModerationRoutes } from './routes/moderation.js';
 import { registerNotificationsRoutes } from './routes/notifications.js';
 import { registerPetsRoutes } from './routes/pets.js';
 import { registerRescueRoutes } from './routes/rescue.js';
+import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
 
 export type CreateServerOptions = {
   config: GatewayConfig;
@@ -151,6 +152,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.rescueClient && cutover.rescue) {
     await registerRescueRoutes(server, { client: opts.rescueClient });
+    // SPA-facing surface at /api/v1/rescues/* (plural — the path
+    // lib.rescue actually calls).
+    await registerRescuesPublicRoutes(server, { client: opts.rescueClient });
   }
   if (opts.auditClient && cutover.audit) {
     await registerAuditRoutes(server, { client: opts.auditClient });
