@@ -18,7 +18,7 @@
 // read-model projection commit atomically, and NATS publishes only
 // after commit (publish-after-commit).
 
-import type { PoolClient } from 'pg';
+import type { PoolClient, QueryResult, QueryResultRow } from 'pg';
 
 import {
   apply,
@@ -30,6 +30,13 @@ import {
 // pg's 23505 is unique_violation. The (aggregate_id, version) UNIQUE
 // index trips this when two writers race at the same version.
 const PG_UNIQUE_VIOLATION = '23505';
+
+// Both `Pool` and `PoolClient` satisfy this — the write path passes the
+// transaction's PoolClient, the read path (Get/List handlers) passes
+// the pool directly since reads don't need a transaction.
+export type Queryable = {
+  query<R extends QueryResultRow>(text: string, values?: unknown[]): Promise<QueryResult<R>>;
+};
 
 export class ConcurrencyError extends Error {
   constructor(message: string) {
@@ -44,15 +51,41 @@ type EventRow = {
   version: number;
 };
 
+// A persisted event row with its forensic metadata. The read-side
+// timeline projection (GetApplication include_timeline) needs the
+// event_id (stable entry id), occurred_at (when it happened) and
+// actor_user_id (who did it) that the folded ApplicationState drops.
+export type EventStoreRow = {
+  event_id: string;
+  event_data: ApplicationEvent;
+  occurred_at: Date;
+  actor_user_id: string | null;
+  version: number;
+};
+
+// loadEventRows reads the raw event stream for an aggregate in version
+// order, metadata included. Returns [] for an unknown aggregate. Both
+// loadAggregate and the read-side timeline builder fold over these.
+export async function loadEventRows(
+  db: Queryable,
+  aggregateId: string
+): Promise<ReadonlyArray<EventStoreRow>> {
+  const { rows } = await db.query<EventStoreRow>(
+    `SELECT event_id, event_data, occurred_at, actor_user_id, version
+     FROM application_events
+     WHERE aggregate_id = $1
+     ORDER BY version ASC`,
+    [aggregateId]
+  );
+  return rows;
+}
+
 // loadAggregate reads + folds the event stream. Returns INITIAL_STATE
 // when no events exist (a fresh aggregate). The folded state's
 // `version` matches the highest event version, which is the optimistic-
 // concurrency cursor the caller checks against expected_version.
-export async function loadAggregate(
-  client: PoolClient,
-  aggregateId: string
-): Promise<ApplicationState> {
-  const { rows } = await client.query<EventRow>(
+export async function loadAggregate(db: Queryable, aggregateId: string): Promise<ApplicationState> {
+  const { rows } = await db.query<EventRow>(
     `SELECT event_type, event_data, version
      FROM application_events
      WHERE aggregate_id = $1
