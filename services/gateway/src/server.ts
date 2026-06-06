@@ -34,6 +34,7 @@ import { registerApplicationsRoutes } from './routes/applications.js';
 import { registerAuditRoutes } from './routes/audit.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerMatchingRoutes } from './routes/matching.js';
+import { registerModerationAdminRoutes } from './routes/moderation-admin.js';
 import { registerModerationRoutes } from './routes/moderation.js';
 import { registerNotificationsRoutes } from './routes/notifications.js';
 import { registerPetsRoutes } from './routes/pets.js';
@@ -159,6 +160,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.moderationClient && cutover.moderation) {
     await registerModerationRoutes(server, { client: opts.moderationClient });
+    // SPA-facing surface at /api/v1/admin/{moderation,support}/* with
+    // frontend-shape envelopes (lib.moderation, lib.support-tickets).
+    await registerModerationAdminRoutes(server, { client: opts.moderationClient });
   }
   if (opts.applicationsClient && cutover.applications) {
     await registerApplicationsRoutes(server, { client: opts.applicationsClient });
