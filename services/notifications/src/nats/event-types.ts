@@ -95,3 +95,41 @@ export type PetDeletedEvent = {
   petId: string;
   rescueId: string | null;
 };
+
+// rescue.verified — service.rescue publishes after an admin verifies
+// a rescue (Phase 4.3b). Payload carries the from/to status pair so
+// downstream subscribers can pick out the verified-from-pending case
+// vs the reinstate-from-suspended case.
+//
+// Phase 4.4: log-only on the consumer side. Surfacing a user-facing
+// notification needs recipient discovery (the rescue's contact_person /
+// created_by) — same recipient-discovery deferral as pets.statusChanged.
+export type RescueVerifiedEvent = {
+  rescueId: string;
+  fromStatus: string;
+  toStatus: string;
+  reason: string | null;
+};
+
+// rescue.rejected — service.rescue publishes when an admin rejects a
+// pending application. Payload mirrors RescueVerifiedEvent (same
+// emit shape on the rescue side).
+export type RescueRejectedEvent = {
+  rescueId: string;
+  fromStatus: string;
+  toStatus: string;
+  reason: string | null;
+};
+
+// rescue.staffInvited — service.rescue publishes when InviteStaff
+// mints + persists an invitation row (Phase 4.3b). Includes the
+// invitee email so an email worker can dispatch the invite token.
+// The plain-text token itself is NOT in the payload (it's returned
+// in the InviteStaffResponse and never persisted in NATS).
+export type RescueStaffInvitedEvent = {
+  invitationId: string;
+  rescueId: string;
+  email: string;
+  invitedBy: string;
+  expiration: string;
+};
