@@ -1,0 +1,38 @@
+{
+  "name": "@adopt-dont-shop/service.chat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chat service — Phase 6 extraction. Owns the chat.* schema (Chat, ChatParticipant, Message, MessageReaction, MessageRead) and exposes gRPC ChatService for send/list/markRead. WS-heavy — the gateway terminates Socket.IO and this service publishes chat.messageCreated etc. on NATS for fan-out via the gateway's existing Phase 1.5 WS subscriber. Phase 6.1 commit is just the boot skeleton; schema/gRPC/NATS/gateway land in later phases.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/server.ts",
+      "import": "./src/server.ts",
+      "default": "./src/server.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx watch --import ./src/instrumentation.ts ./src/index.ts",
+    "start": "node --import ./dist/instrumentation.js ./dist/index.js",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@adopt-dont-shop/observability": "*",
+    "fastify": "^5.8.5"
+  }
+}
