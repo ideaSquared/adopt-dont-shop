@@ -1,0 +1,38 @@
+{
+  "name": "@adopt-dont-shop/service.moderation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Moderation service — Phase 8 extraction. Owns the moderation.* schema (Report, ModeratorAction, ModerationEvidence, UserSanction, SupportTicket, SupportTicketResponse) and exposes gRPC ModerationService. Cross-cutting reads via gRPC; consumes events (chat.messageCreated, pets.created, applications.submitted) for content scanning + auto-report triggers. Polymorphic evidence model preserved (parent_type enum). Phase 8.1 commit is just the boot skeleton; schema/gRPC/NATS/gateway land in later phases.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/server.ts",
+      "import": "./src/server.ts",
+      "default": "./src/server.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx watch --import ./src/instrumentation.ts ./src/index.ts",
+    "start": "node --import ./dist/instrumentation.js ./dist/index.js",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@adopt-dont-shop/observability": "*",
+    "fastify": "^5.8.5"
+  }
+}
