@@ -11,12 +11,11 @@
 // all sharing the (deps, principal, request) → Promise<response> shape
 // so the adapter wraps them uniformly.
 //
-// StartDraft is a deliberate UNIMPLEMENTED stub (same approach as
-// matching's Recommend/SearchPets). The pure domain requires a
-// non-empty rescueId at draft creation — a cross-schema pets lookup —
-// and StartDraftRequest doesn't carry one. It waits on the service.pets
-// gRPC client; the gateway maps UNIMPLEMENTED → 501 so callers degrade
-// gracefully rather than getting a silent failure.
+// StartDraft is now live: it resolves pet → rescue via a service.pets
+// gRPC client (the pure domain requires the rescueId, which
+// StartDraftRequest doesn't carry) before commanding the domain. The
+// client is injected so tests can stub it; real boot builds one from
+// config.petsGrpcUrl.
 //
 // Dev uses insecure credentials (TLS terminates at nginx in front);
 // production keeps gRPC HTTP/2 cleartext on the cluster network until a
@@ -24,14 +23,7 @@
 
 import { promisify } from 'node:util';
 
-import {
-  Server,
-  ServerCredentials,
-  status,
-  type ServerUnaryCall,
-  type ServiceError,
-  type sendUnaryData,
-} from '@grpc/grpc-js';
+import { Server, ServerCredentials } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
@@ -42,7 +34,8 @@ import { ApplicationsV1 } from '@adopt-dont-shop/proto';
 import type { ApplicationsConfig } from '../config.js';
 
 import { adapt } from './adapter.js';
-import { saveDraftAnswers, submitDraft } from './handlers.js';
+import { makeStartDraft, saveDraftAnswers, submitDraft } from './handlers.js';
+import { createPetsClient, type PetsClient } from './pets-client.js';
 import { getApplication, listApplications } from './read-handlers.js';
 import {
   approve,
@@ -59,6 +52,11 @@ export type CreateGrpcServerOptions = {
   pool: Pool;
   nats: NatsConnection;
   logger: Logger;
+  // Injected for StartDraft's pet → rescue lookup. Optional: when
+  // omitted (createGrpcServer called directly, e.g. in tests) a lazy
+  // client is built from config.petsGrpcUrl. startGrpcServer always
+  // builds + owns one so it can close it on shutdown.
+  petsClient?: PetsClient;
 };
 
 export type RunningGrpcServer = {
@@ -70,20 +68,12 @@ export type RunningGrpcServer = {
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger } = opts;
   const deps = { pool, nats };
+  const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
   const server = new Server();
 
-  const notImplemented =
-    (rpc: string) =>
-    (_call: ServerUnaryCall<unknown, unknown>, callback: sendUnaryData<unknown>): void => {
-      const err = new Error(`${rpc} not yet implemented`) as ServiceError;
-      err.code = status.UNIMPLEMENTED;
-      err.details = err.message;
-      callback(err, null);
-    };
-
   server.addService(ApplicationsV1.ApplicationServiceService, {
-    // Draft lifecycle (handlers.ts). StartDraft deferred — see header.
-    startDraft: notImplemented('StartDraft'),
+    // Draft lifecycle (handlers.ts).
+    startDraft: adapt(makeStartDraft(petsClient), { deps, logger }),
     saveDraftAnswers: adapt(saveDraftAnswers, { deps, logger }),
     submitDraft: adapt(submitDraft, { deps, logger }),
     // Review / visit / decision (review-handlers.ts)
@@ -101,7 +91,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
 
   logger.info('gRPC ApplicationService registered', {
     methods: [
-      'startDraft (stub)',
+      'startDraft',
       'saveDraftAnswers',
       'submitDraft',
       'startReview',
@@ -124,7 +114,9 @@ export const startGrpcServer = async (
   opts: CreateGrpcServerOptions
 ): Promise<RunningGrpcServer> => {
   const { config, logger } = opts;
-  const server = createGrpcServer(opts);
+  // Build + own the pets client here so it's closed on shutdown.
+  const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
+  const server = createGrpcServer({ ...opts, petsClient });
 
   const bindAsync = promisify<string, ServerCredentials, number>(server.bindAsync.bind(server));
   const port = await bindAsync(
@@ -142,6 +134,11 @@ export const startGrpcServer = async (
         server.tryShutdown(err => {
           if (err) {
             logger.error('gRPC server shutdown error', { err });
+          }
+          try {
+            petsClient.close();
+          } catch (closeErr) {
+            logger.error('pets client close error', { err: closeErr });
           }
           resolve();
         });

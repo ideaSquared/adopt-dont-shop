@@ -14,6 +14,7 @@ import {
   apply as applyEvent,
   DomainError,
   handle,
+  INITIAL_STATE,
   type ApplicationCommand,
   type ApplicationState,
 } from '../domain/index.js';
@@ -77,6 +78,50 @@ export async function runCommand(
     // Fold the new events onto the loaded state to get the post-command
     // state, then project + publish.
     const nextState = events.reduce<ApplicationState>((s, e) => applyEvent(s, e), state);
+
+    await projectReadModel(client, nextState);
+
+    const evt = publishFor(nextState);
+    if (evt !== null) {
+      publish(evt);
+    }
+
+    return nextState;
+  });
+}
+
+// Create-flow counterpart to runCommand. StartDraft is the one command
+// that operates on a FRESH aggregate: the pure domain mints the
+// applicationId inside the DraftCreated event, so the caller can't know
+// the aggregate id up front. We run handle() against INITIAL_STATE,
+// read the minted id off the produced event, and append from version 0.
+// A freshly-minted UUID can't collide, so there's no optimistic-
+// concurrency path here.
+export async function runCreateCommand(
+  deps: HandlerDeps,
+  command: ApplicationCommand,
+  actorUserId: string,
+  publishFor: (state: ApplicationState) => PublishEnvelope | null
+): Promise<ApplicationState> {
+  return withTransaction(deps, async ({ client, publish }) => {
+    let events;
+    try {
+      events = handle(INITIAL_STATE, command);
+    } catch (err) {
+      if (err instanceof DomainError) {
+        throw domainErrorToHandler(err);
+      }
+      throw err;
+    }
+
+    // Every application event carries the aggregate's id; the create
+    // command always produces exactly the DraftCreated event whose
+    // applicationId IS the new aggregate id.
+    const aggregateId = events[0].applicationId;
+
+    await appendEvents(client, aggregateId, 0, events, actorUserId);
+
+    const nextState = events.reduce<ApplicationState>((s, e) => applyEvent(s, e), INITIAL_STATE);
 
     await projectReadModel(client, nextState);
 

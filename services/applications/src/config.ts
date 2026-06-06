@@ -26,6 +26,11 @@ export type ApplicationsConfig = {
   // is the multi-consumer event firehose that justifies the
   // event-sourced design.
   natsUrl: string;
+  // service.pets gRPC URL — StartDraft resolves pet → rescue via
+  // PetService.Get before commanding the domain (the cross-schema FK
+  // the database can't enforce). Defaults to the same service-pets:6003
+  // address the gateway uses.
+  petsGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 5005;
@@ -33,6 +38,7 @@ const DEFAULT_GRPC_PORT = 6005;
 const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_SCHEMA = 'applications';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
+const DEFAULT_PETS_GRPC_URL = 'service-pets:6003';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ApplicationsConfig => {
   const port = parsePort(env.APPLICATIONS_PORT, DEFAULT_PORT, 'APPLICATIONS_PORT');
@@ -55,6 +61,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ApplicationsCo
     databaseUrl,
     schema: env.APPLICATIONS_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
+    petsGrpcUrl: env.PETS_GRPC_URL?.trim() || DEFAULT_PETS_GRPC_URL,
   };
 };
 
