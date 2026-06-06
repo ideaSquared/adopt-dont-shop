@@ -4,12 +4,15 @@ import {
   ApplicationsV1,
   AuthV1,
   ChatV1,
+  ModerationV1,
   NotificationsV1,
   PetsV1,
   PingV1,
   RescueV1,
   type Application,
   type Chat,
+  type FileReportRequest,
+  type Report,
   type SendMessageRequest,
   type AuthUser,
   type CreateNotificationRequest,
@@ -560,6 +563,113 @@ describe('@adopt-dont-shop/proto', () => {
         updatedAt: '2026-06-01T00:00:00Z',
       };
       expect(c.chatId).toBe('c-1');
+    });
+  });
+
+  describe('ModerationV1 namespace (Phase 8.3a — proto + grpc-js stubs)', () => {
+    it('exports the message factories under the ModerationV1 namespace', () => {
+      expect(ModerationV1.Report).toBeDefined();
+      expect(ModerationV1.ReportStatusTransition).toBeDefined();
+      expect(ModerationV1.ModeratorAction).toBeDefined();
+      expect(ModerationV1.Evidence).toBeDefined();
+      expect(ModerationV1.UserSanction).toBeDefined();
+      expect(ModerationV1.SupportTicket).toBeDefined();
+      expect(ModerationV1.SupportTicketResponse).toBeDefined();
+      expect(ModerationV1.FileReportRequest).toBeDefined();
+      expect(ModerationV1.AssignReportRequest).toBeDefined();
+      expect(ModerationV1.LogModeratorActionRequest).toBeDefined();
+      expect(ModerationV1.IssueSanctionRequest).toBeDefined();
+      expect(ModerationV1.OpenSupportTicketRequest).toBeDefined();
+    });
+
+    it('exports the gRPC service definition table for all fourteen RPCs', () => {
+      expect(ModerationV1.ModerationServiceService).toBeDefined();
+      expect(ModerationV1.ModerationServiceService).toMatchObject({
+        fileReport: { path: '/adopt_dont_shop.moderation.v1.ModerationService/FileReport' },
+        getReport: { path: '/adopt_dont_shop.moderation.v1.ModerationService/GetReport' },
+        listReports: { path: '/adopt_dont_shop.moderation.v1.ModerationService/ListReports' },
+        assignReport: { path: '/adopt_dont_shop.moderation.v1.ModerationService/AssignReport' },
+        resolveReport: { path: '/adopt_dont_shop.moderation.v1.ModerationService/ResolveReport' },
+        logModeratorAction: {
+          path: '/adopt_dont_shop.moderation.v1.ModerationService/LogModeratorAction',
+        },
+        listModeratorActions: {
+          path: '/adopt_dont_shop.moderation.v1.ModerationService/ListModeratorActions',
+        },
+        addEvidence: { path: '/adopt_dont_shop.moderation.v1.ModerationService/AddEvidence' },
+        issueSanction: { path: '/adopt_dont_shop.moderation.v1.ModerationService/IssueSanction' },
+        listUserSanctions: {
+          path: '/adopt_dont_shop.moderation.v1.ModerationService/ListUserSanctions',
+        },
+        appealSanction: { path: '/adopt_dont_shop.moderation.v1.ModerationService/AppealSanction' },
+        openSupportTicket: {
+          path: '/adopt_dont_shop.moderation.v1.ModerationService/OpenSupportTicket',
+        },
+        getSupportTicket: {
+          path: '/adopt_dont_shop.moderation.v1.ModerationService/GetSupportTicket',
+        },
+        listSupportTickets: {
+          path: '/adopt_dont_shop.moderation.v1.ModerationService/ListSupportTickets',
+        },
+        respondToTicket: {
+          path: '/adopt_dont_shop.moderation.v1.ModerationService/RespondToTicket',
+        },
+      });
+    });
+
+    it('exports a gRPC client constructor', () => {
+      expect(ModerationV1.ModerationServiceClient).toBeDefined();
+      expect(typeof ModerationV1.ModerationServiceClient).toBe('function');
+    });
+
+    it('round-trips a FileReportRequest through the binary wire format', () => {
+      const original: FileReportRequest = {
+        reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_USER,
+        reportedEntityId: 'usr-123',
+        category: ModerationV1.ReportCategory.REPORT_CATEGORY_HARASSMENT,
+        severity: ModerationV1.Severity.SEVERITY_HIGH,
+        title: 'abusive DMs',
+        description: 'user sent threatening messages',
+      };
+      const buf = ModerationV1.FileReportRequest.encode(original).finish();
+      const decoded = ModerationV1.FileReportRequest.decode(buf);
+      expect(decoded).toMatchObject(original);
+    });
+
+    it('flat type-only re-exports compile in type position', () => {
+      const r: Report = {
+        reportId: 'rpt-1',
+        reporterId: 'usr-1',
+        reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_USER,
+        reportedEntityId: 'usr-2',
+        category: ModerationV1.ReportCategory.REPORT_CATEGORY_SPAM,
+        severity: ModerationV1.Severity.SEVERITY_LOW,
+        status: ModerationV1.ReportStatus.REPORT_STATUS_PENDING,
+        title: 'spam',
+        description: 'spam profile',
+        metadataJson: '{}',
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+      };
+      expect(r.reportId).toBe('rpt-1');
+    });
+
+    it('mirrors the moderation.* Postgres enum values verbatim (excluding UNSPECIFIED + UNRECOGNIZED sentinels)', () => {
+      // Bite #10: ts-proto adds UNRECOGNIZED = -1; UNSPECIFIED = 0
+      // is the proto3 sentinel. Both filtered.
+      const reportStatusValues = Object.values(ModerationV1.ReportStatus).filter(
+        (v): v is number => typeof v === 'number' && v > 0
+      );
+      // pending, under_review, resolved, dismissed, escalated = 5
+      expect(reportStatusValues).toHaveLength(5);
+
+      const sanctionTypeValues = Object.values(ModerationV1.SanctionType).filter(
+        (v): v is number => typeof v === 'number' && v > 0
+      );
+      // warning, restriction, temporary_ban, permanent_ban,
+      // messaging_restriction, posting_restriction,
+      // application_restriction = 7
+      expect(sanctionTypeValues).toHaveLength(7);
     });
   });
 });

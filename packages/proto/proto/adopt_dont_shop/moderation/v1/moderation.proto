@@ -1,0 +1,609 @@
+syntax = "proto3";
+
+package adopt_dont_shop.moderation.v1;
+
+// ModerationService is the gRPC contract for the moderation vertical.
+// It owns the `moderation.*` schema (Report, ReportStatusTransition,
+// ModeratorAction, ModerationEvidence, UserSanction, SupportTicket,
+// SupportTicketResponse) and exposes the full file-report ➜ moderator
+// action ➜ user sanction lifecycle plus the support ticket surface.
+//
+// Cross-cutting reads (the report card needs the reporter's name from
+// auth, the message body from chat, the pet info from pets) are
+// resolved by the GATEWAY composing this service's gRPC with auth /
+// chat / pets gRPC. ModerationService never reaches across schemas
+// itself.
+//
+// Same conventions as the rest of the stack: ISO-8601 timestamps as
+// strings, opaque base64-JSON keyset cursors, enum values mirror the
+// Postgres ENUM names verbatim (UNSPECIFIED = 0 sentinel).
+service ModerationService {
+  // ---------- Reports ----------
+
+  // File a new report against an entity. The reporter is the calling
+  // principal; reported_entity_type + reported_entity_id identify the
+  // target. Publishes moderation.reportFiled after commit so the
+  // notification fan-out and the audit subscriber both see it.
+  rpc FileReport(FileReportRequest) returns (FileReportResponse);
+
+  // Fetch a single report by id. Returns the row + its status
+  // transition history. Caller MUST be the reporter, the assigned
+  // moderator, or an admin.
+  rpc GetReport(GetReportRequest) returns (GetReportResponse);
+
+  // List reports with keyset pagination. Filters: status / severity /
+  // category / assigned_moderator. Moderator inbox + admin overview
+  // both hit this RPC.
+  rpc ListReports(ListReportsRequest) returns (ListReportsResponse);
+
+  // Assign a report to a moderator (or self-assign). Records a
+  // report_status_transition (under_review). Publishes
+  // moderation.reportAssigned.
+  rpc AssignReport(AssignReportRequest) returns (AssignReportResponse);
+
+  // Resolve a report. Writes the resolution metadata + status
+  // transition (resolved). Publishes moderation.reportResolved.
+  rpc ResolveReport(ResolveReportRequest) returns (ResolveReportResponse);
+
+  // ---------- Moderator actions ----------
+
+  // Log a moderator action (warning issued, content removed, user
+  // suspended, etc.). May or may not be tied to a report. Publishes
+  // moderation.actionLogged so the audit consumer captures the
+  // forensic record.
+  rpc LogModeratorAction(LogModeratorActionRequest) returns (LogModeratorActionResponse);
+
+  // List moderator actions, filterable by target_user / report /
+  // action_type. Powers the user-history modal in admin UI.
+  rpc ListModeratorActions(ListModeratorActionsRequest) returns (ListModeratorActionsResponse);
+
+  // ---------- Evidence ----------
+
+  // Attach an evidence record to a report or moderator action.
+  // Polymorphic via (parent_type, parent_id). content is opaque text
+  // (URL, screenshot S3 key, raw text snippet).
+  rpc AddEvidence(AddEvidenceRequest) returns (AddEvidenceResponse);
+
+  // ---------- User sanctions ----------
+
+  // Issue a sanction against a user. Tied optionally to a report
+  // and/or moderator action. Publishes moderation.sanctionIssued so
+  // notifications fans to the affected user.
+  rpc IssueSanction(IssueSanctionRequest) returns (IssueSanctionResponse);
+
+  // List a user's sanctions — the banner query the auth/sanctions
+  // endpoint serves. By default returns ACTIVE sanctions only (the
+  // (user_id, is_active, end_date) compound idx the schema ships
+  // backs this).
+  rpc ListUserSanctions(ListUserSanctionsRequest) returns (ListUserSanctionsResponse);
+
+  // Submit an appeal against an existing sanction. Records the
+  // appeal metadata on the sanction row + publishes
+  // moderation.sanctionAppealed.
+  rpc AppealSanction(AppealSanctionRequest) returns (AppealSanctionResponse);
+
+  // ---------- Support tickets ----------
+
+  // Open a new support ticket. user_id is optional — unauthenticated
+  // users can open tickets too (email + name only). Publishes
+  // moderation.ticketOpened.
+  rpc OpenSupportTicket(OpenSupportTicketRequest) returns (OpenSupportTicketResponse);
+
+  // Fetch a single support ticket + its response thread.
+  rpc GetSupportTicket(GetSupportTicketRequest) returns (GetSupportTicketResponse);
+
+  // List support tickets, filterable by status / priority /
+  // assigned_to / category.
+  rpc ListSupportTickets(ListSupportTicketsRequest) returns (ListSupportTicketsResponse);
+
+  // Append a response to a ticket. responder_type indicates whether
+  // the response is from staff or the user.
+  rpc RespondToTicket(RespondToTicketRequest) returns (RespondToTicketResponse);
+}
+
+// ===== Enums =========================================================
+//
+// Mirror the moderation.* Postgres ENUMs verbatim so the gateway's
+// REST → gRPC translation is a name match. UNSPECIFIED = 0 is the
+// proto3 sentinel; ts-proto adds UNRECOGNIZED = -1 too (see Bite #10
+// in the lessons doc).
+
+enum ReportEntityType {
+  REPORT_ENTITY_TYPE_UNSPECIFIED = 0;
+  REPORT_ENTITY_TYPE_USER = 1;
+  REPORT_ENTITY_TYPE_RESCUE = 2;
+  REPORT_ENTITY_TYPE_PET = 3;
+  REPORT_ENTITY_TYPE_APPLICATION = 4;
+  REPORT_ENTITY_TYPE_MESSAGE = 5;
+  REPORT_ENTITY_TYPE_CONVERSATION = 6;
+}
+
+enum ReportCategory {
+  REPORT_CATEGORY_UNSPECIFIED = 0;
+  REPORT_CATEGORY_INAPPROPRIATE_CONTENT = 1;
+  REPORT_CATEGORY_SPAM = 2;
+  REPORT_CATEGORY_HARASSMENT = 3;
+  REPORT_CATEGORY_FALSE_INFORMATION = 4;
+  REPORT_CATEGORY_SCAM = 5;
+  REPORT_CATEGORY_ANIMAL_WELFARE = 6;
+  REPORT_CATEGORY_IDENTITY_THEFT = 7;
+  REPORT_CATEGORY_OTHER = 8;
+}
+
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  SEVERITY_LOW = 1;
+  SEVERITY_MEDIUM = 2;
+  SEVERITY_HIGH = 3;
+  SEVERITY_CRITICAL = 4;
+}
+
+enum ReportStatus {
+  REPORT_STATUS_UNSPECIFIED = 0;
+  REPORT_STATUS_PENDING = 1;
+  REPORT_STATUS_UNDER_REVIEW = 2;
+  REPORT_STATUS_RESOLVED = 3;
+  REPORT_STATUS_DISMISSED = 4;
+  REPORT_STATUS_ESCALATED = 5;
+}
+
+enum ModeratorActionType {
+  MODERATOR_ACTION_TYPE_UNSPECIFIED = 0;
+  MODERATOR_ACTION_TYPE_WARNING_ISSUED = 1;
+  MODERATOR_ACTION_TYPE_CONTENT_REMOVED = 2;
+  MODERATOR_ACTION_TYPE_USER_SUSPENDED = 3;
+  MODERATOR_ACTION_TYPE_USER_BANNED = 4;
+  MODERATOR_ACTION_TYPE_ACCOUNT_RESTRICTED = 5;
+  MODERATOR_ACTION_TYPE_CONTENT_FLAGGED = 6;
+  MODERATOR_ACTION_TYPE_REPORT_DISMISSED = 7;
+  MODERATOR_ACTION_TYPE_ESCALATION = 8;
+  MODERATOR_ACTION_TYPE_APPEAL_REVIEWED = 9;
+  MODERATOR_ACTION_TYPE_NO_ACTION = 10;
+}
+
+enum EvidenceParentType {
+  EVIDENCE_PARENT_TYPE_UNSPECIFIED = 0;
+  EVIDENCE_PARENT_TYPE_REPORT = 1;
+  EVIDENCE_PARENT_TYPE_MODERATOR_ACTION = 2;
+}
+
+enum EvidenceType {
+  EVIDENCE_TYPE_UNSPECIFIED = 0;
+  EVIDENCE_TYPE_SCREENSHOT = 1;
+  EVIDENCE_TYPE_URL = 2;
+  EVIDENCE_TYPE_TEXT = 3;
+  EVIDENCE_TYPE_FILE = 4;
+}
+
+enum SanctionType {
+  SANCTION_TYPE_UNSPECIFIED = 0;
+  SANCTION_TYPE_WARNING = 1;
+  SANCTION_TYPE_RESTRICTION = 2;
+  SANCTION_TYPE_TEMPORARY_BAN = 3;
+  SANCTION_TYPE_PERMANENT_BAN = 4;
+  SANCTION_TYPE_MESSAGING_RESTRICTION = 5;
+  SANCTION_TYPE_POSTING_RESTRICTION = 6;
+  SANCTION_TYPE_APPLICATION_RESTRICTION = 7;
+}
+
+enum SanctionReason {
+  SANCTION_REASON_UNSPECIFIED = 0;
+  SANCTION_REASON_HARASSMENT = 1;
+  SANCTION_REASON_SPAM = 2;
+  SANCTION_REASON_INAPPROPRIATE_CONTENT = 3;
+  SANCTION_REASON_TERMS_VIOLATION = 4;
+  SANCTION_REASON_SCAM_ATTEMPT = 5;
+  SANCTION_REASON_FALSE_INFORMATION = 6;
+  SANCTION_REASON_ANIMAL_WELFARE_CONCERN = 7;
+  SANCTION_REASON_REPEATED_VIOLATIONS = 8;
+  SANCTION_REASON_OTHER = 9;
+}
+
+enum SupportTicketStatus {
+  SUPPORT_TICKET_STATUS_UNSPECIFIED = 0;
+  SUPPORT_TICKET_STATUS_OPEN = 1;
+  SUPPORT_TICKET_STATUS_IN_PROGRESS = 2;
+  SUPPORT_TICKET_STATUS_WAITING_FOR_USER = 3;
+  SUPPORT_TICKET_STATUS_RESOLVED = 4;
+  SUPPORT_TICKET_STATUS_CLOSED = 5;
+  SUPPORT_TICKET_STATUS_ESCALATED = 6;
+}
+
+enum SupportTicketPriority {
+  SUPPORT_TICKET_PRIORITY_UNSPECIFIED = 0;
+  SUPPORT_TICKET_PRIORITY_LOW = 1;
+  SUPPORT_TICKET_PRIORITY_NORMAL = 2;
+  SUPPORT_TICKET_PRIORITY_HIGH = 3;
+  SUPPORT_TICKET_PRIORITY_URGENT = 4;
+  SUPPORT_TICKET_PRIORITY_CRITICAL = 5;
+}
+
+enum SupportTicketCategory {
+  SUPPORT_TICKET_CATEGORY_UNSPECIFIED = 0;
+  SUPPORT_TICKET_CATEGORY_TECHNICAL_ISSUE = 1;
+  SUPPORT_TICKET_CATEGORY_ACCOUNT_PROBLEM = 2;
+  SUPPORT_TICKET_CATEGORY_ADOPTION_INQUIRY = 3;
+  SUPPORT_TICKET_CATEGORY_PAYMENT_ISSUE = 4;
+  SUPPORT_TICKET_CATEGORY_FEATURE_REQUEST = 5;
+  SUPPORT_TICKET_CATEGORY_REPORT_BUG = 6;
+  SUPPORT_TICKET_CATEGORY_GENERAL_QUESTION = 7;
+  SUPPORT_TICKET_CATEGORY_COMPLIANCE_CONCERN = 8;
+  SUPPORT_TICKET_CATEGORY_DATA_REQUEST = 9;
+  SUPPORT_TICKET_CATEGORY_OTHER = 10;
+}
+
+enum SupportTicketResponderType {
+  SUPPORT_TICKET_RESPONDER_TYPE_UNSPECIFIED = 0;
+  SUPPORT_TICKET_RESPONDER_TYPE_STAFF = 1;
+  SUPPORT_TICKET_RESPONDER_TYPE_USER = 2;
+}
+
+// ===== Messages ======================================================
+
+// Report mirrors the moderation.reports row. metadata_json is a
+// stringified JSONB payload the gateway forwards to the SPA as-is —
+// no proto regen when its shape evolves (same trick as pets'
+// extra_json + rescue's settings_json).
+message Report {
+  string report_id = 1;
+  string reporter_id = 2;
+  ReportEntityType reported_entity_type = 3;
+  // String because the polymorphic target can be a uuid or any other
+  // shape (matches the SQL varchar column).
+  string reported_entity_id = 4;
+  optional string reported_user_id = 5;
+  ReportCategory category = 6;
+  Severity severity = 7;
+  ReportStatus status = 8;
+  string title = 9;
+  string description = 10;
+  string metadata_json = 11;
+  optional string assigned_moderator = 12;
+  optional string assigned_at = 13;
+  optional string resolved_by = 14;
+  optional string resolved_at = 15;
+  optional string resolution = 16;
+  optional string resolution_notes = 17;
+  optional string escalated_to = 18;
+  optional string escalated_at = 19;
+  optional string escalation_reason = 20;
+  string created_at = 21;
+  string updated_at = 22;
+}
+
+message ReportStatusTransition {
+  string transition_id = 1;
+  string report_id = 2;
+  optional ReportStatus from_status = 3;
+  ReportStatus to_status = 4;
+  string transitioned_at = 5;
+  optional string transitioned_by = 6;
+  optional string reason = 7;
+}
+
+message ModeratorAction {
+  string action_id = 1;
+  string moderator_id = 2;
+  optional string report_id = 3;
+  ReportEntityType target_entity_type = 4;
+  string target_entity_id = 5;
+  optional string target_user_id = 6;
+  ModeratorActionType action_type = 7;
+  Severity severity = 8;
+  string reason = 9;
+  optional string description = 10;
+  string metadata_json = 11;
+  optional uint32 duration = 12;
+  optional string expires_at = 13;
+  bool is_active = 14;
+  optional string acknowledged_at = 15;
+  string created_at = 16;
+  string updated_at = 17;
+}
+
+message Evidence {
+  string evidence_id = 1;
+  EvidenceParentType parent_type = 2;
+  string parent_id = 3;
+  EvidenceType type = 4;
+  string content = 5;
+  optional string description = 6;
+  string uploaded_at = 7;
+}
+
+message UserSanction {
+  string sanction_id = 1;
+  string user_id = 2;
+  SanctionType sanction_type = 3;
+  SanctionReason reason = 4;
+  string description = 5;
+  bool is_active = 6;
+  string start_date = 7;
+  optional string end_date = 8;
+  optional uint32 duration = 9;
+  string issued_by = 10;
+  optional string report_id = 11;
+  optional string moderator_action_id = 12;
+  optional string appealed_at = 13;
+  optional string appeal_reason = 14;
+  optional string appeal_status = 15;
+  string created_at = 16;
+  string updated_at = 17;
+}
+
+message SupportTicket {
+  string ticket_id = 1;
+  optional string user_id = 2;
+  string user_email = 3;
+  optional string user_name = 4;
+  optional string assigned_to = 5;
+  SupportTicketStatus status = 6;
+  SupportTicketPriority priority = 7;
+  SupportTicketCategory category = 8;
+  string subject = 9;
+  string description = 10;
+  repeated string tags = 11;
+  string metadata_json = 12;
+  optional string first_response_at = 13;
+  optional string last_response_at = 14;
+  optional string resolved_at = 15;
+  optional string closed_at = 16;
+  string created_at = 17;
+  string updated_at = 18;
+}
+
+message SupportTicketResponse {
+  string response_id = 1;
+  string ticket_id = 2;
+  string responder_id = 3;
+  SupportTicketResponderType responder_type = 4;
+  string content = 5;
+  bool is_internal = 6;
+  string created_at = 7;
+}
+
+// --- FileReport ------------------------------------------------------
+
+message FileReportRequest {
+  ReportEntityType reported_entity_type = 1;
+  string reported_entity_id = 2;
+  optional string reported_user_id = 3;
+  ReportCategory category = 4;
+  Severity severity = 5;
+  string title = 6;
+  string description = 7;
+  // Stringified JSONB the handler stores as-is. SPA passes a JSON
+  // blob containing context like screenshots URLs, related links.
+  optional string metadata_json = 8;
+}
+
+message FileReportResponse {
+  Report report = 1;
+}
+
+// --- GetReport -------------------------------------------------------
+
+message GetReportRequest {
+  string report_id = 1;
+  // When true the response includes the report's status transition
+  // history. Defaults to false to keep the basic card-fetch fast.
+  bool include_transitions = 2;
+}
+
+message GetReportResponse {
+  Report report = 1;
+  repeated ReportStatusTransition transitions = 2;
+}
+
+// --- ListReports -----------------------------------------------------
+
+message ListReportsRequest {
+  optional string cursor = 1;
+  uint32 limit = 2;
+  // Optional filters; each empty value means "no filter on this
+  // dimension".
+  optional ReportStatus status = 3;
+  optional Severity severity = 4;
+  optional ReportCategory category = 5;
+  // Filter to reports assigned to a specific moderator (or
+  // unassigned via the empty string).
+  optional string assigned_moderator = 6;
+}
+
+message ListReportsResponse {
+  repeated Report reports = 1;
+  optional string next_cursor = 2;
+}
+
+// --- AssignReport ----------------------------------------------------
+
+message AssignReportRequest {
+  string report_id = 1;
+  // The moderator being assigned. May equal the calling principal
+  // (self-assign) or another moderator.
+  string moderator_id = 2;
+  // Optional reason recorded on the status transition.
+  optional string reason = 3;
+}
+
+message AssignReportResponse {
+  Report report = 1;
+}
+
+// --- ResolveReport ---------------------------------------------------
+
+message ResolveReportRequest {
+  string report_id = 1;
+  // Short resolution code (e.g. 'action_taken', 'no_violation').
+  string resolution = 2;
+  // Longer notes the moderator records.
+  optional string resolution_notes = 3;
+}
+
+message ResolveReportResponse {
+  Report report = 1;
+}
+
+// --- LogModeratorAction ----------------------------------------------
+
+message LogModeratorActionRequest {
+  // Optional anchor to a report that triggered this action.
+  optional string report_id = 1;
+  ReportEntityType target_entity_type = 2;
+  string target_entity_id = 3;
+  optional string target_user_id = 4;
+  ModeratorActionType action_type = 5;
+  Severity severity = 6;
+  string reason = 7;
+  optional string description = 8;
+  optional string metadata_json = 9;
+  // Sanction duration in days, when applicable. Null = permanent.
+  optional uint32 duration = 10;
+}
+
+message LogModeratorActionResponse {
+  ModeratorAction action = 1;
+}
+
+// --- ListModeratorActions --------------------------------------------
+
+message ListModeratorActionsRequest {
+  optional string cursor = 1;
+  uint32 limit = 2;
+  // Filter by target user — the user-history modal hits this.
+  optional string target_user_id = 3;
+  // Filter to actions linked to a specific report.
+  optional string report_id = 4;
+  // Filter by action type.
+  optional ModeratorActionType action_type = 5;
+}
+
+message ListModeratorActionsResponse {
+  repeated ModeratorAction actions = 1;
+  optional string next_cursor = 2;
+}
+
+// --- AddEvidence -----------------------------------------------------
+
+message AddEvidenceRequest {
+  EvidenceParentType parent_type = 1;
+  string parent_id = 2;
+  EvidenceType type = 3;
+  // Opaque text — URL for type=URL, S3 key for type=SCREENSHOT, raw
+  // text for type=TEXT.
+  string content = 4;
+  optional string description = 5;
+}
+
+message AddEvidenceResponse {
+  Evidence evidence = 1;
+}
+
+// --- IssueSanction ---------------------------------------------------
+
+message IssueSanctionRequest {
+  string user_id = 1;
+  SanctionType sanction_type = 2;
+  SanctionReason reason = 3;
+  string description = 4;
+  // Optional duration in days. Null = permanent (only valid with
+  // sanction_type = PERMANENT_BAN).
+  optional uint32 duration = 5;
+  // Optional anchors to a report and/or moderator action that led
+  // to the sanction.
+  optional string report_id = 6;
+  optional string moderator_action_id = 7;
+}
+
+message IssueSanctionResponse {
+  UserSanction sanction = 1;
+}
+
+// --- ListUserSanctions -----------------------------------------------
+
+message ListUserSanctionsRequest {
+  string user_id = 1;
+  // When true, returns ALL sanctions (active + expired + revoked).
+  // Default false returns only active ones (the banner query).
+  bool include_inactive = 2;
+}
+
+message ListUserSanctionsResponse {
+  repeated UserSanction sanctions = 1;
+}
+
+// --- AppealSanction --------------------------------------------------
+
+message AppealSanctionRequest {
+  string sanction_id = 1;
+  string appeal_reason = 2;
+}
+
+message AppealSanctionResponse {
+  UserSanction sanction = 1;
+}
+
+// --- OpenSupportTicket -----------------------------------------------
+
+message OpenSupportTicketRequest {
+  // user_id is optional — unauthenticated users can open tickets
+  // by providing email + name only.
+  optional string user_id = 1;
+  string user_email = 2;
+  optional string user_name = 3;
+  SupportTicketPriority priority = 4;
+  SupportTicketCategory category = 5;
+  string subject = 6;
+  string description = 7;
+  repeated string tags = 8;
+}
+
+message OpenSupportTicketResponse {
+  SupportTicket ticket = 1;
+}
+
+// --- GetSupportTicket ------------------------------------------------
+
+message GetSupportTicketRequest {
+  string ticket_id = 1;
+  // When true the response includes the full response thread.
+  bool include_responses = 2;
+}
+
+message GetSupportTicketResponse {
+  SupportTicket ticket = 1;
+  repeated SupportTicketResponse responses = 2;
+}
+
+// --- ListSupportTickets ----------------------------------------------
+
+message ListSupportTicketsRequest {
+  optional string cursor = 1;
+  uint32 limit = 2;
+  optional SupportTicketStatus status = 3;
+  optional SupportTicketPriority priority = 4;
+  optional SupportTicketCategory category = 5;
+  // Filter to tickets assigned to a specific staff member.
+  optional string assigned_to = 6;
+  // Filter to tickets opened by a specific user.
+  optional string user_id = 7;
+}
+
+message ListSupportTicketsResponse {
+  repeated SupportTicket tickets = 1;
+  optional string next_cursor = 2;
+}
+
+// --- RespondToTicket -------------------------------------------------
+
+message RespondToTicketRequest {
+  string ticket_id = 1;
+  string content = 2;
+  // When true the response is staff-internal and not visible to the
+  // ticket opener.
+  bool is_internal = 3;
+}
+
+message RespondToTicketResponse {
+  SupportTicketResponse response = 1;
+}
