@@ -37,6 +37,7 @@ import { adapt } from './adapter.js';
 import { makeStartDraft, saveDraftAnswers, submitDraft } from './handlers.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
 import { getApplication, listApplications } from './read-handlers.js';
+import { getStats } from './stats-handlers.js';
 import {
   approve,
   completeHomeVisit,
@@ -87,6 +88,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     // Query side (read-handlers.ts)
     get: adapt(getApplication, { deps, logger }),
     list: adapt(listApplications, { deps, logger }),
+    // Stats (stats-handlers.ts)
+    getStats: adapt(getStats, { deps, logger }),
   });
 
   logger.info('gRPC ApplicationService registered', {
@@ -103,6 +106,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'markAdopted',
       'get',
       'list',
+      'getStats',
     ],
     grpcPort: config.grpcPort,
   });
