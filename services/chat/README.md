@@ -22,10 +22,27 @@ on NATS for fan-out via the existing Phase 1.5 WS subscriber.
   misconfiguration fails fast at boot rather than at first request.
 - `src/server.ts` `createServer({ config, logger? })`.
 
+**Phase 6.2** — `chat.*` schema + migrations:
+- `001_create_chats.ts` — chats (+ assigned_to from monolith's
+  migration 09 folded in; `chat_status` enum).
+- `002_create_chat_participants.ts` — chat_participants with the
+  `(chat_id, participant_id)` UNIQUE; `chat_participant_role` enum.
+- `003_create_messages.ts` — messages with moderation columns
+  (`is_flagged`, `flag_reason`, `flag_severity`, `moderation_status`,
+  `flagged_at`), TSVECTOR `search_vector` + GIN index, the
+  `(chat_id, created_at DESC)` paging idx, and JSONB `attachments`.
+- `004_install_messages_search_vector_trigger.ts` — BEFORE
+  INSERT/UPDATE trigger replacing the monolith's afterSync hook;
+  DB owns the invariant.
+- `005_create_message_reactions.ts` — message_reactions with
+  `(message_id, user_id, emoji)` UNIQUE.
+- `006_create_message_reads.ts` — message_reads with
+  `(message_id, user_id)` UNIQUE.
+- Run via `npm run db:migrate` (uses `@adopt-dont-shop/db` —
+  inherits all four CAD-lesson fixes).
+
 ## What's NOT here yet
 
-- **Phase 6.2** — `chat.*` schema + migrations (Chat,
-  ChatParticipant, Message, MessageReaction, MessageRead).
 - **Phase 6.3** — gRPC `ChatService`:
   - proto + grpc-js stubs in `@adopt-dont-shop/proto`
   - handler logic (send / list / mark-read / react)
