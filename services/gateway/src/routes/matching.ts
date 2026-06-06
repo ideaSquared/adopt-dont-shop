@@ -13,10 +13,12 @@
 //   POST /api/v1/matching/sessions/:id/swipes             → RecordSwipe
 //   GET  /api/v1/matching/swipes                          → ListSwipeHistory
 //
-// Recommend + SearchPets aren't wired yet — the matching gRPC server
-// returns UNIMPLEMENTED for them (#922 stubs). When those handlers
-// ship the gateway will gain `/api/v1/matching/recommend` +
-// `/api/v1/matching/search` routes.
+// Recommend + SearchPets — wired via the frontend lib.discovery /
+// lib.search contracts (response shapes adapted via matching-view.ts):
+//
+//   POST /api/v1/discovery/queue                          → Recommend
+//   POST /api/v1/discovery/pets/more                      → Recommend (page)
+//   GET  /api/v1/search/pets                              → SearchPets
 //
 // Authz: PETS_VIEW (matching is a pet-browsing surface). The Phase
 // 2.5 authenticate middleware stamps x-user-* metadata; the matching
@@ -30,11 +32,15 @@ import {
   MatchingV1,
   type EndSessionRequest,
   type ListSwipeHistoryRequest,
+  type RecommendRequest,
   type RecordSwipeRequest,
+  type SearchPetsRequest,
   type StartSessionRequest,
 } from '@adopt-dont-shop/proto';
 
 import type { MatchingClient } from '../grpc-clients/matching-client.js';
+
+import { recommendToQueue, searchToView } from './matching-view.js';
 
 export type MatchingRoutesOptions = {
   client: MatchingClient;
@@ -59,6 +65,9 @@ const MATCHING_RATE_LIMITS = {
   endSession: { max: 30, timeWindow: '1 minute' },
   recordSwipe: { max: 240, timeWindow: '1 minute' },
   listSwipeHistory: { max: 60, timeWindow: '1 minute' },
+  // Discovery + search are the chatty browse paths.
+  recommend: { max: 120, timeWindow: '1 minute' },
+  search: { max: 120, timeWindow: '1 minute' },
 } as const;
 
 type StartSessionBody = {
@@ -158,7 +167,115 @@ export const registerMatchingRoutes = async (
       }
     }
   );
+
+  // POST /api/v1/discovery/queue — initial recommendations. Body matches
+  // lib.discovery.getDiscoveryQueue: { filters, userId?, limit? }. We
+  // need a sessionId for Recommend; if the SPA doesn't pass one we
+  // start a session implicitly using the filters as the session filters.
+  app.post(
+    '/api/v1/discovery/queue',
+    { config: { rateLimit: MATCHING_RATE_LIMITS.recommend } },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as DiscoveryQueueBody;
+      const filtersJson = body.filters !== undefined ? JSON.stringify(body.filters) : '';
+      try {
+        const sessionId = body.sessionId ?? (await openSession(client, req, filtersJson));
+        const grpcReq: RecommendRequest = {
+          sessionId,
+          limit: clampLimit(body.limit),
+          filtersJsonOverride: filtersJson !== '' ? filtersJson : undefined,
+        };
+        const res = await client.recommend(grpcReq, buildMetadata(req));
+        return reply.send(recommendToQueue(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // POST /api/v1/discovery/pets/more — page of more recommendations for
+  // an active session.
+  app.post(
+    '/api/v1/discovery/pets/more',
+    { config: { rateLimit: MATCHING_RATE_LIMITS.recommend } },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as DiscoveryQueueBody;
+      if (body.sessionId === undefined || body.sessionId === '') {
+        return reply.code(400).send({ error: 'sessionId is required' });
+      }
+      const grpcReq: RecommendRequest = {
+        sessionId: body.sessionId,
+        limit: clampLimit(body.limit),
+        filtersJsonOverride: body.filters !== undefined ? JSON.stringify(body.filters) : undefined,
+      };
+      try {
+        const res = await client.recommend(grpcReq, buildMetadata(req));
+        return reply.send(recommendToQueue(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /api/v1/search/pets — lib.search free-text + filters search.
+  app.get(
+    '/api/v1/search/pets',
+    { config: { rateLimit: MATCHING_RATE_LIMITS.search } },
+    async (req, reply) => {
+      const query = req.query as Record<string, string | undefined>;
+      const grpcReq: SearchPetsRequest = {
+        query: query.q ?? query.query,
+        filtersJson: query.filters,
+        cursor: query.cursor,
+        limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+      };
+      try {
+        const res = await client.searchPets(grpcReq, buildMetadata(req));
+        return reply.send(searchToView(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
 };
+
+type DiscoveryQueueBody = {
+  sessionId?: string;
+  filters?: Record<string, unknown>;
+  userId?: string;
+  limit?: number;
+};
+
+function clampLimit(raw: number | undefined): number {
+  if (raw === undefined || !Number.isFinite(raw)) {
+    return 20;
+  }
+  return Math.min(Math.max(Math.trunc(raw), 1), 100);
+}
+
+// Implicit-session helper: when the SPA doesn't carry a sessionId on
+// /discovery/queue, mint one via StartSession (web device by default).
+async function openSession(
+  client: MatchingClient,
+  req: FastifyRequest,
+  filtersJson: string
+): Promise<string> {
+  const headers = req.headers as Record<string, string | string[] | undefined>;
+  const ua = typeof headers['user-agent'] === 'string' ? headers['user-agent'] : undefined;
+  const res = await client.startSession(
+    {
+      filtersJson,
+      // The User-Agent is the SPA in a browser; DESKTOP is the closest
+      // bucket the proto offers (no DEVICE_TYPE_WEB exists). Caller can
+      // override by calling /matching/sessions explicitly with `deviceType`.
+      deviceType: MatchingV1.DeviceType.DEVICE_TYPE_DESKTOP,
+      userAgent: ua,
+      ipAddress: req.ip,
+    },
+    buildMetadata(req)
+  );
+  return res.session?.sessionId ?? '';
+}
 
 // --- Helpers ---------------------------------------------------------
 

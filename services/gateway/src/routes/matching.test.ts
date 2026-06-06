@@ -22,21 +22,33 @@ function makeClient(): {
   endSessionMock: ReturnType<typeof vi.fn>;
   recordSwipeMock: ReturnType<typeof vi.fn>;
   listSwipeHistoryMock: ReturnType<typeof vi.fn>;
+  recommendMock: ReturnType<typeof vi.fn>;
+  searchPetsMock: ReturnType<typeof vi.fn>;
 } {
   const startSessionMock = vi.fn();
   const endSessionMock = vi.fn();
   const recordSwipeMock = vi.fn();
   const listSwipeHistoryMock = vi.fn();
+  const recommendMock = vi.fn();
+  const searchPetsMock = vi.fn();
   const client: MatchingClient = {
     startSession: startSessionMock,
     endSession: endSessionMock,
     recordSwipe: recordSwipeMock,
     listSwipeHistory: listSwipeHistoryMock,
-    recommend: vi.fn(),
-    searchPets: vi.fn(),
+    recommend: recommendMock,
+    searchPets: searchPetsMock,
     close: vi.fn(),
   };
-  return { client, startSessionMock, endSessionMock, recordSwipeMock, listSwipeHistoryMock };
+  return {
+    client,
+    startSessionMock,
+    endSessionMock,
+    recordSwipeMock,
+    listSwipeHistoryMock,
+    recommendMock,
+    searchPetsMock,
+  };
 }
 
 async function makeApp(client: MatchingClient): Promise<FastifyInstance> {
@@ -281,5 +293,145 @@ describe('GET /api/v1/matching/swipes', () => {
       actionFilter: MatchingV1.SwipeAction.SWIPE_ACTION_SUPER_LIKE,
     });
     expect(httpRes.json()).toMatchObject({ nextCursor: 'cursor-2' });
+  });
+});
+
+describe('POST /api/v1/discovery/queue (Recommend)', () => {
+  let app: FastifyInstance;
+  let recommendMock: ReturnType<typeof vi.fn>;
+  let startSessionMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    const m = makeClient();
+    recommendMock = m.recommendMock;
+    startSessionMock = m.startSessionMock;
+    app = await makeApp(m.client);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('opens a session implicitly then returns the discovery-queue envelope', async () => {
+    startSessionMock.mockResolvedValueOnce({
+      session: SESSION_FIXTURE,
+      created: true,
+    } satisfies StartSessionResponse);
+    recommendMock.mockResolvedValueOnce({
+      candidates: [
+        {
+          petId: 'pet-1',
+          name: 'Rex',
+          species: 'dog',
+          rescueId: 'rsc-1',
+          score: 0.9,
+        },
+      ],
+      exhausted: false,
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/discovery/queue',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      payload: { filters: { species: 'dog' }, limit: 10 },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      pets: [{ pet_id: 'pet-1', type: 'dog', score: 0.9 }],
+      currentIndex: 0,
+      hasMore: true,
+      nextBatchSize: 20,
+    });
+    // StartSession was called with the filters; then Recommend with the session.
+    expect(startSessionMock.mock.calls[0][0].filtersJson).toBe('{"species":"dog"}');
+    expect(recommendMock.mock.calls[0][0]).toMatchObject({
+      sessionId: 'sess-1',
+      limit: 10,
+      filtersJsonOverride: '{"species":"dog"}',
+    });
+  });
+
+  it('uses the supplied sessionId without opening a new one', async () => {
+    recommendMock.mockResolvedValueOnce({ candidates: [], exhausted: true });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/discovery/queue',
+      payload: { sessionId: 'sess-9' },
+    });
+    expect(startSessionMock).not.toHaveBeenCalled();
+    expect(recommendMock.mock.calls[0][0].sessionId).toBe('sess-9');
+  });
+});
+
+describe('POST /api/v1/discovery/pets/more (Recommend, paged)', () => {
+  it('rejects when sessionId is missing', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/discovery/pets/more',
+        payload: {},
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.recommendMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('forwards the sessionId + limit', async () => {
+    const m = makeClient();
+    m.recommendMock.mockResolvedValueOnce({
+      candidates: [{ petId: 'pet-2', name: 'Sam', species: 'cat', rescueId: 'rsc-1', score: 0.4 }],
+      exhausted: false,
+    });
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/discovery/pets/more',
+        payload: { sessionId: 'sess-1', limit: 5 },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(m.recommendMock.mock.calls[0][0]).toMatchObject({
+        sessionId: 'sess-1',
+        limit: 5,
+      });
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('GET /api/v1/search/pets (SearchPets)', () => {
+  it('forwards q/filters/cursor/limit and returns the view envelope', async () => {
+    const m = makeClient();
+    m.searchPetsMock.mockResolvedValueOnce({
+      results: [{ petId: 'pet-1', name: 'Rex', species: 'dog', rescueId: 'rsc-1', score: 0 }],
+      nextCursor: 'cur-2',
+    });
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/search/pets?q=rex&limit=10&cursor=abc&filters=%7B%22species%22%3A%22dog%22%7D',
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { results: Array<Record<string, unknown>>; next_cursor?: string };
+      expect(body.next_cursor).toBe('cur-2');
+      expect(body.results[0]).toMatchObject({ pet_id: 'pet-1', type: 'dog' });
+      // No recommender score on plain search.
+      expect('score' in body.results[0]).toBe(false);
+      expect(m.searchPetsMock.mock.calls[0][0]).toMatchObject({
+        query: 'rex',
+        cursor: 'abc',
+        limit: 10,
+        filtersJson: '{"species":"dog"}',
+      });
+    } finally {
+      await app.close();
+    }
   });
 });
