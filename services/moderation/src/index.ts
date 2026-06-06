@@ -1,21 +1,40 @@
+import { connect, type NatsConnection } from 'nats';
+
+import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
 
 import { loadConfig } from './config.js';
+import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.moderation' });
 
+  let nats: NatsConnection | undefined;
+  let pool: ReturnType<typeof createDbClient> | undefined;
+  let grpc: RunningGrpcServer | undefined;
+  let httpClosed = false;
+
   try {
     const config = loadConfig();
-    const server = createServer({ config, logger });
 
-    await server.listen({ port: config.port, host: config.host });
+    // Connect deps FIRST so we crash here rather than after starting
+    // to accept traffic. Same boot order as services/audit,
+    // services/matching, services/rescue.
+    pool = createDbClient({
+      connectionString: config.databaseUrl,
+      schema: config.schema,
+    });
+    nats = await connect({ servers: config.natsUrl });
 
-    logger.info('service.moderation listening', {
-      port: config.port,
-      host: config.host,
-      grpcPort: config.grpcPort,
+    grpc = await startGrpcServer({ config, pool, nats, logger });
+
+    const httpServer = createServer({ config, logger });
+    await httpServer.listen({ port: config.port, host: config.host });
+
+    logger.info('service.moderation running', {
+      http: { port: config.port, host: config.host },
+      grpc: { port: grpc.port, host: config.host },
       schema: config.schema,
       natsUrl: config.natsUrl,
       environment: config.environment,
@@ -24,9 +43,27 @@ const main = async (): Promise<void> => {
     const shutdown = async (signal: string): Promise<void> => {
       logger.info('service.moderation shutting down', { signal });
       try {
-        await server.close();
+        if (!httpClosed) {
+          await httpServer.close();
+          httpClosed = true;
+        }
       } catch (err) {
-        logger.error('error during shutdown', { err });
+        logger.error('http close error', { err });
+      }
+      try {
+        await grpc?.shutdown();
+      } catch (err) {
+        logger.error('grpc shutdown error', { err });
+      }
+      try {
+        await nats?.drain();
+      } catch (err) {
+        logger.error('nats drain error', { err });
+      }
+      try {
+        await pool?.end();
+      } catch (err) {
+        logger.error('pool end error', { err });
       }
       process.exit(0);
     };
@@ -35,6 +72,21 @@ const main = async (): Promise<void> => {
     process.once('SIGINT', () => void shutdown('SIGINT'));
   } catch (err) {
     logger.error('service.moderation failed to start', { err });
+    try {
+      await grpc?.shutdown();
+    } catch {
+      // Swallow — already on the failure path.
+    }
+    try {
+      await nats?.drain();
+    } catch {
+      // Same.
+    }
+    try {
+      await pool?.end();
+    } catch {
+      // Same.
+    }
     process.exit(1);
   }
 };
