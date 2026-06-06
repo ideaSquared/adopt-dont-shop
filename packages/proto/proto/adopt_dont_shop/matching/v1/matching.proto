@@ -1,0 +1,240 @@
+syntax = "proto3";
+
+package adopt_dont_shop.matching.v1;
+
+// MatchingService is the gRPC contract for the matching vertical.
+// Stateless recommender (CAD service.dispatch shape) — owns the
+// matching.* schema (SwipeSession, SwipeAction) and absorbs the
+// monolith's discovery / search / swipe surfaces.
+//
+// The recommender itself is stateless compute: given a user, query
+// service.pets for candidates over gRPC, rank by stored preferences +
+// the user's swipe-action history, return top-K. The persisted state
+// (swipe_sessions, swipe_actions) is the BEHAVIOURAL log that backs
+// preference modelling — every swipe is recorded synchronously.
+//
+// Same conventions as the rest of the stack: ISO-8601 timestamps as
+// strings, opaque base64-JSON keyset cursors, enum values mirror the
+// Postgres ENUM names verbatim with UNSPECIFIED = 0 sentinel.
+service MatchingService {
+  // Open or resume a swipe session for the calling principal. If the
+  // user already has an active session (is_active=true), returns it
+  // unchanged (idempotency). Filters are JSONB the recommender hands
+  // back as-is when ranking; SPA passes species / breed / size / age
+  // filters here.
+  rpc StartSession(StartSessionRequest) returns (StartSessionResponse);
+
+  // Close an open session. Marks is_active=false and stamps end_time.
+  // Idempotent on already-closed sessions.
+  rpc EndSession(EndSessionRequest) returns (EndSessionResponse);
+
+  // Get the top-K recommendations for the calling principal. Reads
+  // candidate pets from service.pets via gRPC, ranks by stored
+  // preferences + the user's swipe history (preferring pets similar
+  // to liked / super-liked, away from passed). Stateless — does NOT
+  // mutate any session or action state. The SPA calls this each time
+  // the queue runs low.
+  rpc Recommend(RecommendRequest) returns (RecommendResponse);
+
+  // Record a swipe action and tick the session's counters
+  // (total_swipes, likes / passes / super_likes). Publishes
+  // matching.swipeRecorded after commit so the audit consumer
+  // captures the action and (later) the application service can
+  // surface "user X super-liked your pet" notifications.
+  rpc RecordSwipe(RecordSwipeRequest) returns (RecordSwipeResponse);
+
+  // Search pets — the explicit search surface that absorbs the
+  // monolith's /api/search/* routes. Distinct from Recommend because
+  // search is filter-driven (the user types criteria) where Recommend
+  // is preference-driven (the recommender picks). Reads pets from
+  // service.pets via gRPC; matching service is stateless on this RPC.
+  rpc SearchPets(SearchPetsRequest) returns (SearchPetsResponse);
+
+  // List the calling principal's swipe history — what they liked,
+  // passed, super-liked. Powers the "likes" / "interests" surface
+  // in the SPA. Filterable by action type.
+  rpc ListSwipeHistory(ListSwipeHistoryRequest) returns (ListSwipeHistoryResponse);
+}
+
+// ===== Enums =========================================================
+
+enum SwipeAction {
+  SWIPE_ACTION_UNSPECIFIED = 0;
+  SWIPE_ACTION_LIKE = 1;
+  SWIPE_ACTION_PASS = 2;
+  SWIPE_ACTION_SUPER_LIKE = 3;
+  // The 'info' action is the monolith's "user tapped info without
+  // swiping" trace event. Kept for preference modelling: a user who
+  // taps info on cats has soft preference for cats even without
+  // committing.
+  SWIPE_ACTION_INFO = 4;
+}
+
+enum DeviceType {
+  DEVICE_TYPE_UNSPECIFIED = 0;
+  DEVICE_TYPE_DESKTOP = 1;
+  DEVICE_TYPE_MOBILE = 2;
+  DEVICE_TYPE_TABLET = 3;
+  DEVICE_TYPE_UNKNOWN = 4;
+}
+
+// ===== Messages ======================================================
+
+// SwipeSession mirrors the matching.swipe_sessions row.
+message SwipeSession {
+  string session_id = 1;
+  // Null for anonymous browsing sessions.
+  optional string user_id = 2;
+  string start_time = 3;
+  optional string end_time = 4;
+  uint32 total_swipes = 5;
+  uint32 likes = 6;
+  uint32 passes = 7;
+  uint32 super_likes = 8;
+  // Stringified JSONB the SPA passes through unchanged — same
+  // trick as pets extra_json. SPA layer evolves filter shape (species,
+  // breed, size, age, location radius) without proto regen.
+  string filters_json = 9;
+  optional string ip_address = 10;
+  optional string user_agent = 11;
+  DeviceType device_type = 12;
+  bool is_active = 13;
+  string created_at = 14;
+  string updated_at = 15;
+}
+
+// PetCandidate is the recommender's per-pet payload. Subset of the
+// service.pets Pet message — just enough for the SPA's swipe card
+// + the score the recommender attached.
+message PetCandidate {
+  string pet_id = 1;
+  string name = 2;
+  string species = 3;
+  optional string breed = 4;
+  optional string age = 5;
+  string rescue_id = 6;
+  // Primary image URL the SPA renders first.
+  optional string primary_image_url = 7;
+  // Short description the swipe card surfaces.
+  optional string short_description = 8;
+  // The recommender's score for this candidate, on [0.0, 1.0].
+  // Higher = better fit. SPA may render this as a heart-meter or
+  // hide it entirely.
+  float score = 9;
+}
+
+// SwipeActionRecord mirrors the matching.swipe_actions row.
+message SwipeActionRecord {
+  string swipe_action_id = 1;
+  string session_id = 2;
+  string pet_id = 3;
+  optional string user_id = 4;
+  SwipeAction action = 5;
+  string timestamp = 6;
+  // Time taken between card render and the swipe, in ms — useful
+  // for the recommender ("hesitated passes" carry more signal than
+  // instant passes).
+  optional uint32 response_time = 7;
+  optional string device_type = 8;
+}
+
+// --- StartSession ----------------------------------------------------
+
+message StartSessionRequest {
+  // Stringified JSONB filter blob the SPA constructs.
+  optional string filters_json = 1;
+  DeviceType device_type = 2;
+  // User agent + IP are stamped by the gateway from the request
+  // headers; the SPA does not send them.
+  optional string user_agent = 3;
+  optional string ip_address = 4;
+}
+
+message StartSessionResponse {
+  SwipeSession session = 1;
+  // True when this call created the session; false when an existing
+  // active session was returned (idempotency signal).
+  bool created = 2;
+}
+
+// --- EndSession ------------------------------------------------------
+
+message EndSessionRequest {
+  string session_id = 1;
+}
+
+message EndSessionResponse {
+  SwipeSession session = 1;
+}
+
+// --- Recommend -------------------------------------------------------
+
+message RecommendRequest {
+  // The active session id — recommendations are session-scoped so the
+  // recommender can exclude already-seen pets in this session.
+  string session_id = 1;
+  // Defaults to 20, max 100. SPA typically requests in 10-20-pet
+  // chunks as the queue runs low.
+  uint32 limit = 2;
+  // Optional filter override — when set, takes precedence over the
+  // session's stored filters. Useful for "show me everything for a
+  // moment" UX without restarting the session.
+  optional string filters_json_override = 3;
+}
+
+message RecommendResponse {
+  repeated PetCandidate candidates = 1;
+  // True when the recommender has exhausted candidates matching the
+  // filters; the SPA can prompt the user to widen filters.
+  bool exhausted = 2;
+}
+
+// --- RecordSwipe -----------------------------------------------------
+
+message RecordSwipeRequest {
+  string session_id = 1;
+  string pet_id = 2;
+  SwipeAction action = 3;
+  // Time between card render and swipe, in ms.
+  optional uint32 response_time = 4;
+  optional string device_type = 5;
+}
+
+message RecordSwipeResponse {
+  SwipeActionRecord action = 1;
+  // Echo of the updated session counters for the SPA's HUD.
+  SwipeSession session = 2;
+}
+
+// --- SearchPets ------------------------------------------------------
+
+message SearchPetsRequest {
+  // Free-text query (matched against pet name + description).
+  optional string query = 1;
+  // Same JSONB filters shape as a session.
+  optional string filters_json = 2;
+  optional string cursor = 3;
+  uint32 limit = 4;
+}
+
+message SearchPetsResponse {
+  // No recommender score on plain search results — the SPA orders
+  // by relevance, not preference.
+  repeated PetCandidate results = 1;
+  optional string next_cursor = 2;
+}
+
+// --- ListSwipeHistory ------------------------------------------------
+
+message ListSwipeHistoryRequest {
+  // Defaults to all action types. When set, returns only swipes
+  // matching this action.
+  optional SwipeAction action_filter = 1;
+  optional string cursor = 2;
+  uint32 limit = 3;
+}
+
+message ListSwipeHistoryResponse {
+  repeated SwipeActionRecord actions = 1;
+  optional string next_cursor = 2;
+}

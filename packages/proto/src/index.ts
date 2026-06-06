@@ -156,6 +156,27 @@ export type {
   ChatServiceClient,
 } from './generated/proto/adopt_dont_shop/chat/v1/chat.js';
 
+export * as MatchingV1 from './generated/proto/adopt_dont_shop/matching/v1/matching.js';
+export type {
+  SwipeSession,
+  PetCandidate,
+  SwipeActionRecord,
+  StartSessionRequest,
+  StartSessionResponse,
+  EndSessionRequest,
+  EndSessionResponse,
+  RecommendRequest,
+  RecommendResponse,
+  RecordSwipeRequest,
+  RecordSwipeResponse,
+  SearchPetsRequest,
+  SearchPetsResponse,
+  ListSwipeHistoryRequest,
+  ListSwipeHistoryResponse,
+  MatchingServiceServer,
+  MatchingServiceClient,
+} from './generated/proto/adopt_dont_shop/matching/v1/matching.js';
+
 export * as ModerationV1 from './generated/proto/adopt_dont_shop/moderation/v1/moderation.js';
 export type {
   Report,
