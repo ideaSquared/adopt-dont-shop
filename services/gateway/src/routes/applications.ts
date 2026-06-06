@@ -4,33 +4,26 @@
 // (#929) / routes/matching.ts (#923) — registers BEFORE the catch-all
 // proxy so first-registered-wins prefix routing picks it off.
 //
-// Route map (all 12 ApplicationService RPCs):
+// Two layers (ADR 0002, Stage B):
 //
-//   Drafts
-//   POST   /api/v1/applications                              → StartDraft
-//   PATCH  /api/v1/applications/:id/answers                  → SaveDraftAnswers
-//   POST   /api/v1/applications/:id/submit                   → SubmitDraft
-//   Review / home visit / decision
-//   POST   /api/v1/applications/:id/review                   → StartReview
-//   POST   /api/v1/applications/:id/home-visit/schedule      → ScheduleHomeVisit
-//   POST   /api/v1/applications/:id/home-visit/complete      → CompleteHomeVisit
-//   POST   /api/v1/applications/:id/approve                  → Approve
-//   POST   /api/v1/applications/:id/reject                   → Reject
-//   POST   /api/v1/applications/:id/withdraw                 → Withdraw
-//   POST   /api/v1/applications/:id/adopt                    → MarkAdopted
-//   Reads
-//   GET    /api/v1/applications                              → List
-//   GET    /api/v1/applications/:id                          → Get
+//   Frontend contract (what lib.applications calls) — responses use the
+//   collapsed view shape (applications-view.ts) in a `{ data }` envelope:
+//   POST   /api/v1/applications              → StartDraft+SaveDraftAnswers+SubmitDraft
+//   PATCH  /api/v1/applications/:id/status   → Approve | Reject | Withdraw
+//   PUT    /api/v1/applications/:id/withdraw → Withdraw
+//   GET    /api/v1/applications              → List  (drafts filtered)
+//   GET    /api/v1/applications/:id          → Get   (draft → 404)
 //
-// Authz lives in the handlers (adopters act on their own drafts; rescue
-// staff gate on applications.review/approve/reject; reads scope to
-// owner/rescue/admin). The gateway stamps x-user-* metadata via the
-// Phase 2.5 authenticate middleware.
+//   Service-shaped routes (granular RPCs for rescue-staff / internal
+//   callers) — responses are raw proto-JSON:
+//   PATCH  /:id/answers, POST /:id/submit, POST /:id/review,
+//   POST /:id/home-visit/{schedule,complete}, POST /:id/{approve,reject,
+//   withdraw,adopt}.
 //
-// StartDraft is currently an UNIMPLEMENTED stub on the service (it needs
-// the service.pets gRPC client to resolve pet → rescue), which maps to
-// 501 here so the SPA gets an honest "not yet" rather than a fall-through
-// to the monolith.
+// Authz lives in the service handlers; the gateway stamps x-user-*
+// metadata via the Phase 2.5 authenticate middleware. These routes only
+// serve traffic when CUTOVER_APPLICATIONS is on (else /api/v1/* proxies
+// to the monolith) — see server.ts.
 
 import rateLimit from '@fastify/rate-limit';
 import { Metadata, status } from '@grpc/grpc-js';
@@ -38,6 +31,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import {
   ApplicationsV1,
+  type Application,
   type ApproveRequest,
   type CompleteHomeVisitRequest,
   type ListApplicationsRequest,
@@ -82,20 +76,97 @@ export const registerApplicationsRoutes = async (
 
   await app.register(rateLimit, { global: false });
 
-  // ---------- Drafts ----------
+  // ---------- Frontend write contract (lib.applications) ----------
+  //
+  // The SPA's create is a single POST carrying the whole ApplicationData
+  // object; the service models it as draft → submitted. So the gateway
+  // ORCHESTRATES StartDraft → SaveDraftAnswers → SubmitDraft, threading
+  // the optimistic-concurrency version from each response into the next,
+  // and stores the frontend's data blob verbatim as answers so it
+  // round-trips on read (applications-view.ts parses it back into `data`).
 
   app.post('/api/v1/applications', { config: { rateLimit: RL_WRITE } }, async (req, reply) => {
     const b = (req.body ?? {}) as Record<string, unknown>;
+    const adopterId = (b.userId as string) ?? (b.adopterId as string) ?? headerUserId(req) ?? '';
+    const petId = (b.petId as string) ?? '';
+    const meta = buildMetadata(req);
     try {
-      const res = await client.startDraft(
-        { adopterId: (b.adopterId as string) ?? '', petId: (b.petId as string) ?? '' },
-        buildMetadata(req)
+      const started = await client.startDraft({ adopterId, petId }, meta);
+      const draft = requireApplication(started.application);
+
+      const saved = await client.saveDraftAnswers(
+        {
+          applicationId: draft.applicationId,
+          expectedVersion: draft.version,
+          answersPatchJson: JSON.stringify(b),
+        },
+        meta
       );
-      return reply.code(201).send(ApplicationsV1.StartDraftResponse.toJSON(res));
+      const withAnswers = requireApplication(saved.application);
+
+      const submitted = await client.submitDraft(
+        { applicationId: withAnswers.applicationId, expectedVersion: withAnswers.version },
+        meta
+      );
+      return sendView(reply, submitted.application, 201);
     } catch (err) {
       return handleGrpcError(err, reply);
     }
   });
+
+  // PATCH /:id/status — the SPA's updateApplicationStatus. The frontend's
+  // 4-value status maps onto the service's decision commands.
+  app.patch<{ Params: { id: string } }>(
+    '/api/v1/applications/:id/status',
+    { config: { rateLimit: RL_WRITE } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const target = b.status as string | undefined;
+      const notes = b.notes as string | undefined;
+      const id = req.params.id;
+      const meta = buildMetadata(req);
+      try {
+        if (target === 'approved') {
+          const res = await client.approve({ applicationId: id, notes }, meta);
+          return sendView(reply, res.application);
+        }
+        if (target === 'rejected') {
+          const res = await client.reject({ applicationId: id, reason: notes ?? '' }, meta);
+          return sendView(reply, res.application);
+        }
+        if (target === 'withdrawn') {
+          const res = await client.withdraw({ applicationId: id, reason: notes }, meta);
+          return sendView(reply, res.application);
+        }
+        return reply.code(400).send({ error: `unsupported status transition: ${target ?? ''}` });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // PUT /:id/withdraw — the SPA's withdrawApplication.
+  app.put<{ Params: { id: string } }>(
+    '/api/v1/applications/:id/withdraw',
+    { config: { rateLimit: RL_WRITE } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      try {
+        const res = await client.withdraw(
+          { applicationId: req.params.id, reason: b.reason as string | undefined },
+          buildMetadata(req)
+        );
+        return sendView(reply, res.application);
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // ---------- Service-shaped routes (draft + staff lifecycle) ----------
+  // Lower-level RPC routes retained for rescue-staff / internal callers
+  // that drive the granular lifecycle (the SPA's lib.applications uses the
+  // frontend contract above). Responses are proto-JSON.
 
   app.patch<{ Params: { id: string } }>(
     '/api/v1/applications/:id/answers',
@@ -321,6 +392,38 @@ function buildMetadata(req: FastifyRequest): Metadata {
     }
   }
   return m;
+}
+
+function headerUserId(req: FastifyRequest): string | undefined {
+  const raw = (req.headers as Record<string, string | string[] | undefined>)['x-user-id'];
+  return typeof raw === 'string' && raw.length > 0 ? raw : undefined;
+}
+
+// Every gRPC command response carries the updated Application; this should
+// always be present after a successful call, but the proto field is
+// optional, so guard it rather than assert. A plain Error (no grpc `code`)
+// maps to 500 via handleGrpcError's default branch.
+function requireApplication(application: Application | undefined): Application {
+  if (application === undefined) {
+    throw new Error('the service returned no application');
+  }
+  return application;
+}
+
+// Send the frontend view in the `{ data }` envelope. A successful write
+// should leave the application in a frontend-visible state; if the view
+// is null (e.g. it's still a draft — not a frontend write flow) we 500
+// rather than emit a shape the SPA can't parse.
+function sendView(
+  reply: FastifyReply,
+  application: Application | undefined,
+  code = 200
+): FastifyReply {
+  const view = application ? applicationToView(application) : null;
+  if (view === null) {
+    return reply.code(500).send({ error: 'unexpected application state' });
+  }
+  return reply.code(code).send({ data: view });
 }
 
 type GrpcError = { code?: number; details?: string; message?: string };

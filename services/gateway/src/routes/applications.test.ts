@@ -249,6 +249,91 @@ describe('applications routes', () => {
     expect(res.statusCode).toBe(404);
   });
 
+  it('POST orchestrates StartDraft→SaveDraftAnswers→SubmitDraft and returns the view', async () => {
+    mocks.startDraft.mockResolvedValue({ application: { ...APP, version: 1 } });
+    mocks.saveDraftAnswers.mockResolvedValue({ application: { ...APP, version: 2 } });
+    mocks.submitDraft.mockResolvedValue({ application: SUBMITTED });
+
+    const payload = { userId: 'usr-1', petId: 'pet-1', personalInfo: { firstName: 'Jo' } };
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/applications',
+      headers: ADOPTER,
+      payload,
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect((res.json() as { data: { status: string } }).data).toMatchObject({
+      status: 'submitted',
+    });
+    expect(mocks.startDraft.mock.calls[0][0]).toEqual({ adopterId: 'usr-1', petId: 'pet-1' });
+    // The whole frontend data blob is stored as answers, version threaded.
+    expect(mocks.saveDraftAnswers.mock.calls[0][0]).toMatchObject({
+      applicationId: 'app-1',
+      expectedVersion: 1,
+      answersPatchJson: JSON.stringify(payload),
+    });
+    expect(mocks.submitDraft.mock.calls[0][0]).toEqual({
+      applicationId: 'app-1',
+      expectedVersion: 2,
+    });
+  });
+
+  it('PATCH /:id/status approved → Approve, returns the view', async () => {
+    mocks.approve.mockResolvedValue({ application: SUBMITTED });
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/applications/app-1/status',
+      headers: STAFF,
+      payload: { status: 'approved', notes: 'great home' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.approve.mock.calls[0][0]).toMatchObject({
+      applicationId: 'app-1',
+      notes: 'great home',
+    });
+    expect((res.json() as { data: unknown }).data).toBeDefined();
+  });
+
+  it('PATCH /:id/status rejected → Reject with reason from notes', async () => {
+    mocks.reject.mockResolvedValue({ application: SUBMITTED });
+    await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/applications/app-1/status',
+      headers: STAFF,
+      payload: { status: 'rejected', notes: 'no yard' },
+    });
+    expect(mocks.reject.mock.calls[0][0]).toMatchObject({
+      applicationId: 'app-1',
+      reason: 'no yard',
+    });
+  });
+
+  it('PATCH /:id/status with an unsupported target → 400', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/applications/app-1/status',
+      headers: STAFF,
+      payload: { status: 'under_review' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('PUT /:id/withdraw → Withdraw, returns the view', async () => {
+    mocks.withdraw.mockResolvedValue({ application: SUBMITTED });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/applications/app-1/withdraw',
+      headers: ADOPTER,
+      payload: { reason: 'found another pet' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.withdraw.mock.calls[0][0]).toMatchObject({
+      applicationId: 'app-1',
+      reason: 'found another pet',
+    });
+  });
+
   it('maps a service UNIMPLEMENTED (StartDraft stub) → 501', async () => {
     mocks.startDraft.mockRejectedValue({
       code: grpcStatus.UNIMPLEMENTED,
