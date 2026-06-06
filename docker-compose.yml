@@ -2,6 +2,25 @@
 # Eliminates unnecessary library services and uses npm workspace
 # Performance: 5-8 minutes instead of 60+ minutes
 
+# ----------------------------------------------------------------------------
+# Extracted-microservices shared config (anchors). The CAD-style services
+# (services/*) run under the `services` / `full` profiles so the default
+# `docker compose up` is unchanged (monolith-only). Bring the full topology
+# up with:  docker compose --profile services up --build
+# All extracted services share one Postgres (schema-per-service) + NATS + Redis.
+# ----------------------------------------------------------------------------
+x-service-env: &ms-env
+  NODE_ENV: ${NODE_ENV:-development}
+  DATABASE_URL: postgresql://${POSTGRES_USER:-adopt_user}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-adopt_dont_shop_dev}
+  NATS_URL: nats://nats:4222
+  REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+
+x-service-deps: &ms-deps
+  database:
+    condition: service_healthy
+  nats:
+    condition: service_healthy
+
 services:
   # ============================================================================
   # CORE INFRASTRUCTURE
@@ -379,6 +398,220 @@ services:
       loki:
         condition: service_healthy
     restart: unless-stopped
+
+  # ==========================================================================
+  # EXTRACTED MICROSERVICES (CAD-style). Opt-in via `--profile services`.
+  # The gateway fronts /api/* and proxies to the monolith for every domain
+  # whose CUTOVER_<DOMAIN> flag is off (the default), so bringing these up
+  # changes nothing until a flag is flipped. gRPC URL defaults in the gateway
+  # config (service-<name>:<port>) match these container names.
+  # ==========================================================================
+
+  service-gateway:
+    profiles: ['services', 'full']
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      target: development
+      args:
+        SERVICE: '@adopt-dont-shop/service.gateway'
+        SERVICE_DIR: services/gateway
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      NATS_URL: nats://nats:4222
+      UPSTREAM_BACKEND_URL: http://service-backend:5000
+    ports:
+      - '127.0.0.1:4000:4000'
+    depends_on:
+      nats:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health/simple']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  service-notifications:
+    profiles: ['services', 'full']
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      target: development
+      args:
+        SERVICE: '@adopt-dont-shop/service.notifications'
+        SERVICE_DIR: services/notifications
+    environment:
+      <<: *ms-env
+    ports:
+      - '127.0.0.1:5001:5001'
+    depends_on: *ms-deps
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5001/health/simple']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  service-auth:
+    profiles: ['services', 'full']
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      target: development
+      args:
+        SERVICE: '@adopt-dont-shop/service.auth'
+        SERVICE_DIR: services/auth
+    environment:
+      <<: *ms-env
+      JWT_SECRET: '${JWT_SECRET:?Error: JWT_SECRET required}'
+      JWT_REFRESH_SECRET: '${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}'
+    ports:
+      - '127.0.0.1:5002:5002'
+    depends_on: *ms-deps
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5002/health/simple']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  service-pets:
+    profiles: ['services', 'full']
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      target: development
+      args:
+        SERVICE: '@adopt-dont-shop/service.pets'
+        SERVICE_DIR: services/pets
+    environment:
+      <<: *ms-env
+    ports:
+      - '127.0.0.1:5003:5003'
+    depends_on: *ms-deps
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5003/health/simple']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  service-rescue:
+    profiles: ['services', 'full']
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      target: development
+      args:
+        SERVICE: '@adopt-dont-shop/service.rescue'
+        SERVICE_DIR: services/rescue
+    environment:
+      <<: *ms-env
+    ports:
+      - '127.0.0.1:5004:5004'
+    depends_on: *ms-deps
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5004/health/simple']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  service-applications:
+    profiles: ['services', 'full']
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      target: development
+      args:
+        SERVICE: '@adopt-dont-shop/service.applications'
+        SERVICE_DIR: services/applications
+    environment:
+      <<: *ms-env
+      PETS_GRPC_URL: service-pets:6003
+    ports:
+      - '127.0.0.1:5005:5005'
+    depends_on: *ms-deps
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5005/health/simple']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  service-moderation:
+    profiles: ['services', 'full']
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      target: development
+      args:
+        SERVICE: '@adopt-dont-shop/service.moderation'
+        SERVICE_DIR: services/moderation
+    environment:
+      <<: *ms-env
+    ports:
+      - '127.0.0.1:5007:5007'
+    depends_on: *ms-deps
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5007/health/simple']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  service-matching:
+    profiles: ['services', 'full']
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      target: development
+      args:
+        SERVICE: '@adopt-dont-shop/service.matching'
+        SERVICE_DIR: services/matching
+    environment:
+      <<: *ms-env
+      PETS_GRPC_URL: service-pets:6003
+    ports:
+      - '127.0.0.1:5008:5008'
+    depends_on: *ms-deps
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5008/health/simple']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  service-audit:
+    profiles: ['services', 'full']
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      target: development
+      args:
+        SERVICE: '@adopt-dont-shop/service.audit'
+        SERVICE_DIR: services/audit
+    environment:
+      <<: *ms-env
+    ports:
+      - '127.0.0.1:5009:5009'
+    depends_on: *ms-deps
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5009/health/simple']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
 # ============================================================================
 # VOLUMES - Simplified to only what's needed

@@ -1,0 +1,79 @@
+# syntax=docker/dockerfile:1.4
+#
+# Parameterised image for the extracted Node gRPC services + the gateway.
+# One Dockerfile, selected per service via build args:
+#   SERVICE      — the workspace package name (e.g. @adopt-dont-shop/service.audit)
+#   SERVICE_DIR  — the path under the repo root  (e.g. services/audit)
+#
+# Mirrors Dockerfile.app.optimized: `turbo prune --docker` computes the
+# dependency closure for the target service so the install/build layers only
+# carry what that service actually needs (its workspace deps: proto, events,
+# authz, db, observability, lib.types). Two targets:
+#   development — tsx watch HMR (used by docker-compose.yml)
+#   production  — compiled dist run with node (used by prod/staging)
+
+ARG NODE_VERSION=22.15.1
+
+# ---------------------------------------------------------------------------
+# base — shared foundation
+# ---------------------------------------------------------------------------
+FROM node:${NODE_VERSION}-alpine AS base
+# hadolint ignore=DL3018
+RUN apk update && apk upgrade && apk add --no-cache \
+    curl \
+    dumb-init \
+    && rm -rf /var/cache/apk/*
+WORKDIR /app
+# Husky is a dev-only git hook tool; not available (or wanted) in containers.
+ENV HUSKY=0
+
+# ---------------------------------------------------------------------------
+# pruner — produce the pruned subgraph for ${SERVICE}
+# ---------------------------------------------------------------------------
+FROM base AS pruner
+ARG SERVICE
+# Full monorepo source is needed so turbo can read every workspace package.json.
+# node_modules / dist are excluded via .dockerignore.
+COPY . .
+RUN npx -y turbo@2.9.16 prune ${SERVICE} --docker
+
+# ---------------------------------------------------------------------------
+# build — install the pruned deps + turbo build the service (+ its deps)
+# ---------------------------------------------------------------------------
+FROM base AS build
+ARG SERVICE
+# Workspace metadata + pruned lockfile first (cache-friendly install layer).
+COPY --from=pruner /app/out/json/ ./
+COPY --from=pruner /app/out/package-lock.json ./package-lock.json
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
+# Pruned source — only the workspaces this service depends on.
+COPY --from=pruner /app/out/full/ ./
+# `^build` ordering means turbo builds the workspace deps (proto, events, …)
+# before the service itself.
+RUN --mount=type=cache,target=/app/.turbo \
+    npx turbo build --filter=${SERVICE}
+
+# ---------------------------------------------------------------------------
+# development — HMR via tsx watch (docker-compose.yml dev stack)
+# ---------------------------------------------------------------------------
+FROM build AS development
+ARG SERVICE_DIR
+ENV NODE_ENV=development
+WORKDIR /app/${SERVICE_DIR}
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+# Migrate the service's own schema (only services that own a schema define
+# db:migrate — the gateway doesn't, hence --if-present), then start with
+# watch-reload.
+CMD ["sh", "-c", "npm run db:migrate --if-present && npm run dev"]
+
+# ---------------------------------------------------------------------------
+# production — compiled dist run with node
+# ---------------------------------------------------------------------------
+FROM base AS production
+ARG SERVICE_DIR
+ENV NODE_ENV=production
+COPY --from=build /app ./
+WORKDIR /app/${SERVICE_DIR}
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["sh", "-c", "npm run db:migrate --if-present && npm run start"]
