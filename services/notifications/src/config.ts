@@ -1,3 +1,8 @@
+export type EmailProviderConfig =
+  | { kind: 'console' }
+  | { kind: 'ethereal' }
+  | { kind: 'resend'; apiKey: string; fromEmail: string; fromName: string; replyTo?: string };
+
 export type NotificationsConfig = {
   // Port the HTTP surface listens on. Distinct from service.backend's
   // 5000 and service.gateway's 4000. The gRPC server listens on a
@@ -20,6 +25,13 @@ export type NotificationsConfig = {
   // NATS bus. Used by both the publish-after-commit pipeline (Create /
   // Dismiss handlers) and the fan-out subscriber (Phase 1.4).
   natsUrl: string;
+  // Email provider selection — Phase 7 round-out. ADS-549 rule: in
+  // production an unknown / unconfigured provider crashes boot rather
+  // than silently downgrading to console.
+  emailProvider: EmailProviderConfig;
+  // Toggle the email queue worker. Defaults to true. Tests + the
+  // migrations-only smoke set this to false to keep the loop quiet.
+  emailWorkerEnabled: boolean;
 };
 
 // Defaults match the wider stack:
@@ -53,7 +65,50 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     databaseUrl,
     schema: env.NOTIFICATIONS_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
+    emailProvider: loadEmailProviderConfig(env),
+    emailWorkerEnabled: env.EMAIL_WORKER_ENABLED?.trim() !== 'false',
   };
+};
+
+const loadEmailProviderConfig = (env: NodeJS.ProcessEnv): EmailProviderConfig => {
+  const requested = env.EMAIL_PROVIDER?.trim().toLowerCase() ?? 'console';
+  const isProd = (env.NODE_ENV?.trim() ?? '').toLowerCase() === 'production';
+
+  switch (requested) {
+    case 'console':
+      // ADS-549: console in prod is a misconfig (every transactional
+      // email would land in stdout). Surface the misconfig — the boot
+      // path treats this as a fatal validation error.
+      if (isProd) {
+        throw new Error(
+          "EMAIL_PROVIDER='console' is not permitted in production — every transactional email would land in stdout"
+        );
+      }
+      return { kind: 'console' };
+    case 'ethereal':
+      return { kind: 'ethereal' };
+    case 'resend': {
+      const apiKey = env.RESEND_API_KEY?.trim();
+      const fromEmail = env.DEFAULT_FROM_EMAIL?.trim();
+      if (!apiKey) {
+        throw new Error("EMAIL_PROVIDER='resend' requires RESEND_API_KEY");
+      }
+      if (!fromEmail) {
+        throw new Error("EMAIL_PROVIDER='resend' requires DEFAULT_FROM_EMAIL");
+      }
+      return {
+        kind: 'resend',
+        apiKey,
+        fromEmail,
+        fromName: env.DEFAULT_FROM_NAME?.trim() || "Adopt Don't Shop",
+        replyTo: env.DEFAULT_REPLY_TO_EMAIL?.trim() || undefined,
+      };
+    }
+    default:
+      throw new Error(
+        `EMAIL_PROVIDER='${requested}' is not recognised (expected 'console' | 'ethereal' | 'resend')`
+      );
+  }
 };
 
 function parsePort(raw: string | undefined, fallback: number, name: string): number {

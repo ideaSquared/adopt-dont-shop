@@ -31,6 +31,32 @@ service NotificationService {
   // the same row without error. Publishes `notifications.dismissed`
   // on NATS after the DB commits.
   rpc Dismiss(DismissNotificationRequest) returns (DismissNotificationResponse);
+
+  // --- Email queue ----------------------------------------------------
+  // Phase 7 round-out. The service owns the email_queue table; other
+  // services (auth, applications, chat) call SendEmail to enqueue a
+  // transactional message and a background worker drains the queue,
+  // routing to the configured provider (console / ethereal / Resend).
+
+  // Enqueue an email. Returns the email_id immediately; delivery happens
+  // asynchronously in the worker. Callers can supply a templateId +
+  // templateData OR a pre-rendered subject + html_content; if both are
+  // present the template wins. `idempotency_key` is optional — when set
+  // a duplicate Send with the same key returns the same email_id.
+  rpc SendEmail(SendEmailRequest) returns (SendEmailResponse);
+
+  // --- Email preferences ----------------------------------------------
+  // Per-user opt-in/opt-out for the email channel.
+
+  // Read the calling principal's email preferences (or a target user's
+  // when the caller has email-prefs:read:any). Returns the canonical
+  // row, creating defaults on first read.
+  rpc GetEmailPreferences(GetEmailPreferencesRequest) returns (GetEmailPreferencesResponse);
+
+  // Partially update email preferences. Only provided fields are
+  // touched — unset fields keep their current value.
+  rpc UpdateEmailPreferences(UpdateEmailPreferencesRequest)
+      returns (UpdateEmailPreferencesResponse);
 }
 
 // Notification mirrors the `notifications.notifications` row plus the
@@ -200,4 +226,161 @@ message DismissNotificationResponse {
   // The updated row (status=READ, read_at=now). Idempotent: a second
   // Dismiss on the same notification_id returns the same payload.
   Notification notification = 1;
+}
+
+// --- Email queue ENUMs ------------------------------------------------
+
+enum EmailType {
+  EMAIL_TYPE_UNSPECIFIED = 0;
+  EMAIL_TYPE_TRANSACTIONAL = 1;
+  EMAIL_TYPE_NOTIFICATION = 2;
+  EMAIL_TYPE_MARKETING = 3;
+  EMAIL_TYPE_SYSTEM = 4;
+}
+
+enum EmailPriority {
+  EMAIL_PRIORITY_UNSPECIFIED = 0;
+  EMAIL_PRIORITY_LOW = 1;
+  EMAIL_PRIORITY_NORMAL = 2;
+  EMAIL_PRIORITY_HIGH = 3;
+  EMAIL_PRIORITY_URGENT = 4;
+}
+
+enum EmailStatus {
+  EMAIL_STATUS_UNSPECIFIED = 0;
+  EMAIL_STATUS_QUEUED = 1;
+  EMAIL_STATUS_SENDING = 2;
+  EMAIL_STATUS_SENT = 3;
+  EMAIL_STATUS_DELIVERED = 4;
+  EMAIL_STATUS_OPENED = 5;
+  EMAIL_STATUS_CLICKED = 6;
+  EMAIL_STATUS_FAILED = 7;
+  EMAIL_STATUS_BOUNCED = 8;
+  EMAIL_STATUS_UNSUBSCRIBED = 9;
+}
+
+enum EmailDigestFrequency {
+  EMAIL_DIGEST_FREQUENCY_UNSPECIFIED = 0;
+  EMAIL_DIGEST_FREQUENCY_IMMEDIATE = 1;
+  EMAIL_DIGEST_FREQUENCY_DAILY = 2;
+  EMAIL_DIGEST_FREQUENCY_WEEKLY = 3;
+  EMAIL_DIGEST_FREQUENCY_MONTHLY = 4;
+  EMAIL_DIGEST_FREQUENCY_NEVER = 5;
+}
+
+enum EmailFormat {
+  EMAIL_FORMAT_UNSPECIFIED = 0;
+  EMAIL_FORMAT_HTML = 1;
+  EMAIL_FORMAT_TEXT = 2;
+  EMAIL_FORMAT_BOTH = 3;
+}
+
+// --- SendEmail --------------------------------------------------------
+
+message SendEmailRequest {
+  // Recipient. Required.
+  string to_email = 1;
+  optional string to_name = 2;
+
+  // Sender override (defaults to the service's configured From).
+  optional string from_email = 3;
+  optional string from_name = 4;
+  optional string reply_to_email = 5;
+
+  // CC / BCC. Empty when omitted.
+  repeated string cc_emails = 6;
+  repeated string bcc_emails = 7;
+
+  // Either supply (subject + html_content) OR (template_id + template_data_json).
+  // When both arrive, template wins and the inline subject/content are ignored.
+  optional string subject = 8;
+  optional string html_content = 9;
+  optional string text_content = 10;
+  optional string template_id = 11;
+  // JSON-stringified payload for template variable substitution.
+  // Empty string == `{}`.
+  string template_data_json = 12;
+
+  EmailType type = 13;
+  EmailPriority priority = 14;
+
+  // Schedule for a future delivery. Absent = send as soon as the worker
+  // picks it up.
+  optional string scheduled_for = 15;
+
+  // Free-form metadata + tags for the row. JSON-stringified; empty string == `{}`.
+  string metadata_json = 16;
+  repeated string tags = 17;
+
+  // Tie the row to a user (for prefs enforcement + audit). Optional.
+  optional string user_id = 18;
+  optional string campaign_id = 19;
+
+  // Opt-in idempotency. When set, a duplicate SendEmail with the same
+  // key returns the same email_id without enqueueing a second row.
+  optional string idempotency_key = 20;
+}
+
+message SendEmailResponse {
+  // The row's emailId. Caller can poll the queue table for status; the
+  // worker publishes status changes on `notifications.email.*` topics.
+  string email_id = 1;
+  // True when the row was already present (idempotency_key collision).
+  bool already_queued = 2;
+}
+
+// --- EmailPreferences -------------------------------------------------
+
+message EmailPreferences {
+  string preference_id = 1;
+  string user_id = 2;
+  bool is_email_enabled = 3;
+  bool global_unsubscribe = 4;
+  // JSON-stringified array of per-category opt-in/out rows. Shape:
+  // [{type, enabled, frequency?}, ...]. Empty string == `[]`.
+  string preferences_json = 5;
+  string language = 6;
+  string timezone = 7;
+  EmailFormat email_format = 8;
+  EmailDigestFrequency digest_frequency = 9;
+  // HH:MM 24h.
+  string digest_time = 10;
+  string unsubscribe_token = 11;
+  optional string last_digest_sent = 12;
+  uint32 bounce_count = 13;
+  optional string last_bounce_at = 14;
+  bool is_blacklisted = 15;
+  optional string blacklist_reason = 16;
+  optional string blacklisted_at = 17;
+  string metadata_json = 18;
+  string created_at = 19;
+  string updated_at = 20;
+}
+
+message GetEmailPreferencesRequest {
+  // Optional target. Defaults to the calling principal. Callers without
+  // `email-prefs:read:any` may only read their own row.
+  optional string user_id = 1;
+}
+
+message GetEmailPreferencesResponse {
+  EmailPreferences preferences = 1;
+}
+
+message UpdateEmailPreferencesRequest {
+  optional string user_id = 1;
+
+  // All fields optional — only present fields are written.
+  optional bool is_email_enabled = 2;
+  optional bool global_unsubscribe = 3;
+  optional string preferences_json = 4;
+  optional string language = 5;
+  optional string timezone = 6;
+  EmailFormat email_format = 7;
+  EmailDigestFrequency digest_frequency = 8;
+  optional string digest_time = 9;
+}
+
+message UpdateEmailPreferencesResponse {
+  EmailPreferences preferences = 1;
 }

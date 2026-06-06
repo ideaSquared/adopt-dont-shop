@@ -19,6 +19,7 @@ import { NotificationsV1 } from '@adopt-dont-shop/proto';
 import type { NotificationsConfig } from '../config.js';
 
 import { adapt } from './adapter.js';
+import { getEmailPreferences, sendEmail, updateEmailPreferences } from './email-handlers.js';
 import { createNotification, dismissNotification, listNotifications } from './handlers.js';
 
 export type CreateGrpcServerOptions = {
@@ -49,10 +50,20 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     create: adapt(createNotification, { deps: { pool, nats }, logger }),
     list: adapt(listNotifications, { deps: { pool, nats }, logger }),
     dismiss: adapt(dismissNotification, { deps: { pool, nats }, logger }),
+    sendEmail: adapt(sendEmail, { deps: { pool, nats }, logger }),
+    getEmailPreferences: adapt(getEmailPreferences, { deps: { pool, nats }, logger }),
+    updateEmailPreferences: adapt(updateEmailPreferences, { deps: { pool, nats }, logger }),
   });
 
   logger.info('gRPC NotificationService registered', {
-    methods: ['create', 'list', 'dismiss'],
+    methods: [
+      'create',
+      'list',
+      'dismiss',
+      'sendEmail',
+      'getEmailPreferences',
+      'updateEmailPreferences',
+    ],
     grpcPort: config.grpcPort,
   });
 

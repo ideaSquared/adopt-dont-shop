@@ -25,6 +25,13 @@ describe('loadConfig', () => {
       NODE_ENV: 'production',
       DATABASE_URL: 'postgres://prod:secret@db.example.com:5432/notifications',
       NATS_URL: 'nats://nats.internal:4222',
+      // ADS-549: production needs a real email provider — console is
+      // rejected (silent drop of every transactional email). Resend is
+      // the production configuration.
+      EMAIL_PROVIDER: 'resend',
+      RESEND_API_KEY: 're_test_key',
+      DEFAULT_FROM_EMAIL: 'noreply@example.com',
+      DEFAULT_FROM_NAME: 'Adopt Test',
     });
 
     expect(config.port).toBe(5500);
@@ -34,6 +41,53 @@ describe('loadConfig', () => {
     expect(config.schema).toBe('notifications_test');
     expect(config.databaseUrl).toBe('postgres://prod:secret@db.example.com:5432/notifications');
     expect(config.natsUrl).toBe('nats://nats.internal:4222');
+    expect(config.emailProvider).toEqual({
+      kind: 'resend',
+      apiKey: 're_test_key',
+      fromEmail: 'noreply@example.com',
+      fromName: 'Adopt Test',
+      replyTo: undefined,
+    });
+    expect(config.emailWorkerEnabled).toBe(true);
+  });
+
+  it('defaults to the console email provider in non-production environments', () => {
+    const config = loadConfig({ DATABASE_URL: VALID_DB_URL });
+    expect(config.emailProvider).toEqual({ kind: 'console' });
+  });
+
+  it("rejects EMAIL_PROVIDER='console' in production", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: 'production',
+        DATABASE_URL: VALID_DB_URL,
+        EMAIL_PROVIDER: 'console',
+      })
+    ).toThrow(/not permitted in production/);
+  });
+
+  it("requires RESEND_API_KEY when EMAIL_PROVIDER='resend'", () => {
+    expect(() =>
+      loadConfig({
+        DATABASE_URL: VALID_DB_URL,
+        EMAIL_PROVIDER: 'resend',
+        DEFAULT_FROM_EMAIL: 'noreply@example.com',
+      })
+    ).toThrow(/requires RESEND_API_KEY/);
+  });
+
+  it('rejects an unknown EMAIL_PROVIDER value', () => {
+    expect(() => loadConfig({ DATABASE_URL: VALID_DB_URL, EMAIL_PROVIDER: 'sendgrid' })).toThrow(
+      /EMAIL_PROVIDER='sendgrid' is not recognised/
+    );
+  });
+
+  it('honours EMAIL_WORKER_ENABLED=false', () => {
+    const config = loadConfig({
+      DATABASE_URL: VALID_DB_URL,
+      EMAIL_WORKER_ENABLED: 'false',
+    });
+    expect(config.emailWorkerEnabled).toBe(false);
   });
 
   it('rejects a non-numeric NOTIFICATIONS_PORT', () => {

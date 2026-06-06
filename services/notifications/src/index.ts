@@ -4,6 +4,8 @@ import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
 
 import { loadConfig } from './config.js';
+import { createProvider } from './email/providers/factory.js';
+import { startEmailWorker, type RunningEmailWorker } from './email/worker.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { registerSubscribers } from './nats/subscribers.js';
 import { createServer } from './server.js';
@@ -14,6 +16,7 @@ const main = async (): Promise<void> => {
   let nats: NatsConnection | undefined;
   let pool: Awaited<ReturnType<typeof createDbClient>> | undefined;
   let grpc: RunningGrpcServer | undefined;
+  let emailWorker: RunningEmailWorker | undefined;
   let httpClosed = false;
 
   try {
@@ -34,6 +37,30 @@ const main = async (): Promise<void> => {
     // can't race against partially-constructed deps. Shutdown drains the
     // whole NATS connection later, which transparently cancels these.
     registerSubscribers({ nats, deps: { pool, nats }, logger });
+    // Email worker drains the email_queue table. Enabled by default;
+    // tests + the migrations-only smoke set EMAIL_WORKER_ENABLED=false
+    // to keep the loop quiet. Provider factory enforces ADS-549 (no
+    // silent console fallback in prod).
+    if (config.emailWorkerEnabled) {
+      const emailProviderConfig =
+        config.emailProvider.kind === 'resend'
+          ? ({
+              kind: 'resend',
+              resend: {
+                apiKey: config.emailProvider.apiKey,
+                fromEmail: config.emailProvider.fromEmail,
+                fromName: config.emailProvider.fromName,
+                replyTo: config.emailProvider.replyTo,
+              },
+            } as const)
+          : config.emailProvider;
+      const provider = createProvider({ config: emailProviderConfig, logger });
+      if (!provider.validateConfiguration()) {
+        throw new Error(`email provider '${provider.getName()}' failed validateConfiguration()`);
+      }
+      emailWorker = startEmailWorker({ pool, nats, provider, logger });
+      logger.info('email worker started', { provider: provider.getName() });
+    }
     const httpServer = createServer({ config, logger });
     await httpServer.listen({ port: config.port, host: config.host });
 
@@ -55,6 +82,11 @@ const main = async (): Promise<void> => {
         }
       } catch (err) {
         logger.error('http close error', { err });
+      }
+      try {
+        await emailWorker?.stop();
+      } catch (err) {
+        logger.error('email worker stop error', { err });
       }
       try {
         await grpc?.shutdown();

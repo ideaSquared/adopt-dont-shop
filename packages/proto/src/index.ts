@@ -38,6 +38,13 @@ export type {
   ListNotificationsResponse,
   DismissNotificationRequest,
   DismissNotificationResponse,
+  SendEmailRequest,
+  SendEmailResponse,
+  EmailPreferences,
+  GetEmailPreferencesRequest,
+  GetEmailPreferencesResponse,
+  UpdateEmailPreferencesRequest,
+  UpdateEmailPreferencesResponse,
   NotificationServiceServer,
   NotificationServiceClient,
 } from './generated/proto/adopt_dont_shop/notifications/v1/notification.js';
