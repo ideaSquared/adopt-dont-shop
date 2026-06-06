@@ -3,11 +3,14 @@ import { describe, expect, it } from 'vitest';
 import {
   ApplicationsV1,
   AuthV1,
+  ChatV1,
   NotificationsV1,
   PetsV1,
   PingV1,
   RescueV1,
   type Application,
+  type Chat,
+  type SendMessageRequest,
   type AuthUser,
   type CreateNotificationRequest,
   type CreatePetRequest,
@@ -509,6 +512,54 @@ describe('@adopt-dont-shop/proto', () => {
         updatedAt: '2026-06-01T00:00:00Z',
       };
       expect(a.applicationId).toBe('app-1');
+    });
+  });
+
+  describe('ChatV1 namespace (Phase 6.3a — proto + grpc-js stubs)', () => {
+    it('exports the message factories under the ChatV1 namespace', () => {
+      expect(ChatV1.Chat).toBeDefined();
+      expect(ChatV1.Message).toBeDefined();
+      expect(ChatV1.MessageReaction).toBeDefined();
+      expect(ChatV1.OpenChatRequest).toBeDefined();
+      expect(ChatV1.SendMessageRequest).toBeDefined();
+      expect(ChatV1.ListMessagesRequest).toBeDefined();
+      expect(ChatV1.MarkReadRequest).toBeDefined();
+      expect(ChatV1.ReactRequest).toBeDefined();
+    });
+
+    it('exports the gRPC service definition table for all six RPCs', () => {
+      expect(ChatV1.ChatServiceService).toBeDefined();
+      expect(ChatV1.ChatServiceService).toMatchObject({
+        openChat: { path: '/adopt_dont_shop.chat.v1.ChatService/OpenChat' },
+        sendMessage: { path: '/adopt_dont_shop.chat.v1.ChatService/SendMessage' },
+        listMessages: { path: '/adopt_dont_shop.chat.v1.ChatService/ListMessages' },
+        listChats: { path: '/adopt_dont_shop.chat.v1.ChatService/ListChats' },
+        markRead: { path: '/adopt_dont_shop.chat.v1.ChatService/MarkRead' },
+        react: { path: '/adopt_dont_shop.chat.v1.ChatService/React' },
+      });
+    });
+
+    it('exports a gRPC client constructor', () => {
+      expect(ChatV1.ChatServiceClient).toBeDefined();
+      expect(typeof ChatV1.ChatServiceClient).toBe('function');
+    });
+
+    it('round-trips a SendMessageRequest through the binary wire format', () => {
+      const original: SendMessageRequest = { chatId: 'c-1', body: 'hello' };
+      const buf = ChatV1.SendMessageRequest.encode(original).finish();
+      const decoded = ChatV1.SendMessageRequest.decode(buf);
+      expect(decoded).toEqual(original);
+    });
+
+    it('flat type-only re-exports compile in type position', () => {
+      const c: Chat = {
+        chatId: 'c-1',
+        applicationId: 'app-1',
+        participantUserIds: ['usr-1', 'usr-2'],
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+      };
+      expect(c.chatId).toBe('c-1');
     });
   });
 });

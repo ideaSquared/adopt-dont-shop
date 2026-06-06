@@ -134,3 +134,24 @@ export type {
   ApplicationServiceServer,
   ApplicationServiceClient,
 } from './generated/proto/adopt_dont_shop/applications/v1/application.js';
+
+export * as ChatV1 from './generated/proto/adopt_dont_shop/chat/v1/chat.js';
+export type {
+  Chat,
+  Message,
+  MessageReaction,
+  OpenChatRequest,
+  OpenChatResponse,
+  SendMessageRequest,
+  SendMessageResponse,
+  ListMessagesRequest,
+  ListMessagesResponse,
+  ListChatsRequest,
+  ListChatsResponse,
+  MarkReadRequest,
+  MarkReadResponse,
+  ReactRequest,
+  ReactResponse,
+  ChatServiceServer,
+  ChatServiceClient,
+} from './generated/proto/adopt_dont_shop/chat/v1/chat.js';
