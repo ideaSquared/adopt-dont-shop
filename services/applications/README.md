@@ -27,12 +27,39 @@ store + publish-after-commit on `applications.*` events.
   misconfiguration fails fast at boot rather than at first request.
 - `src/server.ts` `createServer({ config, logger? })`.
 
+**Phase 5.2** — pure event-sourced application domain:
+- `src/domain/types.ts` — `ApplicationState`, `ApplicationEvent`
+  union (10 event types, one per command), `ApplicationCommand`
+  union, `DomainError` with 4 codes
+  (`ILLEGAL_TRANSITION` / `CONCURRENCY` / `INVALID_INPUT` /
+  `MISSING_AGGREGATE`).
+- `src/domain/apply.ts` — `apply(state, event)` pure reducer +
+  `fold(events)` replay convenience + `INITIAL_STATE` sentinel. Same
+  function runs at command time and hydration time so replay = live
+  write.
+- `src/domain/commands.ts` — `handle(state, command)` per-command
+  invariant checks. Each command emits 0+ events; the gRPC handler
+  in Phase 5.3b is the only thing that wraps this with DB writes
+  and NATS publishes. Optimistic-concurrency check (`expectedVersion`
+  vs `state.version`) on the draft-write commands.
+- 47 tests across apply (per-event field stamping, immutability,
+  fold-equals-event-by-event-apply) and commands (legal transitions,
+  illegal-transition rejection, MISSING_AGGREGATE guard for non-
+  StartDraft commands against INITIAL_STATE, the under_review
+  self-loop for saveDraftAnswers, idempotent startReview, optimistic
+  concurrency).
+
+**Phase 5.3a** — proto + grpc-js stubs (lands in `@adopt-dont-shop/proto`):
+- `proto/adopt_dont_shop/applications/v1/application.proto` defines
+  `ApplicationService.{StartDraft, SaveDraftAnswers, SubmitDraft,
+  StartReview, ScheduleHomeVisit, CompleteHomeVisit, Approve,
+  Reject, Withdraw, MarkAdopted, Get, List}` + `Application`,
+  `TimelineEntry` messages + `ApplicationStatus` (×9) /
+  `HomeVisitOutcome` (×3) enums.
+
 ## What's NOT here yet
 
-The CAD Phase 2 cadence — six PRs:
-- **Phase 5.2** — pure event-sourced application domain
-  (`apply`/`fold`, commands, invariants). I/O-free, fully unit-tested.
-- **Phase 5.3** — `applications.*` schema + migrations, persisted gRPC
+- **Phase 5.3b** — `applications.*` schema + migrations, persisted gRPC
   service (Postgres event store + read model with optimistic
   concurrency on `(aggregate_id, version)`, NATS publish post-commit,
   gRPC handlers).
