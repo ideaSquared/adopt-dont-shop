@@ -25,7 +25,7 @@
 // documents are separate Stage B follow-ups; so is the data migration
 // that must backfill the (currently empty) event store before any flip.
 
-import { ApplicationsV1, type Application } from '@adopt-dont-shop/proto';
+import { ApplicationsV1, type Application, type GetStatsResponse } from '@adopt-dont-shop/proto';
 
 type FrontendStatus = 'submitted' | 'approved' | 'rejected' | 'withdrawn';
 type FrontendStage = 'pending' | 'reviewing' | 'visiting' | 'deciding' | 'resolved' | 'withdrawn';
@@ -108,6 +108,36 @@ export function applicationToView(app: Application): ApplicationView | null {
   }
 
   return view;
+}
+
+// The frontend ApplicationStatsSchema — counts the rescue dashboard shows.
+export type StatsView = {
+  total: number;
+  submitted: number;
+  underReview: number;
+  approved: number;
+  rejected: number;
+  pendingReferences: number;
+};
+
+// Collapse the service's raw per-status counts (GetStats) onto the
+// frontend's stats shape, the same collapse `applicationToView` applies
+// to a single application:
+//   - drafts are not frontend-visible → excluded from `total`.
+//   - the review/visit states fold into `underReview`.
+//   - `adopted` counts as `approved`.
+//   - `pendingReferences` has no service equivalent → 0.
+export function statsToView(stats: GetStatsResponse): StatsView {
+  const underReview = stats.underReview + stats.homeVisitScheduled + stats.homeVisitCompleted;
+  const approved = stats.approved + stats.adopted;
+  return {
+    total: stats.total - stats.draft,
+    submitted: stats.submitted,
+    underReview,
+    approved,
+    rejected: stats.rejected,
+    pendingReferences: 0,
+  };
 }
 
 // answersJson is the opaque blob the write path stored (the frontend's

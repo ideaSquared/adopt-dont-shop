@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ApplicationsV1, type Application } from '@adopt-dont-shop/proto';
 
-import { applicationToView, isHiddenFromFrontend } from './applications-view.js';
+import { applicationToView, isHiddenFromFrontend, statsToView } from './applications-view.js';
 
 const S = ApplicationsV1.ApplicationStatus;
 
@@ -112,5 +112,30 @@ describe('applicationToView — data blob', () => {
     expect(applicationToView(makeApp({ answersJson: '{}' }))?.data).toBeUndefined();
     expect(applicationToView(makeApp({ answersJson: 'not-json' }))?.data).toBeUndefined();
     expect(applicationToView(makeApp({ answersJson: '[1,2]' }))?.data).toBeUndefined();
+  });
+});
+
+describe('statsToView — count collapse', () => {
+  it('excludes drafts from total, folds review/visit into underReview, adopted into approved', () => {
+    const view = statsToView({
+      total: 12,
+      draft: 2,
+      submitted: 4,
+      underReview: 1,
+      homeVisitScheduled: 1,
+      homeVisitCompleted: 1,
+      approved: 1,
+      rejected: 1,
+      withdrawn: 1,
+      adopted: 1,
+    });
+    expect(view).toEqual({
+      total: 10, // 12 - 2 drafts
+      submitted: 4,
+      underReview: 3, // 1 + 1 + 1
+      approved: 2, // approved + adopted
+      rejected: 1,
+      pendingReferences: 0,
+    });
   });
 });

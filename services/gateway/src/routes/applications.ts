@@ -11,6 +11,7 @@
 //   POST   /api/v1/applications              → StartDraft+SaveDraftAnswers+SubmitDraft
 //   PATCH  /api/v1/applications/:id/status   → Approve | Reject | Withdraw
 //   PUT    /api/v1/applications/:id/withdraw → Withdraw
+//   GET    /api/v1/applications/stats        → GetStats (collapsed counts)
 //   GET    /api/v1/applications              → List  (drafts filtered)
 //   GET    /api/v1/applications/:id          → Get   (draft → 404)
 //
@@ -45,7 +46,7 @@ import {
 
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
 
-import { applicationToView, type ApplicationView } from './applications-view.js';
+import { applicationToView, statsToView, type ApplicationView } from './applications-view.js';
 
 export type ApplicationsRoutesOptions = {
   client: ApplicationsClient;
@@ -332,6 +333,22 @@ export const registerApplicationsRoutes = async (
   );
 
   // ---------- Reads ----------
+
+  // Registered before /:id so the static `stats` segment wins over the
+  // param route. Collapses the service's raw per-status counts to the
+  // SPA's ApplicationStatsSchema, wrapped in `{ data }`.
+  app.get('/api/v1/applications/stats', { config: { rateLimit: RL_READ } }, async (req, reply) => {
+    const q = req.query as Record<string, string | undefined>;
+    try {
+      const res = await client.getStats(
+        { rescueIdFilter: q.rescue, adopterIdFilter: q.adopter },
+        buildMetadata(req)
+      );
+      return reply.send({ data: statsToView(res) });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
 
   app.get('/api/v1/applications', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
