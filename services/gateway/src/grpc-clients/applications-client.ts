@@ -11,6 +11,8 @@ import { credentials, Metadata } from '@grpc/grpc-js';
 
 import {
   ApplicationsV1,
+  type AddDocumentRequest,
+  type AddDocumentResponse,
   type ApproveRequest,
   type ApproveResponse,
   type CompleteHomeVisitRequest,
@@ -21,10 +23,14 @@ import {
   type GetStatsResponse,
   type ListApplicationsRequest,
   type ListApplicationsResponse,
+  type ListDocumentsRequest,
+  type ListDocumentsResponse,
   type MarkAdoptedRequest,
   type MarkAdoptedResponse,
   type RejectRequest,
   type RejectResponse,
+  type RemoveDocumentRequest,
+  type RemoveDocumentResponse,
   type SaveDraftAnswersRequest,
   type SaveDraftAnswersResponse,
   type ScheduleHomeVisitRequest,
@@ -62,6 +68,9 @@ export type ApplicationsClient = {
   get(req: GetApplicationRequest, metadata: Metadata): Promise<GetApplicationResponse>;
   list(req: ListApplicationsRequest, metadata: Metadata): Promise<ListApplicationsResponse>;
   getStats(req: GetStatsRequest, metadata: Metadata): Promise<GetStatsResponse>;
+  addDocument(req: AddDocumentRequest, metadata: Metadata): Promise<AddDocumentResponse>;
+  listDocuments(req: ListDocumentsRequest, metadata: Metadata): Promise<ListDocumentsResponse>;
+  removeDocument(req: RemoveDocumentRequest, metadata: Metadata): Promise<RemoveDocumentResponse>;
   close(): void;
 };
 
@@ -106,6 +115,9 @@ export const createApplicationsClient = (
     get: (req, metadata) => callUnary(stub.get, req, metadata),
     list: (req, metadata) => callUnary(stub.list, req, metadata),
     getStats: (req, metadata) => callUnary(stub.getStats, req, metadata),
+    addDocument: (req, metadata) => callUnary(stub.addDocument, req, metadata),
+    listDocuments: (req, metadata) => callUnary(stub.listDocuments, req, metadata),
+    removeDocument: (req, metadata) => callUnary(stub.removeDocument, req, metadata),
     close: () => stub.close(),
   };
 };

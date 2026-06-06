@@ -21,6 +21,12 @@ const baseConfig: GatewayConfig = {
   host: '127.0.0.1',
   upstreamBackendUrl: 'http://localhost:0',
   environment: 'test',
+  storage: {
+    provider: 'local',
+    local: { directory: 'uploads', publicPath: '/uploads' },
+    s3: {},
+    maxFileSize: 1_000_000,
+  },
 };
 
 /**

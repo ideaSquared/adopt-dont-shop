@@ -42,6 +42,24 @@ export type GatewayConfig = {
   // service.audit gRPC URL — Phase 10.5 cuts /api/audit/* over to this
   // address.
   auditGrpcUrl: string;
+  // Storage for uploaded files (e.g. application documents). The gateway
+  // stores bytes via @adopt-dont-shop/storage, then records metadata via
+  // the owning service's RPC. Defaults to local under ./uploads — set
+  // STORAGE_PROVIDER=s3 + the S3 vars below to switch. Shape mirrors
+  // StorageConfig from @adopt-dont-shop/storage (provider + local + s3),
+  // plus a gateway-only maxFileSize for multipart's body limit.
+  storage: {
+    provider: 'local' | 's3';
+    local: { directory: string; publicPath: string };
+    s3: {
+      bucket?: string;
+      region?: string;
+      accessKeyId?: string;
+      secretAccessKey?: string;
+      cloudFrontDomain?: string;
+    };
+    maxFileSize: number;
+  };
   // Per-domain strangler cutover switches. When false (the default), the
   // gateway does NOT register that domain's /api/v1/* routes, so requests
   // fall through the catch-all proxy to the residual monolith — today's
@@ -96,6 +114,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     moderationGrpcUrl: env.MODERATION_GRPC_URL?.trim() || DEFAULT_MODERATION_GRPC_URL,
     matchingGrpcUrl: env.MATCHING_GRPC_URL?.trim() || DEFAULT_MATCHING_GRPC_URL,
     auditGrpcUrl: env.AUDIT_GRPC_URL?.trim() || DEFAULT_AUDIT_GRPC_URL,
+    storage: buildStorageConfig(env),
     cutover: {
       auth: isEnabled(env.CUTOVER_AUTH),
       notifications: isEnabled(env.CUTOVER_NOTIFICATIONS),
@@ -114,4 +133,28 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
 // the monolith.
 function isEnabled(raw: string | undefined): boolean {
   return raw?.trim().toLowerCase() === 'true';
+}
+
+// Build the storage config block. Mirrors @adopt-dont-shop/storage's
+// StorageConfig shape: both `local` and `s3` are always present (s3
+// fields are optional); `provider` selects which one drives uploads.
+function buildStorageConfig(env: NodeJS.ProcessEnv): GatewayConfig['storage'] {
+  const provider: 'local' | 's3' = env.STORAGE_PROVIDER?.trim() === 's3' ? 's3' : 'local';
+  return {
+    provider,
+    local: {
+      directory: env.UPLOAD_DIR?.trim() || 'uploads',
+      publicPath: env.PUBLIC_UPLOAD_PATH?.trim() || '/uploads',
+    },
+    s3: {
+      bucket: env.S3_BUCKET_NAME?.trim(),
+      region: env.S3_REGION?.trim() || 'us-east-1',
+      accessKeyId: env.AWS_ACCESS_KEY_ID?.trim(),
+      secretAccessKey: env.AWS_SECRET_ACCESS_KEY?.trim(),
+      cloudFrontDomain: env.CLOUDFRONT_DOMAIN?.trim(),
+    },
+    // Multipart body limit — 10 MiB default. Override with MAX_FILE_SIZE
+    // if larger PDFs are expected.
+    maxFileSize: Number.parseInt(env.MAX_FILE_SIZE?.trim() || '10485760', 10),
+  };
 }
