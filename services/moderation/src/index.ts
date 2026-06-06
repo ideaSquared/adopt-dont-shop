@@ -5,6 +5,7 @@ import { createLogger } from '@adopt-dont-shop/observability';
 
 import { loadConfig } from './config.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
+import { registerSubscribers } from './nats/subscribers.js';
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
@@ -28,6 +29,12 @@ const main = async (): Promise<void> => {
     nats = await connect({ servers: config.natsUrl });
 
     grpc = await startGrpcServer({ config, pool, nats, logger });
+
+    // Phase 8.4: content-scan + auto-report subscribers on
+    // chat.messageCreated, pets.created, applications.submitted. Returned
+    // subscriptions are drained transitively when we drain the NATS
+    // connection on shutdown.
+    registerSubscribers({ nats, deps: { pool, nats }, logger });
 
     const httpServer = createServer({ config, logger });
     await httpServer.listen({ port: config.port, host: config.host });
