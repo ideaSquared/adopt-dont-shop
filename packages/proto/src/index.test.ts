@@ -4,6 +4,7 @@ import {
   ApplicationsV1,
   AuthV1,
   ChatV1,
+  MatchingV1,
   ModerationV1,
   NotificationsV1,
   PetsV1,
@@ -12,8 +13,11 @@ import {
   type Application,
   type Chat,
   type FileReportRequest,
+  type RecordSwipeRequest,
   type Report,
   type SendMessageRequest,
+  type StartSessionRequest,
+  type SwipeSession,
   type AuthUser,
   type CreateNotificationRequest,
   type CreatePetRequest,
@@ -670,6 +674,93 @@ describe('@adopt-dont-shop/proto', () => {
       // messaging_restriction, posting_restriction,
       // application_restriction = 7
       expect(sanctionTypeValues).toHaveLength(7);
+    });
+  });
+
+  describe('MatchingV1 namespace (Phase 9.3a — proto + grpc-js stubs)', () => {
+    it('exports the message factories under the MatchingV1 namespace', () => {
+      expect(MatchingV1.SwipeSession).toBeDefined();
+      expect(MatchingV1.PetCandidate).toBeDefined();
+      expect(MatchingV1.SwipeActionRecord).toBeDefined();
+      expect(MatchingV1.StartSessionRequest).toBeDefined();
+      expect(MatchingV1.EndSessionRequest).toBeDefined();
+      expect(MatchingV1.RecommendRequest).toBeDefined();
+      expect(MatchingV1.RecordSwipeRequest).toBeDefined();
+      expect(MatchingV1.SearchPetsRequest).toBeDefined();
+      expect(MatchingV1.ListSwipeHistoryRequest).toBeDefined();
+    });
+
+    it('exports the gRPC service definition table for all six RPCs', () => {
+      expect(MatchingV1.MatchingServiceService).toBeDefined();
+      expect(MatchingV1.MatchingServiceService).toMatchObject({
+        startSession: { path: '/adopt_dont_shop.matching.v1.MatchingService/StartSession' },
+        endSession: { path: '/adopt_dont_shop.matching.v1.MatchingService/EndSession' },
+        recommend: { path: '/adopt_dont_shop.matching.v1.MatchingService/Recommend' },
+        recordSwipe: { path: '/adopt_dont_shop.matching.v1.MatchingService/RecordSwipe' },
+        searchPets: { path: '/adopt_dont_shop.matching.v1.MatchingService/SearchPets' },
+        listSwipeHistory: {
+          path: '/adopt_dont_shop.matching.v1.MatchingService/ListSwipeHistory',
+        },
+      });
+    });
+
+    it('exports a gRPC client constructor', () => {
+      expect(MatchingV1.MatchingServiceClient).toBeDefined();
+      expect(typeof MatchingV1.MatchingServiceClient).toBe('function');
+    });
+
+    it('round-trips a RecordSwipeRequest through the binary wire format', () => {
+      const original: RecordSwipeRequest = {
+        sessionId: 'sess-1',
+        petId: 'pet-1',
+        action: MatchingV1.SwipeAction.SWIPE_ACTION_SUPER_LIKE,
+        responseTime: 1234,
+      };
+      const buf = MatchingV1.RecordSwipeRequest.encode(original).finish();
+      const decoded = MatchingV1.RecordSwipeRequest.decode(buf);
+      expect(decoded).toMatchObject(original);
+    });
+
+    it('round-trips a StartSessionRequest with the filters_json blob trick', () => {
+      const original: StartSessionRequest = {
+        filtersJson: '{"species":"dog","maxAge":5}',
+        deviceType: MatchingV1.DeviceType.DEVICE_TYPE_MOBILE,
+      };
+      const buf = MatchingV1.StartSessionRequest.encode(original).finish();
+      const decoded = MatchingV1.StartSessionRequest.decode(buf);
+      expect(decoded.filtersJson).toBe('{"species":"dog","maxAge":5}');
+      expect(decoded.deviceType).toBe(MatchingV1.DeviceType.DEVICE_TYPE_MOBILE);
+    });
+
+    it('flat type-only re-exports compile in type position', () => {
+      const s: SwipeSession = {
+        sessionId: 'sess-1',
+        startTime: '2026-06-01T00:00:00Z',
+        totalSwipes: 0,
+        likes: 0,
+        passes: 0,
+        superLikes: 0,
+        filtersJson: '{}',
+        deviceType: MatchingV1.DeviceType.DEVICE_TYPE_UNKNOWN,
+        isActive: true,
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+      };
+      expect(s.sessionId).toBe('sess-1');
+    });
+
+    it('mirrors the matching.* Postgres enum values verbatim (excluding UNSPECIFIED + UNRECOGNIZED sentinels)', () => {
+      const swipeActionValues = Object.values(MatchingV1.SwipeAction).filter(
+        (v): v is number => typeof v === 'number' && v > 0
+      );
+      // like, pass, super_like, info = 4
+      expect(swipeActionValues).toHaveLength(4);
+
+      const deviceTypeValues = Object.values(MatchingV1.DeviceType).filter(
+        (v): v is number => typeof v === 'number' && v > 0
+      );
+      // desktop, mobile, tablet, unknown = 4
+      expect(deviceTypeValues).toHaveLength(4);
     });
   });
 });
