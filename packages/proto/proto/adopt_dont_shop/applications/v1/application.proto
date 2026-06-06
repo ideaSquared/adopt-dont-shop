@@ -84,6 +84,13 @@ service ApplicationService {
   // for the adopter / staff dashboards. Adopters see their own;
   // staff see their rescue's; admins see all.
   rpc List(ListApplicationsRequest) returns (ListApplicationsResponse);
+
+  // Read-side: application counts grouped by status, scoped the same
+  // way List is (adopters see their own; staff see their rescue's;
+  // admins see all and may narrow by rescue/adopter). Powers the
+  // rescue dashboard's stats cards. Returns RAW per-service-status
+  // counts — the gateway collapses them to the SPA's 4-state shape.
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -303,4 +310,32 @@ message ListApplicationsRequest {
 message ListApplicationsResponse {
   repeated Application applications = 1;
   optional string next_cursor = 2;
+}
+
+// --- GetStats --------------------------------------------------------
+
+message GetStatsRequest {
+  // Optional filters. Admins + super_admin may pass either to narrow
+  // the counted set; rescue staff are pinned to their own rescue and
+  // adopters to their own user id regardless of these (the handler
+  // enforces scope from the principal).
+  optional string rescue_id_filter = 1;
+  optional string adopter_id_filter = 2;
+}
+
+message GetStatsResponse {
+  // Total non-deleted applications in scope (sum of the per-status
+  // counts below).
+  uint32 total = 1;
+  // RAW per-service-status counts — zero-filled for statuses with no
+  // rows. The gateway collapses these to the SPA's 4-state shape.
+  uint32 draft = 2;
+  uint32 submitted = 3;
+  uint32 under_review = 4;
+  uint32 home_visit_scheduled = 5;
+  uint32 home_visit_completed = 6;
+  uint32 approved = 7;
+  uint32 rejected = 8;
+  uint32 withdrawn = 9;
+  uint32 adopted = 10;
 }

@@ -37,7 +37,7 @@ const petsClient = {
 } as unknown as Parameters<typeof createGrpcServer>[0]['petsClient'];
 
 describe('createGrpcServer', () => {
-  it('registers all 12 ApplicationService methods on the grpc.Server', () => {
+  it('registers all 13 ApplicationService methods on the grpc.Server', () => {
     const server = createGrpcServer({ config, pool, nats, logger: quietLogger, petsClient });
     const handlers = (server as unknown as { handlers: Map<string, unknown> }).handlers;
 
@@ -55,6 +55,7 @@ describe('createGrpcServer', () => {
       'MarkAdopted',
       'Get',
       'List',
+      'GetStats',
     ]) {
       expect(handlers.has(`${base}/${method}`)).toBe(true);
     }

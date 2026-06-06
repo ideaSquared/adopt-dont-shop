@@ -338,6 +338,38 @@ export interface ListApplicationsResponse {
   nextCursor?: string | undefined;
 }
 
+export interface GetStatsRequest {
+  /**
+   * Optional filters. Admins + super_admin may pass either to narrow
+   * the counted set; rescue staff are pinned to their own rescue and
+   * adopters to their own user id regardless of these (the handler
+   * enforces scope from the principal).
+   */
+  rescueIdFilter?: string | undefined;
+  adopterIdFilter?: string | undefined;
+}
+
+export interface GetStatsResponse {
+  /**
+   * Total non-deleted applications in scope (sum of the per-status
+   * counts below).
+   */
+  total: number;
+  /**
+   * RAW per-service-status counts — zero-filled for statuses with no
+   * rows. The gateway collapses these to the SPA's 4-state shape.
+   */
+  draft: number;
+  submitted: number;
+  underReview: number;
+  homeVisitScheduled: number;
+  homeVisitCompleted: number;
+  approved: number;
+  rejected: number;
+  withdrawn: number;
+  adopted: number;
+}
+
 function createBaseApplication(): Application {
   return {
     applicationId: '',
@@ -2963,6 +2995,317 @@ export const ListApplicationsResponse: MessageFns<ListApplicationsResponse> = {
   },
 };
 
+function createBaseGetStatsRequest(): GetStatsRequest {
+  return { rescueIdFilter: undefined, adopterIdFilter: undefined };
+}
+
+export const GetStatsRequest: MessageFns<GetStatsRequest> = {
+  encode(message: GetStatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueIdFilter !== undefined) {
+      writer.uint32(10).string(message.rescueIdFilter);
+    }
+    if (message.adopterIdFilter !== undefined) {
+      writer.uint32(18).string(message.adopterIdFilter);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetStatsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetStatsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueIdFilter = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.adopterIdFilter = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetStatsRequest {
+    return {
+      rescueIdFilter: isSet(object.rescueIdFilter)
+        ? globalThis.String(object.rescueIdFilter)
+        : isSet(object.rescue_id_filter)
+          ? globalThis.String(object.rescue_id_filter)
+          : undefined,
+      adopterIdFilter: isSet(object.adopterIdFilter)
+        ? globalThis.String(object.adopterIdFilter)
+        : isSet(object.adopter_id_filter)
+          ? globalThis.String(object.adopter_id_filter)
+          : undefined,
+    };
+  },
+
+  toJSON(message: GetStatsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueIdFilter !== undefined) {
+      obj.rescueIdFilter = message.rescueIdFilter;
+    }
+    if (message.adopterIdFilter !== undefined) {
+      obj.adopterIdFilter = message.adopterIdFilter;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetStatsRequest>, I>>(base?: I): GetStatsRequest {
+    return GetStatsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetStatsRequest>, I>>(object: I): GetStatsRequest {
+    const message = createBaseGetStatsRequest();
+    message.rescueIdFilter = object.rescueIdFilter ?? undefined;
+    message.adopterIdFilter = object.adopterIdFilter ?? undefined;
+    return message;
+  },
+};
+
+function createBaseGetStatsResponse(): GetStatsResponse {
+  return {
+    total: 0,
+    draft: 0,
+    submitted: 0,
+    underReview: 0,
+    homeVisitScheduled: 0,
+    homeVisitCompleted: 0,
+    approved: 0,
+    rejected: 0,
+    withdrawn: 0,
+    adopted: 0,
+  };
+}
+
+export const GetStatsResponse: MessageFns<GetStatsResponse> = {
+  encode(message: GetStatsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.total !== 0) {
+      writer.uint32(8).uint32(message.total);
+    }
+    if (message.draft !== 0) {
+      writer.uint32(16).uint32(message.draft);
+    }
+    if (message.submitted !== 0) {
+      writer.uint32(24).uint32(message.submitted);
+    }
+    if (message.underReview !== 0) {
+      writer.uint32(32).uint32(message.underReview);
+    }
+    if (message.homeVisitScheduled !== 0) {
+      writer.uint32(40).uint32(message.homeVisitScheduled);
+    }
+    if (message.homeVisitCompleted !== 0) {
+      writer.uint32(48).uint32(message.homeVisitCompleted);
+    }
+    if (message.approved !== 0) {
+      writer.uint32(56).uint32(message.approved);
+    }
+    if (message.rejected !== 0) {
+      writer.uint32(64).uint32(message.rejected);
+    }
+    if (message.withdrawn !== 0) {
+      writer.uint32(72).uint32(message.withdrawn);
+    }
+    if (message.adopted !== 0) {
+      writer.uint32(80).uint32(message.adopted);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetStatsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetStatsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.draft = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.submitted = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.underReview = reader.uint32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.homeVisitScheduled = reader.uint32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.homeVisitCompleted = reader.uint32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.approved = reader.uint32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.rejected = reader.uint32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.withdrawn = reader.uint32();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.adopted = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetStatsResponse {
+    return {
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+      draft: isSet(object.draft) ? globalThis.Number(object.draft) : 0,
+      submitted: isSet(object.submitted) ? globalThis.Number(object.submitted) : 0,
+      underReview: isSet(object.underReview)
+        ? globalThis.Number(object.underReview)
+        : isSet(object.under_review)
+          ? globalThis.Number(object.under_review)
+          : 0,
+      homeVisitScheduled: isSet(object.homeVisitScheduled)
+        ? globalThis.Number(object.homeVisitScheduled)
+        : isSet(object.home_visit_scheduled)
+          ? globalThis.Number(object.home_visit_scheduled)
+          : 0,
+      homeVisitCompleted: isSet(object.homeVisitCompleted)
+        ? globalThis.Number(object.homeVisitCompleted)
+        : isSet(object.home_visit_completed)
+          ? globalThis.Number(object.home_visit_completed)
+          : 0,
+      approved: isSet(object.approved) ? globalThis.Number(object.approved) : 0,
+      rejected: isSet(object.rejected) ? globalThis.Number(object.rejected) : 0,
+      withdrawn: isSet(object.withdrawn) ? globalThis.Number(object.withdrawn) : 0,
+      adopted: isSet(object.adopted) ? globalThis.Number(object.adopted) : 0,
+    };
+  },
+
+  toJSON(message: GetStatsResponse): unknown {
+    const obj: any = {};
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    if (message.draft !== 0) {
+      obj.draft = Math.round(message.draft);
+    }
+    if (message.submitted !== 0) {
+      obj.submitted = Math.round(message.submitted);
+    }
+    if (message.underReview !== 0) {
+      obj.underReview = Math.round(message.underReview);
+    }
+    if (message.homeVisitScheduled !== 0) {
+      obj.homeVisitScheduled = Math.round(message.homeVisitScheduled);
+    }
+    if (message.homeVisitCompleted !== 0) {
+      obj.homeVisitCompleted = Math.round(message.homeVisitCompleted);
+    }
+    if (message.approved !== 0) {
+      obj.approved = Math.round(message.approved);
+    }
+    if (message.rejected !== 0) {
+      obj.rejected = Math.round(message.rejected);
+    }
+    if (message.withdrawn !== 0) {
+      obj.withdrawn = Math.round(message.withdrawn);
+    }
+    if (message.adopted !== 0) {
+      obj.adopted = Math.round(message.adopted);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetStatsResponse>, I>>(base?: I): GetStatsResponse {
+    return GetStatsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetStatsResponse>, I>>(object: I): GetStatsResponse {
+    const message = createBaseGetStatsResponse();
+    message.total = object.total ?? 0;
+    message.draft = object.draft ?? 0;
+    message.submitted = object.submitted ?? 0;
+    message.underReview = object.underReview ?? 0;
+    message.homeVisitScheduled = object.homeVisitScheduled ?? 0;
+    message.homeVisitCompleted = object.homeVisitCompleted ?? 0;
+    message.approved = object.approved ?? 0;
+    message.rejected = object.rejected ?? 0;
+    message.withdrawn = object.withdrawn ?? 0;
+    message.adopted = object.adopted ?? 0;
+    return message;
+  },
+};
+
 /**
  * ApplicationService is the gRPC contract for the applications
  * vertical — the EVENT-SOURCED extraction. Owns the `applications.*`
@@ -3191,6 +3534,24 @@ export const ApplicationServiceService = {
     responseDeserialize: (value: Buffer): ListApplicationsResponse =>
       ListApplicationsResponse.decode(value),
   },
+  /**
+   * Read-side: application counts grouped by status, scoped the same
+   * way List is (adopters see their own; staff see their rescue's;
+   * admins see all and may narrow by rescue/adopter). Powers the
+   * rescue dashboard's stats cards. Returns RAW per-service-status
+   * counts — the gateway collapses them to the SPA's 4-state shape.
+   */
+  getStats: {
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/GetStats' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetStatsRequest): Buffer =>
+      Buffer.from(GetStatsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetStatsRequest => GetStatsRequest.decode(value),
+    responseSerialize: (value: GetStatsResponse): Buffer =>
+      Buffer.from(GetStatsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetStatsResponse => GetStatsResponse.decode(value),
+  },
 } as const;
 
 export interface ApplicationServiceServer extends UntypedServiceImplementation {
@@ -3268,6 +3629,14 @@ export interface ApplicationServiceServer extends UntypedServiceImplementation {
    * staff see their rescue's; admins see all.
    */
   list: handleUnaryCall<ListApplicationsRequest, ListApplicationsResponse>;
+  /**
+   * Read-side: application counts grouped by status, scoped the same
+   * way List is (adopters see their own; staff see their rescue's;
+   * admins see all and may narrow by rescue/adopter). Powers the
+   * rescue dashboard's stats cards. Returns RAW per-service-status
+   * counts — the gateway collapses them to the SPA's 4-state shape.
+   */
+  getStats: handleUnaryCall<GetStatsRequest, GetStatsResponse>;
 }
 
 export interface ApplicationServiceClient extends Client {
@@ -3512,6 +3881,28 @@ export interface ApplicationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListApplicationsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Read-side: application counts grouped by status, scoped the same
+   * way List is (adopters see their own; staff see their rescue's;
+   * admins see all and may narrow by rescue/adopter). Powers the
+   * rescue dashboard's stats cards. Returns RAW per-service-status
+   * counts — the gateway collapses them to the SPA's 4-state shape.
+   */
+  getStats(
+    request: GetStatsRequest,
+    callback: (error: ServiceError | null, response: GetStatsResponse) => void
+  ): ClientUnaryCall;
+  getStats(
+    request: GetStatsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetStatsResponse) => void
+  ): ClientUnaryCall;
+  getStats(
+    request: GetStatsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetStatsResponse) => void
   ): ClientUnaryCall;
 }
 
