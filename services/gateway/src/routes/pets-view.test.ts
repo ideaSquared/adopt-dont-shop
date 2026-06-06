@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { PetsV1, type Pet } from '@adopt-dont-shop/proto';
 
-import { listToEnvelope, petToView } from './pets-view.js';
+import {
+  listToEnvelope,
+  petToView,
+  viewToCreateRequest,
+  viewToUpdateRequest,
+} from './pets-view.js';
 
 function makePet(overrides: Partial<Pet> = {}): Pet {
   return {
@@ -100,5 +105,70 @@ describe('listToEnvelope', () => {
   it('reports hasNext false when there is no cursor', () => {
     const env = listToEnvelope({ pets: [makePet()] } as PetsV1.ListPetsResponse);
     expect(env.meta.hasNext).toBe(false);
+  });
+});
+
+describe('viewToCreateRequest', () => {
+  it('maps the frontend snake_case/token payload to the proto request', () => {
+    const req = viewToCreateRequest({
+      name: 'Rex',
+      rescue_id: 'rsc-1',
+      type: 'dog',
+      gender: 'male',
+      size: 'large',
+      age_group: 'adult',
+      short_description: 'good boy',
+      age_years: 3,
+      house_trained: true,
+      temperament: ['friendly', 'calm'],
+      tags: ['puppy'],
+      adoption_fee: '125.00',
+      good_with_children: true,
+      vaccination_status: 'up_to_date',
+    });
+    expect(req).toMatchObject({
+      name: 'Rex',
+      rescueId: 'rsc-1',
+      type: PetsV1.PetType.PET_TYPE_DOG,
+      gender: PetsV1.PetGender.PET_GENDER_MALE,
+      size: PetsV1.PetSize.PET_SIZE_LARGE,
+      ageGroup: PetsV1.PetAgeGroup.PET_AGE_GROUP_ADULT,
+      shortDescription: 'good boy',
+      ageYears: 3,
+      houseTrained: true,
+      temperamentJson: '["friendly","calm"]',
+      tagsJson: '["puppy"]',
+      adoptionFeeMinor: 12500,
+    });
+    // long-tail fields the core message lacks go into extra_json.
+    expect(JSON.parse(req.extraJson)).toEqual({
+      good_with_children: true,
+      vaccination_status: 'up_to_date',
+    });
+  });
+
+  it('accepts the SCREAMING proto enum form too, and unknown → UNSPECIFIED', () => {
+    expect(viewToCreateRequest({ type: 'PET_TYPE_CAT' }).type).toBe(PetsV1.PetType.PET_TYPE_CAT);
+    expect(viewToCreateRequest({ type: 'platypus' }).type).toBe(
+      PetsV1.PetType.PET_TYPE_UNSPECIFIED
+    );
+  });
+});
+
+describe('viewToUpdateRequest', () => {
+  it('sets only the supplied fields (partial)', () => {
+    const req = viewToUpdateRequest('pet-1', { name: 'Rexy', featured: true });
+    expect(req.petId).toBe('pet-1');
+    expect(req.name).toBe('Rexy');
+    expect(req.featured).toBe(true);
+    // not supplied → left unset
+    expect(req.size).toBeUndefined();
+    expect(req.shortDescription).toBeUndefined();
+  });
+
+  it('packs unknown fields into extra_json and maps enum tokens when present', () => {
+    const req = viewToUpdateRequest('pet-1', { size: 'small', medical_notes: 'none' });
+    expect(req.size).toBe(PetsV1.PetSize.PET_SIZE_SMALL);
+    expect(JSON.parse(req.extraJson ?? '{}')).toEqual({ medical_notes: 'none' });
   });
 });
