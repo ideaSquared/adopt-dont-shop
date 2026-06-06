@@ -257,10 +257,10 @@ describe('createServer — per-domain cutover gate', () => {
 
     const res = await server.inject({ method: 'GET', url: '/api/v1/applications' });
 
-    // The gateway route served it (empty page from the stub client —
-    // ts-proto's toJSON omits the empty repeated field, so {}); the
-    // monolith ({ from: 'monolith' }) was never hit.
-    expect(res.json()).toEqual({});
+    // The gateway route served it — the Stage B view adapter wraps the
+    // (empty) result in the frontend's `{ data }` envelope; the monolith
+    // ({ from: 'monolith' }) was never hit.
+    expect(res.json()).toEqual({ data: [] });
     expect(upstreamHits).toBe(0);
   });
 });

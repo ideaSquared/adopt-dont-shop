@@ -119,15 +119,44 @@ Add a translation layer in `routes/applications.ts` (or a dedicated
 Cover the mapping with golden-fixture tests asserting a real `ApplicationSchema`
 `parse()` succeeds.
 
+**Decisions confirmed (June 2026):**
+
+- **Status: gateway collapse.** The service's 9 states map onto the frontend's
+  4-value `status` + 6-value `stage` in the gateway; the frontend is untouched.
+  The table (service → status/stage): `submitted`→submitted/pending,
+  `under_review`→submitted/reviewing, `home_visit_scheduled`→submitted/visiting,
+  `home_visit_completed`→submitted/deciding, `approved`→approved/resolved,
+  `rejected`→rejected/resolved, `withdrawn`→withdrawn/withdrawn,
+  `adopted`→approved/resolved. `draft` + UNSPECIFIED have no frontend
+  representation — List filters them out and Get 404s them.
+- **Read path shipped** in `routes/applications-view.ts` (`applicationToView`) +
+  the List/Get routes, wrapped in the `{ data }` envelope the SPA expects. Flag
+  stays off.
+- **Still to do for Stage B:** the WRITE path is a protocol adapter, not a field
+  rename — the frontend's single `submitApplication(data)` POST maps to the
+  service's draft flow (StartDraft → SaveDraftAnswers → SubmitDraft), and
+  `updateStatus`/`withdraw` map to the specific command RPCs. Pagination
+  (keyset cursor) and `ApplicationWithPetInfo` pet-join fields are also TBD.
+
 ### Stage C — fill the missing surface (fixes Gap 3, part 1)
 
-For documents / stats / questions / timeline, either:
+For documents / stats / questions / timeline:
 
-1. implement them in `services/applications` (proto + handlers + gateway), or
-2. **transitionally proxy** just those sub-paths to the monolith from the
-   gateway, so the path flip in Stage A doesn't 404 them.
+**Decision confirmed (June 2026): build natively** in `services/applications`
+(proto + handlers + gateway) rather than transitionally proxying to the monolith.
+A `GetStats` RPC (counts by status off the read model) is the bounded first
+piece; documents (file upload metadata + storage) is the larger one.
 
-Recommend (2) first (keeps the cutover moving), then (1) as follow-ups.
+### Stage D.0 — data migration (NEWLY IDENTIFIED PREREQUISITE)
+
+Not in the original plan, and it gates flipping `CUTOVER_APPLICATIONS` on for any
+real environment: **the new event store is empty.** The monolith's existing
+`applications` rows (and their answers/references/transitions) must be backfilled
+into `services/applications`' event store — most cleanly as a one-off
+`draftCreated`/`draftSubmitted`/… event synthesis per historical application, or
+a projection-only seed of the read model with a sentinel event. Until this runs,
+flipping the flag would show every adopter an empty application history. Sequence
+it after Stages B+C and before the cutover flip.
 
 ### Stage D — migrate the monolith integrations (fixes Gap 3, part 2)
 

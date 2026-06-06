@@ -51,6 +51,8 @@ import {
 
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
 
+import { applicationToView, type ApplicationView } from './applications-view.js';
+
 export type ApplicationsRoutesOptions = {
   client: ApplicationsClient;
 };
@@ -271,7 +273,12 @@ export const registerApplicationsRoutes = async (
     };
     try {
       const res = await client.list(grpcReq, buildMetadata(req));
-      return reply.send(ApplicationsV1.ListApplicationsResponse.toJSON(res));
+      // Stage B: map to the frontend view + drop draft/unspecified rows,
+      // and wrap in the `{ data }` envelope the SPA expects.
+      const data = res.applications
+        .map(applicationToView)
+        .filter((v): v is ApplicationView => v !== null);
+      return reply.send({ data });
     } catch (err) {
       return handleGrpcError(err, reply);
     }
@@ -287,7 +294,14 @@ export const registerApplicationsRoutes = async (
           { applicationId: req.params.id, includeTimeline: q.timeline === 'true' },
           buildMetadata(req)
         );
-        return reply.send(ApplicationsV1.GetApplicationResponse.toJSON(res));
+        // Stage B: a draft / unspecified application has no frontend
+        // representation — treat it as not found rather than emitting a
+        // shape the SPA can't parse.
+        const view = res.application ? applicationToView(res.application) : null;
+        if (view === null) {
+          return reply.code(404).send({ error: 'application not found' });
+        }
+        return reply.send({ data: view });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

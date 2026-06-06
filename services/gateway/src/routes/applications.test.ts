@@ -205,6 +205,50 @@ describe('applications routes', () => {
     });
   });
 
+  // A submitted (frontend-visible) application for the Stage B view tests.
+  const SUBMITTED = {
+    ...APP,
+    status: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_SUBMITTED,
+    answersJson: '{"personalInfo":{"firstName":"Jo"}}',
+  };
+
+  it('List returns the frontend view wrapped in { data } and drops drafts', async () => {
+    mocks.list.mockResolvedValue({ applications: [SUBMITTED, APP] }); // APP is a draft
+    const res = await app.inject({ method: 'GET', url: '/api/v1/applications', headers: STAFF });
+    const body = res.json() as { data: Array<Record<string, unknown>> };
+    expect(body.data).toHaveLength(1); // the draft was filtered out
+    expect(body.data[0]).toMatchObject({
+      id: 'app-1',
+      userId: 'usr-1',
+      status: 'submitted',
+      stage: 'pending',
+      data: { personalInfo: { firstName: 'Jo' } },
+    });
+  });
+
+  it('Get returns the frontend view in { data } for a visible application', async () => {
+    mocks.get.mockResolvedValue({ application: SUBMITTED, timeline: [] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/applications/app-1',
+      headers: ADOPTER,
+    });
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as { data: { status: string } }).data).toMatchObject({
+      status: 'submitted',
+    });
+  });
+
+  it('Get 404s a draft application (no frontend representation)', async () => {
+    mocks.get.mockResolvedValue({ application: APP, timeline: [] }); // APP is a draft
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/applications/app-1',
+      headers: ADOPTER,
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
   it('maps a service UNIMPLEMENTED (StartDraft stub) → 501', async () => {
     mocks.startDraft.mockRejectedValue({
       code: grpcStatus.UNIMPLEMENTED,
