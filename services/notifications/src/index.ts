@@ -10,6 +10,8 @@ import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { registerSubscribers } from './nats/subscribers.js';
 import { createPushProvider } from './push/providers/factory.js';
 import { startPushWorker, type RunningPushWorker } from './push/worker.js';
+import { runWeeklyDigest } from './scheduler/jobs/weekly-digest.js';
+import { startScheduler, type RunningScheduler } from './scheduler/scheduler.js';
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
@@ -20,6 +22,7 @@ const main = async (): Promise<void> => {
   let grpc: RunningGrpcServer | undefined;
   let emailWorker: RunningEmailWorker | undefined;
   let pushWorker: RunningPushWorker | undefined;
+  let scheduler: RunningScheduler | undefined;
   let httpClosed = false;
 
   try {
@@ -81,6 +84,24 @@ const main = async (): Promise<void> => {
       }
       pushWorker = startPushWorker({ pool, nats, provider, logger });
     }
+    if (config.schedulerEnabled) {
+      // Weekly digest: 7 days. Default tick is 60s — close enough to
+      // schedule precision for any cadence we run today. Each job's
+      // intervalMs governs when it actually fires.
+      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+      scheduler = startScheduler(
+        [
+          {
+            name: 'weekly-digest',
+            intervalMs: ONE_WEEK_MS,
+            run: async () => {
+              await runWeeklyDigest({ deps: { pool: pool!, nats: nats! }, logger });
+            },
+          },
+        ],
+        { logger }
+      );
+    }
     const httpServer = createServer({ config, logger });
     await httpServer.listen({ port: config.port, host: config.host });
 
@@ -112,6 +133,11 @@ const main = async (): Promise<void> => {
         await pushWorker?.stop();
       } catch (err) {
         logger.error('push worker stop error', { err });
+      }
+      try {
+        await scheduler?.stop();
+      } catch (err) {
+        logger.error('scheduler stop error', { err });
       }
       try {
         await grpc?.shutdown();

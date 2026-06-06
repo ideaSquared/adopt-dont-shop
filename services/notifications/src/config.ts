@@ -41,6 +41,9 @@ export type NotificationsConfig = {
   pushProvider: PushProviderConfig;
   // Toggle the push worker (the NATS subscriber). Defaults to true.
   pushWorkerEnabled: boolean;
+  // Toggle the scheduled-jobs loop (weekly digest + future tasks).
+  // Defaults to true. Tests + the migrations-only smoke disable.
+  schedulerEnabled: boolean;
 };
 
 // Defaults match the wider stack:
@@ -78,6 +81,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     emailWorkerEnabled: env.EMAIL_WORKER_ENABLED?.trim() !== 'false',
     pushProvider: loadPushProviderConfig(env),
     pushWorkerEnabled: env.PUSH_WORKER_ENABLED?.trim() !== 'false',
+    schedulerEnabled: env.SCHEDULER_ENABLED?.trim() !== 'false',
   };
 };
 
