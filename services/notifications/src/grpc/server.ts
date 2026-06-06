@@ -19,6 +19,11 @@ import { NotificationsV1 } from '@adopt-dont-shop/proto';
 import type { NotificationsConfig } from '../config.js';
 
 import { adapt } from './adapter.js';
+import {
+  listDeviceTokensHandler,
+  registerDeviceTokenHandler,
+  unregisterDeviceTokenHandler,
+} from './device-token-handlers.js';
 import { getEmailPreferences, sendEmail, updateEmailPreferences } from './email-handlers.js';
 import { createNotification, dismissNotification, listNotifications } from './handlers.js';
 
@@ -53,6 +58,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     sendEmail: adapt(sendEmail, { deps: { pool, nats }, logger }),
     getEmailPreferences: adapt(getEmailPreferences, { deps: { pool, nats }, logger }),
     updateEmailPreferences: adapt(updateEmailPreferences, { deps: { pool, nats }, logger }),
+    registerDeviceToken: adapt(registerDeviceTokenHandler, { deps: { pool, nats }, logger }),
+    unregisterDeviceToken: adapt(unregisterDeviceTokenHandler, { deps: { pool, nats }, logger }),
+    listDeviceTokens: adapt(listDeviceTokensHandler, { deps: { pool, nats }, logger }),
   });
 
   logger.info('gRPC NotificationService registered', {
@@ -63,6 +71,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'sendEmail',
       'getEmailPreferences',
       'updateEmailPreferences',
+      'registerDeviceToken',
+      'unregisterDeviceToken',
+      'listDeviceTokens',
     ],
     grpcPort: config.grpcPort,
   });

@@ -45,6 +45,13 @@ export type {
   GetEmailPreferencesResponse,
   UpdateEmailPreferencesRequest,
   UpdateEmailPreferencesResponse,
+  DeviceToken as NotificationsDeviceToken,
+  RegisterDeviceTokenRequest,
+  RegisterDeviceTokenResponse,
+  UnregisterDeviceTokenRequest,
+  UnregisterDeviceTokenResponse,
+  ListDeviceTokensRequest,
+  ListDeviceTokensResponse,
   NotificationServiceServer,
   NotificationServiceClient,
 } from './generated/proto/adopt_dont_shop/notifications/v1/notification.js';

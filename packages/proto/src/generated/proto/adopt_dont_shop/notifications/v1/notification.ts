@@ -705,6 +705,102 @@ export function emailFormatToJSON(object: EmailFormat): string {
   }
 }
 
+export enum DevicePlatform {
+  DEVICE_PLATFORM_UNSPECIFIED = 0,
+  DEVICE_PLATFORM_IOS = 1,
+  DEVICE_PLATFORM_ANDROID = 2,
+  DEVICE_PLATFORM_WEB = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function devicePlatformFromJSON(object: any): DevicePlatform {
+  switch (object) {
+    case 0:
+    case 'DEVICE_PLATFORM_UNSPECIFIED':
+      return DevicePlatform.DEVICE_PLATFORM_UNSPECIFIED;
+    case 1:
+    case 'DEVICE_PLATFORM_IOS':
+      return DevicePlatform.DEVICE_PLATFORM_IOS;
+    case 2:
+    case 'DEVICE_PLATFORM_ANDROID':
+      return DevicePlatform.DEVICE_PLATFORM_ANDROID;
+    case 3:
+    case 'DEVICE_PLATFORM_WEB':
+      return DevicePlatform.DEVICE_PLATFORM_WEB;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return DevicePlatform.UNRECOGNIZED;
+  }
+}
+
+export function devicePlatformToJSON(object: DevicePlatform): string {
+  switch (object) {
+    case DevicePlatform.DEVICE_PLATFORM_UNSPECIFIED:
+      return 'DEVICE_PLATFORM_UNSPECIFIED';
+    case DevicePlatform.DEVICE_PLATFORM_IOS:
+      return 'DEVICE_PLATFORM_IOS';
+    case DevicePlatform.DEVICE_PLATFORM_ANDROID:
+      return 'DEVICE_PLATFORM_ANDROID';
+    case DevicePlatform.DEVICE_PLATFORM_WEB:
+      return 'DEVICE_PLATFORM_WEB';
+    case DevicePlatform.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+export enum DeviceTokenStatus {
+  DEVICE_TOKEN_STATUS_UNSPECIFIED = 0,
+  DEVICE_TOKEN_STATUS_ACTIVE = 1,
+  DEVICE_TOKEN_STATUS_INACTIVE = 2,
+  DEVICE_TOKEN_STATUS_EXPIRED = 3,
+  DEVICE_TOKEN_STATUS_INVALID = 4,
+  UNRECOGNIZED = -1,
+}
+
+export function deviceTokenStatusFromJSON(object: any): DeviceTokenStatus {
+  switch (object) {
+    case 0:
+    case 'DEVICE_TOKEN_STATUS_UNSPECIFIED':
+      return DeviceTokenStatus.DEVICE_TOKEN_STATUS_UNSPECIFIED;
+    case 1:
+    case 'DEVICE_TOKEN_STATUS_ACTIVE':
+      return DeviceTokenStatus.DEVICE_TOKEN_STATUS_ACTIVE;
+    case 2:
+    case 'DEVICE_TOKEN_STATUS_INACTIVE':
+      return DeviceTokenStatus.DEVICE_TOKEN_STATUS_INACTIVE;
+    case 3:
+    case 'DEVICE_TOKEN_STATUS_EXPIRED':
+      return DeviceTokenStatus.DEVICE_TOKEN_STATUS_EXPIRED;
+    case 4:
+    case 'DEVICE_TOKEN_STATUS_INVALID':
+      return DeviceTokenStatus.DEVICE_TOKEN_STATUS_INVALID;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return DeviceTokenStatus.UNRECOGNIZED;
+  }
+}
+
+export function deviceTokenStatusToJSON(object: DeviceTokenStatus): string {
+  switch (object) {
+    case DeviceTokenStatus.DEVICE_TOKEN_STATUS_UNSPECIFIED:
+      return 'DEVICE_TOKEN_STATUS_UNSPECIFIED';
+    case DeviceTokenStatus.DEVICE_TOKEN_STATUS_ACTIVE:
+      return 'DEVICE_TOKEN_STATUS_ACTIVE';
+    case DeviceTokenStatus.DEVICE_TOKEN_STATUS_INACTIVE:
+      return 'DEVICE_TOKEN_STATUS_INACTIVE';
+    case DeviceTokenStatus.DEVICE_TOKEN_STATUS_EXPIRED:
+      return 'DEVICE_TOKEN_STATUS_EXPIRED';
+    case DeviceTokenStatus.DEVICE_TOKEN_STATUS_INVALID:
+      return 'DEVICE_TOKEN_STATUS_INVALID';
+    case DeviceTokenStatus.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
 /**
  * Notification mirrors the `notifications.notifications` row plus the
  * JSON-stringified `data` / `template_variables` payloads. Kept as
@@ -926,6 +1022,75 @@ export interface UpdateEmailPreferencesRequest {
 
 export interface UpdateEmailPreferencesResponse {
   preferences?: EmailPreferences | undefined;
+}
+
+export interface DeviceToken {
+  tokenId: string;
+  userId: string;
+  deviceToken: string;
+  platform: DevicePlatform;
+  appVersion?: string | undefined;
+  /** JSON-stringified jsonb payload. Empty string == `{}`. */
+  deviceInfoJson: string;
+  status: DeviceTokenStatus;
+  lastUsedAt?: string | undefined;
+  expiresAt?: string | undefined;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RegisterDeviceTokenRequest {
+  /**
+   * Target user — optional. Defaults to the calling principal when
+   * omitted; cross-user registration requires device-tokens:write:any.
+   */
+  userId?: string | undefined;
+  deviceToken: string;
+  platform: DevicePlatform;
+  appVersion?: string | undefined;
+  /**
+   * Optional jsonb metadata (model, OS version, app build, etc.).
+   * Empty string == `{}`.
+   */
+  deviceInfoJson: string;
+}
+
+export interface RegisterDeviceTokenResponse {
+  token?: DeviceToken | undefined;
+  /**
+   * True when the (user_id, device_token) pair was already present
+   * and the call just refreshed last_used_at.
+   */
+  alreadyRegistered: boolean;
+}
+
+export interface UnregisterDeviceTokenRequest {
+  tokenId: string;
+}
+
+export interface UnregisterDeviceTokenResponse {
+  /**
+   * The soft-deleted row (deleted_at stamped, status='inactive').
+   * Idempotent.
+   */
+  token?: DeviceToken | undefined;
+}
+
+export interface ListDeviceTokensRequest {
+  /**
+   * Optional target. Defaults to the calling principal. Callers without
+   * device-tokens:list:any may only list their own tokens.
+   */
+  userId?: string | undefined;
+  /**
+   * When true, include soft-deleted (deleted_at IS NOT NULL) rows.
+   * Default false.
+   */
+  includeInactive: boolean;
+}
+
+export interface ListDeviceTokensResponse {
+  tokens: DeviceToken[];
 }
 
 function createBaseNotification(): Notification {
@@ -3687,6 +3852,816 @@ export const UpdateEmailPreferencesResponse: MessageFns<UpdateEmailPreferencesRe
   },
 };
 
+function createBaseDeviceToken(): DeviceToken {
+  return {
+    tokenId: '',
+    userId: '',
+    deviceToken: '',
+    platform: 0,
+    appVersion: undefined,
+    deviceInfoJson: '',
+    status: 0,
+    lastUsedAt: undefined,
+    expiresAt: undefined,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const DeviceToken: MessageFns<DeviceToken> = {
+  encode(message: DeviceToken, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.tokenId !== '') {
+      writer.uint32(10).string(message.tokenId);
+    }
+    if (message.userId !== '') {
+      writer.uint32(18).string(message.userId);
+    }
+    if (message.deviceToken !== '') {
+      writer.uint32(26).string(message.deviceToken);
+    }
+    if (message.platform !== 0) {
+      writer.uint32(32).int32(message.platform);
+    }
+    if (message.appVersion !== undefined) {
+      writer.uint32(42).string(message.appVersion);
+    }
+    if (message.deviceInfoJson !== '') {
+      writer.uint32(50).string(message.deviceInfoJson);
+    }
+    if (message.status !== 0) {
+      writer.uint32(56).int32(message.status);
+    }
+    if (message.lastUsedAt !== undefined) {
+      writer.uint32(66).string(message.lastUsedAt);
+    }
+    if (message.expiresAt !== undefined) {
+      writer.uint32(74).string(message.expiresAt);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(82).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(90).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeviceToken {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeviceToken();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.tokenId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.deviceToken = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.platform = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.appVersion = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.deviceInfoJson = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.lastUsedAt = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.expiresAt = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeviceToken {
+    return {
+      tokenId: isSet(object.tokenId)
+        ? globalThis.String(object.tokenId)
+        : isSet(object.token_id)
+          ? globalThis.String(object.token_id)
+          : '',
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      deviceToken: isSet(object.deviceToken)
+        ? globalThis.String(object.deviceToken)
+        : isSet(object.device_token)
+          ? globalThis.String(object.device_token)
+          : '',
+      platform: isSet(object.platform) ? devicePlatformFromJSON(object.platform) : 0,
+      appVersion: isSet(object.appVersion)
+        ? globalThis.String(object.appVersion)
+        : isSet(object.app_version)
+          ? globalThis.String(object.app_version)
+          : undefined,
+      deviceInfoJson: isSet(object.deviceInfoJson)
+        ? globalThis.String(object.deviceInfoJson)
+        : isSet(object.device_info_json)
+          ? globalThis.String(object.device_info_json)
+          : '',
+      status: isSet(object.status) ? deviceTokenStatusFromJSON(object.status) : 0,
+      lastUsedAt: isSet(object.lastUsedAt)
+        ? globalThis.String(object.lastUsedAt)
+        : isSet(object.last_used_at)
+          ? globalThis.String(object.last_used_at)
+          : undefined,
+      expiresAt: isSet(object.expiresAt)
+        ? globalThis.String(object.expiresAt)
+        : isSet(object.expires_at)
+          ? globalThis.String(object.expires_at)
+          : undefined,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: DeviceToken): unknown {
+    const obj: any = {};
+    if (message.tokenId !== '') {
+      obj.tokenId = message.tokenId;
+    }
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.deviceToken !== '') {
+      obj.deviceToken = message.deviceToken;
+    }
+    if (message.platform !== 0) {
+      obj.platform = devicePlatformToJSON(message.platform);
+    }
+    if (message.appVersion !== undefined) {
+      obj.appVersion = message.appVersion;
+    }
+    if (message.deviceInfoJson !== '') {
+      obj.deviceInfoJson = message.deviceInfoJson;
+    }
+    if (message.status !== 0) {
+      obj.status = deviceTokenStatusToJSON(message.status);
+    }
+    if (message.lastUsedAt !== undefined) {
+      obj.lastUsedAt = message.lastUsedAt;
+    }
+    if (message.expiresAt !== undefined) {
+      obj.expiresAt = message.expiresAt;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeviceToken>, I>>(base?: I): DeviceToken {
+    return DeviceToken.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeviceToken>, I>>(object: I): DeviceToken {
+    const message = createBaseDeviceToken();
+    message.tokenId = object.tokenId ?? '';
+    message.userId = object.userId ?? '';
+    message.deviceToken = object.deviceToken ?? '';
+    message.platform = object.platform ?? 0;
+    message.appVersion = object.appVersion ?? undefined;
+    message.deviceInfoJson = object.deviceInfoJson ?? '';
+    message.status = object.status ?? 0;
+    message.lastUsedAt = object.lastUsedAt ?? undefined;
+    message.expiresAt = object.expiresAt ?? undefined;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseRegisterDeviceTokenRequest(): RegisterDeviceTokenRequest {
+  return {
+    userId: undefined,
+    deviceToken: '',
+    platform: 0,
+    appVersion: undefined,
+    deviceInfoJson: '',
+  };
+}
+
+export const RegisterDeviceTokenRequest: MessageFns<RegisterDeviceTokenRequest> = {
+  encode(
+    message: RegisterDeviceTokenRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.deviceToken !== '') {
+      writer.uint32(18).string(message.deviceToken);
+    }
+    if (message.platform !== 0) {
+      writer.uint32(24).int32(message.platform);
+    }
+    if (message.appVersion !== undefined) {
+      writer.uint32(34).string(message.appVersion);
+    }
+    if (message.deviceInfoJson !== '') {
+      writer.uint32(42).string(message.deviceInfoJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterDeviceTokenRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterDeviceTokenRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.deviceToken = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.platform = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.appVersion = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.deviceInfoJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterDeviceTokenRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+      deviceToken: isSet(object.deviceToken)
+        ? globalThis.String(object.deviceToken)
+        : isSet(object.device_token)
+          ? globalThis.String(object.device_token)
+          : '',
+      platform: isSet(object.platform) ? devicePlatformFromJSON(object.platform) : 0,
+      appVersion: isSet(object.appVersion)
+        ? globalThis.String(object.appVersion)
+        : isSet(object.app_version)
+          ? globalThis.String(object.app_version)
+          : undefined,
+      deviceInfoJson: isSet(object.deviceInfoJson)
+        ? globalThis.String(object.deviceInfoJson)
+        : isSet(object.device_info_json)
+          ? globalThis.String(object.device_info_json)
+          : '',
+    };
+  },
+
+  toJSON(message: RegisterDeviceTokenRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    if (message.deviceToken !== '') {
+      obj.deviceToken = message.deviceToken;
+    }
+    if (message.platform !== 0) {
+      obj.platform = devicePlatformToJSON(message.platform);
+    }
+    if (message.appVersion !== undefined) {
+      obj.appVersion = message.appVersion;
+    }
+    if (message.deviceInfoJson !== '') {
+      obj.deviceInfoJson = message.deviceInfoJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterDeviceTokenRequest>, I>>(
+    base?: I
+  ): RegisterDeviceTokenRequest {
+    return RegisterDeviceTokenRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterDeviceTokenRequest>, I>>(
+    object: I
+  ): RegisterDeviceTokenRequest {
+    const message = createBaseRegisterDeviceTokenRequest();
+    message.userId = object.userId ?? undefined;
+    message.deviceToken = object.deviceToken ?? '';
+    message.platform = object.platform ?? 0;
+    message.appVersion = object.appVersion ?? undefined;
+    message.deviceInfoJson = object.deviceInfoJson ?? '';
+    return message;
+  },
+};
+
+function createBaseRegisterDeviceTokenResponse(): RegisterDeviceTokenResponse {
+  return { token: undefined, alreadyRegistered: false };
+}
+
+export const RegisterDeviceTokenResponse: MessageFns<RegisterDeviceTokenResponse> = {
+  encode(
+    message: RegisterDeviceTokenResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.token !== undefined) {
+      DeviceToken.encode(message.token, writer.uint32(10).fork()).join();
+    }
+    if (message.alreadyRegistered !== false) {
+      writer.uint32(16).bool(message.alreadyRegistered);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegisterDeviceTokenResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegisterDeviceTokenResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.token = DeviceToken.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.alreadyRegistered = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegisterDeviceTokenResponse {
+    return {
+      token: isSet(object.token) ? DeviceToken.fromJSON(object.token) : undefined,
+      alreadyRegistered: isSet(object.alreadyRegistered)
+        ? globalThis.Boolean(object.alreadyRegistered)
+        : isSet(object.already_registered)
+          ? globalThis.Boolean(object.already_registered)
+          : false,
+    };
+  },
+
+  toJSON(message: RegisterDeviceTokenResponse): unknown {
+    const obj: any = {};
+    if (message.token !== undefined) {
+      obj.token = DeviceToken.toJSON(message.token);
+    }
+    if (message.alreadyRegistered !== false) {
+      obj.alreadyRegistered = message.alreadyRegistered;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegisterDeviceTokenResponse>, I>>(
+    base?: I
+  ): RegisterDeviceTokenResponse {
+    return RegisterDeviceTokenResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegisterDeviceTokenResponse>, I>>(
+    object: I
+  ): RegisterDeviceTokenResponse {
+    const message = createBaseRegisterDeviceTokenResponse();
+    message.token =
+      object.token !== undefined && object.token !== null
+        ? DeviceToken.fromPartial(object.token)
+        : undefined;
+    message.alreadyRegistered = object.alreadyRegistered ?? false;
+    return message;
+  },
+};
+
+function createBaseUnregisterDeviceTokenRequest(): UnregisterDeviceTokenRequest {
+  return { tokenId: '' };
+}
+
+export const UnregisterDeviceTokenRequest: MessageFns<UnregisterDeviceTokenRequest> = {
+  encode(
+    message: UnregisterDeviceTokenRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.tokenId !== '') {
+      writer.uint32(10).string(message.tokenId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UnregisterDeviceTokenRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUnregisterDeviceTokenRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.tokenId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UnregisterDeviceTokenRequest {
+    return {
+      tokenId: isSet(object.tokenId)
+        ? globalThis.String(object.tokenId)
+        : isSet(object.token_id)
+          ? globalThis.String(object.token_id)
+          : '',
+    };
+  },
+
+  toJSON(message: UnregisterDeviceTokenRequest): unknown {
+    const obj: any = {};
+    if (message.tokenId !== '') {
+      obj.tokenId = message.tokenId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UnregisterDeviceTokenRequest>, I>>(
+    base?: I
+  ): UnregisterDeviceTokenRequest {
+    return UnregisterDeviceTokenRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UnregisterDeviceTokenRequest>, I>>(
+    object: I
+  ): UnregisterDeviceTokenRequest {
+    const message = createBaseUnregisterDeviceTokenRequest();
+    message.tokenId = object.tokenId ?? '';
+    return message;
+  },
+};
+
+function createBaseUnregisterDeviceTokenResponse(): UnregisterDeviceTokenResponse {
+  return { token: undefined };
+}
+
+export const UnregisterDeviceTokenResponse: MessageFns<UnregisterDeviceTokenResponse> = {
+  encode(
+    message: UnregisterDeviceTokenResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.token !== undefined) {
+      DeviceToken.encode(message.token, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UnregisterDeviceTokenResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUnregisterDeviceTokenResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.token = DeviceToken.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UnregisterDeviceTokenResponse {
+    return { token: isSet(object.token) ? DeviceToken.fromJSON(object.token) : undefined };
+  },
+
+  toJSON(message: UnregisterDeviceTokenResponse): unknown {
+    const obj: any = {};
+    if (message.token !== undefined) {
+      obj.token = DeviceToken.toJSON(message.token);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UnregisterDeviceTokenResponse>, I>>(
+    base?: I
+  ): UnregisterDeviceTokenResponse {
+    return UnregisterDeviceTokenResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UnregisterDeviceTokenResponse>, I>>(
+    object: I
+  ): UnregisterDeviceTokenResponse {
+    const message = createBaseUnregisterDeviceTokenResponse();
+    message.token =
+      object.token !== undefined && object.token !== null
+        ? DeviceToken.fromPartial(object.token)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseListDeviceTokensRequest(): ListDeviceTokensRequest {
+  return { userId: undefined, includeInactive: false };
+}
+
+export const ListDeviceTokensRequest: MessageFns<ListDeviceTokensRequest> = {
+  encode(
+    message: ListDeviceTokensRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.includeInactive !== false) {
+      writer.uint32(16).bool(message.includeInactive);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDeviceTokensRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListDeviceTokensRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.includeInactive = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListDeviceTokensRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+      includeInactive: isSet(object.includeInactive)
+        ? globalThis.Boolean(object.includeInactive)
+        : isSet(object.include_inactive)
+          ? globalThis.Boolean(object.include_inactive)
+          : false,
+    };
+  },
+
+  toJSON(message: ListDeviceTokensRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    if (message.includeInactive !== false) {
+      obj.includeInactive = message.includeInactive;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListDeviceTokensRequest>, I>>(
+    base?: I
+  ): ListDeviceTokensRequest {
+    return ListDeviceTokensRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListDeviceTokensRequest>, I>>(
+    object: I
+  ): ListDeviceTokensRequest {
+    const message = createBaseListDeviceTokensRequest();
+    message.userId = object.userId ?? undefined;
+    message.includeInactive = object.includeInactive ?? false;
+    return message;
+  },
+};
+
+function createBaseListDeviceTokensResponse(): ListDeviceTokensResponse {
+  return { tokens: [] };
+}
+
+export const ListDeviceTokensResponse: MessageFns<ListDeviceTokensResponse> = {
+  encode(
+    message: ListDeviceTokensResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.tokens) {
+      DeviceToken.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDeviceTokensResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListDeviceTokensResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.tokens.push(DeviceToken.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListDeviceTokensResponse {
+    return {
+      tokens: globalThis.Array.isArray(object?.tokens)
+        ? object.tokens.map((e: any) => DeviceToken.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListDeviceTokensResponse): unknown {
+    const obj: any = {};
+    if (message.tokens?.length) {
+      obj.tokens = message.tokens.map(e => DeviceToken.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListDeviceTokensResponse>, I>>(
+    base?: I
+  ): ListDeviceTokensResponse {
+    return ListDeviceTokensResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListDeviceTokensResponse>, I>>(
+    object: I
+  ): ListDeviceTokensResponse {
+    const message = createBaseListDeviceTokensResponse();
+    message.tokens = object.tokens?.map(e => DeviceToken.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * NotificationService is the gRPC contract for the in-app notification
  * store. The gateway translates `POST/GET/DELETE /api/notifications/*`
@@ -3812,6 +4787,58 @@ export const NotificationServiceService = {
     responseDeserialize: (value: Buffer): UpdateEmailPreferencesResponse =>
       UpdateEmailPreferencesResponse.decode(value),
   },
+  /**
+   * Idempotent on (user_id, device_token): a second Register with the
+   * same pair refreshes `last_used_at` and returns the existing row.
+   */
+  registerDeviceToken: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/RegisterDeviceToken' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RegisterDeviceTokenRequest): Buffer =>
+      Buffer.from(RegisterDeviceTokenRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RegisterDeviceTokenRequest =>
+      RegisterDeviceTokenRequest.decode(value),
+    responseSerialize: (value: RegisterDeviceTokenResponse): Buffer =>
+      Buffer.from(RegisterDeviceTokenResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RegisterDeviceTokenResponse =>
+      RegisterDeviceTokenResponse.decode(value),
+  },
+  /**
+   * Soft-delete by token_id. Called when the client logs out or the
+   * user disables push. Idempotent: a second Unregister on the same
+   * token_id returns the same row without error.
+   */
+  unregisterDeviceToken: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/UnregisterDeviceToken' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UnregisterDeviceTokenRequest): Buffer =>
+      Buffer.from(UnregisterDeviceTokenRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UnregisterDeviceTokenRequest =>
+      UnregisterDeviceTokenRequest.decode(value),
+    responseSerialize: (value: UnregisterDeviceTokenResponse): Buffer =>
+      Buffer.from(UnregisterDeviceTokenResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UnregisterDeviceTokenResponse =>
+      UnregisterDeviceTokenResponse.decode(value),
+  },
+  /**
+   * List active tokens for the calling principal. Self-scoped (admins
+   * need device-tokens:list:any to read another user's tokens).
+   */
+  listDeviceTokens: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/ListDeviceTokens' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListDeviceTokensRequest): Buffer =>
+      Buffer.from(ListDeviceTokensRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListDeviceTokensRequest =>
+      ListDeviceTokensRequest.decode(value),
+    responseSerialize: (value: ListDeviceTokensResponse): Buffer =>
+      Buffer.from(ListDeviceTokensResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListDeviceTokensResponse =>
+      ListDeviceTokensResponse.decode(value),
+  },
 } as const;
 
 export interface NotificationServiceServer extends UntypedServiceImplementation {
@@ -3858,6 +4885,25 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
     UpdateEmailPreferencesRequest,
     UpdateEmailPreferencesResponse
   >;
+  /**
+   * Idempotent on (user_id, device_token): a second Register with the
+   * same pair refreshes `last_used_at` and returns the existing row.
+   */
+  registerDeviceToken: handleUnaryCall<RegisterDeviceTokenRequest, RegisterDeviceTokenResponse>;
+  /**
+   * Soft-delete by token_id. Called when the client logs out or the
+   * user disables push. Idempotent: a second Unregister on the same
+   * token_id returns the same row without error.
+   */
+  unregisterDeviceToken: handleUnaryCall<
+    UnregisterDeviceTokenRequest,
+    UnregisterDeviceTokenResponse
+  >;
+  /**
+   * List active tokens for the calling principal. Self-scoped (admins
+   * need device-tokens:list:any to read another user's tokens).
+   */
+  listDeviceTokens: handleUnaryCall<ListDeviceTokensRequest, ListDeviceTokensResponse>;
 }
 
 export interface NotificationServiceClient extends Client {
@@ -3984,6 +5030,64 @@ export interface NotificationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: UpdateEmailPreferencesResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Idempotent on (user_id, device_token): a second Register with the
+   * same pair refreshes `last_used_at` and returns the existing row.
+   */
+  registerDeviceToken(
+    request: RegisterDeviceTokenRequest,
+    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  registerDeviceToken(
+    request: RegisterDeviceTokenRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  registerDeviceToken(
+    request: RegisterDeviceTokenRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Soft-delete by token_id. Called when the client logs out or the
+   * user disables push. Idempotent: a second Unregister on the same
+   * token_id returns the same row without error.
+   */
+  unregisterDeviceToken(
+    request: UnregisterDeviceTokenRequest,
+    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  unregisterDeviceToken(
+    request: UnregisterDeviceTokenRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  unregisterDeviceToken(
+    request: UnregisterDeviceTokenRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * List active tokens for the calling principal. Self-scoped (admins
+   * need device-tokens:list:any to read another user's tokens).
+   */
+  listDeviceTokens(
+    request: ListDeviceTokensRequest,
+    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void
+  ): ClientUnaryCall;
+  listDeviceTokens(
+    request: ListDeviceTokensRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void
+  ): ClientUnaryCall;
+  listDeviceTokens(
+    request: ListDeviceTokensRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void
   ): ClientUnaryCall;
 }
 

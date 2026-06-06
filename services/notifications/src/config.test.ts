@@ -32,6 +32,10 @@ describe('loadConfig', () => {
       RESEND_API_KEY: 're_test_key',
       DEFAULT_FROM_EMAIL: 'noreply@example.com',
       DEFAULT_FROM_NAME: 'Adopt Test',
+      // Push provider — fcm in production, same ADS-549 rule.
+      PUSH_PROVIDER: 'fcm',
+      FCM_SERVICE_ACCOUNT_JSON: '{"type":"service_account"}',
+      FCM_PROJECT_ID: 'gcp-project-id',
     });
 
     expect(config.port).toBe(5500);
@@ -49,11 +53,47 @@ describe('loadConfig', () => {
       replyTo: undefined,
     });
     expect(config.emailWorkerEnabled).toBe(true);
+    expect(config.pushProvider).toEqual({
+      kind: 'fcm',
+      serviceAccountJson: '{"type":"service_account"}',
+      projectId: 'gcp-project-id',
+    });
+    expect(config.pushWorkerEnabled).toBe(true);
   });
 
-  it('defaults to the console email provider in non-production environments', () => {
+  it('defaults to the console email + push providers in non-production environments', () => {
     const config = loadConfig({ DATABASE_URL: VALID_DB_URL });
     expect(config.emailProvider).toEqual({ kind: 'console' });
+    expect(config.pushProvider).toEqual({ kind: 'console' });
+  });
+
+  it("rejects PUSH_PROVIDER='console' in production", () => {
+    expect(() =>
+      loadConfig({
+        NODE_ENV: 'production',
+        DATABASE_URL: VALID_DB_URL,
+        EMAIL_PROVIDER: 'resend',
+        RESEND_API_KEY: 'k',
+        DEFAULT_FROM_EMAIL: 'from@example.com',
+        PUSH_PROVIDER: 'console',
+      })
+    ).toThrow(/not permitted in production/);
+  });
+
+  it("requires FCM_SERVICE_ACCOUNT_JSON when PUSH_PROVIDER='fcm'", () => {
+    expect(() =>
+      loadConfig({
+        DATABASE_URL: VALID_DB_URL,
+        PUSH_PROVIDER: 'fcm',
+        FCM_PROJECT_ID: 'gcp-project-id',
+      })
+    ).toThrow(/requires FCM_SERVICE_ACCOUNT_JSON/);
+  });
+
+  it('rejects an unknown PUSH_PROVIDER value', () => {
+    expect(() => loadConfig({ DATABASE_URL: VALID_DB_URL, PUSH_PROVIDER: 'apns' })).toThrow(
+      /PUSH_PROVIDER='apns' is not recognised/
+    );
   });
 
   it("rejects EMAIL_PROVIDER='console' in production", () => {

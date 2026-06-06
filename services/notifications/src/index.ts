@@ -8,6 +8,8 @@ import { createProvider } from './email/providers/factory.js';
 import { startEmailWorker, type RunningEmailWorker } from './email/worker.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { registerSubscribers } from './nats/subscribers.js';
+import { createPushProvider } from './push/providers/factory.js';
+import { startPushWorker, type RunningPushWorker } from './push/worker.js';
 import { createServer } from './server.js';
 
 const main = async (): Promise<void> => {
@@ -17,6 +19,7 @@ const main = async (): Promise<void> => {
   let pool: Awaited<ReturnType<typeof createDbClient>> | undefined;
   let grpc: RunningGrpcServer | undefined;
   let emailWorker: RunningEmailWorker | undefined;
+  let pushWorker: RunningPushWorker | undefined;
   let httpClosed = false;
 
   try {
@@ -61,6 +64,23 @@ const main = async (): Promise<void> => {
       emailWorker = startEmailWorker({ pool, nats, provider, logger });
       logger.info('email worker started', { provider: provider.getName() });
     }
+    if (config.pushWorkerEnabled) {
+      const pushProviderConfig =
+        config.pushProvider.kind === 'fcm'
+          ? ({
+              kind: 'fcm',
+              fcm: {
+                serviceAccountJson: config.pushProvider.serviceAccountJson,
+                projectId: config.pushProvider.projectId,
+              },
+            } as const)
+          : config.pushProvider;
+      const provider = createPushProvider({ config: pushProviderConfig, logger });
+      if (!provider.validateConfiguration()) {
+        throw new Error(`push provider '${provider.getName()}' failed validateConfiguration()`);
+      }
+      pushWorker = startPushWorker({ pool, nats, provider, logger });
+    }
     const httpServer = createServer({ config, logger });
     await httpServer.listen({ port: config.port, host: config.host });
 
@@ -87,6 +107,11 @@ const main = async (): Promise<void> => {
         await emailWorker?.stop();
       } catch (err) {
         logger.error('email worker stop error', { err });
+      }
+      try {
+        await pushWorker?.stop();
+      } catch (err) {
+        logger.error('push worker stop error', { err });
       }
       try {
         await grpc?.shutdown();

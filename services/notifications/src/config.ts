@@ -3,6 +3,10 @@ export type EmailProviderConfig =
   | { kind: 'ethereal' }
   | { kind: 'resend'; apiKey: string; fromEmail: string; fromName: string; replyTo?: string };
 
+export type PushProviderConfig =
+  | { kind: 'console' }
+  | { kind: 'fcm'; serviceAccountJson: string; projectId: string };
+
 export type NotificationsConfig = {
   // Port the HTTP surface listens on. Distinct from service.backend's
   // 5000 and service.gateway's 4000. The gRPC server listens on a
@@ -32,6 +36,11 @@ export type NotificationsConfig = {
   // Toggle the email queue worker. Defaults to true. Tests + the
   // migrations-only smoke set this to false to keep the loop quiet.
   emailWorkerEnabled: boolean;
+  // Push provider selection — Phase 7.2. Same ADS-549 rule: production
+  // refuses 'console' so an unconfigured push channel surfaces at boot.
+  pushProvider: PushProviderConfig;
+  // Toggle the push worker (the NATS subscriber). Defaults to true.
+  pushWorkerEnabled: boolean;
 };
 
 // Defaults match the wider stack:
@@ -67,7 +76,39 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     emailProvider: loadEmailProviderConfig(env),
     emailWorkerEnabled: env.EMAIL_WORKER_ENABLED?.trim() !== 'false',
+    pushProvider: loadPushProviderConfig(env),
+    pushWorkerEnabled: env.PUSH_WORKER_ENABLED?.trim() !== 'false',
   };
+};
+
+const loadPushProviderConfig = (env: NodeJS.ProcessEnv): PushProviderConfig => {
+  const requested = env.PUSH_PROVIDER?.trim().toLowerCase() ?? 'console';
+  const isProd = (env.NODE_ENV?.trim() ?? '').toLowerCase() === 'production';
+
+  switch (requested) {
+    case 'console':
+      if (isProd) {
+        throw new Error(
+          "PUSH_PROVIDER='console' is not permitted in production — every push notification would land in stdout"
+        );
+      }
+      return { kind: 'console' };
+    case 'fcm': {
+      const serviceAccountJson = env.FCM_SERVICE_ACCOUNT_JSON?.trim();
+      const projectId = env.FCM_PROJECT_ID?.trim();
+      if (!serviceAccountJson) {
+        throw new Error("PUSH_PROVIDER='fcm' requires FCM_SERVICE_ACCOUNT_JSON");
+      }
+      if (!projectId) {
+        throw new Error("PUSH_PROVIDER='fcm' requires FCM_PROJECT_ID");
+      }
+      return { kind: 'fcm', serviceAccountJson, projectId };
+    }
+    default:
+      throw new Error(
+        `PUSH_PROVIDER='${requested}' is not recognised (expected 'console' | 'fcm')`
+      );
+  }
 };
 
 const loadEmailProviderConfig = (env: NodeJS.ProcessEnv): EmailProviderConfig => {

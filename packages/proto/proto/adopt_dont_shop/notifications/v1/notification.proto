@@ -57,6 +57,27 @@ service NotificationService {
   // touched — unset fields keep their current value.
   rpc UpdateEmailPreferences(UpdateEmailPreferencesRequest)
       returns (UpdateEmailPreferencesResponse);
+
+  // --- Push device tokens --------------------------------------------
+  // Phase 7 round-out. Clients (mobile, browser PWAs) register their
+  // FCM / APNs / web-push token with the notifications service; the
+  // push worker consumes `notifications.created` events for push-
+  // channel rows and dispatches via the configured provider.
+
+  // Idempotent on (user_id, device_token): a second Register with the
+  // same pair refreshes `last_used_at` and returns the existing row.
+  rpc RegisterDeviceToken(RegisterDeviceTokenRequest)
+      returns (RegisterDeviceTokenResponse);
+
+  // Soft-delete by token_id. Called when the client logs out or the
+  // user disables push. Idempotent: a second Unregister on the same
+  // token_id returns the same row without error.
+  rpc UnregisterDeviceToken(UnregisterDeviceTokenRequest)
+      returns (UnregisterDeviceTokenResponse);
+
+  // List active tokens for the calling principal. Self-scoped (admins
+  // need device-tokens:list:any to read another user's tokens).
+  rpc ListDeviceTokens(ListDeviceTokensRequest) returns (ListDeviceTokensResponse);
 }
 
 // Notification mirrors the `notifications.notifications` row plus the
@@ -383,4 +404,86 @@ message UpdateEmailPreferencesRequest {
 
 message UpdateEmailPreferencesResponse {
   EmailPreferences preferences = 1;
+}
+
+// --- Device token ENUMs ----------------------------------------------
+
+enum DevicePlatform {
+  DEVICE_PLATFORM_UNSPECIFIED = 0;
+  DEVICE_PLATFORM_IOS = 1;
+  DEVICE_PLATFORM_ANDROID = 2;
+  DEVICE_PLATFORM_WEB = 3;
+}
+
+enum DeviceTokenStatus {
+  DEVICE_TOKEN_STATUS_UNSPECIFIED = 0;
+  DEVICE_TOKEN_STATUS_ACTIVE = 1;
+  DEVICE_TOKEN_STATUS_INACTIVE = 2;
+  DEVICE_TOKEN_STATUS_EXPIRED = 3;
+  DEVICE_TOKEN_STATUS_INVALID = 4;
+}
+
+// --- DeviceToken row -------------------------------------------------
+
+message DeviceToken {
+  string token_id = 1;
+  string user_id = 2;
+  string device_token = 3;
+  DevicePlatform platform = 4;
+  optional string app_version = 5;
+  // JSON-stringified jsonb payload. Empty string == `{}`.
+  string device_info_json = 6;
+  DeviceTokenStatus status = 7;
+  optional string last_used_at = 8;
+  optional string expires_at = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+
+// --- RegisterDeviceToken ---------------------------------------------
+
+message RegisterDeviceTokenRequest {
+  // Target user — optional. Defaults to the calling principal when
+  // omitted; cross-user registration requires device-tokens:write:any.
+  optional string user_id = 1;
+  string device_token = 2;
+  DevicePlatform platform = 3;
+  optional string app_version = 4;
+  // Optional jsonb metadata (model, OS version, app build, etc.).
+  // Empty string == `{}`.
+  string device_info_json = 5;
+}
+
+message RegisterDeviceTokenResponse {
+  DeviceToken token = 1;
+  // True when the (user_id, device_token) pair was already present
+  // and the call just refreshed last_used_at.
+  bool already_registered = 2;
+}
+
+// --- UnregisterDeviceToken -------------------------------------------
+
+message UnregisterDeviceTokenRequest {
+  string token_id = 1;
+}
+
+message UnregisterDeviceTokenResponse {
+  // The soft-deleted row (deleted_at stamped, status='inactive').
+  // Idempotent.
+  DeviceToken token = 1;
+}
+
+// --- ListDeviceTokens ------------------------------------------------
+
+message ListDeviceTokensRequest {
+  // Optional target. Defaults to the calling principal. Callers without
+  // device-tokens:list:any may only list their own tokens.
+  optional string user_id = 1;
+  // When true, include soft-deleted (deleted_at IS NOT NULL) rows.
+  // Default false.
+  bool include_inactive = 2;
+}
+
+message ListDeviceTokensResponse {
+  repeated DeviceToken tokens = 1;
 }
