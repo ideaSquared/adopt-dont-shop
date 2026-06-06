@@ -25,7 +25,6 @@
 // a 409.
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
-import { withTransaction } from '@adopt-dont-shop/events';
 import { APPLICATIONS_UPDATE } from '@adopt-dont-shop/lib.types';
 import type {
   SaveDraftAnswersRequest,
@@ -34,84 +33,11 @@ import type {
   SubmitDraftResponse,
 } from '@adopt-dont-shop/proto';
 
-import {
-  apply as applyEvent,
-  DomainError,
-  handle,
-  type ApplicationCommand,
-  type ApplicationState,
-  type Reference,
-} from '../domain/index.js';
+import type { ApplicationCommand, Reference } from '../domain/index.js';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
-import { appendEvents, ConcurrencyError, loadAggregate, projectReadModel } from './event-store.js';
+import { runCommand } from './command-runner.js';
 import { stateToProto } from './state-mapper.js';
-
-// Translate the pure domain's DomainError codes into HandlerError
-// codes. ILLEGAL_TRANSITION / INVALID_INPUT → INVALID_ARGUMENT;
-// CONCURRENCY → INTERNAL with a message (the gateway maps the
-// CONCURRENCY message to 409 in Phase 5.3d); MISSING_AGGREGATE →
-// NOT_FOUND.
-function domainErrorToHandler(err: DomainError): HandlerError {
-  switch (err.code) {
-    case 'ILLEGAL_TRANSITION':
-    case 'INVALID_INPUT':
-      return new HandlerError('INVALID_ARGUMENT', err.message);
-    case 'MISSING_AGGREGATE':
-      return new HandlerError('NOT_FOUND', err.message);
-    case 'CONCURRENCY':
-      return new HandlerError('INTERNAL', `CONCURRENCY: ${err.message}`);
-    default:
-      return new HandlerError('INTERNAL', err.message);
-  }
-}
-
-// Runs the command against the loaded aggregate and persists the
-// resulting events. Shared by every write handler. Returns the new
-// folded state (caller maps to proto).
-async function runCommand(
-  deps: HandlerDeps,
-  aggregateId: string,
-  command: ApplicationCommand,
-  actorUserId: string,
-  publishFor: (state: ApplicationState) => { type: string; id: string; payload: unknown } | null
-): Promise<ApplicationState> {
-  return withTransaction(deps, async ({ client, publish }) => {
-    const state = await loadAggregate(client, aggregateId);
-
-    let events;
-    try {
-      events = handle(state, command);
-    } catch (err) {
-      if (err instanceof DomainError) {
-        throw domainErrorToHandler(err);
-      }
-      throw err;
-    }
-
-    try {
-      await appendEvents(client, aggregateId, state.version, events, actorUserId);
-    } catch (err) {
-      if (err instanceof ConcurrencyError) {
-        throw new HandlerError('INTERNAL', `CONCURRENCY: ${err.message}`);
-      }
-      throw err;
-    }
-
-    // Fold the new events onto the loaded state to get the post-command
-    // state, then project + publish.
-    const nextState = events.reduce<ApplicationState>((s, e) => applyEvent(s, e), state);
-
-    await projectReadModel(client, nextState);
-
-    const evt = publishFor(nextState);
-    if (evt !== null) {
-      publish(evt);
-    }
-
-    return nextState;
-  });
-}
 
 // --- SaveDraftAnswers ------------------------------------------------
 
