@@ -192,7 +192,7 @@ describe('registerSubscribers', () => {
 
     const subs = registerSubscribers({ nats, deps, logger });
 
-    expect(subs).toHaveLength(7);
+    expect(subs).toHaveLength(10);
     // Subscribed subjects (raw nats.subscribe receives the subject as
     // first arg, then an options object containing `queue`).
     const subjects = subscribeFn.mock.calls.map(call => call[0]);
@@ -204,6 +204,9 @@ describe('registerSubscribers', () => {
       'auth.roleAssigned',
       'pets.statusChanged',
       'pets.deleted',
+      'rescue.verified',
+      'rescue.rejected',
+      'rescue.staffInvited',
     ]);
   });
 

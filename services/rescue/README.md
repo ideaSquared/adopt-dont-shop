@@ -103,11 +103,23 @@ read model).
   runs it alongside the HTTP `/health` surface; deps connect FIRST,
   then start serving.
 
+**Phase 4.4** — downstream NATS event flow:
+- The Phase 4.3b handlers already publish `rescue.created`,
+  `rescue.updated`, `rescue.verified`, `rescue.rejected`, and
+  `rescue.staffInvited` via `withTransaction` (publish-after-commit).
+- `services/notifications` subscribes to the three terminal subjects
+  (`rescue.verified`, `rescue.rejected`, `rescue.staffInvited`),
+  joining the existing `notifications-workers` queue group. Log-only
+  for now — surfacing user-facing rows needs recipient discovery
+  (the rescue's `contact_person` for status changes, the invitee's
+  email worker for invitations) that lands with later phases.
+- The `auth.userCreated → staff_member` denormalisation flagged in
+  the Phase 4 plan stays unwired here until `service.auth` ships a
+  Register endpoint that emits the subject. The subscriber slot is
+  reserved for that PR.
+
 ## What's NOT here yet
 
-- **Phase 4.4** — NATS publishers (`rescue.created`,
-  `rescue.verified`, `rescue.staffInvited`, etc.) + subscriber for
-  `auth.userCreated` to denormalise staff_member rows.
 - **Phase 4.5** — Gateway routes `/api/rescue/*` here.
 - **Phase 4.6** — Cutover: monolith's rescue code becomes dead,
   removal bundled into Phase 11.

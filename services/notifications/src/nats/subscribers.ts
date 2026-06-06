@@ -41,6 +41,9 @@ import type {
   AuthUserLoggedInEvent,
   PetDeletedEvent,
   PetStatusChangedEvent,
+  RescueRejectedEvent,
+  RescueStaffInvitedEvent,
+  RescueVerifiedEvent,
 } from './event-types.js';
 import { SYSTEM_PRINCIPAL } from './system-principal.js';
 
@@ -148,6 +151,51 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
         logger.info('pets.deleted received', {
           petId: payload.petId,
           rescueId: payload.rescueId,
+        });
+      }
+    )
+  );
+
+  // rescue.verified / rescue.rejected / rescue.staffInvited (Phase 4.4):
+  // log-only on the consumer side, same pattern as the pets.* events.
+  // Recipient-discovery (rescue.contact_person, invitee email worker)
+  // lands when those upstream lookups exist.
+  subscriptions.push(
+    subscribe<RescueVerifiedEvent>(
+      nats,
+      { subject: 'rescue.verified', queue: QUEUE_GROUP, onError },
+      async payload => {
+        logger.info('rescue.verified received', {
+          rescueId: payload.rescueId,
+          fromStatus: payload.fromStatus,
+          toStatus: payload.toStatus,
+        });
+      }
+    )
+  );
+
+  subscriptions.push(
+    subscribe<RescueRejectedEvent>(
+      nats,
+      { subject: 'rescue.rejected', queue: QUEUE_GROUP, onError },
+      async payload => {
+        logger.info('rescue.rejected received', {
+          rescueId: payload.rescueId,
+          reason: payload.reason,
+        });
+      }
+    )
+  );
+
+  subscriptions.push(
+    subscribe<RescueStaffInvitedEvent>(
+      nats,
+      { subject: 'rescue.staffInvited', queue: QUEUE_GROUP, onError },
+      async payload => {
+        logger.info('rescue.staffInvited received', {
+          invitationId: payload.invitationId,
+          rescueId: payload.rescueId,
+          email: payload.email,
         });
       }
     )
