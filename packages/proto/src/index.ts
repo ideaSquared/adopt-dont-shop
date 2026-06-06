@@ -133,6 +133,13 @@ export type {
   ListApplicationsResponse,
   GetStatsRequest,
   GetStatsResponse,
+  Document,
+  AddDocumentRequest,
+  AddDocumentResponse,
+  ListDocumentsRequest,
+  ListDocumentsResponse,
+  RemoveDocumentRequest,
+  RemoveDocumentResponse,
   ApplicationServiceServer,
   ApplicationServiceClient,
 } from './generated/proto/adopt_dont_shop/applications/v1/application.js';

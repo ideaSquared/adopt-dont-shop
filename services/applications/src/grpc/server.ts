@@ -36,6 +36,7 @@ import type { ApplicationsConfig } from '../config.js';
 import { adapt } from './adapter.js';
 import { makeStartDraft, saveDraftAnswers, submitDraft } from './handlers.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
+import { addDocument, listDocuments, removeDocument } from './document-handlers.js';
 import { getApplication, listApplications } from './read-handlers.js';
 import { getStats } from './stats-handlers.js';
 import {
@@ -90,6 +91,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     list: adapt(listApplications, { deps, logger }),
     // Stats (stats-handlers.ts)
     getStats: adapt(getStats, { deps, logger }),
+    // Document metadata (document-handlers.ts)
+    addDocument: adapt(addDocument, { deps, logger }),
+    listDocuments: adapt(listDocuments, { deps, logger }),
+    removeDocument: adapt(removeDocument, { deps, logger }),
   });
 
   logger.info('gRPC ApplicationService registered', {
@@ -107,6 +112,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'get',
       'list',
       'getStats',
+      'addDocument',
+      'listDocuments',
+      'removeDocument',
     ],
     grpcPort: config.grpcPort,
   });
