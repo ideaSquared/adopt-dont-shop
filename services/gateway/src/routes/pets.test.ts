@@ -107,9 +107,11 @@ describe('GET /api/v1/pets', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const body = res.json() as { pets: unknown[]; nextCursor?: string };
-    expect(body.pets).toHaveLength(1);
-    expect(body.nextCursor).toBe('abc');
+    // Stage B envelope: { success, data, meta }.
+    const body = res.json() as { success: boolean; data: unknown[]; meta: { hasNext: boolean } };
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveLength(1);
+    expect(body.meta.hasNext).toBe(true);
 
     const [req, metadata] = listMock.mock.calls[0];
     expect(req.limit).toBe(10);
@@ -152,8 +154,10 @@ describe('GET /api/v1/pets/:id', () => {
         headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
       });
       expect(res.statusCode).toBe(200);
-      const body = res.json() as { pet: { petId: string } };
-      expect(body.pet.petId).toBe('pet-1');
+      // Stage B: { success, data: <snake_case view> }.
+      const body = res.json() as { success: boolean; data: { pet_id: string } };
+      expect(body.success).toBe(true);
+      expect(body.data.pet_id).toBe('pet-1');
       const [req, metadata] = getMock.mock.calls[0];
       expect(req.petId).toBe('pet-1');
       expect(metadata.get('x-user-id')[0]).toBe('usr-1');

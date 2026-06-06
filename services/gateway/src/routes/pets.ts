@@ -33,6 +33,8 @@ import {
 
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 
+import { listToEnvelope, petToView } from './pets-view.js';
+
 export type PetsRoutesOptions = {
   client: PetsClient;
 };
@@ -89,7 +91,8 @@ export const registerPetsRoutes = async (
     };
     try {
       const res = await client.list(grpcReq, buildMetadata(req));
-      return reply.send(PetsV1.ListPetsResponse.toJSON(res));
+      // Stage B: frontend lib.pets shape ({ success, data, meta }).
+      return reply.send(listToEnvelope(res));
     } catch (err) {
       return handleGrpcError(err, reply);
     }
@@ -101,7 +104,10 @@ export const registerPetsRoutes = async (
     async (req, reply) => {
       try {
         const res = await client.get({ petId: req.params.id }, buildMetadata(req));
-        return reply.send(PetsV1.GetPetResponse.toJSON(res));
+        if (res.pet === undefined) {
+          return reply.code(404).send({ success: false, error: 'pet not found' });
+        }
+        return reply.send({ success: true, data: petToView(res.pet) });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
