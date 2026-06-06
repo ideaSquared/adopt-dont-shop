@@ -91,6 +91,21 @@ service ApplicationService {
   // rescue dashboard's stats cards. Returns RAW per-service-status
   // counts — the gateway collapses them to the SPA's 4-state shape.
   rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+
+  // Document metadata — append a row referencing an already-stored
+  // file URL. The gateway owns the multipart upload + object storage;
+  // this surface only persists the METADATA. Caller MUST hold
+  // applications.update for the application's rescue.
+  rpc AddDocument(AddDocumentRequest) returns (AddDocumentResponse);
+
+  // Document metadata — list the non-deleted documents attached to an
+  // application, scoped the same way Get is (adopter-owns OR rescue-
+  // staff-of-the-app's-rescue OR admin).
+  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
+
+  // Document metadata — soft-delete one document. Caller MUST hold
+  // applications.update for the application's rescue.
+  rpc RemoveDocument(RemoveDocumentRequest) returns (RemoveDocumentResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -339,3 +354,48 @@ message GetStatsResponse {
   uint32 withdrawn = 9;
   uint32 adopted = 10;
 }
+
+// --- Documents -------------------------------------------------------
+
+// Document — metadata for a file attached to an application. The file
+// bytes live in object storage (owned by the gateway); this row only
+// references the stored `url`. Mirrors the SPA's Document shape.
+message Document {
+  string document_id = 1;
+  string application_id = 2;
+  string type = 3;
+  string filename = 4;
+  string url = 5;
+  optional uint32 size = 6;
+  optional string mime_type = 7;
+  string uploaded_at = 8;
+}
+
+message AddDocumentRequest {
+  string application_id = 1;
+  string type = 2;
+  string filename = 3;
+  // URL of the already-stored file (the caller owns the upload).
+  string url = 4;
+  optional uint32 size = 5;
+  optional string mime_type = 6;
+}
+
+message AddDocumentResponse {
+  Document document = 1;
+}
+
+message ListDocumentsRequest {
+  string application_id = 1;
+}
+
+message ListDocumentsResponse {
+  repeated Document documents = 1;
+}
+
+message RemoveDocumentRequest {
+  string application_id = 1;
+  string document_id = 2;
+}
+
+message RemoveDocumentResponse {}

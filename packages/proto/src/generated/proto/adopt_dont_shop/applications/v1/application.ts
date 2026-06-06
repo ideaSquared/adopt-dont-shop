@@ -370,6 +370,51 @@ export interface GetStatsResponse {
   adopted: number;
 }
 
+/**
+ * Document — metadata for a file attached to an application. The file
+ * bytes live in object storage (owned by the gateway); this row only
+ * references the stored `url`. Mirrors the SPA's Document shape.
+ */
+export interface Document {
+  documentId: string;
+  applicationId: string;
+  type: string;
+  filename: string;
+  url: string;
+  size?: number | undefined;
+  mimeType?: string | undefined;
+  uploadedAt: string;
+}
+
+export interface AddDocumentRequest {
+  applicationId: string;
+  type: string;
+  filename: string;
+  /** URL of the already-stored file (the caller owns the upload). */
+  url: string;
+  size?: number | undefined;
+  mimeType?: string | undefined;
+}
+
+export interface AddDocumentResponse {
+  document?: Document | undefined;
+}
+
+export interface ListDocumentsRequest {
+  applicationId: string;
+}
+
+export interface ListDocumentsResponse {
+  documents: Document[];
+}
+
+export interface RemoveDocumentRequest {
+  applicationId: string;
+  documentId: string;
+}
+
+export interface RemoveDocumentResponse {}
+
 function createBaseApplication(): Application {
   return {
     applicationId: '',
@@ -3306,6 +3351,684 @@ export const GetStatsResponse: MessageFns<GetStatsResponse> = {
   },
 };
 
+function createBaseDocument(): Document {
+  return {
+    documentId: '',
+    applicationId: '',
+    type: '',
+    filename: '',
+    url: '',
+    size: undefined,
+    mimeType: undefined,
+    uploadedAt: '',
+  };
+}
+
+export const Document: MessageFns<Document> = {
+  encode(message: Document, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.documentId !== '') {
+      writer.uint32(10).string(message.documentId);
+    }
+    if (message.applicationId !== '') {
+      writer.uint32(18).string(message.applicationId);
+    }
+    if (message.type !== '') {
+      writer.uint32(26).string(message.type);
+    }
+    if (message.filename !== '') {
+      writer.uint32(34).string(message.filename);
+    }
+    if (message.url !== '') {
+      writer.uint32(42).string(message.url);
+    }
+    if (message.size !== undefined) {
+      writer.uint32(48).uint32(message.size);
+    }
+    if (message.mimeType !== undefined) {
+      writer.uint32(58).string(message.mimeType);
+    }
+    if (message.uploadedAt !== '') {
+      writer.uint32(66).string(message.uploadedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): Document {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDocument();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.documentId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.type = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.filename = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.url = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.size = reader.uint32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.mimeType = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.uploadedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Document {
+    return {
+      documentId: isSet(object.documentId)
+        ? globalThis.String(object.documentId)
+        : isSet(object.document_id)
+          ? globalThis.String(object.document_id)
+          : '',
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+          ? globalThis.String(object.application_id)
+          : '',
+      type: isSet(object.type) ? globalThis.String(object.type) : '',
+      filename: isSet(object.filename) ? globalThis.String(object.filename) : '',
+      url: isSet(object.url) ? globalThis.String(object.url) : '',
+      size: isSet(object.size) ? globalThis.Number(object.size) : undefined,
+      mimeType: isSet(object.mimeType)
+        ? globalThis.String(object.mimeType)
+        : isSet(object.mime_type)
+          ? globalThis.String(object.mime_type)
+          : undefined,
+      uploadedAt: isSet(object.uploadedAt)
+        ? globalThis.String(object.uploadedAt)
+        : isSet(object.uploaded_at)
+          ? globalThis.String(object.uploaded_at)
+          : '',
+    };
+  },
+
+  toJSON(message: Document): unknown {
+    const obj: any = {};
+    if (message.documentId !== '') {
+      obj.documentId = message.documentId;
+    }
+    if (message.applicationId !== '') {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.type !== '') {
+      obj.type = message.type;
+    }
+    if (message.filename !== '') {
+      obj.filename = message.filename;
+    }
+    if (message.url !== '') {
+      obj.url = message.url;
+    }
+    if (message.size !== undefined) {
+      obj.size = Math.round(message.size);
+    }
+    if (message.mimeType !== undefined) {
+      obj.mimeType = message.mimeType;
+    }
+    if (message.uploadedAt !== '') {
+      obj.uploadedAt = message.uploadedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Document>, I>>(base?: I): Document {
+    return Document.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<Document>, I>>(object: I): Document {
+    const message = createBaseDocument();
+    message.documentId = object.documentId ?? '';
+    message.applicationId = object.applicationId ?? '';
+    message.type = object.type ?? '';
+    message.filename = object.filename ?? '';
+    message.url = object.url ?? '';
+    message.size = object.size ?? undefined;
+    message.mimeType = object.mimeType ?? undefined;
+    message.uploadedAt = object.uploadedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseAddDocumentRequest(): AddDocumentRequest {
+  return {
+    applicationId: '',
+    type: '',
+    filename: '',
+    url: '',
+    size: undefined,
+    mimeType: undefined,
+  };
+}
+
+export const AddDocumentRequest: MessageFns<AddDocumentRequest> = {
+  encode(message: AddDocumentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== '') {
+      writer.uint32(10).string(message.applicationId);
+    }
+    if (message.type !== '') {
+      writer.uint32(18).string(message.type);
+    }
+    if (message.filename !== '') {
+      writer.uint32(26).string(message.filename);
+    }
+    if (message.url !== '') {
+      writer.uint32(34).string(message.url);
+    }
+    if (message.size !== undefined) {
+      writer.uint32(40).uint32(message.size);
+    }
+    if (message.mimeType !== undefined) {
+      writer.uint32(50).string(message.mimeType);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AddDocumentRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAddDocumentRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.type = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.filename = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.url = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.size = reader.uint32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.mimeType = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AddDocumentRequest {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+          ? globalThis.String(object.application_id)
+          : '',
+      type: isSet(object.type) ? globalThis.String(object.type) : '',
+      filename: isSet(object.filename) ? globalThis.String(object.filename) : '',
+      url: isSet(object.url) ? globalThis.String(object.url) : '',
+      size: isSet(object.size) ? globalThis.Number(object.size) : undefined,
+      mimeType: isSet(object.mimeType)
+        ? globalThis.String(object.mimeType)
+        : isSet(object.mime_type)
+          ? globalThis.String(object.mime_type)
+          : undefined,
+    };
+  },
+
+  toJSON(message: AddDocumentRequest): unknown {
+    const obj: any = {};
+    if (message.applicationId !== '') {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.type !== '') {
+      obj.type = message.type;
+    }
+    if (message.filename !== '') {
+      obj.filename = message.filename;
+    }
+    if (message.url !== '') {
+      obj.url = message.url;
+    }
+    if (message.size !== undefined) {
+      obj.size = Math.round(message.size);
+    }
+    if (message.mimeType !== undefined) {
+      obj.mimeType = message.mimeType;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AddDocumentRequest>, I>>(base?: I): AddDocumentRequest {
+    return AddDocumentRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AddDocumentRequest>, I>>(object: I): AddDocumentRequest {
+    const message = createBaseAddDocumentRequest();
+    message.applicationId = object.applicationId ?? '';
+    message.type = object.type ?? '';
+    message.filename = object.filename ?? '';
+    message.url = object.url ?? '';
+    message.size = object.size ?? undefined;
+    message.mimeType = object.mimeType ?? undefined;
+    return message;
+  },
+};
+
+function createBaseAddDocumentResponse(): AddDocumentResponse {
+  return { document: undefined };
+}
+
+export const AddDocumentResponse: MessageFns<AddDocumentResponse> = {
+  encode(message: AddDocumentResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.document !== undefined) {
+      Document.encode(message.document, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AddDocumentResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAddDocumentResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.document = Document.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AddDocumentResponse {
+    return { document: isSet(object.document) ? Document.fromJSON(object.document) : undefined };
+  },
+
+  toJSON(message: AddDocumentResponse): unknown {
+    const obj: any = {};
+    if (message.document !== undefined) {
+      obj.document = Document.toJSON(message.document);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AddDocumentResponse>, I>>(base?: I): AddDocumentResponse {
+    return AddDocumentResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AddDocumentResponse>, I>>(
+    object: I
+  ): AddDocumentResponse {
+    const message = createBaseAddDocumentResponse();
+    message.document =
+      object.document !== undefined && object.document !== null
+        ? Document.fromPartial(object.document)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseListDocumentsRequest(): ListDocumentsRequest {
+  return { applicationId: '' };
+}
+
+export const ListDocumentsRequest: MessageFns<ListDocumentsRequest> = {
+  encode(message: ListDocumentsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== '') {
+      writer.uint32(10).string(message.applicationId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDocumentsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListDocumentsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListDocumentsRequest {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+          ? globalThis.String(object.application_id)
+          : '',
+    };
+  },
+
+  toJSON(message: ListDocumentsRequest): unknown {
+    const obj: any = {};
+    if (message.applicationId !== '') {
+      obj.applicationId = message.applicationId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListDocumentsRequest>, I>>(base?: I): ListDocumentsRequest {
+    return ListDocumentsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListDocumentsRequest>, I>>(
+    object: I
+  ): ListDocumentsRequest {
+    const message = createBaseListDocumentsRequest();
+    message.applicationId = object.applicationId ?? '';
+    return message;
+  },
+};
+
+function createBaseListDocumentsResponse(): ListDocumentsResponse {
+  return { documents: [] };
+}
+
+export const ListDocumentsResponse: MessageFns<ListDocumentsResponse> = {
+  encode(message: ListDocumentsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.documents) {
+      Document.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListDocumentsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListDocumentsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.documents.push(Document.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListDocumentsResponse {
+    return {
+      documents: globalThis.Array.isArray(object?.documents)
+        ? object.documents.map((e: any) => Document.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListDocumentsResponse): unknown {
+    const obj: any = {};
+    if (message.documents?.length) {
+      obj.documents = message.documents.map(e => Document.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListDocumentsResponse>, I>>(base?: I): ListDocumentsResponse {
+    return ListDocumentsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListDocumentsResponse>, I>>(
+    object: I
+  ): ListDocumentsResponse {
+    const message = createBaseListDocumentsResponse();
+    message.documents = object.documents?.map(e => Document.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseRemoveDocumentRequest(): RemoveDocumentRequest {
+  return { applicationId: '', documentId: '' };
+}
+
+export const RemoveDocumentRequest: MessageFns<RemoveDocumentRequest> = {
+  encode(message: RemoveDocumentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.applicationId !== '') {
+      writer.uint32(10).string(message.applicationId);
+    }
+    if (message.documentId !== '') {
+      writer.uint32(18).string(message.documentId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RemoveDocumentRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRemoveDocumentRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.applicationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.documentId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RemoveDocumentRequest {
+    return {
+      applicationId: isSet(object.applicationId)
+        ? globalThis.String(object.applicationId)
+        : isSet(object.application_id)
+          ? globalThis.String(object.application_id)
+          : '',
+      documentId: isSet(object.documentId)
+        ? globalThis.String(object.documentId)
+        : isSet(object.document_id)
+          ? globalThis.String(object.document_id)
+          : '',
+    };
+  },
+
+  toJSON(message: RemoveDocumentRequest): unknown {
+    const obj: any = {};
+    if (message.applicationId !== '') {
+      obj.applicationId = message.applicationId;
+    }
+    if (message.documentId !== '') {
+      obj.documentId = message.documentId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RemoveDocumentRequest>, I>>(base?: I): RemoveDocumentRequest {
+    return RemoveDocumentRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RemoveDocumentRequest>, I>>(
+    object: I
+  ): RemoveDocumentRequest {
+    const message = createBaseRemoveDocumentRequest();
+    message.applicationId = object.applicationId ?? '';
+    message.documentId = object.documentId ?? '';
+    return message;
+  },
+};
+
+function createBaseRemoveDocumentResponse(): RemoveDocumentResponse {
+  return {};
+}
+
+export const RemoveDocumentResponse: MessageFns<RemoveDocumentResponse> = {
+  encode(_: RemoveDocumentResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RemoveDocumentResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRemoveDocumentResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): RemoveDocumentResponse {
+    return {};
+  },
+
+  toJSON(_: RemoveDocumentResponse): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RemoveDocumentResponse>, I>>(
+    base?: I
+  ): RemoveDocumentResponse {
+    return RemoveDocumentResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RemoveDocumentResponse>, I>>(
+    _: I
+  ): RemoveDocumentResponse {
+    const message = createBaseRemoveDocumentResponse();
+    return message;
+  },
+};
+
 /**
  * ApplicationService is the gRPC contract for the applications
  * vertical — the EVENT-SOURCED extraction. Owns the `applications.*`
@@ -3552,6 +4275,57 @@ export const ApplicationServiceService = {
       Buffer.from(GetStatsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetStatsResponse => GetStatsResponse.decode(value),
   },
+  /**
+   * Document metadata — append a row referencing an already-stored
+   * file URL. The gateway owns the multipart upload + object storage;
+   * this surface only persists the METADATA. Caller MUST hold
+   * applications.update for the application's rescue.
+   */
+  addDocument: {
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/AddDocument' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AddDocumentRequest): Buffer =>
+      Buffer.from(AddDocumentRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AddDocumentRequest => AddDocumentRequest.decode(value),
+    responseSerialize: (value: AddDocumentResponse): Buffer =>
+      Buffer.from(AddDocumentResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AddDocumentResponse => AddDocumentResponse.decode(value),
+  },
+  /**
+   * Document metadata — list the non-deleted documents attached to an
+   * application, scoped the same way Get is (adopter-owns OR rescue-
+   * staff-of-the-app's-rescue OR admin).
+   */
+  listDocuments: {
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/ListDocuments' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListDocumentsRequest): Buffer =>
+      Buffer.from(ListDocumentsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListDocumentsRequest => ListDocumentsRequest.decode(value),
+    responseSerialize: (value: ListDocumentsResponse): Buffer =>
+      Buffer.from(ListDocumentsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListDocumentsResponse =>
+      ListDocumentsResponse.decode(value),
+  },
+  /**
+   * Document metadata — soft-delete one document. Caller MUST hold
+   * applications.update for the application's rescue.
+   */
+  removeDocument: {
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/RemoveDocument' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RemoveDocumentRequest): Buffer =>
+      Buffer.from(RemoveDocumentRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RemoveDocumentRequest =>
+      RemoveDocumentRequest.decode(value),
+    responseSerialize: (value: RemoveDocumentResponse): Buffer =>
+      Buffer.from(RemoveDocumentResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RemoveDocumentResponse =>
+      RemoveDocumentResponse.decode(value),
+  },
 } as const;
 
 export interface ApplicationServiceServer extends UntypedServiceImplementation {
@@ -3637,6 +4411,24 @@ export interface ApplicationServiceServer extends UntypedServiceImplementation {
    * counts — the gateway collapses them to the SPA's 4-state shape.
    */
   getStats: handleUnaryCall<GetStatsRequest, GetStatsResponse>;
+  /**
+   * Document metadata — append a row referencing an already-stored
+   * file URL. The gateway owns the multipart upload + object storage;
+   * this surface only persists the METADATA. Caller MUST hold
+   * applications.update for the application's rescue.
+   */
+  addDocument: handleUnaryCall<AddDocumentRequest, AddDocumentResponse>;
+  /**
+   * Document metadata — list the non-deleted documents attached to an
+   * application, scoped the same way Get is (adopter-owns OR rescue-
+   * staff-of-the-app's-rescue OR admin).
+   */
+  listDocuments: handleUnaryCall<ListDocumentsRequest, ListDocumentsResponse>;
+  /**
+   * Document metadata — soft-delete one document. Caller MUST hold
+   * applications.update for the application's rescue.
+   */
+  removeDocument: handleUnaryCall<RemoveDocumentRequest, RemoveDocumentResponse>;
 }
 
 export interface ApplicationServiceClient extends Client {
@@ -3903,6 +4695,66 @@ export interface ApplicationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetStatsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Document metadata — append a row referencing an already-stored
+   * file URL. The gateway owns the multipart upload + object storage;
+   * this surface only persists the METADATA. Caller MUST hold
+   * applications.update for the application's rescue.
+   */
+  addDocument(
+    request: AddDocumentRequest,
+    callback: (error: ServiceError | null, response: AddDocumentResponse) => void
+  ): ClientUnaryCall;
+  addDocument(
+    request: AddDocumentRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AddDocumentResponse) => void
+  ): ClientUnaryCall;
+  addDocument(
+    request: AddDocumentRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AddDocumentResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Document metadata — list the non-deleted documents attached to an
+   * application, scoped the same way Get is (adopter-owns OR rescue-
+   * staff-of-the-app's-rescue OR admin).
+   */
+  listDocuments(
+    request: ListDocumentsRequest,
+    callback: (error: ServiceError | null, response: ListDocumentsResponse) => void
+  ): ClientUnaryCall;
+  listDocuments(
+    request: ListDocumentsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListDocumentsResponse) => void
+  ): ClientUnaryCall;
+  listDocuments(
+    request: ListDocumentsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListDocumentsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Document metadata — soft-delete one document. Caller MUST hold
+   * applications.update for the application's rescue.
+   */
+  removeDocument(
+    request: RemoveDocumentRequest,
+    callback: (error: ServiceError | null, response: RemoveDocumentResponse) => void
+  ): ClientUnaryCall;
+  removeDocument(
+    request: RemoveDocumentRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RemoveDocumentResponse) => void
+  ): ClientUnaryCall;
+  removeDocument(
+    request: RemoveDocumentRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RemoveDocumentResponse) => void
   ): ClientUnaryCall;
 }
 
