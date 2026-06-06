@@ -316,6 +316,21 @@ npm run validate:env
 
 ### CI/CD Integration
 
+#### GitHub Actions repository secrets
+
+The deploy and rollback workflows require the following secret stored under **Settings → Secrets and variables → Actions**:
+
+| Secret | Required scope | Purpose |
+|--------|----------------|---------|
+| `GHCR_TOKEN` | `read:packages` **only** | `docker pull` images from GHCR on the deploy server |
+
+`GHCR_TOKEN` must be a Personal Access Token (classic or fine-grained) with **only** `read:packages` permission. Never grant `write:packages` or `repo` scope — a compromised token with those scopes would allow an attacker to push malicious container images or read/modify source code (supply-chain attack). See [ADS-671](https://linear.app/ideasquared/issue/ADS-671).
+
+To rotate this token:
+1. Create a new PAT at **GitHub → Settings → Developer settings → Personal access tokens** with `read:packages` only.
+2. Update the `GHCR_TOKEN` repository secret under **Settings → Secrets and variables → Actions**.
+3. Trigger a staging deploy or rollback to verify the new token works.
+
 **GitHub Actions:**
 
 ```yaml

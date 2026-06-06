@@ -29,7 +29,9 @@ jobs:
     environment: ${{ github.event.inputs.environment }}
     steps:
       # ADS-670: pin SSH host fingerprint to prevent MitM.
-      # ADS-671: GHCR_TOKEN and SHA passed via envs (not interpolated into script).
+      # ADS-671: GHCR_TOKEN must be scoped `read:packages` only — it is used
+      # exclusively for `docker pull` during rollback. Passed via envs (not
+      # interpolated into script) to prevent token exposure in process listings.
       # SHA is validated server-side to prevent shell injection.
       - name: Rollback on server
         env:
