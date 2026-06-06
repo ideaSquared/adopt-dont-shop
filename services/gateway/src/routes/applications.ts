@@ -1,4 +1,4 @@
-// REST → gRPC translation for /api/applications/*.
+// REST → gRPC translation for /api/v1/applications/*.
 //
 // Phase 5.3d cutover. Same strangler-fig shape as routes/moderation.ts
 // (#929) / routes/matching.ts (#923) — registers BEFORE the catch-all
@@ -7,20 +7,20 @@
 // Route map (all 12 ApplicationService RPCs):
 //
 //   Drafts
-//   POST   /api/applications                              → StartDraft
-//   PATCH  /api/applications/:id/answers                  → SaveDraftAnswers
-//   POST   /api/applications/:id/submit                   → SubmitDraft
+//   POST   /api/v1/applications                              → StartDraft
+//   PATCH  /api/v1/applications/:id/answers                  → SaveDraftAnswers
+//   POST   /api/v1/applications/:id/submit                   → SubmitDraft
 //   Review / home visit / decision
-//   POST   /api/applications/:id/review                   → StartReview
-//   POST   /api/applications/:id/home-visit/schedule      → ScheduleHomeVisit
-//   POST   /api/applications/:id/home-visit/complete      → CompleteHomeVisit
-//   POST   /api/applications/:id/approve                  → Approve
-//   POST   /api/applications/:id/reject                   → Reject
-//   POST   /api/applications/:id/withdraw                 → Withdraw
-//   POST   /api/applications/:id/adopt                    → MarkAdopted
+//   POST   /api/v1/applications/:id/review                   → StartReview
+//   POST   /api/v1/applications/:id/home-visit/schedule      → ScheduleHomeVisit
+//   POST   /api/v1/applications/:id/home-visit/complete      → CompleteHomeVisit
+//   POST   /api/v1/applications/:id/approve                  → Approve
+//   POST   /api/v1/applications/:id/reject                   → Reject
+//   POST   /api/v1/applications/:id/withdraw                 → Withdraw
+//   POST   /api/v1/applications/:id/adopt                    → MarkAdopted
 //   Reads
-//   GET    /api/applications                              → List
-//   GET    /api/applications/:id                          → Get
+//   GET    /api/v1/applications                              → List
+//   GET    /api/v1/applications/:id                          → Get
 //
 // Authz lives in the handlers (adopters act on their own drafts; rescue
 // staff gate on applications.review/approve/reject; reads scope to
@@ -82,7 +82,7 @@ export const registerApplicationsRoutes = async (
 
   // ---------- Drafts ----------
 
-  app.post('/api/applications', { config: { rateLimit: RL_WRITE } }, async (req, reply) => {
+  app.post('/api/v1/applications', { config: { rateLimit: RL_WRITE } }, async (req, reply) => {
     const b = (req.body ?? {}) as Record<string, unknown>;
     try {
       const res = await client.startDraft(
@@ -96,7 +96,7 @@ export const registerApplicationsRoutes = async (
   });
 
   app.patch<{ Params: { id: string } }>(
-    '/api/applications/:id/answers',
+    '/api/v1/applications/:id/answers',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -116,7 +116,7 @@ export const registerApplicationsRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/applications/:id/submit',
+    '/api/v1/applications/:id/submit',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -136,7 +136,7 @@ export const registerApplicationsRoutes = async (
   // ---------- Review / home visit / decision ----------
 
   app.post<{ Params: { id: string } }>(
-    '/api/applications/:id/review',
+    '/api/v1/applications/:id/review',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -154,7 +154,7 @@ export const registerApplicationsRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/applications/:id/home-visit/schedule',
+    '/api/v1/applications/:id/home-visit/schedule',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -173,7 +173,7 @@ export const registerApplicationsRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/applications/:id/home-visit/complete',
+    '/api/v1/applications/:id/home-visit/complete',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -192,7 +192,7 @@ export const registerApplicationsRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/applications/:id/approve',
+    '/api/v1/applications/:id/approve',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -210,7 +210,7 @@ export const registerApplicationsRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/applications/:id/reject',
+    '/api/v1/applications/:id/reject',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -228,7 +228,7 @@ export const registerApplicationsRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/applications/:id/withdraw',
+    '/api/v1/applications/:id/withdraw',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -246,7 +246,7 @@ export const registerApplicationsRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/applications/:id/adopt',
+    '/api/v1/applications/:id/adopt',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       try {
@@ -260,7 +260,7 @@ export const registerApplicationsRoutes = async (
 
   // ---------- Reads ----------
 
-  app.get('/api/applications', { config: { rateLimit: RL_READ } }, async (req, reply) => {
+  app.get('/api/v1/applications', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const grpcReq: ListApplicationsRequest = {
       cursor: q.cursor,
@@ -278,7 +278,7 @@ export const registerApplicationsRoutes = async (
   });
 
   app.get<{ Params: { id: string } }>(
-    '/api/applications/:id',
+    '/api/v1/applications/:id',
     { config: { rateLimit: RL_READ } },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;

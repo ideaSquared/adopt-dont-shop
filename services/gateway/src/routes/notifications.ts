@@ -1,8 +1,8 @@
-// REST → gRPC translation for /api/notifications/*.
+// REST → gRPC translation for /api/v1/notifications/*.
 //
 // Phase 1.6 cutover: this Fastify plugin registers BEFORE the
 // strangler-fig http-proxy catch-all, so Fastify's first-registered-
-// wins prefix routing picks it for /api/notifications/* requests
+// wins prefix routing picks it for /api/v1/notifications/* requests
 // before the catch-all sees them. Every other /api/* path still hits
 // the monolith.
 //
@@ -50,7 +50,7 @@ export const registerNotificationsRoutes = async (
 ): Promise<void> => {
   const { client } = opts;
 
-  app.get('/api/notifications', async (req, reply) => {
+  app.get('/api/v1/notifications', async (req, reply) => {
     const metadata = buildMetadata(req);
     const query = req.query as Record<string, string | undefined>;
 
@@ -72,7 +72,7 @@ export const registerNotificationsRoutes = async (
     }
   });
 
-  app.post('/api/notifications', async (req, reply) => {
+  app.post('/api/v1/notifications', async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as Partial<CreateNotificationRequest>;
 
@@ -106,7 +106,7 @@ export const registerNotificationsRoutes = async (
     }
   });
 
-  app.delete<{ Params: { id: string } }>('/api/notifications/:id', async (req, reply) => {
+  app.delete<{ Params: { id: string } }>('/api/v1/notifications/:id', async (req, reply) => {
     const metadata = buildMetadata(req);
     const grpcReq: DismissNotificationRequest = { notificationId: req.params.id };
 

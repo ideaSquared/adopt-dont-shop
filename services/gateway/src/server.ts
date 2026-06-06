@@ -125,35 +125,41 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     await registerAuthenticate(server, { authClient: opts.authClient, logger });
   }
 
-  // Service-specific routes register BEFORE the catch-all proxy.
-  // Fastify's first-registered-wins prefix routing picks them off
-  // before the catch-all sees the request.
+  // Service-specific routes register at /api/v1/<domain> BEFORE the
+  // catch-all proxy — Fastify's first-registered-wins prefix routing
+  // picks them off before the catch-all sees the request.
   //
-  // Phase 2.6: /api/auth/* now lands here instead of the monolith.
-  // The authClient is re-used from the authenticate middleware so
-  // we don't open a second gRPC channel for the same upstream.
-  if (opts.authClient) {
+  // Each domain registers ONLY when (a) its gRPC client is wired and
+  // (b) its per-domain cutover flag is on. The flag defaults off, so by
+  // default these routes are NOT registered and /api/v1/* falls through
+  // to the residual monolith — preserving today's behaviour. A domain
+  // goes live only once its routes return a frontend-compatible shape
+  // (ADR 0002). NOTE: the authenticate middleware above is independent
+  // of cutover.auth and always runs; only the /api/v1/auth/* ROUTES are
+  // gated here.
+  const { cutover } = config;
+  if (opts.authClient && cutover.auth) {
     await registerAuthRoutes(server, { client: opts.authClient });
   }
-  if (opts.notificationsClient) {
+  if (opts.notificationsClient && cutover.notifications) {
     await registerNotificationsRoutes(server, { client: opts.notificationsClient });
   }
-  if (opts.petsClient) {
+  if (opts.petsClient && cutover.pets) {
     await registerPetsRoutes(server, { client: opts.petsClient });
   }
-  if (opts.rescueClient) {
+  if (opts.rescueClient && cutover.rescue) {
     await registerRescueRoutes(server, { client: opts.rescueClient });
   }
-  if (opts.auditClient) {
+  if (opts.auditClient && cutover.audit) {
     await registerAuditRoutes(server, { client: opts.auditClient });
   }
-  if (opts.matchingClient) {
+  if (opts.matchingClient && cutover.matching) {
     await registerMatchingRoutes(server, { client: opts.matchingClient });
   }
-  if (opts.moderationClient) {
+  if (opts.moderationClient && cutover.moderation) {
     await registerModerationRoutes(server, { client: opts.moderationClient });
   }
-  if (opts.applicationsClient) {
+  if (opts.applicationsClient && cutover.applications) {
     await registerApplicationsRoutes(server, { client: opts.applicationsClient });
   }
 

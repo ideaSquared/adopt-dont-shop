@@ -1,4 +1,4 @@
-// REST → gRPC translation for /api/moderation/*.
+// REST → gRPC translation for /api/v1/moderation/*.
 //
 // Phase 8.5 cutover. Same strangler-fig shape as routes/audit.ts
 // (#917) / routes/matching.ts (#923) — registers BEFORE the catch-all
@@ -7,25 +7,25 @@
 // Route map (all 15 ModerationService RPCs):
 //
 //   Reports
-//   POST   /api/moderation/reports                       → FileReport
-//   GET    /api/moderation/reports                       → ListReports
-//   GET    /api/moderation/reports/:id                   → GetReport
-//   POST   /api/moderation/reports/:id/assign            → AssignReport
-//   POST   /api/moderation/reports/:id/resolve           → ResolveReport
+//   POST   /api/v1/moderation/reports                       → FileReport
+//   GET    /api/v1/moderation/reports                       → ListReports
+//   GET    /api/v1/moderation/reports/:id                   → GetReport
+//   POST   /api/v1/moderation/reports/:id/assign            → AssignReport
+//   POST   /api/v1/moderation/reports/:id/resolve           → ResolveReport
 //   Moderator actions
-//   POST   /api/moderation/actions                       → LogModeratorAction
-//   GET    /api/moderation/actions                       → ListModeratorActions
+//   POST   /api/v1/moderation/actions                       → LogModeratorAction
+//   GET    /api/v1/moderation/actions                       → ListModeratorActions
 //   Evidence
-//   POST   /api/moderation/evidence                      → AddEvidence
+//   POST   /api/v1/moderation/evidence                      → AddEvidence
 //   Sanctions
-//   POST   /api/moderation/sanctions                     → IssueSanction
-//   GET    /api/moderation/users/:userId/sanctions       → ListUserSanctions
-//   POST   /api/moderation/sanctions/:id/appeal          → AppealSanction
+//   POST   /api/v1/moderation/sanctions                     → IssueSanction
+//   GET    /api/v1/moderation/users/:userId/sanctions       → ListUserSanctions
+//   POST   /api/v1/moderation/sanctions/:id/appeal          → AppealSanction
 //   Support tickets
-//   POST   /api/moderation/tickets                       → OpenSupportTicket
-//   GET    /api/moderation/tickets                       → ListSupportTickets
-//   GET    /api/moderation/tickets/:id                   → GetSupportTicket
-//   POST   /api/moderation/tickets/:id/responses         → RespondToTicket
+//   POST   /api/v1/moderation/tickets                       → OpenSupportTicket
+//   GET    /api/v1/moderation/tickets                       → ListSupportTickets
+//   GET    /api/v1/moderation/tickets/:id                   → GetSupportTicket
+//   POST   /api/v1/moderation/tickets/:id/responses         → RespondToTicket
 //
 // Authz lives in the handlers (most gate on admin.dashboard;
 // FileReport + OpenSupportTicket are open to any authenticated user;
@@ -82,27 +82,31 @@ export const registerModerationRoutes = async (
 
   // ---------- Reports ----------
 
-  app.post('/api/moderation/reports', { config: { rateLimit: RL_WRITE } }, async (req, reply) => {
-    const b = (req.body ?? {}) as Record<string, unknown>;
-    const grpcReq: FileReportRequest = {
-      reportedEntityType: parseEntityType(b.reportedEntityType as string | undefined),
-      reportedEntityId: (b.reportedEntityId as string) ?? '',
-      reportedUserId: b.reportedUserId as string | undefined,
-      category: parseCategory(b.category as string | undefined),
-      severity: parseSeverity(b.severity as string | undefined),
-      title: (b.title as string) ?? '',
-      description: (b.description as string) ?? '',
-      metadataJson: b.metadataJson as string | undefined,
-    };
-    try {
-      const res = await client.fileReport(grpcReq, buildMetadata(req));
-      return reply.code(201).send(ModerationV1.FileReportResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.post(
+    '/api/v1/moderation/reports',
+    { config: { rateLimit: RL_WRITE } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: FileReportRequest = {
+        reportedEntityType: parseEntityType(b.reportedEntityType as string | undefined),
+        reportedEntityId: (b.reportedEntityId as string) ?? '',
+        reportedUserId: b.reportedUserId as string | undefined,
+        category: parseCategory(b.category as string | undefined),
+        severity: parseSeverity(b.severity as string | undefined),
+        title: (b.title as string) ?? '',
+        description: (b.description as string) ?? '',
+        metadataJson: b.metadataJson as string | undefined,
+      };
+      try {
+        const res = await client.fileReport(grpcReq, buildMetadata(req));
+        return reply.code(201).send(ModerationV1.FileReportResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
-  app.get('/api/moderation/reports', { config: { rateLimit: RL_READ } }, async (req, reply) => {
+  app.get('/api/v1/moderation/reports', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const grpcReq: ListReportsRequest = {
       cursor: q.cursor,
@@ -121,7 +125,7 @@ export const registerModerationRoutes = async (
   });
 
   app.get<{ Params: { id: string } }>(
-    '/api/moderation/reports/:id',
+    '/api/v1/moderation/reports/:id',
     { config: { rateLimit: RL_READ } },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
@@ -138,7 +142,7 @@ export const registerModerationRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/moderation/reports/:id/assign',
+    '/api/v1/moderation/reports/:id/assign',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -157,7 +161,7 @@ export const registerModerationRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/moderation/reports/:id/resolve',
+    '/api/v1/moderation/reports/:id/resolve',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -177,29 +181,33 @@ export const registerModerationRoutes = async (
 
   // ---------- Moderator actions ----------
 
-  app.post('/api/moderation/actions', { config: { rateLimit: RL_WRITE } }, async (req, reply) => {
-    const b = (req.body ?? {}) as Record<string, unknown>;
-    const grpcReq: LogModeratorActionRequest = {
-      reportId: b.reportId as string | undefined,
-      targetEntityType: parseEntityType(b.targetEntityType as string | undefined),
-      targetEntityId: (b.targetEntityId as string) ?? '',
-      targetUserId: b.targetUserId as string | undefined,
-      actionType: parseActionType(b.actionType as string | undefined),
-      severity: parseSeverity(b.severity as string | undefined),
-      reason: (b.reason as string) ?? '',
-      description: b.description as string | undefined,
-      metadataJson: b.metadataJson as string | undefined,
-      duration: b.duration as number | undefined,
-    };
-    try {
-      const res = await client.logModeratorAction(grpcReq, buildMetadata(req));
-      return reply.code(201).send(ModerationV1.LogModeratorActionResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.post(
+    '/api/v1/moderation/actions',
+    { config: { rateLimit: RL_WRITE } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: LogModeratorActionRequest = {
+        reportId: b.reportId as string | undefined,
+        targetEntityType: parseEntityType(b.targetEntityType as string | undefined),
+        targetEntityId: (b.targetEntityId as string) ?? '',
+        targetUserId: b.targetUserId as string | undefined,
+        actionType: parseActionType(b.actionType as string | undefined),
+        severity: parseSeverity(b.severity as string | undefined),
+        reason: (b.reason as string) ?? '',
+        description: b.description as string | undefined,
+        metadataJson: b.metadataJson as string | undefined,
+        duration: b.duration as number | undefined,
+      };
+      try {
+        const res = await client.logModeratorAction(grpcReq, buildMetadata(req));
+        return reply.code(201).send(ModerationV1.LogModeratorActionResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
-  app.get('/api/moderation/actions', { config: { rateLimit: RL_READ } }, async (req, reply) => {
+  app.get('/api/v1/moderation/actions', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const grpcReq: ListModeratorActionsRequest = {
       cursor: q.cursor,
@@ -218,46 +226,54 @@ export const registerModerationRoutes = async (
 
   // ---------- Evidence ----------
 
-  app.post('/api/moderation/evidence', { config: { rateLimit: RL_WRITE } }, async (req, reply) => {
-    const b = (req.body ?? {}) as Record<string, unknown>;
-    const grpcReq: AddEvidenceRequest = {
-      parentType: parseEvidenceParentType(b.parentType as string | undefined),
-      parentId: (b.parentId as string) ?? '',
-      type: parseEvidenceType(b.type as string | undefined),
-      content: (b.content as string) ?? '',
-      description: b.description as string | undefined,
-    };
-    try {
-      const res = await client.addEvidence(grpcReq, buildMetadata(req));
-      return reply.code(201).send(ModerationV1.AddEvidenceResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.post(
+    '/api/v1/moderation/evidence',
+    { config: { rateLimit: RL_WRITE } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: AddEvidenceRequest = {
+        parentType: parseEvidenceParentType(b.parentType as string | undefined),
+        parentId: (b.parentId as string) ?? '',
+        type: parseEvidenceType(b.type as string | undefined),
+        content: (b.content as string) ?? '',
+        description: b.description as string | undefined,
+      };
+      try {
+        const res = await client.addEvidence(grpcReq, buildMetadata(req));
+        return reply.code(201).send(ModerationV1.AddEvidenceResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // ---------- Sanctions ----------
 
-  app.post('/api/moderation/sanctions', { config: { rateLimit: RL_WRITE } }, async (req, reply) => {
-    const b = (req.body ?? {}) as Record<string, unknown>;
-    const grpcReq: IssueSanctionRequest = {
-      userId: (b.userId as string) ?? '',
-      sanctionType: parseSanctionType(b.sanctionType as string | undefined),
-      reason: parseSanctionReason(b.reason as string | undefined),
-      description: (b.description as string) ?? '',
-      duration: b.duration as number | undefined,
-      reportId: b.reportId as string | undefined,
-      moderatorActionId: b.moderatorActionId as string | undefined,
-    };
-    try {
-      const res = await client.issueSanction(grpcReq, buildMetadata(req));
-      return reply.code(201).send(ModerationV1.IssueSanctionResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.post(
+    '/api/v1/moderation/sanctions',
+    { config: { rateLimit: RL_WRITE } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: IssueSanctionRequest = {
+        userId: (b.userId as string) ?? '',
+        sanctionType: parseSanctionType(b.sanctionType as string | undefined),
+        reason: parseSanctionReason(b.reason as string | undefined),
+        description: (b.description as string) ?? '',
+        duration: b.duration as number | undefined,
+        reportId: b.reportId as string | undefined,
+        moderatorActionId: b.moderatorActionId as string | undefined,
+      };
+      try {
+        const res = await client.issueSanction(grpcReq, buildMetadata(req));
+        return reply.code(201).send(ModerationV1.IssueSanctionResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   app.get<{ Params: { userId: string } }>(
-    '/api/moderation/users/:userId/sanctions',
+    '/api/v1/moderation/users/:userId/sanctions',
     { config: { rateLimit: RL_READ } },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
@@ -274,7 +290,7 @@ export const registerModerationRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/moderation/sanctions/:id/appeal',
+    '/api/v1/moderation/sanctions/:id/appeal',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -293,27 +309,31 @@ export const registerModerationRoutes = async (
 
   // ---------- Support tickets ----------
 
-  app.post('/api/moderation/tickets', { config: { rateLimit: RL_WRITE } }, async (req, reply) => {
-    const b = (req.body ?? {}) as Record<string, unknown>;
-    const grpcReq: OpenSupportTicketRequest = {
-      userId: b.userId as string | undefined,
-      userEmail: (b.userEmail as string) ?? '',
-      userName: b.userName as string | undefined,
-      priority: parseTicketPriority(b.priority as string | undefined),
-      category: parseTicketCategory(b.category as string | undefined),
-      subject: (b.subject as string) ?? '',
-      description: (b.description as string) ?? '',
-      tags: (b.tags as string[]) ?? [],
-    };
-    try {
-      const res = await client.openSupportTicket(grpcReq, buildMetadata(req));
-      return reply.code(201).send(ModerationV1.OpenSupportTicketResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.post(
+    '/api/v1/moderation/tickets',
+    { config: { rateLimit: RL_WRITE } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: OpenSupportTicketRequest = {
+        userId: b.userId as string | undefined,
+        userEmail: (b.userEmail as string) ?? '',
+        userName: b.userName as string | undefined,
+        priority: parseTicketPriority(b.priority as string | undefined),
+        category: parseTicketCategory(b.category as string | undefined),
+        subject: (b.subject as string) ?? '',
+        description: (b.description as string) ?? '',
+        tags: (b.tags as string[]) ?? [],
+      };
+      try {
+        const res = await client.openSupportTicket(grpcReq, buildMetadata(req));
+        return reply.code(201).send(ModerationV1.OpenSupportTicketResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
-  app.get('/api/moderation/tickets', { config: { rateLimit: RL_READ } }, async (req, reply) => {
+  app.get('/api/v1/moderation/tickets', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const grpcReq: ListSupportTicketsRequest = {
       cursor: q.cursor,
@@ -333,7 +353,7 @@ export const registerModerationRoutes = async (
   });
 
   app.get<{ Params: { id: string } }>(
-    '/api/moderation/tickets/:id',
+    '/api/v1/moderation/tickets/:id',
     { config: { rateLimit: RL_READ } },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
@@ -350,7 +370,7 @@ export const registerModerationRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/moderation/tickets/:id/responses',
+    '/api/v1/moderation/tickets/:id/responses',
     { config: { rateLimit: RL_WRITE } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;

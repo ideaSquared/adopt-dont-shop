@@ -1,16 +1,16 @@
-// REST → gRPC translation for /api/audit/*.
+// REST → gRPC translation for /api/v1/audit/*.
 //
 // Phase 10.5 cutover. Same shape as routes/rescue.ts /
 // routes/pets.ts / routes/auth.ts — Fastify plugin registers
 // BEFORE the strangler-fig http-proxy catch-all, so first-
-// registered-wins prefix routing picks it for /api/audit/*
+// registered-wins prefix routing picks it for /api/v1/audit/*
 // requests before the catch-all sees them.
 //
-// Route map (mirrors monolith /api/audit-logs but folds the
-// per-target query under /api/audit/targets/:type/:id):
+// Route map (mirrors monolith /api/v1/audit-logs but folds the
+// per-target query under /api/v1/audit/targets/:type/:id):
 //
-//   GET /api/audit                                 → AuditQueryService.Query
-//   GET /api/audit/targets/:type/:id               → AuditQueryService.GetByTarget
+//   GET /api/v1/audit                                 → AuditQueryService.Query
+//   GET /api/v1/audit/targets/:type/:id               → AuditQueryService.GetByTarget
 //
 // Both gated on admin.audit_logs at the handler (#915) — the
 // gateway re-rate-limits but trusts the handler's authz check
@@ -58,28 +58,32 @@ export const registerAuditRoutes = async (
 
   await app.register(rateLimit, { global: false });
 
-  app.get('/api/audit', { config: { rateLimit: AUDIT_RATE_LIMITS.query } }, async (req, reply) => {
-    const query = req.query as Record<string, string | undefined>;
-    const grpcReq: AuditQueryRequest = {
-      cursor: query.cursor,
-      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
-      service: query.service,
-      subject: query.subject,
-      actorUserId: query.actor_user_id,
-      outcome: parseOutcome(query.outcome),
-      occurredAtFrom: query.from,
-      occurredAtTo: query.to,
-    };
-    try {
-      const res = await client.query(grpcReq, buildMetadata(req));
-      return reply.send(AuditV1.QueryResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.get(
+    '/api/v1/audit',
+    { config: { rateLimit: AUDIT_RATE_LIMITS.query } },
+    async (req, reply) => {
+      const query = req.query as Record<string, string | undefined>;
+      const grpcReq: AuditQueryRequest = {
+        cursor: query.cursor,
+        limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+        service: query.service,
+        subject: query.subject,
+        actorUserId: query.actor_user_id,
+        outcome: parseOutcome(query.outcome),
+        occurredAtFrom: query.from,
+        occurredAtTo: query.to,
+      };
+      try {
+        const res = await client.query(grpcReq, buildMetadata(req));
+        return reply.send(AuditV1.QueryResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   app.get<{ Params: { type: string; id: string } }>(
-    '/api/audit/targets/:type/:id',
+    '/api/v1/audit/targets/:type/:id',
     { config: { rateLimit: AUDIT_RATE_LIMITS.getByTarget } },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;

@@ -53,7 +53,7 @@ const ADMIN_HEADERS = {
   'x-user-permissions': 'admin.audit_logs',
 };
 
-describe('GET /api/audit', () => {
+describe('GET /api/v1/audit', () => {
   let app: FastifyInstance;
   let queryMock: ReturnType<typeof vi.fn>;
 
@@ -73,7 +73,7 @@ describe('GET /api/audit', () => {
 
     const httpRes = await app.inject({
       method: 'GET',
-      url: '/api/audit?service=service.auth&subject=auth.userLoggedIn&actor_user_id=usr-1&outcome=denied&from=2026-06-01&to=2026-06-02&limit=25&cursor=abc',
+      url: '/api/v1/audit?service=service.auth&subject=auth.userLoggedIn&actor_user_id=usr-1&outcome=denied&from=2026-06-01&to=2026-06-02&limit=25&cursor=abc',
       headers: ADMIN_HEADERS,
     });
 
@@ -97,7 +97,7 @@ describe('GET /api/audit', () => {
 
     await app.inject({
       method: 'GET',
-      url: '/api/audit',
+      url: '/api/v1/audit',
       headers: ADMIN_HEADERS,
     });
 
@@ -112,7 +112,7 @@ describe('GET /api/audit', () => {
 
     await app.inject({
       method: 'GET',
-      url: '/api/audit?outcome=AUDIT_OUTCOME_FAILURE',
+      url: '/api/v1/audit?outcome=AUDIT_OUTCOME_FAILURE',
       headers: ADMIN_HEADERS,
     });
 
@@ -126,7 +126,7 @@ describe('GET /api/audit', () => {
 
     await app.inject({
       method: 'GET',
-      url: '/api/audit?outcome=partial',
+      url: '/api/v1/audit?outcome=partial',
       headers: ADMIN_HEADERS,
     });
 
@@ -145,7 +145,7 @@ describe('GET /api/audit', () => {
 
     const httpRes = await app.inject({
       method: 'GET',
-      url: '/api/audit',
+      url: '/api/v1/audit',
       headers: ADMIN_HEADERS,
     });
 
@@ -154,7 +154,7 @@ describe('GET /api/audit', () => {
   });
 });
 
-describe('GET /api/audit/targets/:type/:id', () => {
+describe('GET /api/v1/audit/targets/:type/:id', () => {
   let app: FastifyInstance;
   let getByTargetMock: ReturnType<typeof vi.fn>;
 
@@ -174,7 +174,7 @@ describe('GET /api/audit/targets/:type/:id', () => {
 
     const httpRes = await app.inject({
       method: 'GET',
-      url: '/api/audit/targets/application/app-1',
+      url: '/api/v1/audit/targets/application/app-1',
       headers: ADMIN_HEADERS,
     });
 
@@ -190,7 +190,7 @@ describe('GET /api/audit/targets/:type/:id', () => {
 
     await app.inject({
       method: 'GET',
-      url: '/api/audit/targets/pet/pet-1?limit=10&cursor=xyz',
+      url: '/api/v1/audit/targets/pet/pet-1?limit=10&cursor=xyz',
       headers: ADMIN_HEADERS,
     });
 

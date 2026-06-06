@@ -82,7 +82,7 @@ const PET_FIXTURE: Pet = {
   updatedAt: '2026-06-01T00:00:00Z',
 };
 
-describe('GET /api/pets', () => {
+describe('GET /api/v1/pets', () => {
   let app: FastifyInstance;
   let listMock: ReturnType<typeof vi.fn>;
 
@@ -102,7 +102,7 @@ describe('GET /api/pets', () => {
 
     const res = await app.inject({
       method: 'GET',
-      url: '/api/pets?status=available&type=dog&size=large&limit=10&rescueId=rsc-1',
+      url: '/api/v1/pets?status=available&type=dog&size=large&limit=10&rescueId=rsc-1',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
 
@@ -122,7 +122,7 @@ describe('GET /api/pets', () => {
 
   it('coerces an unknown status to UNSPECIFIED (service returns 400)', async () => {
     listMock.mockResolvedValueOnce({ pets: [] });
-    await app.inject({ method: 'GET', url: '/api/pets?status=not_a_status' });
+    await app.inject({ method: 'GET', url: '/api/v1/pets?status=not_a_status' });
     const [req] = listMock.mock.calls[0];
     expect(req.statusFilter).toBe(PetsV1.PetStatus.PET_STATUS_UNSPECIFIED);
   });
@@ -134,12 +134,12 @@ describe('GET /api/pets', () => {
         details: 'bad limit',
       })
     );
-    const res = await app.inject({ method: 'GET', url: '/api/pets?limit=200' });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/pets?limit=200' });
     expect(res.statusCode).toBe(400);
   });
 });
 
-describe('GET /api/pets/:id', () => {
+describe('GET /api/v1/pets/:id', () => {
   it('forwards the path param + x-user-* metadata and returns the pet', async () => {
     const { client, getMock } = makeClient();
     const app = await makeApp(client);
@@ -148,7 +148,7 @@ describe('GET /api/pets/:id', () => {
       getMock.mockResolvedValueOnce(getRes);
       const res = await app.inject({
         method: 'GET',
-        url: '/api/pets/pet-1',
+        url: '/api/v1/pets/pet-1',
         headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
       });
       expect(res.statusCode).toBe(200);
@@ -172,7 +172,7 @@ describe('GET /api/pets/:id', () => {
           details: 'pet ghost not found',
         })
       );
-      const res = await app.inject({ method: 'GET', url: '/api/pets/ghost' });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/pets/ghost' });
       expect(res.statusCode).toBe(404);
     } finally {
       await app.close();
@@ -180,7 +180,7 @@ describe('GET /api/pets/:id', () => {
   });
 });
 
-describe('POST /api/pets', () => {
+describe('POST /api/v1/pets', () => {
   it('returns 201 on success and threads body fields into the gRPC request', async () => {
     const { client, createMock } = makeClient();
     const app = await makeApp(client);
@@ -190,7 +190,7 @@ describe('POST /api/pets', () => {
 
       const res = await app.inject({
         method: 'POST',
-        url: '/api/pets',
+        url: '/api/v1/pets',
         headers: { 'x-user-id': 'usr-staff', 'x-user-roles': 'rescue_staff' },
         payload: {
           name: 'Rex',
@@ -229,7 +229,7 @@ describe('POST /api/pets', () => {
       );
       const res = await app.inject({
         method: 'POST',
-        url: '/api/pets',
+        url: '/api/v1/pets',
         payload: { name: 'Rex', rescueId: 'rsc-other' },
       });
       expect(res.statusCode).toBe(403);
@@ -239,7 +239,7 @@ describe('POST /api/pets', () => {
   });
 });
 
-describe('PATCH /api/pets/:id', () => {
+describe('PATCH /api/v1/pets/:id', () => {
   it('threads the path param + body fields', async () => {
     const { client, updateMock } = makeClient();
     const app = await makeApp(client);
@@ -248,7 +248,7 @@ describe('PATCH /api/pets/:id', () => {
       updateMock.mockResolvedValueOnce(updateRes);
       const res = await app.inject({
         method: 'PATCH',
-        url: '/api/pets/pet-1',
+        url: '/api/v1/pets/pet-1',
         payload: { name: 'Rexy' },
       });
       expect(res.statusCode).toBe(200);
@@ -263,7 +263,7 @@ describe('PATCH /api/pets/:id', () => {
   });
 });
 
-describe('POST /api/pets/:id/status', () => {
+describe('POST /api/v1/pets/:id/status', () => {
   let app: FastifyInstance;
   let updateStatusMock: ReturnType<typeof vi.fn>;
 
@@ -292,7 +292,7 @@ describe('POST /api/pets/:id/status', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/pets/pet-1/status',
+      url: '/api/v1/pets/pet-1/status',
       payload: { toStatus: 'pending', reason: 'application opened' },
     });
 
@@ -307,7 +307,7 @@ describe('POST /api/pets/:id/status', () => {
     updateStatusMock.mockResolvedValueOnce({ pet: PET_FIXTURE });
     await app.inject({
       method: 'POST',
-      url: '/api/pets/pet-1/status',
+      url: '/api/v1/pets/pet-1/status',
       payload: { toStatus: 'PET_STATUS_ADOPTED' },
     });
     const [req] = updateStatusMock.mock.calls[0];
@@ -323,14 +323,14 @@ describe('POST /api/pets/:id/status', () => {
     );
     const res = await app.inject({
       method: 'POST',
-      url: '/api/pets/pet-1/status',
+      url: '/api/v1/pets/pet-1/status',
       payload: { toStatus: 'adopted' },
     });
     expect(res.statusCode).toBe(400);
   });
 });
 
-describe('DELETE /api/pets/:id', () => {
+describe('DELETE /api/v1/pets/:id', () => {
   it('soft-deletes and returns { deleted: true }', async () => {
     const { client, deleteMock } = makeClient();
     const app = await makeApp(client);
@@ -338,7 +338,7 @@ describe('DELETE /api/pets/:id', () => {
       const delRes: DeletePetResponse = { deleted: true };
       deleteMock.mockResolvedValueOnce(delRes);
 
-      const res = await app.inject({ method: 'DELETE', url: '/api/pets/pet-1' });
+      const res = await app.inject({ method: 'DELETE', url: '/api/v1/pets/pet-1' });
       expect(res.statusCode).toBe(200);
       expect(res.json()).toMatchObject({ deleted: true });
       const [req] = deleteMock.mock.calls[0];
@@ -355,7 +355,7 @@ describe('error mapping fallback', () => {
     const app = await makeApp(client);
     try {
       getMock.mockRejectedValueOnce(new Error('connection refused'));
-      const res = await app.inject({ method: 'GET', url: '/api/pets/pet-1' });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/pets/pet-1' });
       expect(res.statusCode).toBe(500);
     } finally {
       await app.close();

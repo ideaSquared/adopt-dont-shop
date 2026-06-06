@@ -1,22 +1,22 @@
-// REST → gRPC translation for /api/matching/*.
+// REST → gRPC translation for /api/v1/matching/*.
 //
 // Phase 9.5 cutover. Same shape as routes/audit.ts (#917) /
 // routes/rescue.ts / routes/auth.ts — Fastify plugin registers
 // BEFORE the strangler-fig http-proxy catch-all, so first-
-// registered-wins prefix routing picks it for /api/matching/*
+// registered-wins prefix routing picks it for /api/v1/matching/*
 // before the catch-all sees them.
 //
 // Route map:
 //
-//   POST /api/matching/sessions                        → StartSession
-//   POST /api/matching/sessions/:id/end                → EndSession
-//   POST /api/matching/sessions/:id/swipes             → RecordSwipe
-//   GET  /api/matching/swipes                          → ListSwipeHistory
+//   POST /api/v1/matching/sessions                        → StartSession
+//   POST /api/v1/matching/sessions/:id/end                → EndSession
+//   POST /api/v1/matching/sessions/:id/swipes             → RecordSwipe
+//   GET  /api/v1/matching/swipes                          → ListSwipeHistory
 //
 // Recommend + SearchPets aren't wired yet — the matching gRPC server
 // returns UNIMPLEMENTED for them (#922 stubs). When those handlers
-// ship the gateway will gain `/api/matching/recommend` +
-// `/api/matching/search` routes.
+// ship the gateway will gain `/api/v1/matching/recommend` +
+// `/api/v1/matching/search` routes.
 //
 // Authz: PETS_VIEW (matching is a pet-browsing surface). The Phase
 // 2.5 authenticate middleware stamps x-user-* metadata; the matching
@@ -84,7 +84,7 @@ export const registerMatchingRoutes = async (
   await app.register(rateLimit, { global: false });
 
   app.post(
-    '/api/matching/sessions',
+    '/api/v1/matching/sessions',
     { config: { rateLimit: MATCHING_RATE_LIMITS.startSession } },
     async (req, reply) => {
       const body = (req.body ?? {}) as StartSessionBody;
@@ -106,7 +106,7 @@ export const registerMatchingRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/matching/sessions/:id/end',
+    '/api/v1/matching/sessions/:id/end',
     { config: { rateLimit: MATCHING_RATE_LIMITS.endSession } },
     async (req, reply) => {
       const grpcReq: EndSessionRequest = { sessionId: req.params.id };
@@ -120,7 +120,7 @@ export const registerMatchingRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/matching/sessions/:id/swipes',
+    '/api/v1/matching/sessions/:id/swipes',
     { config: { rateLimit: MATCHING_RATE_LIMITS.recordSwipe } },
     async (req, reply) => {
       const body = (req.body ?? {}) as RecordSwipeBody;
@@ -141,7 +141,7 @@ export const registerMatchingRoutes = async (
   );
 
   app.get(
-    '/api/matching/swipes',
+    '/api/v1/matching/swipes',
     { config: { rateLimit: MATCHING_RATE_LIMITS.listSwipeHistory } },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;

@@ -12,6 +12,35 @@ describe('loadConfig', () => {
     expect(config.natsUrl).toBe('nats://nats:4222');
   });
 
+  it('defaults every cutover flag to false (all domains proxy to the monolith)', () => {
+    const config = loadConfig({});
+    expect(config.cutover).toEqual({
+      auth: false,
+      notifications: false,
+      pets: false,
+      rescue: false,
+      applications: false,
+      moderation: false,
+      matching: false,
+      audit: false,
+    });
+  });
+
+  it('enables a cutover flag only for the exact string "true" (case-insensitive)', () => {
+    const config = loadConfig({
+      CUTOVER_PETS: 'true',
+      CUTOVER_AUTH: 'TRUE',
+      CUTOVER_APPLICATIONS: 'false',
+      CUTOVER_MATCHING: '1',
+      CUTOVER_AUDIT: '',
+    });
+    expect(config.cutover.pets).toBe(true);
+    expect(config.cutover.auth).toBe(true);
+    expect(config.cutover.applications).toBe(false);
+    expect(config.cutover.matching).toBe(false);
+    expect(config.cutover.audit).toBe(false);
+  });
+
   it('honours GATEWAY_PORT / GATEWAY_HOST / UPSTREAM_BACKEND_URL / NODE_ENV / NATS_URL when set', () => {
     const config = loadConfig({
       GATEWAY_PORT: '4321',

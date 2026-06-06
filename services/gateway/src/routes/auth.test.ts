@@ -69,7 +69,7 @@ const LOGIN_RES: LoginResponse = {
   permissions: ['pets.read'],
 };
 
-describe('POST /api/auth/login', () => {
+describe('POST /api/v1/auth/login', () => {
   let app: FastifyInstance;
   let loginMock: ReturnType<typeof vi.fn>;
 
@@ -87,7 +87,7 @@ describe('POST /api/auth/login', () => {
     loginMock.mockResolvedValueOnce(LOGIN_RES);
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/api/v1/auth/login',
       headers: { 'user-agent': 'vitest' },
       payload: { email: 'alex@example.com', password: 'hunter2' },
     });
@@ -114,7 +114,7 @@ describe('POST /api/auth/login', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/api/v1/auth/login',
       payload: { email: 'alex@example.com', password: 'wrong' },
     });
     expect(res.statusCode).toBe(401);
@@ -130,14 +130,14 @@ describe('POST /api/auth/login', () => {
     );
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/api/v1/auth/login',
       payload: { password: 'x' },
     });
     expect(res.statusCode).toBe(400);
   });
 });
 
-describe('POST /api/auth/logout', () => {
+describe('POST /api/v1/auth/logout', () => {
   let app: FastifyInstance;
   let logoutMock: ReturnType<typeof vi.fn>;
 
@@ -157,7 +157,7 @@ describe('POST /api/auth/logout', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/logout',
+      url: '/api/v1/auth/logout',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
       payload: { refreshToken: 'r.jwt' },
     });
@@ -170,7 +170,7 @@ describe('POST /api/auth/logout', () => {
   });
 });
 
-describe('POST /api/auth/refresh-token', () => {
+describe('POST /api/v1/auth/refresh-token', () => {
   it('forwards the refreshToken and returns the rotated TokenPair', async () => {
     const { client, refreshMock } = makeClient();
     const app = await makeApp(client);
@@ -187,7 +187,7 @@ describe('POST /api/auth/refresh-token', () => {
 
       const res = await app.inject({
         method: 'POST',
-        url: '/api/auth/refresh-token',
+        url: '/api/v1/auth/refresh-token',
         payload: { refreshToken: 'r.jwt' },
       });
 
@@ -200,7 +200,7 @@ describe('POST /api/auth/refresh-token', () => {
   });
 });
 
-describe('GET /api/auth/me', () => {
+describe('GET /api/v1/auth/me', () => {
   it('threads x-user-* metadata to GetMe and returns the user + roles + permissions', async () => {
     const { client, getMeMock } = makeClient();
     const app = await makeApp(client);
@@ -214,7 +214,7 @@ describe('GET /api/auth/me', () => {
 
       const res = await app.inject({
         method: 'GET',
-        url: '/api/auth/me',
+        url: '/api/v1/auth/me',
         headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
       });
 
@@ -230,7 +230,7 @@ describe('GET /api/auth/me', () => {
   });
 });
 
-describe('POST /api/auth/assign-role', () => {
+describe('POST /api/v1/auth/assign-role', () => {
   let app: FastifyInstance;
   let assignMock: ReturnType<typeof vi.fn>;
 
@@ -252,7 +252,7 @@ describe('POST /api/auth/assign-role', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/assign-role',
+      url: '/api/v1/auth/assign-role',
       headers: { 'x-user-id': 'usr-admin', 'x-user-roles': 'admin' },
       payload: { targetUserId: 'usr-1', role: 'rescue_staff', reason: 'onboarding' },
     });
@@ -268,7 +268,7 @@ describe('POST /api/auth/assign-role', () => {
     assignMock.mockResolvedValueOnce({ roles: [] });
     await app.inject({
       method: 'POST',
-      url: '/api/auth/assign-role',
+      url: '/api/v1/auth/assign-role',
       payload: { targetUserId: 'usr-1', role: 'USER_ROLE_MODERATOR' },
     });
     const [req] = assignMock.mock.calls[0];
@@ -279,7 +279,7 @@ describe('POST /api/auth/assign-role', () => {
     assignMock.mockResolvedValueOnce({ roles: [] });
     await app.inject({
       method: 'POST',
-      url: '/api/auth/assign-role',
+      url: '/api/v1/auth/assign-role',
       payload: { targetUserId: 'usr-1', role: 'not_a_role' },
     });
     const [req] = assignMock.mock.calls[0];
@@ -295,7 +295,7 @@ describe('POST /api/auth/assign-role', () => {
     );
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/assign-role',
+      url: '/api/v1/auth/assign-role',
       payload: { targetUserId: 'usr-1', role: 'admin' },
     });
     expect(res.statusCode).toBe(403);
@@ -311,7 +311,7 @@ describe('error mapping fallback', () => {
       loginMock.mockRejectedValueOnce(new Error('connection refused'));
       const res = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/api/v1/auth/login',
         payload: { email: 'a@b', password: 'c' },
       });
       expect(res.statusCode).toBe(500);

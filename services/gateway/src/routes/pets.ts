@@ -1,19 +1,19 @@
-// REST → gRPC translation for /api/pets/*.
+// REST → gRPC translation for /api/v1/pets/*.
 //
 // Phase 3.5 cutover: this Fastify plugin registers BEFORE the
 // strangler-fig http-proxy catch-all, so Fastify's first-registered-
-// wins prefix routing picks it for /api/pets/* requests before the
+// wins prefix routing picks it for /api/v1/pets/* requests before the
 // catch-all sees them. Same shape as routes/auth.ts.
 //
 // Route map (mirrors the surface the SPA + lib.pets React contexts
 // already use):
 //
-//   GET    /api/pets             → PetService.List
-//   GET    /api/pets/:id         → PetService.Get
-//   POST   /api/pets             → PetService.Create
-//   PATCH  /api/pets/:id         → PetService.Update
-//   POST   /api/pets/:id/status  → PetService.UpdateStatus
-//   DELETE /api/pets/:id         → PetService.Delete
+//   GET    /api/v1/pets             → PetService.List
+//   GET    /api/v1/pets/:id         → PetService.Get
+//   POST   /api/v1/pets             → PetService.Create
+//   PATCH  /api/v1/pets/:id         → PetService.Update
+//   POST   /api/v1/pets/:id/status  → PetService.UpdateStatus
+//   DELETE /api/v1/pets/:id         → PetService.Delete
 //
 // The authenticate middleware (Phase 2.5) already populates the
 // x-user-* metadata headers — every PetService RPC requires a
@@ -77,7 +77,7 @@ export const registerPetsRoutes = async (
 
   await app.register(rateLimit, { global: false });
 
-  app.get('/api/pets', { config: { rateLimit: PETS_RATE_LIMITS.list } }, async (req, reply) => {
+  app.get('/api/v1/pets', { config: { rateLimit: PETS_RATE_LIMITS.list } }, async (req, reply) => {
     const query = req.query as Record<string, string | undefined>;
     const grpcReq: ListPetsRequest = {
       cursor: query.cursor,
@@ -96,7 +96,7 @@ export const registerPetsRoutes = async (
   });
 
   app.get<{ Params: { id: string } }>(
-    '/api/pets/:id',
+    '/api/v1/pets/:id',
     { config: { rateLimit: PETS_RATE_LIMITS.get } },
     async (req, reply) => {
       try {
@@ -108,39 +108,43 @@ export const registerPetsRoutes = async (
     }
   );
 
-  app.post('/api/pets', { config: { rateLimit: PETS_RATE_LIMITS.create } }, async (req, reply) => {
-    const body = (req.body ?? {}) as CreatePetBody;
-    const grpcReq: CreatePetRequest = {
-      name: body.name ?? '',
-      rescueId: body.rescueId ?? '',
-      type: body.type ?? PetsV1.PetType.PET_TYPE_UNSPECIFIED,
-      gender: body.gender ?? PetsV1.PetGender.PET_GENDER_UNSPECIFIED,
-      size: body.size ?? PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
-      ageGroup: body.ageGroup ?? PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED,
-      breedId: body.breedId,
-      secondaryBreedId: body.secondaryBreedId,
-      shortDescription: body.shortDescription,
-      longDescription: body.longDescription,
-      ageYears: body.ageYears,
-      ageMonths: body.ageMonths,
-      adoptionFeeMinor: body.adoptionFeeMinor,
-      adoptionFeeCurrency: body.adoptionFeeCurrency,
-      specialNeeds: body.specialNeeds ?? false,
-      houseTrained: body.houseTrained ?? false,
-      temperamentJson: body.temperamentJson ?? '[]',
-      tagsJson: body.tagsJson ?? '[]',
-      extraJson: body.extraJson ?? '{}',
-    };
-    try {
-      const res = await client.create(grpcReq, buildMetadata(req));
-      return reply.code(201).send(PetsV1.CreatePetResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.post(
+    '/api/v1/pets',
+    { config: { rateLimit: PETS_RATE_LIMITS.create } },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as CreatePetBody;
+      const grpcReq: CreatePetRequest = {
+        name: body.name ?? '',
+        rescueId: body.rescueId ?? '',
+        type: body.type ?? PetsV1.PetType.PET_TYPE_UNSPECIFIED,
+        gender: body.gender ?? PetsV1.PetGender.PET_GENDER_UNSPECIFIED,
+        size: body.size ?? PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
+        ageGroup: body.ageGroup ?? PetsV1.PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED,
+        breedId: body.breedId,
+        secondaryBreedId: body.secondaryBreedId,
+        shortDescription: body.shortDescription,
+        longDescription: body.longDescription,
+        ageYears: body.ageYears,
+        ageMonths: body.ageMonths,
+        adoptionFeeMinor: body.adoptionFeeMinor,
+        adoptionFeeCurrency: body.adoptionFeeCurrency,
+        specialNeeds: body.specialNeeds ?? false,
+        houseTrained: body.houseTrained ?? false,
+        temperamentJson: body.temperamentJson ?? '[]',
+        tagsJson: body.tagsJson ?? '[]',
+        extraJson: body.extraJson ?? '{}',
+      };
+      try {
+        const res = await client.create(grpcReq, buildMetadata(req));
+        return reply.code(201).send(PetsV1.CreatePetResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   app.patch<{ Params: { id: string } }>(
-    '/api/pets/:id',
+    '/api/v1/pets/:id',
     { config: { rateLimit: PETS_RATE_LIMITS.update } },
     async (req, reply) => {
       const body = (req.body ?? {}) as UpdatePetBody;
@@ -155,7 +159,7 @@ export const registerPetsRoutes = async (
   );
 
   app.post<{ Params: { id: string } }>(
-    '/api/pets/:id/status',
+    '/api/v1/pets/:id/status',
     { config: { rateLimit: PETS_RATE_LIMITS.updateStatus } },
     async (req, reply) => {
       const body = (req.body ?? {}) as UpdateStatusBody;
@@ -174,7 +178,7 @@ export const registerPetsRoutes = async (
   );
 
   app.delete<{ Params: { id: string } }>(
-    '/api/pets/:id',
+    '/api/v1/pets/:id',
     { config: { rateLimit: PETS_RATE_LIMITS.delete } },
     async (req, reply) => {
       try {

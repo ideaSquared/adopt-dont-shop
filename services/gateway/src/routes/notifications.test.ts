@@ -59,7 +59,7 @@ async function buildApp(client: NotificationsClient): Promise<FastifyInstance> {
 
 // --- Tests ----------------------------------------------------------
 
-describe('GET /api/notifications — list', () => {
+describe('GET /api/v1/notifications — list', () => {
   let app: FastifyInstance;
   let client: ReturnType<typeof makeClient>;
 
@@ -77,7 +77,7 @@ describe('GET /api/notifications — list', () => {
 
     await app.inject({
       method: 'GET',
-      url: '/api/notifications',
+      url: '/api/v1/notifications',
       headers: {
         'x-user-id': 'usr-1',
         'x-user-roles': 'adopter',
@@ -96,7 +96,7 @@ describe('GET /api/notifications — list', () => {
 
     await app.inject({
       method: 'GET',
-      url: '/api/notifications?limit=50&cursor=abc&status=pending',
+      url: '/api/v1/notifications?limit=50&cursor=abc&status=pending',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
 
@@ -116,7 +116,7 @@ describe('GET /api/notifications — list', () => {
 
     const res = await app.inject({
       method: 'GET',
-      url: '/api/notifications',
+      url: '/api/v1/notifications',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
 
@@ -137,7 +137,7 @@ describe('GET /api/notifications — list', () => {
 
     const res = await app.inject({
       method: 'GET',
-      url: '/api/notifications',
+      url: '/api/v1/notifications',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
 
@@ -153,7 +153,7 @@ describe('GET /api/notifications — list', () => {
 
     const res = await app.inject({
       method: 'GET',
-      url: '/api/notifications',
+      url: '/api/v1/notifications',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
 
@@ -166,7 +166,7 @@ describe('GET /api/notifications — list', () => {
       details: 'missing x-user-id metadata',
     });
 
-    const res = await app.inject({ method: 'GET', url: '/api/notifications' });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/notifications' });
 
     expect(res.statusCode).toBe(401);
   });
@@ -176,7 +176,7 @@ describe('GET /api/notifications — list', () => {
 
     const res = await app.inject({
       method: 'GET',
-      url: '/api/notifications',
+      url: '/api/v1/notifications',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
 
@@ -184,7 +184,7 @@ describe('GET /api/notifications — list', () => {
   });
 });
 
-describe('POST /api/notifications — create', () => {
+describe('POST /api/v1/notifications — create', () => {
   let app: FastifyInstance;
   let client: ReturnType<typeof makeClient>;
 
@@ -202,7 +202,7 @@ describe('POST /api/notifications — create', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/notifications',
+      url: '/api/v1/notifications',
       headers: {
         'x-user-id': 'svc-1',
         'x-user-roles': 'admin',
@@ -227,7 +227,7 @@ describe('POST /api/notifications — create', () => {
 
     await app.inject({
       method: 'POST',
-      url: '/api/notifications',
+      url: '/api/v1/notifications',
       headers: { 'x-user-id': 'svc', 'content-type': 'application/json' },
       payload: {
         userId: 'usr-1',
@@ -255,7 +255,7 @@ describe('POST /api/notifications — create', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/notifications',
+      url: '/api/v1/notifications',
       headers: { 'x-user-id': 'svc', 'content-type': 'application/json' },
       payload: { userId: 'usr-1' },
     });
@@ -264,7 +264,7 @@ describe('POST /api/notifications — create', () => {
   });
 });
 
-describe('DELETE /api/notifications/:id — dismiss', () => {
+describe('DELETE /api/v1/notifications/:id — dismiss', () => {
   let app: FastifyInstance;
   let client: ReturnType<typeof makeClient>;
 
@@ -282,7 +282,7 @@ describe('DELETE /api/notifications/:id — dismiss', () => {
 
     await app.inject({
       method: 'DELETE',
-      url: '/api/notifications/n-77',
+      url: '/api/v1/notifications/n-77',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
 
@@ -300,7 +300,7 @@ describe('DELETE /api/notifications/:id — dismiss', () => {
 
     const res = await app.inject({
       method: 'DELETE',
-      url: '/api/notifications/n-77',
+      url: '/api/v1/notifications/n-77',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
 
@@ -316,7 +316,7 @@ describe('DELETE /api/notifications/:id — dismiss', () => {
 
     const res = await app.inject({
       method: 'DELETE',
-      url: '/api/notifications/n-missing',
+      url: '/api/v1/notifications/n-missing',
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
 
