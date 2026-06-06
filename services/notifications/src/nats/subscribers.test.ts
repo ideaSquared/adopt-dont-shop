@@ -5,7 +5,10 @@ import type { UserId } from '@adopt-dont-shop/lib.types';
 import { NotificationsV1 } from '@adopt-dont-shop/proto';
 
 import {
+  buildApplicationAdoptedCreate,
   buildApplicationApprovedCreate,
+  buildApplicationHomeVisitCompletedCreate,
+  buildApplicationHomeVisitScheduledCreate,
   buildApplicationRejectedCreate,
   buildApplicationSubmittedCreate,
   buildAuthRoleAssignedCreate,
@@ -92,6 +95,63 @@ describe('event → CreateNotificationRequest translation', () => {
       expect(req.message).not.toContain('Reason:');
       const data = JSON.parse(req.dataJson) as Record<string, unknown>;
       expect(data.reason).toBeNull();
+    });
+  });
+
+  describe('buildApplicationHomeVisitScheduledCreate', () => {
+    it('targets the adopter with a HIGH-priority home-visit notification and carries the date', () => {
+      const req = buildApplicationHomeVisitScheduledCreate({
+        applicationId: 'app-1',
+        adopterId: 'usr-a' as UserId,
+        rescueId: 'res-1',
+        scheduledAt: '2026-06-10T14:00:00Z',
+      });
+
+      expect(req.userId).toBe('usr-a');
+      expect(req.type).toBe(
+        NotificationsV1.NotificationType.NOTIFICATION_TYPE_HOME_VISIT_SCHEDULED
+      );
+      expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH);
+      expect(req.relatedEntityType).toBe(
+        NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT
+      );
+      const data = JSON.parse(req.dataJson) as Record<string, string>;
+      expect(data.scheduledAt).toBe('2026-06-10T14:00:00Z');
+    });
+  });
+
+  describe('buildApplicationHomeVisitCompletedCreate', () => {
+    it('keeps the pass/fail outcome out of the message body but in data_json', () => {
+      const req = buildApplicationHomeVisitCompletedCreate({
+        applicationId: 'app-1',
+        adopterId: 'usr-a' as UserId,
+        rescueId: 'res-1',
+        outcome: 'failed',
+      });
+
+      expect(req.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_APPLICATION_STATUS);
+      expect(req.message).not.toContain('failed');
+      const data = JSON.parse(req.dataJson) as Record<string, string>;
+      expect(data.outcome).toBe('failed');
+    });
+  });
+
+  describe('buildApplicationAdoptedCreate', () => {
+    it('produces a HIGH-priority celebratory notification related to the adoption', () => {
+      const req = buildApplicationAdoptedCreate({
+        applicationId: 'app-1',
+        adopterId: 'usr-a' as UserId,
+        petId: 'pet-1',
+        rescueId: 'res-1',
+      });
+
+      expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH);
+      expect(req.title).toMatch(/complete/i);
+      expect(req.relatedEntityType).toBe(
+        NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION
+      );
+      const data = JSON.parse(req.dataJson) as Record<string, string>;
+      expect(data).toEqual({ applicationId: 'app-1', petId: 'pet-1', rescueId: 'res-1' });
     });
   });
 
@@ -192,7 +252,7 @@ describe('registerSubscribers', () => {
 
     const subs = registerSubscribers({ nats, deps, logger });
 
-    expect(subs).toHaveLength(10);
+    expect(subs).toHaveLength(13);
     // Subscribed subjects (raw nats.subscribe receives the subject as
     // first arg, then an options object containing `queue`).
     const subjects = subscribeFn.mock.calls.map(call => call[0]);
@@ -200,6 +260,9 @@ describe('registerSubscribers', () => {
       'applications.submitted',
       'applications.approved',
       'applications.rejected',
+      'applications.homeVisitScheduled',
+      'applications.homeVisitCompleted',
+      'applications.adopted',
       'auth.userLoggedIn',
       'auth.roleAssigned',
       'pets.statusChanged',

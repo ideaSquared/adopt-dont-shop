@@ -46,6 +46,38 @@ export type ApplicationRejectedEvent = {
   reason?: string;
 };
 
+// applications.homeVisitScheduled — service.applications emits when
+// rescue staff schedule the home visit. The adopter needs the date, so
+// this is a HIGH-priority in-app ping; the timestamp rides in data_json
+// for the SPA to format.
+export type ApplicationHomeVisitScheduledEvent = {
+  applicationId: string;
+  adopterId: UserId;
+  rescueId: string;
+  scheduledAt: string; // RFC 3339
+};
+
+// applications.homeVisitCompleted — emitted when staff record the visit
+// outcome. The adopter is told the visit is done (not the pass/fail
+// outcome, which stays in data_json for the dashboard to render with the
+// right framing).
+export type ApplicationHomeVisitCompletedEvent = {
+  applicationId: string;
+  adopterId: UserId;
+  rescueId: string;
+  outcome: string;
+};
+
+// applications.adopted — the final lifecycle event (pet collected /
+// adoption finalised). A celebratory HIGH-priority notification to the
+// adopter.
+export type ApplicationAdoptedEvent = {
+  applicationId: string;
+  adopterId: UserId;
+  petId: string;
+  rescueId: string;
+};
+
 // auth.userLoggedIn — service.auth publishes after every successful
 // login (Phase 2.3b). service.notifications surfaces a security
 // notification so the user can spot unrecognised sign-ins. Mirrors
