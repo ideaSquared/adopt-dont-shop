@@ -22,12 +22,14 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { GatewayConfig } from './config.js';
 import type { AuditClient } from './grpc-clients/audit-client.js';
 import type { AuthClient } from './grpc-clients/auth-client.js';
+import type { MatchingClient } from './grpc-clients/matching-client.js';
 import type { NotificationsClient } from './grpc-clients/notifications-client.js';
 import type { PetsClient } from './grpc-clients/pets-client.js';
 import type { RescueClient } from './grpc-clients/rescue-client.js';
 import { registerAuthenticate } from './middleware/authenticate.js';
 import { registerAuditRoutes } from './routes/audit.js';
 import { registerAuthRoutes } from './routes/auth.js';
+import { registerMatchingRoutes } from './routes/matching.js';
 import { registerNotificationsRoutes } from './routes/notifications.js';
 import { registerPetsRoutes } from './routes/pets.js';
 import { registerRescueRoutes } from './routes/rescue.js';
@@ -61,6 +63,9 @@ export type CreateServerOptions = {
   // gRPC client to service.audit — Phase 10.5 cuts /api/audit/* over
   // to this address. Same optional shape as the other clients.
   auditClient?: AuditClient;
+  // gRPC client to service.matching — Phase 9.5 cuts /api/matching/*
+  // over to this address. Same optional shape as the other clients.
+  matchingClient?: MatchingClient;
 };
 
 export const createServer = async (opts: CreateServerOptions): Promise<FastifyInstance> => {
@@ -131,6 +136,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.auditClient) {
     await registerAuditRoutes(server, { client: opts.auditClient });
+  }
+  if (opts.matchingClient) {
+    await registerMatchingRoutes(server, { client: opts.matchingClient });
   }
 
   // Catch-all proxy. Phase 0f shipped this; Phase 1.6 leaves it in
