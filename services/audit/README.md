@@ -13,11 +13,27 @@ pattern). Owns the `audit.*` schema. Replaces the monolith's
 **Phase 10.1** — boot skeleton: `/health/simple` on `AUDIT_PORT`
 (default 5009), OpenTelemetry boot, env-validated config.
 
+**Phase 10.2** — `audit.*` schema + migrations:
+- `001_create_audit_events.ts` — single `audit_events` table.
+  Idempotent on `event_id` (producer's NATS message id is the PK).
+  Columns capture both the actor (`actor_user_id`,
+  `actor_email_snapshot`) and the target (`aggregate_type`,
+  `aggregate_id`) so the gateway's `Query` and `GetByTarget` RPCs
+  can serve admin forensic queries directly.
+- Row-level trigger `audit_events_immutable` rejects UPDATE/DELETE
+  (CAD PR #49 pattern, bundled with the table create so there's no
+  install-time race). Per-transaction escape hatch via
+  `SET LOCAL audit.allow_mutation = 'on'` for retention cleanups,
+  mirroring the monolith's `audit_logs.allow_mutation` GUC.
+- Indexes for forensic query patterns: `(aggregate_type,
+  aggregate_id)`, `actor_user_id` (partial, NOT NULL),
+  `occurred_at`, `service`, `subject`, `outcome`.
+- Run via `npm run db:migrate` (uses `@adopt-dont-shop/db` —
+  inherits all four CAD-lesson fixes: `createSchema`,
+  `ignorePattern`, `search_path`, advisory-lock retry).
+
 ## What's NOT here yet
 
-- **Phase 10.2** — `audit.*` schema + migrations (single
-  `audit_events` table with row-level trigger rejecting
-  UPDATE/DELETE).
 - **Phase 10.3** — gRPC `AuditQueryService.{Query, GetByTarget}`
   with base64-JSON keyset cursors.
 - **Phase 10.4** — NATS subscribers on every `*.actionTaken` topic
