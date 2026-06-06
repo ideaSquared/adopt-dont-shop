@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package adopt_dont_shop.audit.v1;
+
+// AuditQueryService is the gRPC contract for the audit vertical's
+// READ surface. The audit service is the sole producer (NATS
+// subscriber on *.actionTaken topics persisting events into
+// audit.audit_events) — there's no public Write RPC. This service
+// exposes the read paths admins use to answer forensic questions.
+//
+// Same conventions as the rest of the stack: ISO-8601 timestamps as
+// strings, opaque base64-JSON keyset cursors (CAD pattern). Gateway
+// gates ALL routes on the `view Audit` ability (admin+).
+service AuditQueryService {
+  // Full-text-ish query across the audit log. Filters narrow by
+  // service / subject / actor / outcome / time range; sort is fixed
+  // descending on occurred_at. Pagination via base64-JSON keyset
+  // cursor on (occurred_at, event_id) tuple.
+  rpc Query(QueryRequest) returns (QueryResponse);
+
+  // "Show me everything that happened to aggregate X" — the most
+  // common admin forensic question. Hits the
+  // (aggregate_type, aggregate_id) compound idx the schema ships.
+  // Returns events for ALL services that touched the aggregate
+  // (e.g. an application aggregate may have applications.*,
+  // notifications.*, moderation.* events tied to it).
+  rpc GetByTarget(GetByTargetRequest) returns (GetByTargetResponse);
+}
+
+// ===== Enums =========================================================
+
+enum AuditOutcome {
+  AUDIT_OUTCOME_UNSPECIFIED = 0;
+  // The action succeeded — the row write or transition committed.
+  AUDIT_OUTCOME_SUCCESS = 1;
+  // The action was denied by an authz check — the actor lacked the
+  // ability. The audit row IS still written; that's the forensic
+  // value.
+  AUDIT_OUTCOME_DENIED = 2;
+  // The action raised an exception during processing (server error,
+  // DB constraint, downstream timeout). Distinct from DENIED — a
+  // failed action wanted to succeed and couldn't.
+  AUDIT_OUTCOME_FAILURE = 3;
+}
+
+// ===== Messages ======================================================
+
+// AuditEvent mirrors the audit.audit_events row. Schema-less
+// payload_json captures the full event body the producing service
+// emitted — admins render it per (service, subject) tuple. The
+// monolith's audit_logs.metadata equivalent.
+message AuditEvent {
+  string event_id = 1;
+  // Producing service: 'service.auth', 'service.pets',
+  // 'service.applications', etc.
+  string service = 2;
+  // Full NATS subject — 'auth.userLoggedIn', 'pets.statusChanged',
+  // 'applications.submitted'.
+  string subject = 3;
+  // Domain aggregate the action targeted.
+  string aggregate_type = 4;
+  string aggregate_id = 5;
+  // Actor (NULL for system events — cron promotions, NATS replay
+  // backfills). actor_email_snapshot is denormalised at write time so
+  // the trail stays readable when the user is gone.
+  optional string actor_user_id = 6;
+  optional string actor_email_snapshot = 7;
+  // Action name within the aggregate's domain.
+  string action = 8;
+  AuditOutcome outcome = 9;
+  // When the action happened in the producer's clock.
+  string occurred_at = 10;
+  // When this row was INSERTed — distinct from occurred_at when
+  // NATS redelivery or processing lag pushes recorded_at later.
+  string recorded_at = 11;
+  // Stringified JSONB the SPA renders per (service, subject)
+  // tuple. The blob trick (pets extra_json) keeps the proto stable
+  // when event shapes evolve.
+  string payload_json = 12;
+  // Optional request context — gateway-originated events have
+  // these stamped; cron events don't.
+  optional string ip_address = 13;
+  optional string user_agent = 14;
+}
+
+// --- Query -----------------------------------------------------------
+
+message QueryRequest {
+  // Opaque base64-JSON keyset cursor over (occurred_at, event_id)
+  // for stable pagination across new inserts.
+  optional string cursor = 1;
+  // Defaults to 50, max 200.
+  uint32 limit = 2;
+
+  // Filters — each empty value means "no filter on this dimension".
+  // Filter by producing service ('service.auth', etc.).
+  optional string service = 3;
+  // Filter by full NATS subject.
+  optional string subject = 4;
+  // Filter to events triggered by a specific user.
+  optional string actor_user_id = 5;
+  // Filter by outcome.
+  optional AuditOutcome outcome = 6;
+  // Inclusive lower bound on occurred_at.
+  optional string occurred_at_from = 7;
+  // Exclusive upper bound on occurred_at.
+  optional string occurred_at_to = 8;
+}
+
+message QueryResponse {
+  // Descending on occurred_at (newest first).
+  repeated AuditEvent events = 1;
+  optional string next_cursor = 2;
+}
+
+// --- GetByTarget -----------------------------------------------------
+
+message GetByTargetRequest {
+  string aggregate_type = 1;
+  string aggregate_id = 2;
+  optional string cursor = 3;
+  uint32 limit = 4;
+}
+
+message GetByTargetResponse {
+  // Descending on occurred_at — most recent activity first.
+  repeated AuditEvent events = 1;
+  optional string next_cursor = 2;
+}

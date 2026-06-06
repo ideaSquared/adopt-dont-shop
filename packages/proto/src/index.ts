@@ -219,3 +219,14 @@ export type {
   ModerationServiceServer,
   ModerationServiceClient,
 } from './generated/proto/adopt_dont_shop/moderation/v1/moderation.js';
+
+export * as AuditV1 from './generated/proto/adopt_dont_shop/audit/v1/audit.js';
+export type {
+  AuditEvent,
+  QueryRequest as AuditQueryRequest,
+  QueryResponse as AuditQueryResponse,
+  GetByTargetRequest as AuditGetByTargetRequest,
+  GetByTargetResponse as AuditGetByTargetResponse,
+  AuditQueryServiceServer,
+  AuditQueryServiceClient,
+} from './generated/proto/adopt_dont_shop/audit/v1/audit.js';

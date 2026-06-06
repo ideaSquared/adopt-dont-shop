@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ApplicationsV1,
+  AuditV1,
   AuthV1,
   ChatV1,
   MatchingV1,
@@ -11,6 +12,8 @@ import {
   PingV1,
   RescueV1,
   type Application,
+  type AuditEvent,
+  type AuditQueryRequest,
   type Chat,
   type FileReportRequest,
   type RecordSwipeRequest,
@@ -761,6 +764,70 @@ describe('@adopt-dont-shop/proto', () => {
       );
       // desktop, mobile, tablet, unknown = 4
       expect(deviceTypeValues).toHaveLength(4);
+    });
+  });
+});
+
+describe('@adopt-dont-shop/proto AuditV1', () => {
+  describe('AuditV1 namespace (Phase 10.3a — proto + grpc-js stubs)', () => {
+    it('exports the message factories under the AuditV1 namespace', () => {
+      expect(AuditV1.AuditEvent).toBeDefined();
+      expect(AuditV1.QueryRequest).toBeDefined();
+      expect(AuditV1.QueryResponse).toBeDefined();
+      expect(AuditV1.GetByTargetRequest).toBeDefined();
+      expect(AuditV1.GetByTargetResponse).toBeDefined();
+    });
+
+    it('exports the gRPC service definition table for both RPCs', () => {
+      expect(AuditV1.AuditQueryServiceService).toBeDefined();
+      expect(AuditV1.AuditQueryServiceService).toMatchObject({
+        query: { path: '/adopt_dont_shop.audit.v1.AuditQueryService/Query' },
+        getByTarget: { path: '/adopt_dont_shop.audit.v1.AuditQueryService/GetByTarget' },
+      });
+    });
+
+    it('exports a gRPC client constructor', () => {
+      expect(AuditV1.AuditQueryServiceClient).toBeDefined();
+      expect(typeof AuditV1.AuditQueryServiceClient).toBe('function');
+    });
+
+    it('round-trips a QueryRequest with filters through the binary wire format', () => {
+      const original: AuditQueryRequest = {
+        limit: 50,
+        service: 'service.auth',
+        actorUserId: 'usr-1',
+        outcome: AuditV1.AuditOutcome.AUDIT_OUTCOME_DENIED,
+      };
+      const buf = AuditV1.QueryRequest.encode(original).finish();
+      const decoded = AuditV1.QueryRequest.decode(buf);
+      expect(decoded.limit).toBe(50);
+      expect(decoded.service).toBe('service.auth');
+      expect(decoded.actorUserId).toBe('usr-1');
+      expect(decoded.outcome).toBe(AuditV1.AuditOutcome.AUDIT_OUTCOME_DENIED);
+    });
+
+    it('flat type-only re-exports compile in type position', () => {
+      const e: AuditEvent = {
+        eventId: 'evt-1',
+        service: 'service.auth',
+        subject: 'auth.userLoggedIn',
+        aggregateType: 'user',
+        aggregateId: 'usr-1',
+        action: 'login',
+        outcome: AuditV1.AuditOutcome.AUDIT_OUTCOME_SUCCESS,
+        occurredAt: '2026-06-01T00:00:00Z',
+        recordedAt: '2026-06-01T00:00:00Z',
+        payloadJson: '{}',
+      };
+      expect(e.eventId).toBe('evt-1');
+    });
+
+    it('mirrors the audit.outcome semantic verbatim (excluding UNSPECIFIED + UNRECOGNIZED sentinels)', () => {
+      const populated = Object.values(AuditV1.AuditOutcome).filter(
+        (v): v is number => typeof v === 'number' && v > 0
+      );
+      // success, denied, failure = 3
+      expect(populated).toHaveLength(3);
     });
   });
 });
