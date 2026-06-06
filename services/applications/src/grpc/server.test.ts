@@ -24,14 +24,21 @@ const config: ApplicationsConfig = {
   databaseUrl: 'postgres://test',
   schema: 'applications',
   natsUrl: 'nats://localhost:4222',
+  petsGrpcUrl: 'service-pets:6003',
 };
 
 const pool = {} as unknown as Pool;
 const nats = {} as unknown as NatsConnection;
+// Inject a stub pets client so the test doesn't construct a real gRPC
+// channel just to assert handler registration.
+const petsClient = {
+  getPet: () => Promise.reject(new Error('not used')),
+  close: () => undefined,
+} as unknown as Parameters<typeof createGrpcServer>[0]['petsClient'];
 
 describe('createGrpcServer', () => {
   it('registers all 12 ApplicationService methods on the grpc.Server', () => {
-    const server = createGrpcServer({ config, pool, nats, logger: quietLogger });
+    const server = createGrpcServer({ config, pool, nats, logger: quietLogger, petsClient });
     const handlers = (server as unknown as { handlers: Map<string, unknown> }).handlers;
 
     const base = '/adopt_dont_shop.applications.v1.ApplicationService';
@@ -57,7 +64,7 @@ describe('createGrpcServer', () => {
     const definition = ApplicationsV1.ApplicationServiceService;
     const expectedPaths = Object.values(definition).map(d => (d as { path: string }).path);
 
-    const server = createGrpcServer({ config, pool, nats, logger: quietLogger });
+    const server = createGrpcServer({ config, pool, nats, logger: quietLogger, petsClient });
     const handlers = (server as unknown as { handlers: Map<string, unknown> }).handlers;
 
     for (const p of expectedPaths) {

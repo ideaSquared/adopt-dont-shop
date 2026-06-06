@@ -13,7 +13,7 @@
 // token-minting flow on this surface (auth handles that). Even
 // `StartDraft` requires a principal because drafts are user-scoped.
 
-import type { Metadata } from '@grpc/grpc-js';
+import { Metadata } from '@grpc/grpc-js';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, RescueId, UserId, UserRole } from '@adopt-dont-shop/lib.types';
@@ -56,6 +56,23 @@ export function extractPrincipal(metadata: Metadata): Principal {
     permissions,
     rescueId,
   };
+}
+
+// Inverse of extractPrincipal — serialises a Principal back into the
+// x-user-* metadata headers for an OUTBOUND service-to-service call.
+// StartDraft uses this to forward the adopter's identity to
+// service.pets (whose Get gate requires the caller's `pets.read`), so
+// the downstream service runs its own authz against the real principal
+// rather than a synthesized system identity.
+export function principalToMetadata(principal: Principal): Metadata {
+  const metadata = new Metadata();
+  metadata.set('x-user-id', principal.userId);
+  metadata.set('x-user-roles', principal.roles.join(','));
+  metadata.set('x-user-permissions', principal.permissions.join(','));
+  if (principal.rescueId !== undefined) {
+    metadata.set('x-rescue-id', principal.rescueId);
+  }
+  return metadata;
 }
 
 function headerOne(metadata: Metadata, key: string): string | undefined {

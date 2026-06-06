@@ -1,7 +1,10 @@
 import { Metadata } from '@grpc/grpc-js';
 import { describe, expect, it } from 'vitest';
 
-import { extractPrincipal, MissingPrincipalError } from './principal.js';
+import type { Principal } from '@adopt-dont-shop/authz';
+import type { Permission, RescueId, UserId, UserRole } from '@adopt-dont-shop/lib.types';
+
+import { extractPrincipal, MissingPrincipalError, principalToMetadata } from './principal.js';
 
 function build(headers: Record<string, string>): Metadata {
   const m = new Metadata();
@@ -66,5 +69,26 @@ describe('extractPrincipal', () => {
       })
     );
     expect(p.permissions).toEqual(['applications.read']);
+  });
+});
+
+describe('principalToMetadata', () => {
+  const principal: Principal = {
+    userId: 'usr-1' as UserId,
+    roles: ['adopter', 'rescue_staff'] as UserRole[],
+    permissions: ['pets.read', 'applications.create'] as Permission[],
+    rescueId: 'rsc-1' as RescueId,
+  };
+
+  it('round-trips back through extractPrincipal', () => {
+    const restored = extractPrincipal(principalToMetadata(principal));
+    expect(restored).toEqual(principal);
+  });
+
+  it('comma-joins roles + permissions and omits rescue-id when absent', () => {
+    const m = principalToMetadata({ ...principal, rescueId: undefined });
+    expect(m.get('x-user-roles')).toEqual(['adopter,rescue_staff']);
+    expect(m.get('x-user-permissions')).toEqual(['pets.read,applications.create']);
+    expect(m.get('x-rescue-id')).toEqual([]);
   });
 });

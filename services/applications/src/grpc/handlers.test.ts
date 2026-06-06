@@ -7,7 +7,8 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
-import { saveDraftAnswers, submitDraft } from './handlers.js';
+import { makeStartDraft, saveDraftAnswers, submitDraft } from './handlers.js';
+import type { PetsClient } from './pets-client.js';
 
 function makePrincipal(
   overrides: Partial<{ userId: string; permissions: string[]; roles: string[] }> = {}
@@ -144,6 +145,67 @@ describe('saveDraftAnswers', () => {
     });
     const refs = JSON.parse(res.application.referencesJson) as Array<Record<string, string>>;
     expect(refs[0]).toMatchObject({ name: 'Jane', email: 'j@e.com', relationship: 'friend' });
+  });
+});
+
+describe('makeStartDraft', () => {
+  function makePetsClient(getPet: ReturnType<typeof vi.fn>): PetsClient {
+    return { getPet, close: vi.fn() } as unknown as PetsClient;
+  }
+
+  it('throws PERMISSION_DENIED when the caller is not the adopter', async () => {
+    const { deps } = makeDeps([]);
+    const startDraft = makeStartDraft(makePetsClient(vi.fn()));
+    await expect(
+      startDraft(deps, makePrincipal({ userId: 'usr-1' }), { adopterId: 'usr-2', petId: 'pet-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('throws INVALID_ARGUMENT on missing pet_id', async () => {
+    const { deps } = makeDeps([]);
+    const startDraft = makeStartDraft(makePetsClient(vi.fn()));
+    await expect(
+      startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('resolves pet → rescue, creates the draft, publishes applications.draftCreated', async () => {
+    const getPet = vi.fn().mockResolvedValue({ pet: { petId: 'pet-1', rescueId: 'rsc-1' } });
+    const { deps } = makeDeps([]);
+    const startDraft = makeStartDraft(makePetsClient(getPet));
+
+    const res = await startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' });
+
+    expect(res.application.status).toBe(ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_DRAFT);
+    expect(res.application.adopterId).toBe('usr-1');
+    expect(res.application.petId).toBe('pet-1');
+    expect(res.application.rescueId).toBe('rsc-1');
+    expect(res.application.applicationId).not.toBe('');
+
+    // The pet lookup forwarded the adopter's identity as metadata.
+    const metadata = getPet.mock.calls[0][1];
+    expect(metadata.get('x-user-id')).toEqual(['usr-1']);
+
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    expect(publish.mock.calls[0][0]).toMatchObject({ type: 'applications.draftCreated' });
+  });
+
+  it('maps a pets NOT_FOUND (grpc code 5) onto INVALID_ARGUMENT', async () => {
+    const getPet = vi.fn().mockRejectedValue({ code: 5 });
+    const { deps } = makeDeps([]);
+    const startDraft = makeStartDraft(makePetsClient(getPet));
+    await expect(
+      startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-x' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a pet with no owning rescue', async () => {
+    const getPet = vi.fn().mockResolvedValue({ pet: { petId: 'pet-1' } });
+    const { deps } = makeDeps([]);
+    const startDraft = makeStartDraft(makePetsClient(getPet));
+    await expect(
+      startDraft(deps, makePrincipal(), { adopterId: 'usr-1', petId: 'pet-1' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 });
 
