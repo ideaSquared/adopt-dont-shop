@@ -1,0 +1,38 @@
+{
+  "name": "@adopt-dont-shop/service.applications",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Applications service — Phase 5 extraction. Owns the applications.* schema (Application, ApplicationDraft, ApplicationAnswer, ApplicationTimelineEntry, HomeVisit, Reference) and exposes gRPC ApplicationService over a status state machine (draft → submitted → under_review → home_visit_scheduled → home_visit_completed → approved | rejected | withdrawn → adopted). This is the EVENT-SOURCED vertical — clear state machine + multi-consumer audit needs; pure apply/fold domain + Postgres event store + publish-after-commit on applications.* events. CAD Phase 2 equivalent (deepest extraction). Phase 5.1 commit is just the boot skeleton; the event-sourced domain, persistence, gRPC, NATS, and gateway land in later phases.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/server.ts",
+      "import": "./src/server.ts",
+      "default": "./src/server.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx watch --import ./src/instrumentation.ts ./src/index.ts",
+    "start": "node --import ./dist/instrumentation.js ./dist/index.js",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@adopt-dont-shop/observability": "*",
+    "fastify": "^5.8.5"
+  }
+}
