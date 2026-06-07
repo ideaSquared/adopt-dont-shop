@@ -155,6 +155,54 @@ export interface ReactResponse {
   message?: Message | undefined;
 }
 
+export interface SearchChatsRequest {
+  /**
+   * Free-form search text. Server enforces 1..100 chars; longer or
+   * shorter strings return INVALID_ARGUMENT.
+   */
+  query: string;
+  /**
+   * Offset-based pagination — matches the monolith's page/limit shape
+   * (the SPA already drives it that way). 1-indexed.
+   */
+  page: number;
+  /** Defaults to 20, max 100. */
+  limit: number;
+  /**
+   * Optional rescue scope — limit results to chats anchored on a
+   * specific rescue. The caller's participation is enforced
+   * independently regardless of this filter.
+   */
+  rescueId?: string | undefined;
+}
+
+/**
+ * SearchChatHit pairs the chat row with the best matching message
+ * (the most recent message whose content matches the query). The SPA
+ * renders this as a search result card.
+ */
+export interface SearchChatHit {
+  chat?: Chat | undefined;
+  /**
+   * The matching message preview. Present only when at least one
+   * message in the chat matched — when this is unset, the chat row
+   * would not have been returned.
+   */
+  match?: Message | undefined;
+}
+
+export interface SearchChatsResponse {
+  hits: SearchChatHit[];
+  page: number;
+  limit: number;
+  /**
+   * Total matching distinct chats — drives the SPA's pagination
+   * controls. Returned in addition to the page so the client can
+   * compute total_pages = ceil(total / limit).
+   */
+  total: number;
+}
+
 function createBaseChat(): Chat {
   return {
     chatId: '',
@@ -1624,6 +1672,310 @@ export const ReactResponse: MessageFns<ReactResponse> = {
   },
 };
 
+function createBaseSearchChatsRequest(): SearchChatsRequest {
+  return { query: '', page: 0, limit: 0, rescueId: undefined };
+}
+
+export const SearchChatsRequest: MessageFns<SearchChatsRequest> = {
+  encode(message: SearchChatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.query !== '') {
+      writer.uint32(10).string(message.query);
+    }
+    if (message.page !== 0) {
+      writer.uint32(16).uint32(message.page);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(24).uint32(message.limit);
+    }
+    if (message.rescueId !== undefined) {
+      writer.uint32(34).string(message.rescueId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SearchChatsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSearchChatsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.query = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SearchChatsRequest {
+    return {
+      query: isSet(object.query) ? globalThis.String(object.query) : '',
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : undefined,
+    };
+  },
+
+  toJSON(message: SearchChatsRequest): unknown {
+    const obj: any = {};
+    if (message.query !== '') {
+      obj.query = message.query;
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    if (message.rescueId !== undefined) {
+      obj.rescueId = message.rescueId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SearchChatsRequest>, I>>(base?: I): SearchChatsRequest {
+    return SearchChatsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SearchChatsRequest>, I>>(object: I): SearchChatsRequest {
+    const message = createBaseSearchChatsRequest();
+    message.query = object.query ?? '';
+    message.page = object.page ?? 0;
+    message.limit = object.limit ?? 0;
+    message.rescueId = object.rescueId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseSearchChatHit(): SearchChatHit {
+  return { chat: undefined, match: undefined };
+}
+
+export const SearchChatHit: MessageFns<SearchChatHit> = {
+  encode(message: SearchChatHit, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.chat !== undefined) {
+      Chat.encode(message.chat, writer.uint32(10).fork()).join();
+    }
+    if (message.match !== undefined) {
+      Message.encode(message.match, writer.uint32(18).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SearchChatHit {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSearchChatHit();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.chat = Chat.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.match = Message.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SearchChatHit {
+    return {
+      chat: isSet(object.chat) ? Chat.fromJSON(object.chat) : undefined,
+      match: isSet(object.match) ? Message.fromJSON(object.match) : undefined,
+    };
+  },
+
+  toJSON(message: SearchChatHit): unknown {
+    const obj: any = {};
+    if (message.chat !== undefined) {
+      obj.chat = Chat.toJSON(message.chat);
+    }
+    if (message.match !== undefined) {
+      obj.match = Message.toJSON(message.match);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SearchChatHit>, I>>(base?: I): SearchChatHit {
+    return SearchChatHit.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SearchChatHit>, I>>(object: I): SearchChatHit {
+    const message = createBaseSearchChatHit();
+    message.chat =
+      object.chat !== undefined && object.chat !== null ? Chat.fromPartial(object.chat) : undefined;
+    message.match =
+      object.match !== undefined && object.match !== null
+        ? Message.fromPartial(object.match)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseSearchChatsResponse(): SearchChatsResponse {
+  return { hits: [], page: 0, limit: 0, total: 0 };
+}
+
+export const SearchChatsResponse: MessageFns<SearchChatsResponse> = {
+  encode(message: SearchChatsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.hits) {
+      SearchChatHit.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.page !== 0) {
+      writer.uint32(16).uint32(message.page);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(24).uint32(message.limit);
+    }
+    if (message.total !== 0) {
+      writer.uint32(32).uint32(message.total);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SearchChatsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSearchChatsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.hits.push(SearchChatHit.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SearchChatsResponse {
+    return {
+      hits: globalThis.Array.isArray(object?.hits)
+        ? object.hits.map((e: any) => SearchChatHit.fromJSON(e))
+        : [],
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+    };
+  },
+
+  toJSON(message: SearchChatsResponse): unknown {
+    const obj: any = {};
+    if (message.hits?.length) {
+      obj.hits = message.hits.map(e => SearchChatHit.toJSON(e));
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SearchChatsResponse>, I>>(base?: I): SearchChatsResponse {
+    return SearchChatsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SearchChatsResponse>, I>>(
+    object: I
+  ): SearchChatsResponse {
+    const message = createBaseSearchChatsResponse();
+    message.hits = object.hits?.map(e => SearchChatHit.fromPartial(e)) || [];
+    message.page = object.page ?? 0;
+    message.limit = object.limit ?? 0;
+    message.total = object.total ?? 0;
+    return message;
+  },
+};
+
 /**
  * ChatService is the gRPC contract for the chat vertical. It owns
  * the `chat.*` schema (Chat, ChatParticipant, Message, MessageReaction,
@@ -1736,6 +2088,25 @@ export const ChatServiceService = {
       Buffer.from(ReactResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ReactResponse => ReactResponse.decode(value),
   },
+  /**
+   * Full-text search across the calling principal's chats. Matches on
+   * message content (uses the messages.search_vector tsvector). Returns
+   * chats with their best-matching message preview, ordered by recency
+   * of the match. Self-scoped — only chats the caller participates in
+   * are returned (super_admin still scoped this way; staff cross-chat
+   * search is a separate admin RPC).
+   */
+  searchChats: {
+    path: '/adopt_dont_shop.chat.v1.ChatService/SearchChats' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: SearchChatsRequest): Buffer =>
+      Buffer.from(SearchChatsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): SearchChatsRequest => SearchChatsRequest.decode(value),
+    responseSerialize: (value: SearchChatsResponse): Buffer =>
+      Buffer.from(SearchChatsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): SearchChatsResponse => SearchChatsResponse.decode(value),
+  },
 } as const;
 
 export interface ChatServiceServer extends UntypedServiceImplementation {
@@ -1773,6 +2144,15 @@ export interface ChatServiceServer extends UntypedServiceImplementation {
    * Idempotent. Publishes chat.reactionAdded or chat.reactionRemoved.
    */
   react: handleUnaryCall<ReactRequest, ReactResponse>;
+  /**
+   * Full-text search across the calling principal's chats. Matches on
+   * message content (uses the messages.search_vector tsvector). Returns
+   * chats with their best-matching message preview, ordered by recency
+   * of the match. Self-scoped — only chats the caller participates in
+   * are returned (super_admin still scoped this way; staff cross-chat
+   * search is a separate admin RPC).
+   */
+  searchChats: handleUnaryCall<SearchChatsRequest, SearchChatsResponse>;
 }
 
 export interface ChatServiceClient extends Client {
@@ -1893,6 +2273,29 @@ export interface ChatServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ReactResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Full-text search across the calling principal's chats. Matches on
+   * message content (uses the messages.search_vector tsvector). Returns
+   * chats with their best-matching message preview, ordered by recency
+   * of the match. Self-scoped — only chats the caller participates in
+   * are returned (super_admin still scoped this way; staff cross-chat
+   * search is a separate admin RPC).
+   */
+  searchChats(
+    request: SearchChatsRequest,
+    callback: (error: ServiceError | null, response: SearchChatsResponse) => void
+  ): ClientUnaryCall;
+  searchChats(
+    request: SearchChatsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: SearchChatsResponse) => void
+  ): ClientUnaryCall;
+  searchChats(
+    request: SearchChatsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: SearchChatsResponse) => void
   ): ClientUnaryCall;
 }
 

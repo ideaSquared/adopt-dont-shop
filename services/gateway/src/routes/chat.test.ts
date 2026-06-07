@@ -8,6 +8,7 @@ import type {
   MarkReadRequest,
   OpenChatRequest,
   ReactRequest,
+  SearchChatsRequest,
   SendMessageRequest,
 } from '@adopt-dont-shop/proto';
 
@@ -41,6 +42,7 @@ function makeClient(): ChatClient & {
   listChatsMock: ReturnType<typeof vi.fn>;
   markReadMock: ReturnType<typeof vi.fn>;
   reactMock: ReturnType<typeof vi.fn>;
+  searchChatsMock: ReturnType<typeof vi.fn>;
 } {
   const openChatMock = vi.fn();
   const sendMessageMock = vi.fn();
@@ -48,6 +50,7 @@ function makeClient(): ChatClient & {
   const listChatsMock = vi.fn();
   const markReadMock = vi.fn();
   const reactMock = vi.fn();
+  const searchChatsMock = vi.fn();
   return {
     openChat: openChatMock,
     sendMessage: sendMessageMock,
@@ -55,6 +58,7 @@ function makeClient(): ChatClient & {
     listChats: listChatsMock,
     markRead: markReadMock,
     react: reactMock,
+    searchChats: searchChatsMock,
     close: vi.fn(),
     openChatMock,
     sendMessageMock,
@@ -62,6 +66,7 @@ function makeClient(): ChatClient & {
     listChatsMock,
     markReadMock,
     reactMock,
+    searchChatsMock,
   };
 }
 
@@ -425,5 +430,102 @@ describe('/api/v1/conversations — monolith alias', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(client.markReadMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// --- GET /api/v1/chats/search ---------------------------------------
+
+describe('GET /api/v1/chats/search', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('forwards query, page, limit, rescue_id to SearchChats', async () => {
+    client.searchChatsMock.mockResolvedValueOnce({ hits: [], page: 2, limit: 10, total: 0 });
+
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/search?query=adoption&page=2&limit=10&rescueId=rsc-1',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    const [grpcReq] = client.searchChatsMock.mock.calls[0] as [SearchChatsRequest, Metadata];
+    expect(grpcReq.query).toBe('adoption');
+    expect(grpcReq.page).toBe(2);
+    expect(grpcReq.limit).toBe(10);
+    expect(grpcReq.rescueId).toBe('rsc-1');
+  });
+
+  it('also accepts q + rescue_id snake_case aliases', async () => {
+    client.searchChatsMock.mockResolvedValueOnce({ hits: [], page: 1, limit: 20, total: 0 });
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/search?q=adoption&rescue_id=rsc-2',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    const [grpcReq] = client.searchChatsMock.mock.calls[0] as [SearchChatsRequest, Metadata];
+    expect(grpcReq.query).toBe('adoption');
+    expect(grpcReq.rescueId).toBe('rsc-2');
+  });
+
+  it('returns the monolith-compatible { chats, pagination } envelope', async () => {
+    client.searchChatsMock.mockResolvedValueOnce({
+      hits: [{ chat: CHAT_FIXTURE, match: MESSAGE_FIXTURE }],
+      page: 1,
+      limit: 20,
+      total: 1,
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/search?query=hello',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      success: boolean;
+      data: {
+        chats: Array<{ chatId: string; matched_message: { messageId: string } | null }>;
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data.chats).toHaveLength(1);
+    expect(body.data.chats[0].chatId).toBe('chat-1');
+    expect(body.data.chats[0].matched_message?.messageId).toBe('msg-1');
+    expect(body.data.pagination).toEqual({ page: 1, limit: 20, total: 1, totalPages: 1 });
+  });
+
+  it('maps gRPC INVALID_ARGUMENT to HTTP 400', async () => {
+    client.searchChatsMock.mockRejectedValueOnce({
+      code: status.INVALID_ARGUMENT,
+      details: 'query is required',
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/search?query=',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('also reachable via /api/v1/conversations/search alias', async () => {
+    client.searchChatsMock.mockResolvedValueOnce({ hits: [], page: 1, limit: 20, total: 0 });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/conversations/search?query=adoption',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(client.searchChatsMock).toHaveBeenCalledTimes(1);
   });
 });

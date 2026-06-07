@@ -43,6 +43,14 @@ service ChatService {
   // `emoji` indicates add; an explicit Remove uses a separate field.
   // Idempotent. Publishes chat.reactionAdded or chat.reactionRemoved.
   rpc React(ReactRequest) returns (ReactResponse);
+
+  // Full-text search across the calling principal's chats. Matches on
+  // message content (uses the messages.search_vector tsvector). Returns
+  // chats with their best-matching message preview, ordered by recency
+  // of the match. Self-scoped — only chats the caller participates in
+  // are returned (super_admin still scoped this way; staff cross-chat
+  // search is a separate admin RPC).
+  rpc SearchChats(SearchChatsRequest) returns (SearchChatsResponse);
 }
 
 // --- Messages --------------------------------------------------------
@@ -173,4 +181,42 @@ message ReactRequest {
 
 message ReactResponse {
   Message message = 1;
+}
+
+// --- SearchChats -----------------------------------------------------
+
+message SearchChatsRequest {
+  // Free-form search text. Server enforces 1..100 chars; longer or
+  // shorter strings return INVALID_ARGUMENT.
+  string query = 1;
+  // Offset-based pagination — matches the monolith's page/limit shape
+  // (the SPA already drives it that way). 1-indexed.
+  uint32 page = 2;
+  // Defaults to 20, max 100.
+  uint32 limit = 3;
+  // Optional rescue scope — limit results to chats anchored on a
+  // specific rescue. The caller's participation is enforced
+  // independently regardless of this filter.
+  optional string rescue_id = 4;
+}
+
+// SearchChatHit pairs the chat row with the best matching message
+// (the most recent message whose content matches the query). The SPA
+// renders this as a search result card.
+message SearchChatHit {
+  Chat chat = 1;
+  // The matching message preview. Present only when at least one
+  // message in the chat matched — when this is unset, the chat row
+  // would not have been returned.
+  Message match = 2;
+}
+
+message SearchChatsResponse {
+  repeated SearchChatHit hits = 1;
+  uint32 page = 2;
+  uint32 limit = 3;
+  // Total matching distinct chats — drives the SPA's pagination
+  // controls. Returned in addition to the page so the client can
+  // compute total_pages = ceil(total / limit).
+  uint32 total = 4;
 }

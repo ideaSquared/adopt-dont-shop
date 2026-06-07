@@ -20,6 +20,7 @@ import {
   markRead,
   openChat,
   react,
+  searchChats,
   sendMessage,
 } from './handlers.js';
 
@@ -433,6 +434,140 @@ describe('react', () => {
     expect(res.message?.reactions).toHaveLength(0);
     expect(realClientQueries(mocks)).toEqual(['SELECT', 'DELETE']);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.reactionRemoved');
+  });
+});
+
+// --- searchChats -----------------------------------------------------
+
+describe('searchChats', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects an empty query', async () => {
+    await expect(
+      searchChats(mocks.deps, ADOPTER_PRINCIPAL, { query: '', page: 1, limit: 20 })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a query longer than 100 chars', async () => {
+    await expect(
+      searchChats(mocks.deps, ADOPTER_PRINCIPAL, { query: 'a'.repeat(101), page: 1, limit: 20 })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects an unprivileged principal', async () => {
+    await expect(
+      searchChats(mocks.deps, UNPRIVILEGED_PRINCIPAL, { query: 'cat', page: 1, limit: 20 })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns empty hits when count is 0 (no FTS match)', async () => {
+    mocks.poolScript.push({ rows: [{ total: '0' }] });
+
+    const res = await searchChats(mocks.deps, ADOPTER_PRINCIPAL, {
+      query: 'unfindable',
+      page: 1,
+      limit: 20,
+    });
+
+    expect(res).toEqual({ hits: [], page: 1, limit: 20, total: 0 });
+  });
+
+  it('returns hits with chat + match populated', async () => {
+    // SELECT COUNT(*) — total
+    mocks.poolScript.push({ rows: [{ total: '1' }] });
+    // The outer ORDERED SELECT — one matching chat + message row
+    mocks.poolScript.push({
+      rows: [
+        {
+          c_chat_id: 'chat-1',
+          c_application_id: 'app-1',
+          c_rescue_id: '00000000-0000-0000-0000-000000000000',
+          c_pet_id: null,
+          c_status: 'active',
+          c_created_at: new Date('2026-06-01T00:00:00Z'),
+          c_updated_at: new Date('2026-06-01T00:00:00Z'),
+          m_message_id: 'msg-9',
+          m_chat_id: 'chat-1',
+          m_sender_id: 'usr-rescue',
+          m_content: 'About that adoption',
+          m_edited_at: null,
+          m_deleted_at: null,
+          m_created_at: new Date('2026-06-01T00:30:00Z'),
+        },
+      ],
+    });
+    // Reactions lookup for matching message id
+    mocks.poolScript.push({ rows: [] });
+    // chatRowToProto helpers — participants then last-message-preview
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({
+      rows: [
+        {
+          content: 'About that adoption',
+          sender_id: 'usr-rescue',
+          created_at: new Date('2026-06-01T00:30:00Z'),
+        },
+      ],
+    });
+
+    const res = await searchChats(mocks.deps, ADOPTER_PRINCIPAL, {
+      query: 'adoption',
+      page: 1,
+      limit: 20,
+    });
+
+    expect(res.total).toBe(1);
+    expect(res.hits).toHaveLength(1);
+    expect(res.hits[0].chat?.chatId).toBe('chat-1');
+    expect(res.hits[0].match?.messageId).toBe('msg-9');
+    expect(res.hits[0].match?.body).toBe('About that adoption');
+  });
+
+  it('respects an optional rescue_id filter (binds it as a param)', async () => {
+    mocks.poolScript.push({ rows: [{ total: '0' }] });
+
+    await searchChats(mocks.deps, ADOPTER_PRINCIPAL, {
+      query: 'cat',
+      page: 1,
+      limit: 20,
+      rescueId: 'rsc-1',
+    });
+
+    const countCall = mocks.poolMock.query.mock.calls.find(
+      ([sql]) => typeof sql === 'string' && sql.includes('COUNT(DISTINCT c.chat_id)')
+    );
+    expect(countCall).toBeDefined();
+    const params = countCall![1] as unknown[];
+    // 'english', query, principal.userId, rescueId
+    expect(params).toEqual(['english', 'cat', 'usr-adopter', 'rsc-1']);
+  });
+
+  it('passes pagination params through correctly', async () => {
+    mocks.poolScript.push({ rows: [{ total: '5' }] });
+    mocks.poolScript.push({ rows: [] });
+
+    await searchChats(mocks.deps, ADOPTER_PRINCIPAL, {
+      query: 'cat',
+      page: 2,
+      limit: 10,
+    });
+
+    // The hits SELECT receives limit + offset as the last two params.
+    const hitsCall = mocks.poolMock.query.mock.calls.find(
+      ([sql]) => typeof sql === 'string' && sql.includes('hits') && sql.includes('LIMIT')
+    );
+    expect(hitsCall).toBeDefined();
+    const params = hitsCall![1] as unknown[];
+    expect(params[params.length - 2]).toBe(10); // limit
+    expect(params[params.length - 1]).toBe(10); // offset = (page-1)*limit
   });
 });
 

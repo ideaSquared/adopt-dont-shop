@@ -14,7 +14,15 @@ import { ChatV1 } from '@adopt-dont-shop/proto';
 import type { ChatConfig } from '../config.js';
 
 import { adapt } from './adapter.js';
-import { listChats, listMessages, markRead, openChat, react, sendMessage } from './handlers.js';
+import {
+  listChats,
+  listMessages,
+  markRead,
+  openChat,
+  react,
+  searchChats,
+  sendMessage,
+} from './handlers.js';
 
 export type CreateGrpcServerOptions = {
   config: ChatConfig;
@@ -41,10 +49,19 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     listChats: adapt(listChats, { deps, logger }),
     markRead: adapt(markRead, { deps, logger }),
     react: adapt(react, { deps, logger }),
+    searchChats: adapt(searchChats, { deps, logger }),
   });
 
   logger.info('gRPC ChatService registered', {
-    methods: ['openChat', 'sendMessage', 'listMessages', 'listChats', 'markRead', 'react'],
+    methods: [
+      'openChat',
+      'sendMessage',
+      'listMessages',
+      'listChats',
+      'markRead',
+      'react',
+      'searchChats',
+    ],
     grpcPort: config.grpcPort,
   });
 

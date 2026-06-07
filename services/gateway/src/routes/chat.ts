@@ -20,6 +20,7 @@ import {
   type MarkReadRequest,
   type OpenChatRequest,
   type ReactRequest,
+  type SearchChatsRequest,
   type SendMessageRequest,
 } from '@adopt-dont-shop/proto';
 
@@ -119,6 +120,47 @@ const registerChatRoutesForPrefix = (
     try {
       const res = await client.openChat(grpcReq, metadata);
       return reply.code(res.created ? 201 : 200).send(ChatV1.OpenChatResponse.toJSON(res));
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // ---- GET <prefix>/search ----------------------------------------
+  // Must register BEFORE the :chatId routes so the static segment
+  // wins Fastify's first-registered-wins matcher.
+  app.get(`${prefix}/search`, async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const query = req.query as Record<string, string | undefined>;
+    const grpcReq: SearchChatsRequest = {
+      query: query.query ?? query.q ?? '',
+      page: query.page ? Number.parseInt(query.page, 10) : 1,
+      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+      rescueId: query.rescueId ?? query.rescue_id,
+    };
+
+    try {
+      const res = await client.searchChats(grpcReq, metadata);
+      // Match the monolith ConversationsController.searchConversations
+      // body shape: { chats, pagination } so the SPA's existing search
+      // handler keeps working unchanged.
+      const total = res.total;
+      const limit = res.limit;
+      const page = res.page;
+      return reply.send({
+        success: true,
+        data: {
+          chats: res.hits.map(h => ({
+            ...(ChatV1.Chat.toJSON(h.chat!) as Record<string, unknown>),
+            matched_message: h.match ? ChatV1.Message.toJSON(h.match) : null,
+          })),
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: limit > 0 ? Math.ceil(total / limit) : 0,
+          },
+        },
+      });
     } catch (err) {
       return handleGrpcError(err, reply);
     }
