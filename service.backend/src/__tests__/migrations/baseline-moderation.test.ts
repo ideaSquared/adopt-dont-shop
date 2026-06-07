@@ -72,6 +72,11 @@ const listIndexes = async (table: string): Promise<ReadonlyArray<string>> => {
   return (rows as IndexRow[]).map(r => r.indexname);
 };
 
+const enumExists = async (name: string): Promise<boolean> => {
+  const [rows] = await sequelize.query(`SELECT 1 FROM pg_type WHERE typname = '${name}'`);
+  return (rows as unknown[]).length > 0;
+};
+
 type Migration = {
   up: (qi: typeof queryInterface) => Promise<void>;
   down: (qi: typeof queryInterface) => Promise<void>;
@@ -82,6 +87,7 @@ type Case = {
   table: string;
   destructiveKey: string;
   migration: Migration;
+  enums: ReadonlyArray<string>;
 };
 
 const CASES: ReadonlyArray<Case> = [
@@ -90,66 +96,98 @@ const CASES: ReadonlyArray<Case> = [
     table: 'reports',
     destructiveKey: '00-baseline-041-reports',
     migration: baseline041,
+    enums: [
+      'enum_reports_reported_entity_type',
+      'enum_reports_category',
+      'enum_reports_severity',
+      'enum_reports_status',
+    ],
   },
   {
     name: '042 — report_status_transitions',
     table: 'report_status_transitions',
     destructiveKey: '00-baseline-042-report-status-transitions',
     migration: baseline042,
+    enums: [
+      'enum_report_status_transitions_from_status',
+      'enum_report_status_transitions_to_status',
+    ],
   },
   {
     name: '043 — report_templates',
     table: 'report_templates',
     destructiveKey: '00-baseline-043-report-templates',
     migration: baseline043,
+    enums: ['enum_report_templates_category'],
   },
   {
     name: '044 — report_shares',
     table: 'report_shares',
     destructiveKey: '00-baseline-044-report-shares',
     migration: baseline044,
+    enums: ['enum_report_shares_share_type', 'enum_report_shares_permission'],
   },
   {
     name: '045 — saved_reports',
     table: 'saved_reports',
     destructiveKey: '00-baseline-045-saved-reports',
     migration: baseline045,
+    enums: [],
   },
   {
     name: '046 — scheduled_reports',
     table: 'scheduled_reports',
     destructiveKey: '00-baseline-046-scheduled-reports',
     migration: baseline046,
+    enums: ['enum_scheduled_reports_format', 'enum_scheduled_reports_last_status'],
   },
   {
     name: '047 — moderator_actions',
     table: 'moderator_actions',
     destructiveKey: '00-baseline-047-moderator-actions',
     migration: baseline047,
+    enums: [
+      'enum_moderator_actions_target_entity_type',
+      'enum_moderator_actions_action_type',
+      'enum_moderator_actions_severity',
+    ],
   },
   {
     name: '048 — moderation_evidence',
     table: 'moderation_evidence',
     destructiveKey: '00-baseline-048-moderation-evidence',
     migration: baseline048,
+    enums: ['enum_moderation_evidence_parent_type', 'enum_moderation_evidence_type'],
   },
   {
     name: '049 — user_sanctions',
     table: 'user_sanctions',
     destructiveKey: '00-baseline-049-user-sanctions',
     migration: baseline049,
+    enums: [
+      'enum_user_sanctions_sanction_type',
+      'enum_user_sanctions_reason',
+      'enum_user_sanctions_issued_by_role',
+      'enum_user_sanctions_appeal_status',
+    ],
   },
   {
     name: '050 — support_tickets',
     table: 'support_tickets',
     destructiveKey: '00-baseline-050-support-tickets',
     migration: baseline050,
+    enums: [
+      'enum_support_tickets_status',
+      'enum_support_tickets_priority',
+      'enum_support_tickets_category',
+    ],
   },
   {
     name: '051 — support_ticket_responses',
     table: 'support_ticket_responses',
     destructiveKey: '00-baseline-051-support-ticket-responses',
     migration: baseline051,
+    enums: ['enum_support_ticket_responses_responder_type'],
   },
 ];
 
@@ -184,7 +222,7 @@ describeIfPostgres('per-model baseline — moderation & reports (rebaseline 7/10
     process.env.MIGRATION_DESTRUCTIVE_DOWN_KEY = originalKey;
   });
 
-  describe.each(CASES)('$name', ({ table, destructiveKey, migration }) => {
+  describe.each(CASES)('$name', ({ table, destructiveKey, migration, enums }) => {
     it('up() recreates the table with the same columns sync() produces', async () => {
       const expectedColumns = await listColumns(table);
       expect(expectedColumns.length).toBeGreaterThan(0);
@@ -219,13 +257,16 @@ describeIfPostgres('per-model baseline — moderation & reports (rebaseline 7/10
       expect(await tableExists(table)).toBe(true);
     });
 
-    it('down() drops the table when the destructive-down env flags acknowledge it', async () => {
+    it('down() drops the table and cleans up ENUM types (ADS-503)', async () => {
       process.env.MIGRATION_ALLOW_DESTRUCTIVE_DOWN = '1';
       process.env.MIGRATION_DESTRUCTIVE_DOWN_KEY = destructiveKey;
 
       await migration.down(queryInterface);
 
       expect(await tableExists(table)).toBe(false);
+      for (const enumName of enums) {
+        expect(await enumExists(enumName)).toBe(false);
+      }
     });
   });
 });
