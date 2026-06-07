@@ -39,6 +39,10 @@ import {
   type ValidateTokenResponse,
   type VerifyEmailRequest,
   type VerifyEmailResponse,
+  type ListSessionsRequest,
+  type ListSessionsResponse,
+  type RevokeSessionRequest,
+  type RevokeSessionResponse,
 } from '@adopt-dont-shop/proto';
 
 export type AuthClient = {
@@ -58,6 +62,8 @@ export type AuthClient = {
   resetPassword(req: ResetPasswordRequest, metadata: Metadata): Promise<ResetPasswordResponse>;
   changePassword(req: ChangePasswordRequest, metadata: Metadata): Promise<ChangePasswordResponse>;
   updateAccount(req: UpdateAccountRequest, metadata: Metadata): Promise<UpdateAccountResponse>;
+  listSessions(req: ListSessionsRequest, metadata: Metadata): Promise<ListSessionsResponse>;
+  revokeSession(req: RevokeSessionRequest, metadata: Metadata): Promise<RevokeSessionResponse>;
   close(): void;
 };
 
@@ -97,6 +103,8 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     resetPassword: (req, metadata) => callUnary(stub.resetPassword, req, metadata),
     changePassword: (req, metadata) => callUnary(stub.changePassword, req, metadata),
     updateAccount: (req, metadata) => callUnary(stub.updateAccount, req, metadata),
+    listSessions: (req, metadata) => callUnary(stub.listSessions, req, metadata),
+    revokeSession: (req, metadata) => callUnary(stub.revokeSession, req, metadata),
     close: () => stub.close(),
   };
 };

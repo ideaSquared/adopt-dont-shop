@@ -412,6 +412,50 @@ export interface UpdateAccountResponse {
   user?: User | undefined;
 }
 
+export interface Session {
+  /**
+   * Token row id. Stable per chain — the first refresh_token in the
+   * family that hasn't been replaced by rotation; never changes for
+   * the lifetime of the session.
+   */
+  sessionId: string;
+  /**
+   * Grouping id for the rotation chain. Multiple chains can exist for
+   * one user (one per device / browser).
+   */
+  familyId: string;
+  /**
+   * RFC 3339. The chain root's expiry; rotation extends this on the
+   * active leaf, not the root, so callers should treat this as
+   * approximate.
+   */
+  expiresAt: string;
+  createdAt: string;
+}
+
+/**
+ * Self-scoped — no user_id field. Cross-user listing has no current
+ * use case; admin tooling would call a different (future) RPC.
+ */
+export interface ListSessionsRequest {}
+
+export interface ListSessionsResponse {
+  sessions: Session[];
+}
+
+export interface RevokeSessionRequest {
+  sessionId: string;
+}
+
+export interface RevokeSessionResponse {
+  /**
+   * Echo of the revoked id for ack. Idempotent: a second Revoke on a
+   * already-revoked session returns the same id without error (NATS
+   * event is suppressed on the second call).
+   */
+  sessionId: string;
+}
+
 function createBasePrincipal(): Principal {
   return { userId: '', roles: [], permissions: [], rescueId: undefined };
 }
@@ -3356,6 +3400,369 @@ export const UpdateAccountResponse: MessageFns<UpdateAccountResponse> = {
   },
 };
 
+function createBaseSession(): Session {
+  return { sessionId: '', familyId: '', expiresAt: '', createdAt: '' };
+}
+
+export const Session: MessageFns<Session> = {
+  encode(message: Session, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.sessionId !== '') {
+      writer.uint32(10).string(message.sessionId);
+    }
+    if (message.familyId !== '') {
+      writer.uint32(18).string(message.familyId);
+    }
+    if (message.expiresAt !== '') {
+      writer.uint32(26).string(message.expiresAt);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(34).string(message.createdAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): Session {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSession();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.familyId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.expiresAt = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Session {
+    return {
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+          ? globalThis.String(object.session_id)
+          : '',
+      familyId: isSet(object.familyId)
+        ? globalThis.String(object.familyId)
+        : isSet(object.family_id)
+          ? globalThis.String(object.family_id)
+          : '',
+      expiresAt: isSet(object.expiresAt)
+        ? globalThis.String(object.expiresAt)
+        : isSet(object.expires_at)
+          ? globalThis.String(object.expires_at)
+          : '',
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+    };
+  },
+
+  toJSON(message: Session): unknown {
+    const obj: any = {};
+    if (message.sessionId !== '') {
+      obj.sessionId = message.sessionId;
+    }
+    if (message.familyId !== '') {
+      obj.familyId = message.familyId;
+    }
+    if (message.expiresAt !== '') {
+      obj.expiresAt = message.expiresAt;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Session>, I>>(base?: I): Session {
+    return Session.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<Session>, I>>(object: I): Session {
+    const message = createBaseSession();
+    message.sessionId = object.sessionId ?? '';
+    message.familyId = object.familyId ?? '';
+    message.expiresAt = object.expiresAt ?? '';
+    message.createdAt = object.createdAt ?? '';
+    return message;
+  },
+};
+
+function createBaseListSessionsRequest(): ListSessionsRequest {
+  return {};
+}
+
+export const ListSessionsRequest: MessageFns<ListSessionsRequest> = {
+  encode(_: ListSessionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListSessionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListSessionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): ListSessionsRequest {
+    return {};
+  },
+
+  toJSON(_: ListSessionsRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListSessionsRequest>, I>>(base?: I): ListSessionsRequest {
+    return ListSessionsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListSessionsRequest>, I>>(_: I): ListSessionsRequest {
+    const message = createBaseListSessionsRequest();
+    return message;
+  },
+};
+
+function createBaseListSessionsResponse(): ListSessionsResponse {
+  return { sessions: [] };
+}
+
+export const ListSessionsResponse: MessageFns<ListSessionsResponse> = {
+  encode(message: ListSessionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.sessions) {
+      Session.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListSessionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListSessionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sessions.push(Session.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListSessionsResponse {
+    return {
+      sessions: globalThis.Array.isArray(object?.sessions)
+        ? object.sessions.map((e: any) => Session.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListSessionsResponse): unknown {
+    const obj: any = {};
+    if (message.sessions?.length) {
+      obj.sessions = message.sessions.map(e => Session.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListSessionsResponse>, I>>(base?: I): ListSessionsResponse {
+    return ListSessionsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListSessionsResponse>, I>>(
+    object: I
+  ): ListSessionsResponse {
+    const message = createBaseListSessionsResponse();
+    message.sessions = object.sessions?.map(e => Session.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseRevokeSessionRequest(): RevokeSessionRequest {
+  return { sessionId: '' };
+}
+
+export const RevokeSessionRequest: MessageFns<RevokeSessionRequest> = {
+  encode(message: RevokeSessionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.sessionId !== '') {
+      writer.uint32(10).string(message.sessionId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RevokeSessionRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRevokeSessionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RevokeSessionRequest {
+    return {
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+          ? globalThis.String(object.session_id)
+          : '',
+    };
+  },
+
+  toJSON(message: RevokeSessionRequest): unknown {
+    const obj: any = {};
+    if (message.sessionId !== '') {
+      obj.sessionId = message.sessionId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RevokeSessionRequest>, I>>(base?: I): RevokeSessionRequest {
+    return RevokeSessionRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RevokeSessionRequest>, I>>(
+    object: I
+  ): RevokeSessionRequest {
+    const message = createBaseRevokeSessionRequest();
+    message.sessionId = object.sessionId ?? '';
+    return message;
+  },
+};
+
+function createBaseRevokeSessionResponse(): RevokeSessionResponse {
+  return { sessionId: '' };
+}
+
+export const RevokeSessionResponse: MessageFns<RevokeSessionResponse> = {
+  encode(message: RevokeSessionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.sessionId !== '') {
+      writer.uint32(10).string(message.sessionId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RevokeSessionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRevokeSessionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RevokeSessionResponse {
+    return {
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+          ? globalThis.String(object.session_id)
+          : '',
+    };
+  },
+
+  toJSON(message: RevokeSessionResponse): unknown {
+    const obj: any = {};
+    if (message.sessionId !== '') {
+      obj.sessionId = message.sessionId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RevokeSessionResponse>, I>>(base?: I): RevokeSessionResponse {
+    return RevokeSessionResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RevokeSessionResponse>, I>>(
+    object: I
+  ): RevokeSessionResponse {
+    const message = createBaseRevokeSessionResponse();
+    message.sessionId = object.sessionId ?? '';
+    return message;
+  },
+};
+
 /**
  * AuthService is the gRPC contract for the auth vertical. It owns the
  * `auth.*` schema (User, Role, Permission, RefreshToken, RevokedToken,
@@ -3584,6 +3991,43 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): UpdateAccountResponse =>
       UpdateAccountResponse.decode(value),
   },
+  /**
+   * List active sessions for the calling principal. Always self-scoped
+   * — admins see their own sessions, not anyone else's. Returns the
+   * chain root (first un-replaced token per family) so a rotated
+   * refresh_token chain shows as ONE session, not N.
+   */
+  listSessions: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ListSessions' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListSessionsRequest): Buffer =>
+      Buffer.from(ListSessionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListSessionsRequest => ListSessionsRequest.decode(value),
+    responseSerialize: (value: ListSessionsResponse): Buffer =>
+      Buffer.from(ListSessionsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListSessionsResponse =>
+      ListSessionsResponse.decode(value),
+  },
+  /**
+   * Revoke a session by token_id. Marks the row + every successor in
+   * the same family is_revoked=true so a leaked rotated token can't be
+   * used. Returns NOT_FOUND when token_id doesn't exist or belongs to
+   * a different user — the two cases are indistinguishable on purpose
+   * (no cross-user session enumeration).
+   */
+  revokeSession: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/RevokeSession' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RevokeSessionRequest): Buffer =>
+      Buffer.from(RevokeSessionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RevokeSessionRequest => RevokeSessionRequest.decode(value),
+    responseSerialize: (value: RevokeSessionResponse): Buffer =>
+      Buffer.from(RevokeSessionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RevokeSessionResponse =>
+      RevokeSessionResponse.decode(value),
+  },
 } as const;
 
 export interface AuthServiceServer extends UntypedServiceImplementation {
@@ -3657,6 +4101,21 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * through a dedicated re-verification flow (deferred).
    */
   updateAccount: handleUnaryCall<UpdateAccountRequest, UpdateAccountResponse>;
+  /**
+   * List active sessions for the calling principal. Always self-scoped
+   * — admins see their own sessions, not anyone else's. Returns the
+   * chain root (first un-replaced token per family) so a rotated
+   * refresh_token chain shows as ONE session, not N.
+   */
+  listSessions: handleUnaryCall<ListSessionsRequest, ListSessionsResponse>;
+  /**
+   * Revoke a session by token_id. Marks the row + every successor in
+   * the same family is_revoked=true so a leaked rotated token can't be
+   * used. Returns NOT_FOUND when token_id doesn't exist or belongs to
+   * a different user — the two cases are indistinguishable on purpose
+   * (no cross-user session enumeration).
+   */
+  revokeSession: handleUnaryCall<RevokeSessionRequest, RevokeSessionResponse>;
 }
 
 export interface AuthServiceClient extends Client {
@@ -3911,6 +4370,49 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: UpdateAccountResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * List active sessions for the calling principal. Always self-scoped
+   * — admins see their own sessions, not anyone else's. Returns the
+   * chain root (first un-replaced token per family) so a rotated
+   * refresh_token chain shows as ONE session, not N.
+   */
+  listSessions(
+    request: ListSessionsRequest,
+    callback: (error: ServiceError | null, response: ListSessionsResponse) => void
+  ): ClientUnaryCall;
+  listSessions(
+    request: ListSessionsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListSessionsResponse) => void
+  ): ClientUnaryCall;
+  listSessions(
+    request: ListSessionsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListSessionsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Revoke a session by token_id. Marks the row + every successor in
+   * the same family is_revoked=true so a leaked rotated token can't be
+   * used. Returns NOT_FOUND when token_id doesn't exist or belongs to
+   * a different user — the two cases are indistinguishable on purpose
+   * (no cross-user session enumeration).
+   */
+  revokeSession(
+    request: RevokeSessionRequest,
+    callback: (error: ServiceError | null, response: RevokeSessionResponse) => void
+  ): ClientUnaryCall;
+  revokeSession(
+    request: RevokeSessionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RevokeSessionResponse) => void
+  ): ClientUnaryCall;
+  revokeSession(
+    request: RevokeSessionRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RevokeSessionResponse) => void
   ): ClientUnaryCall;
 }
 

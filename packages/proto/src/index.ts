@@ -87,6 +87,11 @@ export type {
   ChangePasswordResponse,
   UpdateAccountRequest,
   UpdateAccountResponse,
+  Session as AuthSession,
+  ListSessionsRequest,
+  ListSessionsResponse,
+  RevokeSessionRequest,
+  RevokeSessionResponse,
   AuthServiceServer,
   AuthServiceClient,
 } from './generated/proto/adopt_dont_shop/auth/v1/auth.js';
