@@ -54,6 +54,30 @@ service MatchingService {
   // passed, super-liked. Powers the "likes" / "interests" surface
   // in the SPA. Filterable by action type.
   rpc ListSwipeHistory(ListSwipeHistoryRequest) returns (ListSwipeHistoryResponse);
+
+  // --- Match profile ---------------------------------------------------
+  // The adopter's explicit matching preferences (one row per user).
+  // Drives the recommender + top-picks scorer.
+
+  // Read the calling principal's match profile, returning empty defaults
+  // when the row doesn't exist yet (the SPA renders an empty form).
+  rpc GetMatchProfile(GetMatchProfileRequest) returns (GetMatchProfileResponse);
+
+  // Create-or-update the calling principal's match profile. Only the
+  // fields present in the request are written; the rest keep their
+  // current value (or the column default on first insert).
+  rpc UpsertMatchProfile(UpsertMatchProfileRequest) returns (UpsertMatchProfileResponse);
+
+  // --- Swipe statistics ------------------------------------------------
+
+  // Aggregate swipe counts for a user (total / likes / passes /
+  // super-likes / info-views). Self-scoped — admins can read any user
+  // via swipes:read:any.
+  rpc GetUserSwipeStats(GetUserSwipeStatsRequest) returns (GetUserSwipeStatsResponse);
+
+  // Aggregate swipe counts for a single session. Caller MUST own the
+  // session (or be admin).
+  rpc GetSessionStats(GetSessionStatsRequest) returns (GetSessionStatsResponse);
 }
 
 // ===== Enums =========================================================
@@ -237,4 +261,96 @@ message ListSwipeHistoryRequest {
 message ListSwipeHistoryResponse {
   repeated SwipeActionRecord actions = 1;
   optional string next_cursor = 2;
+}
+
+// ===== Match profile =================================================
+
+// MatchProfile mirrors the matching.adopter_match_profiles row. The
+// JSONB preference fields are carried as JSON-stringified blobs so the
+// proto doesn't have to enumerate every preference shape; the gateway
+// parses them back to JSON for the SPA.
+message MatchProfile {
+  string user_id = 1;
+  // JSON-stringified arrays of strings. Empty string == null (unset).
+  string preferred_types_json = 2;
+  string preferred_sizes_json = 3;
+  string preferred_age_groups_json = 4;
+  string preferred_energy_json = 5;
+  string preferred_temperament_json = 6;
+  // JSON-stringified objects. Empty string == "{}".
+  string lifestyle_json = 7;
+  optional uint32 max_distance_km = 8;
+  bool open_to_special_needs = 9;
+  bool notify_new_matches = 10;
+  uint32 min_notification_score = 11;
+  optional string last_notified_at = 12;
+  string inferred_prefs_json = 13;
+  optional string prefs_updated_at = 14;
+  optional string allergies = 15;
+  string created_at = 16;
+  string updated_at = 17;
+}
+
+message GetMatchProfileRequest {}
+
+message GetMatchProfileResponse {
+  MatchProfile profile = 1;
+}
+
+message UpsertMatchProfileRequest {
+  // Each `*_json` field is optional via the presence of a non-empty
+  // string; an omitted field is left unchanged. The handler distinguishes
+  // "not provided" (empty string) from "set to empty" by the wrapper
+  // booleans below — proto3 doesn't give us field presence on scalars,
+  // so a parallel set_* bool marks intent.
+  string preferred_types_json = 1;
+  bool set_preferred_types = 2;
+  string preferred_sizes_json = 3;
+  bool set_preferred_sizes = 4;
+  string preferred_age_groups_json = 5;
+  bool set_preferred_age_groups = 6;
+  string preferred_energy_json = 7;
+  bool set_preferred_energy = 8;
+  string preferred_temperament_json = 9;
+  bool set_preferred_temperament = 10;
+  string lifestyle_json = 11;
+  bool set_lifestyle = 12;
+  optional uint32 max_distance_km = 13;
+  optional bool open_to_special_needs = 14;
+  optional bool notify_new_matches = 15;
+  optional uint32 min_notification_score = 16;
+  optional string allergies = 17;
+  bool set_allergies = 18;
+}
+
+message UpsertMatchProfileResponse {
+  MatchProfile profile = 1;
+}
+
+// ===== Swipe statistics ==============================================
+
+message SwipeStats {
+  uint32 total_swipes = 1;
+  uint32 likes = 2;
+  uint32 passes = 3;
+  uint32 super_likes = 4;
+  uint32 info_views = 5;
+}
+
+message GetUserSwipeStatsRequest {
+  // Optional target. Defaults to the calling principal. Cross-user reads
+  // require swipes:read:any.
+  optional string user_id = 1;
+}
+
+message GetUserSwipeStatsResponse {
+  SwipeStats stats = 1;
+}
+
+message GetSessionStatsRequest {
+  string session_id = 1;
+}
+
+message GetSessionStatsResponse {
+  SwipeStats stats = 1;
 }

@@ -268,7 +268,141 @@ export const registerMatchingRoutes = async (
       }
     }
   );
+
+  // ---- Match profile -----------------------------------------------
+  // GET /api/v1/match/profile — read the adopter's preferences.
+  app.get('/api/v1/match/profile', async (req, reply) => {
+    try {
+      const res = await client.getMatchProfile({}, buildMetadata(req));
+      return reply.send({ success: true, data: matchProfileToView(res.profile) });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // PUT /api/v1/match/profile — upsert. The SPA sends snake_case
+  // preference fields; map each to the proto's set_* + *_json pair.
+  app.put('/api/v1/match/profile', async (req, reply) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    try {
+      const grpcReq = buildUpsertRequest(body);
+      const res = await client.upsertMatchProfile(grpcReq, buildMetadata(req));
+      return reply.send({ success: true, data: matchProfileToView(res.profile) });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // ---- Swipe statistics --------------------------------------------
+  // GET /api/v1/discovery/swipe/stats/:userId
+  app.get<{ Params: { userId: string } }>(
+    '/api/v1/discovery/swipe/stats/:userId',
+    async (req, reply) => {
+      try {
+        const res = await client.getUserSwipeStats(
+          { userId: req.params.userId },
+          buildMetadata(req)
+        );
+        return reply.send({
+          success: true,
+          message: 'Swipe statistics retrieved successfully',
+          data: res.stats,
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /api/v1/discovery/swipe/session/:sessionId
+  app.get<{ Params: { sessionId: string } }>(
+    '/api/v1/discovery/swipe/session/:sessionId',
+    async (req, reply) => {
+      try {
+        const res = await client.getSessionStats(
+          { sessionId: req.params.sessionId },
+          buildMetadata(req)
+        );
+        return reply.send({
+          success: true,
+          message: 'Session statistics retrieved successfully',
+          data: res.stats,
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
 };
+
+// --- Match profile view + request helpers ----------------------------
+
+// Reshape the proto MatchProfile (JSON-stringified blobs) back into the
+// monolith's JSON object shape so the SPA's profile form binds without
+// change.
+function matchProfileToView(
+  profile: MatchingV1.MatchProfile | undefined
+): Record<string, unknown> | undefined {
+  if (!profile) return undefined;
+  const parseOrNull = (s: string): unknown => (s === '' ? null : safeJson(s));
+  return {
+    user_id: profile.userId,
+    preferred_types: parseOrNull(profile.preferredTypesJson),
+    preferred_sizes: parseOrNull(profile.preferredSizesJson),
+    preferred_age_groups: parseOrNull(profile.preferredAgeGroupsJson),
+    preferred_energy: parseOrNull(profile.preferredEnergyJson),
+    preferred_temperament: parseOrNull(profile.preferredTemperamentJson),
+    lifestyle: safeJson(profile.lifestyleJson) ?? {},
+    max_distance_km: profile.maxDistanceKm ?? null,
+    open_to_special_needs: profile.openToSpecialNeeds,
+    notify_new_matches: profile.notifyNewMatches,
+    min_notification_score: profile.minNotificationScore,
+    last_notified_at: profile.lastNotifiedAt ?? null,
+    inferred_prefs: safeJson(profile.inferredPrefsJson) ?? {},
+    prefs_updated_at: profile.prefsUpdatedAt ?? null,
+    allergies: profile.allergies ?? null,
+  };
+}
+
+function safeJson(s: string): unknown {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
+}
+
+// Map the SPA's snake_case body to the proto's set_* + *_json pairs.
+// A field present in the body → set_*=true + its JSON-stringified value.
+function buildUpsertRequest(body: Record<string, unknown>): MatchingV1.UpsertMatchProfileRequest {
+  const has = (k: string): boolean => Object.prototype.hasOwnProperty.call(body, k);
+  const jsonField = (k: string): string => (has(k) ? JSON.stringify(body[k]) : '');
+
+  return {
+    preferredTypesJson: jsonField('preferred_types'),
+    setPreferredTypes: has('preferred_types'),
+    preferredSizesJson: jsonField('preferred_sizes'),
+    setPreferredSizes: has('preferred_sizes'),
+    preferredAgeGroupsJson: jsonField('preferred_age_groups'),
+    setPreferredAgeGroups: has('preferred_age_groups'),
+    preferredEnergyJson: jsonField('preferred_energy'),
+    setPreferredEnergy: has('preferred_energy'),
+    preferredTemperamentJson: jsonField('preferred_temperament'),
+    setPreferredTemperament: has('preferred_temperament'),
+    lifestyleJson: jsonField('lifestyle'),
+    setLifestyle: has('lifestyle'),
+    maxDistanceKm: has('max_distance_km') ? Number(body.max_distance_km) : undefined,
+    openToSpecialNeeds: has('open_to_special_needs')
+      ? Boolean(body.open_to_special_needs)
+      : undefined,
+    notifyNewMatches: has('notify_new_matches') ? Boolean(body.notify_new_matches) : undefined,
+    minNotificationScore: has('min_notification_score')
+      ? Number(body.min_notification_score)
+      : undefined,
+    allergies: has('allergies') ? (body.allergies as string | undefined) : undefined,
+    setAllergies: has('allergies'),
+  };
+}
 
 type DiscoveryQueueBody = {
   sessionId?: string;

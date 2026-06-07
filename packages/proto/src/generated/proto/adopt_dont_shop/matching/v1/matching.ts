@@ -300,6 +300,100 @@ export interface ListSwipeHistoryResponse {
   nextCursor?: string | undefined;
 }
 
+/**
+ * MatchProfile mirrors the matching.adopter_match_profiles row. The
+ * JSONB preference fields are carried as JSON-stringified blobs so the
+ * proto doesn't have to enumerate every preference shape; the gateway
+ * parses them back to JSON for the SPA.
+ */
+export interface MatchProfile {
+  userId: string;
+  /** JSON-stringified arrays of strings. Empty string == null (unset). */
+  preferredTypesJson: string;
+  preferredSizesJson: string;
+  preferredAgeGroupsJson: string;
+  preferredEnergyJson: string;
+  preferredTemperamentJson: string;
+  /** JSON-stringified objects. Empty string == "{}". */
+  lifestyleJson: string;
+  maxDistanceKm?: number | undefined;
+  openToSpecialNeeds: boolean;
+  notifyNewMatches: boolean;
+  minNotificationScore: number;
+  lastNotifiedAt?: string | undefined;
+  inferredPrefsJson: string;
+  prefsUpdatedAt?: string | undefined;
+  allergies?: string | undefined;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetMatchProfileRequest {}
+
+export interface GetMatchProfileResponse {
+  profile?: MatchProfile | undefined;
+}
+
+export interface UpsertMatchProfileRequest {
+  /**
+   * Each `*_json` field is optional via the presence of a non-empty
+   * string; an omitted field is left unchanged. The handler distinguishes
+   * "not provided" (empty string) from "set to empty" by the wrapper
+   * booleans below — proto3 doesn't give us field presence on scalars,
+   * so a parallel set_* bool marks intent.
+   */
+  preferredTypesJson: string;
+  setPreferredTypes: boolean;
+  preferredSizesJson: string;
+  setPreferredSizes: boolean;
+  preferredAgeGroupsJson: string;
+  setPreferredAgeGroups: boolean;
+  preferredEnergyJson: string;
+  setPreferredEnergy: boolean;
+  preferredTemperamentJson: string;
+  setPreferredTemperament: boolean;
+  lifestyleJson: string;
+  setLifestyle: boolean;
+  maxDistanceKm?: number | undefined;
+  openToSpecialNeeds?: boolean | undefined;
+  notifyNewMatches?: boolean | undefined;
+  minNotificationScore?: number | undefined;
+  allergies?: string | undefined;
+  setAllergies: boolean;
+}
+
+export interface UpsertMatchProfileResponse {
+  profile?: MatchProfile | undefined;
+}
+
+export interface SwipeStats {
+  totalSwipes: number;
+  likes: number;
+  passes: number;
+  superLikes: number;
+  infoViews: number;
+}
+
+export interface GetUserSwipeStatsRequest {
+  /**
+   * Optional target. Defaults to the calling principal. Cross-user reads
+   * require swipes:read:any.
+   */
+  userId?: string | undefined;
+}
+
+export interface GetUserSwipeStatsResponse {
+  stats?: SwipeStats | undefined;
+}
+
+export interface GetSessionStatsRequest {
+  sessionId: string;
+}
+
+export interface GetSessionStatsResponse {
+  stats?: SwipeStats | undefined;
+}
+
 function createBaseSwipeSession(): SwipeSession {
   return {
     sessionId: '',
@@ -2191,6 +2285,1424 @@ export const ListSwipeHistoryResponse: MessageFns<ListSwipeHistoryResponse> = {
   },
 };
 
+function createBaseMatchProfile(): MatchProfile {
+  return {
+    userId: '',
+    preferredTypesJson: '',
+    preferredSizesJson: '',
+    preferredAgeGroupsJson: '',
+    preferredEnergyJson: '',
+    preferredTemperamentJson: '',
+    lifestyleJson: '',
+    maxDistanceKm: undefined,
+    openToSpecialNeeds: false,
+    notifyNewMatches: false,
+    minNotificationScore: 0,
+    lastNotifiedAt: undefined,
+    inferredPrefsJson: '',
+    prefsUpdatedAt: undefined,
+    allergies: undefined,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const MatchProfile: MessageFns<MatchProfile> = {
+  encode(message: MatchProfile, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.preferredTypesJson !== '') {
+      writer.uint32(18).string(message.preferredTypesJson);
+    }
+    if (message.preferredSizesJson !== '') {
+      writer.uint32(26).string(message.preferredSizesJson);
+    }
+    if (message.preferredAgeGroupsJson !== '') {
+      writer.uint32(34).string(message.preferredAgeGroupsJson);
+    }
+    if (message.preferredEnergyJson !== '') {
+      writer.uint32(42).string(message.preferredEnergyJson);
+    }
+    if (message.preferredTemperamentJson !== '') {
+      writer.uint32(50).string(message.preferredTemperamentJson);
+    }
+    if (message.lifestyleJson !== '') {
+      writer.uint32(58).string(message.lifestyleJson);
+    }
+    if (message.maxDistanceKm !== undefined) {
+      writer.uint32(64).uint32(message.maxDistanceKm);
+    }
+    if (message.openToSpecialNeeds !== false) {
+      writer.uint32(72).bool(message.openToSpecialNeeds);
+    }
+    if (message.notifyNewMatches !== false) {
+      writer.uint32(80).bool(message.notifyNewMatches);
+    }
+    if (message.minNotificationScore !== 0) {
+      writer.uint32(88).uint32(message.minNotificationScore);
+    }
+    if (message.lastNotifiedAt !== undefined) {
+      writer.uint32(98).string(message.lastNotifiedAt);
+    }
+    if (message.inferredPrefsJson !== '') {
+      writer.uint32(106).string(message.inferredPrefsJson);
+    }
+    if (message.prefsUpdatedAt !== undefined) {
+      writer.uint32(114).string(message.prefsUpdatedAt);
+    }
+    if (message.allergies !== undefined) {
+      writer.uint32(122).string(message.allergies);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(130).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(138).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MatchProfile {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMatchProfile();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.preferredTypesJson = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.preferredSizesJson = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.preferredAgeGroupsJson = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.preferredEnergyJson = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.preferredTemperamentJson = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.lifestyleJson = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.maxDistanceKm = reader.uint32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.openToSpecialNeeds = reader.bool();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.notifyNewMatches = reader.bool();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.minNotificationScore = reader.uint32();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.lastNotifiedAt = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.inferredPrefsJson = reader.string();
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.prefsUpdatedAt = reader.string();
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.allergies = reader.string();
+          continue;
+        }
+        case 16: {
+          if (tag !== 130) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MatchProfile {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      preferredTypesJson: isSet(object.preferredTypesJson)
+        ? globalThis.String(object.preferredTypesJson)
+        : isSet(object.preferred_types_json)
+          ? globalThis.String(object.preferred_types_json)
+          : '',
+      preferredSizesJson: isSet(object.preferredSizesJson)
+        ? globalThis.String(object.preferredSizesJson)
+        : isSet(object.preferred_sizes_json)
+          ? globalThis.String(object.preferred_sizes_json)
+          : '',
+      preferredAgeGroupsJson: isSet(object.preferredAgeGroupsJson)
+        ? globalThis.String(object.preferredAgeGroupsJson)
+        : isSet(object.preferred_age_groups_json)
+          ? globalThis.String(object.preferred_age_groups_json)
+          : '',
+      preferredEnergyJson: isSet(object.preferredEnergyJson)
+        ? globalThis.String(object.preferredEnergyJson)
+        : isSet(object.preferred_energy_json)
+          ? globalThis.String(object.preferred_energy_json)
+          : '',
+      preferredTemperamentJson: isSet(object.preferredTemperamentJson)
+        ? globalThis.String(object.preferredTemperamentJson)
+        : isSet(object.preferred_temperament_json)
+          ? globalThis.String(object.preferred_temperament_json)
+          : '',
+      lifestyleJson: isSet(object.lifestyleJson)
+        ? globalThis.String(object.lifestyleJson)
+        : isSet(object.lifestyle_json)
+          ? globalThis.String(object.lifestyle_json)
+          : '',
+      maxDistanceKm: isSet(object.maxDistanceKm)
+        ? globalThis.Number(object.maxDistanceKm)
+        : isSet(object.max_distance_km)
+          ? globalThis.Number(object.max_distance_km)
+          : undefined,
+      openToSpecialNeeds: isSet(object.openToSpecialNeeds)
+        ? globalThis.Boolean(object.openToSpecialNeeds)
+        : isSet(object.open_to_special_needs)
+          ? globalThis.Boolean(object.open_to_special_needs)
+          : false,
+      notifyNewMatches: isSet(object.notifyNewMatches)
+        ? globalThis.Boolean(object.notifyNewMatches)
+        : isSet(object.notify_new_matches)
+          ? globalThis.Boolean(object.notify_new_matches)
+          : false,
+      minNotificationScore: isSet(object.minNotificationScore)
+        ? globalThis.Number(object.minNotificationScore)
+        : isSet(object.min_notification_score)
+          ? globalThis.Number(object.min_notification_score)
+          : 0,
+      lastNotifiedAt: isSet(object.lastNotifiedAt)
+        ? globalThis.String(object.lastNotifiedAt)
+        : isSet(object.last_notified_at)
+          ? globalThis.String(object.last_notified_at)
+          : undefined,
+      inferredPrefsJson: isSet(object.inferredPrefsJson)
+        ? globalThis.String(object.inferredPrefsJson)
+        : isSet(object.inferred_prefs_json)
+          ? globalThis.String(object.inferred_prefs_json)
+          : '',
+      prefsUpdatedAt: isSet(object.prefsUpdatedAt)
+        ? globalThis.String(object.prefsUpdatedAt)
+        : isSet(object.prefs_updated_at)
+          ? globalThis.String(object.prefs_updated_at)
+          : undefined,
+      allergies: isSet(object.allergies) ? globalThis.String(object.allergies) : undefined,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: MatchProfile): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.preferredTypesJson !== '') {
+      obj.preferredTypesJson = message.preferredTypesJson;
+    }
+    if (message.preferredSizesJson !== '') {
+      obj.preferredSizesJson = message.preferredSizesJson;
+    }
+    if (message.preferredAgeGroupsJson !== '') {
+      obj.preferredAgeGroupsJson = message.preferredAgeGroupsJson;
+    }
+    if (message.preferredEnergyJson !== '') {
+      obj.preferredEnergyJson = message.preferredEnergyJson;
+    }
+    if (message.preferredTemperamentJson !== '') {
+      obj.preferredTemperamentJson = message.preferredTemperamentJson;
+    }
+    if (message.lifestyleJson !== '') {
+      obj.lifestyleJson = message.lifestyleJson;
+    }
+    if (message.maxDistanceKm !== undefined) {
+      obj.maxDistanceKm = Math.round(message.maxDistanceKm);
+    }
+    if (message.openToSpecialNeeds !== false) {
+      obj.openToSpecialNeeds = message.openToSpecialNeeds;
+    }
+    if (message.notifyNewMatches !== false) {
+      obj.notifyNewMatches = message.notifyNewMatches;
+    }
+    if (message.minNotificationScore !== 0) {
+      obj.minNotificationScore = Math.round(message.minNotificationScore);
+    }
+    if (message.lastNotifiedAt !== undefined) {
+      obj.lastNotifiedAt = message.lastNotifiedAt;
+    }
+    if (message.inferredPrefsJson !== '') {
+      obj.inferredPrefsJson = message.inferredPrefsJson;
+    }
+    if (message.prefsUpdatedAt !== undefined) {
+      obj.prefsUpdatedAt = message.prefsUpdatedAt;
+    }
+    if (message.allergies !== undefined) {
+      obj.allergies = message.allergies;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MatchProfile>, I>>(base?: I): MatchProfile {
+    return MatchProfile.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MatchProfile>, I>>(object: I): MatchProfile {
+    const message = createBaseMatchProfile();
+    message.userId = object.userId ?? '';
+    message.preferredTypesJson = object.preferredTypesJson ?? '';
+    message.preferredSizesJson = object.preferredSizesJson ?? '';
+    message.preferredAgeGroupsJson = object.preferredAgeGroupsJson ?? '';
+    message.preferredEnergyJson = object.preferredEnergyJson ?? '';
+    message.preferredTemperamentJson = object.preferredTemperamentJson ?? '';
+    message.lifestyleJson = object.lifestyleJson ?? '';
+    message.maxDistanceKm = object.maxDistanceKm ?? undefined;
+    message.openToSpecialNeeds = object.openToSpecialNeeds ?? false;
+    message.notifyNewMatches = object.notifyNewMatches ?? false;
+    message.minNotificationScore = object.minNotificationScore ?? 0;
+    message.lastNotifiedAt = object.lastNotifiedAt ?? undefined;
+    message.inferredPrefsJson = object.inferredPrefsJson ?? '';
+    message.prefsUpdatedAt = object.prefsUpdatedAt ?? undefined;
+    message.allergies = object.allergies ?? undefined;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseGetMatchProfileRequest(): GetMatchProfileRequest {
+  return {};
+}
+
+export const GetMatchProfileRequest: MessageFns<GetMatchProfileRequest> = {
+  encode(_: GetMatchProfileRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetMatchProfileRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetMatchProfileRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetMatchProfileRequest {
+    return {};
+  },
+
+  toJSON(_: GetMatchProfileRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetMatchProfileRequest>, I>>(
+    base?: I
+  ): GetMatchProfileRequest {
+    return GetMatchProfileRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetMatchProfileRequest>, I>>(
+    _: I
+  ): GetMatchProfileRequest {
+    const message = createBaseGetMatchProfileRequest();
+    return message;
+  },
+};
+
+function createBaseGetMatchProfileResponse(): GetMatchProfileResponse {
+  return { profile: undefined };
+}
+
+export const GetMatchProfileResponse: MessageFns<GetMatchProfileResponse> = {
+  encode(
+    message: GetMatchProfileResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.profile !== undefined) {
+      MatchProfile.encode(message.profile, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetMatchProfileResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetMatchProfileResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.profile = MatchProfile.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetMatchProfileResponse {
+    return { profile: isSet(object.profile) ? MatchProfile.fromJSON(object.profile) : undefined };
+  },
+
+  toJSON(message: GetMatchProfileResponse): unknown {
+    const obj: any = {};
+    if (message.profile !== undefined) {
+      obj.profile = MatchProfile.toJSON(message.profile);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetMatchProfileResponse>, I>>(
+    base?: I
+  ): GetMatchProfileResponse {
+    return GetMatchProfileResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetMatchProfileResponse>, I>>(
+    object: I
+  ): GetMatchProfileResponse {
+    const message = createBaseGetMatchProfileResponse();
+    message.profile =
+      object.profile !== undefined && object.profile !== null
+        ? MatchProfile.fromPartial(object.profile)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseUpsertMatchProfileRequest(): UpsertMatchProfileRequest {
+  return {
+    preferredTypesJson: '',
+    setPreferredTypes: false,
+    preferredSizesJson: '',
+    setPreferredSizes: false,
+    preferredAgeGroupsJson: '',
+    setPreferredAgeGroups: false,
+    preferredEnergyJson: '',
+    setPreferredEnergy: false,
+    preferredTemperamentJson: '',
+    setPreferredTemperament: false,
+    lifestyleJson: '',
+    setLifestyle: false,
+    maxDistanceKm: undefined,
+    openToSpecialNeeds: undefined,
+    notifyNewMatches: undefined,
+    minNotificationScore: undefined,
+    allergies: undefined,
+    setAllergies: false,
+  };
+}
+
+export const UpsertMatchProfileRequest: MessageFns<UpsertMatchProfileRequest> = {
+  encode(
+    message: UpsertMatchProfileRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.preferredTypesJson !== '') {
+      writer.uint32(10).string(message.preferredTypesJson);
+    }
+    if (message.setPreferredTypes !== false) {
+      writer.uint32(16).bool(message.setPreferredTypes);
+    }
+    if (message.preferredSizesJson !== '') {
+      writer.uint32(26).string(message.preferredSizesJson);
+    }
+    if (message.setPreferredSizes !== false) {
+      writer.uint32(32).bool(message.setPreferredSizes);
+    }
+    if (message.preferredAgeGroupsJson !== '') {
+      writer.uint32(42).string(message.preferredAgeGroupsJson);
+    }
+    if (message.setPreferredAgeGroups !== false) {
+      writer.uint32(48).bool(message.setPreferredAgeGroups);
+    }
+    if (message.preferredEnergyJson !== '') {
+      writer.uint32(58).string(message.preferredEnergyJson);
+    }
+    if (message.setPreferredEnergy !== false) {
+      writer.uint32(64).bool(message.setPreferredEnergy);
+    }
+    if (message.preferredTemperamentJson !== '') {
+      writer.uint32(74).string(message.preferredTemperamentJson);
+    }
+    if (message.setPreferredTemperament !== false) {
+      writer.uint32(80).bool(message.setPreferredTemperament);
+    }
+    if (message.lifestyleJson !== '') {
+      writer.uint32(90).string(message.lifestyleJson);
+    }
+    if (message.setLifestyle !== false) {
+      writer.uint32(96).bool(message.setLifestyle);
+    }
+    if (message.maxDistanceKm !== undefined) {
+      writer.uint32(104).uint32(message.maxDistanceKm);
+    }
+    if (message.openToSpecialNeeds !== undefined) {
+      writer.uint32(112).bool(message.openToSpecialNeeds);
+    }
+    if (message.notifyNewMatches !== undefined) {
+      writer.uint32(120).bool(message.notifyNewMatches);
+    }
+    if (message.minNotificationScore !== undefined) {
+      writer.uint32(128).uint32(message.minNotificationScore);
+    }
+    if (message.allergies !== undefined) {
+      writer.uint32(138).string(message.allergies);
+    }
+    if (message.setAllergies !== false) {
+      writer.uint32(144).bool(message.setAllergies);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpsertMatchProfileRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpsertMatchProfileRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.preferredTypesJson = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.setPreferredTypes = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.preferredSizesJson = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.setPreferredSizes = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.preferredAgeGroupsJson = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.setPreferredAgeGroups = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.preferredEnergyJson = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.setPreferredEnergy = reader.bool();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.preferredTemperamentJson = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.setPreferredTemperament = reader.bool();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.lifestyleJson = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
+            break;
+          }
+
+          message.setLifestyle = reader.bool();
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.maxDistanceKm = reader.uint32();
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+
+          message.openToSpecialNeeds = reader.bool();
+          continue;
+        }
+        case 15: {
+          if (tag !== 120) {
+            break;
+          }
+
+          message.notifyNewMatches = reader.bool();
+          continue;
+        }
+        case 16: {
+          if (tag !== 128) {
+            break;
+          }
+
+          message.minNotificationScore = reader.uint32();
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.allergies = reader.string();
+          continue;
+        }
+        case 18: {
+          if (tag !== 144) {
+            break;
+          }
+
+          message.setAllergies = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpsertMatchProfileRequest {
+    return {
+      preferredTypesJson: isSet(object.preferredTypesJson)
+        ? globalThis.String(object.preferredTypesJson)
+        : isSet(object.preferred_types_json)
+          ? globalThis.String(object.preferred_types_json)
+          : '',
+      setPreferredTypes: isSet(object.setPreferredTypes)
+        ? globalThis.Boolean(object.setPreferredTypes)
+        : isSet(object.set_preferred_types)
+          ? globalThis.Boolean(object.set_preferred_types)
+          : false,
+      preferredSizesJson: isSet(object.preferredSizesJson)
+        ? globalThis.String(object.preferredSizesJson)
+        : isSet(object.preferred_sizes_json)
+          ? globalThis.String(object.preferred_sizes_json)
+          : '',
+      setPreferredSizes: isSet(object.setPreferredSizes)
+        ? globalThis.Boolean(object.setPreferredSizes)
+        : isSet(object.set_preferred_sizes)
+          ? globalThis.Boolean(object.set_preferred_sizes)
+          : false,
+      preferredAgeGroupsJson: isSet(object.preferredAgeGroupsJson)
+        ? globalThis.String(object.preferredAgeGroupsJson)
+        : isSet(object.preferred_age_groups_json)
+          ? globalThis.String(object.preferred_age_groups_json)
+          : '',
+      setPreferredAgeGroups: isSet(object.setPreferredAgeGroups)
+        ? globalThis.Boolean(object.setPreferredAgeGroups)
+        : isSet(object.set_preferred_age_groups)
+          ? globalThis.Boolean(object.set_preferred_age_groups)
+          : false,
+      preferredEnergyJson: isSet(object.preferredEnergyJson)
+        ? globalThis.String(object.preferredEnergyJson)
+        : isSet(object.preferred_energy_json)
+          ? globalThis.String(object.preferred_energy_json)
+          : '',
+      setPreferredEnergy: isSet(object.setPreferredEnergy)
+        ? globalThis.Boolean(object.setPreferredEnergy)
+        : isSet(object.set_preferred_energy)
+          ? globalThis.Boolean(object.set_preferred_energy)
+          : false,
+      preferredTemperamentJson: isSet(object.preferredTemperamentJson)
+        ? globalThis.String(object.preferredTemperamentJson)
+        : isSet(object.preferred_temperament_json)
+          ? globalThis.String(object.preferred_temperament_json)
+          : '',
+      setPreferredTemperament: isSet(object.setPreferredTemperament)
+        ? globalThis.Boolean(object.setPreferredTemperament)
+        : isSet(object.set_preferred_temperament)
+          ? globalThis.Boolean(object.set_preferred_temperament)
+          : false,
+      lifestyleJson: isSet(object.lifestyleJson)
+        ? globalThis.String(object.lifestyleJson)
+        : isSet(object.lifestyle_json)
+          ? globalThis.String(object.lifestyle_json)
+          : '',
+      setLifestyle: isSet(object.setLifestyle)
+        ? globalThis.Boolean(object.setLifestyle)
+        : isSet(object.set_lifestyle)
+          ? globalThis.Boolean(object.set_lifestyle)
+          : false,
+      maxDistanceKm: isSet(object.maxDistanceKm)
+        ? globalThis.Number(object.maxDistanceKm)
+        : isSet(object.max_distance_km)
+          ? globalThis.Number(object.max_distance_km)
+          : undefined,
+      openToSpecialNeeds: isSet(object.openToSpecialNeeds)
+        ? globalThis.Boolean(object.openToSpecialNeeds)
+        : isSet(object.open_to_special_needs)
+          ? globalThis.Boolean(object.open_to_special_needs)
+          : undefined,
+      notifyNewMatches: isSet(object.notifyNewMatches)
+        ? globalThis.Boolean(object.notifyNewMatches)
+        : isSet(object.notify_new_matches)
+          ? globalThis.Boolean(object.notify_new_matches)
+          : undefined,
+      minNotificationScore: isSet(object.minNotificationScore)
+        ? globalThis.Number(object.minNotificationScore)
+        : isSet(object.min_notification_score)
+          ? globalThis.Number(object.min_notification_score)
+          : undefined,
+      allergies: isSet(object.allergies) ? globalThis.String(object.allergies) : undefined,
+      setAllergies: isSet(object.setAllergies)
+        ? globalThis.Boolean(object.setAllergies)
+        : isSet(object.set_allergies)
+          ? globalThis.Boolean(object.set_allergies)
+          : false,
+    };
+  },
+
+  toJSON(message: UpsertMatchProfileRequest): unknown {
+    const obj: any = {};
+    if (message.preferredTypesJson !== '') {
+      obj.preferredTypesJson = message.preferredTypesJson;
+    }
+    if (message.setPreferredTypes !== false) {
+      obj.setPreferredTypes = message.setPreferredTypes;
+    }
+    if (message.preferredSizesJson !== '') {
+      obj.preferredSizesJson = message.preferredSizesJson;
+    }
+    if (message.setPreferredSizes !== false) {
+      obj.setPreferredSizes = message.setPreferredSizes;
+    }
+    if (message.preferredAgeGroupsJson !== '') {
+      obj.preferredAgeGroupsJson = message.preferredAgeGroupsJson;
+    }
+    if (message.setPreferredAgeGroups !== false) {
+      obj.setPreferredAgeGroups = message.setPreferredAgeGroups;
+    }
+    if (message.preferredEnergyJson !== '') {
+      obj.preferredEnergyJson = message.preferredEnergyJson;
+    }
+    if (message.setPreferredEnergy !== false) {
+      obj.setPreferredEnergy = message.setPreferredEnergy;
+    }
+    if (message.preferredTemperamentJson !== '') {
+      obj.preferredTemperamentJson = message.preferredTemperamentJson;
+    }
+    if (message.setPreferredTemperament !== false) {
+      obj.setPreferredTemperament = message.setPreferredTemperament;
+    }
+    if (message.lifestyleJson !== '') {
+      obj.lifestyleJson = message.lifestyleJson;
+    }
+    if (message.setLifestyle !== false) {
+      obj.setLifestyle = message.setLifestyle;
+    }
+    if (message.maxDistanceKm !== undefined) {
+      obj.maxDistanceKm = Math.round(message.maxDistanceKm);
+    }
+    if (message.openToSpecialNeeds !== undefined) {
+      obj.openToSpecialNeeds = message.openToSpecialNeeds;
+    }
+    if (message.notifyNewMatches !== undefined) {
+      obj.notifyNewMatches = message.notifyNewMatches;
+    }
+    if (message.minNotificationScore !== undefined) {
+      obj.minNotificationScore = Math.round(message.minNotificationScore);
+    }
+    if (message.allergies !== undefined) {
+      obj.allergies = message.allergies;
+    }
+    if (message.setAllergies !== false) {
+      obj.setAllergies = message.setAllergies;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpsertMatchProfileRequest>, I>>(
+    base?: I
+  ): UpsertMatchProfileRequest {
+    return UpsertMatchProfileRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpsertMatchProfileRequest>, I>>(
+    object: I
+  ): UpsertMatchProfileRequest {
+    const message = createBaseUpsertMatchProfileRequest();
+    message.preferredTypesJson = object.preferredTypesJson ?? '';
+    message.setPreferredTypes = object.setPreferredTypes ?? false;
+    message.preferredSizesJson = object.preferredSizesJson ?? '';
+    message.setPreferredSizes = object.setPreferredSizes ?? false;
+    message.preferredAgeGroupsJson = object.preferredAgeGroupsJson ?? '';
+    message.setPreferredAgeGroups = object.setPreferredAgeGroups ?? false;
+    message.preferredEnergyJson = object.preferredEnergyJson ?? '';
+    message.setPreferredEnergy = object.setPreferredEnergy ?? false;
+    message.preferredTemperamentJson = object.preferredTemperamentJson ?? '';
+    message.setPreferredTemperament = object.setPreferredTemperament ?? false;
+    message.lifestyleJson = object.lifestyleJson ?? '';
+    message.setLifestyle = object.setLifestyle ?? false;
+    message.maxDistanceKm = object.maxDistanceKm ?? undefined;
+    message.openToSpecialNeeds = object.openToSpecialNeeds ?? undefined;
+    message.notifyNewMatches = object.notifyNewMatches ?? undefined;
+    message.minNotificationScore = object.minNotificationScore ?? undefined;
+    message.allergies = object.allergies ?? undefined;
+    message.setAllergies = object.setAllergies ?? false;
+    return message;
+  },
+};
+
+function createBaseUpsertMatchProfileResponse(): UpsertMatchProfileResponse {
+  return { profile: undefined };
+}
+
+export const UpsertMatchProfileResponse: MessageFns<UpsertMatchProfileResponse> = {
+  encode(
+    message: UpsertMatchProfileResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.profile !== undefined) {
+      MatchProfile.encode(message.profile, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpsertMatchProfileResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpsertMatchProfileResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.profile = MatchProfile.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpsertMatchProfileResponse {
+    return { profile: isSet(object.profile) ? MatchProfile.fromJSON(object.profile) : undefined };
+  },
+
+  toJSON(message: UpsertMatchProfileResponse): unknown {
+    const obj: any = {};
+    if (message.profile !== undefined) {
+      obj.profile = MatchProfile.toJSON(message.profile);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpsertMatchProfileResponse>, I>>(
+    base?: I
+  ): UpsertMatchProfileResponse {
+    return UpsertMatchProfileResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpsertMatchProfileResponse>, I>>(
+    object: I
+  ): UpsertMatchProfileResponse {
+    const message = createBaseUpsertMatchProfileResponse();
+    message.profile =
+      object.profile !== undefined && object.profile !== null
+        ? MatchProfile.fromPartial(object.profile)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseSwipeStats(): SwipeStats {
+  return { totalSwipes: 0, likes: 0, passes: 0, superLikes: 0, infoViews: 0 };
+}
+
+export const SwipeStats: MessageFns<SwipeStats> = {
+  encode(message: SwipeStats, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.totalSwipes !== 0) {
+      writer.uint32(8).uint32(message.totalSwipes);
+    }
+    if (message.likes !== 0) {
+      writer.uint32(16).uint32(message.likes);
+    }
+    if (message.passes !== 0) {
+      writer.uint32(24).uint32(message.passes);
+    }
+    if (message.superLikes !== 0) {
+      writer.uint32(32).uint32(message.superLikes);
+    }
+    if (message.infoViews !== 0) {
+      writer.uint32(40).uint32(message.infoViews);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SwipeStats {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSwipeStats();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.totalSwipes = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.likes = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.passes = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.superLikes = reader.uint32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.infoViews = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SwipeStats {
+    return {
+      totalSwipes: isSet(object.totalSwipes)
+        ? globalThis.Number(object.totalSwipes)
+        : isSet(object.total_swipes)
+          ? globalThis.Number(object.total_swipes)
+          : 0,
+      likes: isSet(object.likes) ? globalThis.Number(object.likes) : 0,
+      passes: isSet(object.passes) ? globalThis.Number(object.passes) : 0,
+      superLikes: isSet(object.superLikes)
+        ? globalThis.Number(object.superLikes)
+        : isSet(object.super_likes)
+          ? globalThis.Number(object.super_likes)
+          : 0,
+      infoViews: isSet(object.infoViews)
+        ? globalThis.Number(object.infoViews)
+        : isSet(object.info_views)
+          ? globalThis.Number(object.info_views)
+          : 0,
+    };
+  },
+
+  toJSON(message: SwipeStats): unknown {
+    const obj: any = {};
+    if (message.totalSwipes !== 0) {
+      obj.totalSwipes = Math.round(message.totalSwipes);
+    }
+    if (message.likes !== 0) {
+      obj.likes = Math.round(message.likes);
+    }
+    if (message.passes !== 0) {
+      obj.passes = Math.round(message.passes);
+    }
+    if (message.superLikes !== 0) {
+      obj.superLikes = Math.round(message.superLikes);
+    }
+    if (message.infoViews !== 0) {
+      obj.infoViews = Math.round(message.infoViews);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SwipeStats>, I>>(base?: I): SwipeStats {
+    return SwipeStats.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SwipeStats>, I>>(object: I): SwipeStats {
+    const message = createBaseSwipeStats();
+    message.totalSwipes = object.totalSwipes ?? 0;
+    message.likes = object.likes ?? 0;
+    message.passes = object.passes ?? 0;
+    message.superLikes = object.superLikes ?? 0;
+    message.infoViews = object.infoViews ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetUserSwipeStatsRequest(): GetUserSwipeStatsRequest {
+  return { userId: undefined };
+}
+
+export const GetUserSwipeStatsRequest: MessageFns<GetUserSwipeStatsRequest> = {
+  encode(
+    message: GetUserSwipeStatsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserSwipeStatsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserSwipeStatsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUserSwipeStatsRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+    };
+  },
+
+  toJSON(message: GetUserSwipeStatsRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserSwipeStatsRequest>, I>>(
+    base?: I
+  ): GetUserSwipeStatsRequest {
+    return GetUserSwipeStatsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserSwipeStatsRequest>, I>>(
+    object: I
+  ): GetUserSwipeStatsRequest {
+    const message = createBaseGetUserSwipeStatsRequest();
+    message.userId = object.userId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseGetUserSwipeStatsResponse(): GetUserSwipeStatsResponse {
+  return { stats: undefined };
+}
+
+export const GetUserSwipeStatsResponse: MessageFns<GetUserSwipeStatsResponse> = {
+  encode(
+    message: GetUserSwipeStatsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.stats !== undefined) {
+      SwipeStats.encode(message.stats, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserSwipeStatsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserSwipeStatsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.stats = SwipeStats.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUserSwipeStatsResponse {
+    return { stats: isSet(object.stats) ? SwipeStats.fromJSON(object.stats) : undefined };
+  },
+
+  toJSON(message: GetUserSwipeStatsResponse): unknown {
+    const obj: any = {};
+    if (message.stats !== undefined) {
+      obj.stats = SwipeStats.toJSON(message.stats);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserSwipeStatsResponse>, I>>(
+    base?: I
+  ): GetUserSwipeStatsResponse {
+    return GetUserSwipeStatsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserSwipeStatsResponse>, I>>(
+    object: I
+  ): GetUserSwipeStatsResponse {
+    const message = createBaseGetUserSwipeStatsResponse();
+    message.stats =
+      object.stats !== undefined && object.stats !== null
+        ? SwipeStats.fromPartial(object.stats)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseGetSessionStatsRequest(): GetSessionStatsRequest {
+  return { sessionId: '' };
+}
+
+export const GetSessionStatsRequest: MessageFns<GetSessionStatsRequest> = {
+  encode(message: GetSessionStatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.sessionId !== '') {
+      writer.uint32(10).string(message.sessionId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSessionStatsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetSessionStatsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetSessionStatsRequest {
+    return {
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+          ? globalThis.String(object.session_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetSessionStatsRequest): unknown {
+    const obj: any = {};
+    if (message.sessionId !== '') {
+      obj.sessionId = message.sessionId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetSessionStatsRequest>, I>>(
+    base?: I
+  ): GetSessionStatsRequest {
+    return GetSessionStatsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetSessionStatsRequest>, I>>(
+    object: I
+  ): GetSessionStatsRequest {
+    const message = createBaseGetSessionStatsRequest();
+    message.sessionId = object.sessionId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetSessionStatsResponse(): GetSessionStatsResponse {
+  return { stats: undefined };
+}
+
+export const GetSessionStatsResponse: MessageFns<GetSessionStatsResponse> = {
+  encode(
+    message: GetSessionStatsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.stats !== undefined) {
+      SwipeStats.encode(message.stats, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSessionStatsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetSessionStatsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.stats = SwipeStats.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetSessionStatsResponse {
+    return { stats: isSet(object.stats) ? SwipeStats.fromJSON(object.stats) : undefined };
+  },
+
+  toJSON(message: GetSessionStatsResponse): unknown {
+    const obj: any = {};
+    if (message.stats !== undefined) {
+      obj.stats = SwipeStats.toJSON(message.stats);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetSessionStatsResponse>, I>>(
+    base?: I
+  ): GetSessionStatsResponse {
+    return GetSessionStatsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetSessionStatsResponse>, I>>(
+    object: I
+  ): GetSessionStatsResponse {
+    const message = createBaseGetSessionStatsResponse();
+    message.stats =
+      object.stats !== undefined && object.stats !== null
+        ? SwipeStats.fromPartial(object.stats)
+        : undefined;
+    return message;
+  },
+};
+
 /**
  * MatchingService is the gRPC contract for the matching vertical.
  * Stateless recommender (CAD service.dispatch shape) — owns the
@@ -2316,6 +3828,76 @@ export const MatchingServiceService = {
     responseDeserialize: (value: Buffer): ListSwipeHistoryResponse =>
       ListSwipeHistoryResponse.decode(value),
   },
+  /**
+   * Read the calling principal's match profile, returning empty defaults
+   * when the row doesn't exist yet (the SPA renders an empty form).
+   */
+  getMatchProfile: {
+    path: '/adopt_dont_shop.matching.v1.MatchingService/GetMatchProfile' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetMatchProfileRequest): Buffer =>
+      Buffer.from(GetMatchProfileRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetMatchProfileRequest =>
+      GetMatchProfileRequest.decode(value),
+    responseSerialize: (value: GetMatchProfileResponse): Buffer =>
+      Buffer.from(GetMatchProfileResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetMatchProfileResponse =>
+      GetMatchProfileResponse.decode(value),
+  },
+  /**
+   * Create-or-update the calling principal's match profile. Only the
+   * fields present in the request are written; the rest keep their
+   * current value (or the column default on first insert).
+   */
+  upsertMatchProfile: {
+    path: '/adopt_dont_shop.matching.v1.MatchingService/UpsertMatchProfile' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpsertMatchProfileRequest): Buffer =>
+      Buffer.from(UpsertMatchProfileRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpsertMatchProfileRequest =>
+      UpsertMatchProfileRequest.decode(value),
+    responseSerialize: (value: UpsertMatchProfileResponse): Buffer =>
+      Buffer.from(UpsertMatchProfileResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpsertMatchProfileResponse =>
+      UpsertMatchProfileResponse.decode(value),
+  },
+  /**
+   * Aggregate swipe counts for a user (total / likes / passes /
+   * super-likes / info-views). Self-scoped — admins can read any user
+   * via swipes:read:any.
+   */
+  getUserSwipeStats: {
+    path: '/adopt_dont_shop.matching.v1.MatchingService/GetUserSwipeStats' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetUserSwipeStatsRequest): Buffer =>
+      Buffer.from(GetUserSwipeStatsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetUserSwipeStatsRequest =>
+      GetUserSwipeStatsRequest.decode(value),
+    responseSerialize: (value: GetUserSwipeStatsResponse): Buffer =>
+      Buffer.from(GetUserSwipeStatsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetUserSwipeStatsResponse =>
+      GetUserSwipeStatsResponse.decode(value),
+  },
+  /**
+   * Aggregate swipe counts for a single session. Caller MUST own the
+   * session (or be admin).
+   */
+  getSessionStats: {
+    path: '/adopt_dont_shop.matching.v1.MatchingService/GetSessionStats' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetSessionStatsRequest): Buffer =>
+      Buffer.from(GetSessionStatsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSessionStatsRequest =>
+      GetSessionStatsRequest.decode(value),
+    responseSerialize: (value: GetSessionStatsResponse): Buffer =>
+      Buffer.from(GetSessionStatsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSessionStatsResponse =>
+      GetSessionStatsResponse.decode(value),
+  },
 } as const;
 
 export interface MatchingServiceServer extends UntypedServiceImplementation {
@@ -2363,6 +3945,28 @@ export interface MatchingServiceServer extends UntypedServiceImplementation {
    * in the SPA. Filterable by action type.
    */
   listSwipeHistory: handleUnaryCall<ListSwipeHistoryRequest, ListSwipeHistoryResponse>;
+  /**
+   * Read the calling principal's match profile, returning empty defaults
+   * when the row doesn't exist yet (the SPA renders an empty form).
+   */
+  getMatchProfile: handleUnaryCall<GetMatchProfileRequest, GetMatchProfileResponse>;
+  /**
+   * Create-or-update the calling principal's match profile. Only the
+   * fields present in the request are written; the rest keep their
+   * current value (or the column default on first insert).
+   */
+  upsertMatchProfile: handleUnaryCall<UpsertMatchProfileRequest, UpsertMatchProfileResponse>;
+  /**
+   * Aggregate swipe counts for a user (total / likes / passes /
+   * super-likes / info-views). Self-scoped — admins can read any user
+   * via swipes:read:any.
+   */
+  getUserSwipeStats: handleUnaryCall<GetUserSwipeStatsRequest, GetUserSwipeStatsResponse>;
+  /**
+   * Aggregate swipe counts for a single session. Caller MUST own the
+   * session (or be admin).
+   */
+  getSessionStats: handleUnaryCall<GetSessionStatsRequest, GetSessionStatsResponse>;
 }
 
 export interface MatchingServiceClient extends Client {
@@ -2493,6 +4097,84 @@ export interface MatchingServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListSwipeHistoryResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Read the calling principal's match profile, returning empty defaults
+   * when the row doesn't exist yet (the SPA renders an empty form).
+   */
+  getMatchProfile(
+    request: GetMatchProfileRequest,
+    callback: (error: ServiceError | null, response: GetMatchProfileResponse) => void
+  ): ClientUnaryCall;
+  getMatchProfile(
+    request: GetMatchProfileRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetMatchProfileResponse) => void
+  ): ClientUnaryCall;
+  getMatchProfile(
+    request: GetMatchProfileRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetMatchProfileResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Create-or-update the calling principal's match profile. Only the
+   * fields present in the request are written; the rest keep their
+   * current value (or the column default on first insert).
+   */
+  upsertMatchProfile(
+    request: UpsertMatchProfileRequest,
+    callback: (error: ServiceError | null, response: UpsertMatchProfileResponse) => void
+  ): ClientUnaryCall;
+  upsertMatchProfile(
+    request: UpsertMatchProfileRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpsertMatchProfileResponse) => void
+  ): ClientUnaryCall;
+  upsertMatchProfile(
+    request: UpsertMatchProfileRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpsertMatchProfileResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Aggregate swipe counts for a user (total / likes / passes /
+   * super-likes / info-views). Self-scoped — admins can read any user
+   * via swipes:read:any.
+   */
+  getUserSwipeStats(
+    request: GetUserSwipeStatsRequest,
+    callback: (error: ServiceError | null, response: GetUserSwipeStatsResponse) => void
+  ): ClientUnaryCall;
+  getUserSwipeStats(
+    request: GetUserSwipeStatsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetUserSwipeStatsResponse) => void
+  ): ClientUnaryCall;
+  getUserSwipeStats(
+    request: GetUserSwipeStatsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetUserSwipeStatsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Aggregate swipe counts for a single session. Caller MUST own the
+   * session (or be admin).
+   */
+  getSessionStats(
+    request: GetSessionStatsRequest,
+    callback: (error: ServiceError | null, response: GetSessionStatsResponse) => void
+  ): ClientUnaryCall;
+  getSessionStats(
+    request: GetSessionStatsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetSessionStatsResponse) => void
+  ): ClientUnaryCall;
+  getSessionStats(
+    request: GetSessionStatsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetSessionStatsResponse) => void
   ): ClientUnaryCall;
 }
 
