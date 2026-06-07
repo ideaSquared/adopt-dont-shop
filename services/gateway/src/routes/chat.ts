@@ -166,6 +166,23 @@ const registerChatRoutesForPrefix = (
     }
   });
 
+  // ---- GET <prefix>/:chatId/unread-count ---------------------------
+  // Single-chat unread count for the calling principal. Returns the
+  // monolith envelope { success, data: { unreadCount } } so the SPA's
+  // lib.chat consumer keeps working.
+  app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId/unread-count`, async (req, reply) => {
+    const metadata = buildMetadata(req);
+    try {
+      const res = await client.getChatUnreadCount({ chatId: req.params.chatId }, metadata);
+      return reply.send({
+        success: true,
+        data: { unreadCount: res.unreadCount },
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
   // ---- GET <prefix>/:chatId/messages -------------------------------
   app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId/messages`, async (req, reply) => {
     const metadata = buildMetadata(req);

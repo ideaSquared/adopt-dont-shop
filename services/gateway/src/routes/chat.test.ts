@@ -43,6 +43,7 @@ function makeClient(): ChatClient & {
   markReadMock: ReturnType<typeof vi.fn>;
   reactMock: ReturnType<typeof vi.fn>;
   searchChatsMock: ReturnType<typeof vi.fn>;
+  getChatUnreadCountMock: ReturnType<typeof vi.fn>;
 } {
   const openChatMock = vi.fn();
   const sendMessageMock = vi.fn();
@@ -51,6 +52,7 @@ function makeClient(): ChatClient & {
   const markReadMock = vi.fn();
   const reactMock = vi.fn();
   const searchChatsMock = vi.fn();
+  const getChatUnreadCountMock = vi.fn();
   return {
     openChat: openChatMock,
     sendMessage: sendMessageMock,
@@ -59,6 +61,7 @@ function makeClient(): ChatClient & {
     markRead: markReadMock,
     react: reactMock,
     searchChats: searchChatsMock,
+    getChatUnreadCount: getChatUnreadCountMock,
     close: vi.fn(),
     openChatMock,
     sendMessageMock,
@@ -67,6 +70,7 @@ function makeClient(): ChatClient & {
     markReadMock,
     reactMock,
     searchChatsMock,
+    getChatUnreadCountMock,
   };
 }
 
@@ -527,5 +531,59 @@ describe('GET /api/v1/chats/search', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(client.searchChatsMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// --- GET /api/v1/chats/:chatId/unread-count -------------------------
+
+describe('GET /api/v1/chats/:chatId/unread-count', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns success envelope with unread count', async () => {
+    client.getChatUnreadCountMock.mockResolvedValueOnce({ unreadCount: 7 });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/chat-1/unread-count',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ success: true, data: { unreadCount: 7 } });
+    const [grpcReq] = client.getChatUnreadCountMock.mock.calls[0] as [{ chatId: string }, Metadata];
+    expect(grpcReq.chatId).toBe('chat-1');
+  });
+
+  it('maps NOT_FOUND → 404', async () => {
+    client.getChatUnreadCountMock.mockRejectedValueOnce({
+      code: status.NOT_FOUND,
+      details: 'gone',
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/missing/unread-count',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('reachable via /api/v1/conversations alias', async () => {
+    client.getChatUnreadCountMock.mockResolvedValueOnce({ unreadCount: 0 });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/conversations/chat-1/unread-count',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(client.getChatUnreadCountMock).toHaveBeenCalledTimes(1);
   });
 });

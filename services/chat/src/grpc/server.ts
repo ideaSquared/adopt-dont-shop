@@ -15,6 +15,7 @@ import type { ChatConfig } from '../config.js';
 
 import { adapt } from './adapter.js';
 import {
+  getChatUnreadCount,
   listChats,
   listMessages,
   markRead,
@@ -50,6 +51,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     markRead: adapt(markRead, { deps, logger }),
     react: adapt(react, { deps, logger }),
     searchChats: adapt(searchChats, { deps, logger }),
+    getChatUnreadCount: adapt(getChatUnreadCount, { deps, logger }),
   });
 
   logger.info('gRPC ChatService registered', {
@@ -61,6 +63,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'markRead',
       'react',
       'searchChats',
+      'getChatUnreadCount',
     ],
     grpcPort: config.grpcPort,
   });

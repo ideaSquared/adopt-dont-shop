@@ -22,6 +22,8 @@ import {
   type SearchChatsResponse,
   type SendMessageRequest,
   type SendMessageResponse,
+  type GetChatUnreadCountRequest,
+  type GetChatUnreadCountResponse,
 } from '@adopt-dont-shop/proto';
 
 export type ChatClient = {
@@ -32,6 +34,10 @@ export type ChatClient = {
   markRead(req: MarkReadRequest, metadata: Metadata): Promise<MarkReadResponse>;
   react(req: ReactRequest, metadata: Metadata): Promise<ReactResponse>;
   searchChats(req: SearchChatsRequest, metadata: Metadata): Promise<SearchChatsResponse>;
+  getChatUnreadCount(
+    req: GetChatUnreadCountRequest,
+    metadata: Metadata
+  ): Promise<GetChatUnreadCountResponse>;
   close(): void;
 };
 
@@ -65,6 +71,7 @@ export const createChatClient = (opts: CreateChatClientOptions): ChatClient => {
     markRead: (req, metadata) => callUnary(stub.markRead, req, metadata),
     react: (req, metadata) => callUnary(stub.react, req, metadata),
     searchChats: (req, metadata) => callUnary(stub.searchChats, req, metadata),
+    getChatUnreadCount: (req, metadata) => callUnary(stub.getChatUnreadCount, req, metadata),
     close: () => stub.close(),
   };
 };

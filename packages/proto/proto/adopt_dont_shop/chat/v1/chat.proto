@@ -51,6 +51,13 @@ service ChatService {
   // are returned (super_admin still scoped this way; staff cross-chat
   // search is a separate admin RPC).
   rpc SearchChats(SearchChatsRequest) returns (SearchChatsResponse);
+
+  // Per-chat unread count for the calling principal. Counts messages
+  // not authored by the caller that lack a matching message_reads row
+  // (i.e. the caller has never opened them). Requires participant
+  // membership (or super_admin).
+  rpc GetChatUnreadCount(GetChatUnreadCountRequest)
+      returns (GetChatUnreadCountResponse);
 }
 
 // --- Messages --------------------------------------------------------
@@ -219,4 +226,14 @@ message SearchChatsResponse {
   // controls. Returned in addition to the page so the client can
   // compute total_pages = ceil(total / limit).
   uint32 total = 4;
+}
+
+// --- GetChatUnreadCount ----------------------------------------------
+
+message GetChatUnreadCountRequest {
+  string chat_id = 1;
+}
+
+message GetChatUnreadCountResponse {
+  uint32 unread_count = 1;
 }

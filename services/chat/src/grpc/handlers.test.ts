@@ -20,6 +20,7 @@ import {
   markRead,
   openChat,
   react,
+  getChatUnreadCount,
   searchChats,
   sendMessage,
 } from './handlers.js';
@@ -568,6 +569,63 @@ describe('searchChats', () => {
     const params = hitsCall![1] as unknown[];
     expect(params[params.length - 2]).toBe(10); // limit
     expect(params[params.length - 1]).toBe(10); // offset = (page-1)*limit
+  });
+});
+
+// --- getChatUnreadCount ---------------------------------------------
+
+describe('getChatUnreadCount', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects missing chat_id', async () => {
+    await expect(
+      getChatUnreadCount(mocks.deps, ADOPTER_PRINCIPAL, { chatId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects principals without chat.read', async () => {
+    await expect(
+      getChatUnreadCount(mocks.deps, UNPRIVILEGED_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns NOT_FOUND (no enumeration) when caller is not a participant', async () => {
+    // isParticipantOrAdmin SELECT returns no rows.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      getChatUnreadCount(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns the unread count for a participant', async () => {
+    // Participant check passes
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ chat_participant_id: 'p-1' }],
+    });
+    // COUNT query
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ count: '5' }] });
+
+    const res = await getChatUnreadCount(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' });
+    expect(res.unreadCount).toBe(5);
+
+    // Confirm the binding: $1 = chatId, $2 = principal.userId.
+    const countCall = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    expect(countCall[1]).toEqual(['chat-1', 'usr-adopter']);
+  });
+
+  it('returns 0 when no unread messages', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ chat_participant_id: 'p-1' }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ count: '0' }] });
+    const res = await getChatUnreadCount(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' });
+    expect(res.unreadCount).toBe(0);
   });
 });
 
