@@ -19,7 +19,15 @@ import { PetsV1 } from '@adopt-dont-shop/proto';
 import type { PetsConfig } from '../config.js';
 
 import { adapt } from './adapter.js';
-import { createPet, deletePet, getPet, listPets, updatePet, updatePetStatus } from './handlers.js';
+import {
+  createPet,
+  deletePet,
+  getPet,
+  getPetStats,
+  listPets,
+  updatePet,
+  updatePetStatus,
+} from './handlers.js';
 
 export type CreateGrpcServerOptions = {
   config: PetsConfig;
@@ -46,10 +54,11 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     update: adapt(updatePet, { deps, logger }),
     updateStatus: adapt(updatePetStatus, { deps, logger }),
     delete: adapt(deletePet, { deps, logger }),
+    getStats: adapt(getPetStats, { deps, logger }),
   });
 
   logger.info('gRPC PetService registered', {
-    methods: ['create', 'get', 'list', 'update', 'updateStatus', 'delete'],
+    methods: ['create', 'get', 'list', 'update', 'updateStatus', 'delete', 'getStats'],
     grpcPort: config.grpcPort,
   });
 

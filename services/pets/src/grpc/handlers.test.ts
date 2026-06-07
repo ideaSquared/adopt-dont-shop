@@ -10,6 +10,7 @@ import {
   createPet,
   deletePet,
   getPet,
+  getPetStats,
   HandlerError,
   listPets,
   updatePet,
@@ -400,6 +401,125 @@ describe('deletePet', () => {
   it('PERMISSION_DENIED for staff at a different rescue', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     await expect(deletePet(mocks.deps, OTHER_STAFF, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+});
+
+// --- getPetStats ----------------------------------------------------
+
+describe('getPetStats', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects principals without pets.read', async () => {
+    const noPermsAdopter: Principal = {
+      userId: 'usr-noperms' as UserId,
+      roles: ['adopter'],
+      permissions: [],
+    };
+    await expect(getPetStats(mocks.deps, noPermsAdopter, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('returns 0 counts when no rows in scope', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // status counts
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] }) // monthly
+      .mockResolvedValueOnce({ rows: [{ avg_days: null }] }); // avg days
+
+    const res = await getPetStats(mocks.deps, STAFF, {});
+    expect(res).toEqual({
+      total: 0,
+      available: 0,
+      pending: 0,
+      adopted: 0,
+      foster: 0,
+      medicalHold: 0,
+      behavioralHold: 0,
+      notAvailable: 0,
+      deceased: 0,
+      monthlyAdoptions: 0,
+      averageDaysToAdoption: 0,
+    });
+  });
+
+  it('aggregates per-status counts + monthly + avg', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({
+        rows: [
+          { status: 'available', count: '10' },
+          { status: 'pending', count: '3' },
+          { status: 'adopted', count: '7' },
+          { status: 'medical_hold', count: '2' },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ count: '4' }] })
+      .mockResolvedValueOnce({ rows: [{ avg_days: '12.7' }] });
+
+    const res = await getPetStats(mocks.deps, STAFF, {});
+    expect(res.total).toBe(22);
+    expect(res.available).toBe(10);
+    expect(res.pending).toBe(3);
+    expect(res.adopted).toBe(7);
+    expect(res.medicalHold).toBe(2);
+    expect(res.behavioralHold).toBe(0);
+    expect(res.monthlyAdoptions).toBe(4);
+    expect(res.averageDaysToAdoption).toBe(13); // rounded from 12.7
+  });
+
+  it('pins rescue staff to their own rescue, ignoring rescue_id_filter', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+      .mockResolvedValueOnce({ rows: [{ avg_days: null }] });
+
+    await getPetStats(mocks.deps, STAFF, { rescueIdFilter: 'rsc-other' });
+
+    const statusCall = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(statusCall[1]).toEqual([RESCUE_ID]); // not 'rsc-other'
+  });
+
+  it('lets pets.read:any admin pass a rescue_id_filter', async () => {
+    const adminAny: Principal = {
+      userId: 'svc-admin' as UserId,
+      roles: ['admin'],
+      permissions: ['pets.read' as Permission, 'pets.read:any' as Permission],
+    };
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+      .mockResolvedValueOnce({ rows: [{ avg_days: null }] });
+
+    await getPetStats(mocks.deps, adminAny, { rescueIdFilter: 'rsc-target' });
+    const statusCall = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(statusCall[1]).toEqual(['rsc-target']);
+  });
+
+  it('platform-wide stats when admin omits rescue_id_filter', async () => {
+    const adminAny: Principal = {
+      userId: 'svc-admin' as UserId,
+      roles: ['admin'],
+      permissions: ['pets.read' as Permission, 'pets.read:any' as Permission],
+    };
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+      .mockResolvedValueOnce({ rows: [{ avg_days: null }] });
+
+    await getPetStats(mocks.deps, adminAny, {});
+    const statusCall = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(statusCall[1]).toEqual([]); // no rescue scope
+  });
+
+  it('rejects when caller has pets.read but no rescue scope and no :any', async () => {
+    await expect(getPetStats(mocks.deps, ADOPTER, {})).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
   });

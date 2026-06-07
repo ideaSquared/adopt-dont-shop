@@ -20,6 +20,8 @@ import {
   type DeletePetResponse,
   type GetPetRequest,
   type GetPetResponse,
+  type GetPetStatsRequest,
+  type GetPetStatsResponse,
   type ListPetsRequest,
   type ListPetsResponse,
   type UpdatePetRequest,
@@ -35,6 +37,7 @@ export type PetsClient = {
   update(req: UpdatePetRequest, metadata: Metadata): Promise<UpdatePetResponse>;
   updateStatus(req: UpdatePetStatusRequest, metadata: Metadata): Promise<UpdatePetStatusResponse>;
   delete(req: DeletePetRequest, metadata: Metadata): Promise<DeletePetResponse>;
+  getStats(req: GetPetStatsRequest, metadata: Metadata): Promise<GetPetStatsResponse>;
   close(): void;
 };
 
@@ -67,6 +70,7 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
     update: (req, metadata) => callUnary(stub.update, req, metadata),
     updateStatus: (req, metadata) => callUnary(stub.updateStatus, req, metadata),
     delete: (req, metadata) => callUnary(stub.delete, req, metadata),
+    getStats: (req, metadata) => callUnary(stub.getStats, req, metadata),
     close: () => stub.close(),
   };
 };

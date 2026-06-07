@@ -25,6 +25,7 @@ function makeClient(): {
   updateMock: ReturnType<typeof vi.fn>;
   updateStatusMock: ReturnType<typeof vi.fn>;
   deleteMock: ReturnType<typeof vi.fn>;
+  getStatsMock: ReturnType<typeof vi.fn>;
 } {
   const createMock = vi.fn();
   const getMock = vi.fn();
@@ -32,6 +33,7 @@ function makeClient(): {
   const updateMock = vi.fn();
   const updateStatusMock = vi.fn();
   const deleteMock = vi.fn();
+  const getStatsMock = vi.fn();
   const client: PetsClient = {
     create: createMock,
     get: getMock,
@@ -39,6 +41,7 @@ function makeClient(): {
     update: updateMock,
     updateStatus: updateStatusMock,
     delete: deleteMock,
+    getStats: getStatsMock,
     close: vi.fn(),
   };
   return {
@@ -49,6 +52,7 @@ function makeClient(): {
     updateMock,
     updateStatusMock,
     deleteMock,
+    getStatsMock,
   };
 }
 
@@ -370,6 +374,79 @@ describe('error mapping fallback', () => {
       getMock.mockRejectedValueOnce(new Error('connection refused'));
       const res = await app.inject({ method: 'GET', url: '/api/v1/pets/pet-1' });
       expect(res.statusCode).toBe(500);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('GET /api/v1/pets/stats', () => {
+  const STATS_FIXTURE = {
+    total: 22,
+    available: 10,
+    pending: 3,
+    adopted: 7,
+    foster: 0,
+    medicalHold: 2,
+    behavioralHold: 0,
+    notAvailable: 0,
+    deceased: 0,
+    monthlyAdoptions: 4,
+    averageDaysToAdoption: 13,
+  };
+
+  it('routes /stats to client.getStats (not /:id getter)', async () => {
+    const { client, getStatsMock, getMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getStatsMock.mockResolvedValueOnce(STATS_FIXTURE);
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/stats',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'rescue_staff', 'x-rescue-id': 'rsc-1' },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ success: true, data: STATS_FIXTURE });
+      expect(getMock).not.toHaveBeenCalled();
+      expect(getStatsMock).toHaveBeenCalledTimes(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('forwards optional rescueId query param', async () => {
+    const { client, getStatsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getStatsMock.mockResolvedValueOnce(STATS_FIXTURE);
+      await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/stats?rescueId=rsc-target',
+        headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'admin' },
+      });
+      const [grpcReq] = getStatsMock.mock.calls[0];
+      expect(grpcReq).toEqual({ rescueIdFilter: 'rsc-target' });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps PERMISSION_DENIED → 403', async () => {
+    const { client, getStatsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getStatsMock.mockRejectedValueOnce({
+        code: grpcStatus.PERMISSION_DENIED,
+        details: 'no perms',
+      });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/stats',
+        headers: { 'x-user-id': 'usr-noperms', 'x-user-roles': 'adopter' },
+      });
+      expect(res.statusCode).toBe(403);
     } finally {
       await app.close();
     }
