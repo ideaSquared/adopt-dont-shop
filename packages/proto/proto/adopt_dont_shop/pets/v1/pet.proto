@@ -46,6 +46,12 @@ service PetService {
   // Soft-delete a pet (sets deleted_at). Caller MUST have `pets.delete`
   // scoped to the rescue. Publishes `pets.deleted` after commit.
   rpc Delete(DeletePetRequest) returns (DeletePetResponse);
+
+  // Per-rescue (or platform-wide for admin) counts: total + per-status
+  // breakdown + the last-30-day adoption count + an estimated
+  // average-time-to-adoption. Drives the rescue dashboard widget.
+  // Self-scoped to the caller's rescue unless they hold pets.read:any.
+  rpc GetStats(GetPetStatsRequest) returns (GetPetStatsResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -268,4 +274,32 @@ message DeletePetRequest {
 message DeletePetResponse {
   // Soft-delete sets deleted_at; success is signalled by gRPC status OK.
   bool deleted = 1;
+}
+
+// --- GetStats --------------------------------------------------------
+
+message GetPetStatsRequest {
+  // Optional override. Rescue staff get pinned to their own rescue_id
+  // regardless; admins / super_admin with `pets.read:any` may pass
+  // a different value (and pass empty for the platform-wide aggregate).
+  optional string rescue_id_filter = 1;
+}
+
+message GetPetStatsResponse {
+  // Total non-deleted pets in scope (sum of the per-status counts).
+  uint32 total = 1;
+  // Per-status counts — zero-filled for statuses with no rows.
+  uint32 available = 2;
+  uint32 pending = 3;
+  uint32 adopted = 4;
+  uint32 foster = 5;
+  uint32 medical_hold = 6;
+  uint32 behavioral_hold = 7;
+  uint32 not_available = 8;
+  uint32 deceased = 9;
+  // Adoptions completed in the last 30 days.
+  uint32 monthly_adoptions = 10;
+  // Mean days between created_at and adopted_at across the most recent
+  // 50 adoptions in scope. Zero when no adoptions have been recorded.
+  uint32 average_days_to_adoption = 11;
 }

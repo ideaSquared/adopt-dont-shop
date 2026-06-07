@@ -494,6 +494,36 @@ export interface DeletePetResponse {
   deleted: boolean;
 }
 
+export interface GetPetStatsRequest {
+  /**
+   * Optional override. Rescue staff get pinned to their own rescue_id
+   * regardless; admins / super_admin with `pets.read:any` may pass
+   * a different value (and pass empty for the platform-wide aggregate).
+   */
+  rescueIdFilter?: string | undefined;
+}
+
+export interface GetPetStatsResponse {
+  /** Total non-deleted pets in scope (sum of the per-status counts). */
+  total: number;
+  /** Per-status counts — zero-filled for statuses with no rows. */
+  available: number;
+  pending: number;
+  adopted: number;
+  foster: number;
+  medicalHold: number;
+  behavioralHold: number;
+  notAvailable: number;
+  deceased: number;
+  /** Adoptions completed in the last 30 days. */
+  monthlyAdoptions: number;
+  /**
+   * Mean days between created_at and adopted_at across the most recent
+   * 50 adoptions in scope. Zero when no adoptions have been recorded.
+   */
+  averageDaysToAdoption: number;
+}
+
 function createBasePet(): Pet {
   return {
     petId: '',
@@ -3005,6 +3035,324 @@ export const DeletePetResponse: MessageFns<DeletePetResponse> = {
   },
 };
 
+function createBaseGetPetStatsRequest(): GetPetStatsRequest {
+  return { rescueIdFilter: undefined };
+}
+
+export const GetPetStatsRequest: MessageFns<GetPetStatsRequest> = {
+  encode(message: GetPetStatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueIdFilter !== undefined) {
+      writer.uint32(10).string(message.rescueIdFilter);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPetStatsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPetStatsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueIdFilter = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPetStatsRequest {
+    return {
+      rescueIdFilter: isSet(object.rescueIdFilter)
+        ? globalThis.String(object.rescueIdFilter)
+        : isSet(object.rescue_id_filter)
+          ? globalThis.String(object.rescue_id_filter)
+          : undefined,
+    };
+  },
+
+  toJSON(message: GetPetStatsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueIdFilter !== undefined) {
+      obj.rescueIdFilter = message.rescueIdFilter;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPetStatsRequest>, I>>(base?: I): GetPetStatsRequest {
+    return GetPetStatsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPetStatsRequest>, I>>(object: I): GetPetStatsRequest {
+    const message = createBaseGetPetStatsRequest();
+    message.rescueIdFilter = object.rescueIdFilter ?? undefined;
+    return message;
+  },
+};
+
+function createBaseGetPetStatsResponse(): GetPetStatsResponse {
+  return {
+    total: 0,
+    available: 0,
+    pending: 0,
+    adopted: 0,
+    foster: 0,
+    medicalHold: 0,
+    behavioralHold: 0,
+    notAvailable: 0,
+    deceased: 0,
+    monthlyAdoptions: 0,
+    averageDaysToAdoption: 0,
+  };
+}
+
+export const GetPetStatsResponse: MessageFns<GetPetStatsResponse> = {
+  encode(message: GetPetStatsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.total !== 0) {
+      writer.uint32(8).uint32(message.total);
+    }
+    if (message.available !== 0) {
+      writer.uint32(16).uint32(message.available);
+    }
+    if (message.pending !== 0) {
+      writer.uint32(24).uint32(message.pending);
+    }
+    if (message.adopted !== 0) {
+      writer.uint32(32).uint32(message.adopted);
+    }
+    if (message.foster !== 0) {
+      writer.uint32(40).uint32(message.foster);
+    }
+    if (message.medicalHold !== 0) {
+      writer.uint32(48).uint32(message.medicalHold);
+    }
+    if (message.behavioralHold !== 0) {
+      writer.uint32(56).uint32(message.behavioralHold);
+    }
+    if (message.notAvailable !== 0) {
+      writer.uint32(64).uint32(message.notAvailable);
+    }
+    if (message.deceased !== 0) {
+      writer.uint32(72).uint32(message.deceased);
+    }
+    if (message.monthlyAdoptions !== 0) {
+      writer.uint32(80).uint32(message.monthlyAdoptions);
+    }
+    if (message.averageDaysToAdoption !== 0) {
+      writer.uint32(88).uint32(message.averageDaysToAdoption);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPetStatsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPetStatsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.available = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.pending = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.adopted = reader.uint32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.foster = reader.uint32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.medicalHold = reader.uint32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.behavioralHold = reader.uint32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.notAvailable = reader.uint32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.deceased = reader.uint32();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.monthlyAdoptions = reader.uint32();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.averageDaysToAdoption = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPetStatsResponse {
+    return {
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+      available: isSet(object.available) ? globalThis.Number(object.available) : 0,
+      pending: isSet(object.pending) ? globalThis.Number(object.pending) : 0,
+      adopted: isSet(object.adopted) ? globalThis.Number(object.adopted) : 0,
+      foster: isSet(object.foster) ? globalThis.Number(object.foster) : 0,
+      medicalHold: isSet(object.medicalHold)
+        ? globalThis.Number(object.medicalHold)
+        : isSet(object.medical_hold)
+          ? globalThis.Number(object.medical_hold)
+          : 0,
+      behavioralHold: isSet(object.behavioralHold)
+        ? globalThis.Number(object.behavioralHold)
+        : isSet(object.behavioral_hold)
+          ? globalThis.Number(object.behavioral_hold)
+          : 0,
+      notAvailable: isSet(object.notAvailable)
+        ? globalThis.Number(object.notAvailable)
+        : isSet(object.not_available)
+          ? globalThis.Number(object.not_available)
+          : 0,
+      deceased: isSet(object.deceased) ? globalThis.Number(object.deceased) : 0,
+      monthlyAdoptions: isSet(object.monthlyAdoptions)
+        ? globalThis.Number(object.monthlyAdoptions)
+        : isSet(object.monthly_adoptions)
+          ? globalThis.Number(object.monthly_adoptions)
+          : 0,
+      averageDaysToAdoption: isSet(object.averageDaysToAdoption)
+        ? globalThis.Number(object.averageDaysToAdoption)
+        : isSet(object.average_days_to_adoption)
+          ? globalThis.Number(object.average_days_to_adoption)
+          : 0,
+    };
+  },
+
+  toJSON(message: GetPetStatsResponse): unknown {
+    const obj: any = {};
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    if (message.available !== 0) {
+      obj.available = Math.round(message.available);
+    }
+    if (message.pending !== 0) {
+      obj.pending = Math.round(message.pending);
+    }
+    if (message.adopted !== 0) {
+      obj.adopted = Math.round(message.adopted);
+    }
+    if (message.foster !== 0) {
+      obj.foster = Math.round(message.foster);
+    }
+    if (message.medicalHold !== 0) {
+      obj.medicalHold = Math.round(message.medicalHold);
+    }
+    if (message.behavioralHold !== 0) {
+      obj.behavioralHold = Math.round(message.behavioralHold);
+    }
+    if (message.notAvailable !== 0) {
+      obj.notAvailable = Math.round(message.notAvailable);
+    }
+    if (message.deceased !== 0) {
+      obj.deceased = Math.round(message.deceased);
+    }
+    if (message.monthlyAdoptions !== 0) {
+      obj.monthlyAdoptions = Math.round(message.monthlyAdoptions);
+    }
+    if (message.averageDaysToAdoption !== 0) {
+      obj.averageDaysToAdoption = Math.round(message.averageDaysToAdoption);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPetStatsResponse>, I>>(base?: I): GetPetStatsResponse {
+    return GetPetStatsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPetStatsResponse>, I>>(
+    object: I
+  ): GetPetStatsResponse {
+    const message = createBaseGetPetStatsResponse();
+    message.total = object.total ?? 0;
+    message.available = object.available ?? 0;
+    message.pending = object.pending ?? 0;
+    message.adopted = object.adopted ?? 0;
+    message.foster = object.foster ?? 0;
+    message.medicalHold = object.medicalHold ?? 0;
+    message.behavioralHold = object.behavioralHold ?? 0;
+    message.notAvailable = object.notAvailable ?? 0;
+    message.deceased = object.deceased ?? 0;
+    message.monthlyAdoptions = object.monthlyAdoptions ?? 0;
+    message.averageDaysToAdoption = object.averageDaysToAdoption ?? 0;
+    return message;
+  },
+};
+
 /**
  * PetService is the gRPC contract for the pets vertical. It owns the
  * `pets.*` schema (Pet, PetMedia, Breed, UserFavorite, Rating,
@@ -3119,6 +3467,23 @@ export const PetServiceService = {
       Buffer.from(DeletePetResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeletePetResponse => DeletePetResponse.decode(value),
   },
+  /**
+   * Per-rescue (or platform-wide for admin) counts: total + per-status
+   * breakdown + the last-30-day adoption count + an estimated
+   * average-time-to-adoption. Drives the rescue dashboard widget.
+   * Self-scoped to the caller's rescue unless they hold pets.read:any.
+   */
+  getStats: {
+    path: '/adopt_dont_shop.pets.v1.PetService/GetStats' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetPetStatsRequest): Buffer =>
+      Buffer.from(GetPetStatsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetPetStatsRequest => GetPetStatsRequest.decode(value),
+    responseSerialize: (value: GetPetStatsResponse): Buffer =>
+      Buffer.from(GetPetStatsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetPetStatsResponse => GetPetStatsResponse.decode(value),
+  },
 } as const;
 
 export interface PetServiceServer extends UntypedServiceImplementation {
@@ -3155,6 +3520,13 @@ export interface PetServiceServer extends UntypedServiceImplementation {
    * scoped to the rescue. Publishes `pets.deleted` after commit.
    */
   delete: handleUnaryCall<DeletePetRequest, DeletePetResponse>;
+  /**
+   * Per-rescue (or platform-wide for admin) counts: total + per-status
+   * breakdown + the last-30-day adoption count + an estimated
+   * average-time-to-adoption. Drives the rescue dashboard widget.
+   * Self-scoped to the caller's rescue unless they hold pets.read:any.
+   */
+  getStats: handleUnaryCall<GetPetStatsRequest, GetPetStatsResponse>;
 }
 
 export interface PetServiceClient extends Client {
@@ -3274,6 +3646,27 @@ export interface PetServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeletePetResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Per-rescue (or platform-wide for admin) counts: total + per-status
+   * breakdown + the last-30-day adoption count + an estimated
+   * average-time-to-adoption. Drives the rescue dashboard widget.
+   * Self-scoped to the caller's rescue unless they hold pets.read:any.
+   */
+  getStats(
+    request: GetPetStatsRequest,
+    callback: (error: ServiceError | null, response: GetPetStatsResponse) => void
+  ): ClientUnaryCall;
+  getStats(
+    request: GetPetStatsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetPetStatsResponse) => void
+  ): ClientUnaryCall;
+  getStats(
+    request: GetPetStatsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetPetStatsResponse) => void
   ): ClientUnaryCall;
 }
 

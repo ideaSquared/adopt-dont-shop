@@ -95,6 +95,18 @@ export const registerPetsRoutes = async (
     }
   });
 
+  // /stats must register BEFORE the dynamic /:id route so the literal
+  // segment wins Fastify's first-registered-wins matcher.
+  app.get('/api/v1/pets/stats', async (req, reply) => {
+    const query = req.query as Record<string, string | undefined>;
+    try {
+      const res = await client.getStats({ rescueIdFilter: query.rescueId }, buildMetadata(req));
+      return reply.send({ success: true, data: res });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
   app.get<{ Params: { id: string } }>(
     '/api/v1/pets/:id',
     { config: { rateLimit: PETS_RATE_LIMITS.get } },

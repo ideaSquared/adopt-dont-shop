@@ -32,6 +32,8 @@ import {
   type DeletePetResponse,
   type GetPetRequest,
   type GetPetResponse,
+  type GetPetStatsRequest,
+  type GetPetStatsResponse,
   type ListPetsRequest,
   type ListPetsResponse,
   type Pet,
@@ -663,4 +665,120 @@ function parseJsonArray(raw: string | undefined): string[] {
   } catch {
     return [];
   }
+}
+
+// --- GetStats --------------------------------------------------------
+
+const PETS_READ_ANY: Permission = 'pets.read:any' as Permission;
+
+type StatusCountRow = { status: PetStatusDb; count: string };
+
+export async function getPetStats(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetPetStatsRequest
+): Promise<GetPetStatsResponse> {
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+
+  // Resolve rescue scope. Rescue staff are pinned to their own
+  // rescue regardless of req.rescueIdFilter. Admins / super_admin
+  // (via pets.read:any) may pass a target rescue_id, or empty for
+  // platform-wide stats.
+  let rescueScope: string | null;
+  if (hasPermission(principal, PETS_READ_ANY)) {
+    rescueScope = req.rescueIdFilter ? req.rescueIdFilter : null;
+  } else if (principal.rescueId) {
+    rescueScope = principal.rescueId;
+  } else {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      'rescue scope required — caller is not bound to a rescue and lacks pets.read:any'
+    );
+  }
+
+  // Build a single WHERE clause shared by all three queries below so
+  // pagination / status counts / monthly counts all agree on scope.
+  const where: string[] = ['deleted_at IS NULL'];
+  const params: unknown[] = [];
+  if (rescueScope) {
+    where.push(`rescue_id = $${params.length + 1}`);
+    params.push(rescueScope);
+  }
+  const whereClause = where.join(' AND ');
+
+  // Per-status counts in one round trip via GROUP BY.
+  const statusRes = await deps.pool.query<StatusCountRow>(
+    `SELECT status, COUNT(*)::text AS count
+     FROM pets.pets
+     WHERE ${whereClause}
+     GROUP BY status`,
+    params
+  );
+
+  const counts = {
+    available: 0,
+    pending: 0,
+    adopted: 0,
+    foster: 0,
+    medical_hold: 0,
+    behavioral_hold: 0,
+    not_available: 0,
+    deceased: 0,
+  };
+  for (const row of statusRes.rows) {
+    if (row.status in counts) {
+      counts[row.status] = Number.parseInt(row.count, 10);
+    }
+  }
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+  // Last-30-day adoptions (uses adopted_date so a backfilled status
+  // transition reflects the actual adoption date, not row mtime).
+  const monthlyRes = await deps.pool.query<{ count: string }>(
+    `SELECT COUNT(*)::text AS count
+     FROM pets.pets
+     WHERE ${whereClause}
+       AND status = 'adopted'
+       AND adopted_date IS NOT NULL
+       AND adopted_date >= now() - interval '30 days'`,
+    params
+  );
+  const monthlyAdoptions = Number.parseInt(monthlyRes.rows[0]?.count ?? '0', 10);
+
+  // Average days-to-adoption across the 50 most recent adoptions in
+  // scope. Postgres calculates the difference for us; we drop the
+  // sub-day fraction because the dashboard widget renders whole days.
+  const avgRes = await deps.pool.query<{ avg_days: string | null }>(
+    `
+    WITH recent AS (
+      SELECT EXTRACT(epoch FROM (adopted_date - created_at)) / 86400 AS days
+      FROM pets.pets
+      WHERE ${whereClause}
+        AND status = 'adopted'
+        AND adopted_date IS NOT NULL
+      ORDER BY adopted_date DESC
+      LIMIT 50
+    )
+    SELECT AVG(days)::text AS avg_days FROM recent
+    `,
+    params
+  );
+  const avgRaw = avgRes.rows[0]?.avg_days;
+  const averageDaysToAdoption = avgRaw ? Math.round(Number.parseFloat(avgRaw)) : 0;
+
+  return {
+    total,
+    available: counts.available,
+    pending: counts.pending,
+    adopted: counts.adopted,
+    foster: counts.foster,
+    medicalHold: counts.medical_hold,
+    behavioralHold: counts.behavioral_hold,
+    notAvailable: counts.not_available,
+    deceased: counts.deceased,
+    monthlyAdoptions,
+    averageDaysToAdoption,
+  };
 }

@@ -134,6 +134,8 @@ export type {
   UpdatePetStatusResponse,
   DeletePetRequest,
   DeletePetResponse,
+  GetPetStatsRequest,
+  GetPetStatsResponse,
   PetServiceServer,
   PetServiceClient,
 } from './generated/proto/adopt_dont_shop/pets/v1/pet.js';
