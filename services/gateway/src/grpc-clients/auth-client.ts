@@ -65,6 +65,20 @@ import {
   type GetUserPermissionsResponse,
   type BulkUpdateUsersRequest,
   type BulkUpdateUsersResponse,
+  type GetFieldPermissionDefaultsRequest,
+  type GetFieldPermissionDefaultsResponse,
+  type GetFieldPermissionDefaultsForRoleRequest,
+  type GetFieldPermissionDefaultsForRoleResponse,
+  type ListFieldPermissionOverridesRequest,
+  type ListFieldPermissionOverridesResponse,
+  type ListFieldPermissionOverridesForRoleRequest,
+  type ListFieldPermissionOverridesForRoleResponse,
+  type UpsertFieldPermissionRequest,
+  type UpsertFieldPermissionResponse,
+  type BulkUpsertFieldPermissionsRequest,
+  type BulkUpsertFieldPermissionsResponse,
+  type DeleteFieldPermissionRequest,
+  type DeleteFieldPermissionResponse,
 } from '@adopt-dont-shop/proto';
 
 export type AuthClient = {
@@ -118,6 +132,34 @@ export type AuthClient = {
     req: BulkUpdateUsersRequest,
     metadata: Metadata
   ): Promise<BulkUpdateUsersResponse>;
+  getFieldPermissionDefaults(
+    req: GetFieldPermissionDefaultsRequest,
+    metadata: Metadata
+  ): Promise<GetFieldPermissionDefaultsResponse>;
+  getFieldPermissionDefaultsForRole(
+    req: GetFieldPermissionDefaultsForRoleRequest,
+    metadata: Metadata
+  ): Promise<GetFieldPermissionDefaultsForRoleResponse>;
+  listFieldPermissionOverrides(
+    req: ListFieldPermissionOverridesRequest,
+    metadata: Metadata
+  ): Promise<ListFieldPermissionOverridesResponse>;
+  listFieldPermissionOverridesForRole(
+    req: ListFieldPermissionOverridesForRoleRequest,
+    metadata: Metadata
+  ): Promise<ListFieldPermissionOverridesForRoleResponse>;
+  upsertFieldPermission(
+    req: UpsertFieldPermissionRequest,
+    metadata: Metadata
+  ): Promise<UpsertFieldPermissionResponse>;
+  bulkUpsertFieldPermissions(
+    req: BulkUpsertFieldPermissionsRequest,
+    metadata: Metadata
+  ): Promise<BulkUpsertFieldPermissionsResponse>;
+  deleteFieldPermission(
+    req: DeleteFieldPermissionRequest,
+    metadata: Metadata
+  ): Promise<DeleteFieldPermissionResponse>;
   close(): void;
 };
 
@@ -172,6 +214,18 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     getUserStatistics: (req, metadata) => callUnary(stub.getUserStatistics, req, metadata),
     getUserPermissions: (req, metadata) => callUnary(stub.getUserPermissions, req, metadata),
     bulkUpdateUsers: (req, metadata) => callUnary(stub.bulkUpdateUsers, req, metadata),
+    getFieldPermissionDefaults: (req, metadata) =>
+      callUnary(stub.getFieldPermissionDefaults, req, metadata),
+    getFieldPermissionDefaultsForRole: (req, metadata) =>
+      callUnary(stub.getFieldPermissionDefaultsForRole, req, metadata),
+    listFieldPermissionOverrides: (req, metadata) =>
+      callUnary(stub.listFieldPermissionOverrides, req, metadata),
+    listFieldPermissionOverridesForRole: (req, metadata) =>
+      callUnary(stub.listFieldPermissionOverridesForRole, req, metadata),
+    upsertFieldPermission: (req, metadata) => callUnary(stub.upsertFieldPermission, req, metadata),
+    bulkUpsertFieldPermissions: (req, metadata) =>
+      callUnary(stub.bulkUpsertFieldPermissions, req, metadata),
+    deleteFieldPermission: (req, metadata) => callUnary(stub.deleteFieldPermission, req, metadata),
     close: () => stub.close(),
   };
 };

@@ -48,6 +48,15 @@ import {
   searchUsers,
 } from './admin-handlers.js';
 import {
+  bulkUpsertFieldPermissions,
+  deleteFieldPermission,
+  getFieldPermissionDefaults,
+  getFieldPermissionDefaultsForRole,
+  listFieldPermissionOverrides,
+  listFieldPermissionOverridesForRole,
+  upsertFieldPermission,
+} from './field-permission-handlers.js';
+import {
   getPrivacyPreferences,
   resetPrivacyPreferences,
   updatePrivacyPreferences,
@@ -109,6 +118,17 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getUserStatistics: adapt(getUserStatistics, { deps, logger }),
     getUserPermissions: adapt(getUserPermissions, { deps, logger }),
     bulkUpdateUsers: adapt(bulkUpdateUsers, { deps, logger }),
+    // Field-level permissions admin — /api/v1/field-permissions/*.
+    getFieldPermissionDefaults: adapt(getFieldPermissionDefaults, { deps, logger }),
+    getFieldPermissionDefaultsForRole: adapt(getFieldPermissionDefaultsForRole, { deps, logger }),
+    listFieldPermissionOverrides: adapt(listFieldPermissionOverrides, { deps, logger }),
+    listFieldPermissionOverridesForRole: adapt(listFieldPermissionOverridesForRole, {
+      deps,
+      logger,
+    }),
+    upsertFieldPermission: adapt(upsertFieldPermission, { deps, logger }),
+    bulkUpsertFieldPermissions: adapt(bulkUpsertFieldPermissions, { deps, logger }),
+    deleteFieldPermission: adapt(deleteFieldPermission, { deps, logger }),
   });
 
   logger.info('gRPC AuthService registered', {
@@ -139,6 +159,13 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getUserStatistics',
       'getUserPermissions',
       'bulkUpdateUsers',
+      'getFieldPermissionDefaults',
+      'getFieldPermissionDefaultsForRole',
+      'listFieldPermissionOverrides',
+      'listFieldPermissionOverridesForRole',
+      'upsertFieldPermission',
+      'bulkUpsertFieldPermissions',
+      'deleteFieldPermission',
     ],
     grpcPort: config.grpcPort,
   });

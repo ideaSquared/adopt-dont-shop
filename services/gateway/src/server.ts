@@ -40,6 +40,7 @@ import { registerConfigRoutes } from './routes/config.js';
 import { registerDashboardRoutes } from './routes/dashboard.js';
 import { registerDevicesRoutes } from './routes/devices.js';
 import { registerEmailRoutes } from './routes/email.js';
+import { registerFieldPermissionsRoutes } from './routes/field-permissions.js';
 import { registerLegalRoutes } from './routes/legal.js';
 import { registerMatchingRoutes } from './routes/matching.js';
 import { registerModerationAdminRoutes } from './routes/moderation-admin.js';
@@ -162,6 +163,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // /api/v1/sessions/* — list/revoke. Shares the auth cutover flag
     // because it's the same identity surface from the SPA's POV.
     await registerSessionsRoutes(server, { client: opts.authClient });
+    // /api/v1/field-permissions/* — admin surface. Backed entirely by
+    // service.auth (which owns the field_permissions table + lib.types
+    // defaults). Shares the auth cutover flag.
+    await registerFieldPermissionsRoutes(server, { client: opts.authClient });
   }
   if (opts.notificationsClient && cutover.notifications) {
     await registerNotificationsRoutes(server, { client: opts.notificationsClient });

@@ -196,6 +196,110 @@ export function profileVisibilityToJSON(object: ProfileVisibility): string {
 }
 
 /**
+ * Mirrors the lib.types `FieldAccessLevel` union. Mapped 1:1 with the
+ * `field_access_level` Postgres enum.
+ */
+export enum FieldAccessLevel {
+  FIELD_ACCESS_LEVEL_UNSPECIFIED = 0,
+  FIELD_ACCESS_LEVEL_NONE = 1,
+  FIELD_ACCESS_LEVEL_READ = 2,
+  FIELD_ACCESS_LEVEL_WRITE = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function fieldAccessLevelFromJSON(object: any): FieldAccessLevel {
+  switch (object) {
+    case 0:
+    case 'FIELD_ACCESS_LEVEL_UNSPECIFIED':
+      return FieldAccessLevel.FIELD_ACCESS_LEVEL_UNSPECIFIED;
+    case 1:
+    case 'FIELD_ACCESS_LEVEL_NONE':
+      return FieldAccessLevel.FIELD_ACCESS_LEVEL_NONE;
+    case 2:
+    case 'FIELD_ACCESS_LEVEL_READ':
+      return FieldAccessLevel.FIELD_ACCESS_LEVEL_READ;
+    case 3:
+    case 'FIELD_ACCESS_LEVEL_WRITE':
+      return FieldAccessLevel.FIELD_ACCESS_LEVEL_WRITE;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return FieldAccessLevel.UNRECOGNIZED;
+  }
+}
+
+export function fieldAccessLevelToJSON(object: FieldAccessLevel): string {
+  switch (object) {
+    case FieldAccessLevel.FIELD_ACCESS_LEVEL_UNSPECIFIED:
+      return 'FIELD_ACCESS_LEVEL_UNSPECIFIED';
+    case FieldAccessLevel.FIELD_ACCESS_LEVEL_NONE:
+      return 'FIELD_ACCESS_LEVEL_NONE';
+    case FieldAccessLevel.FIELD_ACCESS_LEVEL_READ:
+      return 'FIELD_ACCESS_LEVEL_READ';
+    case FieldAccessLevel.FIELD_ACCESS_LEVEL_WRITE:
+      return 'FIELD_ACCESS_LEVEL_WRITE';
+    case FieldAccessLevel.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+/**
+ * Mirrors lib.types `FieldPermissionResource`. Mapped 1:1 with the
+ * `field_permission_resource` Postgres enum.
+ */
+export enum FieldPermissionResource {
+  FIELD_PERMISSION_RESOURCE_UNSPECIFIED = 0,
+  FIELD_PERMISSION_RESOURCE_USERS = 1,
+  FIELD_PERMISSION_RESOURCE_PETS = 2,
+  FIELD_PERMISSION_RESOURCE_APPLICATIONS = 3,
+  FIELD_PERMISSION_RESOURCE_RESCUES = 4,
+  UNRECOGNIZED = -1,
+}
+
+export function fieldPermissionResourceFromJSON(object: any): FieldPermissionResource {
+  switch (object) {
+    case 0:
+    case 'FIELD_PERMISSION_RESOURCE_UNSPECIFIED':
+      return FieldPermissionResource.FIELD_PERMISSION_RESOURCE_UNSPECIFIED;
+    case 1:
+    case 'FIELD_PERMISSION_RESOURCE_USERS':
+      return FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS;
+    case 2:
+    case 'FIELD_PERMISSION_RESOURCE_PETS':
+      return FieldPermissionResource.FIELD_PERMISSION_RESOURCE_PETS;
+    case 3:
+    case 'FIELD_PERMISSION_RESOURCE_APPLICATIONS':
+      return FieldPermissionResource.FIELD_PERMISSION_RESOURCE_APPLICATIONS;
+    case 4:
+    case 'FIELD_PERMISSION_RESOURCE_RESCUES':
+      return FieldPermissionResource.FIELD_PERMISSION_RESOURCE_RESCUES;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return FieldPermissionResource.UNRECOGNIZED;
+  }
+}
+
+export function fieldPermissionResourceToJSON(object: FieldPermissionResource): string {
+  switch (object) {
+    case FieldPermissionResource.FIELD_PERMISSION_RESOURCE_UNSPECIFIED:
+      return 'FIELD_PERMISSION_RESOURCE_UNSPECIFIED';
+    case FieldPermissionResource.FIELD_PERMISSION_RESOURCE_USERS:
+      return 'FIELD_PERMISSION_RESOURCE_USERS';
+    case FieldPermissionResource.FIELD_PERMISSION_RESOURCE_PETS:
+      return 'FIELD_PERMISSION_RESOURCE_PETS';
+    case FieldPermissionResource.FIELD_PERMISSION_RESOURCE_APPLICATIONS:
+      return 'FIELD_PERMISSION_RESOURCE_APPLICATIONS';
+    case FieldPermissionResource.FIELD_PERMISSION_RESOURCE_RESCUES:
+      return 'FIELD_PERMISSION_RESOURCE_RESCUES';
+    case FieldPermissionResource.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+/**
  * Principal is the flattened identity the gateway forwards downstream
  * as gRPC metadata. ValidateToken returns it; GetMe returns a richer
  * User on top of it.
@@ -662,6 +766,106 @@ export interface BulkUpdateUsersResponse {
   successCount: number;
   failedCount: number;
   results: BulkUpdateUserResult[];
+}
+
+/**
+ * A single stored override row. role is a free-text string (matches the
+ * monolith's `field_permissions.role` varchar) since the role universe
+ * is wider than the gRPC UserRole enum (e.g. moderator, support_agent).
+ */
+export interface FieldPermission {
+  fieldPermissionId: number;
+  resource: FieldPermissionResource;
+  fieldName: string;
+  role: string;
+  accessLevel: FieldAccessLevel;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetFieldPermissionDefaultsRequest {}
+
+/**
+ * `defaults_json` is the full FieldPermissionConfig encoded as JSON so
+ * the proto stays cheap to evolve. Each new field default added in
+ * lib.types automatically flows through without a proto rebuild — the
+ * admin UI is already JSON-aware (it deserialises the same shape today
+ * from the monolith's /api/v1/field-permissions/defaults endpoint).
+ */
+export interface GetFieldPermissionDefaultsResponse {
+  defaultsJson: string;
+}
+
+export interface GetFieldPermissionDefaultsForRoleRequest {
+  resource: FieldPermissionResource;
+  role: string;
+}
+
+/** access_map_json is `Record<fieldName, FieldAccessLevel>` as JSON. */
+export interface GetFieldPermissionDefaultsForRoleResponse {
+  accessMapJson: string;
+}
+
+export interface ListFieldPermissionOverridesRequest {
+  resource: FieldPermissionResource;
+}
+
+export interface ListFieldPermissionOverridesResponse {
+  overrides: FieldPermission[];
+}
+
+export interface ListFieldPermissionOverridesForRoleRequest {
+  resource: FieldPermissionResource;
+  role: string;
+}
+
+export interface ListFieldPermissionOverridesForRoleResponse {
+  overrides: FieldPermission[];
+}
+
+export interface UpsertFieldPermissionRequest {
+  resource: FieldPermissionResource;
+  fieldName: string;
+  role: string;
+  accessLevel: FieldAccessLevel;
+}
+
+export interface UpsertFieldPermissionResponse {
+  override?: FieldPermission | undefined;
+}
+
+/**
+ * One row in the bulk array. Same shape as UpsertFieldPermissionRequest;
+ * kept separate so a future BulkUpsert could carry batch-level options
+ * (e.g. dry_run) without leaking into the single-upsert API.
+ */
+export interface FieldPermissionOverrideInput {
+  resource: FieldPermissionResource;
+  fieldName: string;
+  role: string;
+  accessLevel: FieldAccessLevel;
+}
+
+export interface BulkUpsertFieldPermissionsRequest {
+  overrides: FieldPermissionOverrideInput[];
+}
+
+export interface BulkUpsertFieldPermissionsResponse {
+  overrides: FieldPermission[];
+}
+
+export interface DeleteFieldPermissionRequest {
+  resource: FieldPermissionResource;
+  fieldName: string;
+  role: string;
+}
+
+export interface DeleteFieldPermissionResponse {
+  /**
+   * True if a row was deleted; false if no override existed for that key
+   * (the field already used the default).
+   */
+  deleted: boolean;
 }
 
 function createBasePrincipal(): Principal {
@@ -6530,6 +6734,1397 @@ export const BulkUpdateUsersResponse: MessageFns<BulkUpdateUsersResponse> = {
   },
 };
 
+function createBaseFieldPermission(): FieldPermission {
+  return {
+    fieldPermissionId: 0,
+    resource: 0,
+    fieldName: '',
+    role: '',
+    accessLevel: 0,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const FieldPermission: MessageFns<FieldPermission> = {
+  encode(message: FieldPermission, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.fieldPermissionId !== 0) {
+      writer.uint32(8).uint32(message.fieldPermissionId);
+    }
+    if (message.resource !== 0) {
+      writer.uint32(16).int32(message.resource);
+    }
+    if (message.fieldName !== '') {
+      writer.uint32(26).string(message.fieldName);
+    }
+    if (message.role !== '') {
+      writer.uint32(34).string(message.role);
+    }
+    if (message.accessLevel !== 0) {
+      writer.uint32(40).int32(message.accessLevel);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(50).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(58).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): FieldPermission {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFieldPermission();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.fieldPermissionId = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.resource = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.fieldName = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.role = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.accessLevel = reader.int32() as any;
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): FieldPermission {
+    return {
+      fieldPermissionId: isSet(object.fieldPermissionId)
+        ? globalThis.Number(object.fieldPermissionId)
+        : isSet(object.field_permission_id)
+          ? globalThis.Number(object.field_permission_id)
+          : 0,
+      resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
+      fieldName: isSet(object.fieldName)
+        ? globalThis.String(object.fieldName)
+        : isSet(object.field_name)
+          ? globalThis.String(object.field_name)
+          : '',
+      role: isSet(object.role) ? globalThis.String(object.role) : '',
+      accessLevel: isSet(object.accessLevel)
+        ? fieldAccessLevelFromJSON(object.accessLevel)
+        : isSet(object.access_level)
+          ? fieldAccessLevelFromJSON(object.access_level)
+          : 0,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: FieldPermission): unknown {
+    const obj: any = {};
+    if (message.fieldPermissionId !== 0) {
+      obj.fieldPermissionId = Math.round(message.fieldPermissionId);
+    }
+    if (message.resource !== 0) {
+      obj.resource = fieldPermissionResourceToJSON(message.resource);
+    }
+    if (message.fieldName !== '') {
+      obj.fieldName = message.fieldName;
+    }
+    if (message.role !== '') {
+      obj.role = message.role;
+    }
+    if (message.accessLevel !== 0) {
+      obj.accessLevel = fieldAccessLevelToJSON(message.accessLevel);
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<FieldPermission>, I>>(base?: I): FieldPermission {
+    return FieldPermission.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<FieldPermission>, I>>(object: I): FieldPermission {
+    const message = createBaseFieldPermission();
+    message.fieldPermissionId = object.fieldPermissionId ?? 0;
+    message.resource = object.resource ?? 0;
+    message.fieldName = object.fieldName ?? '';
+    message.role = object.role ?? '';
+    message.accessLevel = object.accessLevel ?? 0;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseGetFieldPermissionDefaultsRequest(): GetFieldPermissionDefaultsRequest {
+  return {};
+}
+
+export const GetFieldPermissionDefaultsRequest: MessageFns<GetFieldPermissionDefaultsRequest> = {
+  encode(
+    _: GetFieldPermissionDefaultsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetFieldPermissionDefaultsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetFieldPermissionDefaultsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetFieldPermissionDefaultsRequest {
+    return {};
+  },
+
+  toJSON(_: GetFieldPermissionDefaultsRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetFieldPermissionDefaultsRequest>, I>>(
+    base?: I
+  ): GetFieldPermissionDefaultsRequest {
+    return GetFieldPermissionDefaultsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetFieldPermissionDefaultsRequest>, I>>(
+    _: I
+  ): GetFieldPermissionDefaultsRequest {
+    const message = createBaseGetFieldPermissionDefaultsRequest();
+    return message;
+  },
+};
+
+function createBaseGetFieldPermissionDefaultsResponse(): GetFieldPermissionDefaultsResponse {
+  return { defaultsJson: '' };
+}
+
+export const GetFieldPermissionDefaultsResponse: MessageFns<GetFieldPermissionDefaultsResponse> = {
+  encode(
+    message: GetFieldPermissionDefaultsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.defaultsJson !== '') {
+      writer.uint32(10).string(message.defaultsJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetFieldPermissionDefaultsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetFieldPermissionDefaultsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.defaultsJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetFieldPermissionDefaultsResponse {
+    return {
+      defaultsJson: isSet(object.defaultsJson)
+        ? globalThis.String(object.defaultsJson)
+        : isSet(object.defaults_json)
+          ? globalThis.String(object.defaults_json)
+          : '',
+    };
+  },
+
+  toJSON(message: GetFieldPermissionDefaultsResponse): unknown {
+    const obj: any = {};
+    if (message.defaultsJson !== '') {
+      obj.defaultsJson = message.defaultsJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetFieldPermissionDefaultsResponse>, I>>(
+    base?: I
+  ): GetFieldPermissionDefaultsResponse {
+    return GetFieldPermissionDefaultsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetFieldPermissionDefaultsResponse>, I>>(
+    object: I
+  ): GetFieldPermissionDefaultsResponse {
+    const message = createBaseGetFieldPermissionDefaultsResponse();
+    message.defaultsJson = object.defaultsJson ?? '';
+    return message;
+  },
+};
+
+function createBaseGetFieldPermissionDefaultsForRoleRequest(): GetFieldPermissionDefaultsForRoleRequest {
+  return { resource: 0, role: '' };
+}
+
+export const GetFieldPermissionDefaultsForRoleRequest: MessageFns<GetFieldPermissionDefaultsForRoleRequest> =
+  {
+    encode(
+      message: GetFieldPermissionDefaultsForRoleRequest,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.resource !== 0) {
+        writer.uint32(8).int32(message.resource);
+      }
+      if (message.role !== '') {
+        writer.uint32(18).string(message.role);
+      }
+      return writer;
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): GetFieldPermissionDefaultsForRoleRequest {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseGetFieldPermissionDefaultsForRoleRequest();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.resource = reader.int32() as any;
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
+
+            message.role = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): GetFieldPermissionDefaultsForRoleRequest {
+      return {
+        resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
+        role: isSet(object.role) ? globalThis.String(object.role) : '',
+      };
+    },
+
+    toJSON(message: GetFieldPermissionDefaultsForRoleRequest): unknown {
+      const obj: any = {};
+      if (message.resource !== 0) {
+        obj.resource = fieldPermissionResourceToJSON(message.resource);
+      }
+      if (message.role !== '') {
+        obj.role = message.role;
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleRequest>, I>>(
+      base?: I
+    ): GetFieldPermissionDefaultsForRoleRequest {
+      return GetFieldPermissionDefaultsForRoleRequest.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleRequest>, I>>(
+      object: I
+    ): GetFieldPermissionDefaultsForRoleRequest {
+      const message = createBaseGetFieldPermissionDefaultsForRoleRequest();
+      message.resource = object.resource ?? 0;
+      message.role = object.role ?? '';
+      return message;
+    },
+  };
+
+function createBaseGetFieldPermissionDefaultsForRoleResponse(): GetFieldPermissionDefaultsForRoleResponse {
+  return { accessMapJson: '' };
+}
+
+export const GetFieldPermissionDefaultsForRoleResponse: MessageFns<GetFieldPermissionDefaultsForRoleResponse> =
+  {
+    encode(
+      message: GetFieldPermissionDefaultsForRoleResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.accessMapJson !== '') {
+        writer.uint32(10).string(message.accessMapJson);
+      }
+      return writer;
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): GetFieldPermissionDefaultsForRoleResponse {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseGetFieldPermissionDefaultsForRoleResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.accessMapJson = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): GetFieldPermissionDefaultsForRoleResponse {
+      return {
+        accessMapJson: isSet(object.accessMapJson)
+          ? globalThis.String(object.accessMapJson)
+          : isSet(object.access_map_json)
+            ? globalThis.String(object.access_map_json)
+            : '',
+      };
+    },
+
+    toJSON(message: GetFieldPermissionDefaultsForRoleResponse): unknown {
+      const obj: any = {};
+      if (message.accessMapJson !== '') {
+        obj.accessMapJson = message.accessMapJson;
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleResponse>, I>>(
+      base?: I
+    ): GetFieldPermissionDefaultsForRoleResponse {
+      return GetFieldPermissionDefaultsForRoleResponse.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<I extends Exact<DeepPartial<GetFieldPermissionDefaultsForRoleResponse>, I>>(
+      object: I
+    ): GetFieldPermissionDefaultsForRoleResponse {
+      const message = createBaseGetFieldPermissionDefaultsForRoleResponse();
+      message.accessMapJson = object.accessMapJson ?? '';
+      return message;
+    },
+  };
+
+function createBaseListFieldPermissionOverridesRequest(): ListFieldPermissionOverridesRequest {
+  return { resource: 0 };
+}
+
+export const ListFieldPermissionOverridesRequest: MessageFns<ListFieldPermissionOverridesRequest> =
+  {
+    encode(
+      message: ListFieldPermissionOverridesRequest,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.resource !== 0) {
+        writer.uint32(8).int32(message.resource);
+      }
+      return writer;
+    },
+
+    decode(input: BinaryReader | Uint8Array, length?: number): ListFieldPermissionOverridesRequest {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseListFieldPermissionOverridesRequest();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.resource = reader.int32() as any;
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): ListFieldPermissionOverridesRequest {
+      return {
+        resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
+      };
+    },
+
+    toJSON(message: ListFieldPermissionOverridesRequest): unknown {
+      const obj: any = {};
+      if (message.resource !== 0) {
+        obj.resource = fieldPermissionResourceToJSON(message.resource);
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<ListFieldPermissionOverridesRequest>, I>>(
+      base?: I
+    ): ListFieldPermissionOverridesRequest {
+      return ListFieldPermissionOverridesRequest.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesRequest>, I>>(
+      object: I
+    ): ListFieldPermissionOverridesRequest {
+      const message = createBaseListFieldPermissionOverridesRequest();
+      message.resource = object.resource ?? 0;
+      return message;
+    },
+  };
+
+function createBaseListFieldPermissionOverridesResponse(): ListFieldPermissionOverridesResponse {
+  return { overrides: [] };
+}
+
+export const ListFieldPermissionOverridesResponse: MessageFns<ListFieldPermissionOverridesResponse> =
+  {
+    encode(
+      message: ListFieldPermissionOverridesResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      for (const v of message.overrides) {
+        FieldPermission.encode(v!, writer.uint32(10).fork()).join();
+      }
+      return writer;
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): ListFieldPermissionOverridesResponse {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseListFieldPermissionOverridesResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.overrides.push(FieldPermission.decode(reader, reader.uint32()));
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): ListFieldPermissionOverridesResponse {
+      return {
+        overrides: globalThis.Array.isArray(object?.overrides)
+          ? object.overrides.map((e: any) => FieldPermission.fromJSON(e))
+          : [],
+      };
+    },
+
+    toJSON(message: ListFieldPermissionOverridesResponse): unknown {
+      const obj: any = {};
+      if (message.overrides?.length) {
+        obj.overrides = message.overrides.map(e => FieldPermission.toJSON(e));
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<ListFieldPermissionOverridesResponse>, I>>(
+      base?: I
+    ): ListFieldPermissionOverridesResponse {
+      return ListFieldPermissionOverridesResponse.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesResponse>, I>>(
+      object: I
+    ): ListFieldPermissionOverridesResponse {
+      const message = createBaseListFieldPermissionOverridesResponse();
+      message.overrides = object.overrides?.map(e => FieldPermission.fromPartial(e)) || [];
+      return message;
+    },
+  };
+
+function createBaseListFieldPermissionOverridesForRoleRequest(): ListFieldPermissionOverridesForRoleRequest {
+  return { resource: 0, role: '' };
+}
+
+export const ListFieldPermissionOverridesForRoleRequest: MessageFns<ListFieldPermissionOverridesForRoleRequest> =
+  {
+    encode(
+      message: ListFieldPermissionOverridesForRoleRequest,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.resource !== 0) {
+        writer.uint32(8).int32(message.resource);
+      }
+      if (message.role !== '') {
+        writer.uint32(18).string(message.role);
+      }
+      return writer;
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): ListFieldPermissionOverridesForRoleRequest {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseListFieldPermissionOverridesForRoleRequest();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.resource = reader.int32() as any;
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
+
+            message.role = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): ListFieldPermissionOverridesForRoleRequest {
+      return {
+        resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
+        role: isSet(object.role) ? globalThis.String(object.role) : '',
+      };
+    },
+
+    toJSON(message: ListFieldPermissionOverridesForRoleRequest): unknown {
+      const obj: any = {};
+      if (message.resource !== 0) {
+        obj.resource = fieldPermissionResourceToJSON(message.resource);
+      }
+      if (message.role !== '') {
+        obj.role = message.role;
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleRequest>, I>>(
+      base?: I
+    ): ListFieldPermissionOverridesForRoleRequest {
+      return ListFieldPermissionOverridesForRoleRequest.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleRequest>, I>>(
+      object: I
+    ): ListFieldPermissionOverridesForRoleRequest {
+      const message = createBaseListFieldPermissionOverridesForRoleRequest();
+      message.resource = object.resource ?? 0;
+      message.role = object.role ?? '';
+      return message;
+    },
+  };
+
+function createBaseListFieldPermissionOverridesForRoleResponse(): ListFieldPermissionOverridesForRoleResponse {
+  return { overrides: [] };
+}
+
+export const ListFieldPermissionOverridesForRoleResponse: MessageFns<ListFieldPermissionOverridesForRoleResponse> =
+  {
+    encode(
+      message: ListFieldPermissionOverridesForRoleResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      for (const v of message.overrides) {
+        FieldPermission.encode(v!, writer.uint32(10).fork()).join();
+      }
+      return writer;
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): ListFieldPermissionOverridesForRoleResponse {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseListFieldPermissionOverridesForRoleResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.overrides.push(FieldPermission.decode(reader, reader.uint32()));
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): ListFieldPermissionOverridesForRoleResponse {
+      return {
+        overrides: globalThis.Array.isArray(object?.overrides)
+          ? object.overrides.map((e: any) => FieldPermission.fromJSON(e))
+          : [],
+      };
+    },
+
+    toJSON(message: ListFieldPermissionOverridesForRoleResponse): unknown {
+      const obj: any = {};
+      if (message.overrides?.length) {
+        obj.overrides = message.overrides.map(e => FieldPermission.toJSON(e));
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleResponse>, I>>(
+      base?: I
+    ): ListFieldPermissionOverridesForRoleResponse {
+      return ListFieldPermissionOverridesForRoleResponse.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<I extends Exact<DeepPartial<ListFieldPermissionOverridesForRoleResponse>, I>>(
+      object: I
+    ): ListFieldPermissionOverridesForRoleResponse {
+      const message = createBaseListFieldPermissionOverridesForRoleResponse();
+      message.overrides = object.overrides?.map(e => FieldPermission.fromPartial(e)) || [];
+      return message;
+    },
+  };
+
+function createBaseUpsertFieldPermissionRequest(): UpsertFieldPermissionRequest {
+  return { resource: 0, fieldName: '', role: '', accessLevel: 0 };
+}
+
+export const UpsertFieldPermissionRequest: MessageFns<UpsertFieldPermissionRequest> = {
+  encode(
+    message: UpsertFieldPermissionRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.resource !== 0) {
+      writer.uint32(8).int32(message.resource);
+    }
+    if (message.fieldName !== '') {
+      writer.uint32(18).string(message.fieldName);
+    }
+    if (message.role !== '') {
+      writer.uint32(26).string(message.role);
+    }
+    if (message.accessLevel !== 0) {
+      writer.uint32(32).int32(message.accessLevel);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpsertFieldPermissionRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpsertFieldPermissionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.resource = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.fieldName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.role = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.accessLevel = reader.int32() as any;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpsertFieldPermissionRequest {
+    return {
+      resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
+      fieldName: isSet(object.fieldName)
+        ? globalThis.String(object.fieldName)
+        : isSet(object.field_name)
+          ? globalThis.String(object.field_name)
+          : '',
+      role: isSet(object.role) ? globalThis.String(object.role) : '',
+      accessLevel: isSet(object.accessLevel)
+        ? fieldAccessLevelFromJSON(object.accessLevel)
+        : isSet(object.access_level)
+          ? fieldAccessLevelFromJSON(object.access_level)
+          : 0,
+    };
+  },
+
+  toJSON(message: UpsertFieldPermissionRequest): unknown {
+    const obj: any = {};
+    if (message.resource !== 0) {
+      obj.resource = fieldPermissionResourceToJSON(message.resource);
+    }
+    if (message.fieldName !== '') {
+      obj.fieldName = message.fieldName;
+    }
+    if (message.role !== '') {
+      obj.role = message.role;
+    }
+    if (message.accessLevel !== 0) {
+      obj.accessLevel = fieldAccessLevelToJSON(message.accessLevel);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpsertFieldPermissionRequest>, I>>(
+    base?: I
+  ): UpsertFieldPermissionRequest {
+    return UpsertFieldPermissionRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpsertFieldPermissionRequest>, I>>(
+    object: I
+  ): UpsertFieldPermissionRequest {
+    const message = createBaseUpsertFieldPermissionRequest();
+    message.resource = object.resource ?? 0;
+    message.fieldName = object.fieldName ?? '';
+    message.role = object.role ?? '';
+    message.accessLevel = object.accessLevel ?? 0;
+    return message;
+  },
+};
+
+function createBaseUpsertFieldPermissionResponse(): UpsertFieldPermissionResponse {
+  return { override: undefined };
+}
+
+export const UpsertFieldPermissionResponse: MessageFns<UpsertFieldPermissionResponse> = {
+  encode(
+    message: UpsertFieldPermissionResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.override !== undefined) {
+      FieldPermission.encode(message.override, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpsertFieldPermissionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpsertFieldPermissionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.override = FieldPermission.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpsertFieldPermissionResponse {
+    return {
+      override: isSet(object.override) ? FieldPermission.fromJSON(object.override) : undefined,
+    };
+  },
+
+  toJSON(message: UpsertFieldPermissionResponse): unknown {
+    const obj: any = {};
+    if (message.override !== undefined) {
+      obj.override = FieldPermission.toJSON(message.override);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpsertFieldPermissionResponse>, I>>(
+    base?: I
+  ): UpsertFieldPermissionResponse {
+    return UpsertFieldPermissionResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpsertFieldPermissionResponse>, I>>(
+    object: I
+  ): UpsertFieldPermissionResponse {
+    const message = createBaseUpsertFieldPermissionResponse();
+    message.override =
+      object.override !== undefined && object.override !== null
+        ? FieldPermission.fromPartial(object.override)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseFieldPermissionOverrideInput(): FieldPermissionOverrideInput {
+  return { resource: 0, fieldName: '', role: '', accessLevel: 0 };
+}
+
+export const FieldPermissionOverrideInput: MessageFns<FieldPermissionOverrideInput> = {
+  encode(
+    message: FieldPermissionOverrideInput,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.resource !== 0) {
+      writer.uint32(8).int32(message.resource);
+    }
+    if (message.fieldName !== '') {
+      writer.uint32(18).string(message.fieldName);
+    }
+    if (message.role !== '') {
+      writer.uint32(26).string(message.role);
+    }
+    if (message.accessLevel !== 0) {
+      writer.uint32(32).int32(message.accessLevel);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): FieldPermissionOverrideInput {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFieldPermissionOverrideInput();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.resource = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.fieldName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.role = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.accessLevel = reader.int32() as any;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): FieldPermissionOverrideInput {
+    return {
+      resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
+      fieldName: isSet(object.fieldName)
+        ? globalThis.String(object.fieldName)
+        : isSet(object.field_name)
+          ? globalThis.String(object.field_name)
+          : '',
+      role: isSet(object.role) ? globalThis.String(object.role) : '',
+      accessLevel: isSet(object.accessLevel)
+        ? fieldAccessLevelFromJSON(object.accessLevel)
+        : isSet(object.access_level)
+          ? fieldAccessLevelFromJSON(object.access_level)
+          : 0,
+    };
+  },
+
+  toJSON(message: FieldPermissionOverrideInput): unknown {
+    const obj: any = {};
+    if (message.resource !== 0) {
+      obj.resource = fieldPermissionResourceToJSON(message.resource);
+    }
+    if (message.fieldName !== '') {
+      obj.fieldName = message.fieldName;
+    }
+    if (message.role !== '') {
+      obj.role = message.role;
+    }
+    if (message.accessLevel !== 0) {
+      obj.accessLevel = fieldAccessLevelToJSON(message.accessLevel);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<FieldPermissionOverrideInput>, I>>(
+    base?: I
+  ): FieldPermissionOverrideInput {
+    return FieldPermissionOverrideInput.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<FieldPermissionOverrideInput>, I>>(
+    object: I
+  ): FieldPermissionOverrideInput {
+    const message = createBaseFieldPermissionOverrideInput();
+    message.resource = object.resource ?? 0;
+    message.fieldName = object.fieldName ?? '';
+    message.role = object.role ?? '';
+    message.accessLevel = object.accessLevel ?? 0;
+    return message;
+  },
+};
+
+function createBaseBulkUpsertFieldPermissionsRequest(): BulkUpsertFieldPermissionsRequest {
+  return { overrides: [] };
+}
+
+export const BulkUpsertFieldPermissionsRequest: MessageFns<BulkUpsertFieldPermissionsRequest> = {
+  encode(
+    message: BulkUpsertFieldPermissionsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.overrides) {
+      FieldPermissionOverrideInput.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BulkUpsertFieldPermissionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBulkUpsertFieldPermissionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.overrides.push(FieldPermissionOverrideInput.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BulkUpsertFieldPermissionsRequest {
+    return {
+      overrides: globalThis.Array.isArray(object?.overrides)
+        ? object.overrides.map((e: any) => FieldPermissionOverrideInput.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: BulkUpsertFieldPermissionsRequest): unknown {
+    const obj: any = {};
+    if (message.overrides?.length) {
+      obj.overrides = message.overrides.map(e => FieldPermissionOverrideInput.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BulkUpsertFieldPermissionsRequest>, I>>(
+    base?: I
+  ): BulkUpsertFieldPermissionsRequest {
+    return BulkUpsertFieldPermissionsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BulkUpsertFieldPermissionsRequest>, I>>(
+    object: I
+  ): BulkUpsertFieldPermissionsRequest {
+    const message = createBaseBulkUpsertFieldPermissionsRequest();
+    message.overrides =
+      object.overrides?.map(e => FieldPermissionOverrideInput.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseBulkUpsertFieldPermissionsResponse(): BulkUpsertFieldPermissionsResponse {
+  return { overrides: [] };
+}
+
+export const BulkUpsertFieldPermissionsResponse: MessageFns<BulkUpsertFieldPermissionsResponse> = {
+  encode(
+    message: BulkUpsertFieldPermissionsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.overrides) {
+      FieldPermission.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BulkUpsertFieldPermissionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBulkUpsertFieldPermissionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.overrides.push(FieldPermission.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BulkUpsertFieldPermissionsResponse {
+    return {
+      overrides: globalThis.Array.isArray(object?.overrides)
+        ? object.overrides.map((e: any) => FieldPermission.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: BulkUpsertFieldPermissionsResponse): unknown {
+    const obj: any = {};
+    if (message.overrides?.length) {
+      obj.overrides = message.overrides.map(e => FieldPermission.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BulkUpsertFieldPermissionsResponse>, I>>(
+    base?: I
+  ): BulkUpsertFieldPermissionsResponse {
+    return BulkUpsertFieldPermissionsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BulkUpsertFieldPermissionsResponse>, I>>(
+    object: I
+  ): BulkUpsertFieldPermissionsResponse {
+    const message = createBaseBulkUpsertFieldPermissionsResponse();
+    message.overrides = object.overrides?.map(e => FieldPermission.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseDeleteFieldPermissionRequest(): DeleteFieldPermissionRequest {
+  return { resource: 0, fieldName: '', role: '' };
+}
+
+export const DeleteFieldPermissionRequest: MessageFns<DeleteFieldPermissionRequest> = {
+  encode(
+    message: DeleteFieldPermissionRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.resource !== 0) {
+      writer.uint32(8).int32(message.resource);
+    }
+    if (message.fieldName !== '') {
+      writer.uint32(18).string(message.fieldName);
+    }
+    if (message.role !== '') {
+      writer.uint32(26).string(message.role);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteFieldPermissionRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteFieldPermissionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.resource = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.fieldName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.role = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteFieldPermissionRequest {
+    return {
+      resource: isSet(object.resource) ? fieldPermissionResourceFromJSON(object.resource) : 0,
+      fieldName: isSet(object.fieldName)
+        ? globalThis.String(object.fieldName)
+        : isSet(object.field_name)
+          ? globalThis.String(object.field_name)
+          : '',
+      role: isSet(object.role) ? globalThis.String(object.role) : '',
+    };
+  },
+
+  toJSON(message: DeleteFieldPermissionRequest): unknown {
+    const obj: any = {};
+    if (message.resource !== 0) {
+      obj.resource = fieldPermissionResourceToJSON(message.resource);
+    }
+    if (message.fieldName !== '') {
+      obj.fieldName = message.fieldName;
+    }
+    if (message.role !== '') {
+      obj.role = message.role;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteFieldPermissionRequest>, I>>(
+    base?: I
+  ): DeleteFieldPermissionRequest {
+    return DeleteFieldPermissionRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteFieldPermissionRequest>, I>>(
+    object: I
+  ): DeleteFieldPermissionRequest {
+    const message = createBaseDeleteFieldPermissionRequest();
+    message.resource = object.resource ?? 0;
+    message.fieldName = object.fieldName ?? '';
+    message.role = object.role ?? '';
+    return message;
+  },
+};
+
+function createBaseDeleteFieldPermissionResponse(): DeleteFieldPermissionResponse {
+  return { deleted: false };
+}
+
+export const DeleteFieldPermissionResponse: MessageFns<DeleteFieldPermissionResponse> = {
+  encode(
+    message: DeleteFieldPermissionResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.deleted !== false) {
+      writer.uint32(8).bool(message.deleted);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteFieldPermissionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteFieldPermissionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.deleted = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteFieldPermissionResponse {
+    return { deleted: isSet(object.deleted) ? globalThis.Boolean(object.deleted) : false };
+  },
+
+  toJSON(message: DeleteFieldPermissionResponse): unknown {
+    const obj: any = {};
+    if (message.deleted !== false) {
+      obj.deleted = message.deleted;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteFieldPermissionResponse>, I>>(
+    base?: I
+  ): DeleteFieldPermissionResponse {
+    return DeleteFieldPermissionResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteFieldPermissionResponse>, I>>(
+    object: I
+  ): DeleteFieldPermissionResponse {
+    const message = createBaseDeleteFieldPermissionResponse();
+    message.deleted = object.deleted ?? false;
+    return message;
+  },
+};
+
 /**
  * AuthService is the gRPC contract for the auth vertical. It owns the
  * `auth.*` schema (User, Role, Permission, RefreshToken, RevokedToken,
@@ -6969,6 +8564,119 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): BulkUpdateUsersResponse =>
       BulkUpdateUsersResponse.decode(value),
   },
+  /**
+   * Returns the full default field-permission configuration (the
+   * hard-coded source-of-truth lib.types ships). Admin-only.
+   * admin.field_permissions.read.
+   */
+  getFieldPermissionDefaults: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/GetFieldPermissionDefaults' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetFieldPermissionDefaultsRequest): Buffer =>
+      Buffer.from(GetFieldPermissionDefaultsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetFieldPermissionDefaultsRequest =>
+      GetFieldPermissionDefaultsRequest.decode(value),
+    responseSerialize: (value: GetFieldPermissionDefaultsResponse): Buffer =>
+      Buffer.from(GetFieldPermissionDefaultsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetFieldPermissionDefaultsResponse =>
+      GetFieldPermissionDefaultsResponse.decode(value),
+  },
+  /**
+   * Returns the default access map for a single (resource, role).
+   * Mirrors the monolith's /api/v1/field-permissions/defaults/:resource/:role.
+   */
+  getFieldPermissionDefaultsForRole: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/GetFieldPermissionDefaultsForRole' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetFieldPermissionDefaultsForRoleRequest): Buffer =>
+      Buffer.from(GetFieldPermissionDefaultsForRoleRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetFieldPermissionDefaultsForRoleRequest =>
+      GetFieldPermissionDefaultsForRoleRequest.decode(value),
+    responseSerialize: (value: GetFieldPermissionDefaultsForRoleResponse): Buffer =>
+      Buffer.from(GetFieldPermissionDefaultsForRoleResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetFieldPermissionDefaultsForRoleResponse =>
+      GetFieldPermissionDefaultsForRoleResponse.decode(value),
+  },
+  /** List database overrides for a resource (all roles). */
+  listFieldPermissionOverrides: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ListFieldPermissionOverrides' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListFieldPermissionOverridesRequest): Buffer =>
+      Buffer.from(ListFieldPermissionOverridesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListFieldPermissionOverridesRequest =>
+      ListFieldPermissionOverridesRequest.decode(value),
+    responseSerialize: (value: ListFieldPermissionOverridesResponse): Buffer =>
+      Buffer.from(ListFieldPermissionOverridesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListFieldPermissionOverridesResponse =>
+      ListFieldPermissionOverridesResponse.decode(value),
+  },
+  /** List database overrides for a (resource, role). */
+  listFieldPermissionOverridesForRole: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ListFieldPermissionOverridesForRole' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListFieldPermissionOverridesForRoleRequest): Buffer =>
+      Buffer.from(ListFieldPermissionOverridesForRoleRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListFieldPermissionOverridesForRoleRequest =>
+      ListFieldPermissionOverridesForRoleRequest.decode(value),
+    responseSerialize: (value: ListFieldPermissionOverridesForRoleResponse): Buffer =>
+      Buffer.from(ListFieldPermissionOverridesForRoleResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListFieldPermissionOverridesForRoleResponse =>
+      ListFieldPermissionOverridesForRoleResponse.decode(value),
+  },
+  /**
+   * Create or update a single override. admin.field_permissions.write.
+   * Sensitive fields (see lib.types SENSITIVE_FIELD_DENYLIST) are rejected
+   * here with INVALID_ARGUMENT — they can never be loosened.
+   */
+  upsertFieldPermission: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/UpsertFieldPermission' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpsertFieldPermissionRequest): Buffer =>
+      Buffer.from(UpsertFieldPermissionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpsertFieldPermissionRequest =>
+      UpsertFieldPermissionRequest.decode(value),
+    responseSerialize: (value: UpsertFieldPermissionResponse): Buffer =>
+      Buffer.from(UpsertFieldPermissionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpsertFieldPermissionResponse =>
+      UpsertFieldPermissionResponse.decode(value),
+  },
+  /**
+   * Bulk upsert. All overrides land in a single transaction; if any one
+   * names a sensitive field the whole batch is rejected (the monolith's
+   * behaviour). admin.field_permissions.write.
+   */
+  bulkUpsertFieldPermissions: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/BulkUpsertFieldPermissions' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: BulkUpsertFieldPermissionsRequest): Buffer =>
+      Buffer.from(BulkUpsertFieldPermissionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): BulkUpsertFieldPermissionsRequest =>
+      BulkUpsertFieldPermissionsRequest.decode(value),
+    responseSerialize: (value: BulkUpsertFieldPermissionsResponse): Buffer =>
+      Buffer.from(BulkUpsertFieldPermissionsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): BulkUpsertFieldPermissionsResponse =>
+      BulkUpsertFieldPermissionsResponse.decode(value),
+  },
+  /** Delete a single override, reverting that field to the lib.types default. */
+  deleteFieldPermission: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/DeleteFieldPermission' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteFieldPermissionRequest): Buffer =>
+      Buffer.from(DeleteFieldPermissionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteFieldPermissionRequest =>
+      DeleteFieldPermissionRequest.decode(value),
+    responseSerialize: (value: DeleteFieldPermissionResponse): Buffer =>
+      Buffer.from(DeleteFieldPermissionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteFieldPermissionResponse =>
+      DeleteFieldPermissionResponse.decode(value),
+  },
 } as const;
 
 export interface AuthServiceServer extends UntypedServiceImplementation {
@@ -7111,6 +8819,56 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * assignment from a non-super_admin actor.
    */
   bulkUpdateUsers: handleUnaryCall<BulkUpdateUsersRequest, BulkUpdateUsersResponse>;
+  /**
+   * Returns the full default field-permission configuration (the
+   * hard-coded source-of-truth lib.types ships). Admin-only.
+   * admin.field_permissions.read.
+   */
+  getFieldPermissionDefaults: handleUnaryCall<
+    GetFieldPermissionDefaultsRequest,
+    GetFieldPermissionDefaultsResponse
+  >;
+  /**
+   * Returns the default access map for a single (resource, role).
+   * Mirrors the monolith's /api/v1/field-permissions/defaults/:resource/:role.
+   */
+  getFieldPermissionDefaultsForRole: handleUnaryCall<
+    GetFieldPermissionDefaultsForRoleRequest,
+    GetFieldPermissionDefaultsForRoleResponse
+  >;
+  /** List database overrides for a resource (all roles). */
+  listFieldPermissionOverrides: handleUnaryCall<
+    ListFieldPermissionOverridesRequest,
+    ListFieldPermissionOverridesResponse
+  >;
+  /** List database overrides for a (resource, role). */
+  listFieldPermissionOverridesForRole: handleUnaryCall<
+    ListFieldPermissionOverridesForRoleRequest,
+    ListFieldPermissionOverridesForRoleResponse
+  >;
+  /**
+   * Create or update a single override. admin.field_permissions.write.
+   * Sensitive fields (see lib.types SENSITIVE_FIELD_DENYLIST) are rejected
+   * here with INVALID_ARGUMENT — they can never be loosened.
+   */
+  upsertFieldPermission: handleUnaryCall<
+    UpsertFieldPermissionRequest,
+    UpsertFieldPermissionResponse
+  >;
+  /**
+   * Bulk upsert. All overrides land in a single transaction; if any one
+   * names a sensitive field the whole batch is rejected (the monolith's
+   * behaviour). admin.field_permissions.write.
+   */
+  bulkUpsertFieldPermissions: handleUnaryCall<
+    BulkUpsertFieldPermissionsRequest,
+    BulkUpsertFieldPermissionsResponse
+  >;
+  /** Delete a single override, reverting that field to the lib.types default. */
+  deleteFieldPermission: handleUnaryCall<
+    DeleteFieldPermissionRequest,
+    DeleteFieldPermissionResponse
+  >;
 }
 
 export interface AuthServiceClient extends Client {
@@ -7607,6 +9365,151 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Returns the full default field-permission configuration (the
+   * hard-coded source-of-truth lib.types ships). Admin-only.
+   * admin.field_permissions.read.
+   */
+  getFieldPermissionDefaults(
+    request: GetFieldPermissionDefaultsRequest,
+    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsResponse) => void
+  ): ClientUnaryCall;
+  getFieldPermissionDefaults(
+    request: GetFieldPermissionDefaultsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsResponse) => void
+  ): ClientUnaryCall;
+  getFieldPermissionDefaults(
+    request: GetFieldPermissionDefaultsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetFieldPermissionDefaultsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Returns the default access map for a single (resource, role).
+   * Mirrors the monolith's /api/v1/field-permissions/defaults/:resource/:role.
+   */
+  getFieldPermissionDefaultsForRole(
+    request: GetFieldPermissionDefaultsForRoleRequest,
+    callback: (
+      error: ServiceError | null,
+      response: GetFieldPermissionDefaultsForRoleResponse
+    ) => void
+  ): ClientUnaryCall;
+  getFieldPermissionDefaultsForRole(
+    request: GetFieldPermissionDefaultsForRoleRequest,
+    metadata: Metadata,
+    callback: (
+      error: ServiceError | null,
+      response: GetFieldPermissionDefaultsForRoleResponse
+    ) => void
+  ): ClientUnaryCall;
+  getFieldPermissionDefaultsForRole(
+    request: GetFieldPermissionDefaultsForRoleRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (
+      error: ServiceError | null,
+      response: GetFieldPermissionDefaultsForRoleResponse
+    ) => void
+  ): ClientUnaryCall;
+  /** List database overrides for a resource (all roles). */
+  listFieldPermissionOverrides(
+    request: ListFieldPermissionOverridesRequest,
+    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesResponse) => void
+  ): ClientUnaryCall;
+  listFieldPermissionOverrides(
+    request: ListFieldPermissionOverridesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesResponse) => void
+  ): ClientUnaryCall;
+  listFieldPermissionOverrides(
+    request: ListFieldPermissionOverridesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListFieldPermissionOverridesResponse) => void
+  ): ClientUnaryCall;
+  /** List database overrides for a (resource, role). */
+  listFieldPermissionOverridesForRole(
+    request: ListFieldPermissionOverridesForRoleRequest,
+    callback: (
+      error: ServiceError | null,
+      response: ListFieldPermissionOverridesForRoleResponse
+    ) => void
+  ): ClientUnaryCall;
+  listFieldPermissionOverridesForRole(
+    request: ListFieldPermissionOverridesForRoleRequest,
+    metadata: Metadata,
+    callback: (
+      error: ServiceError | null,
+      response: ListFieldPermissionOverridesForRoleResponse
+    ) => void
+  ): ClientUnaryCall;
+  listFieldPermissionOverridesForRole(
+    request: ListFieldPermissionOverridesForRoleRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (
+      error: ServiceError | null,
+      response: ListFieldPermissionOverridesForRoleResponse
+    ) => void
+  ): ClientUnaryCall;
+  /**
+   * Create or update a single override. admin.field_permissions.write.
+   * Sensitive fields (see lib.types SENSITIVE_FIELD_DENYLIST) are rejected
+   * here with INVALID_ARGUMENT — they can never be loosened.
+   */
+  upsertFieldPermission(
+    request: UpsertFieldPermissionRequest,
+    callback: (error: ServiceError | null, response: UpsertFieldPermissionResponse) => void
+  ): ClientUnaryCall;
+  upsertFieldPermission(
+    request: UpsertFieldPermissionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpsertFieldPermissionResponse) => void
+  ): ClientUnaryCall;
+  upsertFieldPermission(
+    request: UpsertFieldPermissionRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpsertFieldPermissionResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Bulk upsert. All overrides land in a single transaction; if any one
+   * names a sensitive field the whole batch is rejected (the monolith's
+   * behaviour). admin.field_permissions.write.
+   */
+  bulkUpsertFieldPermissions(
+    request: BulkUpsertFieldPermissionsRequest,
+    callback: (error: ServiceError | null, response: BulkUpsertFieldPermissionsResponse) => void
+  ): ClientUnaryCall;
+  bulkUpsertFieldPermissions(
+    request: BulkUpsertFieldPermissionsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: BulkUpsertFieldPermissionsResponse) => void
+  ): ClientUnaryCall;
+  bulkUpsertFieldPermissions(
+    request: BulkUpsertFieldPermissionsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: BulkUpsertFieldPermissionsResponse) => void
+  ): ClientUnaryCall;
+  /** Delete a single override, reverting that field to the lib.types default. */
+  deleteFieldPermission(
+    request: DeleteFieldPermissionRequest,
+    callback: (error: ServiceError | null, response: DeleteFieldPermissionResponse) => void
+  ): ClientUnaryCall;
+  deleteFieldPermission(
+    request: DeleteFieldPermissionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteFieldPermissionResponse) => void
+  ): ClientUnaryCall;
+  deleteFieldPermission(
+    request: DeleteFieldPermissionRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteFieldPermissionResponse) => void
   ): ClientUnaryCall;
 }
 

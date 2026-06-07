@@ -157,6 +157,43 @@ service AuthService {
   // Refuses self-inclusion on a user_type change and refuses super_admin
   // assignment from a non-super_admin actor.
   rpc BulkUpdateUsers(BulkUpdateUsersRequest) returns (BulkUpdateUsersResponse);
+
+  // --- Field permissions admin -----------------------------------------
+
+  // Returns the full default field-permission configuration (the
+  // hard-coded source-of-truth lib.types ships). Admin-only.
+  // admin.field_permissions.read.
+  rpc GetFieldPermissionDefaults(GetFieldPermissionDefaultsRequest)
+    returns (GetFieldPermissionDefaultsResponse);
+
+  // Returns the default access map for a single (resource, role).
+  // Mirrors the monolith's /api/v1/field-permissions/defaults/:resource/:role.
+  rpc GetFieldPermissionDefaultsForRole(GetFieldPermissionDefaultsForRoleRequest)
+    returns (GetFieldPermissionDefaultsForRoleResponse);
+
+  // List database overrides for a resource (all roles).
+  rpc ListFieldPermissionOverrides(ListFieldPermissionOverridesRequest)
+    returns (ListFieldPermissionOverridesResponse);
+
+  // List database overrides for a (resource, role).
+  rpc ListFieldPermissionOverridesForRole(ListFieldPermissionOverridesForRoleRequest)
+    returns (ListFieldPermissionOverridesForRoleResponse);
+
+  // Create or update a single override. admin.field_permissions.write.
+  // Sensitive fields (see lib.types SENSITIVE_FIELD_DENYLIST) are rejected
+  // here with INVALID_ARGUMENT — they can never be loosened.
+  rpc UpsertFieldPermission(UpsertFieldPermissionRequest)
+    returns (UpsertFieldPermissionResponse);
+
+  // Bulk upsert. All overrides land in a single transaction; if any one
+  // names a sensitive field the whole batch is rejected (the monolith's
+  // behaviour). admin.field_permissions.write.
+  rpc BulkUpsertFieldPermissions(BulkUpsertFieldPermissionsRequest)
+    returns (BulkUpsertFieldPermissionsResponse);
+
+  // Delete a single override, reverting that field to the lib.types default.
+  rpc DeleteFieldPermission(DeleteFieldPermissionRequest)
+    returns (DeleteFieldPermissionResponse);
 }
 
 // --- Shared messages --------------------------------------------------
@@ -636,4 +673,117 @@ message BulkUpdateUsersResponse {
   uint32 success_count = 1;
   uint32 failed_count = 2;
   repeated BulkUpdateUserResult results = 3;
+}
+
+// --- Field permissions -----------------------------------------------
+
+// Mirrors the lib.types `FieldAccessLevel` union. Mapped 1:1 with the
+// `field_access_level` Postgres enum.
+enum FieldAccessLevel {
+  FIELD_ACCESS_LEVEL_UNSPECIFIED = 0;
+  FIELD_ACCESS_LEVEL_NONE = 1;
+  FIELD_ACCESS_LEVEL_READ = 2;
+  FIELD_ACCESS_LEVEL_WRITE = 3;
+}
+
+// Mirrors lib.types `FieldPermissionResource`. Mapped 1:1 with the
+// `field_permission_resource` Postgres enum.
+enum FieldPermissionResource {
+  FIELD_PERMISSION_RESOURCE_UNSPECIFIED = 0;
+  FIELD_PERMISSION_RESOURCE_USERS = 1;
+  FIELD_PERMISSION_RESOURCE_PETS = 2;
+  FIELD_PERMISSION_RESOURCE_APPLICATIONS = 3;
+  FIELD_PERMISSION_RESOURCE_RESCUES = 4;
+}
+
+// A single stored override row. role is a free-text string (matches the
+// monolith's `field_permissions.role` varchar) since the role universe
+// is wider than the gRPC UserRole enum (e.g. moderator, support_agent).
+message FieldPermission {
+  uint32 field_permission_id = 1;
+  FieldPermissionResource resource = 2;
+  string field_name = 3;
+  string role = 4;
+  FieldAccessLevel access_level = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message GetFieldPermissionDefaultsRequest {}
+
+// `defaults_json` is the full FieldPermissionConfig encoded as JSON so
+// the proto stays cheap to evolve. Each new field default added in
+// lib.types automatically flows through without a proto rebuild — the
+// admin UI is already JSON-aware (it deserialises the same shape today
+// from the monolith's /api/v1/field-permissions/defaults endpoint).
+message GetFieldPermissionDefaultsResponse {
+  string defaults_json = 1;
+}
+
+message GetFieldPermissionDefaultsForRoleRequest {
+  FieldPermissionResource resource = 1;
+  string role = 2;
+}
+
+// access_map_json is `Record<fieldName, FieldAccessLevel>` as JSON.
+message GetFieldPermissionDefaultsForRoleResponse {
+  string access_map_json = 1;
+}
+
+message ListFieldPermissionOverridesRequest {
+  FieldPermissionResource resource = 1;
+}
+
+message ListFieldPermissionOverridesResponse {
+  repeated FieldPermission overrides = 1;
+}
+
+message ListFieldPermissionOverridesForRoleRequest {
+  FieldPermissionResource resource = 1;
+  string role = 2;
+}
+
+message ListFieldPermissionOverridesForRoleResponse {
+  repeated FieldPermission overrides = 1;
+}
+
+message UpsertFieldPermissionRequest {
+  FieldPermissionResource resource = 1;
+  string field_name = 2;
+  string role = 3;
+  FieldAccessLevel access_level = 4;
+}
+
+message UpsertFieldPermissionResponse {
+  FieldPermission override = 1;
+}
+
+// One row in the bulk array. Same shape as UpsertFieldPermissionRequest;
+// kept separate so a future BulkUpsert could carry batch-level options
+// (e.g. dry_run) without leaking into the single-upsert API.
+message FieldPermissionOverrideInput {
+  FieldPermissionResource resource = 1;
+  string field_name = 2;
+  string role = 3;
+  FieldAccessLevel access_level = 4;
+}
+
+message BulkUpsertFieldPermissionsRequest {
+  repeated FieldPermissionOverrideInput overrides = 1;
+}
+
+message BulkUpsertFieldPermissionsResponse {
+  repeated FieldPermission overrides = 1;
+}
+
+message DeleteFieldPermissionRequest {
+  FieldPermissionResource resource = 1;
+  string field_name = 2;
+  string role = 3;
+}
+
+message DeleteFieldPermissionResponse {
+  // True if a row was deleted; false if no override existed for that key
+  // (the field already used the default).
+  bool deleted = 1;
 }
