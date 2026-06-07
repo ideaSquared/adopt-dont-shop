@@ -7,6 +7,7 @@ import { loadConfig } from './config.js';
 import { createApplicationsClient } from './grpc-clients/applications-client.js';
 import { createAuditClient } from './grpc-clients/audit-client.js';
 import { createAuthClient } from './grpc-clients/auth-client.js';
+import { createChatClient } from './grpc-clients/chat-client.js';
 import { createMatchingClient } from './grpc-clients/matching-client.js';
 import { createModerationClient } from './grpc-clients/moderation-client.js';
 import { createNotificationsClient } from './grpc-clients/notifications-client.js';
@@ -30,6 +31,7 @@ const main = async (): Promise<void> => {
   let matchingClient: ReturnType<typeof createMatchingClient> | undefined;
   let moderationClient: ReturnType<typeof createModerationClient> | undefined;
   let applicationsClient: ReturnType<typeof createApplicationsClient> | undefined;
+  let chatClient: ReturnType<typeof createChatClient> | undefined;
 
   try {
     const config = loadConfig();
@@ -47,6 +49,7 @@ const main = async (): Promise<void> => {
     matchingClient = createMatchingClient({ address: config.matchingGrpcUrl });
     moderationClient = createModerationClient({ address: config.moderationGrpcUrl });
     applicationsClient = createApplicationsClient({ address: config.applicationsGrpcUrl });
+    chatClient = createChatClient({ address: config.chatGrpcUrl });
 
     const server = await createServer({
       config,
@@ -59,6 +62,7 @@ const main = async (): Promise<void> => {
       matchingClient,
       moderationClient,
       applicationsClient,
+      chatClient,
     });
 
     await server.listen({ port: config.port, host: config.host });
@@ -83,6 +87,7 @@ const main = async (): Promise<void> => {
       matchingGrpcUrl: config.matchingGrpcUrl,
       moderationGrpcUrl: config.moderationGrpcUrl,
       applicationsGrpcUrl: config.applicationsGrpcUrl,
+      chatGrpcUrl: config.chatGrpcUrl,
       environment: config.environment,
     });
 
@@ -145,6 +150,11 @@ const main = async (): Promise<void> => {
       } catch (err) {
         logger.error('applications client close error', { err });
       }
+      try {
+        chatClient?.close();
+      } catch (err) {
+        logger.error('chat client close error', { err });
+      }
       process.exit(0);
     };
 
@@ -194,6 +204,11 @@ const main = async (): Promise<void> => {
     }
     try {
       applicationsClient?.close();
+    } catch {
+      // Same.
+    }
+    try {
+      chatClient?.close();
     } catch {
       // Same.
     }
