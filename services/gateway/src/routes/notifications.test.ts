@@ -36,18 +36,42 @@ function makeClient(): NotificationsClient & {
   createMock: ReturnType<typeof vi.fn>;
   listMock: ReturnType<typeof vi.fn>;
   dismissMock: ReturnType<typeof vi.fn>;
+  getNotificationMock: ReturnType<typeof vi.fn>;
+  getUnreadCountMock: ReturnType<typeof vi.fn>;
+  markAllReadMock: ReturnType<typeof vi.fn>;
+  deleteNotificationMock: ReturnType<typeof vi.fn>;
+  getNotificationPreferencesMock: ReturnType<typeof vi.fn>;
+  updateNotificationPreferencesMock: ReturnType<typeof vi.fn>;
 } {
   const createMock = vi.fn();
   const listMock = vi.fn();
   const dismissMock = vi.fn();
+  const getNotificationMock = vi.fn();
+  const getUnreadCountMock = vi.fn();
+  const markAllReadMock = vi.fn();
+  const deleteNotificationMock = vi.fn();
+  const getNotificationPreferencesMock = vi.fn();
+  const updateNotificationPreferencesMock = vi.fn();
   return {
     create: createMock,
     list: listMock,
     dismiss: dismissMock,
+    getNotification: getNotificationMock,
+    getUnreadCount: getUnreadCountMock,
+    markAllRead: markAllReadMock,
+    deleteNotification: deleteNotificationMock,
+    getNotificationPreferences: getNotificationPreferencesMock,
+    updateNotificationPreferences: updateNotificationPreferencesMock,
     close: vi.fn(),
     createMock,
     listMock,
     dismissMock,
+    getNotificationMock,
+    getUnreadCountMock,
+    markAllReadMock,
+    deleteNotificationMock,
+    getNotificationPreferencesMock,
+    updateNotificationPreferencesMock,
   };
 }
 
@@ -277,8 +301,8 @@ describe('DELETE /api/v1/notifications/:id — dismiss', () => {
     await app.close();
   });
 
-  it('passes the path :id as DismissNotificationRequest.notification_id', async () => {
-    client.dismissMock.mockResolvedValueOnce({ notification: NOTIFICATION_FIXTURE });
+  it('passes the path :id as DeleteNotificationRequest.notification_id', async () => {
+    client.deleteNotificationMock.mockResolvedValueOnce({ notification: NOTIFICATION_FIXTURE });
 
     await app.inject({
       method: 'DELETE',
@@ -286,17 +310,15 @@ describe('DELETE /api/v1/notifications/:id — dismiss', () => {
       headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
     });
 
-    const [grpcReq] = client.dismissMock.mock.calls[0] as [DismissNotificationRequest, Metadata];
+    const [grpcReq] = client.deleteNotificationMock.mock.calls[0] as [
+      DismissNotificationRequest,
+      Metadata,
+    ];
     expect(grpcReq.notificationId).toBe('n-77');
   });
 
-  it('returns 200 + the proto JSON of the dismissed notification', async () => {
-    client.dismissMock.mockResolvedValueOnce({
-      notification: {
-        ...NOTIFICATION_FIXTURE,
-        status: NotificationsV1.NotificationStatus.NOTIFICATION_STATUS_READ,
-      },
-    });
+  it('returns 200 + a success envelope on delete', async () => {
+    client.deleteNotificationMock.mockResolvedValueOnce({ notification: NOTIFICATION_FIXTURE });
 
     const res = await app.inject({
       method: 'DELETE',
@@ -305,11 +327,15 @@ describe('DELETE /api/v1/notifications/:id — dismiss', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.json().notification.status).toBe('NOTIFICATION_STATUS_READ');
+    expect(res.json()).toMatchObject({
+      success: true,
+      message: 'Notification deleted successfully',
+      data: { notificationId: 'n-1' },
+    });
   });
 
   it('maps gRPC NOT_FOUND to HTTP 404', async () => {
-    client.dismissMock.mockRejectedValueOnce({
+    client.deleteNotificationMock.mockRejectedValueOnce({
       code: status.NOT_FOUND,
       details: 'notification not found',
     });
@@ -321,5 +347,236 @@ describe('DELETE /api/v1/notifications/:id — dismiss', () => {
     });
 
     expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('GET /api/v1/notifications/unread/count', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns the count from the gRPC handler', async () => {
+    client.getUnreadCountMock.mockResolvedValueOnce({ count: 4 });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/unread/count',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ success: true, data: { count: 4 } });
+  });
+
+  it('forwards principal headers to gRPC metadata', async () => {
+    client.getUnreadCountMock.mockResolvedValueOnce({ count: 0 });
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/unread/count',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    const [, metadata] = client.getUnreadCountMock.mock.calls[0] as [unknown, Metadata];
+    expect(metadata.get('x-user-id')).toEqual(['usr-1']);
+  });
+});
+
+describe('POST /api/v1/notifications/read-all', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns the affected count', async () => {
+    client.markAllReadMock.mockResolvedValueOnce({ affectedCount: 3 });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/read-all',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      success: true,
+      data: { affectedCount: 3 },
+    });
+  });
+});
+
+describe('GET /api/v1/notifications/:id', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns the notification', async () => {
+    client.getNotificationMock.mockResolvedValueOnce({ notification: NOTIFICATION_FIXTURE });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/n-1',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      success: true,
+      data: { notificationId: 'n-1' },
+    });
+  });
+
+  it('maps NOT_FOUND to 404', async () => {
+    client.getNotificationMock.mockRejectedValueOnce({
+      code: status.NOT_FOUND,
+      details: 'not found',
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/missing',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('PATCH /api/v1/notifications/:id/read', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('calls Dismiss with the path :id and returns success envelope', async () => {
+    client.dismissMock.mockResolvedValueOnce({ notification: NOTIFICATION_FIXTURE });
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/notifications/n-1/read',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      success: true,
+      message: 'Notification marked as read',
+    });
+    const [grpcReq] = client.dismissMock.mock.calls[0] as [DismissNotificationRequest, Metadata];
+    expect(grpcReq.notificationId).toBe('n-1');
+  });
+});
+
+describe('GET/PUT /api/v1/notifications/preferences', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  const PREFS_FIXTURE = {
+    userId: 'usr-1',
+    emailEnabled: true,
+    pushEnabled: true,
+    smsEnabled: false,
+    digestFrequency:
+      NotificationsV1.NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_WEEKLY,
+    applicationUpdates: true,
+    petMatches: true,
+    rescueUpdates: true,
+    chatMessages: true,
+    timezone: 'UTC',
+    createdAt: '2026-06-01T00:00:00Z',
+    updatedAt: '2026-06-01T00:00:00Z',
+  };
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('GET returns preferences inside success envelope', async () => {
+    client.getNotificationPreferencesMock.mockResolvedValueOnce({ preferences: PREFS_FIXTURE });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/preferences',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      success: true,
+      data: { userId: 'usr-1', emailEnabled: true },
+    });
+  });
+
+  it('PUT maps monolith-compatible body keys (email, push, applications, messages)', async () => {
+    client.updateNotificationPreferencesMock.mockResolvedValueOnce({ preferences: PREFS_FIXTURE });
+
+    await app.inject({
+      method: 'PUT',
+      url: '/api/v1/notifications/preferences',
+      payload: { email: false, push: true, applications: false, messages: true },
+      headers: {
+        'x-user-id': 'usr-1',
+        'x-user-roles': 'adopter',
+        'content-type': 'application/json',
+      },
+    });
+
+    const [grpcReq] = client.updateNotificationPreferencesMock.mock.calls[0] as [
+      Record<string, unknown>,
+      Metadata,
+    ];
+    expect(grpcReq.emailEnabled).toBe(false);
+    expect(grpcReq.pushEnabled).toBe(true);
+    expect(grpcReq.applicationUpdates).toBe(false);
+    expect(grpcReq.chatMessages).toBe(true);
+  });
+
+  it('PUT maps digestFrequency string to proto enum', async () => {
+    client.updateNotificationPreferencesMock.mockResolvedValueOnce({ preferences: PREFS_FIXTURE });
+
+    await app.inject({
+      method: 'PUT',
+      url: '/api/v1/notifications/preferences',
+      payload: { digestFrequency: 'daily' },
+      headers: {
+        'x-user-id': 'usr-1',
+        'x-user-roles': 'adopter',
+        'content-type': 'application/json',
+      },
+    });
+
+    const [grpcReq] = client.updateNotificationPreferencesMock.mock.calls[0] as [
+      Record<string, unknown>,
+      Metadata,
+    ];
+    expect(grpcReq.digestFrequency).toBe(
+      NotificationsV1.NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_DAILY
+    );
   });
 });

@@ -16,16 +16,28 @@ import {
   NotificationsV1,
   type CreateNotificationRequest,
   type CreateNotificationResponse,
+  type DeleteNotificationRequest,
+  type DeleteNotificationResponse,
   type DismissNotificationRequest,
   type DismissNotificationResponse,
+  type GetNotificationPreferencesRequest,
+  type GetNotificationPreferencesResponse,
+  type GetNotificationRequest,
+  type GetNotificationResponse,
+  type GetUnreadCountRequest,
+  type GetUnreadCountResponse,
   type ListDeviceTokensRequest,
   type ListDeviceTokensResponse,
   type ListNotificationsRequest,
   type ListNotificationsResponse,
+  type MarkAllReadRequest,
+  type MarkAllReadResponse,
   type RegisterDeviceTokenRequest,
   type RegisterDeviceTokenResponse,
   type UnregisterDeviceTokenRequest,
   type UnregisterDeviceTokenResponse,
+  type UpdateNotificationPreferencesRequest,
+  type UpdateNotificationPreferencesResponse,
 } from '@adopt-dont-shop/proto';
 
 export type NotificationsClient = {
@@ -47,6 +59,24 @@ export type NotificationsClient = {
     req: ListDeviceTokensRequest,
     metadata: Metadata
   ): Promise<ListDeviceTokensResponse>;
+  getNotification(
+    req: GetNotificationRequest,
+    metadata: Metadata
+  ): Promise<GetNotificationResponse>;
+  getUnreadCount(req: GetUnreadCountRequest, metadata: Metadata): Promise<GetUnreadCountResponse>;
+  markAllRead(req: MarkAllReadRequest, metadata: Metadata): Promise<MarkAllReadResponse>;
+  deleteNotification(
+    req: DeleteNotificationRequest,
+    metadata: Metadata
+  ): Promise<DeleteNotificationResponse>;
+  getNotificationPreferences(
+    req: GetNotificationPreferencesRequest,
+    metadata: Metadata
+  ): Promise<GetNotificationPreferencesResponse>;
+  updateNotificationPreferences(
+    req: UpdateNotificationPreferencesRequest,
+    metadata: Metadata
+  ): Promise<UpdateNotificationPreferencesResponse>;
   close(): void;
 };
 
@@ -88,6 +118,14 @@ export const createNotificationsClient = (
     registerDeviceToken: (req, metadata) => callUnary(stub.registerDeviceToken, req, metadata),
     unregisterDeviceToken: (req, metadata) => callUnary(stub.unregisterDeviceToken, req, metadata),
     listDeviceTokens: (req, metadata) => callUnary(stub.listDeviceTokens, req, metadata),
+    getNotification: (req, metadata) => callUnary(stub.getNotification, req, metadata),
+    getUnreadCount: (req, metadata) => callUnary(stub.getUnreadCount, req, metadata),
+    markAllRead: (req, metadata) => callUnary(stub.markAllRead, req, metadata),
+    deleteNotification: (req, metadata) => callUnary(stub.deleteNotification, req, metadata),
+    getNotificationPreferences: (req, metadata) =>
+      callUnary(stub.getNotificationPreferences, req, metadata),
+    updateNotificationPreferences: (req, metadata) =>
+      callUnary(stub.updateNotificationPreferences, req, metadata),
     close: () => stub.close(),
   };
 };
