@@ -27,6 +27,7 @@ import {
 import { getEmailPreferences, sendEmail, updateEmailPreferences } from './email-handlers.js';
 import { createNotification, dismissNotification, listNotifications } from './handlers.js';
 import {
+  cleanupExpiredNotifications,
   deleteNotification,
   getNotification,
   getNotificationPreferences,
@@ -73,6 +74,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       deps: { pool, nats },
       logger,
     }),
+    cleanupExpiredNotifications: adapt(cleanupExpiredNotifications, {
+      deps: { pool, nats },
+      logger,
+    }),
     resetNotificationPreferences: adapt(resetNotificationPreferences, {
       deps: { pool, nats },
       logger,
@@ -97,6 +102,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getNotificationPreferences',
       'updateNotificationPreferences',
       'resetNotificationPreferences',
+      'cleanupExpiredNotifications',
       'sendEmail',
       'getEmailPreferences',
       'updateEmailPreferences',

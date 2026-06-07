@@ -7,6 +7,7 @@ import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 import { NotificationsV1 } from '@adopt-dont-shop/proto';
 
 import {
+  cleanupExpiredNotifications,
   deleteNotification,
   getNotification,
   getNotificationPreferences,
@@ -508,5 +509,64 @@ describe('resetNotificationPreferences', () => {
     await expect(
       resetNotificationPreferences(mocks.deps, ADOPTER, { userId: 'usr-other' })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+});
+
+// --- cleanupExpiredNotifications ------------------------------------
+
+describe('cleanupExpiredNotifications', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects principals without notifications.cleanup', async () => {
+    await expect(
+      cleanupExpiredNotifications(mocks.deps, ADOPTER, { daysToKeep: 30 })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects out-of-range days_to_keep', async () => {
+    const admin: Principal = {
+      userId: 'svc-admin' as UserId,
+      roles: ['admin'],
+      permissions: ['notifications.cleanup' as Permission],
+    };
+    await expect(
+      cleanupExpiredNotifications(mocks.deps, admin, { daysToKeep: 4000 })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('returns the deleted row count from the UPDATE', async () => {
+    const admin: Principal = {
+      userId: 'svc-admin' as UserId,
+      roles: ['admin'],
+      permissions: ['notifications.cleanup' as Permission],
+    };
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ notification_id: 'n-1' }, { notification_id: 'n-2' }],
+      rowCount: 2,
+    });
+    const res = await cleanupExpiredNotifications(mocks.deps, admin, { daysToKeep: 30 });
+    expect(res.deletedCount).toBe(2);
+
+    // Confirm days_to_keep is passed as the first parameter (stringified for interval).
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).toEqual(['30']);
+  });
+
+  it('defaults to 30 days when days_to_keep is 0', async () => {
+    const admin: Principal = {
+      userId: 'svc-admin' as UserId,
+      roles: ['admin'],
+      permissions: ['notifications.cleanup' as Permission],
+    };
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    await cleanupExpiredNotifications(mocks.deps, admin, { daysToKeep: 0 });
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).toEqual(['30']);
   });
 });

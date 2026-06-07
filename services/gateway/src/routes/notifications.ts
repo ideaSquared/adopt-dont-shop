@@ -118,6 +118,23 @@ export const registerNotificationsRoutes = async (
     }
   });
 
+  // Admin cleanup — soft-delete notifications older than N days.
+  app.post('/api/v1/notifications/cleanup', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const body = (req.body ?? {}) as { daysToKeep?: number; days_to_keep?: number };
+    const daysToKeep = body.daysToKeep ?? body.days_to_keep ?? 0;
+    try {
+      const res = await client.cleanupExpiredNotifications({ daysToKeep }, metadata);
+      return reply.send({
+        success: true,
+        message: `Cleaned up ${res.deletedCount} expired notifications`,
+        data: { deletedCount: res.deletedCount },
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
   // Mark all unread as read.
   app.post('/api/v1/notifications/read-all', async (req, reply) => {
     const metadata = buildMetadata(req);
