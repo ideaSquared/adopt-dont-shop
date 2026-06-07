@@ -31,6 +31,7 @@ import type { PetsClient } from './grpc-clients/pets-client.js';
 import type { RescueClient } from './grpc-clients/rescue-client.js';
 import { registerAuthenticate } from './middleware/authenticate.js';
 import { registerApplicationDocumentsRoutes } from './routes/application-documents.js';
+import { registerAnalyticsRoutes } from './routes/analytics.js';
 import { registerApplicationsRoutes } from './routes/applications.js';
 import { registerAuditRoutes } from './routes/audit.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -255,6 +256,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   if (config.config.publicEnabled) {
     await registerConfigRoutes(server);
   }
+  // Analytics ingestion (pageviews + custom events) — the monolith
+  // implementation was log-only (winston → Loki, no DB). Folds here so
+  // the SPA's analytics flushes don't pay an extra http-proxy hop.
+  await registerAnalyticsRoutes(server, { logger });
 
   // Catch-all proxy. Phase 0f shipped this; Phase 1.6 leaves it in
   // place for every /api/* path that isn't owned by an extracted
