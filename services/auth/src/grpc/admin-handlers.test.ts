@@ -1,0 +1,442 @@
+import type { NatsConnection } from 'nats';
+import type { Pool, PoolClient } from 'pg';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { Principal } from '@adopt-dont-shop/authz';
+import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
+import { AuthV1 } from '@adopt-dont-shop/proto';
+
+import {
+  adminGetUser,
+  adminUpdateUser,
+  bulkUpdateUsers,
+  deactivateUser,
+  getUserPermissions,
+  getUserStatistics,
+  reactivateUser,
+  searchUsers,
+} from './admin-handlers.js';
+import type { HandlerDeps } from './handlers.js';
+
+// --- Principals -------------------------------------------------------
+
+const ADMIN: Principal = {
+  userId: 'svc-admin' as UserId,
+  roles: ['admin'],
+  permissions: [
+    'admin.users.search' as Permission,
+    'admin.users.read' as Permission,
+    'admin.users.update' as Permission,
+    'admin.users.deactivate' as Permission,
+    'admin.users.reactivate' as Permission,
+    'admin.users.bulk_update' as Permission,
+  ],
+};
+
+const NO_PERMS: Principal = {
+  userId: 'usr-nobody' as UserId,
+  roles: ['adopter'],
+  permissions: [],
+};
+
+// --- Mocks ------------------------------------------------------------
+
+function makeMocks() {
+  const clientScript: Array<{ rows: unknown[] }> = [];
+  const client = {
+    query: vi.fn(async (sql: string) => {
+      const op = sql.trim().split(/\s+/)[0].toUpperCase();
+      if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
+        return { rows: [] };
+      }
+      const next = clientScript.shift();
+      if (!next) {
+        throw new Error(`client.query unscripted: ${sql.slice(0, 80)}`);
+      }
+      return next;
+    }),
+    release: vi.fn(),
+  };
+  const pool = {
+    connect: vi.fn().mockResolvedValue(client),
+    query: vi.fn(),
+  };
+  const nats = { publish: vi.fn() };
+  const deps: HandlerDeps = {
+    pool: pool as unknown as Pool,
+    nats: nats as unknown as NatsConnection,
+    passwordHasher: { hash: vi.fn(), verify: vi.fn() } as unknown as HandlerDeps['passwordHasher'],
+    tokenIssuer: {} as unknown as HandlerDeps['tokenIssuer'],
+  };
+  return {
+    deps,
+    poolMock: pool,
+    clientMock: client,
+    natsMock: nats,
+    clientScript,
+  };
+}
+
+const userRow = (overrides: Record<string, unknown> = {}) => ({
+  user_id: 'usr-1',
+  email: 'jane@example.com',
+  password: 'hashed',
+  first_name: 'Jane',
+  last_name: 'Doe',
+  email_verified: true,
+  phone_verified: false,
+  two_factor_enabled: false,
+  status: 'active',
+  user_type: 'adopter',
+  profile_image_url: null,
+  bio: null,
+  timezone: 'UTC',
+  language: 'en',
+  country: null,
+  city: null,
+  last_login_at: null,
+  locked_until: null,
+  login_attempts: 0,
+  created_at: new Date('2026-06-01T00:00:00Z'),
+  updated_at: new Date('2026-06-01T00:00:00Z'),
+  ...overrides,
+});
+
+// --- searchUsers -----------------------------------------------------
+
+describe('searchUsers', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects principals without admin.users.search', async () => {
+    await expect(searchUsers(mocks.deps, NO_PERMS, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('returns paginated results with total + totalPages', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ total: '42' }] }); // count
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRow(), userRow({ user_id: 'usr-2' })],
+    });
+
+    const res = await searchUsers(mocks.deps, ADMIN, { page: 2, limit: 20 });
+    expect(res.total).toBe(42);
+    expect(res.page).toBe(2);
+    expect(res.totalPages).toBe(3);
+    expect(res.users).toHaveLength(2);
+    expect(res.users[0].userId).toBe('usr-1');
+  });
+
+  it('applies status + type + search filters and escapes LIKE wildcards', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ total: '0' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    await searchUsers(mocks.deps, ADMIN, {
+      search: '50%_off',
+      statusFilter: AuthV1.UserStatus.USER_STATUS_ACTIVE,
+      userTypeFilter: AuthV1.UserRole.USER_ROLE_RESCUE_STAFF,
+      emailVerified: true,
+    });
+
+    const countCall = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(countCall[0]).toContain('status = $1');
+    expect(countCall[0]).toContain('user_type = $2');
+    expect(countCall[0]).toContain('email_verified = $3');
+    expect(countCall[0]).toContain('ILIKE');
+    // The search term escapes % and _.
+    const params = countCall[1] as string[];
+    expect(params).toContain('%50\\%\\_off%');
+  });
+
+  it('clamps oversized limit to 100', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ total: '0' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await searchUsers(mocks.deps, ADMIN, { limit: 999 });
+    const rowsCall = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    const params = rowsCall[1] as unknown[];
+    // Last two params are limit + offset.
+    expect(params[params.length - 2]).toBe(100);
+  });
+});
+
+// --- adminGetUser ----------------------------------------------------
+
+describe('adminGetUser', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects without admin.users.read', async () => {
+    await expect(adminGetUser(mocks.deps, NO_PERMS, { userId: 'usr-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('returns NOT_FOUND for a missing user', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(adminGetUser(mocks.deps, ADMIN, { userId: 'ghost' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('returns the user row', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow()] });
+    const res = await adminGetUser(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(res.user?.userId).toBe('usr-1');
+    expect(res.user?.email).toBe('jane@example.com');
+  });
+});
+
+// --- adminUpdateUser -------------------------------------------------
+
+describe('adminUpdateUser', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects without admin.users.update', async () => {
+    await expect(adminUpdateUser(mocks.deps, NO_PERMS, { userId: 'usr-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('writes only set fields and publishes an event', async () => {
+    mocks.clientScript.push({ rows: [userRow({ status: 'suspended' })] });
+
+    const res = await adminUpdateUser(mocks.deps, ADMIN, {
+      userId: 'usr-1',
+      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+    });
+
+    expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_SUSPENDED);
+    const updateCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
+      ([sql]) => sql.includes('UPDATE auth.users')
+    );
+    expect(updateCall![0]).toContain('status = $1');
+    // Only status was set — no user_type / email_verified assignment.
+    expect(updateCall![0]).not.toContain('user_type = $');
+    expect(updateCall![0]).not.toContain('email_verified = $');
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+  });
+
+  it('no-op update returns the current row without writing', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow()] }); // adminGetUser fallback
+    const res = await adminUpdateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(res.user?.userId).toBe('usr-1');
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+});
+
+// --- deactivateUser / reactivateUser ---------------------------------
+
+describe('deactivateUser', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects deactivating your own account', async () => {
+    await expect(deactivateUser(mocks.deps, ADMIN, { userId: 'svc-admin' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('is idempotent when already deactivated', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow({ status: 'deactivated' })] });
+    const res = await deactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_DEACTIVATED);
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('deactivates an active user + publishes auth.userDeactivated', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow({ status: 'active' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'deactivated' })] });
+
+    const res = await deactivateUser(mocks.deps, ADMIN, { userId: 'usr-1', reason: 'spam' });
+    expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_DEACTIVATED);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.userDeactivated');
+  });
+});
+
+describe('reactivateUser', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('reactivates a deactivated user + publishes auth.userReactivated', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRow({ status: 'deactivated' })] });
+    mocks.clientScript.push({ rows: [userRow({ status: 'active' })] });
+
+    const res = await reactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_ACTIVE);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.userReactivated');
+  });
+});
+
+// --- getUserStatistics -----------------------------------------------
+
+describe('getUserStatistics', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects without admin.users.read', async () => {
+    await expect(getUserStatistics(mocks.deps, NO_PERMS, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('aggregates totals + breakdowns', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ total: '100', verified: '80', new_this_month: '12' }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        { status: 'active', count: '70' },
+        { status: 'deactivated', count: '30' },
+      ],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        { user_type: 'adopter', count: '90' },
+        { user_type: 'rescue_staff', count: '10' },
+      ],
+    });
+
+    const res = await getUserStatistics(mocks.deps, ADMIN, {});
+    expect(res.total).toBe(100);
+    expect(res.verified).toBe(80);
+    expect(res.newThisMonth).toBe(12);
+    expect(res.byStatus).toHaveLength(2);
+    expect(res.byType).toHaveLength(2);
+    const adopter = res.byType.find(t => t.userType === AuthV1.UserRole.USER_ROLE_ADOPTER);
+    expect(adopter?.count).toBe(90);
+  });
+});
+
+// --- getUserPermissions ----------------------------------------------
+
+describe('getUserPermissions', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects without admin.users.read', async () => {
+    await expect(
+      getUserPermissions(mocks.deps, NO_PERMS, { userId: 'usr-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns the flattened permission set via loadPrincipal', async () => {
+    // loadPrincipal: user_type lookup, extra roles, permissions.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ name: 'pets.read' }, { name: 'pets.update' }],
+    });
+
+    const res = await getUserPermissions(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(res.permissions).toEqual(['pets.read', 'pets.update']);
+  });
+});
+
+// --- bulkUpdateUsers -------------------------------------------------
+
+describe('bulkUpdateUsers', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects without admin.users.bulk_update', async () => {
+    await expect(
+      bulkUpdateUsers(mocks.deps, NO_PERMS, {
+        userIds: ['usr-1'],
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects an empty user_ids list', async () => {
+    await expect(
+      bulkUpdateUsers(mocks.deps, ADMIN, {
+        userIds: [],
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects when neither status nor user_type is set', async () => {
+    await expect(bulkUpdateUsers(mocks.deps, ADMIN, { userIds: ['usr-1'] })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('refuses to change your own role via the bulk path', async () => {
+    await expect(
+      bulkUpdateUsers(mocks.deps, ADMIN, {
+        userIds: ['svc-admin', 'usr-2'],
+        userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('refuses super_admin assignment from a non-super_admin actor', async () => {
+    await expect(
+      bulkUpdateUsers(mocks.deps, ADMIN, {
+        userIds: ['usr-2'],
+        userType: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns per-id results — one success, one not-found', async () => {
+    // First id: UPDATE returns a row. Second id: UPDATE returns none.
+    mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
+    mocks.clientScript.push({ rows: [] });
+
+    const res = await bulkUpdateUsers(mocks.deps, ADMIN, {
+      userIds: ['usr-1', 'usr-missing'],
+      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+    });
+
+    expect(res.successCount).toBe(1);
+    expect(res.failedCount).toBe(1);
+    expect(res.results.find(r => r.userId === 'usr-1')?.success).toBe(true);
+    expect(res.results.find(r => r.userId === 'usr-missing')?.success).toBe(false);
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+  });
+});

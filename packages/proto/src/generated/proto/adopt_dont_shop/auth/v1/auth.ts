@@ -551,6 +551,119 @@ export interface ResetPrivacyPreferencesResponse {
   preferences?: PrivacyPreferences | undefined;
 }
 
+export interface SearchUsersRequest {
+  /** Free-text search across first_name / last_name / email (ILIKE). */
+  search?: string | undefined;
+  /** Optional filters. UNSPECIFIED = no filter. */
+  statusFilter: UserStatus;
+  userTypeFilter: UserRole;
+  emailVerified?: boolean | undefined;
+  /** ISO-8601 created-at range. */
+  createdFrom?: string | undefined;
+  createdTo?: string | undefined;
+  /** 1-indexed page + size (default 20, max 100). */
+  page: number;
+  limit: number;
+  /** Sort: 'createdAt' | 'lastLoginAt' | 'email'. Default createdAt DESC. */
+  sortBy?: string | undefined;
+  sortOrder?: string | undefined;
+}
+
+export interface SearchUsersResponse {
+  users: User[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface AdminGetUserRequest {
+  userId: string;
+}
+
+export interface AdminGetUserResponse {
+  user?: User | undefined;
+}
+
+export interface AdminUpdateUserRequest {
+  userId: string;
+  /** Only set fields are written. */
+  status: UserStatus;
+  userType: UserRole;
+  emailVerified?: boolean | undefined;
+  firstName?: string | undefined;
+  lastName?: string | undefined;
+}
+
+export interface AdminUpdateUserResponse {
+  user?: User | undefined;
+}
+
+export interface DeactivateUserRequest {
+  userId: string;
+  reason?: string | undefined;
+}
+
+export interface DeactivateUserResponse {
+  user?: User | undefined;
+}
+
+export interface ReactivateUserRequest {
+  userId: string;
+}
+
+export interface ReactivateUserResponse {
+  user?: User | undefined;
+}
+
+export interface GetUserStatisticsRequest {}
+
+export interface UserStatusCount {
+  status: UserStatus;
+  count: number;
+}
+
+export interface UserTypeCount {
+  userType: UserRole;
+  count: number;
+}
+
+export interface GetUserStatisticsResponse {
+  total: number;
+  verified: number;
+  /** Users created in the last 30 days. */
+  newThisMonth: number;
+  byStatus: UserStatusCount[];
+  byType: UserTypeCount[];
+}
+
+export interface GetUserPermissionsRequest {
+  userId: string;
+}
+
+export interface GetUserPermissionsResponse {
+  permissions: string[];
+}
+
+export interface BulkUpdateUsersRequest {
+  userIds: string[];
+  /** Only set fields are written to every targeted row. */
+  status: UserStatus;
+  userType: UserRole;
+  reason?: string | undefined;
+}
+
+export interface BulkUpdateUserResult {
+  userId: string;
+  success: boolean;
+  error?: string | undefined;
+}
+
+export interface BulkUpdateUsersResponse {
+  successCount: number;
+  failedCount: number;
+  results: BulkUpdateUserResult[];
+}
+
 function createBasePrincipal(): Principal {
   return { userId: '', roles: [], permissions: [], rescueId: undefined };
 }
@@ -4607,6 +4720,1816 @@ export const ResetPrivacyPreferencesResponse: MessageFns<ResetPrivacyPreferences
   },
 };
 
+function createBaseSearchUsersRequest(): SearchUsersRequest {
+  return {
+    search: undefined,
+    statusFilter: 0,
+    userTypeFilter: 0,
+    emailVerified: undefined,
+    createdFrom: undefined,
+    createdTo: undefined,
+    page: 0,
+    limit: 0,
+    sortBy: undefined,
+    sortOrder: undefined,
+  };
+}
+
+export const SearchUsersRequest: MessageFns<SearchUsersRequest> = {
+  encode(message: SearchUsersRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.search !== undefined) {
+      writer.uint32(10).string(message.search);
+    }
+    if (message.statusFilter !== 0) {
+      writer.uint32(16).int32(message.statusFilter);
+    }
+    if (message.userTypeFilter !== 0) {
+      writer.uint32(24).int32(message.userTypeFilter);
+    }
+    if (message.emailVerified !== undefined) {
+      writer.uint32(32).bool(message.emailVerified);
+    }
+    if (message.createdFrom !== undefined) {
+      writer.uint32(42).string(message.createdFrom);
+    }
+    if (message.createdTo !== undefined) {
+      writer.uint32(50).string(message.createdTo);
+    }
+    if (message.page !== 0) {
+      writer.uint32(56).uint32(message.page);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(64).uint32(message.limit);
+    }
+    if (message.sortBy !== undefined) {
+      writer.uint32(74).string(message.sortBy);
+    }
+    if (message.sortOrder !== undefined) {
+      writer.uint32(82).string(message.sortOrder);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SearchUsersRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSearchUsersRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.search = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.statusFilter = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.userTypeFilter = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.emailVerified = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.createdFrom = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.createdTo = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.sortBy = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.sortOrder = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SearchUsersRequest {
+    return {
+      search: isSet(object.search) ? globalThis.String(object.search) : undefined,
+      statusFilter: isSet(object.statusFilter)
+        ? userStatusFromJSON(object.statusFilter)
+        : isSet(object.status_filter)
+          ? userStatusFromJSON(object.status_filter)
+          : 0,
+      userTypeFilter: isSet(object.userTypeFilter)
+        ? userRoleFromJSON(object.userTypeFilter)
+        : isSet(object.user_type_filter)
+          ? userRoleFromJSON(object.user_type_filter)
+          : 0,
+      emailVerified: isSet(object.emailVerified)
+        ? globalThis.Boolean(object.emailVerified)
+        : isSet(object.email_verified)
+          ? globalThis.Boolean(object.email_verified)
+          : undefined,
+      createdFrom: isSet(object.createdFrom)
+        ? globalThis.String(object.createdFrom)
+        : isSet(object.created_from)
+          ? globalThis.String(object.created_from)
+          : undefined,
+      createdTo: isSet(object.createdTo)
+        ? globalThis.String(object.createdTo)
+        : isSet(object.created_to)
+          ? globalThis.String(object.created_to)
+          : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+      sortBy: isSet(object.sortBy)
+        ? globalThis.String(object.sortBy)
+        : isSet(object.sort_by)
+          ? globalThis.String(object.sort_by)
+          : undefined,
+      sortOrder: isSet(object.sortOrder)
+        ? globalThis.String(object.sortOrder)
+        : isSet(object.sort_order)
+          ? globalThis.String(object.sort_order)
+          : undefined,
+    };
+  },
+
+  toJSON(message: SearchUsersRequest): unknown {
+    const obj: any = {};
+    if (message.search !== undefined) {
+      obj.search = message.search;
+    }
+    if (message.statusFilter !== 0) {
+      obj.statusFilter = userStatusToJSON(message.statusFilter);
+    }
+    if (message.userTypeFilter !== 0) {
+      obj.userTypeFilter = userRoleToJSON(message.userTypeFilter);
+    }
+    if (message.emailVerified !== undefined) {
+      obj.emailVerified = message.emailVerified;
+    }
+    if (message.createdFrom !== undefined) {
+      obj.createdFrom = message.createdFrom;
+    }
+    if (message.createdTo !== undefined) {
+      obj.createdTo = message.createdTo;
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    if (message.sortBy !== undefined) {
+      obj.sortBy = message.sortBy;
+    }
+    if (message.sortOrder !== undefined) {
+      obj.sortOrder = message.sortOrder;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SearchUsersRequest>, I>>(base?: I): SearchUsersRequest {
+    return SearchUsersRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SearchUsersRequest>, I>>(object: I): SearchUsersRequest {
+    const message = createBaseSearchUsersRequest();
+    message.search = object.search ?? undefined;
+    message.statusFilter = object.statusFilter ?? 0;
+    message.userTypeFilter = object.userTypeFilter ?? 0;
+    message.emailVerified = object.emailVerified ?? undefined;
+    message.createdFrom = object.createdFrom ?? undefined;
+    message.createdTo = object.createdTo ?? undefined;
+    message.page = object.page ?? 0;
+    message.limit = object.limit ?? 0;
+    message.sortBy = object.sortBy ?? undefined;
+    message.sortOrder = object.sortOrder ?? undefined;
+    return message;
+  },
+};
+
+function createBaseSearchUsersResponse(): SearchUsersResponse {
+  return { users: [], total: 0, page: 0, totalPages: 0 };
+}
+
+export const SearchUsersResponse: MessageFns<SearchUsersResponse> = {
+  encode(message: SearchUsersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.users) {
+      User.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.total !== 0) {
+      writer.uint32(16).uint32(message.total);
+    }
+    if (message.page !== 0) {
+      writer.uint32(24).uint32(message.page);
+    }
+    if (message.totalPages !== 0) {
+      writer.uint32(32).uint32(message.totalPages);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SearchUsersResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSearchUsersResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.users.push(User.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.totalPages = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SearchUsersResponse {
+    return {
+      users: globalThis.Array.isArray(object?.users)
+        ? object.users.map((e: any) => User.fromJSON(e))
+        : [],
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      totalPages: isSet(object.totalPages)
+        ? globalThis.Number(object.totalPages)
+        : isSet(object.total_pages)
+          ? globalThis.Number(object.total_pages)
+          : 0,
+    };
+  },
+
+  toJSON(message: SearchUsersResponse): unknown {
+    const obj: any = {};
+    if (message.users?.length) {
+      obj.users = message.users.map(e => User.toJSON(e));
+    }
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.totalPages !== 0) {
+      obj.totalPages = Math.round(message.totalPages);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SearchUsersResponse>, I>>(base?: I): SearchUsersResponse {
+    return SearchUsersResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SearchUsersResponse>, I>>(
+    object: I
+  ): SearchUsersResponse {
+    const message = createBaseSearchUsersResponse();
+    message.users = object.users?.map(e => User.fromPartial(e)) || [];
+    message.total = object.total ?? 0;
+    message.page = object.page ?? 0;
+    message.totalPages = object.totalPages ?? 0;
+    return message;
+  },
+};
+
+function createBaseAdminGetUserRequest(): AdminGetUserRequest {
+  return { userId: '' };
+}
+
+export const AdminGetUserRequest: MessageFns<AdminGetUserRequest> = {
+  encode(message: AdminGetUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminGetUserRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminGetUserRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminGetUserRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+    };
+  },
+
+  toJSON(message: AdminGetUserRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminGetUserRequest>, I>>(base?: I): AdminGetUserRequest {
+    return AdminGetUserRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminGetUserRequest>, I>>(
+    object: I
+  ): AdminGetUserRequest {
+    const message = createBaseAdminGetUserRequest();
+    message.userId = object.userId ?? '';
+    return message;
+  },
+};
+
+function createBaseAdminGetUserResponse(): AdminGetUserResponse {
+  return { user: undefined };
+}
+
+export const AdminGetUserResponse: MessageFns<AdminGetUserResponse> = {
+  encode(message: AdminGetUserResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminGetUserResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminGetUserResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminGetUserResponse {
+    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+  },
+
+  toJSON(message: AdminGetUserResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminGetUserResponse>, I>>(base?: I): AdminGetUserResponse {
+    return AdminGetUserResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminGetUserResponse>, I>>(
+    object: I
+  ): AdminGetUserResponse {
+    const message = createBaseAdminGetUserResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    return message;
+  },
+};
+
+function createBaseAdminUpdateUserRequest(): AdminUpdateUserRequest {
+  return {
+    userId: '',
+    status: 0,
+    userType: 0,
+    emailVerified: undefined,
+    firstName: undefined,
+    lastName: undefined,
+  };
+}
+
+export const AdminUpdateUserRequest: MessageFns<AdminUpdateUserRequest> = {
+  encode(message: AdminUpdateUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.status !== 0) {
+      writer.uint32(16).int32(message.status);
+    }
+    if (message.userType !== 0) {
+      writer.uint32(24).int32(message.userType);
+    }
+    if (message.emailVerified !== undefined) {
+      writer.uint32(32).bool(message.emailVerified);
+    }
+    if (message.firstName !== undefined) {
+      writer.uint32(42).string(message.firstName);
+    }
+    if (message.lastName !== undefined) {
+      writer.uint32(50).string(message.lastName);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminUpdateUserRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminUpdateUserRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.userType = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.emailVerified = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminUpdateUserRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      status: isSet(object.status) ? userStatusFromJSON(object.status) : 0,
+      userType: isSet(object.userType)
+        ? userRoleFromJSON(object.userType)
+        : isSet(object.user_type)
+          ? userRoleFromJSON(object.user_type)
+          : 0,
+      emailVerified: isSet(object.emailVerified)
+        ? globalThis.Boolean(object.emailVerified)
+        : isSet(object.email_verified)
+          ? globalThis.Boolean(object.email_verified)
+          : undefined,
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+          ? globalThis.String(object.first_name)
+          : undefined,
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+          ? globalThis.String(object.last_name)
+          : undefined,
+    };
+  },
+
+  toJSON(message: AdminUpdateUserRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.status !== 0) {
+      obj.status = userStatusToJSON(message.status);
+    }
+    if (message.userType !== 0) {
+      obj.userType = userRoleToJSON(message.userType);
+    }
+    if (message.emailVerified !== undefined) {
+      obj.emailVerified = message.emailVerified;
+    }
+    if (message.firstName !== undefined) {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== undefined) {
+      obj.lastName = message.lastName;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminUpdateUserRequest>, I>>(
+    base?: I
+  ): AdminUpdateUserRequest {
+    return AdminUpdateUserRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminUpdateUserRequest>, I>>(
+    object: I
+  ): AdminUpdateUserRequest {
+    const message = createBaseAdminUpdateUserRequest();
+    message.userId = object.userId ?? '';
+    message.status = object.status ?? 0;
+    message.userType = object.userType ?? 0;
+    message.emailVerified = object.emailVerified ?? undefined;
+    message.firstName = object.firstName ?? undefined;
+    message.lastName = object.lastName ?? undefined;
+    return message;
+  },
+};
+
+function createBaseAdminUpdateUserResponse(): AdminUpdateUserResponse {
+  return { user: undefined };
+}
+
+export const AdminUpdateUserResponse: MessageFns<AdminUpdateUserResponse> = {
+  encode(
+    message: AdminUpdateUserResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminUpdateUserResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminUpdateUserResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminUpdateUserResponse {
+    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+  },
+
+  toJSON(message: AdminUpdateUserResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminUpdateUserResponse>, I>>(
+    base?: I
+  ): AdminUpdateUserResponse {
+    return AdminUpdateUserResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminUpdateUserResponse>, I>>(
+    object: I
+  ): AdminUpdateUserResponse {
+    const message = createBaseAdminUpdateUserResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    return message;
+  },
+};
+
+function createBaseDeactivateUserRequest(): DeactivateUserRequest {
+  return { userId: '', reason: undefined };
+}
+
+export const DeactivateUserRequest: MessageFns<DeactivateUserRequest> = {
+  encode(message: DeactivateUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.reason !== undefined) {
+      writer.uint32(18).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeactivateUserRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeactivateUserRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeactivateUserRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
+    };
+  },
+
+  toJSON(message: DeactivateUserRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.reason !== undefined) {
+      obj.reason = message.reason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeactivateUserRequest>, I>>(base?: I): DeactivateUserRequest {
+    return DeactivateUserRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeactivateUserRequest>, I>>(
+    object: I
+  ): DeactivateUserRequest {
+    const message = createBaseDeactivateUserRequest();
+    message.userId = object.userId ?? '';
+    message.reason = object.reason ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeactivateUserResponse(): DeactivateUserResponse {
+  return { user: undefined };
+}
+
+export const DeactivateUserResponse: MessageFns<DeactivateUserResponse> = {
+  encode(message: DeactivateUserResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeactivateUserResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeactivateUserResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeactivateUserResponse {
+    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+  },
+
+  toJSON(message: DeactivateUserResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeactivateUserResponse>, I>>(
+    base?: I
+  ): DeactivateUserResponse {
+    return DeactivateUserResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeactivateUserResponse>, I>>(
+    object: I
+  ): DeactivateUserResponse {
+    const message = createBaseDeactivateUserResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    return message;
+  },
+};
+
+function createBaseReactivateUserRequest(): ReactivateUserRequest {
+  return { userId: '' };
+}
+
+export const ReactivateUserRequest: MessageFns<ReactivateUserRequest> = {
+  encode(message: ReactivateUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ReactivateUserRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseReactivateUserRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ReactivateUserRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+    };
+  },
+
+  toJSON(message: ReactivateUserRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ReactivateUserRequest>, I>>(base?: I): ReactivateUserRequest {
+    return ReactivateUserRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ReactivateUserRequest>, I>>(
+    object: I
+  ): ReactivateUserRequest {
+    const message = createBaseReactivateUserRequest();
+    message.userId = object.userId ?? '';
+    return message;
+  },
+};
+
+function createBaseReactivateUserResponse(): ReactivateUserResponse {
+  return { user: undefined };
+}
+
+export const ReactivateUserResponse: MessageFns<ReactivateUserResponse> = {
+  encode(message: ReactivateUserResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ReactivateUserResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseReactivateUserResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ReactivateUserResponse {
+    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+  },
+
+  toJSON(message: ReactivateUserResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ReactivateUserResponse>, I>>(
+    base?: I
+  ): ReactivateUserResponse {
+    return ReactivateUserResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ReactivateUserResponse>, I>>(
+    object: I
+  ): ReactivateUserResponse {
+    const message = createBaseReactivateUserResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    return message;
+  },
+};
+
+function createBaseGetUserStatisticsRequest(): GetUserStatisticsRequest {
+  return {};
+}
+
+export const GetUserStatisticsRequest: MessageFns<GetUserStatisticsRequest> = {
+  encode(_: GetUserStatisticsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserStatisticsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserStatisticsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetUserStatisticsRequest {
+    return {};
+  },
+
+  toJSON(_: GetUserStatisticsRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserStatisticsRequest>, I>>(
+    base?: I
+  ): GetUserStatisticsRequest {
+    return GetUserStatisticsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserStatisticsRequest>, I>>(
+    _: I
+  ): GetUserStatisticsRequest {
+    const message = createBaseGetUserStatisticsRequest();
+    return message;
+  },
+};
+
+function createBaseUserStatusCount(): UserStatusCount {
+  return { status: 0, count: 0 };
+}
+
+export const UserStatusCount: MessageFns<UserStatusCount> = {
+  encode(message: UserStatusCount, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.status !== 0) {
+      writer.uint32(8).int32(message.status);
+    }
+    if (message.count !== 0) {
+      writer.uint32(16).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UserStatusCount {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUserStatusCount();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UserStatusCount {
+    return {
+      status: isSet(object.status) ? userStatusFromJSON(object.status) : 0,
+      count: isSet(object.count) ? globalThis.Number(object.count) : 0,
+    };
+  },
+
+  toJSON(message: UserStatusCount): unknown {
+    const obj: any = {};
+    if (message.status !== 0) {
+      obj.status = userStatusToJSON(message.status);
+    }
+    if (message.count !== 0) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UserStatusCount>, I>>(base?: I): UserStatusCount {
+    return UserStatusCount.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UserStatusCount>, I>>(object: I): UserStatusCount {
+    const message = createBaseUserStatusCount();
+    message.status = object.status ?? 0;
+    message.count = object.count ?? 0;
+    return message;
+  },
+};
+
+function createBaseUserTypeCount(): UserTypeCount {
+  return { userType: 0, count: 0 };
+}
+
+export const UserTypeCount: MessageFns<UserTypeCount> = {
+  encode(message: UserTypeCount, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userType !== 0) {
+      writer.uint32(8).int32(message.userType);
+    }
+    if (message.count !== 0) {
+      writer.uint32(16).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UserTypeCount {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUserTypeCount();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.userType = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UserTypeCount {
+    return {
+      userType: isSet(object.userType)
+        ? userRoleFromJSON(object.userType)
+        : isSet(object.user_type)
+          ? userRoleFromJSON(object.user_type)
+          : 0,
+      count: isSet(object.count) ? globalThis.Number(object.count) : 0,
+    };
+  },
+
+  toJSON(message: UserTypeCount): unknown {
+    const obj: any = {};
+    if (message.userType !== 0) {
+      obj.userType = userRoleToJSON(message.userType);
+    }
+    if (message.count !== 0) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UserTypeCount>, I>>(base?: I): UserTypeCount {
+    return UserTypeCount.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UserTypeCount>, I>>(object: I): UserTypeCount {
+    const message = createBaseUserTypeCount();
+    message.userType = object.userType ?? 0;
+    message.count = object.count ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetUserStatisticsResponse(): GetUserStatisticsResponse {
+  return { total: 0, verified: 0, newThisMonth: 0, byStatus: [], byType: [] };
+}
+
+export const GetUserStatisticsResponse: MessageFns<GetUserStatisticsResponse> = {
+  encode(
+    message: GetUserStatisticsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.total !== 0) {
+      writer.uint32(8).uint32(message.total);
+    }
+    if (message.verified !== 0) {
+      writer.uint32(16).uint32(message.verified);
+    }
+    if (message.newThisMonth !== 0) {
+      writer.uint32(24).uint32(message.newThisMonth);
+    }
+    for (const v of message.byStatus) {
+      UserStatusCount.encode(v!, writer.uint32(34).fork()).join();
+    }
+    for (const v of message.byType) {
+      UserTypeCount.encode(v!, writer.uint32(42).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserStatisticsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserStatisticsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.verified = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.newThisMonth = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.byStatus.push(UserStatusCount.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.byType.push(UserTypeCount.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUserStatisticsResponse {
+    return {
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+      verified: isSet(object.verified) ? globalThis.Number(object.verified) : 0,
+      newThisMonth: isSet(object.newThisMonth)
+        ? globalThis.Number(object.newThisMonth)
+        : isSet(object.new_this_month)
+          ? globalThis.Number(object.new_this_month)
+          : 0,
+      byStatus: globalThis.Array.isArray(object?.byStatus)
+        ? object.byStatus.map((e: any) => UserStatusCount.fromJSON(e))
+        : globalThis.Array.isArray(object?.by_status)
+          ? object.by_status.map((e: any) => UserStatusCount.fromJSON(e))
+          : [],
+      byType: globalThis.Array.isArray(object?.byType)
+        ? object.byType.map((e: any) => UserTypeCount.fromJSON(e))
+        : globalThis.Array.isArray(object?.by_type)
+          ? object.by_type.map((e: any) => UserTypeCount.fromJSON(e))
+          : [],
+    };
+  },
+
+  toJSON(message: GetUserStatisticsResponse): unknown {
+    const obj: any = {};
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    if (message.verified !== 0) {
+      obj.verified = Math.round(message.verified);
+    }
+    if (message.newThisMonth !== 0) {
+      obj.newThisMonth = Math.round(message.newThisMonth);
+    }
+    if (message.byStatus?.length) {
+      obj.byStatus = message.byStatus.map(e => UserStatusCount.toJSON(e));
+    }
+    if (message.byType?.length) {
+      obj.byType = message.byType.map(e => UserTypeCount.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserStatisticsResponse>, I>>(
+    base?: I
+  ): GetUserStatisticsResponse {
+    return GetUserStatisticsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserStatisticsResponse>, I>>(
+    object: I
+  ): GetUserStatisticsResponse {
+    const message = createBaseGetUserStatisticsResponse();
+    message.total = object.total ?? 0;
+    message.verified = object.verified ?? 0;
+    message.newThisMonth = object.newThisMonth ?? 0;
+    message.byStatus = object.byStatus?.map(e => UserStatusCount.fromPartial(e)) || [];
+    message.byType = object.byType?.map(e => UserTypeCount.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseGetUserPermissionsRequest(): GetUserPermissionsRequest {
+  return { userId: '' };
+}
+
+export const GetUserPermissionsRequest: MessageFns<GetUserPermissionsRequest> = {
+  encode(
+    message: GetUserPermissionsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserPermissionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserPermissionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUserPermissionsRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetUserPermissionsRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserPermissionsRequest>, I>>(
+    base?: I
+  ): GetUserPermissionsRequest {
+    return GetUserPermissionsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserPermissionsRequest>, I>>(
+    object: I
+  ): GetUserPermissionsRequest {
+    const message = createBaseGetUserPermissionsRequest();
+    message.userId = object.userId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetUserPermissionsResponse(): GetUserPermissionsResponse {
+  return { permissions: [] };
+}
+
+export const GetUserPermissionsResponse: MessageFns<GetUserPermissionsResponse> = {
+  encode(
+    message: GetUserPermissionsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.permissions) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserPermissionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserPermissionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.permissions.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUserPermissionsResponse {
+    return {
+      permissions: globalThis.Array.isArray(object?.permissions)
+        ? object.permissions.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetUserPermissionsResponse): unknown {
+    const obj: any = {};
+    if (message.permissions?.length) {
+      obj.permissions = message.permissions;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserPermissionsResponse>, I>>(
+    base?: I
+  ): GetUserPermissionsResponse {
+    return GetUserPermissionsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserPermissionsResponse>, I>>(
+    object: I
+  ): GetUserPermissionsResponse {
+    const message = createBaseGetUserPermissionsResponse();
+    message.permissions = object.permissions?.map(e => e) || [];
+    return message;
+  },
+};
+
+function createBaseBulkUpdateUsersRequest(): BulkUpdateUsersRequest {
+  return { userIds: [], status: 0, userType: 0, reason: undefined };
+}
+
+export const BulkUpdateUsersRequest: MessageFns<BulkUpdateUsersRequest> = {
+  encode(message: BulkUpdateUsersRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.userIds) {
+      writer.uint32(10).string(v!);
+    }
+    if (message.status !== 0) {
+      writer.uint32(16).int32(message.status);
+    }
+    if (message.userType !== 0) {
+      writer.uint32(24).int32(message.userType);
+    }
+    if (message.reason !== undefined) {
+      writer.uint32(34).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BulkUpdateUsersRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBulkUpdateUsersRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userIds.push(reader.string());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.userType = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BulkUpdateUsersRequest {
+    return {
+      userIds: globalThis.Array.isArray(object?.userIds)
+        ? object.userIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.user_ids)
+          ? object.user_ids.map((e: any) => globalThis.String(e))
+          : [],
+      status: isSet(object.status) ? userStatusFromJSON(object.status) : 0,
+      userType: isSet(object.userType)
+        ? userRoleFromJSON(object.userType)
+        : isSet(object.user_type)
+          ? userRoleFromJSON(object.user_type)
+          : 0,
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
+    };
+  },
+
+  toJSON(message: BulkUpdateUsersRequest): unknown {
+    const obj: any = {};
+    if (message.userIds?.length) {
+      obj.userIds = message.userIds;
+    }
+    if (message.status !== 0) {
+      obj.status = userStatusToJSON(message.status);
+    }
+    if (message.userType !== 0) {
+      obj.userType = userRoleToJSON(message.userType);
+    }
+    if (message.reason !== undefined) {
+      obj.reason = message.reason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BulkUpdateUsersRequest>, I>>(
+    base?: I
+  ): BulkUpdateUsersRequest {
+    return BulkUpdateUsersRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BulkUpdateUsersRequest>, I>>(
+    object: I
+  ): BulkUpdateUsersRequest {
+    const message = createBaseBulkUpdateUsersRequest();
+    message.userIds = object.userIds?.map(e => e) || [];
+    message.status = object.status ?? 0;
+    message.userType = object.userType ?? 0;
+    message.reason = object.reason ?? undefined;
+    return message;
+  },
+};
+
+function createBaseBulkUpdateUserResult(): BulkUpdateUserResult {
+  return { userId: '', success: false, error: undefined };
+}
+
+export const BulkUpdateUserResult: MessageFns<BulkUpdateUserResult> = {
+  encode(message: BulkUpdateUserResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.success !== false) {
+      writer.uint32(16).bool(message.success);
+    }
+    if (message.error !== undefined) {
+      writer.uint32(26).string(message.error);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BulkUpdateUserResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBulkUpdateUserResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.success = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.error = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BulkUpdateUserResult {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+      error: isSet(object.error) ? globalThis.String(object.error) : undefined,
+    };
+  },
+
+  toJSON(message: BulkUpdateUserResult): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.success !== false) {
+      obj.success = message.success;
+    }
+    if (message.error !== undefined) {
+      obj.error = message.error;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BulkUpdateUserResult>, I>>(base?: I): BulkUpdateUserResult {
+    return BulkUpdateUserResult.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BulkUpdateUserResult>, I>>(
+    object: I
+  ): BulkUpdateUserResult {
+    const message = createBaseBulkUpdateUserResult();
+    message.userId = object.userId ?? '';
+    message.success = object.success ?? false;
+    message.error = object.error ?? undefined;
+    return message;
+  },
+};
+
+function createBaseBulkUpdateUsersResponse(): BulkUpdateUsersResponse {
+  return { successCount: 0, failedCount: 0, results: [] };
+}
+
+export const BulkUpdateUsersResponse: MessageFns<BulkUpdateUsersResponse> = {
+  encode(
+    message: BulkUpdateUsersResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.successCount !== 0) {
+      writer.uint32(8).uint32(message.successCount);
+    }
+    if (message.failedCount !== 0) {
+      writer.uint32(16).uint32(message.failedCount);
+    }
+    for (const v of message.results) {
+      BulkUpdateUserResult.encode(v!, writer.uint32(26).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BulkUpdateUsersResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBulkUpdateUsersResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.successCount = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.failedCount = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.results.push(BulkUpdateUserResult.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BulkUpdateUsersResponse {
+    return {
+      successCount: isSet(object.successCount)
+        ? globalThis.Number(object.successCount)
+        : isSet(object.success_count)
+          ? globalThis.Number(object.success_count)
+          : 0,
+      failedCount: isSet(object.failedCount)
+        ? globalThis.Number(object.failedCount)
+        : isSet(object.failed_count)
+          ? globalThis.Number(object.failed_count)
+          : 0,
+      results: globalThis.Array.isArray(object?.results)
+        ? object.results.map((e: any) => BulkUpdateUserResult.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: BulkUpdateUsersResponse): unknown {
+    const obj: any = {};
+    if (message.successCount !== 0) {
+      obj.successCount = Math.round(message.successCount);
+    }
+    if (message.failedCount !== 0) {
+      obj.failedCount = Math.round(message.failedCount);
+    }
+    if (message.results?.length) {
+      obj.results = message.results.map(e => BulkUpdateUserResult.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BulkUpdateUsersResponse>, I>>(
+    base?: I
+  ): BulkUpdateUsersResponse {
+    return BulkUpdateUsersResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BulkUpdateUsersResponse>, I>>(
+    object: I
+  ): BulkUpdateUsersResponse {
+    const message = createBaseBulkUpdateUsersResponse();
+    message.successCount = object.successCount ?? 0;
+    message.failedCount = object.failedCount ?? 0;
+    message.results = object.results?.map(e => BulkUpdateUserResult.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * AuthService is the gRPC contract for the auth vertical. It owns the
  * `auth.*` schema (User, Role, Permission, RefreshToken, RevokedToken,
@@ -4916,6 +6839,136 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): ResetPrivacyPreferencesResponse =>
       ResetPrivacyPreferencesResponse.decode(value),
   },
+  /** Paginated, filtered user search. Caller MUST have admin.users.search. */
+  searchUsers: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/SearchUsers' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: SearchUsersRequest): Buffer =>
+      Buffer.from(SearchUsersRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): SearchUsersRequest => SearchUsersRequest.decode(value),
+    responseSerialize: (value: SearchUsersResponse): Buffer =>
+      Buffer.from(SearchUsersResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): SearchUsersResponse => SearchUsersResponse.decode(value),
+  },
+  /** Fetch a single user by id (admin view — full row). admin.users.read. */
+  adminGetUser: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/AdminGetUser' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AdminGetUserRequest): Buffer =>
+      Buffer.from(AdminGetUserRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AdminGetUserRequest => AdminGetUserRequest.decode(value),
+    responseSerialize: (value: AdminGetUserResponse): Buffer =>
+      Buffer.from(AdminGetUserResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AdminGetUserResponse =>
+      AdminGetUserResponse.decode(value),
+  },
+  /**
+   * Partially update a user's admin-controllable fields (status,
+   * user_type, verification flags). admin.users.update. Only set fields
+   * are written.
+   */
+  adminUpdateUser: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/AdminUpdateUser' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AdminUpdateUserRequest): Buffer =>
+      Buffer.from(AdminUpdateUserRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AdminUpdateUserRequest =>
+      AdminUpdateUserRequest.decode(value),
+    responseSerialize: (value: AdminUpdateUserResponse): Buffer =>
+      Buffer.from(AdminUpdateUserResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AdminUpdateUserResponse =>
+      AdminUpdateUserResponse.decode(value),
+  },
+  /**
+   * Deactivate a user account (status -> deactivated). admin.users.deactivate.
+   * Idempotent. The caller cannot deactivate their own account.
+   */
+  deactivateUser: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/DeactivateUser' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeactivateUserRequest): Buffer =>
+      Buffer.from(DeactivateUserRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeactivateUserRequest =>
+      DeactivateUserRequest.decode(value),
+    responseSerialize: (value: DeactivateUserResponse): Buffer =>
+      Buffer.from(DeactivateUserResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeactivateUserResponse =>
+      DeactivateUserResponse.decode(value),
+  },
+  /**
+   * Reactivate a deactivated/suspended user (status -> active).
+   * admin.users.reactivate. Idempotent.
+   */
+  reactivateUser: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ReactivateUser' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ReactivateUserRequest): Buffer =>
+      Buffer.from(ReactivateUserRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ReactivateUserRequest =>
+      ReactivateUserRequest.decode(value),
+    responseSerialize: (value: ReactivateUserResponse): Buffer =>
+      Buffer.from(ReactivateUserResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ReactivateUserResponse =>
+      ReactivateUserResponse.decode(value),
+  },
+  /**
+   * Platform-wide user counts + breakdowns for the admin dashboard.
+   * admin.users.read.
+   */
+  getUserStatistics: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/GetUserStatistics' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetUserStatisticsRequest): Buffer =>
+      Buffer.from(GetUserStatisticsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetUserStatisticsRequest =>
+      GetUserStatisticsRequest.decode(value),
+    responseSerialize: (value: GetUserStatisticsResponse): Buffer =>
+      Buffer.from(GetUserStatisticsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetUserStatisticsResponse =>
+      GetUserStatisticsResponse.decode(value),
+  },
+  /**
+   * Flattened permission strings for a target user (role-derived).
+   * admin.users.read.
+   */
+  getUserPermissions: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/GetUserPermissions' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetUserPermissionsRequest): Buffer =>
+      Buffer.from(GetUserPermissionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetUserPermissionsRequest =>
+      GetUserPermissionsRequest.decode(value),
+    responseSerialize: (value: GetUserPermissionsResponse): Buffer =>
+      Buffer.from(GetUserPermissionsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetUserPermissionsResponse =>
+      GetUserPermissionsResponse.decode(value),
+  },
+  /**
+   * Bulk status / user_type update across many user ids. Per-id results
+   * so the admin UI can retry the failures. admin.users.bulk_update.
+   * Refuses self-inclusion on a user_type change and refuses super_admin
+   * assignment from a non-super_admin actor.
+   */
+  bulkUpdateUsers: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/BulkUpdateUsers' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: BulkUpdateUsersRequest): Buffer =>
+      Buffer.from(BulkUpdateUsersRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): BulkUpdateUsersRequest =>
+      BulkUpdateUsersRequest.decode(value),
+    responseSerialize: (value: BulkUpdateUsersResponse): Buffer =>
+      Buffer.from(BulkUpdateUsersResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): BulkUpdateUsersResponse =>
+      BulkUpdateUsersResponse.decode(value),
+  },
 } as const;
 
 export interface AuthServiceServer extends UntypedServiceImplementation {
@@ -5021,6 +7074,43 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
     ResetPrivacyPreferencesRequest,
     ResetPrivacyPreferencesResponse
   >;
+  /** Paginated, filtered user search. Caller MUST have admin.users.search. */
+  searchUsers: handleUnaryCall<SearchUsersRequest, SearchUsersResponse>;
+  /** Fetch a single user by id (admin view — full row). admin.users.read. */
+  adminGetUser: handleUnaryCall<AdminGetUserRequest, AdminGetUserResponse>;
+  /**
+   * Partially update a user's admin-controllable fields (status,
+   * user_type, verification flags). admin.users.update. Only set fields
+   * are written.
+   */
+  adminUpdateUser: handleUnaryCall<AdminUpdateUserRequest, AdminUpdateUserResponse>;
+  /**
+   * Deactivate a user account (status -> deactivated). admin.users.deactivate.
+   * Idempotent. The caller cannot deactivate their own account.
+   */
+  deactivateUser: handleUnaryCall<DeactivateUserRequest, DeactivateUserResponse>;
+  /**
+   * Reactivate a deactivated/suspended user (status -> active).
+   * admin.users.reactivate. Idempotent.
+   */
+  reactivateUser: handleUnaryCall<ReactivateUserRequest, ReactivateUserResponse>;
+  /**
+   * Platform-wide user counts + breakdowns for the admin dashboard.
+   * admin.users.read.
+   */
+  getUserStatistics: handleUnaryCall<GetUserStatisticsRequest, GetUserStatisticsResponse>;
+  /**
+   * Flattened permission strings for a target user (role-derived).
+   * admin.users.read.
+   */
+  getUserPermissions: handleUnaryCall<GetUserPermissionsRequest, GetUserPermissionsResponse>;
+  /**
+   * Bulk status / user_type update across many user ids. Per-id results
+   * so the admin UI can retry the failures. admin.users.bulk_update.
+   * Refuses self-inclusion on a user_type change and refuses super_admin
+   * assignment from a non-super_admin actor.
+   */
+  bulkUpdateUsers: handleUnaryCall<BulkUpdateUsersRequest, BulkUpdateUsersResponse>;
 }
 
 export interface AuthServiceClient extends Client {
@@ -5368,6 +7458,155 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ResetPrivacyPreferencesResponse) => void
+  ): ClientUnaryCall;
+  /** Paginated, filtered user search. Caller MUST have admin.users.search. */
+  searchUsers(
+    request: SearchUsersRequest,
+    callback: (error: ServiceError | null, response: SearchUsersResponse) => void
+  ): ClientUnaryCall;
+  searchUsers(
+    request: SearchUsersRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: SearchUsersResponse) => void
+  ): ClientUnaryCall;
+  searchUsers(
+    request: SearchUsersRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: SearchUsersResponse) => void
+  ): ClientUnaryCall;
+  /** Fetch a single user by id (admin view — full row). admin.users.read. */
+  adminGetUser(
+    request: AdminGetUserRequest,
+    callback: (error: ServiceError | null, response: AdminGetUserResponse) => void
+  ): ClientUnaryCall;
+  adminGetUser(
+    request: AdminGetUserRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AdminGetUserResponse) => void
+  ): ClientUnaryCall;
+  adminGetUser(
+    request: AdminGetUserRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AdminGetUserResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Partially update a user's admin-controllable fields (status,
+   * user_type, verification flags). admin.users.update. Only set fields
+   * are written.
+   */
+  adminUpdateUser(
+    request: AdminUpdateUserRequest,
+    callback: (error: ServiceError | null, response: AdminUpdateUserResponse) => void
+  ): ClientUnaryCall;
+  adminUpdateUser(
+    request: AdminUpdateUserRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AdminUpdateUserResponse) => void
+  ): ClientUnaryCall;
+  adminUpdateUser(
+    request: AdminUpdateUserRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AdminUpdateUserResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Deactivate a user account (status -> deactivated). admin.users.deactivate.
+   * Idempotent. The caller cannot deactivate their own account.
+   */
+  deactivateUser(
+    request: DeactivateUserRequest,
+    callback: (error: ServiceError | null, response: DeactivateUserResponse) => void
+  ): ClientUnaryCall;
+  deactivateUser(
+    request: DeactivateUserRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeactivateUserResponse) => void
+  ): ClientUnaryCall;
+  deactivateUser(
+    request: DeactivateUserRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeactivateUserResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Reactivate a deactivated/suspended user (status -> active).
+   * admin.users.reactivate. Idempotent.
+   */
+  reactivateUser(
+    request: ReactivateUserRequest,
+    callback: (error: ServiceError | null, response: ReactivateUserResponse) => void
+  ): ClientUnaryCall;
+  reactivateUser(
+    request: ReactivateUserRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ReactivateUserResponse) => void
+  ): ClientUnaryCall;
+  reactivateUser(
+    request: ReactivateUserRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ReactivateUserResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Platform-wide user counts + breakdowns for the admin dashboard.
+   * admin.users.read.
+   */
+  getUserStatistics(
+    request: GetUserStatisticsRequest,
+    callback: (error: ServiceError | null, response: GetUserStatisticsResponse) => void
+  ): ClientUnaryCall;
+  getUserStatistics(
+    request: GetUserStatisticsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetUserStatisticsResponse) => void
+  ): ClientUnaryCall;
+  getUserStatistics(
+    request: GetUserStatisticsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetUserStatisticsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Flattened permission strings for a target user (role-derived).
+   * admin.users.read.
+   */
+  getUserPermissions(
+    request: GetUserPermissionsRequest,
+    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void
+  ): ClientUnaryCall;
+  getUserPermissions(
+    request: GetUserPermissionsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void
+  ): ClientUnaryCall;
+  getUserPermissions(
+    request: GetUserPermissionsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Bulk status / user_type update across many user ids. Per-id results
+   * so the admin UI can retry the failures. admin.users.bulk_update.
+   * Refuses self-inclusion on a user_type change and refuses super_admin
+   * assignment from a non-super_admin actor.
+   */
+  bulkUpdateUsers(
+    request: BulkUpdateUsersRequest,
+    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void
+  ): ClientUnaryCall;
+  bulkUpdateUsers(
+    request: BulkUpdateUsersRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void
+  ): ClientUnaryCall;
+  bulkUpdateUsers(
+    request: BulkUpdateUsersRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void
   ): ClientUnaryCall;
 }
 

@@ -49,6 +49,22 @@ import {
   type UpdatePrivacyPreferencesResponse,
   type ResetPrivacyPreferencesRequest,
   type ResetPrivacyPreferencesResponse,
+  type SearchUsersRequest,
+  type SearchUsersResponse,
+  type AdminGetUserRequest,
+  type AdminGetUserResponse,
+  type AdminUpdateUserRequest,
+  type AdminUpdateUserResponse,
+  type DeactivateUserRequest,
+  type DeactivateUserResponse,
+  type ReactivateUserRequest,
+  type ReactivateUserResponse,
+  type GetUserStatisticsRequest,
+  type GetUserStatisticsResponse,
+  type GetUserPermissionsRequest,
+  type GetUserPermissionsResponse,
+  type BulkUpdateUsersRequest,
+  type BulkUpdateUsersResponse,
 } from '@adopt-dont-shop/proto';
 
 export type AuthClient = {
@@ -82,6 +98,26 @@ export type AuthClient = {
     req: ResetPrivacyPreferencesRequest,
     metadata: Metadata
   ): Promise<ResetPrivacyPreferencesResponse>;
+  searchUsers(req: SearchUsersRequest, metadata: Metadata): Promise<SearchUsersResponse>;
+  adminGetUser(req: AdminGetUserRequest, metadata: Metadata): Promise<AdminGetUserResponse>;
+  adminUpdateUser(
+    req: AdminUpdateUserRequest,
+    metadata: Metadata
+  ): Promise<AdminUpdateUserResponse>;
+  deactivateUser(req: DeactivateUserRequest, metadata: Metadata): Promise<DeactivateUserResponse>;
+  reactivateUser(req: ReactivateUserRequest, metadata: Metadata): Promise<ReactivateUserResponse>;
+  getUserStatistics(
+    req: GetUserStatisticsRequest,
+    metadata: Metadata
+  ): Promise<GetUserStatisticsResponse>;
+  getUserPermissions(
+    req: GetUserPermissionsRequest,
+    metadata: Metadata
+  ): Promise<GetUserPermissionsResponse>;
+  bulkUpdateUsers(
+    req: BulkUpdateUsersRequest,
+    metadata: Metadata
+  ): Promise<BulkUpdateUsersResponse>;
   close(): void;
 };
 
@@ -128,6 +164,14 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
       callUnary(stub.updatePrivacyPreferences, req, metadata),
     resetPrivacyPreferences: (req, metadata) =>
       callUnary(stub.resetPrivacyPreferences, req, metadata),
+    searchUsers: (req, metadata) => callUnary(stub.searchUsers, req, metadata),
+    adminGetUser: (req, metadata) => callUnary(stub.adminGetUser, req, metadata),
+    adminUpdateUser: (req, metadata) => callUnary(stub.adminUpdateUser, req, metadata),
+    deactivateUser: (req, metadata) => callUnary(stub.deactivateUser, req, metadata),
+    reactivateUser: (req, metadata) => callUnary(stub.reactivateUser, req, metadata),
+    getUserStatistics: (req, metadata) => callUnary(stub.getUserStatistics, req, metadata),
+    getUserPermissions: (req, metadata) => callUnary(stub.getUserPermissions, req, metadata),
+    bulkUpdateUsers: (req, metadata) => callUnary(stub.bulkUpdateUsers, req, metadata),
     close: () => stub.close(),
   };
 };

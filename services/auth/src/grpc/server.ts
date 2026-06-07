@@ -38,6 +38,16 @@ import {
   type HandlerDeps,
 } from './handlers.js';
 import {
+  adminGetUser,
+  adminUpdateUser,
+  bulkUpdateUsers,
+  deactivateUser,
+  getUserPermissions,
+  getUserStatistics,
+  reactivateUser,
+  searchUsers,
+} from './admin-handlers.js';
+import {
   getPrivacyPreferences,
   resetPrivacyPreferences,
   updatePrivacyPreferences,
@@ -90,6 +100,15 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getPrivacyPreferences: adapt(getPrivacyPreferences, { deps, logger }),
     updatePrivacyPreferences: adapt(updatePrivacyPreferences, { deps, logger }),
     resetPrivacyPreferences: adapt(resetPrivacyPreferences, { deps, logger }),
+    // Admin user management — /api/v1/users/* admin surface.
+    searchUsers: adapt(searchUsers, { deps, logger }),
+    adminGetUser: adapt(adminGetUser, { deps, logger }),
+    adminUpdateUser: adapt(adminUpdateUser, { deps, logger }),
+    deactivateUser: adapt(deactivateUser, { deps, logger }),
+    reactivateUser: adapt(reactivateUser, { deps, logger }),
+    getUserStatistics: adapt(getUserStatistics, { deps, logger }),
+    getUserPermissions: adapt(getUserPermissions, { deps, logger }),
+    bulkUpdateUsers: adapt(bulkUpdateUsers, { deps, logger }),
   });
 
   logger.info('gRPC AuthService registered', {
@@ -112,6 +131,14 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getPrivacyPreferences',
       'updatePrivacyPreferences',
       'resetPrivacyPreferences',
+      'searchUsers',
+      'adminGetUser',
+      'adminUpdateUser',
+      'deactivateUser',
+      'reactivateUser',
+      'getUserStatistics',
+      'getUserPermissions',
+      'bulkUpdateUsers',
     ],
     grpcPort: config.grpcPort,
   });

@@ -22,9 +22,11 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   AuthV1,
   NotificationsV1,
+  type AdminUpdateUserRequest,
   type GetMeRequest,
   type GetPrivacyPreferencesRequest,
   type ResetPrivacyPreferencesRequest,
+  type SearchUsersRequest,
   type UpdateAccountRequest,
   type UpdateNotificationPreferencesRequest,
   type UpdatePrivacyPreferencesRequest,
@@ -232,7 +234,249 @@ export const registerUsersRoutes = async (
       return handleGrpcError(err, reply);
     }
   });
+
+  // --- Admin user management ----------------------------------------
+  // These register AFTER /profile + /preferences (static segments win
+  // Fastify's matcher) but BEFORE the dynamic GET /:userId below.
+
+  // GET /api/v1/users/search
+  app.get('/api/v1/users/search', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const q = req.query as Record<string, string | undefined>;
+    const grpcReq: SearchUsersRequest = {
+      search: q.search,
+      statusFilter: statusFilterFromString(q.status),
+      userTypeFilter: userTypeFilterFromString(q.userType ?? q.user_type),
+      emailVerified: q.emailVerified ? q.emailVerified === 'true' : undefined,
+      createdFrom: q.createdFrom ?? q.created_from,
+      createdTo: q.createdTo ?? q.created_to,
+      page: q.page ? Number.parseInt(q.page, 10) : 1,
+      limit: q.limit ? Number.parseInt(q.limit, 10) : 0,
+      sortBy: q.sortBy ?? q.sort_by,
+      sortOrder: q.sortOrder ?? q.sort_order,
+    };
+    try {
+      const res = await authClient.searchUsers(grpcReq, metadata);
+      return reply.send({
+        success: true,
+        data: res.users.map(u => AuthV1.User.toJSON(u)),
+        pagination: {
+          page: res.page,
+          limit: grpcReq.limit || 20,
+          total: res.total,
+          totalPages: res.totalPages,
+        },
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // GET /api/v1/users/statistics
+  app.get('/api/v1/users/statistics', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    try {
+      const res = await authClient.getUserStatistics({}, metadata);
+      return reply.send({
+        success: true,
+        data: AuthV1.GetUserStatisticsResponse.toJSON(res),
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // GET /api/v1/users/:userId
+  app.get<{ Params: { userId: string } }>('/api/v1/users/:userId', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    try {
+      const res = await authClient.adminGetUser({ userId: req.params.userId }, metadata);
+      return reply.send({ success: true, data: AuthV1.User.toJSON(res.user!) });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // PUT /api/v1/users/:userId — admin update.
+  app.put<{ Params: { userId: string } }>('/api/v1/users/:userId', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const grpcReq: AdminUpdateUserRequest = {
+      userId: req.params.userId,
+      status: statusFilterFromString(typeof body.status === 'string' ? body.status : undefined),
+      userType: userTypeFilterFromString(
+        typeof body.userType === 'string'
+          ? body.userType
+          : typeof body.user_type === 'string'
+            ? body.user_type
+            : undefined
+      ),
+      emailVerified: typeof body.emailVerified === 'boolean' ? body.emailVerified : undefined,
+      firstName: typeof body.firstName === 'string' ? body.firstName : undefined,
+      lastName: typeof body.lastName === 'string' ? body.lastName : undefined,
+    };
+    try {
+      const res = await authClient.adminUpdateUser(grpcReq, metadata);
+      return reply.send({ success: true, data: AuthV1.User.toJSON(res.user!) });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // POST /api/v1/users/:userId/deactivate
+  app.post<{ Params: { userId: string } }>(
+    '/api/v1/users/:userId/deactivate',
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as { reason?: string };
+      try {
+        const res = await authClient.deactivateUser(
+          { userId: req.params.userId, reason: body.reason },
+          metadata
+        );
+        return reply.send({
+          success: true,
+          message: 'User deactivated',
+          data: AuthV1.User.toJSON(res.user!),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // POST /api/v1/users/:userId/reactivate
+  app.post<{ Params: { userId: string } }>(
+    '/api/v1/users/:userId/reactivate',
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const res = await authClient.reactivateUser({ userId: req.params.userId }, metadata);
+        return reply.send({
+          success: true,
+          message: 'User reactivated',
+          data: AuthV1.User.toJSON(res.user!),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // POST /api/v1/users/bulk-update — admin bulk status/role change.
+  // POST so it never collides with the GET/PUT /:userId dynamic routes.
+  app.post('/api/v1/users/bulk-update', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const body = (req.body ?? {}) as {
+      userIds?: string[];
+      user_ids?: string[];
+      status?: string;
+      userType?: string;
+      user_type?: string;
+      reason?: string;
+    };
+    try {
+      const res = await authClient.bulkUpdateUsers(
+        {
+          userIds: body.userIds ?? body.user_ids ?? [],
+          status: statusFilterFromString(body.status),
+          userType: userTypeFilterFromString(body.userType ?? body.user_type),
+          reason: body.reason,
+        },
+        metadata
+      );
+      return reply.send({
+        success: true,
+        message: `Updated ${res.successCount} user(s), ${res.failedCount} failed`,
+        data: AuthV1.BulkUpdateUsersResponse.toJSON(res),
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // GET /api/v1/users/:userId/permissions
+  app.get<{ Params: { userId: string } }>(
+    '/api/v1/users/:userId/permissions',
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const res = await authClient.getUserPermissions({ userId: req.params.userId }, metadata);
+        return reply.send({ success: true, data: { permissions: res.permissions } });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /api/v1/users/:userId/with-permissions — composes the admin user
+  // row + their flattened permission set in one round trip.
+  app.get<{ Params: { userId: string } }>(
+    '/api/v1/users/:userId/with-permissions',
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const [user, perms] = await Promise.all([
+          authClient.adminGetUser({ userId: req.params.userId }, metadata),
+          authClient.getUserPermissions({ userId: req.params.userId }, metadata),
+        ]);
+        return reply.send({
+          success: true,
+          data: {
+            ...(AuthV1.User.toJSON(user.user!) as Record<string, unknown>),
+            permissions: perms.permissions,
+          },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // PUT /api/v1/users/:userId/role — change a single user's user_type.
+  // Reuses AdminUpdateUser with only the user_type field set.
+  app.put<{ Params: { userId: string } }>('/api/v1/users/:userId/role', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const body = (req.body ?? {}) as { role?: string; userType?: string; user_type?: string };
+    const grpcReq: AdminUpdateUserRequest = {
+      userId: req.params.userId,
+      status: AuthV1.UserStatus.USER_STATUS_UNSPECIFIED,
+      userType: userTypeFilterFromString(body.role ?? body.userType ?? body.user_type),
+    };
+    try {
+      const res = await authClient.adminUpdateUser(grpcReq, metadata);
+      return reply.send({
+        success: true,
+        message: 'User role updated',
+        data: AuthV1.User.toJSON(res.user!),
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
 };
+
+// --- Enum parsing helpers --------------------------------------------
+
+function statusFilterFromString(raw: string | undefined): AuthV1.UserStatus {
+  if (!raw) return AuthV1.UserStatus.USER_STATUS_UNSPECIFIED;
+  const upper = `USER_STATUS_${raw.toUpperCase()}`;
+  const parsed = AuthV1.userStatusFromJSON(
+    Object.values(AuthV1.UserStatus).includes(upper as never) ? upper : raw
+  );
+  return parsed === AuthV1.UserStatus.UNRECOGNIZED
+    ? AuthV1.UserStatus.USER_STATUS_UNSPECIFIED
+    : parsed;
+}
+
+function userTypeFilterFromString(raw: string | undefined): AuthV1.UserRole {
+  if (!raw) return AuthV1.UserRole.USER_ROLE_UNSPECIFIED;
+  const upper = `USER_ROLE_${raw.toUpperCase()}`;
+  const parsed = AuthV1.userRoleFromJSON(
+    Object.values(AuthV1.UserRole).includes(upper as never) ? upper : raw
+  );
+  return parsed === AuthV1.UserRole.UNRECOGNIZED ? AuthV1.UserRole.USER_ROLE_UNSPECIFIED : parsed;
+}
 
 // --- Helpers ---------------------------------------------------------
 

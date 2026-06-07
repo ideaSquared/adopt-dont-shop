@@ -67,19 +67,42 @@ function makeAuthClient(): AuthClient & {
   getPrivacyPreferencesMock: ReturnType<typeof vi.fn>;
   updatePrivacyPreferencesMock: ReturnType<typeof vi.fn>;
   resetPrivacyPreferencesMock: ReturnType<typeof vi.fn>;
+  searchUsersMock: ReturnType<typeof vi.fn>;
+  adminGetUserMock: ReturnType<typeof vi.fn>;
+  adminUpdateUserMock: ReturnType<typeof vi.fn>;
+  deactivateUserMock: ReturnType<typeof vi.fn>;
+  reactivateUserMock: ReturnType<typeof vi.fn>;
+  getUserStatisticsMock: ReturnType<typeof vi.fn>;
+  getUserPermissionsMock: ReturnType<typeof vi.fn>;
+  bulkUpdateUsersMock: ReturnType<typeof vi.fn>;
 } {
   const getMeMock = vi.fn();
   const updateAccountMock = vi.fn();
   const getPrivacyPreferencesMock = vi.fn();
   const updatePrivacyPreferencesMock = vi.fn();
   const resetPrivacyPreferencesMock = vi.fn();
+  const searchUsersMock = vi.fn();
+  const adminGetUserMock = vi.fn();
+  const adminUpdateUserMock = vi.fn();
+  const deactivateUserMock = vi.fn();
+  const reactivateUserMock = vi.fn();
+  const getUserStatisticsMock = vi.fn();
+  const getUserPermissionsMock = vi.fn();
+  const bulkUpdateUsersMock = vi.fn();
   return {
-    // We only use these four — the rest are stubs satisfying the type.
     getMe: getMeMock,
     updateAccount: updateAccountMock,
     getPrivacyPreferences: getPrivacyPreferencesMock,
     updatePrivacyPreferences: updatePrivacyPreferencesMock,
     resetPrivacyPreferences: resetPrivacyPreferencesMock,
+    searchUsers: searchUsersMock,
+    adminGetUser: adminGetUserMock,
+    adminUpdateUser: adminUpdateUserMock,
+    deactivateUser: deactivateUserMock,
+    reactivateUser: reactivateUserMock,
+    getUserStatistics: getUserStatisticsMock,
+    getUserPermissions: getUserPermissionsMock,
+    bulkUpdateUsers: bulkUpdateUsersMock,
     login: vi.fn(),
     logout: vi.fn(),
     refreshToken: vi.fn(),
@@ -99,6 +122,14 @@ function makeAuthClient(): AuthClient & {
     getPrivacyPreferencesMock,
     updatePrivacyPreferencesMock,
     resetPrivacyPreferencesMock,
+    searchUsersMock,
+    adminGetUserMock,
+    adminUpdateUserMock,
+    deactivateUserMock,
+    reactivateUserMock,
+    getUserStatisticsMock,
+    getUserPermissionsMock,
+    bulkUpdateUsersMock,
   };
 }
 
@@ -400,5 +431,344 @@ describe('POST /api/v1/users/preferences/reset', () => {
     expect(body.success).toBe(true);
     expect(body.message).toMatch(/reset/i);
     expect(body.data.emailNotifications).toBe(true);
+  });
+});
+
+// --- Admin user management ------------------------------------------
+
+const ADMIN_USER_FIXTURE = {
+  userId: 'usr-9',
+  email: 'target@example.com',
+  firstName: 'Target',
+  lastName: 'User',
+  userType: AuthV1.UserRole.USER_ROLE_ADOPTER,
+  status: AuthV1.UserStatus.USER_STATUS_ACTIVE,
+  emailVerified: true,
+  phoneVerified: false,
+  twoFactorEnabled: false,
+  createdAt: '2026-06-01T00:00:00Z',
+  updatedAt: '2026-06-01T00:00:00Z',
+} as unknown as AuthV1.User;
+
+describe('GET /api/v1/users/search', () => {
+  let app: FastifyInstance;
+  let auth: ReturnType<typeof makeAuthClient>;
+  let notif: ReturnType<typeof makeNotifClient>;
+
+  beforeEach(async () => {
+    auth = makeAuthClient();
+    notif = makeNotifClient();
+    app = await buildApp(auth, notif);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('forwards filters + pagination and returns the SPA envelope', async () => {
+    auth.searchUsersMock.mockResolvedValueOnce({
+      users: [ADMIN_USER_FIXTURE],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users/search?search=jane&status=active&userType=adopter&page=1&limit=20',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      success: boolean;
+      data: Array<{ userId: string }>;
+      pagination: { total: number; totalPages: number };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveLength(1);
+    expect(body.pagination.total).toBe(1);
+
+    const [grpcReq] = auth.searchUsersMock.mock.calls[0] as [SearchUsersReqShape, Metadata];
+    expect(grpcReq.search).toBe('jane');
+    expect(grpcReq.statusFilter).toBe(AuthV1.UserStatus.USER_STATUS_ACTIVE);
+    expect(grpcReq.userTypeFilter).toBe(AuthV1.UserRole.USER_ROLE_ADOPTER);
+  });
+
+  it('maps PERMISSION_DENIED → 403', async () => {
+    auth.searchUsersMock.mockRejectedValueOnce({ code: status.PERMISSION_DENIED, details: 'no' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users/search',
+      headers: { 'x-user-id': 'usr-1' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('does not shadow GET /profile (static segment wins)', async () => {
+    auth.getMeMock.mockResolvedValueOnce(ME_FIXTURE);
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users/profile',
+      headers: { 'x-user-id': 'usr-1' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(auth.getMeMock).toHaveBeenCalledTimes(1);
+    expect(auth.searchUsersMock).not.toHaveBeenCalled();
+    expect(auth.adminGetUserMock).not.toHaveBeenCalled();
+  });
+});
+
+type SearchUsersReqShape = {
+  search?: string;
+  statusFilter: AuthV1.UserStatus;
+  userTypeFilter: AuthV1.UserRole;
+};
+
+describe('GET /api/v1/users/statistics', () => {
+  let app: FastifyInstance;
+  let auth: ReturnType<typeof makeAuthClient>;
+  let notif: ReturnType<typeof makeNotifClient>;
+
+  beforeEach(async () => {
+    auth = makeAuthClient();
+    notif = makeNotifClient();
+    app = await buildApp(auth, notif);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns the stats payload', async () => {
+    auth.getUserStatisticsMock.mockResolvedValueOnce({
+      total: 100,
+      verified: 80,
+      newThisMonth: 12,
+      byStatus: [],
+      byType: [],
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users/statistics',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { success: boolean; data: { total: number } };
+    expect(body.data.total).toBe(100);
+  });
+});
+
+describe('GET/PUT /api/v1/users/:userId', () => {
+  let app: FastifyInstance;
+  let auth: ReturnType<typeof makeAuthClient>;
+  let notif: ReturnType<typeof makeNotifClient>;
+
+  beforeEach(async () => {
+    auth = makeAuthClient();
+    notif = makeNotifClient();
+    app = await buildApp(auth, notif);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('GET returns the user', async () => {
+    auth.adminGetUserMock.mockResolvedValueOnce({ user: ADMIN_USER_FIXTURE });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users/usr-9',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { userId: string } };
+    expect(body.data.userId).toBe('usr-9');
+  });
+
+  it('GET maps NOT_FOUND → 404', async () => {
+    auth.adminGetUserMock.mockRejectedValueOnce({ code: status.NOT_FOUND, details: 'gone' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users/ghost',
+      headers: { 'x-user-id': 'svc-admin' },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('PUT maps status + userType body fields', async () => {
+    auth.adminUpdateUserMock.mockResolvedValueOnce({ user: ADMIN_USER_FIXTURE });
+    await app.inject({
+      method: 'PUT',
+      url: '/api/v1/users/usr-9',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: { status: 'suspended', userType: 'moderator', emailVerified: true },
+    });
+    const [grpcReq] = auth.adminUpdateUserMock.mock.calls[0] as [
+      {
+        userId: string;
+        status: AuthV1.UserStatus;
+        userType: AuthV1.UserRole;
+        emailVerified?: boolean;
+      },
+      Metadata,
+    ];
+    expect(grpcReq.userId).toBe('usr-9');
+    expect(grpcReq.status).toBe(AuthV1.UserStatus.USER_STATUS_SUSPENDED);
+    expect(grpcReq.userType).toBe(AuthV1.UserRole.USER_ROLE_MODERATOR);
+    expect(grpcReq.emailVerified).toBe(true);
+  });
+});
+
+describe('POST /api/v1/users/:userId/{deactivate,reactivate}', () => {
+  let app: FastifyInstance;
+  let auth: ReturnType<typeof makeAuthClient>;
+  let notif: ReturnType<typeof makeNotifClient>;
+
+  beforeEach(async () => {
+    auth = makeAuthClient();
+    notif = makeNotifClient();
+    app = await buildApp(auth, notif);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('deactivate forwards reason', async () => {
+    auth.deactivateUserMock.mockResolvedValueOnce({ user: ADMIN_USER_FIXTURE });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/usr-9/deactivate',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: { reason: 'abuse' },
+    });
+    const [grpcReq] = auth.deactivateUserMock.mock.calls[0] as [
+      { userId: string; reason?: string },
+      Metadata,
+    ];
+    expect(grpcReq.userId).toBe('usr-9');
+    expect(grpcReq.reason).toBe('abuse');
+  });
+
+  it('reactivate returns success', async () => {
+    auth.reactivateUserMock.mockResolvedValueOnce({ user: ADMIN_USER_FIXTURE });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/usr-9/reactivate',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(auth.reactivateUserMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// --- Admin role + permissions + bulk --------------------------------
+
+describe('user permissions + role + bulk routes', () => {
+  let app: FastifyInstance;
+  let auth: ReturnType<typeof makeAuthClient>;
+  let notif: ReturnType<typeof makeNotifClient>;
+
+  beforeEach(async () => {
+    auth = makeAuthClient();
+    notif = makeNotifClient();
+    app = await buildApp(auth, notif);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('GET /:userId/permissions returns the permission list', async () => {
+    auth.getUserPermissionsMock.mockResolvedValueOnce({
+      permissions: ['pets.read', 'pets.update'],
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users/usr-9/permissions',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { permissions: string[] } };
+    expect(body.data.permissions).toEqual(['pets.read', 'pets.update']);
+  });
+
+  it('GET /:userId/with-permissions composes user + permissions', async () => {
+    auth.adminGetUserMock.mockResolvedValueOnce({ user: ADMIN_USER_FIXTURE });
+    auth.getUserPermissionsMock.mockResolvedValueOnce({ permissions: ['pets.read'] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users/usr-9/with-permissions',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { userId: string; permissions: string[] } };
+    expect(body.data.userId).toBe('usr-9');
+    expect(body.data.permissions).toEqual(['pets.read']);
+  });
+
+  it('PUT /:userId/role maps the role body to AdminUpdateUser user_type', async () => {
+    auth.adminUpdateUserMock.mockResolvedValueOnce({ user: ADMIN_USER_FIXTURE });
+    await app.inject({
+      method: 'PUT',
+      url: '/api/v1/users/usr-9/role',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: { role: 'moderator' },
+    });
+    const [grpcReq] = auth.adminUpdateUserMock.mock.calls[0] as [
+      { userId: string; userType: AuthV1.UserRole },
+      Metadata,
+    ];
+    expect(grpcReq.userId).toBe('usr-9');
+    expect(grpcReq.userType).toBe(AuthV1.UserRole.USER_ROLE_MODERATOR);
+  });
+
+  it('POST /bulk-update forwards ids + status and returns the summary', async () => {
+    auth.bulkUpdateUsersMock.mockResolvedValueOnce({
+      successCount: 2,
+      failedCount: 0,
+      results: [
+        { userId: 'a', success: true },
+        { userId: 'b', success: true },
+      ],
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/bulk-update',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: { userIds: ['a', 'b'], status: 'suspended' },
+    });
+    expect(res.statusCode).toBe(200);
+    const [grpcReq] = auth.bulkUpdateUsersMock.mock.calls[0] as [
+      { userIds: string[]; status: AuthV1.UserStatus },
+      Metadata,
+    ];
+    expect(grpcReq.userIds).toEqual(['a', 'b']);
+    expect(grpcReq.status).toBe(AuthV1.UserStatus.USER_STATUS_SUSPENDED);
+  });
+
+  it('POST /bulk-update does not collide with GET /:userId', async () => {
+    auth.adminGetUserMock.mockResolvedValueOnce({ user: ADMIN_USER_FIXTURE });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/users/bulk-update',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+    // GET falls to adminGetUser with userId='bulk-update' — the POST
+    // route is method-scoped so there's no shadowing.
+    expect(res.statusCode).toBe(200);
+    expect(auth.bulkUpdateUsersMock).not.toHaveBeenCalled();
   });
 });
