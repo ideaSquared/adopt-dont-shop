@@ -82,6 +82,19 @@ export type GatewayConfig = {
     audit: boolean;
     chat: boolean;
   };
+  // Gateway-folded routes — per the plan's "small static reads fold
+  // into service.gateway" guidance. Each block is independently
+  // toggle-able so a deploy can roll out legal vs config separately.
+  legal: {
+    enabled: boolean;
+    // Absolute path to the directory holding terms.md / privacy.md /
+    // cookies.md. Defaults to the monorepo's docs/legal dir; docker
+    // sets this to the mounted path inside the gateway container.
+    docsDir: string;
+  };
+  config: {
+    publicEnabled: boolean;
+  };
 };
 
 const DEFAULT_PORT = 4000;
@@ -131,6 +144,13 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
       matching: isEnabled(env.CUTOVER_MATCHING),
       audit: isEnabled(env.CUTOVER_AUDIT),
       chat: isEnabled(env.CUTOVER_CHAT),
+    },
+    legal: {
+      enabled: env.GATEWAY_LEGAL_ENABLED?.trim().toLowerCase() !== 'false',
+      docsDir: env.LEGAL_DOCS_DIR?.trim() || 'docs/legal',
+    },
+    config: {
+      publicEnabled: env.GATEWAY_CONFIG_ENABLED?.trim().toLowerCase() !== 'false',
     },
   };
 };

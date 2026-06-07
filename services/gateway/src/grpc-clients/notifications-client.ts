@@ -18,8 +18,14 @@ import {
   type CreateNotificationResponse,
   type DismissNotificationRequest,
   type DismissNotificationResponse,
+  type ListDeviceTokensRequest,
+  type ListDeviceTokensResponse,
   type ListNotificationsRequest,
   type ListNotificationsResponse,
+  type RegisterDeviceTokenRequest,
+  type RegisterDeviceTokenResponse,
+  type UnregisterDeviceTokenRequest,
+  type UnregisterDeviceTokenResponse,
 } from '@adopt-dont-shop/proto';
 
 export type NotificationsClient = {
@@ -29,6 +35,18 @@ export type NotificationsClient = {
     req: DismissNotificationRequest,
     metadata: Metadata
   ): Promise<DismissNotificationResponse>;
+  registerDeviceToken(
+    req: RegisterDeviceTokenRequest,
+    metadata: Metadata
+  ): Promise<RegisterDeviceTokenResponse>;
+  unregisterDeviceToken(
+    req: UnregisterDeviceTokenRequest,
+    metadata: Metadata
+  ): Promise<UnregisterDeviceTokenResponse>;
+  listDeviceTokens(
+    req: ListDeviceTokensRequest,
+    metadata: Metadata
+  ): Promise<ListDeviceTokensResponse>;
   close(): void;
 };
 
@@ -67,6 +85,9 @@ export const createNotificationsClient = (
     create: (req, metadata) => callUnary(stub.create, req, metadata),
     list: (req, metadata) => callUnary(stub.list, req, metadata),
     dismiss: (req, metadata) => callUnary(stub.dismiss, req, metadata),
+    registerDeviceToken: (req, metadata) => callUnary(stub.registerDeviceToken, req, metadata),
+    unregisterDeviceToken: (req, metadata) => callUnary(stub.unregisterDeviceToken, req, metadata),
+    listDeviceTokens: (req, metadata) => callUnary(stub.listDeviceTokens, req, metadata),
     close: () => stub.close(),
   };
 };

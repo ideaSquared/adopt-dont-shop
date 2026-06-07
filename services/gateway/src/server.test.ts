@@ -27,7 +27,11 @@ const baseConfig: GatewayConfig = {
     s3: {},
     maxFileSize: 1_000_000,
   },
-};
+  // Gateway-folded surfaces — disabled by default in tests; specific
+  // suites that exercise them flip the flag (and pass docsDir) inline.
+  legal: { enabled: false, docsDir: 'docs/legal' },
+  config: { publicEnabled: false },
+} as GatewayConfig;
 
 /**
  * Boot a stub upstream Fastify on an ephemeral port so the proxy plugin

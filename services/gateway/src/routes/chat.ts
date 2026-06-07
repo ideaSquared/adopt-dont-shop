@@ -40,108 +40,26 @@ const GRPC_TO_HTTP: Record<number, number> = {
   [status.INTERNAL]: 500,
 };
 
+// The monolith mounts the same chat routes at /api/v1/chats AND
+// /api/v1/conversations. The SPA's lib.chat client uses both paths
+// across different views; we mirror that here so a SPA build doesn't
+// notice the cutover. Every helper below registers under both
+// prefixes via this list.
+const CHAT_PREFIXES = ['/api/v1/chats', '/api/v1/conversations'] as const;
+
 export const registerChatRoutes = async (
   app: FastifyInstance,
   opts: ChatRoutesOptions
 ): Promise<void> => {
   const { client } = opts;
 
-  // ---- GET /api/v1/chats -------------------------------------------
-  app.get('/api/v1/chats', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const query = req.query as Record<string, string | undefined>;
-    const grpcReq: ListChatsRequest = {
-      cursor: query.cursor,
-      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
-      unreadOnly: query.unreadOnly === 'true' || query.unread_only === 'true',
-    };
+  for (const prefix of CHAT_PREFIXES) {
+    registerChatRoutesForPrefix(app, client, prefix);
+  }
 
-    try {
-      const res = await client.listChats(grpcReq, metadata);
-      return reply.send(ChatV1.ListChatsResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
-
-  // ---- POST /api/v1/chats ------------------------------------------
-  app.post('/api/v1/chats', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const body = (req.body ?? {}) as Partial<OpenChatRequest> & {
-      application_id?: string;
-      other_user_id?: string;
-    };
-    const grpcReq: OpenChatRequest = {
-      applicationId: body.applicationId ?? body.application_id ?? '',
-      otherUserId: body.otherUserId ?? body.other_user_id ?? '',
-    };
-
-    try {
-      const res = await client.openChat(grpcReq, metadata);
-      // 201 for a freshly-created chat, 200 for an idempotent hit.
-      return reply.code(res.created ? 201 : 200).send(ChatV1.OpenChatResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
-
-  // ---- GET /api/v1/chats/:chatId/messages --------------------------
-  app.get<{ Params: { chatId: string } }>('/api/v1/chats/:chatId/messages', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const query = req.query as Record<string, string | undefined>;
-    const grpcReq: ListMessagesRequest = {
-      chatId: req.params.chatId,
-      cursor: query.cursor,
-      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
-    };
-
-    try {
-      const res = await client.listMessages(grpcReq, metadata);
-      return reply.send(ChatV1.ListMessagesResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
-
-  // ---- POST /api/v1/chats/:chatId/messages -------------------------
-  app.post<{ Params: { chatId: string } }>('/api/v1/chats/:chatId/messages', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const body = (req.body ?? {}) as { body?: string; content?: string };
-    const grpcReq: SendMessageRequest = {
-      chatId: req.params.chatId,
-      // Accept both `body` (proto field) and `content` (monolith name)
-      // so the SPA can switch in its own time.
-      body: body.body ?? body.content ?? '',
-    };
-
-    try {
-      const res = await client.sendMessage(grpcReq, metadata);
-      return reply.code(201).send(ChatV1.SendMessageResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
-
-  // ---- POST /api/v1/chats/:chatId/read -----------------------------
-  app.post<{ Params: { chatId: string } }>('/api/v1/chats/:chatId/read', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const body = (req.body ?? {}) as { upToMessageId?: string; up_to_message_id?: string };
-    const grpcReq: MarkReadRequest = {
-      chatId: req.params.chatId,
-      upToMessageId: body.upToMessageId ?? body.up_to_message_id ?? '',
-    };
-
-    try {
-      const res = await client.markRead(grpcReq, metadata);
-      return reply.send(ChatV1.MarkReadResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
-
-  // ---- POST /api/v1/messages/:messageId/reactions ------------------
-  // Toggle a reaction. Body shape: { emoji, remove? }. The chat
-  // handler is idempotent in both directions.
+  // The /api/v1/messages/:messageId/reactions endpoint is unique —
+  // it's a message-level operation, not chat-scoped — so it only
+  // registers once. Same handler shape as the other six.
   app.post<{ Params: { messageId: string } }>(
     '/api/v1/messages/:messageId/reactions',
     async (req, reply) => {
@@ -161,6 +79,102 @@ export const registerChatRoutes = async (
       }
     }
   );
+};
+
+const registerChatRoutesForPrefix = (
+  app: FastifyInstance,
+  client: ChatClient,
+  prefix: string
+): void => {
+  // ---- GET <prefix> -------------------------------------------------
+  app.get(prefix, async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const query = req.query as Record<string, string | undefined>;
+    const grpcReq: ListChatsRequest = {
+      cursor: query.cursor,
+      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+      unreadOnly: query.unreadOnly === 'true' || query.unread_only === 'true',
+    };
+
+    try {
+      const res = await client.listChats(grpcReq, metadata);
+      return reply.send(ChatV1.ListChatsResponse.toJSON(res));
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // ---- POST <prefix> -----------------------------------------------
+  app.post(prefix, async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const body = (req.body ?? {}) as Partial<OpenChatRequest> & {
+      application_id?: string;
+      other_user_id?: string;
+    };
+    const grpcReq: OpenChatRequest = {
+      applicationId: body.applicationId ?? body.application_id ?? '',
+      otherUserId: body.otherUserId ?? body.other_user_id ?? '',
+    };
+
+    try {
+      const res = await client.openChat(grpcReq, metadata);
+      return reply.code(res.created ? 201 : 200).send(ChatV1.OpenChatResponse.toJSON(res));
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // ---- GET <prefix>/:chatId/messages -------------------------------
+  app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId/messages`, async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const query = req.query as Record<string, string | undefined>;
+    const grpcReq: ListMessagesRequest = {
+      chatId: req.params.chatId,
+      cursor: query.cursor,
+      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+    };
+
+    try {
+      const res = await client.listMessages(grpcReq, metadata);
+      return reply.send(ChatV1.ListMessagesResponse.toJSON(res));
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // ---- POST <prefix>/:chatId/messages ------------------------------
+  app.post<{ Params: { chatId: string } }>(`${prefix}/:chatId/messages`, async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const body = (req.body ?? {}) as { body?: string; content?: string };
+    const grpcReq: SendMessageRequest = {
+      chatId: req.params.chatId,
+      body: body.body ?? body.content ?? '',
+    };
+
+    try {
+      const res = await client.sendMessage(grpcReq, metadata);
+      return reply.code(201).send(ChatV1.SendMessageResponse.toJSON(res));
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // ---- POST <prefix>/:chatId/read ----------------------------------
+  app.post<{ Params: { chatId: string } }>(`${prefix}/:chatId/read`, async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const body = (req.body ?? {}) as { upToMessageId?: string; up_to_message_id?: string };
+    const grpcReq: MarkReadRequest = {
+      chatId: req.params.chatId,
+      upToMessageId: body.upToMessageId ?? body.up_to_message_id ?? '',
+    };
+
+    try {
+      const res = await client.markRead(grpcReq, metadata);
+      return reply.send(ChatV1.MarkReadResponse.toJSON(res));
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
 };
 
 // --- Helpers ---------------------------------------------------------
