@@ -32,6 +32,39 @@ service NotificationService {
   // on NATS after the DB commits.
   rpc Dismiss(DismissNotificationRequest) returns (DismissNotificationResponse);
 
+  // Fetch a single notification by id. Ownership-scoped — adopters can
+  // only read their own. Returns NOT_FOUND for non-existent OR for
+  // notifications owned by another user (no enumeration).
+  rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+
+  // Count unread (read_at IS NULL, not expired) for the calling
+  // principal. Self-scoped — no target user_id field, the gateway
+  // pins it to the principal.
+  rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+
+  // Mark every unread notification owned by the calling principal as
+  // read. Returns the affected row count. Idempotent: a second call
+  // returns affected_count = 0.
+  rpc MarkAllRead(MarkAllReadRequest) returns (MarkAllReadResponse);
+
+  // Soft-delete a notification (deleted_at stamped). Ownership-scoped.
+  // Idempotent: a second Delete on the same notification_id returns
+  // the already-deleted row without error.
+  rpc DeleteNotification(DeleteNotificationRequest) returns (DeleteNotificationResponse);
+
+  // --- User notification preferences (in-app channel control) ---------
+  // Distinct from EmailPreferences above — these are the per-user
+  // master switches for the email/push/sms channels plus per-category
+  // toggles (application_updates, pet_matches, etc.). The
+  // user_notification_prefs row is 1:1 with auth.users and is
+  // auto-created on first read.
+
+  rpc GetNotificationPreferences(GetNotificationPreferencesRequest)
+      returns (GetNotificationPreferencesResponse);
+
+  rpc UpdateNotificationPreferences(UpdateNotificationPreferencesRequest)
+      returns (UpdateNotificationPreferencesResponse);
+
   // --- Email queue ----------------------------------------------------
   // Phase 7 round-out. The service owns the email_queue table; other
   // services (auth, applications, chat) call SendEmail to enqueue a
@@ -486,4 +519,107 @@ message ListDeviceTokensRequest {
 
 message ListDeviceTokensResponse {
   repeated DeviceToken tokens = 1;
+}
+
+// --- GetNotification --------------------------------------------------
+
+message GetNotificationRequest {
+  string notification_id = 1;
+}
+
+message GetNotificationResponse {
+  Notification notification = 1;
+}
+
+// --- GetUnreadCount ---------------------------------------------------
+
+message GetUnreadCountRequest {}
+
+message GetUnreadCountResponse {
+  uint32 count = 1;
+}
+
+// --- MarkAllRead ------------------------------------------------------
+
+message MarkAllReadRequest {}
+
+message MarkAllReadResponse {
+  uint32 affected_count = 1;
+}
+
+// --- DeleteNotification ----------------------------------------------
+
+message DeleteNotificationRequest {
+  string notification_id = 1;
+}
+
+message DeleteNotificationResponse {
+  Notification notification = 1;
+}
+
+// --- Notification preferences (in-app channel control) --------------
+
+enum NotificationDigestFrequency {
+  NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED = 0;
+  NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE = 1;
+  NOTIFICATION_DIGEST_FREQUENCY_DAILY = 2;
+  NOTIFICATION_DIGEST_FREQUENCY_WEEKLY = 3;
+  NOTIFICATION_DIGEST_FREQUENCY_NEVER = 4;
+}
+
+// NotificationPreferences mirrors user_notification_prefs verbatim.
+// Quiet-hours columns are nullable; empty string == NULL.
+message NotificationPreferences {
+  string user_id = 1;
+  bool email_enabled = 2;
+  bool push_enabled = 3;
+  bool sms_enabled = 4;
+  NotificationDigestFrequency digest_frequency = 5;
+  bool application_updates = 6;
+  bool pet_matches = 7;
+  bool rescue_updates = 8;
+  bool chat_messages = 9;
+  // HH:MM strings; absent when NULL.
+  optional string quiet_hours_start = 10;
+  optional string quiet_hours_end = 11;
+  string timezone = 12;
+  string created_at = 13;
+  string updated_at = 14;
+}
+
+message GetNotificationPreferencesRequest {
+  // Optional target. Defaults to the calling principal. Callers
+  // without `notification-prefs:read:any` may only read their own row.
+  optional string user_id = 1;
+}
+
+message GetNotificationPreferencesResponse {
+  NotificationPreferences preferences = 1;
+}
+
+message UpdateNotificationPreferencesRequest {
+  optional string user_id = 1;
+
+  // Scalar booleans don't carry proto3 presence by default, so each is
+  // optional + paired with the `set_<field>` companion flag below. The
+  // handler only writes a column when its set_ flag is true. This
+  // mirrors the partial-update shape used by Phase 1.5 device tokens
+  // and the matching-profile upsert (PR #965).
+  optional bool email_enabled = 2;
+  optional bool push_enabled = 3;
+  optional bool sms_enabled = 4;
+  NotificationDigestFrequency digest_frequency = 5;
+  optional bool application_updates = 6;
+  optional bool pet_matches = 7;
+  optional bool rescue_updates = 8;
+  optional bool chat_messages = 9;
+  // Empty string clears the column (NULL). Absent leaves it untouched —
+  // distinguished via the set_ flag.
+  optional string quiet_hours_start = 10;
+  optional string quiet_hours_end = 11;
+  optional string timezone = 12;
+}
+
+message UpdateNotificationPreferencesResponse {
+  NotificationPreferences preferences = 1;
 }

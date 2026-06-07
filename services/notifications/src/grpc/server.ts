@@ -26,6 +26,14 @@ import {
 } from './device-token-handlers.js';
 import { getEmailPreferences, sendEmail, updateEmailPreferences } from './email-handlers.js';
 import { createNotification, dismissNotification, listNotifications } from './handlers.js';
+import {
+  deleteNotification,
+  getNotification,
+  getNotificationPreferences,
+  getUnreadCount,
+  markAllRead,
+  updateNotificationPreferences,
+} from './notification-prefs-handlers.js';
 
 export type CreateGrpcServerOptions = {
   config: NotificationsConfig;
@@ -55,6 +63,15 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     create: adapt(createNotification, { deps: { pool, nats }, logger }),
     list: adapt(listNotifications, { deps: { pool, nats }, logger }),
     dismiss: adapt(dismissNotification, { deps: { pool, nats }, logger }),
+    getNotification: adapt(getNotification, { deps: { pool, nats }, logger }),
+    getUnreadCount: adapt(getUnreadCount, { deps: { pool, nats }, logger }),
+    markAllRead: adapt(markAllRead, { deps: { pool, nats }, logger }),
+    deleteNotification: adapt(deleteNotification, { deps: { pool, nats }, logger }),
+    getNotificationPreferences: adapt(getNotificationPreferences, { deps: { pool, nats }, logger }),
+    updateNotificationPreferences: adapt(updateNotificationPreferences, {
+      deps: { pool, nats },
+      logger,
+    }),
     sendEmail: adapt(sendEmail, { deps: { pool, nats }, logger }),
     getEmailPreferences: adapt(getEmailPreferences, { deps: { pool, nats }, logger }),
     updateEmailPreferences: adapt(updateEmailPreferences, { deps: { pool, nats }, logger }),
@@ -68,6 +85,12 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'create',
       'list',
       'dismiss',
+      'getNotification',
+      'getUnreadCount',
+      'markAllRead',
+      'deleteNotification',
+      'getNotificationPreferences',
+      'updateNotificationPreferences',
       'sendEmail',
       'getEmailPreferences',
       'updateEmailPreferences',

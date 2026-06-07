@@ -24,6 +24,7 @@ import {
   type CreateNotificationRequest,
   type DismissNotificationRequest,
   type ListNotificationsRequest,
+  type UpdateNotificationPreferencesRequest,
 } from '@adopt-dont-shop/proto';
 
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
@@ -106,18 +107,186 @@ export const registerNotificationsRoutes = async (
     }
   });
 
+  // Unread count — must register before /:id so the static segment wins.
+  app.get('/api/v1/notifications/unread/count', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    try {
+      const res = await client.getUnreadCount({}, metadata);
+      return reply.send({ success: true, data: { count: res.count } });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // Mark all unread as read.
+  app.post('/api/v1/notifications/read-all', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    try {
+      const res = await client.markAllRead({}, metadata);
+      return reply.send({
+        success: true,
+        message: `Marked ${res.affectedCount} notifications as read`,
+        data: { affectedCount: res.affectedCount },
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // In-app notification preferences (user_notification_prefs).
+  app.get('/api/v1/notifications/preferences', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    try {
+      const res = await client.getNotificationPreferences({}, metadata);
+      return reply.send({
+        success: true,
+        data: NotificationsV1.NotificationPreferences.toJSON(res.preferences!),
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  app.put('/api/v1/notifications/preferences', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const grpcReq: UpdateNotificationPreferencesRequest = buildPrefsPatch(body);
+
+    try {
+      const res = await client.updateNotificationPreferences(grpcReq, metadata);
+      return reply.send({
+        success: true,
+        message: 'Notification preferences updated successfully',
+        data: NotificationsV1.NotificationPreferences.toJSON(res.preferences!),
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // Single notification fetch.
+  app.get<{ Params: { id: string } }>('/api/v1/notifications/:id', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    try {
+      const res = await client.getNotification({ notificationId: req.params.id }, metadata);
+      return reply.send({
+        success: true,
+        data: NotificationsV1.Notification.toJSON(res.notification!),
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // Mark single notification as read — matches the monolith path
+  // /api/v1/notifications/:notificationId/read.
+  app.patch<{ Params: { id: string } }>('/api/v1/notifications/:id/read', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    try {
+      await client.dismiss({ notificationId: req.params.id }, metadata);
+      return reply.send({
+        success: true,
+        message: 'Notification marked as read',
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
   app.delete<{ Params: { id: string } }>('/api/v1/notifications/:id', async (req, reply) => {
     const metadata = buildMetadata(req);
     const grpcReq: DismissNotificationRequest = { notificationId: req.params.id };
 
     try {
-      const res = await client.dismiss(grpcReq, metadata);
-      return reply.send(NotificationsV1.DismissNotificationResponse.toJSON(res));
+      // The monolith DELETE soft-deletes via deleted_at. We call the
+      // dedicated deleteNotification RPC (status untouched) for parity —
+      // the old proto contract used Dismiss(status='read') under DELETE,
+      // which would have lost the distinction between read-but-kept and
+      // deleted. Preserve the monolith semantics here.
+      const res = await client.deleteNotification(grpcReq, metadata);
+      return reply.send({
+        success: true,
+        message: 'Notification deleted successfully',
+        data: NotificationsV1.Notification.toJSON(res.notification!),
+      });
     } catch (err) {
       return handleGrpcError(err, reply);
     }
   });
 };
+
+// --- Body parsing for prefs PUT --------------------------------------
+
+// Monolith body keys → proto field names. Only fields actually present
+// in the body are forwarded; the handler's set_* discipline (proto3
+// optional) then governs which columns get written.
+function buildPrefsPatch(body: Record<string, unknown>): UpdateNotificationPreferencesRequest {
+  const out: UpdateNotificationPreferencesRequest = {
+    digestFrequency:
+      NotificationsV1.NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED,
+  };
+  // Monolith uses bare field names (email, push, sms, applications,
+  // messages, quietHoursStart, quietHoursEnd, timezone) for back-compat.
+  // We also accept the proto-aligned camelCase (emailEnabled, …) so the
+  // gateway is the only translation layer.
+  if (typeof body.email === 'boolean') {
+    out.emailEnabled = body.email;
+  }
+  if (typeof body.emailEnabled === 'boolean') {
+    out.emailEnabled = body.emailEnabled;
+  }
+  if (typeof body.push === 'boolean') {
+    out.pushEnabled = body.push;
+  }
+  if (typeof body.pushEnabled === 'boolean') {
+    out.pushEnabled = body.pushEnabled;
+  }
+  if (typeof body.sms === 'boolean') {
+    out.smsEnabled = body.sms;
+  }
+  if (typeof body.smsEnabled === 'boolean') {
+    out.smsEnabled = body.smsEnabled;
+  }
+  if (typeof body.applications === 'boolean') {
+    out.applicationUpdates = body.applications;
+  }
+  if (typeof body.applicationUpdates === 'boolean') {
+    out.applicationUpdates = body.applicationUpdates;
+  }
+  if (typeof body.messages === 'boolean') {
+    out.chatMessages = body.messages;
+  }
+  if (typeof body.chatMessages === 'boolean') {
+    out.chatMessages = body.chatMessages;
+  }
+  if (typeof body.petMatches === 'boolean') {
+    out.petMatches = body.petMatches;
+  }
+  if (typeof body.rescueUpdates === 'boolean') {
+    out.rescueUpdates = body.rescueUpdates;
+  }
+  if (typeof body.quietHoursStart === 'string') {
+    out.quietHoursStart = body.quietHoursStart;
+  }
+  if (typeof body.quietHoursEnd === 'string') {
+    out.quietHoursEnd = body.quietHoursEnd;
+  }
+  if (typeof body.timezone === 'string') {
+    out.timezone = body.timezone;
+  }
+  if (typeof body.digestFrequency === 'string') {
+    const upper = `NOTIFICATION_DIGEST_FREQUENCY_${body.digestFrequency.toUpperCase()}`;
+    const parsed = NotificationsV1.notificationDigestFrequencyFromJSON(
+      Object.values(NotificationsV1.NotificationDigestFrequency).includes(upper as never)
+        ? upper
+        : body.digestFrequency
+    );
+    if (parsed !== NotificationsV1.NotificationDigestFrequency.UNRECOGNIZED) {
+      out.digestFrequency = parsed;
+    }
+  }
+  return out;
+}
 
 // --- Helpers ---------------------------------------------------------
 

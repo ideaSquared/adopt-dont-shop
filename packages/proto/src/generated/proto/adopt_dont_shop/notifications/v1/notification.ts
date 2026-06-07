@@ -801,6 +801,57 @@ export function deviceTokenStatusToJSON(object: DeviceTokenStatus): string {
   }
 }
 
+export enum NotificationDigestFrequency {
+  NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED = 0,
+  NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE = 1,
+  NOTIFICATION_DIGEST_FREQUENCY_DAILY = 2,
+  NOTIFICATION_DIGEST_FREQUENCY_WEEKLY = 3,
+  NOTIFICATION_DIGEST_FREQUENCY_NEVER = 4,
+  UNRECOGNIZED = -1,
+}
+
+export function notificationDigestFrequencyFromJSON(object: any): NotificationDigestFrequency {
+  switch (object) {
+    case 0:
+    case 'NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED':
+      return NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED;
+    case 1:
+    case 'NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE':
+      return NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE;
+    case 2:
+    case 'NOTIFICATION_DIGEST_FREQUENCY_DAILY':
+      return NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_DAILY;
+    case 3:
+    case 'NOTIFICATION_DIGEST_FREQUENCY_WEEKLY':
+      return NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_WEEKLY;
+    case 4:
+    case 'NOTIFICATION_DIGEST_FREQUENCY_NEVER':
+      return NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_NEVER;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return NotificationDigestFrequency.UNRECOGNIZED;
+  }
+}
+
+export function notificationDigestFrequencyToJSON(object: NotificationDigestFrequency): string {
+  switch (object) {
+    case NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED:
+      return 'NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED';
+    case NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE:
+      return 'NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE';
+    case NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_DAILY:
+      return 'NOTIFICATION_DIGEST_FREQUENCY_DAILY';
+    case NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_WEEKLY:
+      return 'NOTIFICATION_DIGEST_FREQUENCY_WEEKLY';
+    case NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_NEVER:
+      return 'NOTIFICATION_DIGEST_FREQUENCY_NEVER';
+    case NotificationDigestFrequency.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
 /**
  * Notification mirrors the `notifications.notifications` row plus the
  * JSON-stringified `data` / `template_variables` payloads. Kept as
@@ -1091,6 +1142,98 @@ export interface ListDeviceTokensRequest {
 
 export interface ListDeviceTokensResponse {
   tokens: DeviceToken[];
+}
+
+export interface GetNotificationRequest {
+  notificationId: string;
+}
+
+export interface GetNotificationResponse {
+  notification?: Notification | undefined;
+}
+
+export interface GetUnreadCountRequest {}
+
+export interface GetUnreadCountResponse {
+  count: number;
+}
+
+export interface MarkAllReadRequest {}
+
+export interface MarkAllReadResponse {
+  affectedCount: number;
+}
+
+export interface DeleteNotificationRequest {
+  notificationId: string;
+}
+
+export interface DeleteNotificationResponse {
+  notification?: Notification | undefined;
+}
+
+/**
+ * NotificationPreferences mirrors user_notification_prefs verbatim.
+ * Quiet-hours columns are nullable; empty string == NULL.
+ */
+export interface NotificationPreferences {
+  userId: string;
+  emailEnabled: boolean;
+  pushEnabled: boolean;
+  smsEnabled: boolean;
+  digestFrequency: NotificationDigestFrequency;
+  applicationUpdates: boolean;
+  petMatches: boolean;
+  rescueUpdates: boolean;
+  chatMessages: boolean;
+  /** HH:MM strings; absent when NULL. */
+  quietHoursStart?: string | undefined;
+  quietHoursEnd?: string | undefined;
+  timezone: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetNotificationPreferencesRequest {
+  /**
+   * Optional target. Defaults to the calling principal. Callers
+   * without `notification-prefs:read:any` may only read their own row.
+   */
+  userId?: string | undefined;
+}
+
+export interface GetNotificationPreferencesResponse {
+  preferences?: NotificationPreferences | undefined;
+}
+
+export interface UpdateNotificationPreferencesRequest {
+  userId?: string | undefined;
+  /**
+   * Scalar booleans don't carry proto3 presence by default, so each is
+   * optional + paired with the `set_<field>` companion flag below. The
+   * handler only writes a column when its set_ flag is true. This
+   * mirrors the partial-update shape used by Phase 1.5 device tokens
+   * and the matching-profile upsert (PR #965).
+   */
+  emailEnabled?: boolean | undefined;
+  pushEnabled?: boolean | undefined;
+  smsEnabled?: boolean | undefined;
+  digestFrequency: NotificationDigestFrequency;
+  applicationUpdates?: boolean | undefined;
+  petMatches?: boolean | undefined;
+  rescueUpdates?: boolean | undefined;
+  chatMessages?: boolean | undefined;
+  /**
+   * Empty string clears the column (NULL). Absent leaves it untouched —
+   * distinguished via the set_ flag.
+   */
+  quietHoursStart?: string | undefined;
+  quietHoursEnd?: string | undefined;
+  timezone?: string | undefined;
+}
+
+export interface UpdateNotificationPreferencesResponse {
+  preferences?: NotificationPreferences | undefined;
 }
 
 function createBaseNotification(): Notification {
@@ -4662,6 +4805,1368 @@ export const ListDeviceTokensResponse: MessageFns<ListDeviceTokensResponse> = {
   },
 };
 
+function createBaseGetNotificationRequest(): GetNotificationRequest {
+  return { notificationId: '' };
+}
+
+export const GetNotificationRequest: MessageFns<GetNotificationRequest> = {
+  encode(message: GetNotificationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.notificationId !== '') {
+      writer.uint32(10).string(message.notificationId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetNotificationRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetNotificationRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.notificationId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetNotificationRequest {
+    return {
+      notificationId: isSet(object.notificationId)
+        ? globalThis.String(object.notificationId)
+        : isSet(object.notification_id)
+          ? globalThis.String(object.notification_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetNotificationRequest): unknown {
+    const obj: any = {};
+    if (message.notificationId !== '') {
+      obj.notificationId = message.notificationId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetNotificationRequest>, I>>(
+    base?: I
+  ): GetNotificationRequest {
+    return GetNotificationRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetNotificationRequest>, I>>(
+    object: I
+  ): GetNotificationRequest {
+    const message = createBaseGetNotificationRequest();
+    message.notificationId = object.notificationId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetNotificationResponse(): GetNotificationResponse {
+  return { notification: undefined };
+}
+
+export const GetNotificationResponse: MessageFns<GetNotificationResponse> = {
+  encode(
+    message: GetNotificationResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.notification !== undefined) {
+      Notification.encode(message.notification, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetNotificationResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetNotificationResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.notification = Notification.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetNotificationResponse {
+    return {
+      notification: isSet(object.notification)
+        ? Notification.fromJSON(object.notification)
+        : undefined,
+    };
+  },
+
+  toJSON(message: GetNotificationResponse): unknown {
+    const obj: any = {};
+    if (message.notification !== undefined) {
+      obj.notification = Notification.toJSON(message.notification);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetNotificationResponse>, I>>(
+    base?: I
+  ): GetNotificationResponse {
+    return GetNotificationResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetNotificationResponse>, I>>(
+    object: I
+  ): GetNotificationResponse {
+    const message = createBaseGetNotificationResponse();
+    message.notification =
+      object.notification !== undefined && object.notification !== null
+        ? Notification.fromPartial(object.notification)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseGetUnreadCountRequest(): GetUnreadCountRequest {
+  return {};
+}
+
+export const GetUnreadCountRequest: MessageFns<GetUnreadCountRequest> = {
+  encode(_: GetUnreadCountRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUnreadCountRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUnreadCountRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetUnreadCountRequest {
+    return {};
+  },
+
+  toJSON(_: GetUnreadCountRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUnreadCountRequest>, I>>(base?: I): GetUnreadCountRequest {
+    return GetUnreadCountRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUnreadCountRequest>, I>>(_: I): GetUnreadCountRequest {
+    const message = createBaseGetUnreadCountRequest();
+    return message;
+  },
+};
+
+function createBaseGetUnreadCountResponse(): GetUnreadCountResponse {
+  return { count: 0 };
+}
+
+export const GetUnreadCountResponse: MessageFns<GetUnreadCountResponse> = {
+  encode(message: GetUnreadCountResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.count !== 0) {
+      writer.uint32(8).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUnreadCountResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUnreadCountResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUnreadCountResponse {
+    return { count: isSet(object.count) ? globalThis.Number(object.count) : 0 };
+  },
+
+  toJSON(message: GetUnreadCountResponse): unknown {
+    const obj: any = {};
+    if (message.count !== 0) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUnreadCountResponse>, I>>(
+    base?: I
+  ): GetUnreadCountResponse {
+    return GetUnreadCountResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUnreadCountResponse>, I>>(
+    object: I
+  ): GetUnreadCountResponse {
+    const message = createBaseGetUnreadCountResponse();
+    message.count = object.count ?? 0;
+    return message;
+  },
+};
+
+function createBaseMarkAllReadRequest(): MarkAllReadRequest {
+  return {};
+}
+
+export const MarkAllReadRequest: MessageFns<MarkAllReadRequest> = {
+  encode(_: MarkAllReadRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MarkAllReadRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMarkAllReadRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): MarkAllReadRequest {
+    return {};
+  },
+
+  toJSON(_: MarkAllReadRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MarkAllReadRequest>, I>>(base?: I): MarkAllReadRequest {
+    return MarkAllReadRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MarkAllReadRequest>, I>>(_: I): MarkAllReadRequest {
+    const message = createBaseMarkAllReadRequest();
+    return message;
+  },
+};
+
+function createBaseMarkAllReadResponse(): MarkAllReadResponse {
+  return { affectedCount: 0 };
+}
+
+export const MarkAllReadResponse: MessageFns<MarkAllReadResponse> = {
+  encode(message: MarkAllReadResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.affectedCount !== 0) {
+      writer.uint32(8).uint32(message.affectedCount);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): MarkAllReadResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMarkAllReadResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.affectedCount = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): MarkAllReadResponse {
+    return {
+      affectedCount: isSet(object.affectedCount)
+        ? globalThis.Number(object.affectedCount)
+        : isSet(object.affected_count)
+          ? globalThis.Number(object.affected_count)
+          : 0,
+    };
+  },
+
+  toJSON(message: MarkAllReadResponse): unknown {
+    const obj: any = {};
+    if (message.affectedCount !== 0) {
+      obj.affectedCount = Math.round(message.affectedCount);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MarkAllReadResponse>, I>>(base?: I): MarkAllReadResponse {
+    return MarkAllReadResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MarkAllReadResponse>, I>>(
+    object: I
+  ): MarkAllReadResponse {
+    const message = createBaseMarkAllReadResponse();
+    message.affectedCount = object.affectedCount ?? 0;
+    return message;
+  },
+};
+
+function createBaseDeleteNotificationRequest(): DeleteNotificationRequest {
+  return { notificationId: '' };
+}
+
+export const DeleteNotificationRequest: MessageFns<DeleteNotificationRequest> = {
+  encode(
+    message: DeleteNotificationRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.notificationId !== '') {
+      writer.uint32(10).string(message.notificationId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteNotificationRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteNotificationRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.notificationId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteNotificationRequest {
+    return {
+      notificationId: isSet(object.notificationId)
+        ? globalThis.String(object.notificationId)
+        : isSet(object.notification_id)
+          ? globalThis.String(object.notification_id)
+          : '',
+    };
+  },
+
+  toJSON(message: DeleteNotificationRequest): unknown {
+    const obj: any = {};
+    if (message.notificationId !== '') {
+      obj.notificationId = message.notificationId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteNotificationRequest>, I>>(
+    base?: I
+  ): DeleteNotificationRequest {
+    return DeleteNotificationRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteNotificationRequest>, I>>(
+    object: I
+  ): DeleteNotificationRequest {
+    const message = createBaseDeleteNotificationRequest();
+    message.notificationId = object.notificationId ?? '';
+    return message;
+  },
+};
+
+function createBaseDeleteNotificationResponse(): DeleteNotificationResponse {
+  return { notification: undefined };
+}
+
+export const DeleteNotificationResponse: MessageFns<DeleteNotificationResponse> = {
+  encode(
+    message: DeleteNotificationResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.notification !== undefined) {
+      Notification.encode(message.notification, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteNotificationResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteNotificationResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.notification = Notification.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteNotificationResponse {
+    return {
+      notification: isSet(object.notification)
+        ? Notification.fromJSON(object.notification)
+        : undefined,
+    };
+  },
+
+  toJSON(message: DeleteNotificationResponse): unknown {
+    const obj: any = {};
+    if (message.notification !== undefined) {
+      obj.notification = Notification.toJSON(message.notification);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteNotificationResponse>, I>>(
+    base?: I
+  ): DeleteNotificationResponse {
+    return DeleteNotificationResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteNotificationResponse>, I>>(
+    object: I
+  ): DeleteNotificationResponse {
+    const message = createBaseDeleteNotificationResponse();
+    message.notification =
+      object.notification !== undefined && object.notification !== null
+        ? Notification.fromPartial(object.notification)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseNotificationPreferences(): NotificationPreferences {
+  return {
+    userId: '',
+    emailEnabled: false,
+    pushEnabled: false,
+    smsEnabled: false,
+    digestFrequency: 0,
+    applicationUpdates: false,
+    petMatches: false,
+    rescueUpdates: false,
+    chatMessages: false,
+    quietHoursStart: undefined,
+    quietHoursEnd: undefined,
+    timezone: '',
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const NotificationPreferences: MessageFns<NotificationPreferences> = {
+  encode(
+    message: NotificationPreferences,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.emailEnabled !== false) {
+      writer.uint32(16).bool(message.emailEnabled);
+    }
+    if (message.pushEnabled !== false) {
+      writer.uint32(24).bool(message.pushEnabled);
+    }
+    if (message.smsEnabled !== false) {
+      writer.uint32(32).bool(message.smsEnabled);
+    }
+    if (message.digestFrequency !== 0) {
+      writer.uint32(40).int32(message.digestFrequency);
+    }
+    if (message.applicationUpdates !== false) {
+      writer.uint32(48).bool(message.applicationUpdates);
+    }
+    if (message.petMatches !== false) {
+      writer.uint32(56).bool(message.petMatches);
+    }
+    if (message.rescueUpdates !== false) {
+      writer.uint32(64).bool(message.rescueUpdates);
+    }
+    if (message.chatMessages !== false) {
+      writer.uint32(72).bool(message.chatMessages);
+    }
+    if (message.quietHoursStart !== undefined) {
+      writer.uint32(82).string(message.quietHoursStart);
+    }
+    if (message.quietHoursEnd !== undefined) {
+      writer.uint32(90).string(message.quietHoursEnd);
+    }
+    if (message.timezone !== '') {
+      writer.uint32(98).string(message.timezone);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(106).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(114).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): NotificationPreferences {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseNotificationPreferences();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.emailEnabled = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.pushEnabled = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.smsEnabled = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.digestFrequency = reader.int32() as any;
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.applicationUpdates = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.petMatches = reader.bool();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.rescueUpdates = reader.bool();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.chatMessages = reader.bool();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.quietHoursStart = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.quietHoursEnd = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.timezone = reader.string();
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): NotificationPreferences {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      emailEnabled: isSet(object.emailEnabled)
+        ? globalThis.Boolean(object.emailEnabled)
+        : isSet(object.email_enabled)
+          ? globalThis.Boolean(object.email_enabled)
+          : false,
+      pushEnabled: isSet(object.pushEnabled)
+        ? globalThis.Boolean(object.pushEnabled)
+        : isSet(object.push_enabled)
+          ? globalThis.Boolean(object.push_enabled)
+          : false,
+      smsEnabled: isSet(object.smsEnabled)
+        ? globalThis.Boolean(object.smsEnabled)
+        : isSet(object.sms_enabled)
+          ? globalThis.Boolean(object.sms_enabled)
+          : false,
+      digestFrequency: isSet(object.digestFrequency)
+        ? notificationDigestFrequencyFromJSON(object.digestFrequency)
+        : isSet(object.digest_frequency)
+          ? notificationDigestFrequencyFromJSON(object.digest_frequency)
+          : 0,
+      applicationUpdates: isSet(object.applicationUpdates)
+        ? globalThis.Boolean(object.applicationUpdates)
+        : isSet(object.application_updates)
+          ? globalThis.Boolean(object.application_updates)
+          : false,
+      petMatches: isSet(object.petMatches)
+        ? globalThis.Boolean(object.petMatches)
+        : isSet(object.pet_matches)
+          ? globalThis.Boolean(object.pet_matches)
+          : false,
+      rescueUpdates: isSet(object.rescueUpdates)
+        ? globalThis.Boolean(object.rescueUpdates)
+        : isSet(object.rescue_updates)
+          ? globalThis.Boolean(object.rescue_updates)
+          : false,
+      chatMessages: isSet(object.chatMessages)
+        ? globalThis.Boolean(object.chatMessages)
+        : isSet(object.chat_messages)
+          ? globalThis.Boolean(object.chat_messages)
+          : false,
+      quietHoursStart: isSet(object.quietHoursStart)
+        ? globalThis.String(object.quietHoursStart)
+        : isSet(object.quiet_hours_start)
+          ? globalThis.String(object.quiet_hours_start)
+          : undefined,
+      quietHoursEnd: isSet(object.quietHoursEnd)
+        ? globalThis.String(object.quietHoursEnd)
+        : isSet(object.quiet_hours_end)
+          ? globalThis.String(object.quiet_hours_end)
+          : undefined,
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : '',
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: NotificationPreferences): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.emailEnabled !== false) {
+      obj.emailEnabled = message.emailEnabled;
+    }
+    if (message.pushEnabled !== false) {
+      obj.pushEnabled = message.pushEnabled;
+    }
+    if (message.smsEnabled !== false) {
+      obj.smsEnabled = message.smsEnabled;
+    }
+    if (message.digestFrequency !== 0) {
+      obj.digestFrequency = notificationDigestFrequencyToJSON(message.digestFrequency);
+    }
+    if (message.applicationUpdates !== false) {
+      obj.applicationUpdates = message.applicationUpdates;
+    }
+    if (message.petMatches !== false) {
+      obj.petMatches = message.petMatches;
+    }
+    if (message.rescueUpdates !== false) {
+      obj.rescueUpdates = message.rescueUpdates;
+    }
+    if (message.chatMessages !== false) {
+      obj.chatMessages = message.chatMessages;
+    }
+    if (message.quietHoursStart !== undefined) {
+      obj.quietHoursStart = message.quietHoursStart;
+    }
+    if (message.quietHoursEnd !== undefined) {
+      obj.quietHoursEnd = message.quietHoursEnd;
+    }
+    if (message.timezone !== '') {
+      obj.timezone = message.timezone;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<NotificationPreferences>, I>>(
+    base?: I
+  ): NotificationPreferences {
+    return NotificationPreferences.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<NotificationPreferences>, I>>(
+    object: I
+  ): NotificationPreferences {
+    const message = createBaseNotificationPreferences();
+    message.userId = object.userId ?? '';
+    message.emailEnabled = object.emailEnabled ?? false;
+    message.pushEnabled = object.pushEnabled ?? false;
+    message.smsEnabled = object.smsEnabled ?? false;
+    message.digestFrequency = object.digestFrequency ?? 0;
+    message.applicationUpdates = object.applicationUpdates ?? false;
+    message.petMatches = object.petMatches ?? false;
+    message.rescueUpdates = object.rescueUpdates ?? false;
+    message.chatMessages = object.chatMessages ?? false;
+    message.quietHoursStart = object.quietHoursStart ?? undefined;
+    message.quietHoursEnd = object.quietHoursEnd ?? undefined;
+    message.timezone = object.timezone ?? '';
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseGetNotificationPreferencesRequest(): GetNotificationPreferencesRequest {
+  return { userId: undefined };
+}
+
+export const GetNotificationPreferencesRequest: MessageFns<GetNotificationPreferencesRequest> = {
+  encode(
+    message: GetNotificationPreferencesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetNotificationPreferencesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetNotificationPreferencesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetNotificationPreferencesRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+    };
+  },
+
+  toJSON(message: GetNotificationPreferencesRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetNotificationPreferencesRequest>, I>>(
+    base?: I
+  ): GetNotificationPreferencesRequest {
+    return GetNotificationPreferencesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetNotificationPreferencesRequest>, I>>(
+    object: I
+  ): GetNotificationPreferencesRequest {
+    const message = createBaseGetNotificationPreferencesRequest();
+    message.userId = object.userId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseGetNotificationPreferencesResponse(): GetNotificationPreferencesResponse {
+  return { preferences: undefined };
+}
+
+export const GetNotificationPreferencesResponse: MessageFns<GetNotificationPreferencesResponse> = {
+  encode(
+    message: GetNotificationPreferencesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.preferences !== undefined) {
+      NotificationPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetNotificationPreferencesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetNotificationPreferencesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.preferences = NotificationPreferences.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetNotificationPreferencesResponse {
+    return {
+      preferences: isSet(object.preferences)
+        ? NotificationPreferences.fromJSON(object.preferences)
+        : undefined,
+    };
+  },
+
+  toJSON(message: GetNotificationPreferencesResponse): unknown {
+    const obj: any = {};
+    if (message.preferences !== undefined) {
+      obj.preferences = NotificationPreferences.toJSON(message.preferences);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetNotificationPreferencesResponse>, I>>(
+    base?: I
+  ): GetNotificationPreferencesResponse {
+    return GetNotificationPreferencesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetNotificationPreferencesResponse>, I>>(
+    object: I
+  ): GetNotificationPreferencesResponse {
+    const message = createBaseGetNotificationPreferencesResponse();
+    message.preferences =
+      object.preferences !== undefined && object.preferences !== null
+        ? NotificationPreferences.fromPartial(object.preferences)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateNotificationPreferencesRequest(): UpdateNotificationPreferencesRequest {
+  return {
+    userId: undefined,
+    emailEnabled: undefined,
+    pushEnabled: undefined,
+    smsEnabled: undefined,
+    digestFrequency: 0,
+    applicationUpdates: undefined,
+    petMatches: undefined,
+    rescueUpdates: undefined,
+    chatMessages: undefined,
+    quietHoursStart: undefined,
+    quietHoursEnd: undefined,
+    timezone: undefined,
+  };
+}
+
+export const UpdateNotificationPreferencesRequest: MessageFns<UpdateNotificationPreferencesRequest> =
+  {
+    encode(
+      message: UpdateNotificationPreferencesRequest,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.userId !== undefined) {
+        writer.uint32(10).string(message.userId);
+      }
+      if (message.emailEnabled !== undefined) {
+        writer.uint32(16).bool(message.emailEnabled);
+      }
+      if (message.pushEnabled !== undefined) {
+        writer.uint32(24).bool(message.pushEnabled);
+      }
+      if (message.smsEnabled !== undefined) {
+        writer.uint32(32).bool(message.smsEnabled);
+      }
+      if (message.digestFrequency !== 0) {
+        writer.uint32(40).int32(message.digestFrequency);
+      }
+      if (message.applicationUpdates !== undefined) {
+        writer.uint32(48).bool(message.applicationUpdates);
+      }
+      if (message.petMatches !== undefined) {
+        writer.uint32(56).bool(message.petMatches);
+      }
+      if (message.rescueUpdates !== undefined) {
+        writer.uint32(64).bool(message.rescueUpdates);
+      }
+      if (message.chatMessages !== undefined) {
+        writer.uint32(72).bool(message.chatMessages);
+      }
+      if (message.quietHoursStart !== undefined) {
+        writer.uint32(82).string(message.quietHoursStart);
+      }
+      if (message.quietHoursEnd !== undefined) {
+        writer.uint32(90).string(message.quietHoursEnd);
+      }
+      if (message.timezone !== undefined) {
+        writer.uint32(98).string(message.timezone);
+      }
+      return writer;
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): UpdateNotificationPreferencesRequest {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseUpdateNotificationPreferencesRequest();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.userId = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 16) {
+              break;
+            }
+
+            message.emailEnabled = reader.bool();
+            continue;
+          }
+          case 3: {
+            if (tag !== 24) {
+              break;
+            }
+
+            message.pushEnabled = reader.bool();
+            continue;
+          }
+          case 4: {
+            if (tag !== 32) {
+              break;
+            }
+
+            message.smsEnabled = reader.bool();
+            continue;
+          }
+          case 5: {
+            if (tag !== 40) {
+              break;
+            }
+
+            message.digestFrequency = reader.int32() as any;
+            continue;
+          }
+          case 6: {
+            if (tag !== 48) {
+              break;
+            }
+
+            message.applicationUpdates = reader.bool();
+            continue;
+          }
+          case 7: {
+            if (tag !== 56) {
+              break;
+            }
+
+            message.petMatches = reader.bool();
+            continue;
+          }
+          case 8: {
+            if (tag !== 64) {
+              break;
+            }
+
+            message.rescueUpdates = reader.bool();
+            continue;
+          }
+          case 9: {
+            if (tag !== 72) {
+              break;
+            }
+
+            message.chatMessages = reader.bool();
+            continue;
+          }
+          case 10: {
+            if (tag !== 82) {
+              break;
+            }
+
+            message.quietHoursStart = reader.string();
+            continue;
+          }
+          case 11: {
+            if (tag !== 90) {
+              break;
+            }
+
+            message.quietHoursEnd = reader.string();
+            continue;
+          }
+          case 12: {
+            if (tag !== 98) {
+              break;
+            }
+
+            message.timezone = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): UpdateNotificationPreferencesRequest {
+      return {
+        userId: isSet(object.userId)
+          ? globalThis.String(object.userId)
+          : isSet(object.user_id)
+            ? globalThis.String(object.user_id)
+            : undefined,
+        emailEnabled: isSet(object.emailEnabled)
+          ? globalThis.Boolean(object.emailEnabled)
+          : isSet(object.email_enabled)
+            ? globalThis.Boolean(object.email_enabled)
+            : undefined,
+        pushEnabled: isSet(object.pushEnabled)
+          ? globalThis.Boolean(object.pushEnabled)
+          : isSet(object.push_enabled)
+            ? globalThis.Boolean(object.push_enabled)
+            : undefined,
+        smsEnabled: isSet(object.smsEnabled)
+          ? globalThis.Boolean(object.smsEnabled)
+          : isSet(object.sms_enabled)
+            ? globalThis.Boolean(object.sms_enabled)
+            : undefined,
+        digestFrequency: isSet(object.digestFrequency)
+          ? notificationDigestFrequencyFromJSON(object.digestFrequency)
+          : isSet(object.digest_frequency)
+            ? notificationDigestFrequencyFromJSON(object.digest_frequency)
+            : 0,
+        applicationUpdates: isSet(object.applicationUpdates)
+          ? globalThis.Boolean(object.applicationUpdates)
+          : isSet(object.application_updates)
+            ? globalThis.Boolean(object.application_updates)
+            : undefined,
+        petMatches: isSet(object.petMatches)
+          ? globalThis.Boolean(object.petMatches)
+          : isSet(object.pet_matches)
+            ? globalThis.Boolean(object.pet_matches)
+            : undefined,
+        rescueUpdates: isSet(object.rescueUpdates)
+          ? globalThis.Boolean(object.rescueUpdates)
+          : isSet(object.rescue_updates)
+            ? globalThis.Boolean(object.rescue_updates)
+            : undefined,
+        chatMessages: isSet(object.chatMessages)
+          ? globalThis.Boolean(object.chatMessages)
+          : isSet(object.chat_messages)
+            ? globalThis.Boolean(object.chat_messages)
+            : undefined,
+        quietHoursStart: isSet(object.quietHoursStart)
+          ? globalThis.String(object.quietHoursStart)
+          : isSet(object.quiet_hours_start)
+            ? globalThis.String(object.quiet_hours_start)
+            : undefined,
+        quietHoursEnd: isSet(object.quietHoursEnd)
+          ? globalThis.String(object.quietHoursEnd)
+          : isSet(object.quiet_hours_end)
+            ? globalThis.String(object.quiet_hours_end)
+            : undefined,
+        timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : undefined,
+      };
+    },
+
+    toJSON(message: UpdateNotificationPreferencesRequest): unknown {
+      const obj: any = {};
+      if (message.userId !== undefined) {
+        obj.userId = message.userId;
+      }
+      if (message.emailEnabled !== undefined) {
+        obj.emailEnabled = message.emailEnabled;
+      }
+      if (message.pushEnabled !== undefined) {
+        obj.pushEnabled = message.pushEnabled;
+      }
+      if (message.smsEnabled !== undefined) {
+        obj.smsEnabled = message.smsEnabled;
+      }
+      if (message.digestFrequency !== 0) {
+        obj.digestFrequency = notificationDigestFrequencyToJSON(message.digestFrequency);
+      }
+      if (message.applicationUpdates !== undefined) {
+        obj.applicationUpdates = message.applicationUpdates;
+      }
+      if (message.petMatches !== undefined) {
+        obj.petMatches = message.petMatches;
+      }
+      if (message.rescueUpdates !== undefined) {
+        obj.rescueUpdates = message.rescueUpdates;
+      }
+      if (message.chatMessages !== undefined) {
+        obj.chatMessages = message.chatMessages;
+      }
+      if (message.quietHoursStart !== undefined) {
+        obj.quietHoursStart = message.quietHoursStart;
+      }
+      if (message.quietHoursEnd !== undefined) {
+        obj.quietHoursEnd = message.quietHoursEnd;
+      }
+      if (message.timezone !== undefined) {
+        obj.timezone = message.timezone;
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<UpdateNotificationPreferencesRequest>, I>>(
+      base?: I
+    ): UpdateNotificationPreferencesRequest {
+      return UpdateNotificationPreferencesRequest.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<I extends Exact<DeepPartial<UpdateNotificationPreferencesRequest>, I>>(
+      object: I
+    ): UpdateNotificationPreferencesRequest {
+      const message = createBaseUpdateNotificationPreferencesRequest();
+      message.userId = object.userId ?? undefined;
+      message.emailEnabled = object.emailEnabled ?? undefined;
+      message.pushEnabled = object.pushEnabled ?? undefined;
+      message.smsEnabled = object.smsEnabled ?? undefined;
+      message.digestFrequency = object.digestFrequency ?? 0;
+      message.applicationUpdates = object.applicationUpdates ?? undefined;
+      message.petMatches = object.petMatches ?? undefined;
+      message.rescueUpdates = object.rescueUpdates ?? undefined;
+      message.chatMessages = object.chatMessages ?? undefined;
+      message.quietHoursStart = object.quietHoursStart ?? undefined;
+      message.quietHoursEnd = object.quietHoursEnd ?? undefined;
+      message.timezone = object.timezone ?? undefined;
+      return message;
+    },
+  };
+
+function createBaseUpdateNotificationPreferencesResponse(): UpdateNotificationPreferencesResponse {
+  return { preferences: undefined };
+}
+
+export const UpdateNotificationPreferencesResponse: MessageFns<UpdateNotificationPreferencesResponse> =
+  {
+    encode(
+      message: UpdateNotificationPreferencesResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.preferences !== undefined) {
+        NotificationPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
+      }
+      return writer;
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): UpdateNotificationPreferencesResponse {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseUpdateNotificationPreferencesResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.preferences = NotificationPreferences.decode(reader, reader.uint32());
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): UpdateNotificationPreferencesResponse {
+      return {
+        preferences: isSet(object.preferences)
+          ? NotificationPreferences.fromJSON(object.preferences)
+          : undefined,
+      };
+    },
+
+    toJSON(message: UpdateNotificationPreferencesResponse): unknown {
+      const obj: any = {};
+      if (message.preferences !== undefined) {
+        obj.preferences = NotificationPreferences.toJSON(message.preferences);
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<UpdateNotificationPreferencesResponse>, I>>(
+      base?: I
+    ): UpdateNotificationPreferencesResponse {
+      return UpdateNotificationPreferencesResponse.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<I extends Exact<DeepPartial<UpdateNotificationPreferencesResponse>, I>>(
+      object: I
+    ): UpdateNotificationPreferencesResponse {
+      const message = createBaseUpdateNotificationPreferencesResponse();
+      message.preferences =
+        object.preferences !== undefined && object.preferences !== null
+          ? NotificationPreferences.fromPartial(object.preferences)
+          : undefined;
+      return message;
+    },
+  };
+
 /**
  * NotificationService is the gRPC contract for the in-app notification
  * store. The gateway translates `POST/GET/DELETE /api/notifications/*`
@@ -4733,6 +6238,102 @@ export const NotificationServiceService = {
       Buffer.from(DismissNotificationResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DismissNotificationResponse =>
       DismissNotificationResponse.decode(value),
+  },
+  /**
+   * Fetch a single notification by id. Ownership-scoped — adopters can
+   * only read their own. Returns NOT_FOUND for non-existent OR for
+   * notifications owned by another user (no enumeration).
+   */
+  getNotification: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/GetNotification' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetNotificationRequest): Buffer =>
+      Buffer.from(GetNotificationRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetNotificationRequest =>
+      GetNotificationRequest.decode(value),
+    responseSerialize: (value: GetNotificationResponse): Buffer =>
+      Buffer.from(GetNotificationResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetNotificationResponse =>
+      GetNotificationResponse.decode(value),
+  },
+  /**
+   * Count unread (read_at IS NULL, not expired) for the calling
+   * principal. Self-scoped — no target user_id field, the gateway
+   * pins it to the principal.
+   */
+  getUnreadCount: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/GetUnreadCount' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetUnreadCountRequest): Buffer =>
+      Buffer.from(GetUnreadCountRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetUnreadCountRequest =>
+      GetUnreadCountRequest.decode(value),
+    responseSerialize: (value: GetUnreadCountResponse): Buffer =>
+      Buffer.from(GetUnreadCountResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetUnreadCountResponse =>
+      GetUnreadCountResponse.decode(value),
+  },
+  /**
+   * Mark every unread notification owned by the calling principal as
+   * read. Returns the affected row count. Idempotent: a second call
+   * returns affected_count = 0.
+   */
+  markAllRead: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/MarkAllRead' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: MarkAllReadRequest): Buffer =>
+      Buffer.from(MarkAllReadRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): MarkAllReadRequest => MarkAllReadRequest.decode(value),
+    responseSerialize: (value: MarkAllReadResponse): Buffer =>
+      Buffer.from(MarkAllReadResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): MarkAllReadResponse => MarkAllReadResponse.decode(value),
+  },
+  /**
+   * Soft-delete a notification (deleted_at stamped). Ownership-scoped.
+   * Idempotent: a second Delete on the same notification_id returns
+   * the already-deleted row without error.
+   */
+  deleteNotification: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/DeleteNotification' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteNotificationRequest): Buffer =>
+      Buffer.from(DeleteNotificationRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteNotificationRequest =>
+      DeleteNotificationRequest.decode(value),
+    responseSerialize: (value: DeleteNotificationResponse): Buffer =>
+      Buffer.from(DeleteNotificationResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteNotificationResponse =>
+      DeleteNotificationResponse.decode(value),
+  },
+  getNotificationPreferences: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/GetNotificationPreferences' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetNotificationPreferencesRequest): Buffer =>
+      Buffer.from(GetNotificationPreferencesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetNotificationPreferencesRequest =>
+      GetNotificationPreferencesRequest.decode(value),
+    responseSerialize: (value: GetNotificationPreferencesResponse): Buffer =>
+      Buffer.from(GetNotificationPreferencesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetNotificationPreferencesResponse =>
+      GetNotificationPreferencesResponse.decode(value),
+  },
+  updateNotificationPreferences: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/UpdateNotificationPreferences' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateNotificationPreferencesRequest): Buffer =>
+      Buffer.from(UpdateNotificationPreferencesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateNotificationPreferencesRequest =>
+      UpdateNotificationPreferencesRequest.decode(value),
+    responseSerialize: (value: UpdateNotificationPreferencesResponse): Buffer =>
+      Buffer.from(UpdateNotificationPreferencesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateNotificationPreferencesResponse =>
+      UpdateNotificationPreferencesResponse.decode(value),
   },
   /**
    * Enqueue an email. Returns the email_id immediately; delivery happens
@@ -4864,6 +6465,38 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
    */
   dismiss: handleUnaryCall<DismissNotificationRequest, DismissNotificationResponse>;
   /**
+   * Fetch a single notification by id. Ownership-scoped — adopters can
+   * only read their own. Returns NOT_FOUND for non-existent OR for
+   * notifications owned by another user (no enumeration).
+   */
+  getNotification: handleUnaryCall<GetNotificationRequest, GetNotificationResponse>;
+  /**
+   * Count unread (read_at IS NULL, not expired) for the calling
+   * principal. Self-scoped — no target user_id field, the gateway
+   * pins it to the principal.
+   */
+  getUnreadCount: handleUnaryCall<GetUnreadCountRequest, GetUnreadCountResponse>;
+  /**
+   * Mark every unread notification owned by the calling principal as
+   * read. Returns the affected row count. Idempotent: a second call
+   * returns affected_count = 0.
+   */
+  markAllRead: handleUnaryCall<MarkAllReadRequest, MarkAllReadResponse>;
+  /**
+   * Soft-delete a notification (deleted_at stamped). Ownership-scoped.
+   * Idempotent: a second Delete on the same notification_id returns
+   * the already-deleted row without error.
+   */
+  deleteNotification: handleUnaryCall<DeleteNotificationRequest, DeleteNotificationResponse>;
+  getNotificationPreferences: handleUnaryCall<
+    GetNotificationPreferencesRequest,
+    GetNotificationPreferencesResponse
+  >;
+  updateNotificationPreferences: handleUnaryCall<
+    UpdateNotificationPreferencesRequest,
+    UpdateNotificationPreferencesResponse
+  >;
+  /**
    * Enqueue an email. Returns the email_id immediately; delivery happens
    * asynchronously in the worker. Callers can supply a templateId +
    * templateData OR a pre-rendered subject + html_content; if both are
@@ -4969,6 +6602,116 @@ export interface NotificationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DismissNotificationResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Fetch a single notification by id. Ownership-scoped — adopters can
+   * only read their own. Returns NOT_FOUND for non-existent OR for
+   * notifications owned by another user (no enumeration).
+   */
+  getNotification(
+    request: GetNotificationRequest,
+    callback: (error: ServiceError | null, response: GetNotificationResponse) => void
+  ): ClientUnaryCall;
+  getNotification(
+    request: GetNotificationRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetNotificationResponse) => void
+  ): ClientUnaryCall;
+  getNotification(
+    request: GetNotificationRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetNotificationResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Count unread (read_at IS NULL, not expired) for the calling
+   * principal. Self-scoped — no target user_id field, the gateway
+   * pins it to the principal.
+   */
+  getUnreadCount(
+    request: GetUnreadCountRequest,
+    callback: (error: ServiceError | null, response: GetUnreadCountResponse) => void
+  ): ClientUnaryCall;
+  getUnreadCount(
+    request: GetUnreadCountRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetUnreadCountResponse) => void
+  ): ClientUnaryCall;
+  getUnreadCount(
+    request: GetUnreadCountRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetUnreadCountResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Mark every unread notification owned by the calling principal as
+   * read. Returns the affected row count. Idempotent: a second call
+   * returns affected_count = 0.
+   */
+  markAllRead(
+    request: MarkAllReadRequest,
+    callback: (error: ServiceError | null, response: MarkAllReadResponse) => void
+  ): ClientUnaryCall;
+  markAllRead(
+    request: MarkAllReadRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: MarkAllReadResponse) => void
+  ): ClientUnaryCall;
+  markAllRead(
+    request: MarkAllReadRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: MarkAllReadResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Soft-delete a notification (deleted_at stamped). Ownership-scoped.
+   * Idempotent: a second Delete on the same notification_id returns
+   * the already-deleted row without error.
+   */
+  deleteNotification(
+    request: DeleteNotificationRequest,
+    callback: (error: ServiceError | null, response: DeleteNotificationResponse) => void
+  ): ClientUnaryCall;
+  deleteNotification(
+    request: DeleteNotificationRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteNotificationResponse) => void
+  ): ClientUnaryCall;
+  deleteNotification(
+    request: DeleteNotificationRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteNotificationResponse) => void
+  ): ClientUnaryCall;
+  getNotificationPreferences(
+    request: GetNotificationPreferencesRequest,
+    callback: (error: ServiceError | null, response: GetNotificationPreferencesResponse) => void
+  ): ClientUnaryCall;
+  getNotificationPreferences(
+    request: GetNotificationPreferencesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetNotificationPreferencesResponse) => void
+  ): ClientUnaryCall;
+  getNotificationPreferences(
+    request: GetNotificationPreferencesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetNotificationPreferencesResponse) => void
+  ): ClientUnaryCall;
+  updateNotificationPreferences(
+    request: UpdateNotificationPreferencesRequest,
+    callback: (error: ServiceError | null, response: UpdateNotificationPreferencesResponse) => void
+  ): ClientUnaryCall;
+  updateNotificationPreferences(
+    request: UpdateNotificationPreferencesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateNotificationPreferencesResponse) => void
+  ): ClientUnaryCall;
+  updateNotificationPreferences(
+    request: UpdateNotificationPreferencesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateNotificationPreferencesResponse) => void
   ): ClientUnaryCall;
   /**
    * Enqueue an email. Returns the email_id immediately; delivery happens
