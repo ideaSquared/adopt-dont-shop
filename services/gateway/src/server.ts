@@ -46,6 +46,7 @@ import { registerPetsRoutes } from './routes/pets.js';
 import { registerRescueRoutes } from './routes/rescue.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
 import { registerSessionsRoutes } from './routes/sessions.js';
+import { registerStaffFosterRoutes } from './routes/staff-foster.js';
 
 export type CreateServerOptions = {
   config: GatewayConfig;
@@ -172,6 +173,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // SPA-facing surface at /api/v1/rescues/* (plural — the path
     // lib.rescue actually calls).
     await registerRescuesPublicRoutes(server, { client: opts.rescueClient });
+    // Staff / foster / invitation-read surface (/api/v1/staff/*,
+    // /api/v1/foster/*, GET /api/v1/invitations/details/:token).
+    await registerStaffFosterRoutes(server, { client: opts.rescueClient });
   }
   if (opts.auditClient && cutover.audit) {
     await registerAuditRoutes(server, { client: opts.auditClient });

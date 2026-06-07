@@ -57,6 +57,38 @@ export function adapt<Req, Res>(
   };
 }
 
+export type UnaryHandlerUnauth<Req, Res> = (
+  deps: HandlerDeps,
+  principal: Principal | null,
+  req: Req
+) => Promise<Res>;
+
+// adaptUnauth — for RPCs reachable without a principal (e.g. the
+// invitation-accept page, where the email link IS the credential and
+// the visitor isn't logged in yet). Best-effort principal extraction:
+// pass it through when present, never block on its absence.
+export function adaptUnauth<Req, Res>(
+  handler: UnaryHandlerUnauth<Req, Res>,
+  { deps, logger }: AdaptOptions
+): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
+  return (call, callback) => {
+    void (async () => {
+      try {
+        let principal: Principal | null = null;
+        try {
+          principal = extractPrincipal(call.metadata);
+        } catch {
+          principal = null;
+        }
+        const response = await handler(deps, principal, call.request);
+        callback(null, response);
+      } catch (err) {
+        callback(toServiceError(err, call.metadata, logger), null);
+      }
+    })();
+  };
+}
+
 function toServiceError(err: unknown, metadata: Metadata, logger: Logger): ServiceError {
   if (err instanceof MissingPrincipalError) {
     return makeServiceError(status.UNAUTHENTICATED, err.message, metadata);

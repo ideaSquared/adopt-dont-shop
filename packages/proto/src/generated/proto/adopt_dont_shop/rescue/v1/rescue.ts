@@ -123,6 +123,101 @@ export function rescueVerificationSourceToJSON(object: RescueVerificationSource)
   }
 }
 
+export enum FosterPlacementStatus {
+  FOSTER_PLACEMENT_STATUS_UNSPECIFIED = 0,
+  FOSTER_PLACEMENT_STATUS_ACTIVE = 1,
+  FOSTER_PLACEMENT_STATUS_COMPLETED = 2,
+  FOSTER_PLACEMENT_STATUS_CANCELLED = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function fosterPlacementStatusFromJSON(object: any): FosterPlacementStatus {
+  switch (object) {
+    case 0:
+    case 'FOSTER_PLACEMENT_STATUS_UNSPECIFIED':
+      return FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_UNSPECIFIED;
+    case 1:
+    case 'FOSTER_PLACEMENT_STATUS_ACTIVE':
+      return FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_ACTIVE;
+    case 2:
+    case 'FOSTER_PLACEMENT_STATUS_COMPLETED':
+      return FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_COMPLETED;
+    case 3:
+    case 'FOSTER_PLACEMENT_STATUS_CANCELLED':
+      return FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_CANCELLED;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return FosterPlacementStatus.UNRECOGNIZED;
+  }
+}
+
+export function fosterPlacementStatusToJSON(object: FosterPlacementStatus): string {
+  switch (object) {
+    case FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_UNSPECIFIED:
+      return 'FOSTER_PLACEMENT_STATUS_UNSPECIFIED';
+    case FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_ACTIVE:
+      return 'FOSTER_PLACEMENT_STATUS_ACTIVE';
+    case FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_COMPLETED:
+      return 'FOSTER_PLACEMENT_STATUS_COMPLETED';
+    case FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_CANCELLED:
+      return 'FOSTER_PLACEMENT_STATUS_CANCELLED';
+    case FosterPlacementStatus.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+/**
+ * Outcome maps onto the terminal status: return_to_rescue / cancelled
+ * → CANCELLED-or-COMPLETED per the monolith's semantics; adopted_by_
+ * foster → COMPLETED.
+ */
+export enum FosterEndOutcome {
+  FOSTER_END_OUTCOME_UNSPECIFIED = 0,
+  FOSTER_END_OUTCOME_RETURN_TO_RESCUE = 1,
+  FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER = 2,
+  FOSTER_END_OUTCOME_CANCELLED = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function fosterEndOutcomeFromJSON(object: any): FosterEndOutcome {
+  switch (object) {
+    case 0:
+    case 'FOSTER_END_OUTCOME_UNSPECIFIED':
+      return FosterEndOutcome.FOSTER_END_OUTCOME_UNSPECIFIED;
+    case 1:
+    case 'FOSTER_END_OUTCOME_RETURN_TO_RESCUE':
+      return FosterEndOutcome.FOSTER_END_OUTCOME_RETURN_TO_RESCUE;
+    case 2:
+    case 'FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER':
+      return FosterEndOutcome.FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER;
+    case 3:
+    case 'FOSTER_END_OUTCOME_CANCELLED':
+      return FosterEndOutcome.FOSTER_END_OUTCOME_CANCELLED;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return FosterEndOutcome.UNRECOGNIZED;
+  }
+}
+
+export function fosterEndOutcomeToJSON(object: FosterEndOutcome): string {
+  switch (object) {
+    case FosterEndOutcome.FOSTER_END_OUTCOME_UNSPECIFIED:
+      return 'FOSTER_END_OUTCOME_UNSPECIFIED';
+    case FosterEndOutcome.FOSTER_END_OUTCOME_RETURN_TO_RESCUE:
+      return 'FOSTER_END_OUTCOME_RETURN_TO_RESCUE';
+    case FosterEndOutcome.FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER:
+      return 'FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER';
+    case FosterEndOutcome.FOSTER_END_OUTCOME_CANCELLED:
+      return 'FOSTER_END_OUTCOME_CANCELLED';
+    case FosterEndOutcome.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
 /**
  * --- Rescue — denormalised listing row -------------------------------
  *
@@ -308,6 +403,109 @@ export interface InviteStaffResponse {
    * afterwards.
    */
   token: string;
+}
+
+/**
+ * StaffMember mirrors the rescue.staff_members row. The user's name /
+ * email aren't stored here (they live in auth.users) — the gateway
+ * joins them in when the SPA needs the colleague list with names, or
+ * the SPA fetches them separately. This message carries only the
+ * rescue-owned columns.
+ */
+export interface StaffMember {
+  staffMemberId: string;
+  userId: string;
+  rescueId: string;
+  title?: string | undefined;
+  isVerified: boolean;
+  verifiedBy?: string | undefined;
+  verifiedAt?: string | undefined;
+  addedBy: string;
+  addedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetMyStaffMembershipRequest {}
+
+export interface GetMyStaffMembershipResponse {
+  staffMember?: StaffMember | undefined;
+}
+
+export interface ListStaffMembersRequest {
+  /**
+   * Rescue to list staff for. When empty, the service resolves the
+   * caller's own rescue from their staff membership (the "colleagues"
+   * case).
+   */
+  rescueId?: string | undefined;
+}
+
+export interface ListStaffMembersResponse {
+  staffMembers: StaffMember[];
+}
+
+export interface FosterPlacement {
+  placementId: string;
+  rescueId: string;
+  petId: string;
+  fosterUserId: string;
+  startDate: string;
+  endDate?: string | undefined;
+  status: FosterPlacementStatus;
+  notes?: string | undefined;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateFosterPlacementRequest {
+  rescueId: string;
+  petId: string;
+  fosterUserId: string;
+  startDate: string;
+  notes?: string | undefined;
+}
+
+export interface CreateFosterPlacementResponse {
+  placement?: FosterPlacement | undefined;
+}
+
+export interface ListFosterPlacementsRequest {
+  rescueId?: string | undefined;
+  fosterUserId?: string | undefined;
+  /** UNSPECIFIED = no status filter. */
+  statusFilter: FosterPlacementStatus;
+}
+
+export interface ListFosterPlacementsResponse {
+  placements: FosterPlacement[];
+}
+
+export interface GetFosterPlacementRequest {
+  placementId: string;
+}
+
+export interface GetFosterPlacementResponse {
+  placement?: FosterPlacement | undefined;
+}
+
+export interface EndFosterPlacementRequest {
+  placementId: string;
+  outcome: FosterEndOutcome;
+  endDate?: string | undefined;
+  notes?: string | undefined;
+}
+
+export interface EndFosterPlacementResponse {
+  placement?: FosterPlacement | undefined;
+}
+
+export interface GetInvitationByTokenRequest {
+  token: string;
+}
+
+export interface GetInvitationByTokenResponse {
+  invitation?: Invitation | undefined;
 }
 
 function createBaseRescue(): Rescue {
@@ -2688,6 +2886,1654 @@ export const InviteStaffResponse: MessageFns<InviteStaffResponse> = {
   },
 };
 
+function createBaseStaffMember(): StaffMember {
+  return {
+    staffMemberId: '',
+    userId: '',
+    rescueId: '',
+    title: undefined,
+    isVerified: false,
+    verifiedBy: undefined,
+    verifiedAt: undefined,
+    addedBy: '',
+    addedAt: '',
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const StaffMember: MessageFns<StaffMember> = {
+  encode(message: StaffMember, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.staffMemberId !== '') {
+      writer.uint32(10).string(message.staffMemberId);
+    }
+    if (message.userId !== '') {
+      writer.uint32(18).string(message.userId);
+    }
+    if (message.rescueId !== '') {
+      writer.uint32(26).string(message.rescueId);
+    }
+    if (message.title !== undefined) {
+      writer.uint32(34).string(message.title);
+    }
+    if (message.isVerified !== false) {
+      writer.uint32(40).bool(message.isVerified);
+    }
+    if (message.verifiedBy !== undefined) {
+      writer.uint32(50).string(message.verifiedBy);
+    }
+    if (message.verifiedAt !== undefined) {
+      writer.uint32(58).string(message.verifiedAt);
+    }
+    if (message.addedBy !== '') {
+      writer.uint32(66).string(message.addedBy);
+    }
+    if (message.addedAt !== '') {
+      writer.uint32(74).string(message.addedAt);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(82).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(90).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): StaffMember {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseStaffMember();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.staffMemberId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.title = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.isVerified = reader.bool();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.verifiedBy = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.verifiedAt = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.addedBy = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.addedAt = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): StaffMember {
+    return {
+      staffMemberId: isSet(object.staffMemberId)
+        ? globalThis.String(object.staffMemberId)
+        : isSet(object.staff_member_id)
+          ? globalThis.String(object.staff_member_id)
+          : '',
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : '',
+      title: isSet(object.title) ? globalThis.String(object.title) : undefined,
+      isVerified: isSet(object.isVerified)
+        ? globalThis.Boolean(object.isVerified)
+        : isSet(object.is_verified)
+          ? globalThis.Boolean(object.is_verified)
+          : false,
+      verifiedBy: isSet(object.verifiedBy)
+        ? globalThis.String(object.verifiedBy)
+        : isSet(object.verified_by)
+          ? globalThis.String(object.verified_by)
+          : undefined,
+      verifiedAt: isSet(object.verifiedAt)
+        ? globalThis.String(object.verifiedAt)
+        : isSet(object.verified_at)
+          ? globalThis.String(object.verified_at)
+          : undefined,
+      addedBy: isSet(object.addedBy)
+        ? globalThis.String(object.addedBy)
+        : isSet(object.added_by)
+          ? globalThis.String(object.added_by)
+          : '',
+      addedAt: isSet(object.addedAt)
+        ? globalThis.String(object.addedAt)
+        : isSet(object.added_at)
+          ? globalThis.String(object.added_at)
+          : '',
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: StaffMember): unknown {
+    const obj: any = {};
+    if (message.staffMemberId !== '') {
+      obj.staffMemberId = message.staffMemberId;
+    }
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.rescueId !== '') {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.title !== undefined) {
+      obj.title = message.title;
+    }
+    if (message.isVerified !== false) {
+      obj.isVerified = message.isVerified;
+    }
+    if (message.verifiedBy !== undefined) {
+      obj.verifiedBy = message.verifiedBy;
+    }
+    if (message.verifiedAt !== undefined) {
+      obj.verifiedAt = message.verifiedAt;
+    }
+    if (message.addedBy !== '') {
+      obj.addedBy = message.addedBy;
+    }
+    if (message.addedAt !== '') {
+      obj.addedAt = message.addedAt;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<StaffMember>, I>>(base?: I): StaffMember {
+    return StaffMember.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<StaffMember>, I>>(object: I): StaffMember {
+    const message = createBaseStaffMember();
+    message.staffMemberId = object.staffMemberId ?? '';
+    message.userId = object.userId ?? '';
+    message.rescueId = object.rescueId ?? '';
+    message.title = object.title ?? undefined;
+    message.isVerified = object.isVerified ?? false;
+    message.verifiedBy = object.verifiedBy ?? undefined;
+    message.verifiedAt = object.verifiedAt ?? undefined;
+    message.addedBy = object.addedBy ?? '';
+    message.addedAt = object.addedAt ?? '';
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseGetMyStaffMembershipRequest(): GetMyStaffMembershipRequest {
+  return {};
+}
+
+export const GetMyStaffMembershipRequest: MessageFns<GetMyStaffMembershipRequest> = {
+  encode(_: GetMyStaffMembershipRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetMyStaffMembershipRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetMyStaffMembershipRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetMyStaffMembershipRequest {
+    return {};
+  },
+
+  toJSON(_: GetMyStaffMembershipRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetMyStaffMembershipRequest>, I>>(
+    base?: I
+  ): GetMyStaffMembershipRequest {
+    return GetMyStaffMembershipRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetMyStaffMembershipRequest>, I>>(
+    _: I
+  ): GetMyStaffMembershipRequest {
+    const message = createBaseGetMyStaffMembershipRequest();
+    return message;
+  },
+};
+
+function createBaseGetMyStaffMembershipResponse(): GetMyStaffMembershipResponse {
+  return { staffMember: undefined };
+}
+
+export const GetMyStaffMembershipResponse: MessageFns<GetMyStaffMembershipResponse> = {
+  encode(
+    message: GetMyStaffMembershipResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.staffMember !== undefined) {
+      StaffMember.encode(message.staffMember, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetMyStaffMembershipResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetMyStaffMembershipResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.staffMember = StaffMember.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetMyStaffMembershipResponse {
+    return {
+      staffMember: isSet(object.staffMember)
+        ? StaffMember.fromJSON(object.staffMember)
+        : isSet(object.staff_member)
+          ? StaffMember.fromJSON(object.staff_member)
+          : undefined,
+    };
+  },
+
+  toJSON(message: GetMyStaffMembershipResponse): unknown {
+    const obj: any = {};
+    if (message.staffMember !== undefined) {
+      obj.staffMember = StaffMember.toJSON(message.staffMember);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetMyStaffMembershipResponse>, I>>(
+    base?: I
+  ): GetMyStaffMembershipResponse {
+    return GetMyStaffMembershipResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetMyStaffMembershipResponse>, I>>(
+    object: I
+  ): GetMyStaffMembershipResponse {
+    const message = createBaseGetMyStaffMembershipResponse();
+    message.staffMember =
+      object.staffMember !== undefined && object.staffMember !== null
+        ? StaffMember.fromPartial(object.staffMember)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseListStaffMembersRequest(): ListStaffMembersRequest {
+  return { rescueId: undefined };
+}
+
+export const ListStaffMembersRequest: MessageFns<ListStaffMembersRequest> = {
+  encode(
+    message: ListStaffMembersRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescueId !== undefined) {
+      writer.uint32(10).string(message.rescueId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListStaffMembersRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListStaffMembersRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListStaffMembersRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : undefined,
+    };
+  },
+
+  toJSON(message: ListStaffMembersRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== undefined) {
+      obj.rescueId = message.rescueId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListStaffMembersRequest>, I>>(
+    base?: I
+  ): ListStaffMembersRequest {
+    return ListStaffMembersRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListStaffMembersRequest>, I>>(
+    object: I
+  ): ListStaffMembersRequest {
+    const message = createBaseListStaffMembersRequest();
+    message.rescueId = object.rescueId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseListStaffMembersResponse(): ListStaffMembersResponse {
+  return { staffMembers: [] };
+}
+
+export const ListStaffMembersResponse: MessageFns<ListStaffMembersResponse> = {
+  encode(
+    message: ListStaffMembersResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.staffMembers) {
+      StaffMember.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListStaffMembersResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListStaffMembersResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.staffMembers.push(StaffMember.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListStaffMembersResponse {
+    return {
+      staffMembers: globalThis.Array.isArray(object?.staffMembers)
+        ? object.staffMembers.map((e: any) => StaffMember.fromJSON(e))
+        : globalThis.Array.isArray(object?.staff_members)
+          ? object.staff_members.map((e: any) => StaffMember.fromJSON(e))
+          : [],
+    };
+  },
+
+  toJSON(message: ListStaffMembersResponse): unknown {
+    const obj: any = {};
+    if (message.staffMembers?.length) {
+      obj.staffMembers = message.staffMembers.map(e => StaffMember.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListStaffMembersResponse>, I>>(
+    base?: I
+  ): ListStaffMembersResponse {
+    return ListStaffMembersResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListStaffMembersResponse>, I>>(
+    object: I
+  ): ListStaffMembersResponse {
+    const message = createBaseListStaffMembersResponse();
+    message.staffMembers = object.staffMembers?.map(e => StaffMember.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseFosterPlacement(): FosterPlacement {
+  return {
+    placementId: '',
+    rescueId: '',
+    petId: '',
+    fosterUserId: '',
+    startDate: '',
+    endDate: undefined,
+    status: 0,
+    notes: undefined,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const FosterPlacement: MessageFns<FosterPlacement> = {
+  encode(message: FosterPlacement, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.placementId !== '') {
+      writer.uint32(10).string(message.placementId);
+    }
+    if (message.rescueId !== '') {
+      writer.uint32(18).string(message.rescueId);
+    }
+    if (message.petId !== '') {
+      writer.uint32(26).string(message.petId);
+    }
+    if (message.fosterUserId !== '') {
+      writer.uint32(34).string(message.fosterUserId);
+    }
+    if (message.startDate !== '') {
+      writer.uint32(42).string(message.startDate);
+    }
+    if (message.endDate !== undefined) {
+      writer.uint32(50).string(message.endDate);
+    }
+    if (message.status !== 0) {
+      writer.uint32(56).int32(message.status);
+    }
+    if (message.notes !== undefined) {
+      writer.uint32(66).string(message.notes);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(74).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(82).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): FosterPlacement {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseFosterPlacement();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.placementId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.fosterUserId = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.startDate = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.endDate = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.notes = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): FosterPlacement {
+    return {
+      placementId: isSet(object.placementId)
+        ? globalThis.String(object.placementId)
+        : isSet(object.placement_id)
+          ? globalThis.String(object.placement_id)
+          : '',
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : '',
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+          ? globalThis.String(object.pet_id)
+          : '',
+      fosterUserId: isSet(object.fosterUserId)
+        ? globalThis.String(object.fosterUserId)
+        : isSet(object.foster_user_id)
+          ? globalThis.String(object.foster_user_id)
+          : '',
+      startDate: isSet(object.startDate)
+        ? globalThis.String(object.startDate)
+        : isSet(object.start_date)
+          ? globalThis.String(object.start_date)
+          : '',
+      endDate: isSet(object.endDate)
+        ? globalThis.String(object.endDate)
+        : isSet(object.end_date)
+          ? globalThis.String(object.end_date)
+          : undefined,
+      status: isSet(object.status) ? fosterPlacementStatusFromJSON(object.status) : 0,
+      notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: FosterPlacement): unknown {
+    const obj: any = {};
+    if (message.placementId !== '') {
+      obj.placementId = message.placementId;
+    }
+    if (message.rescueId !== '') {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.petId !== '') {
+      obj.petId = message.petId;
+    }
+    if (message.fosterUserId !== '') {
+      obj.fosterUserId = message.fosterUserId;
+    }
+    if (message.startDate !== '') {
+      obj.startDate = message.startDate;
+    }
+    if (message.endDate !== undefined) {
+      obj.endDate = message.endDate;
+    }
+    if (message.status !== 0) {
+      obj.status = fosterPlacementStatusToJSON(message.status);
+    }
+    if (message.notes !== undefined) {
+      obj.notes = message.notes;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<FosterPlacement>, I>>(base?: I): FosterPlacement {
+    return FosterPlacement.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<FosterPlacement>, I>>(object: I): FosterPlacement {
+    const message = createBaseFosterPlacement();
+    message.placementId = object.placementId ?? '';
+    message.rescueId = object.rescueId ?? '';
+    message.petId = object.petId ?? '';
+    message.fosterUserId = object.fosterUserId ?? '';
+    message.startDate = object.startDate ?? '';
+    message.endDate = object.endDate ?? undefined;
+    message.status = object.status ?? 0;
+    message.notes = object.notes ?? undefined;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseCreateFosterPlacementRequest(): CreateFosterPlacementRequest {
+  return { rescueId: '', petId: '', fosterUserId: '', startDate: '', notes: undefined };
+}
+
+export const CreateFosterPlacementRequest: MessageFns<CreateFosterPlacementRequest> = {
+  encode(
+    message: CreateFosterPlacementRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescueId !== '') {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.petId !== '') {
+      writer.uint32(18).string(message.petId);
+    }
+    if (message.fosterUserId !== '') {
+      writer.uint32(26).string(message.fosterUserId);
+    }
+    if (message.startDate !== '') {
+      writer.uint32(34).string(message.startDate);
+    }
+    if (message.notes !== undefined) {
+      writer.uint32(42).string(message.notes);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateFosterPlacementRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateFosterPlacementRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.fosterUserId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.startDate = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.notes = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateFosterPlacementRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : '',
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+          ? globalThis.String(object.pet_id)
+          : '',
+      fosterUserId: isSet(object.fosterUserId)
+        ? globalThis.String(object.fosterUserId)
+        : isSet(object.foster_user_id)
+          ? globalThis.String(object.foster_user_id)
+          : '',
+      startDate: isSet(object.startDate)
+        ? globalThis.String(object.startDate)
+        : isSet(object.start_date)
+          ? globalThis.String(object.start_date)
+          : '',
+      notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
+    };
+  },
+
+  toJSON(message: CreateFosterPlacementRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== '') {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.petId !== '') {
+      obj.petId = message.petId;
+    }
+    if (message.fosterUserId !== '') {
+      obj.fosterUserId = message.fosterUserId;
+    }
+    if (message.startDate !== '') {
+      obj.startDate = message.startDate;
+    }
+    if (message.notes !== undefined) {
+      obj.notes = message.notes;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateFosterPlacementRequest>, I>>(
+    base?: I
+  ): CreateFosterPlacementRequest {
+    return CreateFosterPlacementRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateFosterPlacementRequest>, I>>(
+    object: I
+  ): CreateFosterPlacementRequest {
+    const message = createBaseCreateFosterPlacementRequest();
+    message.rescueId = object.rescueId ?? '';
+    message.petId = object.petId ?? '';
+    message.fosterUserId = object.fosterUserId ?? '';
+    message.startDate = object.startDate ?? '';
+    message.notes = object.notes ?? undefined;
+    return message;
+  },
+};
+
+function createBaseCreateFosterPlacementResponse(): CreateFosterPlacementResponse {
+  return { placement: undefined };
+}
+
+export const CreateFosterPlacementResponse: MessageFns<CreateFosterPlacementResponse> = {
+  encode(
+    message: CreateFosterPlacementResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.placement !== undefined) {
+      FosterPlacement.encode(message.placement, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateFosterPlacementResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateFosterPlacementResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.placement = FosterPlacement.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateFosterPlacementResponse {
+    return {
+      placement: isSet(object.placement) ? FosterPlacement.fromJSON(object.placement) : undefined,
+    };
+  },
+
+  toJSON(message: CreateFosterPlacementResponse): unknown {
+    const obj: any = {};
+    if (message.placement !== undefined) {
+      obj.placement = FosterPlacement.toJSON(message.placement);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateFosterPlacementResponse>, I>>(
+    base?: I
+  ): CreateFosterPlacementResponse {
+    return CreateFosterPlacementResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateFosterPlacementResponse>, I>>(
+    object: I
+  ): CreateFosterPlacementResponse {
+    const message = createBaseCreateFosterPlacementResponse();
+    message.placement =
+      object.placement !== undefined && object.placement !== null
+        ? FosterPlacement.fromPartial(object.placement)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseListFosterPlacementsRequest(): ListFosterPlacementsRequest {
+  return { rescueId: undefined, fosterUserId: undefined, statusFilter: 0 };
+}
+
+export const ListFosterPlacementsRequest: MessageFns<ListFosterPlacementsRequest> = {
+  encode(
+    message: ListFosterPlacementsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescueId !== undefined) {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.fosterUserId !== undefined) {
+      writer.uint32(18).string(message.fosterUserId);
+    }
+    if (message.statusFilter !== 0) {
+      writer.uint32(24).int32(message.statusFilter);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListFosterPlacementsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListFosterPlacementsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.fosterUserId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.statusFilter = reader.int32() as any;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListFosterPlacementsRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : undefined,
+      fosterUserId: isSet(object.fosterUserId)
+        ? globalThis.String(object.fosterUserId)
+        : isSet(object.foster_user_id)
+          ? globalThis.String(object.foster_user_id)
+          : undefined,
+      statusFilter: isSet(object.statusFilter)
+        ? fosterPlacementStatusFromJSON(object.statusFilter)
+        : isSet(object.status_filter)
+          ? fosterPlacementStatusFromJSON(object.status_filter)
+          : 0,
+    };
+  },
+
+  toJSON(message: ListFosterPlacementsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== undefined) {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.fosterUserId !== undefined) {
+      obj.fosterUserId = message.fosterUserId;
+    }
+    if (message.statusFilter !== 0) {
+      obj.statusFilter = fosterPlacementStatusToJSON(message.statusFilter);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListFosterPlacementsRequest>, I>>(
+    base?: I
+  ): ListFosterPlacementsRequest {
+    return ListFosterPlacementsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListFosterPlacementsRequest>, I>>(
+    object: I
+  ): ListFosterPlacementsRequest {
+    const message = createBaseListFosterPlacementsRequest();
+    message.rescueId = object.rescueId ?? undefined;
+    message.fosterUserId = object.fosterUserId ?? undefined;
+    message.statusFilter = object.statusFilter ?? 0;
+    return message;
+  },
+};
+
+function createBaseListFosterPlacementsResponse(): ListFosterPlacementsResponse {
+  return { placements: [] };
+}
+
+export const ListFosterPlacementsResponse: MessageFns<ListFosterPlacementsResponse> = {
+  encode(
+    message: ListFosterPlacementsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.placements) {
+      FosterPlacement.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListFosterPlacementsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListFosterPlacementsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.placements.push(FosterPlacement.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListFosterPlacementsResponse {
+    return {
+      placements: globalThis.Array.isArray(object?.placements)
+        ? object.placements.map((e: any) => FosterPlacement.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListFosterPlacementsResponse): unknown {
+    const obj: any = {};
+    if (message.placements?.length) {
+      obj.placements = message.placements.map(e => FosterPlacement.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListFosterPlacementsResponse>, I>>(
+    base?: I
+  ): ListFosterPlacementsResponse {
+    return ListFosterPlacementsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListFosterPlacementsResponse>, I>>(
+    object: I
+  ): ListFosterPlacementsResponse {
+    const message = createBaseListFosterPlacementsResponse();
+    message.placements = object.placements?.map(e => FosterPlacement.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseGetFosterPlacementRequest(): GetFosterPlacementRequest {
+  return { placementId: '' };
+}
+
+export const GetFosterPlacementRequest: MessageFns<GetFosterPlacementRequest> = {
+  encode(
+    message: GetFosterPlacementRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.placementId !== '') {
+      writer.uint32(10).string(message.placementId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetFosterPlacementRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetFosterPlacementRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.placementId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetFosterPlacementRequest {
+    return {
+      placementId: isSet(object.placementId)
+        ? globalThis.String(object.placementId)
+        : isSet(object.placement_id)
+          ? globalThis.String(object.placement_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetFosterPlacementRequest): unknown {
+    const obj: any = {};
+    if (message.placementId !== '') {
+      obj.placementId = message.placementId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetFosterPlacementRequest>, I>>(
+    base?: I
+  ): GetFosterPlacementRequest {
+    return GetFosterPlacementRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetFosterPlacementRequest>, I>>(
+    object: I
+  ): GetFosterPlacementRequest {
+    const message = createBaseGetFosterPlacementRequest();
+    message.placementId = object.placementId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetFosterPlacementResponse(): GetFosterPlacementResponse {
+  return { placement: undefined };
+}
+
+export const GetFosterPlacementResponse: MessageFns<GetFosterPlacementResponse> = {
+  encode(
+    message: GetFosterPlacementResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.placement !== undefined) {
+      FosterPlacement.encode(message.placement, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetFosterPlacementResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetFosterPlacementResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.placement = FosterPlacement.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetFosterPlacementResponse {
+    return {
+      placement: isSet(object.placement) ? FosterPlacement.fromJSON(object.placement) : undefined,
+    };
+  },
+
+  toJSON(message: GetFosterPlacementResponse): unknown {
+    const obj: any = {};
+    if (message.placement !== undefined) {
+      obj.placement = FosterPlacement.toJSON(message.placement);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetFosterPlacementResponse>, I>>(
+    base?: I
+  ): GetFosterPlacementResponse {
+    return GetFosterPlacementResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetFosterPlacementResponse>, I>>(
+    object: I
+  ): GetFosterPlacementResponse {
+    const message = createBaseGetFosterPlacementResponse();
+    message.placement =
+      object.placement !== undefined && object.placement !== null
+        ? FosterPlacement.fromPartial(object.placement)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseEndFosterPlacementRequest(): EndFosterPlacementRequest {
+  return { placementId: '', outcome: 0, endDate: undefined, notes: undefined };
+}
+
+export const EndFosterPlacementRequest: MessageFns<EndFosterPlacementRequest> = {
+  encode(
+    message: EndFosterPlacementRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.placementId !== '') {
+      writer.uint32(10).string(message.placementId);
+    }
+    if (message.outcome !== 0) {
+      writer.uint32(16).int32(message.outcome);
+    }
+    if (message.endDate !== undefined) {
+      writer.uint32(26).string(message.endDate);
+    }
+    if (message.notes !== undefined) {
+      writer.uint32(34).string(message.notes);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EndFosterPlacementRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEndFosterPlacementRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.placementId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.outcome = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.endDate = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.notes = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EndFosterPlacementRequest {
+    return {
+      placementId: isSet(object.placementId)
+        ? globalThis.String(object.placementId)
+        : isSet(object.placement_id)
+          ? globalThis.String(object.placement_id)
+          : '',
+      outcome: isSet(object.outcome) ? fosterEndOutcomeFromJSON(object.outcome) : 0,
+      endDate: isSet(object.endDate)
+        ? globalThis.String(object.endDate)
+        : isSet(object.end_date)
+          ? globalThis.String(object.end_date)
+          : undefined,
+      notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
+    };
+  },
+
+  toJSON(message: EndFosterPlacementRequest): unknown {
+    const obj: any = {};
+    if (message.placementId !== '') {
+      obj.placementId = message.placementId;
+    }
+    if (message.outcome !== 0) {
+      obj.outcome = fosterEndOutcomeToJSON(message.outcome);
+    }
+    if (message.endDate !== undefined) {
+      obj.endDate = message.endDate;
+    }
+    if (message.notes !== undefined) {
+      obj.notes = message.notes;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EndFosterPlacementRequest>, I>>(
+    base?: I
+  ): EndFosterPlacementRequest {
+    return EndFosterPlacementRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EndFosterPlacementRequest>, I>>(
+    object: I
+  ): EndFosterPlacementRequest {
+    const message = createBaseEndFosterPlacementRequest();
+    message.placementId = object.placementId ?? '';
+    message.outcome = object.outcome ?? 0;
+    message.endDate = object.endDate ?? undefined;
+    message.notes = object.notes ?? undefined;
+    return message;
+  },
+};
+
+function createBaseEndFosterPlacementResponse(): EndFosterPlacementResponse {
+  return { placement: undefined };
+}
+
+export const EndFosterPlacementResponse: MessageFns<EndFosterPlacementResponse> = {
+  encode(
+    message: EndFosterPlacementResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.placement !== undefined) {
+      FosterPlacement.encode(message.placement, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EndFosterPlacementResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEndFosterPlacementResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.placement = FosterPlacement.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EndFosterPlacementResponse {
+    return {
+      placement: isSet(object.placement) ? FosterPlacement.fromJSON(object.placement) : undefined,
+    };
+  },
+
+  toJSON(message: EndFosterPlacementResponse): unknown {
+    const obj: any = {};
+    if (message.placement !== undefined) {
+      obj.placement = FosterPlacement.toJSON(message.placement);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EndFosterPlacementResponse>, I>>(
+    base?: I
+  ): EndFosterPlacementResponse {
+    return EndFosterPlacementResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EndFosterPlacementResponse>, I>>(
+    object: I
+  ): EndFosterPlacementResponse {
+    const message = createBaseEndFosterPlacementResponse();
+    message.placement =
+      object.placement !== undefined && object.placement !== null
+        ? FosterPlacement.fromPartial(object.placement)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseGetInvitationByTokenRequest(): GetInvitationByTokenRequest {
+  return { token: '' };
+}
+
+export const GetInvitationByTokenRequest: MessageFns<GetInvitationByTokenRequest> = {
+  encode(
+    message: GetInvitationByTokenRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.token !== '') {
+      writer.uint32(10).string(message.token);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetInvitationByTokenRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetInvitationByTokenRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.token = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetInvitationByTokenRequest {
+    return { token: isSet(object.token) ? globalThis.String(object.token) : '' };
+  },
+
+  toJSON(message: GetInvitationByTokenRequest): unknown {
+    const obj: any = {};
+    if (message.token !== '') {
+      obj.token = message.token;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetInvitationByTokenRequest>, I>>(
+    base?: I
+  ): GetInvitationByTokenRequest {
+    return GetInvitationByTokenRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetInvitationByTokenRequest>, I>>(
+    object: I
+  ): GetInvitationByTokenRequest {
+    const message = createBaseGetInvitationByTokenRequest();
+    message.token = object.token ?? '';
+    return message;
+  },
+};
+
+function createBaseGetInvitationByTokenResponse(): GetInvitationByTokenResponse {
+  return { invitation: undefined };
+}
+
+export const GetInvitationByTokenResponse: MessageFns<GetInvitationByTokenResponse> = {
+  encode(
+    message: GetInvitationByTokenResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.invitation !== undefined) {
+      Invitation.encode(message.invitation, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetInvitationByTokenResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetInvitationByTokenResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.invitation = Invitation.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetInvitationByTokenResponse {
+    return {
+      invitation: isSet(object.invitation) ? Invitation.fromJSON(object.invitation) : undefined,
+    };
+  },
+
+  toJSON(message: GetInvitationByTokenResponse): unknown {
+    const obj: any = {};
+    if (message.invitation !== undefined) {
+      obj.invitation = Invitation.toJSON(message.invitation);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetInvitationByTokenResponse>, I>>(
+    base?: I
+  ): GetInvitationByTokenResponse {
+    return GetInvitationByTokenResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetInvitationByTokenResponse>, I>>(
+    object: I
+  ): GetInvitationByTokenResponse {
+    const message = createBaseGetInvitationByTokenResponse();
+    message.invitation =
+      object.invitation !== undefined && object.invitation !== null
+        ? Invitation.fromPartial(object.invitation)
+        : undefined;
+    return message;
+  },
+};
+
 /**
  * RescueService is the gRPC contract for the rescue vertical. It owns
  * the `rescue.*` schema (Rescue, RescueSettings, StaffMember, Invitation,
@@ -2807,6 +4653,127 @@ export const RescueServiceService = {
       Buffer.from(InviteStaffResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): InviteStaffResponse => InviteStaffResponse.decode(value),
   },
+  /**
+   * Return the calling principal's staff-member record (their rescue
+   * membership). NOT_FOUND when the user is not staff at any rescue.
+   * Self-scoped — no user_id field.
+   */
+  getMyStaffMembership: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/GetMyStaffMembership' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetMyStaffMembershipRequest): Buffer =>
+      Buffer.from(GetMyStaffMembershipRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetMyStaffMembershipRequest =>
+      GetMyStaffMembershipRequest.decode(value),
+    responseSerialize: (value: GetMyStaffMembershipResponse): Buffer =>
+      Buffer.from(GetMyStaffMembershipResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetMyStaffMembershipResponse =>
+      GetMyStaffMembershipResponse.decode(value),
+  },
+  /**
+   * List all staff members at a rescue. Caller MUST be a verified staff
+   * member of that rescue (or admin). Used by the staff "colleagues"
+   * view.
+   */
+  listStaffMembers: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/ListStaffMembers' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListStaffMembersRequest): Buffer =>
+      Buffer.from(ListStaffMembersRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListStaffMembersRequest =>
+      ListStaffMembersRequest.decode(value),
+    responseSerialize: (value: ListStaffMembersResponse): Buffer =>
+      Buffer.from(ListStaffMembersResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListStaffMembersResponse =>
+      ListStaffMembersResponse.decode(value),
+  },
+  /**
+   * Create a foster placement. Caller MUST have `foster.create` scoped
+   * to the rescue. Publishes `rescue.fosterPlacementCreated`.
+   */
+  createFosterPlacement: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/CreateFosterPlacement' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CreateFosterPlacementRequest): Buffer =>
+      Buffer.from(CreateFosterPlacementRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateFosterPlacementRequest =>
+      CreateFosterPlacementRequest.decode(value),
+    responseSerialize: (value: CreateFosterPlacementResponse): Buffer =>
+      Buffer.from(CreateFosterPlacementResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateFosterPlacementResponse =>
+      CreateFosterPlacementResponse.decode(value),
+  },
+  /**
+   * List foster placements with optional filters (rescue, foster user,
+   * status). Caller MUST have `foster.read` for the rescue.
+   */
+  listFosterPlacements: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/ListFosterPlacements' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListFosterPlacementsRequest): Buffer =>
+      Buffer.from(ListFosterPlacementsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListFosterPlacementsRequest =>
+      ListFosterPlacementsRequest.decode(value),
+    responseSerialize: (value: ListFosterPlacementsResponse): Buffer =>
+      Buffer.from(ListFosterPlacementsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListFosterPlacementsResponse =>
+      ListFosterPlacementsResponse.decode(value),
+  },
+  /** Fetch a single foster placement by id. */
+  getFosterPlacement: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/GetFosterPlacement' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetFosterPlacementRequest): Buffer =>
+      Buffer.from(GetFosterPlacementRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetFosterPlacementRequest =>
+      GetFosterPlacementRequest.decode(value),
+    responseSerialize: (value: GetFosterPlacementResponse): Buffer =>
+      Buffer.from(GetFosterPlacementResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetFosterPlacementResponse =>
+      GetFosterPlacementResponse.decode(value),
+  },
+  /**
+   * End an active placement (return-to-rescue / adopted-by-foster /
+   * cancelled). Idempotent on already-ended placements. Publishes
+   * `rescue.fosterPlacementEnded`.
+   */
+  endFosterPlacement: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/EndFosterPlacement' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: EndFosterPlacementRequest): Buffer =>
+      Buffer.from(EndFosterPlacementRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): EndFosterPlacementRequest =>
+      EndFosterPlacementRequest.decode(value),
+    responseSerialize: (value: EndFosterPlacementResponse): Buffer =>
+      Buffer.from(EndFosterPlacementResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): EndFosterPlacementResponse =>
+      EndFosterPlacementResponse.decode(value),
+  },
+  /**
+   * Read an invitation's public details by token (for the accept page).
+   * Returns the email + rescue + expiry so the SPA can render the
+   * accept form. NOT_FOUND when the token is unknown, expired, or used.
+   * Public — no principal required (the token IS the credential).
+   */
+  getInvitationByToken: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/GetInvitationByToken' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetInvitationByTokenRequest): Buffer =>
+      Buffer.from(GetInvitationByTokenRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetInvitationByTokenRequest =>
+      GetInvitationByTokenRequest.decode(value),
+    responseSerialize: (value: GetInvitationByTokenResponse): Buffer =>
+      Buffer.from(GetInvitationByTokenResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetInvitationByTokenResponse =>
+      GetInvitationByTokenResponse.decode(value),
+  },
 } as const;
 
 export interface RescueServiceServer extends UntypedServiceImplementation {
@@ -2848,6 +4815,46 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
    * the invitee.
    */
   inviteStaff: handleUnaryCall<InviteStaffRequest, InviteStaffResponse>;
+  /**
+   * Return the calling principal's staff-member record (their rescue
+   * membership). NOT_FOUND when the user is not staff at any rescue.
+   * Self-scoped — no user_id field.
+   */
+  getMyStaffMembership: handleUnaryCall<GetMyStaffMembershipRequest, GetMyStaffMembershipResponse>;
+  /**
+   * List all staff members at a rescue. Caller MUST be a verified staff
+   * member of that rescue (or admin). Used by the staff "colleagues"
+   * view.
+   */
+  listStaffMembers: handleUnaryCall<ListStaffMembersRequest, ListStaffMembersResponse>;
+  /**
+   * Create a foster placement. Caller MUST have `foster.create` scoped
+   * to the rescue. Publishes `rescue.fosterPlacementCreated`.
+   */
+  createFosterPlacement: handleUnaryCall<
+    CreateFosterPlacementRequest,
+    CreateFosterPlacementResponse
+  >;
+  /**
+   * List foster placements with optional filters (rescue, foster user,
+   * status). Caller MUST have `foster.read` for the rescue.
+   */
+  listFosterPlacements: handleUnaryCall<ListFosterPlacementsRequest, ListFosterPlacementsResponse>;
+  /** Fetch a single foster placement by id. */
+  getFosterPlacement: handleUnaryCall<GetFosterPlacementRequest, GetFosterPlacementResponse>;
+  /**
+   * End an active placement (return-to-rescue / adopted-by-foster /
+   * cancelled). Idempotent on already-ended placements. Publishes
+   * `rescue.fosterPlacementEnded`.
+   */
+  endFosterPlacement: handleUnaryCall<EndFosterPlacementRequest, EndFosterPlacementResponse>;
+  /**
+   * Read an invitation's public details by token (for the accept page).
+   * Returns the email + rescue + expiry so the SPA can render the
+   * accept form. NOT_FOUND when the token is unknown, expired, or used.
+   * Public — no principal required (the token IS the credential).
+   */
+  getInvitationByToken: handleUnaryCall<GetInvitationByTokenRequest, GetInvitationByTokenResponse>;
 }
 
 export interface RescueServiceClient extends Client {
@@ -2972,6 +4979,141 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: InviteStaffResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Return the calling principal's staff-member record (their rescue
+   * membership). NOT_FOUND when the user is not staff at any rescue.
+   * Self-scoped — no user_id field.
+   */
+  getMyStaffMembership(
+    request: GetMyStaffMembershipRequest,
+    callback: (error: ServiceError | null, response: GetMyStaffMembershipResponse) => void
+  ): ClientUnaryCall;
+  getMyStaffMembership(
+    request: GetMyStaffMembershipRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetMyStaffMembershipResponse) => void
+  ): ClientUnaryCall;
+  getMyStaffMembership(
+    request: GetMyStaffMembershipRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetMyStaffMembershipResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * List all staff members at a rescue. Caller MUST be a verified staff
+   * member of that rescue (or admin). Used by the staff "colleagues"
+   * view.
+   */
+  listStaffMembers(
+    request: ListStaffMembersRequest,
+    callback: (error: ServiceError | null, response: ListStaffMembersResponse) => void
+  ): ClientUnaryCall;
+  listStaffMembers(
+    request: ListStaffMembersRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListStaffMembersResponse) => void
+  ): ClientUnaryCall;
+  listStaffMembers(
+    request: ListStaffMembersRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListStaffMembersResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Create a foster placement. Caller MUST have `foster.create` scoped
+   * to the rescue. Publishes `rescue.fosterPlacementCreated`.
+   */
+  createFosterPlacement(
+    request: CreateFosterPlacementRequest,
+    callback: (error: ServiceError | null, response: CreateFosterPlacementResponse) => void
+  ): ClientUnaryCall;
+  createFosterPlacement(
+    request: CreateFosterPlacementRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateFosterPlacementResponse) => void
+  ): ClientUnaryCall;
+  createFosterPlacement(
+    request: CreateFosterPlacementRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreateFosterPlacementResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * List foster placements with optional filters (rescue, foster user,
+   * status). Caller MUST have `foster.read` for the rescue.
+   */
+  listFosterPlacements(
+    request: ListFosterPlacementsRequest,
+    callback: (error: ServiceError | null, response: ListFosterPlacementsResponse) => void
+  ): ClientUnaryCall;
+  listFosterPlacements(
+    request: ListFosterPlacementsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListFosterPlacementsResponse) => void
+  ): ClientUnaryCall;
+  listFosterPlacements(
+    request: ListFosterPlacementsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListFosterPlacementsResponse) => void
+  ): ClientUnaryCall;
+  /** Fetch a single foster placement by id. */
+  getFosterPlacement(
+    request: GetFosterPlacementRequest,
+    callback: (error: ServiceError | null, response: GetFosterPlacementResponse) => void
+  ): ClientUnaryCall;
+  getFosterPlacement(
+    request: GetFosterPlacementRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetFosterPlacementResponse) => void
+  ): ClientUnaryCall;
+  getFosterPlacement(
+    request: GetFosterPlacementRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetFosterPlacementResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * End an active placement (return-to-rescue / adopted-by-foster /
+   * cancelled). Idempotent on already-ended placements. Publishes
+   * `rescue.fosterPlacementEnded`.
+   */
+  endFosterPlacement(
+    request: EndFosterPlacementRequest,
+    callback: (error: ServiceError | null, response: EndFosterPlacementResponse) => void
+  ): ClientUnaryCall;
+  endFosterPlacement(
+    request: EndFosterPlacementRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: EndFosterPlacementResponse) => void
+  ): ClientUnaryCall;
+  endFosterPlacement(
+    request: EndFosterPlacementRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: EndFosterPlacementResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Read an invitation's public details by token (for the accept page).
+   * Returns the email + rescue + expiry so the SPA can render the
+   * accept form. NOT_FOUND when the token is unknown, expired, or used.
+   * Public — no principal required (the token IS the credential).
+   */
+  getInvitationByToken(
+    request: GetInvitationByTokenRequest,
+    callback: (error: ServiceError | null, response: GetInvitationByTokenResponse) => void
+  ): ClientUnaryCall;
+  getInvitationByToken(
+    request: GetInvitationByTokenRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetInvitationByTokenResponse) => void
+  ): ClientUnaryCall;
+  getInvitationByToken(
+    request: GetInvitationByTokenRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetInvitationByTokenResponse) => void
   ): ClientUnaryCall;
 }
 

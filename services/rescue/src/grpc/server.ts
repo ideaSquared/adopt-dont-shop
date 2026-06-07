@@ -18,7 +18,7 @@ import { RescueV1 } from '@adopt-dont-shop/proto';
 
 import type { RescueConfig } from '../config.js';
 
-import { adapt } from './adapter.js';
+import { adapt, adaptUnauth } from './adapter.js';
 import {
   createRescue,
   getRescue,
@@ -27,6 +27,15 @@ import {
   updateRescue,
   verifyRescue,
 } from './handlers.js';
+import {
+  createFosterPlacement,
+  endFosterPlacement,
+  getFosterPlacement,
+  getInvitationByToken,
+  getMyStaffMembership,
+  listFosterPlacements,
+  listStaffMembers,
+} from './staff-foster-handlers.js';
 
 export type CreateGrpcServerOptions = {
   config: RescueConfig;
@@ -53,10 +62,32 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     update: adapt(updateRescue, { deps, logger }),
     verify: adapt(verifyRescue, { deps, logger }),
     inviteStaff: adapt(inviteStaff, { deps, logger }),
+    getMyStaffMembership: adapt(getMyStaffMembership, { deps, logger }),
+    listStaffMembers: adapt(listStaffMembers, { deps, logger }),
+    createFosterPlacement: adapt(createFosterPlacement, { deps, logger }),
+    listFosterPlacements: adapt(listFosterPlacements, { deps, logger }),
+    getFosterPlacement: adapt(getFosterPlacement, { deps, logger }),
+    endFosterPlacement: adapt(endFosterPlacement, { deps, logger }),
+    // Public — the invitation token is the credential.
+    getInvitationByToken: adaptUnauth(getInvitationByToken, { deps, logger }),
   });
 
   logger.info('gRPC RescueService registered', {
-    methods: ['create', 'get', 'list', 'update', 'verify', 'inviteStaff'],
+    methods: [
+      'create',
+      'get',
+      'list',
+      'update',
+      'verify',
+      'inviteStaff',
+      'getMyStaffMembership',
+      'listStaffMembers',
+      'createFosterPlacement',
+      'listFosterPlacements',
+      'getFosterPlacement',
+      'endFosterPlacement',
+      'getInvitationByToken',
+    ],
     grpcPort: config.grpcPort,
   });
 

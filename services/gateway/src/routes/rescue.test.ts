@@ -39,6 +39,14 @@ function makeClient(): {
     update: updateMock,
     verify: verifyMock,
     inviteStaff: inviteStaffMock,
+    // Staff/foster/invitation methods unused by these route tests.
+    getMyStaffMembership: vi.fn(),
+    listStaffMembers: vi.fn(),
+    createFosterPlacement: vi.fn(),
+    listFosterPlacements: vi.fn(),
+    getFosterPlacement: vi.fn(),
+    endFosterPlacement: vi.fn(),
+    getInvitationByToken: vi.fn(),
     close: vi.fn(),
   };
   return { client, createMock, getMock, listMock, updateMock, verifyMock, inviteStaffMock };

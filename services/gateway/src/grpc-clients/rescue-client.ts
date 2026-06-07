@@ -13,14 +13,28 @@ import { credentials, Metadata } from '@grpc/grpc-js';
 
 import {
   RescueV1,
+  type CreateFosterPlacementRequest,
+  type CreateFosterPlacementResponse,
   type CreateRescueRequest,
   type CreateRescueResponse,
+  type EndFosterPlacementRequest,
+  type EndFosterPlacementResponse,
+  type GetFosterPlacementRequest,
+  type GetFosterPlacementResponse,
+  type GetInvitationByTokenRequest,
+  type GetInvitationByTokenResponse,
+  type GetMyStaffMembershipRequest,
+  type GetMyStaffMembershipResponse,
   type GetRescueRequest,
   type GetRescueResponse,
   type InviteStaffRequest,
   type InviteStaffResponse,
+  type ListFosterPlacementsRequest,
+  type ListFosterPlacementsResponse,
   type ListRescuesRequest,
   type ListRescuesResponse,
+  type ListStaffMembersRequest,
+  type ListStaffMembersResponse,
   type UpdateRescueRequest,
   type UpdateRescueResponse,
   type VerifyRescueRequest,
@@ -34,6 +48,34 @@ export type RescueClient = {
   update(req: UpdateRescueRequest, metadata: Metadata): Promise<UpdateRescueResponse>;
   verify(req: VerifyRescueRequest, metadata: Metadata): Promise<VerifyRescueResponse>;
   inviteStaff(req: InviteStaffRequest, metadata: Metadata): Promise<InviteStaffResponse>;
+  getMyStaffMembership(
+    req: GetMyStaffMembershipRequest,
+    metadata: Metadata
+  ): Promise<GetMyStaffMembershipResponse>;
+  listStaffMembers(
+    req: ListStaffMembersRequest,
+    metadata: Metadata
+  ): Promise<ListStaffMembersResponse>;
+  createFosterPlacement(
+    req: CreateFosterPlacementRequest,
+    metadata: Metadata
+  ): Promise<CreateFosterPlacementResponse>;
+  listFosterPlacements(
+    req: ListFosterPlacementsRequest,
+    metadata: Metadata
+  ): Promise<ListFosterPlacementsResponse>;
+  getFosterPlacement(
+    req: GetFosterPlacementRequest,
+    metadata: Metadata
+  ): Promise<GetFosterPlacementResponse>;
+  endFosterPlacement(
+    req: EndFosterPlacementRequest,
+    metadata: Metadata
+  ): Promise<EndFosterPlacementResponse>;
+  getInvitationByToken(
+    req: GetInvitationByTokenRequest,
+    metadata: Metadata
+  ): Promise<GetInvitationByTokenResponse>;
   close(): void;
 };
 
@@ -66,6 +108,13 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     update: (req, metadata) => callUnary(stub.update, req, metadata),
     verify: (req, metadata) => callUnary(stub.verify, req, metadata),
     inviteStaff: (req, metadata) => callUnary(stub.inviteStaff, req, metadata),
+    getMyStaffMembership: (req, metadata) => callUnary(stub.getMyStaffMembership, req, metadata),
+    listStaffMembers: (req, metadata) => callUnary(stub.listStaffMembers, req, metadata),
+    createFosterPlacement: (req, metadata) => callUnary(stub.createFosterPlacement, req, metadata),
+    listFosterPlacements: (req, metadata) => callUnary(stub.listFosterPlacements, req, metadata),
+    getFosterPlacement: (req, metadata) => callUnary(stub.getFosterPlacement, req, metadata),
+    endFosterPlacement: (req, metadata) => callUnary(stub.endFosterPlacement, req, metadata),
+    getInvitationByToken: (req, metadata) => callUnary(stub.getInvitationByToken, req, metadata),
     close: () => stub.close(),
   };
 };
