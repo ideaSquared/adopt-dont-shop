@@ -349,3 +349,81 @@ describe('POST /api/v1/messages/:messageId/reactions — react', () => {
     expect(req.remove).toBe(true);
   });
 });
+
+// --- /api/v1/conversations alias ------------------------------------
+//
+// The monolith mounts the same chat routes at /api/v1/chats AND
+// /api/v1/conversations. The SPA's lib.chat client uses both paths
+// across views; the gateway must accept either.
+
+describe('/api/v1/conversations — monolith alias', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('GET /api/v1/conversations routes to listChats', async () => {
+    client.listChatsMock.mockResolvedValueOnce({ chats: [CHAT_FIXTURE] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/conversations',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(client.listChatsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('POST /api/v1/conversations routes to openChat', async () => {
+    client.openChatMock.mockResolvedValueOnce({ chat: CHAT_FIXTURE, created: true });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/conversations',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      payload: { applicationId: 'app-1', otherUserId: 'usr-2' },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(client.openChatMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('GET /api/v1/conversations/:chatId/messages routes to listMessages', async () => {
+    client.listMessagesMock.mockResolvedValueOnce({ messages: [MESSAGE_FIXTURE] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/conversations/chat-1/messages',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(client.listMessagesMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('POST /api/v1/conversations/:chatId/messages routes to sendMessage', async () => {
+    client.sendMessageMock.mockResolvedValueOnce({ message: MESSAGE_FIXTURE });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/conversations/chat-1/messages',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      payload: { body: 'Hello via alias' },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(client.sendMessageMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('POST /api/v1/conversations/:chatId/read routes to markRead', async () => {
+    client.markReadMock.mockResolvedValueOnce({ upToMessageId: 'msg-1' });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/conversations/chat-1/read',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      payload: { upToMessageId: 'msg-1' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(client.markReadMock).toHaveBeenCalledTimes(1);
+  });
+});

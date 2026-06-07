@@ -35,6 +35,9 @@ import { registerApplicationsRoutes } from './routes/applications.js';
 import { registerAuditRoutes } from './routes/audit.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerChatRoutes } from './routes/chat.js';
+import { registerConfigRoutes } from './routes/config.js';
+import { registerDevicesRoutes } from './routes/devices.js';
+import { registerLegalRoutes } from './routes/legal.js';
 import { registerMatchingRoutes } from './routes/matching.js';
 import { registerModerationAdminRoutes } from './routes/moderation-admin.js';
 import { registerModerationRoutes } from './routes/moderation.js';
@@ -152,6 +155,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.notificationsClient && cutover.notifications) {
     await registerNotificationsRoutes(server, { client: opts.notificationsClient });
+    // /api/v1/devices/* — register / list / unregister device tokens.
+    // Reuses the same notifications gRPC client (device token RPCs
+    // ship in @adopt-dont-shop/proto.NotificationsV1).
+    await registerDevicesRoutes(server, { client: opts.notificationsClient });
   }
   if (opts.petsClient && cutover.pets) {
     await registerPetsRoutes(server, { client: opts.petsClient });
@@ -194,6 +201,17 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.chatClient && cutover.chat) {
     await registerChatRoutes(server, { client: opts.chatClient });
+  }
+
+  // Gateway-folded surface — no upstream service required, no cutover
+  // flag. Per the plan: "CMS / legal / config — small static reads fold
+  // into service.gateway". CMS extraction itself is deferred (full DB
+  // schema + admin CRUD); legal markdown + public config land here.
+  if (config.legal.enabled) {
+    await registerLegalRoutes(server, { docsDir: config.legal.docsDir });
+  }
+  if (config.config.publicEnabled) {
+    await registerConfigRoutes(server);
   }
 
   // Catch-all proxy. Phase 0f shipped this; Phase 1.6 leaves it in
