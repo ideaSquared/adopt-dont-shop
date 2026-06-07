@@ -48,6 +48,50 @@ service RescueService {
   // `rescue.staffInvited` on NATS — the notifications service emails
   // the invitee.
   rpc InviteStaff(InviteStaffRequest) returns (InviteStaffResponse);
+
+  // --- Staff -----------------------------------------------------------
+
+  // Return the calling principal's staff-member record (their rescue
+  // membership). NOT_FOUND when the user is not staff at any rescue.
+  // Self-scoped — no user_id field.
+  rpc GetMyStaffMembership(GetMyStaffMembershipRequest)
+      returns (GetMyStaffMembershipResponse);
+
+  // List all staff members at a rescue. Caller MUST be a verified staff
+  // member of that rescue (or admin). Used by the staff "colleagues"
+  // view.
+  rpc ListStaffMembers(ListStaffMembersRequest) returns (ListStaffMembersResponse);
+
+  // --- Foster placements ----------------------------------------------
+
+  // Create a foster placement. Caller MUST have `foster.create` scoped
+  // to the rescue. Publishes `rescue.fosterPlacementCreated`.
+  rpc CreateFosterPlacement(CreateFosterPlacementRequest)
+      returns (CreateFosterPlacementResponse);
+
+  // List foster placements with optional filters (rescue, foster user,
+  // status). Caller MUST have `foster.read` for the rescue.
+  rpc ListFosterPlacements(ListFosterPlacementsRequest)
+      returns (ListFosterPlacementsResponse);
+
+  // Fetch a single foster placement by id.
+  rpc GetFosterPlacement(GetFosterPlacementRequest)
+      returns (GetFosterPlacementResponse);
+
+  // End an active placement (return-to-rescue / adopted-by-foster /
+  // cancelled). Idempotent on already-ended placements. Publishes
+  // `rescue.fosterPlacementEnded`.
+  rpc EndFosterPlacement(EndFosterPlacementRequest)
+      returns (EndFosterPlacementResponse);
+
+  // --- Invitations -----------------------------------------------------
+
+  // Read an invitation's public details by token (for the accept page).
+  // Returns the email + rescue + expiry so the SPA can render the
+  // accept form. NOT_FOUND when the token is unknown, expired, or used.
+  // Public — no principal required (the token IS the credential).
+  rpc GetInvitationByToken(GetInvitationByTokenRequest)
+      returns (GetInvitationByTokenResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -247,4 +291,126 @@ message InviteStaffResponse {
   // caller can dispatch the email. NOT readable through Get/List
   // afterwards.
   string token = 2;
+}
+
+// --- StaffMember ------------------------------------------------------
+
+// StaffMember mirrors the rescue.staff_members row. The user's name /
+// email aren't stored here (they live in auth.users) — the gateway
+// joins them in when the SPA needs the colleague list with names, or
+// the SPA fetches them separately. This message carries only the
+// rescue-owned columns.
+message StaffMember {
+  string staff_member_id = 1;
+  string user_id = 2;
+  string rescue_id = 3;
+  optional string title = 4;
+  bool is_verified = 5;
+  optional string verified_by = 6;
+  optional string verified_at = 7;
+  string added_by = 8;
+  string added_at = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+
+message GetMyStaffMembershipRequest {}
+
+message GetMyStaffMembershipResponse {
+  StaffMember staff_member = 1;
+}
+
+message ListStaffMembersRequest {
+  // Rescue to list staff for. When empty, the service resolves the
+  // caller's own rescue from their staff membership (the "colleagues"
+  // case).
+  optional string rescue_id = 1;
+}
+
+message ListStaffMembersResponse {
+  repeated StaffMember staff_members = 1;
+}
+
+// --- FosterPlacement --------------------------------------------------
+
+enum FosterPlacementStatus {
+  FOSTER_PLACEMENT_STATUS_UNSPECIFIED = 0;
+  FOSTER_PLACEMENT_STATUS_ACTIVE = 1;
+  FOSTER_PLACEMENT_STATUS_COMPLETED = 2;
+  FOSTER_PLACEMENT_STATUS_CANCELLED = 3;
+}
+
+message FosterPlacement {
+  string placement_id = 1;
+  string rescue_id = 2;
+  string pet_id = 3;
+  string foster_user_id = 4;
+  string start_date = 5;
+  optional string end_date = 6;
+  FosterPlacementStatus status = 7;
+  optional string notes = 8;
+  string created_at = 9;
+  string updated_at = 10;
+}
+
+message CreateFosterPlacementRequest {
+  string rescue_id = 1;
+  string pet_id = 2;
+  string foster_user_id = 3;
+  string start_date = 4;
+  optional string notes = 5;
+}
+
+message CreateFosterPlacementResponse {
+  FosterPlacement placement = 1;
+}
+
+message ListFosterPlacementsRequest {
+  optional string rescue_id = 1;
+  optional string foster_user_id = 2;
+  // UNSPECIFIED = no status filter.
+  FosterPlacementStatus status_filter = 3;
+}
+
+message ListFosterPlacementsResponse {
+  repeated FosterPlacement placements = 1;
+}
+
+message GetFosterPlacementRequest {
+  string placement_id = 1;
+}
+
+message GetFosterPlacementResponse {
+  FosterPlacement placement = 1;
+}
+
+// Outcome maps onto the terminal status: return_to_rescue / cancelled
+// → CANCELLED-or-COMPLETED per the monolith's semantics; adopted_by_
+// foster → COMPLETED.
+enum FosterEndOutcome {
+  FOSTER_END_OUTCOME_UNSPECIFIED = 0;
+  FOSTER_END_OUTCOME_RETURN_TO_RESCUE = 1;
+  FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER = 2;
+  FOSTER_END_OUTCOME_CANCELLED = 3;
+}
+
+message EndFosterPlacementRequest {
+  string placement_id = 1;
+  FosterEndOutcome outcome = 2;
+  optional string end_date = 3;
+  optional string notes = 4;
+}
+
+message EndFosterPlacementResponse {
+  FosterPlacement placement = 1;
+}
+
+// --- GetInvitationByToken --------------------------------------------
+
+message GetInvitationByTokenRequest {
+  string token = 1;
+}
+
+message GetInvitationByTokenResponse {
+  Invitation invitation = 1;
 }

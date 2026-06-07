@@ -1,0 +1,471 @@
+// gRPC handlers for the rescue service's staff / foster / invitation-
+// read surface. Ports service.backend's /api/v1/staff/*, /api/v1/foster/*
+// and GET /api/v1/invitations/details/:token onto the rescue.* schema.
+//
+// Discipline matches handlers.ts:
+//   - Permission gating via @adopt-dont-shop/authz; rescue-scoped perms
+//     carry the rescueId so a staff member can only act on their own
+//     rescue.
+//   - State-changing handlers run withTransaction + publish-after-commit.
+//   - User name/email are NOT joined here (they live in auth.users) —
+//     the StaffMember message carries only rescue-owned columns; the
+//     gateway/SPA fetches names separately if needed.
+
+import { randomUUID } from 'node:crypto';
+
+import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
+import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
+import type { Permission, RescueId } from '@adopt-dont-shop/lib.types';
+import {
+  RescueV1,
+  type CreateFosterPlacementRequest,
+  type CreateFosterPlacementResponse,
+  type EndFosterPlacementRequest,
+  type EndFosterPlacementResponse,
+  type FosterPlacement,
+  type GetFosterPlacementRequest,
+  type GetFosterPlacementResponse,
+  type GetInvitationByTokenRequest,
+  type GetInvitationByTokenResponse,
+  type GetMyStaffMembershipRequest,
+  type GetMyStaffMembershipResponse,
+  type ListFosterPlacementsRequest,
+  type ListFosterPlacementsResponse,
+  type ListStaffMembersRequest,
+  type ListStaffMembersResponse,
+  type StaffMember,
+} from '@adopt-dont-shop/proto';
+
+import { HandlerError, type HandlerDeps } from './handlers.js';
+
+// --- Permissions -----------------------------------------------------
+
+const STAFF_READ: Permission = 'staff.read' as Permission;
+const FOSTER_CREATE: Permission = 'foster.create' as Permission;
+const FOSTER_READ: Permission = 'foster.read' as Permission;
+const FOSTER_UPDATE: Permission = 'foster.update' as Permission;
+
+// --- Row shapes ------------------------------------------------------
+
+type StaffMemberRow = {
+  staff_member_id: string;
+  user_id: string;
+  rescue_id: string;
+  title: string | null;
+  is_verified: boolean;
+  verified_by: string | null;
+  verified_at: Date | null;
+  added_by: string;
+  added_at: Date;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type FosterPlacementRow = {
+  placement_id: string;
+  rescue_id: string;
+  pet_id: string;
+  foster_user_id: string;
+  start_date: Date;
+  end_date: Date | null;
+  status: 'active' | 'completed' | 'cancelled';
+  notes: string | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type InvitationRow = {
+  invitation_id: string;
+  email: string;
+  rescue_id: string;
+  user_id: string | null;
+  title: string | null;
+  invited_by: string | null;
+  expiration: Date;
+  used: boolean;
+  created_at: Date;
+};
+
+// --- Row → proto -----------------------------------------------------
+
+const staffRowToProto = (row: StaffMemberRow): StaffMember => ({
+  staffMemberId: row.staff_member_id,
+  userId: row.user_id,
+  rescueId: row.rescue_id,
+  title: row.title ?? undefined,
+  isVerified: row.is_verified,
+  verifiedBy: row.verified_by ?? undefined,
+  verifiedAt: row.verified_at?.toISOString(),
+  addedBy: row.added_by,
+  addedAt: row.added_at.toISOString(),
+  createdAt: row.created_at.toISOString(),
+  updatedAt: row.updated_at.toISOString(),
+});
+
+const fosterStatusToProto = (
+  v: 'active' | 'completed' | 'cancelled'
+): RescueV1.FosterPlacementStatus => {
+  switch (v) {
+    case 'active':
+      return RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_ACTIVE;
+    case 'completed':
+      return RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_COMPLETED;
+    case 'cancelled':
+      return RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_CANCELLED;
+  }
+};
+
+const fosterStatusFilterToDb = (
+  v: RescueV1.FosterPlacementStatus
+): 'active' | 'completed' | 'cancelled' | null => {
+  switch (v) {
+    case RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_ACTIVE:
+      return 'active';
+    case RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_COMPLETED:
+      return 'completed';
+    case RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_CANCELLED:
+      return 'cancelled';
+    default:
+      return null;
+  }
+};
+
+const fosterRowToProto = (row: FosterPlacementRow): FosterPlacement => ({
+  placementId: row.placement_id,
+  rescueId: row.rescue_id,
+  petId: row.pet_id,
+  fosterUserId: row.foster_user_id,
+  startDate: row.start_date.toISOString(),
+  endDate: row.end_date?.toISOString(),
+  status: fosterStatusToProto(row.status),
+  notes: row.notes ?? undefined,
+  createdAt: row.created_at.toISOString(),
+  updatedAt: row.updated_at.toISOString(),
+});
+
+const invitationRowToProto = (row: InvitationRow) => ({
+  invitationId: row.invitation_id,
+  email: row.email,
+  rescueId: row.rescue_id,
+  userId: row.user_id ?? undefined,
+  title: row.title ?? undefined,
+  invitedBy: row.invited_by ?? undefined,
+  expiration: row.expiration.toISOString(),
+  used: row.used,
+  createdAt: row.created_at.toISOString(),
+});
+
+const STAFF_SELECT = `
+  staff_member_id, user_id, rescue_id, title, is_verified, verified_by,
+  verified_at, added_by, added_at, created_at, updated_at
+`;
+
+const FOSTER_SELECT = `
+  placement_id, rescue_id, pet_id, foster_user_id, start_date, end_date,
+  status, notes, created_at, updated_at
+`;
+
+// --- GetMyStaffMembership --------------------------------------------
+
+export async function getMyStaffMembership(
+  deps: HandlerDeps,
+  principal: Principal,
+  _req: GetMyStaffMembershipRequest
+): Promise<GetMyStaffMembershipResponse> {
+  void _req;
+  const res = await deps.pool.query<StaffMemberRow>(
+    `SELECT ${STAFF_SELECT} FROM rescue.staff_members
+     WHERE user_id = $1 AND deleted_at IS NULL
+     ORDER BY added_at DESC
+     LIMIT 1`,
+    [principal.userId]
+  );
+  if (!res.rows[0]) {
+    throw new HandlerError('NOT_FOUND', 'you are not associated with any rescue organisation');
+  }
+  return { staffMember: staffRowToProto(res.rows[0]) };
+}
+
+// --- ListStaffMembers ------------------------------------------------
+
+export async function listStaffMembers(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ListStaffMembersRequest
+): Promise<ListStaffMembersResponse> {
+  if (!hasPermission(principal, STAFF_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${STAFF_READ}' required`);
+  }
+
+  // Resolve the target rescue: explicit rescue_id, or the caller's own
+  // rescue (the "colleagues" case). super_admin can list any rescue's
+  // staff by passing rescue_id.
+  let rescueId = req.rescueId;
+  if (!rescueId) {
+    const mine = await deps.pool.query<{ rescue_id: string }>(
+      `SELECT rescue_id FROM rescue.staff_members
+       WHERE user_id = $1 AND is_verified = true AND deleted_at IS NULL
+       LIMIT 1`,
+      [principal.userId]
+    );
+    if (!mine.rows[0]) {
+      throw new HandlerError('NOT_FOUND', 'you are not associated with any rescue organisation');
+    }
+    rescueId = mine.rows[0].rescue_id;
+  } else if (!principal.roles.includes('super_admin')) {
+    // Explicit rescue_id — must be a member of that rescue.
+    const member = await deps.pool.query<{ staff_member_id: string }>(
+      `SELECT staff_member_id FROM rescue.staff_members
+       WHERE user_id = $1 AND rescue_id = $2 AND deleted_at IS NULL
+       LIMIT 1`,
+      [principal.userId, rescueId]
+    );
+    if (!member.rows[0]) {
+      throw new HandlerError('PERMISSION_DENIED', 'you may only list staff for your own rescue');
+    }
+  }
+
+  const res = await deps.pool.query<StaffMemberRow>(
+    `SELECT ${STAFF_SELECT} FROM rescue.staff_members
+     WHERE rescue_id = $1 AND deleted_at IS NULL
+     ORDER BY added_at DESC`,
+    [rescueId]
+  );
+  return { staffMembers: res.rows.map(staffRowToProto) };
+}
+
+// --- CreateFosterPlacement -------------------------------------------
+
+export type FosterDeps = WithTransactionDeps;
+
+export async function createFosterPlacement(
+  deps: FosterDeps,
+  principal: Principal,
+  req: CreateFosterPlacementRequest
+): Promise<CreateFosterPlacementResponse> {
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  if (!req.petId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
+  }
+  if (!req.fosterUserId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'foster_user_id is required');
+  }
+  if (!req.startDate) {
+    throw new HandlerError('INVALID_ARGUMENT', 'start_date is required');
+  }
+  if (!requirePermission(principal, FOSTER_CREATE, { rescueId: req.rescueId as RescueId })) {
+    throw new HandlerError('PERMISSION_DENIED', `'${FOSTER_CREATE}' required for this rescue`);
+  }
+
+  const placementId = randomUUID();
+  let inserted: FosterPlacementRow | undefined;
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    const res = await client.query<FosterPlacementRow>(
+      `
+      INSERT INTO rescue.foster_placements (
+        placement_id, rescue_id, pet_id, foster_user_id,
+        start_date, status, notes, created_at, updated_at
+      )
+      VALUES ($1, $2, $3, $4, $5, 'active', $6, now(), now())
+      RETURNING ${FOSTER_SELECT}
+      `,
+      [placementId, req.rescueId, req.petId, req.fosterUserId, req.startDate, req.notes ?? null]
+    );
+    inserted = res.rows[0];
+
+    publish({
+      type: 'rescue.fosterPlacementCreated',
+      id: `rescue.fosterPlacementCreated.${placementId}`,
+      payload: {
+        placementId,
+        rescueId: req.rescueId,
+        petId: req.petId,
+        fosterUserId: req.fosterUserId,
+      },
+    });
+  });
+
+  if (!inserted) {
+    throw new HandlerError('INTERNAL', 'foster placement insert returned no rows');
+  }
+  return { placement: fosterRowToProto(inserted) };
+}
+
+// --- ListFosterPlacements --------------------------------------------
+
+export async function listFosterPlacements(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ListFosterPlacementsRequest
+): Promise<ListFosterPlacementsResponse> {
+  // foster.read is rescue-scoped; when rescue_id is supplied we gate on
+  // it, otherwise the caller needs the unscoped permission (admins).
+  if (req.rescueId) {
+    if (!requirePermission(principal, FOSTER_READ, { rescueId: req.rescueId as RescueId })) {
+      throw new HandlerError('PERMISSION_DENIED', `'${FOSTER_READ}' required for this rescue`);
+    }
+  } else if (!hasPermission(principal, FOSTER_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${FOSTER_READ}' required`);
+  }
+
+  const statusDb = fosterStatusFilterToDb(req.statusFilter);
+  const conditions: string[] = ['deleted_at IS NULL'];
+  const params: unknown[] = [];
+  if (req.rescueId) {
+    params.push(req.rescueId);
+    conditions.push(`rescue_id = $${params.length}`);
+  }
+  if (req.fosterUserId) {
+    params.push(req.fosterUserId);
+    conditions.push(`foster_user_id = $${params.length}`);
+  }
+  if (statusDb) {
+    params.push(statusDb);
+    conditions.push(`status = $${params.length}`);
+  }
+
+  const res = await deps.pool.query<FosterPlacementRow>(
+    `SELECT ${FOSTER_SELECT} FROM rescue.foster_placements
+     WHERE ${conditions.join(' AND ')}
+     ORDER BY start_date DESC`,
+    params
+  );
+  return { placements: res.rows.map(fosterRowToProto) };
+}
+
+// --- GetFosterPlacement ----------------------------------------------
+
+export async function getFosterPlacement(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetFosterPlacementRequest
+): Promise<GetFosterPlacementResponse> {
+  if (!req.placementId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'placement_id is required');
+  }
+  const res = await deps.pool.query<FosterPlacementRow>(
+    `SELECT ${FOSTER_SELECT} FROM rescue.foster_placements
+     WHERE placement_id = $1 AND deleted_at IS NULL LIMIT 1`,
+    [req.placementId]
+  );
+  const row = res.rows[0];
+  if (!row) {
+    throw new HandlerError('NOT_FOUND', `foster placement ${req.placementId} not found`);
+  }
+  if (!requirePermission(principal, FOSTER_READ, { rescueId: row.rescue_id as RescueId })) {
+    throw new HandlerError('PERMISSION_DENIED', `'${FOSTER_READ}' required for this rescue`);
+  }
+  return { placement: fosterRowToProto(row) };
+}
+
+// --- EndFosterPlacement ----------------------------------------------
+
+const endOutcomeToStatus = (outcome: RescueV1.FosterEndOutcome): 'completed' | 'cancelled' => {
+  switch (outcome) {
+    case RescueV1.FosterEndOutcome.FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER:
+    case RescueV1.FosterEndOutcome.FOSTER_END_OUTCOME_RETURN_TO_RESCUE:
+      // Both are a successful completion of the foster term.
+      return 'completed';
+    case RescueV1.FosterEndOutcome.FOSTER_END_OUTCOME_CANCELLED:
+      return 'cancelled';
+    default:
+      return 'completed';
+  }
+};
+
+export async function endFosterPlacement(
+  deps: FosterDeps,
+  principal: Principal,
+  req: EndFosterPlacementRequest
+): Promise<EndFosterPlacementResponse> {
+  if (!req.placementId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'placement_id is required');
+  }
+  if (req.outcome === RescueV1.FosterEndOutcome.FOSTER_END_OUTCOME_UNSPECIFIED) {
+    throw new HandlerError('INVALID_ARGUMENT', 'outcome is required');
+  }
+
+  const existing = await deps.pool.query<FosterPlacementRow>(
+    `SELECT ${FOSTER_SELECT} FROM rescue.foster_placements
+     WHERE placement_id = $1 AND deleted_at IS NULL LIMIT 1`,
+    [req.placementId]
+  );
+  const row = existing.rows[0];
+  if (!row) {
+    throw new HandlerError('NOT_FOUND', `foster placement ${req.placementId} not found`);
+  }
+  if (!requirePermission(principal, FOSTER_UPDATE, { rescueId: row.rescue_id as RescueId })) {
+    throw new HandlerError('PERMISSION_DENIED', `'${FOSTER_UPDATE}' required for this rescue`);
+  }
+
+  // Idempotent: already-ended placement returns as-is without a second
+  // event publish.
+  if (row.status !== 'active') {
+    return { placement: fosterRowToProto(row) };
+  }
+
+  const newStatus = endOutcomeToStatus(req.outcome);
+  const endDate = req.endDate ? new Date(req.endDate) : new Date();
+  let updated: FosterPlacementRow | undefined;
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    const res = await client.query<FosterPlacementRow>(
+      `
+      UPDATE rescue.foster_placements
+      SET status = $2, end_date = $3,
+          notes = COALESCE($4, notes),
+          updated_at = now()
+      WHERE placement_id = $1
+      RETURNING ${FOSTER_SELECT}
+      `,
+      [req.placementId, newStatus, endDate, req.notes ?? null]
+    );
+    updated = res.rows[0];
+
+    publish({
+      type: 'rescue.fosterPlacementEnded',
+      id: `rescue.fosterPlacementEnded.${req.placementId}`,
+      payload: {
+        placementId: req.placementId,
+        rescueId: row.rescue_id,
+        status: newStatus,
+      },
+    });
+  });
+
+  if (!updated) {
+    throw new HandlerError('INTERNAL', 'foster placement update returned no rows');
+  }
+  return { placement: fosterRowToProto(updated) };
+}
+
+// --- GetInvitationByToken --------------------------------------------
+
+export async function getInvitationByToken(
+  deps: HandlerDeps,
+  _principal: Principal | null,
+  req: GetInvitationByTokenRequest
+): Promise<GetInvitationByTokenResponse> {
+  void _principal;
+  if (!req.token) {
+    throw new HandlerError('INVALID_ARGUMENT', 'token is required');
+  }
+  const res = await deps.pool.query<InvitationRow>(
+    `SELECT invitation_id, email, rescue_id, user_id, title, invited_by,
+            expiration, used, created_at
+     FROM rescue.invitations
+     WHERE token = $1
+     LIMIT 1`,
+    [req.token]
+  );
+  const row = res.rows[0];
+  // NOT_FOUND covers unknown, used, and expired — the accept page
+  // shouldn't distinguish (no token enumeration / status probing).
+  if (!row || row.used || row.expiration.getTime() <= Date.now()) {
+    throw new HandlerError('NOT_FOUND', 'invitation not found or no longer valid');
+  }
+  return { invitation: invitationRowToProto(row) };
+}
