@@ -36,6 +36,7 @@ import { registerAuditRoutes } from './routes/audit.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerChatRoutes } from './routes/chat.js';
 import { registerConfigRoutes } from './routes/config.js';
+import { registerDashboardRoutes } from './routes/dashboard.js';
 import { registerDevicesRoutes } from './routes/devices.js';
 import { registerLegalRoutes } from './routes/legal.js';
 import { registerMatchingRoutes } from './routes/matching.js';
@@ -224,6 +225,24 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.chatClient && cutover.chat) {
     await registerChatRoutes(server, { client: opts.chatClient });
+  }
+  // /api/v1/dashboard/* — cross-service composition (pets stats + apps
+  // stats + rescue staff count + recent pet/application activity). Only
+  // registers when ALL three backing services have a wired client AND
+  // are cutover, so partial-cutover envs don't return half-empty data.
+  if (
+    opts.petsClient &&
+    opts.applicationsClient &&
+    opts.rescueClient &&
+    cutover.pets &&
+    cutover.applications &&
+    cutover.rescue
+  ) {
+    await registerDashboardRoutes(server, {
+      petsClient: opts.petsClient,
+      applicationsClient: opts.applicationsClient,
+      rescueClient: opts.rescueClient,
+    });
   }
 
   // Gateway-folded surface — no upstream service required, no cutover
