@@ -43,6 +43,12 @@ import {
   type ListSessionsResponse,
   type RevokeSessionRequest,
   type RevokeSessionResponse,
+  type GetPrivacyPreferencesRequest,
+  type GetPrivacyPreferencesResponse,
+  type UpdatePrivacyPreferencesRequest,
+  type UpdatePrivacyPreferencesResponse,
+  type ResetPrivacyPreferencesRequest,
+  type ResetPrivacyPreferencesResponse,
 } from '@adopt-dont-shop/proto';
 
 export type AuthClient = {
@@ -64,6 +70,18 @@ export type AuthClient = {
   updateAccount(req: UpdateAccountRequest, metadata: Metadata): Promise<UpdateAccountResponse>;
   listSessions(req: ListSessionsRequest, metadata: Metadata): Promise<ListSessionsResponse>;
   revokeSession(req: RevokeSessionRequest, metadata: Metadata): Promise<RevokeSessionResponse>;
+  getPrivacyPreferences(
+    req: GetPrivacyPreferencesRequest,
+    metadata: Metadata
+  ): Promise<GetPrivacyPreferencesResponse>;
+  updatePrivacyPreferences(
+    req: UpdatePrivacyPreferencesRequest,
+    metadata: Metadata
+  ): Promise<UpdatePrivacyPreferencesResponse>;
+  resetPrivacyPreferences(
+    req: ResetPrivacyPreferencesRequest,
+    metadata: Metadata
+  ): Promise<ResetPrivacyPreferencesResponse>;
   close(): void;
 };
 
@@ -105,6 +123,11 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     updateAccount: (req, metadata) => callUnary(stub.updateAccount, req, metadata),
     listSessions: (req, metadata) => callUnary(stub.listSessions, req, metadata),
     revokeSession: (req, metadata) => callUnary(stub.revokeSession, req, metadata),
+    getPrivacyPreferences: (req, metadata) => callUnary(stub.getPrivacyPreferences, req, metadata),
+    updatePrivacyPreferences: (req, metadata) =>
+      callUnary(stub.updatePrivacyPreferences, req, metadata),
+    resetPrivacyPreferences: (req, metadata) =>
+      callUnary(stub.resetPrivacyPreferences, req, metadata),
     close: () => stub.close(),
   };
 };

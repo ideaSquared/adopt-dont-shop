@@ -32,6 +32,7 @@ import {
   getNotificationPreferences,
   getUnreadCount,
   markAllRead,
+  resetNotificationPreferences,
   updateNotificationPreferences,
 } from './notification-prefs-handlers.js';
 
@@ -72,6 +73,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       deps: { pool, nats },
       logger,
     }),
+    resetNotificationPreferences: adapt(resetNotificationPreferences, {
+      deps: { pool, nats },
+      logger,
+    }),
     sendEmail: adapt(sendEmail, { deps: { pool, nats }, logger }),
     getEmailPreferences: adapt(getEmailPreferences, { deps: { pool, nats }, logger }),
     updateEmailPreferences: adapt(updateEmailPreferences, { deps: { pool, nats }, logger }),
@@ -91,6 +96,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'deleteNotification',
       'getNotificationPreferences',
       'updateNotificationPreferences',
+      'resetNotificationPreferences',
       'sendEmail',
       'getEmailPreferences',
       'updateEmailPreferences',

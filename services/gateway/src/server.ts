@@ -48,6 +48,7 @@ import { registerRescueRoutes } from './routes/rescue.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
 import { registerSessionsRoutes } from './routes/sessions.js';
 import { registerStaffFosterRoutes } from './routes/staff-foster.js';
+import { registerUsersRoutes } from './routes/users.js';
 
 export type CreateServerOptions = {
   config: GatewayConfig;
@@ -165,6 +166,16 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // Reuses the same notifications gRPC client (device token RPCs
     // ship in @adopt-dont-shop/proto.NotificationsV1).
     await registerDevicesRoutes(server, { client: opts.notificationsClient });
+  }
+  // /api/v1/users/* — profile + composed preferences. Requires BOTH
+  // auth (profile + privacy prefs) and notifications (in-app channel
+  // prefs) cutover so the unified GET /preferences can compose without
+  // partial data.
+  if (opts.authClient && opts.notificationsClient && cutover.auth && cutover.notifications) {
+    await registerUsersRoutes(server, {
+      authClient: opts.authClient,
+      notificationsClient: opts.notificationsClient,
+    });
   }
   if (opts.petsClient && cutover.pets) {
     await registerPetsRoutes(server, { client: opts.petsClient });

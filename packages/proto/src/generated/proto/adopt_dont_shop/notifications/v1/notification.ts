@@ -1236,6 +1236,14 @@ export interface UpdateNotificationPreferencesResponse {
   preferences?: NotificationPreferences | undefined;
 }
 
+export interface ResetNotificationPreferencesRequest {
+  userId?: string | undefined;
+}
+
+export interface ResetNotificationPreferencesResponse {
+  preferences?: NotificationPreferences | undefined;
+}
+
 function createBaseNotification(): Notification {
   return {
     notificationId: '',
@@ -6167,6 +6175,154 @@ export const UpdateNotificationPreferencesResponse: MessageFns<UpdateNotificatio
     },
   };
 
+function createBaseResetNotificationPreferencesRequest(): ResetNotificationPreferencesRequest {
+  return { userId: undefined };
+}
+
+export const ResetNotificationPreferencesRequest: MessageFns<ResetNotificationPreferencesRequest> =
+  {
+    encode(
+      message: ResetNotificationPreferencesRequest,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.userId !== undefined) {
+        writer.uint32(10).string(message.userId);
+      }
+      return writer;
+    },
+
+    decode(input: BinaryReader | Uint8Array, length?: number): ResetNotificationPreferencesRequest {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseResetNotificationPreferencesRequest();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.userId = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): ResetNotificationPreferencesRequest {
+      return {
+        userId: isSet(object.userId)
+          ? globalThis.String(object.userId)
+          : isSet(object.user_id)
+            ? globalThis.String(object.user_id)
+            : undefined,
+      };
+    },
+
+    toJSON(message: ResetNotificationPreferencesRequest): unknown {
+      const obj: any = {};
+      if (message.userId !== undefined) {
+        obj.userId = message.userId;
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<ResetNotificationPreferencesRequest>, I>>(
+      base?: I
+    ): ResetNotificationPreferencesRequest {
+      return ResetNotificationPreferencesRequest.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<I extends Exact<DeepPartial<ResetNotificationPreferencesRequest>, I>>(
+      object: I
+    ): ResetNotificationPreferencesRequest {
+      const message = createBaseResetNotificationPreferencesRequest();
+      message.userId = object.userId ?? undefined;
+      return message;
+    },
+  };
+
+function createBaseResetNotificationPreferencesResponse(): ResetNotificationPreferencesResponse {
+  return { preferences: undefined };
+}
+
+export const ResetNotificationPreferencesResponse: MessageFns<ResetNotificationPreferencesResponse> =
+  {
+    encode(
+      message: ResetNotificationPreferencesResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.preferences !== undefined) {
+        NotificationPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
+      }
+      return writer;
+    },
+
+    decode(
+      input: BinaryReader | Uint8Array,
+      length?: number
+    ): ResetNotificationPreferencesResponse {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseResetNotificationPreferencesResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.preferences = NotificationPreferences.decode(reader, reader.uint32());
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): ResetNotificationPreferencesResponse {
+      return {
+        preferences: isSet(object.preferences)
+          ? NotificationPreferences.fromJSON(object.preferences)
+          : undefined,
+      };
+    },
+
+    toJSON(message: ResetNotificationPreferencesResponse): unknown {
+      const obj: any = {};
+      if (message.preferences !== undefined) {
+        obj.preferences = NotificationPreferences.toJSON(message.preferences);
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<ResetNotificationPreferencesResponse>, I>>(
+      base?: I
+    ): ResetNotificationPreferencesResponse {
+      return ResetNotificationPreferencesResponse.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<I extends Exact<DeepPartial<ResetNotificationPreferencesResponse>, I>>(
+      object: I
+    ): ResetNotificationPreferencesResponse {
+      const message = createBaseResetNotificationPreferencesResponse();
+      message.preferences =
+        object.preferences !== undefined && object.preferences !== null
+          ? NotificationPreferences.fromPartial(object.preferences)
+          : undefined;
+      return message;
+    },
+  };
+
 /**
  * NotificationService is the gRPC contract for the in-app notification
  * store. The gateway translates `POST/GET/DELETE /api/notifications/*`
@@ -6336,6 +6492,23 @@ export const NotificationServiceService = {
       UpdateNotificationPreferencesResponse.decode(value),
   },
   /**
+   * Destroy + recreate so the table-level defaults are the single
+   * source of truth for "factory settings". Idempotent.
+   */
+  resetNotificationPreferences: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/ResetNotificationPreferences' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ResetNotificationPreferencesRequest): Buffer =>
+      Buffer.from(ResetNotificationPreferencesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ResetNotificationPreferencesRequest =>
+      ResetNotificationPreferencesRequest.decode(value),
+    responseSerialize: (value: ResetNotificationPreferencesResponse): Buffer =>
+      Buffer.from(ResetNotificationPreferencesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ResetNotificationPreferencesResponse =>
+      ResetNotificationPreferencesResponse.decode(value),
+  },
+  /**
    * Enqueue an email. Returns the email_id immediately; delivery happens
    * asynchronously in the worker. Callers can supply a templateId +
    * templateData OR a pre-rendered subject + html_content; if both are
@@ -6495,6 +6668,14 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
   updateNotificationPreferences: handleUnaryCall<
     UpdateNotificationPreferencesRequest,
     UpdateNotificationPreferencesResponse
+  >;
+  /**
+   * Destroy + recreate so the table-level defaults are the single
+   * source of truth for "factory settings". Idempotent.
+   */
+  resetNotificationPreferences: handleUnaryCall<
+    ResetNotificationPreferencesRequest,
+    ResetNotificationPreferencesResponse
   >;
   /**
    * Enqueue an email. Returns the email_id immediately; delivery happens
@@ -6712,6 +6893,25 @@ export interface NotificationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: UpdateNotificationPreferencesResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Destroy + recreate so the table-level defaults are the single
+   * source of truth for "factory settings". Idempotent.
+   */
+  resetNotificationPreferences(
+    request: ResetNotificationPreferencesRequest,
+    callback: (error: ServiceError | null, response: ResetNotificationPreferencesResponse) => void
+  ): ClientUnaryCall;
+  resetNotificationPreferences(
+    request: ResetNotificationPreferencesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ResetNotificationPreferencesResponse) => void
+  ): ClientUnaryCall;
+  resetNotificationPreferences(
+    request: ResetNotificationPreferencesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ResetNotificationPreferencesResponse) => void
   ): ClientUnaryCall;
   /**
    * Enqueue an email. Returns the email_id immediately; delivery happens

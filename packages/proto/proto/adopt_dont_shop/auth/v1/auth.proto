@@ -100,6 +100,25 @@ service AuthService {
   // a different user — the two cases are indistinguishable on purpose
   // (no cross-user session enumeration).
   rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+
+  // --- Privacy preferences ------------------------------------------
+  // Phase 2.6+: profile-visibility + show-location + data-export
+  // toggles. Stored in user_privacy_prefs, 1:1 with users. The
+  // gateway's /api/v1/users/preferences endpoint composes these with
+  // the in-app notification prefs from service.notifications for the
+  // monolith's unified shape.
+
+  rpc GetPrivacyPreferences(GetPrivacyPreferencesRequest)
+      returns (GetPrivacyPreferencesResponse);
+
+  rpc UpdatePrivacyPreferences(UpdatePrivacyPreferencesRequest)
+      returns (UpdatePrivacyPreferencesResponse);
+
+  // Destroy + recreate the row so the table-level defaults are the
+  // single source of truth for "factory settings". Returns the freshly
+  // created defaults row.
+  rpc ResetPrivacyPreferences(ResetPrivacyPreferencesRequest)
+      returns (ResetPrivacyPreferencesResponse);
 }
 
 // --- Shared messages --------------------------------------------------
@@ -404,4 +423,60 @@ message RevokeSessionResponse {
   // already-revoked session returns the same id without error (NATS
   // event is suppressed on the second call).
   string session_id = 1;
+}
+
+
+// --- Privacy preferences ------------------------------------------
+
+enum ProfileVisibility {
+  PROFILE_VISIBILITY_UNSPECIFIED = 0;
+  PROFILE_VISIBILITY_PUBLIC = 1;
+  PROFILE_VISIBILITY_RESCUES_ONLY = 2;
+  PROFILE_VISIBILITY_PRIVATE = 3;
+}
+
+// PrivacyPreferences mirrors auth.user_privacy_prefs verbatim.
+message PrivacyPreferences {
+  string user_id = 1;
+  ProfileVisibility profile_visibility = 2;
+  bool show_last_seen = 3;
+  bool show_location = 4;
+  bool allow_search_indexing = 5;
+  bool allow_data_export = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message GetPrivacyPreferencesRequest {
+  // Optional. Defaults to the calling principal. Callers without
+  // privacy-prefs:read:any may only read their own row.
+  optional string user_id = 1;
+}
+
+message GetPrivacyPreferencesResponse {
+  PrivacyPreferences preferences = 1;
+}
+
+message UpdatePrivacyPreferencesRequest {
+  optional string user_id = 1;
+  // Only set fields are written — scalars get the proto3 optional
+  // presence treatment (set_* discipline; absent leaves the column
+  // untouched).
+  ProfileVisibility profile_visibility = 2;
+  optional bool show_last_seen = 3;
+  optional bool show_location = 4;
+  optional bool allow_search_indexing = 5;
+  optional bool allow_data_export = 6;
+}
+
+message UpdatePrivacyPreferencesResponse {
+  PrivacyPreferences preferences = 1;
+}
+
+message ResetPrivacyPreferencesRequest {
+  optional string user_id = 1;
+}
+
+message ResetPrivacyPreferencesResponse {
+  PrivacyPreferences preferences = 1;
 }

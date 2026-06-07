@@ -65,6 +65,8 @@ export type {
   GetNotificationPreferencesResponse,
   UpdateNotificationPreferencesRequest,
   UpdateNotificationPreferencesResponse,
+  ResetNotificationPreferencesRequest,
+  ResetNotificationPreferencesResponse,
   NotificationServiceServer,
   NotificationServiceClient,
 } from './generated/proto/adopt_dont_shop/notifications/v1/notification.js';
@@ -105,6 +107,13 @@ export type {
   ListSessionsResponse,
   RevokeSessionRequest,
   RevokeSessionResponse,
+  PrivacyPreferences,
+  GetPrivacyPreferencesRequest,
+  GetPrivacyPreferencesResponse,
+  UpdatePrivacyPreferencesRequest,
+  UpdatePrivacyPreferencesResponse,
+  ResetPrivacyPreferencesRequest,
+  ResetPrivacyPreferencesResponse,
   AuthServiceServer,
   AuthServiceClient,
 } from './generated/proto/adopt_dont_shop/auth/v1/auth.js';

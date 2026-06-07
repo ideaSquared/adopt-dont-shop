@@ -25,6 +25,8 @@ import {
   type MarkAllReadRequest,
   type MarkAllReadResponse,
   type NotificationPreferences as NotificationPreferencesProto,
+  type ResetNotificationPreferencesRequest,
+  type ResetNotificationPreferencesResponse,
   type UpdateNotificationPreferencesRequest,
   type UpdateNotificationPreferencesResponse,
 } from '@adopt-dont-shop/proto';
@@ -477,4 +479,40 @@ export async function updateNotificationPreferences(
     params
   );
   return { preferences: prefsRowToProto(result.rows[0]) };
+}
+
+// --- ResetNotificationPreferences -----------------------------------
+
+export async function resetNotificationPreferences(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ResetNotificationPreferencesRequest
+): Promise<ResetNotificationPreferencesResponse> {
+  if (!hasPermission(principal, PREFS_WRITE_SELF)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PREFS_WRITE_SELF}' required`);
+  }
+  const userId = resolveTargetUserId(principal, req.userId, PREFS_WRITE_ANY);
+
+  let reset: PrefsRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    await client.query(`DELETE FROM notifications.user_notification_prefs WHERE user_id = $1`, [
+      userId,
+    ]);
+    const inserted = await client.query<PrefsRow>(
+      `INSERT INTO notifications.user_notification_prefs (user_id) VALUES ($1) RETURNING *`,
+      [userId]
+    );
+    reset = inserted.rows[0];
+
+    publish({
+      type: 'notifications.prefsReset',
+      id: `notifications.prefsReset.${userId}.${Date.now()}`,
+      payload: { userId },
+    });
+  });
+
+  if (!reset) {
+    throw new HandlerError('INTERNAL', 'reset returned no rows');
+  }
+  return { preferences: prefsRowToProto(reset) };
 }

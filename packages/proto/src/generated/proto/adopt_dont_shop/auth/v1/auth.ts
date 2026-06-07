@@ -150,6 +150,51 @@ export function userStatusToJSON(object: UserStatus): string {
   }
 }
 
+export enum ProfileVisibility {
+  PROFILE_VISIBILITY_UNSPECIFIED = 0,
+  PROFILE_VISIBILITY_PUBLIC = 1,
+  PROFILE_VISIBILITY_RESCUES_ONLY = 2,
+  PROFILE_VISIBILITY_PRIVATE = 3,
+  UNRECOGNIZED = -1,
+}
+
+export function profileVisibilityFromJSON(object: any): ProfileVisibility {
+  switch (object) {
+    case 0:
+    case 'PROFILE_VISIBILITY_UNSPECIFIED':
+      return ProfileVisibility.PROFILE_VISIBILITY_UNSPECIFIED;
+    case 1:
+    case 'PROFILE_VISIBILITY_PUBLIC':
+      return ProfileVisibility.PROFILE_VISIBILITY_PUBLIC;
+    case 2:
+    case 'PROFILE_VISIBILITY_RESCUES_ONLY':
+      return ProfileVisibility.PROFILE_VISIBILITY_RESCUES_ONLY;
+    case 3:
+    case 'PROFILE_VISIBILITY_PRIVATE':
+      return ProfileVisibility.PROFILE_VISIBILITY_PRIVATE;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return ProfileVisibility.UNRECOGNIZED;
+  }
+}
+
+export function profileVisibilityToJSON(object: ProfileVisibility): string {
+  switch (object) {
+    case ProfileVisibility.PROFILE_VISIBILITY_UNSPECIFIED:
+      return 'PROFILE_VISIBILITY_UNSPECIFIED';
+    case ProfileVisibility.PROFILE_VISIBILITY_PUBLIC:
+      return 'PROFILE_VISIBILITY_PUBLIC';
+    case ProfileVisibility.PROFILE_VISIBILITY_RESCUES_ONLY:
+      return 'PROFILE_VISIBILITY_RESCUES_ONLY';
+    case ProfileVisibility.PROFILE_VISIBILITY_PRIVATE:
+      return 'PROFILE_VISIBILITY_PRIVATE';
+    case ProfileVisibility.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
 /**
  * Principal is the flattened identity the gateway forwards downstream
  * as gRPC metadata. ValidateToken returns it; GetMe returns a richer
@@ -454,6 +499,56 @@ export interface RevokeSessionResponse {
    * event is suppressed on the second call).
    */
   sessionId: string;
+}
+
+/** PrivacyPreferences mirrors auth.user_privacy_prefs verbatim. */
+export interface PrivacyPreferences {
+  userId: string;
+  profileVisibility: ProfileVisibility;
+  showLastSeen: boolean;
+  showLocation: boolean;
+  allowSearchIndexing: boolean;
+  allowDataExport: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetPrivacyPreferencesRequest {
+  /**
+   * Optional. Defaults to the calling principal. Callers without
+   * privacy-prefs:read:any may only read their own row.
+   */
+  userId?: string | undefined;
+}
+
+export interface GetPrivacyPreferencesResponse {
+  preferences?: PrivacyPreferences | undefined;
+}
+
+export interface UpdatePrivacyPreferencesRequest {
+  userId?: string | undefined;
+  /**
+   * Only set fields are written — scalars get the proto3 optional
+   * presence treatment (set_* discipline; absent leaves the column
+   * untouched).
+   */
+  profileVisibility: ProfileVisibility;
+  showLastSeen?: boolean | undefined;
+  showLocation?: boolean | undefined;
+  allowSearchIndexing?: boolean | undefined;
+  allowDataExport?: boolean | undefined;
+}
+
+export interface UpdatePrivacyPreferencesResponse {
+  preferences?: PrivacyPreferences | undefined;
+}
+
+export interface ResetPrivacyPreferencesRequest {
+  userId?: string | undefined;
+}
+
+export interface ResetPrivacyPreferencesResponse {
+  preferences?: PrivacyPreferences | undefined;
 }
 
 function createBasePrincipal(): Principal {
@@ -3763,6 +3858,755 @@ export const RevokeSessionResponse: MessageFns<RevokeSessionResponse> = {
   },
 };
 
+function createBasePrivacyPreferences(): PrivacyPreferences {
+  return {
+    userId: '',
+    profileVisibility: 0,
+    showLastSeen: false,
+    showLocation: false,
+    allowSearchIndexing: false,
+    allowDataExport: false,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const PrivacyPreferences: MessageFns<PrivacyPreferences> = {
+  encode(message: PrivacyPreferences, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.profileVisibility !== 0) {
+      writer.uint32(16).int32(message.profileVisibility);
+    }
+    if (message.showLastSeen !== false) {
+      writer.uint32(24).bool(message.showLastSeen);
+    }
+    if (message.showLocation !== false) {
+      writer.uint32(32).bool(message.showLocation);
+    }
+    if (message.allowSearchIndexing !== false) {
+      writer.uint32(40).bool(message.allowSearchIndexing);
+    }
+    if (message.allowDataExport !== false) {
+      writer.uint32(48).bool(message.allowDataExport);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(58).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(66).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PrivacyPreferences {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePrivacyPreferences();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.profileVisibility = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.showLastSeen = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.showLocation = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.allowSearchIndexing = reader.bool();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.allowDataExport = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PrivacyPreferences {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      profileVisibility: isSet(object.profileVisibility)
+        ? profileVisibilityFromJSON(object.profileVisibility)
+        : isSet(object.profile_visibility)
+          ? profileVisibilityFromJSON(object.profile_visibility)
+          : 0,
+      showLastSeen: isSet(object.showLastSeen)
+        ? globalThis.Boolean(object.showLastSeen)
+        : isSet(object.show_last_seen)
+          ? globalThis.Boolean(object.show_last_seen)
+          : false,
+      showLocation: isSet(object.showLocation)
+        ? globalThis.Boolean(object.showLocation)
+        : isSet(object.show_location)
+          ? globalThis.Boolean(object.show_location)
+          : false,
+      allowSearchIndexing: isSet(object.allowSearchIndexing)
+        ? globalThis.Boolean(object.allowSearchIndexing)
+        : isSet(object.allow_search_indexing)
+          ? globalThis.Boolean(object.allow_search_indexing)
+          : false,
+      allowDataExport: isSet(object.allowDataExport)
+        ? globalThis.Boolean(object.allowDataExport)
+        : isSet(object.allow_data_export)
+          ? globalThis.Boolean(object.allow_data_export)
+          : false,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: PrivacyPreferences): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.profileVisibility !== 0) {
+      obj.profileVisibility = profileVisibilityToJSON(message.profileVisibility);
+    }
+    if (message.showLastSeen !== false) {
+      obj.showLastSeen = message.showLastSeen;
+    }
+    if (message.showLocation !== false) {
+      obj.showLocation = message.showLocation;
+    }
+    if (message.allowSearchIndexing !== false) {
+      obj.allowSearchIndexing = message.allowSearchIndexing;
+    }
+    if (message.allowDataExport !== false) {
+      obj.allowDataExport = message.allowDataExport;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PrivacyPreferences>, I>>(base?: I): PrivacyPreferences {
+    return PrivacyPreferences.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<PrivacyPreferences>, I>>(object: I): PrivacyPreferences {
+    const message = createBasePrivacyPreferences();
+    message.userId = object.userId ?? '';
+    message.profileVisibility = object.profileVisibility ?? 0;
+    message.showLastSeen = object.showLastSeen ?? false;
+    message.showLocation = object.showLocation ?? false;
+    message.allowSearchIndexing = object.allowSearchIndexing ?? false;
+    message.allowDataExport = object.allowDataExport ?? false;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseGetPrivacyPreferencesRequest(): GetPrivacyPreferencesRequest {
+  return { userId: undefined };
+}
+
+export const GetPrivacyPreferencesRequest: MessageFns<GetPrivacyPreferencesRequest> = {
+  encode(
+    message: GetPrivacyPreferencesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPrivacyPreferencesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPrivacyPreferencesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPrivacyPreferencesRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+    };
+  },
+
+  toJSON(message: GetPrivacyPreferencesRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPrivacyPreferencesRequest>, I>>(
+    base?: I
+  ): GetPrivacyPreferencesRequest {
+    return GetPrivacyPreferencesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPrivacyPreferencesRequest>, I>>(
+    object: I
+  ): GetPrivacyPreferencesRequest {
+    const message = createBaseGetPrivacyPreferencesRequest();
+    message.userId = object.userId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseGetPrivacyPreferencesResponse(): GetPrivacyPreferencesResponse {
+  return { preferences: undefined };
+}
+
+export const GetPrivacyPreferencesResponse: MessageFns<GetPrivacyPreferencesResponse> = {
+  encode(
+    message: GetPrivacyPreferencesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.preferences !== undefined) {
+      PrivacyPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetPrivacyPreferencesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetPrivacyPreferencesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.preferences = PrivacyPreferences.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetPrivacyPreferencesResponse {
+    return {
+      preferences: isSet(object.preferences)
+        ? PrivacyPreferences.fromJSON(object.preferences)
+        : undefined,
+    };
+  },
+
+  toJSON(message: GetPrivacyPreferencesResponse): unknown {
+    const obj: any = {};
+    if (message.preferences !== undefined) {
+      obj.preferences = PrivacyPreferences.toJSON(message.preferences);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetPrivacyPreferencesResponse>, I>>(
+    base?: I
+  ): GetPrivacyPreferencesResponse {
+    return GetPrivacyPreferencesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetPrivacyPreferencesResponse>, I>>(
+    object: I
+  ): GetPrivacyPreferencesResponse {
+    const message = createBaseGetPrivacyPreferencesResponse();
+    message.preferences =
+      object.preferences !== undefined && object.preferences !== null
+        ? PrivacyPreferences.fromPartial(object.preferences)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseUpdatePrivacyPreferencesRequest(): UpdatePrivacyPreferencesRequest {
+  return {
+    userId: undefined,
+    profileVisibility: 0,
+    showLastSeen: undefined,
+    showLocation: undefined,
+    allowSearchIndexing: undefined,
+    allowDataExport: undefined,
+  };
+}
+
+export const UpdatePrivacyPreferencesRequest: MessageFns<UpdatePrivacyPreferencesRequest> = {
+  encode(
+    message: UpdatePrivacyPreferencesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.profileVisibility !== 0) {
+      writer.uint32(16).int32(message.profileVisibility);
+    }
+    if (message.showLastSeen !== undefined) {
+      writer.uint32(24).bool(message.showLastSeen);
+    }
+    if (message.showLocation !== undefined) {
+      writer.uint32(32).bool(message.showLocation);
+    }
+    if (message.allowSearchIndexing !== undefined) {
+      writer.uint32(40).bool(message.allowSearchIndexing);
+    }
+    if (message.allowDataExport !== undefined) {
+      writer.uint32(48).bool(message.allowDataExport);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdatePrivacyPreferencesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdatePrivacyPreferencesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.profileVisibility = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.showLastSeen = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.showLocation = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.allowSearchIndexing = reader.bool();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.allowDataExport = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdatePrivacyPreferencesRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+      profileVisibility: isSet(object.profileVisibility)
+        ? profileVisibilityFromJSON(object.profileVisibility)
+        : isSet(object.profile_visibility)
+          ? profileVisibilityFromJSON(object.profile_visibility)
+          : 0,
+      showLastSeen: isSet(object.showLastSeen)
+        ? globalThis.Boolean(object.showLastSeen)
+        : isSet(object.show_last_seen)
+          ? globalThis.Boolean(object.show_last_seen)
+          : undefined,
+      showLocation: isSet(object.showLocation)
+        ? globalThis.Boolean(object.showLocation)
+        : isSet(object.show_location)
+          ? globalThis.Boolean(object.show_location)
+          : undefined,
+      allowSearchIndexing: isSet(object.allowSearchIndexing)
+        ? globalThis.Boolean(object.allowSearchIndexing)
+        : isSet(object.allow_search_indexing)
+          ? globalThis.Boolean(object.allow_search_indexing)
+          : undefined,
+      allowDataExport: isSet(object.allowDataExport)
+        ? globalThis.Boolean(object.allowDataExport)
+        : isSet(object.allow_data_export)
+          ? globalThis.Boolean(object.allow_data_export)
+          : undefined,
+    };
+  },
+
+  toJSON(message: UpdatePrivacyPreferencesRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    if (message.profileVisibility !== 0) {
+      obj.profileVisibility = profileVisibilityToJSON(message.profileVisibility);
+    }
+    if (message.showLastSeen !== undefined) {
+      obj.showLastSeen = message.showLastSeen;
+    }
+    if (message.showLocation !== undefined) {
+      obj.showLocation = message.showLocation;
+    }
+    if (message.allowSearchIndexing !== undefined) {
+      obj.allowSearchIndexing = message.allowSearchIndexing;
+    }
+    if (message.allowDataExport !== undefined) {
+      obj.allowDataExport = message.allowDataExport;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdatePrivacyPreferencesRequest>, I>>(
+    base?: I
+  ): UpdatePrivacyPreferencesRequest {
+    return UpdatePrivacyPreferencesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdatePrivacyPreferencesRequest>, I>>(
+    object: I
+  ): UpdatePrivacyPreferencesRequest {
+    const message = createBaseUpdatePrivacyPreferencesRequest();
+    message.userId = object.userId ?? undefined;
+    message.profileVisibility = object.profileVisibility ?? 0;
+    message.showLastSeen = object.showLastSeen ?? undefined;
+    message.showLocation = object.showLocation ?? undefined;
+    message.allowSearchIndexing = object.allowSearchIndexing ?? undefined;
+    message.allowDataExport = object.allowDataExport ?? undefined;
+    return message;
+  },
+};
+
+function createBaseUpdatePrivacyPreferencesResponse(): UpdatePrivacyPreferencesResponse {
+  return { preferences: undefined };
+}
+
+export const UpdatePrivacyPreferencesResponse: MessageFns<UpdatePrivacyPreferencesResponse> = {
+  encode(
+    message: UpdatePrivacyPreferencesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.preferences !== undefined) {
+      PrivacyPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdatePrivacyPreferencesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdatePrivacyPreferencesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.preferences = PrivacyPreferences.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdatePrivacyPreferencesResponse {
+    return {
+      preferences: isSet(object.preferences)
+        ? PrivacyPreferences.fromJSON(object.preferences)
+        : undefined,
+    };
+  },
+
+  toJSON(message: UpdatePrivacyPreferencesResponse): unknown {
+    const obj: any = {};
+    if (message.preferences !== undefined) {
+      obj.preferences = PrivacyPreferences.toJSON(message.preferences);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdatePrivacyPreferencesResponse>, I>>(
+    base?: I
+  ): UpdatePrivacyPreferencesResponse {
+    return UpdatePrivacyPreferencesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdatePrivacyPreferencesResponse>, I>>(
+    object: I
+  ): UpdatePrivacyPreferencesResponse {
+    const message = createBaseUpdatePrivacyPreferencesResponse();
+    message.preferences =
+      object.preferences !== undefined && object.preferences !== null
+        ? PrivacyPreferences.fromPartial(object.preferences)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseResetPrivacyPreferencesRequest(): ResetPrivacyPreferencesRequest {
+  return { userId: undefined };
+}
+
+export const ResetPrivacyPreferencesRequest: MessageFns<ResetPrivacyPreferencesRequest> = {
+  encode(
+    message: ResetPrivacyPreferencesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ResetPrivacyPreferencesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseResetPrivacyPreferencesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ResetPrivacyPreferencesRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+    };
+  },
+
+  toJSON(message: ResetPrivacyPreferencesRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ResetPrivacyPreferencesRequest>, I>>(
+    base?: I
+  ): ResetPrivacyPreferencesRequest {
+    return ResetPrivacyPreferencesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ResetPrivacyPreferencesRequest>, I>>(
+    object: I
+  ): ResetPrivacyPreferencesRequest {
+    const message = createBaseResetPrivacyPreferencesRequest();
+    message.userId = object.userId ?? undefined;
+    return message;
+  },
+};
+
+function createBaseResetPrivacyPreferencesResponse(): ResetPrivacyPreferencesResponse {
+  return { preferences: undefined };
+}
+
+export const ResetPrivacyPreferencesResponse: MessageFns<ResetPrivacyPreferencesResponse> = {
+  encode(
+    message: ResetPrivacyPreferencesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.preferences !== undefined) {
+      PrivacyPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ResetPrivacyPreferencesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseResetPrivacyPreferencesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.preferences = PrivacyPreferences.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ResetPrivacyPreferencesResponse {
+    return {
+      preferences: isSet(object.preferences)
+        ? PrivacyPreferences.fromJSON(object.preferences)
+        : undefined,
+    };
+  },
+
+  toJSON(message: ResetPrivacyPreferencesResponse): unknown {
+    const obj: any = {};
+    if (message.preferences !== undefined) {
+      obj.preferences = PrivacyPreferences.toJSON(message.preferences);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ResetPrivacyPreferencesResponse>, I>>(
+    base?: I
+  ): ResetPrivacyPreferencesResponse {
+    return ResetPrivacyPreferencesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ResetPrivacyPreferencesResponse>, I>>(
+    object: I
+  ): ResetPrivacyPreferencesResponse {
+    const message = createBaseResetPrivacyPreferencesResponse();
+    message.preferences =
+      object.preferences !== undefined && object.preferences !== null
+        ? PrivacyPreferences.fromPartial(object.preferences)
+        : undefined;
+    return message;
+  },
+};
+
 /**
  * AuthService is the gRPC contract for the auth vertical. It owns the
  * `auth.*` schema (User, Role, Permission, RefreshToken, RevokedToken,
@@ -4028,6 +4872,50 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): RevokeSessionResponse =>
       RevokeSessionResponse.decode(value),
   },
+  getPrivacyPreferences: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/GetPrivacyPreferences' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetPrivacyPreferencesRequest): Buffer =>
+      Buffer.from(GetPrivacyPreferencesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetPrivacyPreferencesRequest =>
+      GetPrivacyPreferencesRequest.decode(value),
+    responseSerialize: (value: GetPrivacyPreferencesResponse): Buffer =>
+      Buffer.from(GetPrivacyPreferencesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetPrivacyPreferencesResponse =>
+      GetPrivacyPreferencesResponse.decode(value),
+  },
+  updatePrivacyPreferences: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/UpdatePrivacyPreferences' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdatePrivacyPreferencesRequest): Buffer =>
+      Buffer.from(UpdatePrivacyPreferencesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdatePrivacyPreferencesRequest =>
+      UpdatePrivacyPreferencesRequest.decode(value),
+    responseSerialize: (value: UpdatePrivacyPreferencesResponse): Buffer =>
+      Buffer.from(UpdatePrivacyPreferencesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdatePrivacyPreferencesResponse =>
+      UpdatePrivacyPreferencesResponse.decode(value),
+  },
+  /**
+   * Destroy + recreate the row so the table-level defaults are the
+   * single source of truth for "factory settings". Returns the freshly
+   * created defaults row.
+   */
+  resetPrivacyPreferences: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ResetPrivacyPreferences' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ResetPrivacyPreferencesRequest): Buffer =>
+      Buffer.from(ResetPrivacyPreferencesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ResetPrivacyPreferencesRequest =>
+      ResetPrivacyPreferencesRequest.decode(value),
+    responseSerialize: (value: ResetPrivacyPreferencesResponse): Buffer =>
+      Buffer.from(ResetPrivacyPreferencesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ResetPrivacyPreferencesResponse =>
+      ResetPrivacyPreferencesResponse.decode(value),
+  },
 } as const;
 
 export interface AuthServiceServer extends UntypedServiceImplementation {
@@ -4116,6 +5004,23 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * (no cross-user session enumeration).
    */
   revokeSession: handleUnaryCall<RevokeSessionRequest, RevokeSessionResponse>;
+  getPrivacyPreferences: handleUnaryCall<
+    GetPrivacyPreferencesRequest,
+    GetPrivacyPreferencesResponse
+  >;
+  updatePrivacyPreferences: handleUnaryCall<
+    UpdatePrivacyPreferencesRequest,
+    UpdatePrivacyPreferencesResponse
+  >;
+  /**
+   * Destroy + recreate the row so the table-level defaults are the
+   * single source of truth for "factory settings". Returns the freshly
+   * created defaults row.
+   */
+  resetPrivacyPreferences: handleUnaryCall<
+    ResetPrivacyPreferencesRequest,
+    ResetPrivacyPreferencesResponse
+  >;
 }
 
 export interface AuthServiceClient extends Client {
@@ -4413,6 +5318,56 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: RevokeSessionResponse) => void
+  ): ClientUnaryCall;
+  getPrivacyPreferences(
+    request: GetPrivacyPreferencesRequest,
+    callback: (error: ServiceError | null, response: GetPrivacyPreferencesResponse) => void
+  ): ClientUnaryCall;
+  getPrivacyPreferences(
+    request: GetPrivacyPreferencesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetPrivacyPreferencesResponse) => void
+  ): ClientUnaryCall;
+  getPrivacyPreferences(
+    request: GetPrivacyPreferencesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetPrivacyPreferencesResponse) => void
+  ): ClientUnaryCall;
+  updatePrivacyPreferences(
+    request: UpdatePrivacyPreferencesRequest,
+    callback: (error: ServiceError | null, response: UpdatePrivacyPreferencesResponse) => void
+  ): ClientUnaryCall;
+  updatePrivacyPreferences(
+    request: UpdatePrivacyPreferencesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdatePrivacyPreferencesResponse) => void
+  ): ClientUnaryCall;
+  updatePrivacyPreferences(
+    request: UpdatePrivacyPreferencesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdatePrivacyPreferencesResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Destroy + recreate the row so the table-level defaults are the
+   * single source of truth for "factory settings". Returns the freshly
+   * created defaults row.
+   */
+  resetPrivacyPreferences(
+    request: ResetPrivacyPreferencesRequest,
+    callback: (error: ServiceError | null, response: ResetPrivacyPreferencesResponse) => void
+  ): ClientUnaryCall;
+  resetPrivacyPreferences(
+    request: ResetPrivacyPreferencesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ResetPrivacyPreferencesResponse) => void
+  ): ClientUnaryCall;
+  resetPrivacyPreferences(
+    request: ResetPrivacyPreferencesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ResetPrivacyPreferencesResponse) => void
   ): ClientUnaryCall;
 }
 
