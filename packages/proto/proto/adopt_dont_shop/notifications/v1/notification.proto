@@ -65,6 +65,11 @@ service NotificationService {
   rpc UpdateNotificationPreferences(UpdateNotificationPreferencesRequest)
       returns (UpdateNotificationPreferencesResponse);
 
+  // Destroy + recreate so the table-level defaults are the single
+  // source of truth for "factory settings". Idempotent.
+  rpc ResetNotificationPreferences(ResetNotificationPreferencesRequest)
+      returns (ResetNotificationPreferencesResponse);
+
   // --- Email queue ----------------------------------------------------
   // Phase 7 round-out. The service owns the email_queue table; other
   // services (auth, applications, chat) call SendEmail to enqueue a
@@ -621,5 +626,13 @@ message UpdateNotificationPreferencesRequest {
 }
 
 message UpdateNotificationPreferencesResponse {
+  NotificationPreferences preferences = 1;
+}
+
+message ResetNotificationPreferencesRequest {
+  optional string user_id = 1;
+}
+
+message ResetNotificationPreferencesResponse {
   NotificationPreferences preferences = 1;
 }

@@ -38,6 +38,8 @@ import {
   type UnregisterDeviceTokenResponse,
   type UpdateNotificationPreferencesRequest,
   type UpdateNotificationPreferencesResponse,
+  type ResetNotificationPreferencesRequest,
+  type ResetNotificationPreferencesResponse,
 } from '@adopt-dont-shop/proto';
 
 export type NotificationsClient = {
@@ -77,6 +79,10 @@ export type NotificationsClient = {
     req: UpdateNotificationPreferencesRequest,
     metadata: Metadata
   ): Promise<UpdateNotificationPreferencesResponse>;
+  resetNotificationPreferences(
+    req: ResetNotificationPreferencesRequest,
+    metadata: Metadata
+  ): Promise<ResetNotificationPreferencesResponse>;
   close(): void;
 };
 
@@ -126,6 +132,8 @@ export const createNotificationsClient = (
       callUnary(stub.getNotificationPreferences, req, metadata),
     updateNotificationPreferences: (req, metadata) =>
       callUnary(stub.updateNotificationPreferences, req, metadata),
+    resetNotificationPreferences: (req, metadata) =>
+      callUnary(stub.resetNotificationPreferences, req, metadata),
     close: () => stub.close(),
   };
 };

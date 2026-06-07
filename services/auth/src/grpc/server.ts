@@ -37,6 +37,11 @@ import {
   validateToken,
   type HandlerDeps,
 } from './handlers.js';
+import {
+  getPrivacyPreferences,
+  resetPrivacyPreferences,
+  updatePrivacyPreferences,
+} from './privacy-prefs-handlers.js';
 import { listSessions, revokeSession } from './session-handlers.js';
 
 export type CreateGrpcServerOptions = {
@@ -80,6 +85,11 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     // Session management — list active refresh-token chains + revoke.
     listSessions: adapt(listSessions, { deps, logger }),
     revokeSession: adapt(revokeSession, { deps, logger }),
+    // Privacy preferences — 1:1 with users; gateway composes these with
+    // notifications.user_notification_prefs for the unified API.
+    getPrivacyPreferences: adapt(getPrivacyPreferences, { deps, logger }),
+    updatePrivacyPreferences: adapt(updatePrivacyPreferences, { deps, logger }),
+    resetPrivacyPreferences: adapt(resetPrivacyPreferences, { deps, logger }),
   });
 
   logger.info('gRPC AuthService registered', {
@@ -99,6 +109,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'updateAccount',
       'listSessions',
       'revokeSession',
+      'getPrivacyPreferences',
+      'updatePrivacyPreferences',
+      'resetPrivacyPreferences',
     ],
     grpcPort: config.grpcPort,
   });

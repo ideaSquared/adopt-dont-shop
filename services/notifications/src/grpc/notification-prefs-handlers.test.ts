@@ -12,6 +12,7 @@ import {
   getNotificationPreferences,
   getUnreadCount,
   markAllRead,
+  resetNotificationPreferences,
   updateNotificationPreferences,
 } from './notification-prefs-handlers.js';
 
@@ -471,6 +472,41 @@ describe('updateNotificationPreferences', () => {
         userId: 'usr-other',
         emailEnabled: false,
       })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+});
+
+// --- resetNotificationPreferences ------------------------------------
+
+describe('resetNotificationPreferences', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects principals without notifications.prefs.update', async () => {
+    await expect(resetNotificationPreferences(mocks.deps, NO_PERMS, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('deletes + inserts defaults inside withTransaction, publishes once', async () => {
+    mocks.clientScript.push({ rows: [] }); // DELETE
+    mocks.clientScript.push({ rows: [prefsRow()] }); // INSERT RETURNING
+
+    const res = await resetNotificationPreferences(mocks.deps, ADOPTER, {});
+
+    expect(res.preferences?.userId).toBe('usr-adopter');
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('notifications.prefsReset');
+  });
+
+  it('rejects cross-user reset without :any', async () => {
+    await expect(
+      resetNotificationPreferences(mocks.deps, ADOPTER, { userId: 'usr-other' })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 });
