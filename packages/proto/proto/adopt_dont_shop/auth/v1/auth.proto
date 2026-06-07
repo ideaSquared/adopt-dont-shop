@@ -147,6 +147,16 @@ service AuthService {
   // Platform-wide user counts + breakdowns for the admin dashboard.
   // admin.users.read.
   rpc GetUserStatistics(GetUserStatisticsRequest) returns (GetUserStatisticsResponse);
+
+  // Flattened permission strings for a target user (role-derived).
+  // admin.users.read.
+  rpc GetUserPermissions(GetUserPermissionsRequest) returns (GetUserPermissionsResponse);
+
+  // Bulk status / user_type update across many user ids. Per-id results
+  // so the admin UI can retry the failures. admin.users.bulk_update.
+  // Refuses self-inclusion on a user_type change and refuses super_admin
+  // assignment from a non-super_admin actor.
+  rpc BulkUpdateUsers(BulkUpdateUsersRequest) returns (BulkUpdateUsersResponse);
 }
 
 // --- Shared messages --------------------------------------------------
@@ -594,4 +604,36 @@ message GetUserStatisticsResponse {
   uint32 new_this_month = 3;
   repeated UserStatusCount by_status = 4;
   repeated UserTypeCount by_type = 5;
+}
+
+// --- GetUserPermissions ----------------------------------------------
+
+message GetUserPermissionsRequest {
+  string user_id = 1;
+}
+
+message GetUserPermissionsResponse {
+  repeated string permissions = 1;
+}
+
+// --- BulkUpdateUsers -------------------------------------------------
+
+message BulkUpdateUsersRequest {
+  repeated string user_ids = 1;
+  // Only set fields are written to every targeted row.
+  UserStatus status = 2;
+  UserRole user_type = 3;
+  optional string reason = 4;
+}
+
+message BulkUpdateUserResult {
+  string user_id = 1;
+  bool success = 2;
+  optional string error = 3;
+}
+
+message BulkUpdateUsersResponse {
+  uint32 success_count = 1;
+  uint32 failed_count = 2;
+  repeated BulkUpdateUserResult results = 3;
 }

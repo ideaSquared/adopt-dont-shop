@@ -9,7 +9,9 @@ import { AuthV1 } from '@adopt-dont-shop/proto';
 import {
   adminGetUser,
   adminUpdateUser,
+  bulkUpdateUsers,
   deactivateUser,
+  getUserPermissions,
   getUserStatistics,
   reactivateUser,
   searchUsers,
@@ -27,6 +29,7 @@ const ADMIN: Principal = {
     'admin.users.update' as Permission,
     'admin.users.deactivate' as Permission,
     'admin.users.reactivate' as Permission,
+    'admin.users.bulk_update' as Permission,
   ],
 };
 
@@ -334,5 +337,106 @@ describe('getUserStatistics', () => {
     expect(res.byType).toHaveLength(2);
     const adopter = res.byType.find(t => t.userType === AuthV1.UserRole.USER_ROLE_ADOPTER);
     expect(adopter?.count).toBe(90);
+  });
+});
+
+// --- getUserPermissions ----------------------------------------------
+
+describe('getUserPermissions', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects without admin.users.read', async () => {
+    await expect(
+      getUserPermissions(mocks.deps, NO_PERMS, { userId: 'usr-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns the flattened permission set via loadPrincipal', async () => {
+    // loadPrincipal: user_type lookup, extra roles, permissions.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'admin' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ name: 'pets.read' }, { name: 'pets.update' }],
+    });
+
+    const res = await getUserPermissions(mocks.deps, ADMIN, { userId: 'usr-1' });
+    expect(res.permissions).toEqual(['pets.read', 'pets.update']);
+  });
+});
+
+// --- bulkUpdateUsers -------------------------------------------------
+
+describe('bulkUpdateUsers', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects without admin.users.bulk_update', async () => {
+    await expect(
+      bulkUpdateUsers(mocks.deps, NO_PERMS, {
+        userIds: ['usr-1'],
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects an empty user_ids list', async () => {
+    await expect(
+      bulkUpdateUsers(mocks.deps, ADMIN, {
+        userIds: [],
+        status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects when neither status nor user_type is set', async () => {
+    await expect(bulkUpdateUsers(mocks.deps, ADMIN, { userIds: ['usr-1'] })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('refuses to change your own role via the bulk path', async () => {
+    await expect(
+      bulkUpdateUsers(mocks.deps, ADMIN, {
+        userIds: ['svc-admin', 'usr-2'],
+        userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('refuses super_admin assignment from a non-super_admin actor', async () => {
+    await expect(
+      bulkUpdateUsers(mocks.deps, ADMIN, {
+        userIds: ['usr-2'],
+        userType: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns per-id results — one success, one not-found', async () => {
+    // First id: UPDATE returns a row. Second id: UPDATE returns none.
+    mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] });
+    mocks.clientScript.push({ rows: [] });
+
+    const res = await bulkUpdateUsers(mocks.deps, ADMIN, {
+      userIds: ['usr-1', 'usr-missing'],
+      status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+    });
+
+    expect(res.successCount).toBe(1);
+    expect(res.failedCount).toBe(1);
+    expect(res.results.find(r => r.userId === 'usr-1')?.success).toBe(true);
+    expect(res.results.find(r => r.userId === 'usr-missing')?.success).toBe(false);
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
   });
 });

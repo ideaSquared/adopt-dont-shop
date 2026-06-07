@@ -40,7 +40,9 @@ import {
 import {
   adminGetUser,
   adminUpdateUser,
+  bulkUpdateUsers,
   deactivateUser,
+  getUserPermissions,
   getUserStatistics,
   reactivateUser,
   searchUsers,
@@ -105,6 +107,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     deactivateUser: adapt(deactivateUser, { deps, logger }),
     reactivateUser: adapt(reactivateUser, { deps, logger }),
     getUserStatistics: adapt(getUserStatistics, { deps, logger }),
+    getUserPermissions: adapt(getUserPermissions, { deps, logger }),
+    bulkUpdateUsers: adapt(bulkUpdateUsers, { deps, logger }),
   });
 
   logger.info('gRPC AuthService registered', {
@@ -133,6 +137,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'deactivateUser',
       'reactivateUser',
       'getUserStatistics',
+      'getUserPermissions',
+      'bulkUpdateUsers',
     ],
     grpcPort: config.grpcPort,
   });

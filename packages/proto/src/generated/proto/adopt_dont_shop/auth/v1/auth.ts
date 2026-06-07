@@ -636,6 +636,34 @@ export interface GetUserStatisticsResponse {
   byType: UserTypeCount[];
 }
 
+export interface GetUserPermissionsRequest {
+  userId: string;
+}
+
+export interface GetUserPermissionsResponse {
+  permissions: string[];
+}
+
+export interface BulkUpdateUsersRequest {
+  userIds: string[];
+  /** Only set fields are written to every targeted row. */
+  status: UserStatus;
+  userType: UserRole;
+  reason?: string | undefined;
+}
+
+export interface BulkUpdateUserResult {
+  userId: string;
+  success: boolean;
+  error?: string | undefined;
+}
+
+export interface BulkUpdateUsersResponse {
+  successCount: number;
+  failedCount: number;
+  results: BulkUpdateUserResult[];
+}
+
 function createBasePrincipal(): Principal {
   return { userId: '', roles: [], permissions: [], rescueId: undefined };
 }
@@ -6035,6 +6063,473 @@ export const GetUserStatisticsResponse: MessageFns<GetUserStatisticsResponse> = 
   },
 };
 
+function createBaseGetUserPermissionsRequest(): GetUserPermissionsRequest {
+  return { userId: '' };
+}
+
+export const GetUserPermissionsRequest: MessageFns<GetUserPermissionsRequest> = {
+  encode(
+    message: GetUserPermissionsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserPermissionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserPermissionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUserPermissionsRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetUserPermissionsRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserPermissionsRequest>, I>>(
+    base?: I
+  ): GetUserPermissionsRequest {
+    return GetUserPermissionsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserPermissionsRequest>, I>>(
+    object: I
+  ): GetUserPermissionsRequest {
+    const message = createBaseGetUserPermissionsRequest();
+    message.userId = object.userId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetUserPermissionsResponse(): GetUserPermissionsResponse {
+  return { permissions: [] };
+}
+
+export const GetUserPermissionsResponse: MessageFns<GetUserPermissionsResponse> = {
+  encode(
+    message: GetUserPermissionsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.permissions) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetUserPermissionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetUserPermissionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.permissions.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetUserPermissionsResponse {
+    return {
+      permissions: globalThis.Array.isArray(object?.permissions)
+        ? object.permissions.map((e: any) => globalThis.String(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetUserPermissionsResponse): unknown {
+    const obj: any = {};
+    if (message.permissions?.length) {
+      obj.permissions = message.permissions;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetUserPermissionsResponse>, I>>(
+    base?: I
+  ): GetUserPermissionsResponse {
+    return GetUserPermissionsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetUserPermissionsResponse>, I>>(
+    object: I
+  ): GetUserPermissionsResponse {
+    const message = createBaseGetUserPermissionsResponse();
+    message.permissions = object.permissions?.map(e => e) || [];
+    return message;
+  },
+};
+
+function createBaseBulkUpdateUsersRequest(): BulkUpdateUsersRequest {
+  return { userIds: [], status: 0, userType: 0, reason: undefined };
+}
+
+export const BulkUpdateUsersRequest: MessageFns<BulkUpdateUsersRequest> = {
+  encode(message: BulkUpdateUsersRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.userIds) {
+      writer.uint32(10).string(v!);
+    }
+    if (message.status !== 0) {
+      writer.uint32(16).int32(message.status);
+    }
+    if (message.userType !== 0) {
+      writer.uint32(24).int32(message.userType);
+    }
+    if (message.reason !== undefined) {
+      writer.uint32(34).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BulkUpdateUsersRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBulkUpdateUsersRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userIds.push(reader.string());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.userType = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BulkUpdateUsersRequest {
+    return {
+      userIds: globalThis.Array.isArray(object?.userIds)
+        ? object.userIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.user_ids)
+          ? object.user_ids.map((e: any) => globalThis.String(e))
+          : [],
+      status: isSet(object.status) ? userStatusFromJSON(object.status) : 0,
+      userType: isSet(object.userType)
+        ? userRoleFromJSON(object.userType)
+        : isSet(object.user_type)
+          ? userRoleFromJSON(object.user_type)
+          : 0,
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
+    };
+  },
+
+  toJSON(message: BulkUpdateUsersRequest): unknown {
+    const obj: any = {};
+    if (message.userIds?.length) {
+      obj.userIds = message.userIds;
+    }
+    if (message.status !== 0) {
+      obj.status = userStatusToJSON(message.status);
+    }
+    if (message.userType !== 0) {
+      obj.userType = userRoleToJSON(message.userType);
+    }
+    if (message.reason !== undefined) {
+      obj.reason = message.reason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BulkUpdateUsersRequest>, I>>(
+    base?: I
+  ): BulkUpdateUsersRequest {
+    return BulkUpdateUsersRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BulkUpdateUsersRequest>, I>>(
+    object: I
+  ): BulkUpdateUsersRequest {
+    const message = createBaseBulkUpdateUsersRequest();
+    message.userIds = object.userIds?.map(e => e) || [];
+    message.status = object.status ?? 0;
+    message.userType = object.userType ?? 0;
+    message.reason = object.reason ?? undefined;
+    return message;
+  },
+};
+
+function createBaseBulkUpdateUserResult(): BulkUpdateUserResult {
+  return { userId: '', success: false, error: undefined };
+}
+
+export const BulkUpdateUserResult: MessageFns<BulkUpdateUserResult> = {
+  encode(message: BulkUpdateUserResult, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.success !== false) {
+      writer.uint32(16).bool(message.success);
+    }
+    if (message.error !== undefined) {
+      writer.uint32(26).string(message.error);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BulkUpdateUserResult {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBulkUpdateUserResult();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.success = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.error = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BulkUpdateUserResult {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
+      error: isSet(object.error) ? globalThis.String(object.error) : undefined,
+    };
+  },
+
+  toJSON(message: BulkUpdateUserResult): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.success !== false) {
+      obj.success = message.success;
+    }
+    if (message.error !== undefined) {
+      obj.error = message.error;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BulkUpdateUserResult>, I>>(base?: I): BulkUpdateUserResult {
+    return BulkUpdateUserResult.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BulkUpdateUserResult>, I>>(
+    object: I
+  ): BulkUpdateUserResult {
+    const message = createBaseBulkUpdateUserResult();
+    message.userId = object.userId ?? '';
+    message.success = object.success ?? false;
+    message.error = object.error ?? undefined;
+    return message;
+  },
+};
+
+function createBaseBulkUpdateUsersResponse(): BulkUpdateUsersResponse {
+  return { successCount: 0, failedCount: 0, results: [] };
+}
+
+export const BulkUpdateUsersResponse: MessageFns<BulkUpdateUsersResponse> = {
+  encode(
+    message: BulkUpdateUsersResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.successCount !== 0) {
+      writer.uint32(8).uint32(message.successCount);
+    }
+    if (message.failedCount !== 0) {
+      writer.uint32(16).uint32(message.failedCount);
+    }
+    for (const v of message.results) {
+      BulkUpdateUserResult.encode(v!, writer.uint32(26).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BulkUpdateUsersResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBulkUpdateUsersResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.successCount = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.failedCount = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.results.push(BulkUpdateUserResult.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BulkUpdateUsersResponse {
+    return {
+      successCount: isSet(object.successCount)
+        ? globalThis.Number(object.successCount)
+        : isSet(object.success_count)
+          ? globalThis.Number(object.success_count)
+          : 0,
+      failedCount: isSet(object.failedCount)
+        ? globalThis.Number(object.failedCount)
+        : isSet(object.failed_count)
+          ? globalThis.Number(object.failed_count)
+          : 0,
+      results: globalThis.Array.isArray(object?.results)
+        ? object.results.map((e: any) => BulkUpdateUserResult.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: BulkUpdateUsersResponse): unknown {
+    const obj: any = {};
+    if (message.successCount !== 0) {
+      obj.successCount = Math.round(message.successCount);
+    }
+    if (message.failedCount !== 0) {
+      obj.failedCount = Math.round(message.failedCount);
+    }
+    if (message.results?.length) {
+      obj.results = message.results.map(e => BulkUpdateUserResult.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BulkUpdateUsersResponse>, I>>(
+    base?: I
+  ): BulkUpdateUsersResponse {
+    return BulkUpdateUsersResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BulkUpdateUsersResponse>, I>>(
+    object: I
+  ): BulkUpdateUsersResponse {
+    const message = createBaseBulkUpdateUsersResponse();
+    message.successCount = object.successCount ?? 0;
+    message.failedCount = object.failedCount ?? 0;
+    message.results = object.results?.map(e => BulkUpdateUserResult.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * AuthService is the gRPC contract for the auth vertical. It owns the
  * `auth.*` schema (User, Role, Permission, RefreshToken, RevokedToken,
@@ -6438,6 +6933,42 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): GetUserStatisticsResponse =>
       GetUserStatisticsResponse.decode(value),
   },
+  /**
+   * Flattened permission strings for a target user (role-derived).
+   * admin.users.read.
+   */
+  getUserPermissions: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/GetUserPermissions' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetUserPermissionsRequest): Buffer =>
+      Buffer.from(GetUserPermissionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetUserPermissionsRequest =>
+      GetUserPermissionsRequest.decode(value),
+    responseSerialize: (value: GetUserPermissionsResponse): Buffer =>
+      Buffer.from(GetUserPermissionsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetUserPermissionsResponse =>
+      GetUserPermissionsResponse.decode(value),
+  },
+  /**
+   * Bulk status / user_type update across many user ids. Per-id results
+   * so the admin UI can retry the failures. admin.users.bulk_update.
+   * Refuses self-inclusion on a user_type change and refuses super_admin
+   * assignment from a non-super_admin actor.
+   */
+  bulkUpdateUsers: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/BulkUpdateUsers' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: BulkUpdateUsersRequest): Buffer =>
+      Buffer.from(BulkUpdateUsersRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): BulkUpdateUsersRequest =>
+      BulkUpdateUsersRequest.decode(value),
+    responseSerialize: (value: BulkUpdateUsersResponse): Buffer =>
+      Buffer.from(BulkUpdateUsersResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): BulkUpdateUsersResponse =>
+      BulkUpdateUsersResponse.decode(value),
+  },
 } as const;
 
 export interface AuthServiceServer extends UntypedServiceImplementation {
@@ -6568,6 +7099,18 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * admin.users.read.
    */
   getUserStatistics: handleUnaryCall<GetUserStatisticsRequest, GetUserStatisticsResponse>;
+  /**
+   * Flattened permission strings for a target user (role-derived).
+   * admin.users.read.
+   */
+  getUserPermissions: handleUnaryCall<GetUserPermissionsRequest, GetUserPermissionsResponse>;
+  /**
+   * Bulk status / user_type update across many user ids. Per-id results
+   * so the admin UI can retry the failures. admin.users.bulk_update.
+   * Refuses self-inclusion on a user_type change and refuses super_admin
+   * assignment from a non-super_admin actor.
+   */
+  bulkUpdateUsers: handleUnaryCall<BulkUpdateUsersRequest, BulkUpdateUsersResponse>;
 }
 
 export interface AuthServiceClient extends Client {
@@ -7024,6 +7567,46 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetUserStatisticsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Flattened permission strings for a target user (role-derived).
+   * admin.users.read.
+   */
+  getUserPermissions(
+    request: GetUserPermissionsRequest,
+    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void
+  ): ClientUnaryCall;
+  getUserPermissions(
+    request: GetUserPermissionsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void
+  ): ClientUnaryCall;
+  getUserPermissions(
+    request: GetUserPermissionsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetUserPermissionsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Bulk status / user_type update across many user ids. Per-id results
+   * so the admin UI can retry the failures. admin.users.bulk_update.
+   * Refuses self-inclusion on a user_type change and refuses super_admin
+   * assignment from a non-super_admin actor.
+   */
+  bulkUpdateUsers(
+    request: BulkUpdateUsersRequest,
+    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void
+  ): ClientUnaryCall;
+  bulkUpdateUsers(
+    request: BulkUpdateUsersRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void
+  ): ClientUnaryCall;
+  bulkUpdateUsers(
+    request: BulkUpdateUsersRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void
   ): ClientUnaryCall;
 }
 

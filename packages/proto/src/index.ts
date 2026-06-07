@@ -128,6 +128,10 @@ export type {
   ReactivateUserResponse,
   GetUserStatisticsRequest,
   GetUserStatisticsResponse,
+  GetUserPermissionsRequest,
+  GetUserPermissionsResponse,
+  BulkUpdateUsersRequest,
+  BulkUpdateUsersResponse,
   AuthServiceServer,
   AuthServiceClient,
 } from './generated/proto/adopt_dont_shop/auth/v1/auth.js';

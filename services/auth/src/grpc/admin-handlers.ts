@@ -16,8 +16,12 @@ import {
   type AdminGetUserResponse,
   type AdminUpdateUserRequest,
   type AdminUpdateUserResponse,
+  type BulkUpdateUsersRequest,
+  type BulkUpdateUsersResponse,
   type DeactivateUserRequest,
   type DeactivateUserResponse,
+  type GetUserPermissionsRequest,
+  type GetUserPermissionsResponse,
   type GetUserStatisticsRequest,
   type GetUserStatisticsResponse,
   type ReactivateUserRequest,
@@ -27,7 +31,13 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import { roleToDb, statusFromDb, statusToDb } from './enum-map.js';
-import { HandlerError, rowToProtoUser, type HandlerDeps, type UserRow } from './handlers.js';
+import {
+  HandlerError,
+  loadPrincipal,
+  rowToProtoUser,
+  type HandlerDeps,
+  type UserRow,
+} from './handlers.js';
 
 // --- Permissions -----------------------------------------------------
 
@@ -36,6 +46,7 @@ const ADMIN_USERS_READ: Permission = 'admin.users.read' as Permission;
 const ADMIN_USERS_UPDATE: Permission = 'admin.users.update' as Permission;
 const ADMIN_USERS_DEACTIVATE: Permission = 'admin.users.deactivate' as Permission;
 const ADMIN_USERS_REACTIVATE: Permission = 'admin.users.reactivate' as Permission;
+const ADMIN_USERS_BULK_UPDATE: Permission = 'admin.users.bulk_update' as Permission;
 
 // Columns the admin view selects — same set rowToProtoUser reads.
 const USER_SELECT = `
@@ -375,5 +386,118 @@ export async function getUserStatistics(
       userType: AuthV1.userRoleFromJSON(`USER_ROLE_${r.user_type.toUpperCase()}`),
       count: Number.parseInt(r.count, 10),
     })),
+  };
+}
+
+// --- GetUserPermissions ----------------------------------------------
+
+export async function getUserPermissions(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetUserPermissionsRequest
+): Promise<GetUserPermissionsResponse> {
+  if (!req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
+  }
+  if (!hasPermission(principal, ADMIN_USERS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_USERS_READ}' required`);
+  }
+  // loadPrincipal throws NOT_FOUND for a missing user; reuse its
+  // role + permission aggregation so this RPC stays consistent with
+  // what ValidateToken / GetMe surface.
+  const { permissions } = await loadPrincipal(deps, req.userId);
+  return { permissions: permissions as string[] };
+}
+
+// --- BulkUpdateUsers -------------------------------------------------
+
+export async function bulkUpdateUsers(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: BulkUpdateUsersRequest
+): Promise<BulkUpdateUsersResponse> {
+  if (!hasPermission(principal, ADMIN_USERS_BULK_UPDATE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_USERS_BULK_UPDATE}' required`);
+  }
+  if (!req.userIds || req.userIds.length === 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_ids must be non-empty');
+  }
+
+  const setStatus =
+    req.status !== undefined && req.status !== AuthV1.UserStatus.USER_STATUS_UNSPECIFIED;
+  const setType =
+    req.userType !== undefined && req.userType !== AuthV1.UserRole.USER_ROLE_UNSPECIFIED;
+  if (!setStatus && !setType) {
+    throw new HandlerError('INVALID_ARGUMENT', 'status or user_type is required');
+  }
+
+  // Belt-and-braces protections mirroring the monolith bulkUpdateUsers:
+  //  - cannot change your own user_type via the bulk path
+  //  - only super_admin can grant super_admin
+  if (setType) {
+    if (req.userIds.includes(principal.userId as string)) {
+      throw new HandlerError('PERMISSION_DENIED', 'cannot change your own role via bulk update');
+    }
+    if (
+      req.userType === AuthV1.UserRole.USER_ROLE_SUPER_ADMIN &&
+      !principal.roles.includes('super_admin')
+    ) {
+      throw new HandlerError('PERMISSION_DENIED', 'only super_admin can assign super_admin');
+    }
+  }
+
+  const sets: string[] = [];
+  const baseParams: unknown[] = [];
+  if (setStatus) {
+    sets.push(`status = $${baseParams.length + 1}`);
+    baseParams.push(statusToDb(req.status));
+  }
+  if (setType) {
+    sets.push(`user_type = $${baseParams.length + 1}`);
+    baseParams.push(roleToDb(req.userType));
+  }
+  sets.push('updated_at = now()');
+  sets.push('version = version + 1');
+
+  // Per-id so one failure (missing row) doesn't abort the batch — the
+  // admin UI gets per-id results to retry. Each runs in its own
+  // transaction with the publish riding along after commit.
+  const results: BulkUpdateUsersResponse['results'] = [];
+  for (const userId of req.userIds) {
+    try {
+      await withTransaction(deps, async ({ client, publish }) => {
+        const res = await client.query<{ user_id: string }>(
+          `
+          UPDATE auth.users
+          SET ${sets.join(', ')}
+          WHERE user_id = $${baseParams.length + 1} AND deleted_at IS NULL
+          RETURNING user_id
+          `,
+          [...baseParams, userId]
+        );
+        if (res.rows.length === 0) {
+          throw new HandlerError('NOT_FOUND', 'user not found');
+        }
+        publish({
+          type: 'auth.userUpdatedByAdmin',
+          id: `auth.userUpdatedByAdmin.${userId}.${Date.now()}`,
+          payload: { userId, updatedBy: principal.userId, bulk: true, reason: req.reason ?? null },
+        });
+      });
+      results.push({ userId, success: true });
+    } catch (err) {
+      results.push({
+        userId,
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  const failedCount = results.filter(r => !r.success).length;
+  return {
+    successCount: results.length - failedCount,
+    failedCount,
+    results,
   };
 }

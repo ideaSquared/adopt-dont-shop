@@ -362,6 +362,98 @@ export const registerUsersRoutes = async (
       }
     }
   );
+
+  // POST /api/v1/users/bulk-update — admin bulk status/role change.
+  // POST so it never collides with the GET/PUT /:userId dynamic routes.
+  app.post('/api/v1/users/bulk-update', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const body = (req.body ?? {}) as {
+      userIds?: string[];
+      user_ids?: string[];
+      status?: string;
+      userType?: string;
+      user_type?: string;
+      reason?: string;
+    };
+    try {
+      const res = await authClient.bulkUpdateUsers(
+        {
+          userIds: body.userIds ?? body.user_ids ?? [],
+          status: statusFilterFromString(body.status),
+          userType: userTypeFilterFromString(body.userType ?? body.user_type),
+          reason: body.reason,
+        },
+        metadata
+      );
+      return reply.send({
+        success: true,
+        message: `Updated ${res.successCount} user(s), ${res.failedCount} failed`,
+        data: AuthV1.BulkUpdateUsersResponse.toJSON(res),
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // GET /api/v1/users/:userId/permissions
+  app.get<{ Params: { userId: string } }>(
+    '/api/v1/users/:userId/permissions',
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const res = await authClient.getUserPermissions({ userId: req.params.userId }, metadata);
+        return reply.send({ success: true, data: { permissions: res.permissions } });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /api/v1/users/:userId/with-permissions — composes the admin user
+  // row + their flattened permission set in one round trip.
+  app.get<{ Params: { userId: string } }>(
+    '/api/v1/users/:userId/with-permissions',
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const [user, perms] = await Promise.all([
+          authClient.adminGetUser({ userId: req.params.userId }, metadata),
+          authClient.getUserPermissions({ userId: req.params.userId }, metadata),
+        ]);
+        return reply.send({
+          success: true,
+          data: {
+            ...(AuthV1.User.toJSON(user.user!) as Record<string, unknown>),
+            permissions: perms.permissions,
+          },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // PUT /api/v1/users/:userId/role — change a single user's user_type.
+  // Reuses AdminUpdateUser with only the user_type field set.
+  app.put<{ Params: { userId: string } }>('/api/v1/users/:userId/role', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const body = (req.body ?? {}) as { role?: string; userType?: string; user_type?: string };
+    const grpcReq: AdminUpdateUserRequest = {
+      userId: req.params.userId,
+      status: AuthV1.UserStatus.USER_STATUS_UNSPECIFIED,
+      userType: userTypeFilterFromString(body.role ?? body.userType ?? body.user_type),
+    };
+    try {
+      const res = await authClient.adminUpdateUser(grpcReq, metadata);
+      return reply.send({
+        success: true,
+        message: 'User role updated',
+        data: AuthV1.User.toJSON(res.user!),
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
 };
 
 // --- Enum parsing helpers --------------------------------------------

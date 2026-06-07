@@ -61,6 +61,10 @@ import {
   type ReactivateUserResponse,
   type GetUserStatisticsRequest,
   type GetUserStatisticsResponse,
+  type GetUserPermissionsRequest,
+  type GetUserPermissionsResponse,
+  type BulkUpdateUsersRequest,
+  type BulkUpdateUsersResponse,
 } from '@adopt-dont-shop/proto';
 
 export type AuthClient = {
@@ -106,6 +110,14 @@ export type AuthClient = {
     req: GetUserStatisticsRequest,
     metadata: Metadata
   ): Promise<GetUserStatisticsResponse>;
+  getUserPermissions(
+    req: GetUserPermissionsRequest,
+    metadata: Metadata
+  ): Promise<GetUserPermissionsResponse>;
+  bulkUpdateUsers(
+    req: BulkUpdateUsersRequest,
+    metadata: Metadata
+  ): Promise<BulkUpdateUsersResponse>;
   close(): void;
 };
 
@@ -158,6 +170,8 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     deactivateUser: (req, metadata) => callUnary(stub.deactivateUser, req, metadata),
     reactivateUser: (req, metadata) => callUnary(stub.reactivateUser, req, metadata),
     getUserStatistics: (req, metadata) => callUnary(stub.getUserStatistics, req, metadata),
+    getUserPermissions: (req, metadata) => callUnary(stub.getUserPermissions, req, metadata),
+    bulkUpdateUsers: (req, metadata) => callUnary(stub.bulkUpdateUsers, req, metadata),
     close: () => stub.close(),
   };
 };
