@@ -70,6 +70,13 @@ service NotificationService {
   rpc ResetNotificationPreferences(ResetNotificationPreferencesRequest)
       returns (ResetNotificationPreferencesResponse);
 
+  // Admin-only: soft-delete notifications older than N days (default 30).
+  // Returns the affected row count. Requires `notifications.cleanup`.
+  // Operates on rows where `deleted_at IS NULL` so a re-run is a no-op
+  // for already-cleaned rows.
+  rpc CleanupExpiredNotifications(CleanupExpiredNotificationsRequest)
+      returns (CleanupExpiredNotificationsResponse);
+
   // --- Email queue ----------------------------------------------------
   // Phase 7 round-out. The service owns the email_queue table; other
   // services (auth, applications, chat) call SendEmail to enqueue a
@@ -635,4 +642,18 @@ message ResetNotificationPreferencesRequest {
 
 message ResetNotificationPreferencesResponse {
   NotificationPreferences preferences = 1;
+}
+
+// --- CleanupExpiredNotifications ------------------------------------
+
+message CleanupExpiredNotificationsRequest {
+  // Number of days of history to keep — anything older gets soft-
+  // deleted. Server enforces 1..3650 (10 years). Defaults to 30 when
+  // unset (treated as 0 here → DEFAULT).
+  uint32 days_to_keep = 1;
+}
+
+message CleanupExpiredNotificationsResponse {
+  // Number of rows that transitioned from kept → soft-deleted.
+  uint32 deleted_count = 1;
 }

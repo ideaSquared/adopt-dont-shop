@@ -42,6 +42,7 @@ function makeClient(): NotificationsClient & {
   deleteNotificationMock: ReturnType<typeof vi.fn>;
   getNotificationPreferencesMock: ReturnType<typeof vi.fn>;
   updateNotificationPreferencesMock: ReturnType<typeof vi.fn>;
+  cleanupExpiredNotificationsMock: ReturnType<typeof vi.fn>;
 } {
   const createMock = vi.fn();
   const listMock = vi.fn();
@@ -52,6 +53,7 @@ function makeClient(): NotificationsClient & {
   const deleteNotificationMock = vi.fn();
   const getNotificationPreferencesMock = vi.fn();
   const updateNotificationPreferencesMock = vi.fn();
+  const cleanupExpiredNotificationsMock = vi.fn();
   return {
     create: createMock,
     list: listMock,
@@ -62,6 +64,7 @@ function makeClient(): NotificationsClient & {
     deleteNotification: deleteNotificationMock,
     getNotificationPreferences: getNotificationPreferencesMock,
     updateNotificationPreferences: updateNotificationPreferencesMock,
+    cleanupExpiredNotifications: cleanupExpiredNotificationsMock,
     close: vi.fn(),
     createMock,
     listMock,
@@ -72,6 +75,7 @@ function makeClient(): NotificationsClient & {
     deleteNotificationMock,
     getNotificationPreferencesMock,
     updateNotificationPreferencesMock,
+    cleanupExpiredNotificationsMock,
   };
 }
 
@@ -578,5 +582,71 @@ describe('GET/PUT /api/v1/notifications/preferences', () => {
     expect(grpcReq.digestFrequency).toBe(
       NotificationsV1.NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_DAILY
     );
+  });
+});
+
+// --- POST /api/v1/notifications/cleanup -----------------------------
+
+describe('POST /api/v1/notifications/cleanup', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns the deleted count', async () => {
+    client.cleanupExpiredNotificationsMock.mockResolvedValueOnce({ deletedCount: 5 });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/cleanup',
+      headers: { 'x-user-id': 'svc-admin', 'content-type': 'application/json' },
+      payload: { daysToKeep: 30 },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      success: true,
+      data: { deletedCount: 5 },
+    });
+
+    const [grpcReq] = client.cleanupExpiredNotificationsMock.mock.calls[0] as [
+      { daysToKeep: number },
+      unknown,
+    ];
+    expect(grpcReq.daysToKeep).toBe(30);
+  });
+
+  it('accepts snake_case days_to_keep', async () => {
+    client.cleanupExpiredNotificationsMock.mockResolvedValueOnce({ deletedCount: 0 });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/cleanup',
+      headers: { 'x-user-id': 'svc-admin', 'content-type': 'application/json' },
+      payload: { days_to_keep: 60 },
+    });
+    const [grpcReq] = client.cleanupExpiredNotificationsMock.mock.calls[0] as [
+      { daysToKeep: number },
+      unknown,
+    ];
+    expect(grpcReq.daysToKeep).toBe(60);
+  });
+
+  it('maps PERMISSION_DENIED → 403', async () => {
+    client.cleanupExpiredNotificationsMock.mockRejectedValueOnce({
+      code: status.PERMISSION_DENIED,
+      details: 'admin only',
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/cleanup',
+      headers: { 'x-user-id': 'usr-1' },
+    });
+    expect(res.statusCode).toBe(403);
   });
 });

@@ -1244,6 +1244,20 @@ export interface ResetNotificationPreferencesResponse {
   preferences?: NotificationPreferences | undefined;
 }
 
+export interface CleanupExpiredNotificationsRequest {
+  /**
+   * Number of days of history to keep — anything older gets soft-
+   * deleted. Server enforces 1..3650 (10 years). Defaults to 30 when
+   * unset (treated as 0 here → DEFAULT).
+   */
+  daysToKeep: number;
+}
+
+export interface CleanupExpiredNotificationsResponse {
+  /** Number of rows that transitioned from kept → soft-deleted. */
+  deletedCount: number;
+}
+
 function createBaseNotification(): Notification {
   return {
     notificationId: '',
@@ -6323,6 +6337,149 @@ export const ResetNotificationPreferencesResponse: MessageFns<ResetNotificationP
     },
   };
 
+function createBaseCleanupExpiredNotificationsRequest(): CleanupExpiredNotificationsRequest {
+  return { daysToKeep: 0 };
+}
+
+export const CleanupExpiredNotificationsRequest: MessageFns<CleanupExpiredNotificationsRequest> = {
+  encode(
+    message: CleanupExpiredNotificationsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.daysToKeep !== 0) {
+      writer.uint32(8).uint32(message.daysToKeep);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CleanupExpiredNotificationsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCleanupExpiredNotificationsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.daysToKeep = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CleanupExpiredNotificationsRequest {
+    return {
+      daysToKeep: isSet(object.daysToKeep)
+        ? globalThis.Number(object.daysToKeep)
+        : isSet(object.days_to_keep)
+          ? globalThis.Number(object.days_to_keep)
+          : 0,
+    };
+  },
+
+  toJSON(message: CleanupExpiredNotificationsRequest): unknown {
+    const obj: any = {};
+    if (message.daysToKeep !== 0) {
+      obj.daysToKeep = Math.round(message.daysToKeep);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CleanupExpiredNotificationsRequest>, I>>(
+    base?: I
+  ): CleanupExpiredNotificationsRequest {
+    return CleanupExpiredNotificationsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CleanupExpiredNotificationsRequest>, I>>(
+    object: I
+  ): CleanupExpiredNotificationsRequest {
+    const message = createBaseCleanupExpiredNotificationsRequest();
+    message.daysToKeep = object.daysToKeep ?? 0;
+    return message;
+  },
+};
+
+function createBaseCleanupExpiredNotificationsResponse(): CleanupExpiredNotificationsResponse {
+  return { deletedCount: 0 };
+}
+
+export const CleanupExpiredNotificationsResponse: MessageFns<CleanupExpiredNotificationsResponse> =
+  {
+    encode(
+      message: CleanupExpiredNotificationsResponse,
+      writer: BinaryWriter = new BinaryWriter()
+    ): BinaryWriter {
+      if (message.deletedCount !== 0) {
+        writer.uint32(8).uint32(message.deletedCount);
+      }
+      return writer;
+    },
+
+    decode(input: BinaryReader | Uint8Array, length?: number): CleanupExpiredNotificationsResponse {
+      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseCleanupExpiredNotificationsResponse();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.deletedCount = reader.uint32();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    },
+
+    fromJSON(object: any): CleanupExpiredNotificationsResponse {
+      return {
+        deletedCount: isSet(object.deletedCount)
+          ? globalThis.Number(object.deletedCount)
+          : isSet(object.deleted_count)
+            ? globalThis.Number(object.deleted_count)
+            : 0,
+      };
+    },
+
+    toJSON(message: CleanupExpiredNotificationsResponse): unknown {
+      const obj: any = {};
+      if (message.deletedCount !== 0) {
+        obj.deletedCount = Math.round(message.deletedCount);
+      }
+      return obj;
+    },
+
+    create<I extends Exact<DeepPartial<CleanupExpiredNotificationsResponse>, I>>(
+      base?: I
+    ): CleanupExpiredNotificationsResponse {
+      return CleanupExpiredNotificationsResponse.fromPartial(base ?? ({} as any));
+    },
+    fromPartial<I extends Exact<DeepPartial<CleanupExpiredNotificationsResponse>, I>>(
+      object: I
+    ): CleanupExpiredNotificationsResponse {
+      const message = createBaseCleanupExpiredNotificationsResponse();
+      message.deletedCount = object.deletedCount ?? 0;
+      return message;
+    },
+  };
+
 /**
  * NotificationService is the gRPC contract for the in-app notification
  * store. The gateway translates `POST/GET/DELETE /api/notifications/*`
@@ -6509,6 +6666,25 @@ export const NotificationServiceService = {
       ResetNotificationPreferencesResponse.decode(value),
   },
   /**
+   * Admin-only: soft-delete notifications older than N days (default 30).
+   * Returns the affected row count. Requires `notifications.cleanup`.
+   * Operates on rows where `deleted_at IS NULL` so a re-run is a no-op
+   * for already-cleaned rows.
+   */
+  cleanupExpiredNotifications: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/CleanupExpiredNotifications' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CleanupExpiredNotificationsRequest): Buffer =>
+      Buffer.from(CleanupExpiredNotificationsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CleanupExpiredNotificationsRequest =>
+      CleanupExpiredNotificationsRequest.decode(value),
+    responseSerialize: (value: CleanupExpiredNotificationsResponse): Buffer =>
+      Buffer.from(CleanupExpiredNotificationsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CleanupExpiredNotificationsResponse =>
+      CleanupExpiredNotificationsResponse.decode(value),
+  },
+  /**
    * Enqueue an email. Returns the email_id immediately; delivery happens
    * asynchronously in the worker. Callers can supply a templateId +
    * templateData OR a pre-rendered subject + html_content; if both are
@@ -6676,6 +6852,16 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
   resetNotificationPreferences: handleUnaryCall<
     ResetNotificationPreferencesRequest,
     ResetNotificationPreferencesResponse
+  >;
+  /**
+   * Admin-only: soft-delete notifications older than N days (default 30).
+   * Returns the affected row count. Requires `notifications.cleanup`.
+   * Operates on rows where `deleted_at IS NULL` so a re-run is a no-op
+   * for already-cleaned rows.
+   */
+  cleanupExpiredNotifications: handleUnaryCall<
+    CleanupExpiredNotificationsRequest,
+    CleanupExpiredNotificationsResponse
   >;
   /**
    * Enqueue an email. Returns the email_id immediately; delivery happens
@@ -6912,6 +7098,27 @@ export interface NotificationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ResetNotificationPreferencesResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Admin-only: soft-delete notifications older than N days (default 30).
+   * Returns the affected row count. Requires `notifications.cleanup`.
+   * Operates on rows where `deleted_at IS NULL` so a re-run is a no-op
+   * for already-cleaned rows.
+   */
+  cleanupExpiredNotifications(
+    request: CleanupExpiredNotificationsRequest,
+    callback: (error: ServiceError | null, response: CleanupExpiredNotificationsResponse) => void
+  ): ClientUnaryCall;
+  cleanupExpiredNotifications(
+    request: CleanupExpiredNotificationsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CleanupExpiredNotificationsResponse) => void
+  ): ClientUnaryCall;
+  cleanupExpiredNotifications(
+    request: CleanupExpiredNotificationsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CleanupExpiredNotificationsResponse) => void
   ): ClientUnaryCall;
   /**
    * Enqueue an email. Returns the email_id immediately; delivery happens

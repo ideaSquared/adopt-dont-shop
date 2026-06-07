@@ -27,6 +27,8 @@ import {
   type NotificationPreferences as NotificationPreferencesProto,
   type ResetNotificationPreferencesRequest,
   type ResetNotificationPreferencesResponse,
+  type CleanupExpiredNotificationsRequest,
+  type CleanupExpiredNotificationsResponse,
   type UpdateNotificationPreferencesRequest,
   type UpdateNotificationPreferencesResponse,
 } from '@adopt-dont-shop/proto';
@@ -515,4 +517,43 @@ export async function resetNotificationPreferences(
     throw new HandlerError('INTERNAL', 'reset returned no rows');
   }
   return { preferences: prefsRowToProto(reset) };
+}
+
+// --- CleanupExpiredNotifications ------------------------------------
+
+const NOTIFICATIONS_CLEANUP: Permission = 'notifications.cleanup' as Permission;
+const DEFAULT_CLEANUP_DAYS = 30;
+const MAX_CLEANUP_DAYS = 3650; // 10 years
+
+export async function cleanupExpiredNotifications(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: CleanupExpiredNotificationsRequest
+): Promise<CleanupExpiredNotificationsResponse> {
+  if (!hasPermission(principal, NOTIFICATIONS_CLEANUP)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${NOTIFICATIONS_CLEANUP}' required`);
+  }
+  const daysToKeep = req.daysToKeep || DEFAULT_CLEANUP_DAYS;
+  if (daysToKeep < 1 || daysToKeep > MAX_CLEANUP_DAYS) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      `days_to_keep must be between 1 and ${MAX_CLEANUP_DAYS}`
+    );
+  }
+
+  // Soft-delete in a single UPDATE — interval arithmetic happens in PG
+  // so the cutoff is consistent regardless of node-side clock drift.
+  // Filtering on deleted_at IS NULL keeps re-runs cheap (the row's
+  // already done) and bounded by the index on deleted_at.
+  const result = await deps.pool.query<{ notification_id: string }>(
+    `
+    UPDATE notifications.notifications
+    SET deleted_at = now(), updated_at = now(), version = version + 1
+    WHERE created_at < now() - ($1 || ' days')::interval
+      AND deleted_at IS NULL
+    RETURNING notification_id
+    `,
+    [daysToKeep.toString()]
+  );
+  return { deletedCount: result.rowCount ?? 0 };
 }

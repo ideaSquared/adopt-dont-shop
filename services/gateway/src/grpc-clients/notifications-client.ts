@@ -40,6 +40,8 @@ import {
   type UpdateNotificationPreferencesResponse,
   type ResetNotificationPreferencesRequest,
   type ResetNotificationPreferencesResponse,
+  type CleanupExpiredNotificationsRequest,
+  type CleanupExpiredNotificationsResponse,
 } from '@adopt-dont-shop/proto';
 
 export type NotificationsClient = {
@@ -83,6 +85,10 @@ export type NotificationsClient = {
     req: ResetNotificationPreferencesRequest,
     metadata: Metadata
   ): Promise<ResetNotificationPreferencesResponse>;
+  cleanupExpiredNotifications(
+    req: CleanupExpiredNotificationsRequest,
+    metadata: Metadata
+  ): Promise<CleanupExpiredNotificationsResponse>;
   close(): void;
 };
 
@@ -134,6 +140,8 @@ export const createNotificationsClient = (
       callUnary(stub.updateNotificationPreferences, req, metadata),
     resetNotificationPreferences: (req, metadata) =>
       callUnary(stub.resetNotificationPreferences, req, metadata),
+    cleanupExpiredNotifications: (req, metadata) =>
+      callUnary(stub.cleanupExpiredNotifications, req, metadata),
     close: () => stub.close(),
   };
 };

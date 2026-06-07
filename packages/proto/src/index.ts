@@ -67,6 +67,8 @@ export type {
   UpdateNotificationPreferencesResponse,
   ResetNotificationPreferencesRequest,
   ResetNotificationPreferencesResponse,
+  CleanupExpiredNotificationsRequest,
+  CleanupExpiredNotificationsResponse,
   NotificationServiceServer,
   NotificationServiceClient,
 } from './generated/proto/adopt_dont_shop/notifications/v1/notification.js';
