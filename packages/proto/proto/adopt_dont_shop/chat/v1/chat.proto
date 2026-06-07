@@ -66,6 +66,11 @@ service ChatService {
   // a second delete on the same message returns the same row.
   // Publishes chat.messageDeleted.
   rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+
+  // Fetch a chat by id. Returns the canonical Chat row + participant
+  // ids + last-message preview. Caller MUST be a participant or
+  // super_admin; non-participants get NOT_FOUND (no enumeration).
+  rpc GetChat(GetChatRequest) returns (GetChatResponse);
 }
 
 // --- Messages --------------------------------------------------------
@@ -257,4 +262,14 @@ message DeleteMessageRequest {
 
 message DeleteMessageResponse {
   Message message = 1;
+}
+
+// --- GetChat ---------------------------------------------------------
+
+message GetChatRequest {
+  string chat_id = 1;
+}
+
+message GetChatResponse {
+  Chat chat = 1;
 }

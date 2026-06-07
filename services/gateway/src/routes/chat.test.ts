@@ -45,6 +45,7 @@ function makeClient(): ChatClient & {
   searchChatsMock: ReturnType<typeof vi.fn>;
   getChatUnreadCountMock: ReturnType<typeof vi.fn>;
   deleteMessageMock: ReturnType<typeof vi.fn>;
+  getChatMock: ReturnType<typeof vi.fn>;
 } {
   const openChatMock = vi.fn();
   const sendMessageMock = vi.fn();
@@ -55,6 +56,7 @@ function makeClient(): ChatClient & {
   const searchChatsMock = vi.fn();
   const getChatUnreadCountMock = vi.fn();
   const deleteMessageMock = vi.fn();
+  const getChatMock = vi.fn();
   return {
     openChat: openChatMock,
     sendMessage: sendMessageMock,
@@ -65,6 +67,7 @@ function makeClient(): ChatClient & {
     searchChats: searchChatsMock,
     getChatUnreadCount: getChatUnreadCountMock,
     deleteMessage: deleteMessageMock,
+    getChat: getChatMock,
     close: vi.fn(),
     openChatMock,
     sendMessageMock,
@@ -75,6 +78,7 @@ function makeClient(): ChatClient & {
     searchChatsMock,
     getChatUnreadCountMock,
     deleteMessageMock,
+    getChatMock,
   };
 }
 
@@ -681,5 +685,83 @@ describe('DELETE /api/v1/chats/:chatId/messages/:messageId', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(client.deleteMessageMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// --- GET /api/v1/chats/:chatId --------------------------------------
+
+describe('GET /api/v1/chats/:chatId', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns the chat inside a success envelope', async () => {
+    client.getChatMock.mockResolvedValueOnce({ chat: CHAT_FIXTURE });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/chat-1',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { success: boolean; data: { chatId: string } };
+    expect(body.success).toBe(true);
+    expect(body.data.chatId).toBe('chat-1');
+    const [grpcReq] = client.getChatMock.mock.calls[0] as [{ chatId: string }, Metadata];
+    expect(grpcReq.chatId).toBe('chat-1');
+  });
+
+  it('maps NOT_FOUND → 404', async () => {
+    client.getChatMock.mockRejectedValueOnce({
+      code: status.NOT_FOUND,
+      details: 'gone',
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/missing',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('reachable via /api/v1/conversations alias', async () => {
+    client.getChatMock.mockResolvedValueOnce({ chat: CHAT_FIXTURE });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/conversations/chat-1',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(client.getChatMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('the search literal still wins over the dynamic :chatId match', async () => {
+    client.searchChatsMock.mockResolvedValueOnce({ hits: [], page: 1, limit: 20, total: 0 });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/search?query=hello',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(client.searchChatsMock).toHaveBeenCalledTimes(1);
+    expect(client.getChatMock).not.toHaveBeenCalled();
+  });
+
+  it('the unread-count literal still wins over the dynamic :chatId match', async () => {
+    client.getChatUnreadCountMock.mockResolvedValueOnce({ unreadCount: 1 });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/chat-1/unread-count',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(client.getChatUnreadCountMock).toHaveBeenCalledTimes(1);
+    expect(client.getChatMock).not.toHaveBeenCalled();
   });
 });

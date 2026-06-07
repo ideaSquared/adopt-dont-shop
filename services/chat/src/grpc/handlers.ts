@@ -26,6 +26,8 @@ import type {
   Chat,
   DeleteMessageRequest,
   DeleteMessageResponse,
+  GetChatRequest,
+  GetChatResponse,
   GetChatUnreadCountRequest,
   GetChatUnreadCountResponse,
   ListChatsRequest,
@@ -969,4 +971,35 @@ export async function deleteMessage(
   return {
     message: messageRowToProto(updated, reactions.get(updated.message_id) ?? []),
   };
+}
+
+// --- GetChat --------------------------------------------------------
+
+export async function getChat(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetChatRequest
+): Promise<GetChatResponse> {
+  if (!req.chatId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'chat_id is required');
+  }
+  if (!hasPermission(principal, CHAT_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${CHAT_READ}' required`);
+  }
+
+  // Participant-or-admin gate first so non-participants get NOT_FOUND
+  // posture without learning whether the row exists.
+  if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
+    throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
+  }
+
+  const result = await deps.pool.query<ChatRow>(
+    `SELECT * FROM chats WHERE chat_id = $1 AND deleted_at IS NULL LIMIT 1`,
+    [req.chatId]
+  );
+  if (result.rows.length === 0) {
+    throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
+  }
+
+  return { chat: await chatRowToProto(deps, result.rows[0]) };
 }

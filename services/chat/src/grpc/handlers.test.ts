@@ -21,6 +21,7 @@ import {
   openChat,
   react,
   deleteMessage,
+  getChat,
   getChatUnreadCount,
   searchChats,
   sendMessage,
@@ -685,5 +686,66 @@ describe('deleteMessage', () => {
     const res = await deleteMessage(mocks.deps, ADOPTER_PRINCIPAL, { messageId: 'msg-1' });
     expect(res.message?.deletedAt).toBeDefined();
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+});
+
+// --- getChat --------------------------------------------------------
+
+describe('getChat', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects missing chat_id', async () => {
+    await expect(getChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: '' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('rejects principals without chat.read', async () => {
+    await expect(
+      getChat(mocks.deps, UNPRIVILEGED_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns NOT_FOUND (no enumeration) for non-participants', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      getChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns NOT_FOUND when the row is soft-deleted or missing', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      getChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns the chat for a participant + populates last message preview', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture()] });
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        {
+          content: 'Hi there',
+          sender_id: 'usr-rescue',
+          created_at: new Date('2026-06-05T12:00:00Z'),
+        },
+      ],
+    });
+
+    const res = await getChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' });
+    expect(res.chat?.chatId).toBe('chat-1');
+    expect(res.chat?.participantUserIds).toEqual(['usr-adopter', 'usr-rescue']);
+    expect(res.chat?.lastMessagePreview).toBe('Hi there');
   });
 });
