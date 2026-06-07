@@ -239,6 +239,8 @@ export type {
   SearchChatHit,
   GetChatUnreadCountRequest,
   GetChatUnreadCountResponse,
+  DeleteMessageRequest,
+  DeleteMessageResponse,
   ChatServiceServer,
   ChatServiceClient,
 } from './generated/proto/adopt_dont_shop/chat/v1/chat.js';

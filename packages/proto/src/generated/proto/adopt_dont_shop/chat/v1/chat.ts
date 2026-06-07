@@ -211,6 +211,19 @@ export interface GetChatUnreadCountResponse {
   unreadCount: number;
 }
 
+export interface DeleteMessageRequest {
+  messageId: string;
+  /**
+   * Optional moderator/admin reason. Captured in the NATS event for
+   * downstream audit.
+   */
+  reason?: string | undefined;
+}
+
+export interface DeleteMessageResponse {
+  message?: Message | undefined;
+}
+
 function createBaseChat(): Chat {
   return {
     chatId: '',
@@ -2126,6 +2139,151 @@ export const GetChatUnreadCountResponse: MessageFns<GetChatUnreadCountResponse> 
   },
 };
 
+function createBaseDeleteMessageRequest(): DeleteMessageRequest {
+  return { messageId: '', reason: undefined };
+}
+
+export const DeleteMessageRequest: MessageFns<DeleteMessageRequest> = {
+  encode(message: DeleteMessageRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.messageId !== '') {
+      writer.uint32(10).string(message.messageId);
+    }
+    if (message.reason !== undefined) {
+      writer.uint32(18).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteMessageRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteMessageRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.messageId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteMessageRequest {
+    return {
+      messageId: isSet(object.messageId)
+        ? globalThis.String(object.messageId)
+        : isSet(object.message_id)
+          ? globalThis.String(object.message_id)
+          : '',
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
+    };
+  },
+
+  toJSON(message: DeleteMessageRequest): unknown {
+    const obj: any = {};
+    if (message.messageId !== '') {
+      obj.messageId = message.messageId;
+    }
+    if (message.reason !== undefined) {
+      obj.reason = message.reason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteMessageRequest>, I>>(base?: I): DeleteMessageRequest {
+    return DeleteMessageRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteMessageRequest>, I>>(
+    object: I
+  ): DeleteMessageRequest {
+    const message = createBaseDeleteMessageRequest();
+    message.messageId = object.messageId ?? '';
+    message.reason = object.reason ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeleteMessageResponse(): DeleteMessageResponse {
+  return { message: undefined };
+}
+
+export const DeleteMessageResponse: MessageFns<DeleteMessageResponse> = {
+  encode(message: DeleteMessageResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.message !== undefined) {
+      Message.encode(message.message, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteMessageResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteMessageResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.message = Message.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteMessageResponse {
+    return { message: isSet(object.message) ? Message.fromJSON(object.message) : undefined };
+  },
+
+  toJSON(message: DeleteMessageResponse): unknown {
+    const obj: any = {};
+    if (message.message !== undefined) {
+      obj.message = Message.toJSON(message.message);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteMessageResponse>, I>>(base?: I): DeleteMessageResponse {
+    return DeleteMessageResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteMessageResponse>, I>>(
+    object: I
+  ): DeleteMessageResponse {
+    const message = createBaseDeleteMessageResponse();
+    message.message =
+      object.message !== undefined && object.message !== null
+        ? Message.fromPartial(object.message)
+        : undefined;
+    return message;
+  },
+};
+
 /**
  * ChatService is the gRPC contract for the chat vertical. It owns
  * the `chat.*` schema (Chat, ChatParticipant, Message, MessageReaction,
@@ -2276,6 +2434,26 @@ export const ChatServiceService = {
     responseDeserialize: (value: Buffer): GetChatUnreadCountResponse =>
       GetChatUnreadCountResponse.decode(value),
   },
+  /**
+   * Soft-delete a message. Caller MUST be the message's sender OR
+   * hold chat.message.delete:any (moderators / admins). Sets
+   * deleted_at on the row; the content stays in place so the audit
+   * trail (and the message_reads chain) is intact. Idempotent —
+   * a second delete on the same message returns the same row.
+   * Publishes chat.messageDeleted.
+   */
+  deleteMessage: {
+    path: '/adopt_dont_shop.chat.v1.ChatService/DeleteMessage' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteMessageRequest): Buffer =>
+      Buffer.from(DeleteMessageRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteMessageRequest => DeleteMessageRequest.decode(value),
+    responseSerialize: (value: DeleteMessageResponse): Buffer =>
+      Buffer.from(DeleteMessageResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteMessageResponse =>
+      DeleteMessageResponse.decode(value),
+  },
 } as const;
 
 export interface ChatServiceServer extends UntypedServiceImplementation {
@@ -2329,6 +2507,15 @@ export interface ChatServiceServer extends UntypedServiceImplementation {
    * membership (or super_admin).
    */
   getChatUnreadCount: handleUnaryCall<GetChatUnreadCountRequest, GetChatUnreadCountResponse>;
+  /**
+   * Soft-delete a message. Caller MUST be the message's sender OR
+   * hold chat.message.delete:any (moderators / admins). Sets
+   * deleted_at on the row; the content stays in place so the audit
+   * trail (and the message_reads chain) is intact. Idempotent —
+   * a second delete on the same message returns the same row.
+   * Publishes chat.messageDeleted.
+   */
+  deleteMessage: handleUnaryCall<DeleteMessageRequest, DeleteMessageResponse>;
 }
 
 export interface ChatServiceClient extends Client {
@@ -2493,6 +2680,29 @@ export interface ChatServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetChatUnreadCountResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Soft-delete a message. Caller MUST be the message's sender OR
+   * hold chat.message.delete:any (moderators / admins). Sets
+   * deleted_at on the row; the content stays in place so the audit
+   * trail (and the message_reads chain) is intact. Idempotent —
+   * a second delete on the same message returns the same row.
+   * Publishes chat.messageDeleted.
+   */
+  deleteMessage(
+    request: DeleteMessageRequest,
+    callback: (error: ServiceError | null, response: DeleteMessageResponse) => void
+  ): ClientUnaryCall;
+  deleteMessage(
+    request: DeleteMessageRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteMessageResponse) => void
+  ): ClientUnaryCall;
+  deleteMessage(
+    request: DeleteMessageRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteMessageResponse) => void
   ): ClientUnaryCall;
 }
 

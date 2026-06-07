@@ -44,6 +44,7 @@ function makeClient(): ChatClient & {
   reactMock: ReturnType<typeof vi.fn>;
   searchChatsMock: ReturnType<typeof vi.fn>;
   getChatUnreadCountMock: ReturnType<typeof vi.fn>;
+  deleteMessageMock: ReturnType<typeof vi.fn>;
 } {
   const openChatMock = vi.fn();
   const sendMessageMock = vi.fn();
@@ -53,6 +54,7 @@ function makeClient(): ChatClient & {
   const reactMock = vi.fn();
   const searchChatsMock = vi.fn();
   const getChatUnreadCountMock = vi.fn();
+  const deleteMessageMock = vi.fn();
   return {
     openChat: openChatMock,
     sendMessage: sendMessageMock,
@@ -62,6 +64,7 @@ function makeClient(): ChatClient & {
     react: reactMock,
     searchChats: searchChatsMock,
     getChatUnreadCount: getChatUnreadCountMock,
+    deleteMessage: deleteMessageMock,
     close: vi.fn(),
     openChatMock,
     sendMessageMock,
@@ -71,6 +74,7 @@ function makeClient(): ChatClient & {
     reactMock,
     searchChatsMock,
     getChatUnreadCountMock,
+    deleteMessageMock,
   };
 }
 
@@ -585,5 +589,97 @@ describe('GET /api/v1/chats/:chatId/unread-count', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(client.getChatUnreadCountMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// --- DELETE /api/v1/chats/:chatId/messages/:messageId ---------------
+
+describe('DELETE /api/v1/chats/:chatId/messages/:messageId', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('forwards the message id to deleteMessage and returns the updated row', async () => {
+    client.deleteMessageMock.mockResolvedValueOnce({
+      message: { ...MESSAGE_FIXTURE, deletedAt: '2026-06-07T20:00:00Z' },
+    });
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/chats/chat-1/messages/msg-1',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      success: boolean;
+      message: string;
+      data: { messageId: string; deletedAt?: string };
+    };
+    expect(body.success).toBe(true);
+    expect(body.message).toBe('Message deleted');
+    expect(body.data.messageId).toBe('msg-1');
+    expect(body.data.deletedAt).toBeDefined();
+
+    const [grpcReq] = client.deleteMessageMock.mock.calls[0] as [
+      { messageId: string; reason?: string },
+      Metadata,
+    ];
+    expect(grpcReq.messageId).toBe('msg-1');
+    expect(grpcReq.reason).toBeUndefined();
+  });
+
+  it('forwards a reason from the body', async () => {
+    client.deleteMessageMock.mockResolvedValueOnce({
+      message: { ...MESSAGE_FIXTURE, deletedAt: '2026-06-07T20:00:00Z' },
+    });
+
+    await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/chats/chat-1/messages/msg-1',
+      headers: {
+        'x-user-id': 'usr-mod',
+        'x-user-roles': 'moderator',
+        'content-type': 'application/json',
+      },
+      payload: { reason: 'inappropriate' },
+    });
+
+    const [grpcReq] = client.deleteMessageMock.mock.calls[0] as [
+      { messageId: string; reason?: string },
+      Metadata,
+    ];
+    expect(grpcReq.reason).toBe('inappropriate');
+  });
+
+  it('maps PERMISSION_DENIED → 403', async () => {
+    client.deleteMessageMock.mockRejectedValueOnce({
+      code: status.PERMISSION_DENIED,
+      details: 'not your message',
+    });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/chats/chat-1/messages/msg-1',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('reachable via /api/v1/conversations alias', async () => {
+    client.deleteMessageMock.mockResolvedValueOnce({ message: MESSAGE_FIXTURE });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/conversations/chat-1/messages/msg-1',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(client.deleteMessageMock).toHaveBeenCalledTimes(1);
   });
 });
