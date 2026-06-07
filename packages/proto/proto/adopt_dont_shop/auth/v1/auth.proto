@@ -119,6 +119,34 @@ service AuthService {
   // created defaults row.
   rpc ResetPrivacyPreferences(ResetPrivacyPreferencesRequest)
       returns (ResetPrivacyPreferencesResponse);
+
+  // --- Admin user management -----------------------------------------
+  // Admin-facing surface the monolith served at /api/v1/users/* (search,
+  // statistics, get/update by id, deactivate/reactivate). Each RPC gates
+  // on the matching admin.users.* permission.
+
+  // Paginated, filtered user search. Caller MUST have admin.users.search.
+  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
+
+  // Fetch a single user by id (admin view — full row). admin.users.read.
+  rpc AdminGetUser(AdminGetUserRequest) returns (AdminGetUserResponse);
+
+  // Partially update a user's admin-controllable fields (status,
+  // user_type, verification flags). admin.users.update. Only set fields
+  // are written.
+  rpc AdminUpdateUser(AdminUpdateUserRequest) returns (AdminUpdateUserResponse);
+
+  // Deactivate a user account (status -> deactivated). admin.users.deactivate.
+  // Idempotent. The caller cannot deactivate their own account.
+  rpc DeactivateUser(DeactivateUserRequest) returns (DeactivateUserResponse);
+
+  // Reactivate a deactivated/suspended user (status -> active).
+  // admin.users.reactivate. Idempotent.
+  rpc ReactivateUser(ReactivateUserRequest) returns (ReactivateUserResponse);
+
+  // Platform-wide user counts + breakdowns for the admin dashboard.
+  // admin.users.read.
+  rpc GetUserStatistics(GetUserStatisticsRequest) returns (GetUserStatisticsResponse);
 }
 
 // --- Shared messages --------------------------------------------------
@@ -479,4 +507,91 @@ message ResetPrivacyPreferencesRequest {
 
 message ResetPrivacyPreferencesResponse {
   PrivacyPreferences preferences = 1;
+}
+
+// --- Admin user management -------------------------------------------
+
+message SearchUsersRequest {
+  // Free-text search across first_name / last_name / email (ILIKE).
+  optional string search = 1;
+  // Optional filters. UNSPECIFIED = no filter.
+  UserStatus status_filter = 2;
+  UserRole user_type_filter = 3;
+  optional bool email_verified = 4;
+  // ISO-8601 created-at range.
+  optional string created_from = 5;
+  optional string created_to = 6;
+  // 1-indexed page + size (default 20, max 100).
+  uint32 page = 7;
+  uint32 limit = 8;
+  // Sort: 'createdAt' | 'lastLoginAt' | 'email'. Default createdAt DESC.
+  optional string sort_by = 9;
+  optional string sort_order = 10;
+}
+
+message SearchUsersResponse {
+  repeated User users = 1;
+  uint32 total = 2;
+  uint32 page = 3;
+  uint32 total_pages = 4;
+}
+
+message AdminGetUserRequest {
+  string user_id = 1;
+}
+
+message AdminGetUserResponse {
+  User user = 1;
+}
+
+message AdminUpdateUserRequest {
+  string user_id = 1;
+  // Only set fields are written.
+  UserStatus status = 2;
+  UserRole user_type = 3;
+  optional bool email_verified = 4;
+  optional string first_name = 5;
+  optional string last_name = 6;
+}
+
+message AdminUpdateUserResponse {
+  User user = 1;
+}
+
+message DeactivateUserRequest {
+  string user_id = 1;
+  optional string reason = 2;
+}
+
+message DeactivateUserResponse {
+  User user = 1;
+}
+
+message ReactivateUserRequest {
+  string user_id = 1;
+}
+
+message ReactivateUserResponse {
+  User user = 1;
+}
+
+message GetUserStatisticsRequest {}
+
+message UserStatusCount {
+  UserStatus status = 1;
+  uint32 count = 2;
+}
+
+message UserTypeCount {
+  UserRole user_type = 1;
+  uint32 count = 2;
+}
+
+message GetUserStatisticsResponse {
+  uint32 total = 1;
+  uint32 verified = 2;
+  // Users created in the last 30 days.
+  uint32 new_this_month = 3;
+  repeated UserStatusCount by_status = 4;
+  repeated UserTypeCount by_type = 5;
 }
