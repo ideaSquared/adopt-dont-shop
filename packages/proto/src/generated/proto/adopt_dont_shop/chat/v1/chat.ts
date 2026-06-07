@@ -203,6 +203,14 @@ export interface SearchChatsResponse {
   total: number;
 }
 
+export interface GetChatUnreadCountRequest {
+  chatId: string;
+}
+
+export interface GetChatUnreadCountResponse {
+  unreadCount: number;
+}
+
 function createBaseChat(): Chat {
   return {
     chatId: '',
@@ -1976,6 +1984,148 @@ export const SearchChatsResponse: MessageFns<SearchChatsResponse> = {
   },
 };
 
+function createBaseGetChatUnreadCountRequest(): GetChatUnreadCountRequest {
+  return { chatId: '' };
+}
+
+export const GetChatUnreadCountRequest: MessageFns<GetChatUnreadCountRequest> = {
+  encode(
+    message: GetChatUnreadCountRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.chatId !== '') {
+      writer.uint32(10).string(message.chatId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetChatUnreadCountRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetChatUnreadCountRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.chatId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetChatUnreadCountRequest {
+    return {
+      chatId: isSet(object.chatId)
+        ? globalThis.String(object.chatId)
+        : isSet(object.chat_id)
+          ? globalThis.String(object.chat_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetChatUnreadCountRequest): unknown {
+    const obj: any = {};
+    if (message.chatId !== '') {
+      obj.chatId = message.chatId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetChatUnreadCountRequest>, I>>(
+    base?: I
+  ): GetChatUnreadCountRequest {
+    return GetChatUnreadCountRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetChatUnreadCountRequest>, I>>(
+    object: I
+  ): GetChatUnreadCountRequest {
+    const message = createBaseGetChatUnreadCountRequest();
+    message.chatId = object.chatId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetChatUnreadCountResponse(): GetChatUnreadCountResponse {
+  return { unreadCount: 0 };
+}
+
+export const GetChatUnreadCountResponse: MessageFns<GetChatUnreadCountResponse> = {
+  encode(
+    message: GetChatUnreadCountResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.unreadCount !== 0) {
+      writer.uint32(8).uint32(message.unreadCount);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetChatUnreadCountResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetChatUnreadCountResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.unreadCount = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetChatUnreadCountResponse {
+    return {
+      unreadCount: isSet(object.unreadCount)
+        ? globalThis.Number(object.unreadCount)
+        : isSet(object.unread_count)
+          ? globalThis.Number(object.unread_count)
+          : 0,
+    };
+  },
+
+  toJSON(message: GetChatUnreadCountResponse): unknown {
+    const obj: any = {};
+    if (message.unreadCount !== 0) {
+      obj.unreadCount = Math.round(message.unreadCount);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetChatUnreadCountResponse>, I>>(
+    base?: I
+  ): GetChatUnreadCountResponse {
+    return GetChatUnreadCountResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetChatUnreadCountResponse>, I>>(
+    object: I
+  ): GetChatUnreadCountResponse {
+    const message = createBaseGetChatUnreadCountResponse();
+    message.unreadCount = object.unreadCount ?? 0;
+    return message;
+  },
+};
+
 /**
  * ChatService is the gRPC contract for the chat vertical. It owns
  * the `chat.*` schema (Chat, ChatParticipant, Message, MessageReaction,
@@ -2107,6 +2257,25 @@ export const ChatServiceService = {
       Buffer.from(SearchChatsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): SearchChatsResponse => SearchChatsResponse.decode(value),
   },
+  /**
+   * Per-chat unread count for the calling principal. Counts messages
+   * not authored by the caller that lack a matching message_reads row
+   * (i.e. the caller has never opened them). Requires participant
+   * membership (or super_admin).
+   */
+  getChatUnreadCount: {
+    path: '/adopt_dont_shop.chat.v1.ChatService/GetChatUnreadCount' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetChatUnreadCountRequest): Buffer =>
+      Buffer.from(GetChatUnreadCountRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetChatUnreadCountRequest =>
+      GetChatUnreadCountRequest.decode(value),
+    responseSerialize: (value: GetChatUnreadCountResponse): Buffer =>
+      Buffer.from(GetChatUnreadCountResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetChatUnreadCountResponse =>
+      GetChatUnreadCountResponse.decode(value),
+  },
 } as const;
 
 export interface ChatServiceServer extends UntypedServiceImplementation {
@@ -2153,6 +2322,13 @@ export interface ChatServiceServer extends UntypedServiceImplementation {
    * search is a separate admin RPC).
    */
   searchChats: handleUnaryCall<SearchChatsRequest, SearchChatsResponse>;
+  /**
+   * Per-chat unread count for the calling principal. Counts messages
+   * not authored by the caller that lack a matching message_reads row
+   * (i.e. the caller has never opened them). Requires participant
+   * membership (or super_admin).
+   */
+  getChatUnreadCount: handleUnaryCall<GetChatUnreadCountRequest, GetChatUnreadCountResponse>;
 }
 
 export interface ChatServiceClient extends Client {
@@ -2296,6 +2472,27 @@ export interface ChatServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: SearchChatsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Per-chat unread count for the calling principal. Counts messages
+   * not authored by the caller that lack a matching message_reads row
+   * (i.e. the caller has never opened them). Requires participant
+   * membership (or super_admin).
+   */
+  getChatUnreadCount(
+    request: GetChatUnreadCountRequest,
+    callback: (error: ServiceError | null, response: GetChatUnreadCountResponse) => void
+  ): ClientUnaryCall;
+  getChatUnreadCount(
+    request: GetChatUnreadCountRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetChatUnreadCountResponse) => void
+  ): ClientUnaryCall;
+  getChatUnreadCount(
+    request: GetChatUnreadCountRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetChatUnreadCountResponse) => void
   ): ClientUnaryCall;
 }
 

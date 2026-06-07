@@ -24,6 +24,8 @@ import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/even
 import type { Permission } from '@adopt-dont-shop/lib.types';
 import type {
   Chat,
+  GetChatUnreadCountRequest,
+  GetChatUnreadCountResponse,
   ListChatsRequest,
   ListChatsResponse,
   ListMessagesRequest,
@@ -844,4 +846,43 @@ export async function searchChats(
   );
 
   return { hits, page, limit, total };
+}
+
+// --- GetChatUnreadCount ---------------------------------------------
+
+export async function getChatUnreadCount(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetChatUnreadCountRequest
+): Promise<GetChatUnreadCountResponse> {
+  if (!req.chatId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'chat_id is required');
+  }
+  if (!hasPermission(principal, CHAT_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${CHAT_READ}' required`);
+  }
+  if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
+    // Don't enumerate — same response shape as a missing chat.
+    throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
+  }
+
+  // "Unread for user" = messages in the chat NOT authored by the user
+  // that have no matching message_reads row for the user. The LEFT
+  // JOIN-NULL pattern keeps the count in SQL without loading message
+  // rows into Node memory. deleted_at is filtered out — soft-deleted
+  // messages don't count toward unread.
+  const result = await deps.pool.query<{ count: string }>(
+    `
+    SELECT COUNT(*)::text AS count
+    FROM messages m
+    LEFT JOIN message_reads r ON r.message_id = m.message_id AND r.user_id = $2
+    WHERE m.chat_id = $1
+      AND m.sender_id <> $2
+      AND m.deleted_at IS NULL
+      AND r.read_id IS NULL
+    `,
+    [req.chatId, principal.userId]
+  );
+
+  return { unreadCount: Number.parseInt(result.rows[0]?.count ?? '0', 10) };
 }
