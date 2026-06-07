@@ -42,6 +42,7 @@ import type {
   ApplicationSubmittedEvent,
   AuthRoleAssignedEvent,
   AuthUserLoggedInEvent,
+  ChatMessageCreatedEvent,
   PetDeletedEvent,
   PetStatusChangedEvent,
   RescueRejectedEvent,
@@ -238,6 +239,40 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
           rescueId: payload.rescueId,
           email: payload.email,
         });
+      }
+    )
+  );
+
+  // chat.messageCreated — fan a NOTIFICATION_TYPE_MESSAGE_RECEIVED row
+  // out to every recipient (participants minus the sender). The
+  // realtime ping is already handled by the gateway WS subscriber; this
+  // creates the durable Notification row so offline users have a
+  // record + an unread badge to come back to.
+  subscriptions.push(
+    subscribe<ChatMessageCreatedEvent>(
+      nats,
+      { subject: 'chat.messageCreated', queue: QUEUE_GROUP, onError },
+      async payload => {
+        const recipients = payload.participantUserIds.filter(id => id !== payload.senderUserId);
+        // Each recipient gets one in-app notification. Errors from a
+        // single recipient must not abort the others (CAD lesson #4 —
+        // poison-pill subscribers); wrap each in its own try/catch.
+        for (const userId of recipients) {
+          try {
+            await createNotification(
+              deps,
+              SYSTEM_PRINCIPAL,
+              buildChatMessageReceivedCreate(payload, userId)
+            );
+          } catch (err) {
+            logger.warn('chat.messageCreated notification create failed', {
+              chatId: payload.chatId,
+              messageId: payload.messageId,
+              recipientUserId: userId,
+              err: (err as Error)?.message ?? String(err),
+            });
+          }
+        }
       }
     )
   );
@@ -442,3 +477,35 @@ export const buildAuthRoleAssignedCreate = (
   relatedEntityType:
     NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_USER,
 });
+
+// Cap the message preview so we never store the full chat body on the
+// notification row — the SPA opens the chat to read more, and a runaway
+// 10k-char message shouldn't bloat the notifications.notifications row.
+const CHAT_PREVIEW_LIMIT = 140;
+
+export const buildChatMessageReceivedCreate = (
+  event: ChatMessageCreatedEvent,
+  recipientUserId: string
+): CreateNotificationRequest => {
+  const preview =
+    event.body.length > CHAT_PREVIEW_LIMIT
+      ? `${event.body.slice(0, CHAT_PREVIEW_LIMIT - 1)}…`
+      : event.body;
+  return {
+    userId: recipientUserId,
+    type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_MESSAGE_RECEIVED,
+    channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+    priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL,
+    title: 'New message',
+    message: preview,
+    dataJson: JSON.stringify({
+      chatId: event.chatId,
+      messageId: event.messageId,
+      senderUserId: event.senderUserId,
+    }),
+    templateVariablesJson: '{}',
+    relatedEntityType:
+      NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE,
+    relatedEntityId: event.messageId,
+  };
+};

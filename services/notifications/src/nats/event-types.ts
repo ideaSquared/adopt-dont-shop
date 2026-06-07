@@ -165,3 +165,17 @@ export type RescueStaffInvitedEvent = {
   invitedBy: string;
   expiration: string;
 };
+
+// chat.messageCreated — service.chat publishes after every committed
+// message insert. Payload mirrors what the gateway WS subscriber
+// already consumes; the notifications subscriber uses
+// `participantUserIds` to fan out an in-app NOTIFICATION_TYPE_MESSAGE_RECEIVED
+// row per recipient (sender excluded — they don't need to be told
+// about their own message).
+export type ChatMessageCreatedEvent = {
+  messageId: string;
+  chatId: string;
+  senderUserId: string;
+  body: string;
+  participantUserIds: string[];
+};
