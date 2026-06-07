@@ -223,6 +223,9 @@ export type {
   MarkReadResponse,
   ReactRequest,
   ReactResponse,
+  SearchChatsRequest,
+  SearchChatsResponse,
+  SearchChatHit,
   ChatServiceServer,
   ChatServiceClient,
 } from './generated/proto/adopt_dont_shop/chat/v1/chat.js';

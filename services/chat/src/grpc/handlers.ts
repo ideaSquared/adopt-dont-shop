@@ -36,6 +36,9 @@ import type {
   OpenChatResponse,
   ReactRequest,
   ReactResponse,
+  SearchChatHit,
+  SearchChatsRequest,
+  SearchChatsResponse,
   SendMessageRequest,
   SendMessageResponse,
 } from '@adopt-dont-shop/proto';
@@ -694,4 +697,151 @@ export async function react(
   return {
     message: messageRowToProto(after.rows[0], reactions.get(req.messageId) ?? []),
   };
+}
+
+// --- SearchChats -----------------------------------------------------
+
+const DEFAULT_SEARCH_LIMIT = 20;
+const MAX_SEARCH_LIMIT = 100;
+const MAX_QUERY_LEN = 100;
+
+export async function searchChats(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: SearchChatsRequest
+): Promise<SearchChatsResponse> {
+  if (!req.query || req.query.trim().length === 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'query is required');
+  }
+  const query = req.query.trim();
+  if (query.length > MAX_QUERY_LEN) {
+    throw new HandlerError('INVALID_ARGUMENT', `query must be <= ${MAX_QUERY_LEN} chars`);
+  }
+  if (!hasPermission(principal, CHAT_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${CHAT_READ}' required`);
+  }
+
+  const limit = clampLimit(req.limit, DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT);
+  const page = Math.max(req.page || 1, 1);
+  const offset = (page - 1) * limit;
+
+  // websearch_to_tsquery understands quoted phrases + "or" + leading "-"
+  // exclusion the way users expect from a search box, without the strict
+  // syntax to_tsquery requires. It returns no rows on an empty parse,
+  // which is the right behaviour for a stray punctuation-only query.
+  const tsQuery = 'websearch_to_tsquery($1, $2)';
+
+  // Self-scope: a message-content match still has to be in a chat the
+  // caller participates in. The `archived` filter mirrors the monolith.
+  const baseWhere: string[] = [
+    `c.status <> 'archived'`,
+    `c.deleted_at IS NULL`,
+    `p.participant_id = $3`,
+    `p.deleted_at IS NULL`,
+    `m.deleted_at IS NULL`,
+    `m.search_vector @@ ${tsQuery}`,
+  ];
+  const params: unknown[] = ['english', query, principal.userId];
+  let nextParam = 4;
+
+  if (req.rescueId) {
+    baseWhere.push(`c.rescue_id = $${nextParam}`);
+    params.push(req.rescueId);
+    nextParam += 1;
+  }
+
+  // Total distinct chat count — drives the SPA pagination ribbon.
+  const countSql = `
+    SELECT COUNT(DISTINCT c.chat_id)::text AS total
+    FROM chats c
+    JOIN chat_participants p ON p.chat_id = c.chat_id
+    JOIN messages m ON m.chat_id = c.chat_id
+    WHERE ${baseWhere.join(' AND ')}
+  `;
+  const countRes = await deps.pool.query<{ total: string }>(countSql, params);
+  const total = Number.parseInt(countRes.rows[0]?.total ?? '0', 10);
+
+  if (total === 0) {
+    return { hits: [], page, limit, total: 0 };
+  }
+
+  // For each matching chat, surface the most recent matching message
+  // (DISTINCT ON ordered by chat + created_at DESC). Sort the outer
+  // result by that match's recency so the SPA gets the freshest matches
+  // first, then deterministic chat_id tiebreaker.
+  const hitsSql = `
+    SELECT DISTINCT ON (c.chat_id)
+      c.chat_id AS c_chat_id, c.application_id AS c_application_id,
+      c.rescue_id AS c_rescue_id, c.pet_id AS c_pet_id,
+      c.status AS c_status,
+      c.created_at AS c_created_at, c.updated_at AS c_updated_at,
+      m.message_id AS m_message_id, m.chat_id AS m_chat_id,
+      m.sender_id AS m_sender_id, m.content AS m_content,
+      m.edited_at AS m_edited_at, m.deleted_at AS m_deleted_at,
+      m.created_at AS m_created_at
+    FROM chats c
+    JOIN chat_participants p ON p.chat_id = c.chat_id
+    JOIN messages m ON m.chat_id = c.chat_id
+    WHERE ${baseWhere.join(' AND ')}
+    ORDER BY c.chat_id, m.created_at DESC
+    LIMIT $${nextParam}
+    OFFSET $${nextParam + 1}
+  `;
+  // Wrap the DISTINCT ON in an outer SELECT so we can order by match
+  // recency without violating DISTINCT ON's ordering rule.
+  const orderedSql = `
+    SELECT * FROM (${hitsSql.replace(/LIMIT.*$/s, '')}) hits
+    ORDER BY m_created_at DESC, c_chat_id ASC
+    LIMIT $${nextParam}
+    OFFSET $${nextParam + 1}
+  `;
+  const hitsRes = await deps.pool.query<{
+    c_chat_id: string;
+    c_application_id: string | null;
+    c_rescue_id: string;
+    c_pet_id: string | null;
+    c_status: ChatRow['status'];
+    c_created_at: Date;
+    c_updated_at: Date;
+    m_message_id: string;
+    m_chat_id: string;
+    m_sender_id: string;
+    m_content: string;
+    m_edited_at: Date | null;
+    m_deleted_at: Date | null;
+    m_created_at: Date;
+  }>(orderedSql, [...params, limit, offset]);
+
+  // Reactions: load all matching message ids in one shot.
+  const messageIds = hitsRes.rows.map(r => r.m_message_id);
+  const reactionMap = await loadMessageReactions(deps, messageIds);
+
+  const hits: SearchChatHit[] = await Promise.all(
+    hitsRes.rows.map(async row => {
+      const chatRow: ChatRow = {
+        chat_id: row.c_chat_id,
+        application_id: row.c_application_id,
+        rescue_id: row.c_rescue_id,
+        pet_id: row.c_pet_id,
+        status: row.c_status,
+        created_at: row.c_created_at,
+        updated_at: row.c_updated_at,
+      };
+      const msgRow: MessageRow = {
+        message_id: row.m_message_id,
+        chat_id: row.m_chat_id,
+        sender_id: row.m_sender_id,
+        content: row.m_content,
+        edited_at: row.m_edited_at,
+        deleted_at: row.m_deleted_at,
+        created_at: row.m_created_at,
+      };
+      return {
+        chat: await chatRowToProto(deps, chatRow),
+        match: messageRowToProto(msgRow, reactionMap.get(row.m_message_id) ?? []),
+      };
+    })
+  );
+
+  return { hits, page, limit, total };
 }

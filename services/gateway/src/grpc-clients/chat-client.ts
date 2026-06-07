@@ -18,6 +18,8 @@ import {
   type OpenChatResponse,
   type ReactRequest,
   type ReactResponse,
+  type SearchChatsRequest,
+  type SearchChatsResponse,
   type SendMessageRequest,
   type SendMessageResponse,
 } from '@adopt-dont-shop/proto';
@@ -29,6 +31,7 @@ export type ChatClient = {
   listChats(req: ListChatsRequest, metadata: Metadata): Promise<ListChatsResponse>;
   markRead(req: MarkReadRequest, metadata: Metadata): Promise<MarkReadResponse>;
   react(req: ReactRequest, metadata: Metadata): Promise<ReactResponse>;
+  searchChats(req: SearchChatsRequest, metadata: Metadata): Promise<SearchChatsResponse>;
   close(): void;
 };
 
@@ -61,6 +64,7 @@ export const createChatClient = (opts: CreateChatClientOptions): ChatClient => {
     listChats: (req, metadata) => callUnary(stub.listChats, req, metadata),
     markRead: (req, metadata) => callUnary(stub.markRead, req, metadata),
     react: (req, metadata) => callUnary(stub.react, req, metadata),
+    searchChats: (req, metadata) => callUnary(stub.searchChats, req, metadata),
     close: () => stub.close(),
   };
 };
