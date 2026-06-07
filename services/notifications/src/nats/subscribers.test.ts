@@ -13,6 +13,7 @@ import {
   buildApplicationSubmittedCreate,
   buildAuthRoleAssignedCreate,
   buildAuthUserLoggedInCreate,
+  buildChatMessageReceivedCreate,
   registerSubscribers,
 } from './subscribers.js';
 
@@ -209,6 +210,42 @@ describe('event → CreateNotificationRequest translation', () => {
       expect(req.message).toContain('Reason: community trust');
     });
   });
+
+  describe('buildChatMessageReceivedCreate', () => {
+    const baseEvent = {
+      messageId: 'msg-1',
+      chatId: 'chat-1',
+      senderUserId: 'usr-sender',
+      body: 'Hello!',
+      participantUserIds: ['usr-sender', 'usr-recipient'],
+    };
+
+    it('targets the recipient with an in-app MESSAGE_RECEIVED row at NORMAL priority', () => {
+      const req = buildChatMessageReceivedCreate(baseEvent, 'usr-recipient');
+      expect(req.userId).toBe('usr-recipient');
+      expect(req.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_MESSAGE_RECEIVED);
+      expect(req.channel).toBe(NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP);
+      expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL);
+      expect(req.title).toBe('New message');
+      expect(req.message).toBe('Hello!');
+      expect(req.relatedEntityType).toBe(
+        NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE
+      );
+      expect(req.relatedEntityId).toBe('msg-1');
+      const data = JSON.parse(req.dataJson) as Record<string, unknown>;
+      expect(data.chatId).toBe('chat-1');
+      expect(data.messageId).toBe('msg-1');
+      expect(data.senderUserId).toBe('usr-sender');
+    });
+
+    it('truncates bodies that exceed the preview cap with an ellipsis', () => {
+      const longBody = 'a'.repeat(500);
+      const req = buildChatMessageReceivedCreate({ ...baseEvent, body: longBody }, 'usr-recipient');
+      // 139 chars of body + the ellipsis terminator = 140 total preview.
+      expect(req.message.length).toBe(140);
+      expect(req.message.endsWith('…')).toBe(true);
+    });
+  });
 });
 
 // --- Subscriber registration ----------------------------------------
@@ -252,7 +289,7 @@ describe('registerSubscribers', () => {
 
     const subs = registerSubscribers({ nats, deps, logger });
 
-    expect(subs).toHaveLength(13);
+    expect(subs).toHaveLength(14);
     // Subscribed subjects (raw nats.subscribe receives the subject as
     // first arg, then an options object containing `queue`).
     const subjects = subscribeFn.mock.calls.map(call => call[0]);
@@ -270,6 +307,7 @@ describe('registerSubscribers', () => {
       'rescue.verified',
       'rescue.rejected',
       'rescue.staffInvited',
+      'chat.messageCreated',
     ]);
   });
 
