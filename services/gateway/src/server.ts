@@ -45,6 +45,7 @@ import { registerNotificationsRoutes } from './routes/notifications.js';
 import { registerPetsRoutes } from './routes/pets.js';
 import { registerRescueRoutes } from './routes/rescue.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
+import { registerSessionsRoutes } from './routes/sessions.js';
 
 export type CreateServerOptions = {
   config: GatewayConfig;
@@ -152,6 +153,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   const { cutover } = config;
   if (opts.authClient && cutover.auth) {
     await registerAuthRoutes(server, { client: opts.authClient });
+    // /api/v1/sessions/* — list/revoke. Shares the auth cutover flag
+    // because it's the same identity surface from the SPA's POV.
+    await registerSessionsRoutes(server, { client: opts.authClient });
   }
   if (opts.notificationsClient && cutover.notifications) {
     await registerNotificationsRoutes(server, { client: opts.notificationsClient });

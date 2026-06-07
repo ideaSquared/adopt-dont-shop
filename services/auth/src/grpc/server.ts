@@ -37,6 +37,7 @@ import {
   validateToken,
   type HandlerDeps,
 } from './handlers.js';
+import { listSessions, revokeSession } from './session-handlers.js';
 
 export type CreateGrpcServerOptions = {
   config: AuthConfig;
@@ -76,6 +77,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     resetPassword: adaptUnauth(resetPassword, { deps, logger }),
     changePassword: adapt(changePassword, { deps, logger }),
     updateAccount: adapt(updateAccount, { deps, logger }),
+    // Session management — list active refresh-token chains + revoke.
+    listSessions: adapt(listSessions, { deps, logger }),
+    revokeSession: adapt(revokeSession, { deps, logger }),
   });
 
   logger.info('gRPC AuthService registered', {
@@ -93,6 +97,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'resetPassword',
       'changePassword',
       'updateAccount',
+      'listSessions',
+      'revokeSession',
     ],
     grpcPort: config.grpcPort,
   });

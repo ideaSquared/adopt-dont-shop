@@ -81,6 +81,25 @@ service AuthService {
   // bio, timezone, language, country, city, address). Email changes go
   // through a dedicated re-verification flow (deferred).
   rpc UpdateAccount(UpdateAccountRequest) returns (UpdateAccountResponse);
+
+  // --- Session management --------------------------------------------
+  // Phase 2.6+: SPA-facing session list + revoke. Sessions correspond
+  // to refresh_tokens rows: one row per (user, family) chain. Listing
+  // returns the active (non-revoked, non-expired) chains so the user
+  // can see and selectively log out devices.
+
+  // List active sessions for the calling principal. Always self-scoped
+  // — admins see their own sessions, not anyone else's. Returns the
+  // chain root (first un-replaced token per family) so a rotated
+  // refresh_token chain shows as ONE session, not N.
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+
+  // Revoke a session by token_id. Marks the row + every successor in
+  // the same family is_revoked=true so a leaked rotated token can't be
+  // used. Returns NOT_FOUND when token_id doesn't exist or belongs to
+  // a different user — the two cases are indistinguishable on purpose
+  // (no cross-user session enumeration).
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
 }
 
 // --- Shared messages --------------------------------------------------
@@ -348,4 +367,41 @@ message UpdateAccountRequest {
 
 message UpdateAccountResponse {
   User user = 1;
+}
+
+// --- Sessions ---------------------------------------------------------
+
+message Session {
+  // Token row id. Stable per chain — the first refresh_token in the
+  // family that hasn't been replaced by rotation; never changes for
+  // the lifetime of the session.
+  string session_id = 1;
+  // Grouping id for the rotation chain. Multiple chains can exist for
+  // one user (one per device / browser).
+  string family_id = 2;
+  // RFC 3339. The chain root's expiry; rotation extends this on the
+  // active leaf, not the root, so callers should treat this as
+  // approximate.
+  string expires_at = 3;
+  string created_at = 4;
+}
+
+message ListSessionsRequest {
+  // Self-scoped — no user_id field. Cross-user listing has no current
+  // use case; admin tooling would call a different (future) RPC.
+}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message RevokeSessionRequest {
+  string session_id = 1;
+}
+
+message RevokeSessionResponse {
+  // Echo of the revoked id for ack. Idempotent: a second Revoke on a
+  // already-revoked session returns the same id without error (NATS
+  // event is suppressed on the second call).
+  string session_id = 1;
 }
