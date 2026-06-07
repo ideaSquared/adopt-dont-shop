@@ -20,6 +20,7 @@ import {
   markRead,
   openChat,
   react,
+  deleteChat,
   deleteMessage,
   getChat,
   getChatUnreadCount,
@@ -747,5 +748,91 @@ describe('getChat', () => {
     expect(res.chat?.chatId).toBe('chat-1');
     expect(res.chat?.participantUserIds).toEqual(['usr-adopter', 'usr-rescue']);
     expect(res.chat?.lastMessagePreview).toBe('Hi there');
+  });
+});
+
+// --- deleteChat -----------------------------------------------------
+
+describe('deleteChat', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects missing chat_id', async () => {
+    await expect(deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: '' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('rejects principals without chat.read', async () => {
+    await expect(
+      deleteChat(mocks.deps, UNPRIVILEGED_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns NOT_FOUND (no enumeration) when caller is not a participant', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns NOT_FOUND when the chat row is gone', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('is idempotent on an already-deleted chat (no write, no publish)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ ...chatRowFixture(), deleted_at: new Date('2026-06-05T12:00:00Z') }],
+    });
+    // chatRowToProto helpers
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' });
+    expect(res.chat?.chatId).toBe('chat-1');
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('soft-deletes inside withTransaction and publishes chat.deleted', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ ...chatRowFixture(), deleted_at: null }],
+    });
+    // Inside withTransaction: UPDATE returning + participants
+    mocks.clientScript.push({ rows: [chatRowFixture()] });
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    // After commit chatRowToProto helpers
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await deleteChat(mocks.deps, ADOPTER_PRINCIPAL, {
+      chatId: 'chat-1',
+      reason: 'cleanup',
+    });
+    expect(res.chat?.chatId).toBe('chat-1');
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.deleted');
+    const envelope = JSON.parse(mocks.natsMock.publish.mock.calls[0][1] as string) as {
+      payload: { reason: string | null; participantUserIds: string[] };
+    };
+    expect(envelope.payload.reason).toBe('cleanup');
+    expect(envelope.payload.participantUserIds).toEqual(['usr-adopter', 'usr-rescue']);
   });
 });

@@ -232,6 +232,15 @@ export interface GetChatResponse {
   chat?: Chat | undefined;
 }
 
+export interface DeleteChatRequest {
+  chatId: string;
+  reason?: string | undefined;
+}
+
+export interface DeleteChatResponse {
+  chat?: Chat | undefined;
+}
+
 function createBaseChat(): Chat {
   return {
     chatId: '',
@@ -2415,6 +2424,145 @@ export const GetChatResponse: MessageFns<GetChatResponse> = {
   },
 };
 
+function createBaseDeleteChatRequest(): DeleteChatRequest {
+  return { chatId: '', reason: undefined };
+}
+
+export const DeleteChatRequest: MessageFns<DeleteChatRequest> = {
+  encode(message: DeleteChatRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.chatId !== '') {
+      writer.uint32(10).string(message.chatId);
+    }
+    if (message.reason !== undefined) {
+      writer.uint32(18).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteChatRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteChatRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.chatId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteChatRequest {
+    return {
+      chatId: isSet(object.chatId)
+        ? globalThis.String(object.chatId)
+        : isSet(object.chat_id)
+          ? globalThis.String(object.chat_id)
+          : '',
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
+    };
+  },
+
+  toJSON(message: DeleteChatRequest): unknown {
+    const obj: any = {};
+    if (message.chatId !== '') {
+      obj.chatId = message.chatId;
+    }
+    if (message.reason !== undefined) {
+      obj.reason = message.reason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteChatRequest>, I>>(base?: I): DeleteChatRequest {
+    return DeleteChatRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteChatRequest>, I>>(object: I): DeleteChatRequest {
+    const message = createBaseDeleteChatRequest();
+    message.chatId = object.chatId ?? '';
+    message.reason = object.reason ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeleteChatResponse(): DeleteChatResponse {
+  return { chat: undefined };
+}
+
+export const DeleteChatResponse: MessageFns<DeleteChatResponse> = {
+  encode(message: DeleteChatResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.chat !== undefined) {
+      Chat.encode(message.chat, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteChatResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteChatResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.chat = Chat.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteChatResponse {
+    return { chat: isSet(object.chat) ? Chat.fromJSON(object.chat) : undefined };
+  },
+
+  toJSON(message: DeleteChatResponse): unknown {
+    const obj: any = {};
+    if (message.chat !== undefined) {
+      obj.chat = Chat.toJSON(message.chat);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteChatResponse>, I>>(base?: I): DeleteChatResponse {
+    return DeleteChatResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteChatResponse>, I>>(object: I): DeleteChatResponse {
+    const message = createBaseDeleteChatResponse();
+    message.chat =
+      object.chat !== undefined && object.chat !== null ? Chat.fromPartial(object.chat) : undefined;
+    return message;
+  },
+};
+
 /**
  * ChatService is the gRPC contract for the chat vertical. It owns
  * the `chat.*` schema (Chat, ChatParticipant, Message, MessageReaction,
@@ -2601,6 +2749,23 @@ export const ChatServiceService = {
       Buffer.from(GetChatResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetChatResponse => GetChatResponse.decode(value),
   },
+  /**
+   * Soft-delete a chat (sets deleted_at). Caller MUST be a participant
+   * or super_admin. Idempotent — a second delete on the same chat
+   * returns the same row without re-publishing. Publishes chat.deleted
+   * with the participant list for WS fan-out.
+   */
+  deleteChat: {
+    path: '/adopt_dont_shop.chat.v1.ChatService/DeleteChat' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteChatRequest): Buffer =>
+      Buffer.from(DeleteChatRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteChatRequest => DeleteChatRequest.decode(value),
+    responseSerialize: (value: DeleteChatResponse): Buffer =>
+      Buffer.from(DeleteChatResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteChatResponse => DeleteChatResponse.decode(value),
+  },
 } as const;
 
 export interface ChatServiceServer extends UntypedServiceImplementation {
@@ -2669,6 +2834,13 @@ export interface ChatServiceServer extends UntypedServiceImplementation {
    * super_admin; non-participants get NOT_FOUND (no enumeration).
    */
   getChat: handleUnaryCall<GetChatRequest, GetChatResponse>;
+  /**
+   * Soft-delete a chat (sets deleted_at). Caller MUST be a participant
+   * or super_admin. Idempotent — a second delete on the same chat
+   * returns the same row without re-publishing. Publishes chat.deleted
+   * with the participant list for WS fan-out.
+   */
+  deleteChat: handleUnaryCall<DeleteChatRequest, DeleteChatResponse>;
 }
 
 export interface ChatServiceClient extends Client {
@@ -2876,6 +3048,27 @@ export interface ChatServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetChatResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Soft-delete a chat (sets deleted_at). Caller MUST be a participant
+   * or super_admin. Idempotent — a second delete on the same chat
+   * returns the same row without re-publishing. Publishes chat.deleted
+   * with the participant list for WS fan-out.
+   */
+  deleteChat(
+    request: DeleteChatRequest,
+    callback: (error: ServiceError | null, response: DeleteChatResponse) => void
+  ): ClientUnaryCall;
+  deleteChat(
+    request: DeleteChatRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteChatResponse) => void
+  ): ClientUnaryCall;
+  deleteChat(
+    request: DeleteChatRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteChatResponse) => void
   ): ClientUnaryCall;
 }
 

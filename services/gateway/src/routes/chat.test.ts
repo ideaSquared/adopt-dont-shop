@@ -46,8 +46,10 @@ function makeClient(): ChatClient & {
   getChatUnreadCountMock: ReturnType<typeof vi.fn>;
   deleteMessageMock: ReturnType<typeof vi.fn>;
   getChatMock: ReturnType<typeof vi.fn>;
+  deleteChatMock: ReturnType<typeof vi.fn>;
 } {
   const openChatMock = vi.fn();
+  const deleteChatMock = vi.fn();
   const sendMessageMock = vi.fn();
   const listMessagesMock = vi.fn();
   const listChatsMock = vi.fn();
@@ -68,6 +70,7 @@ function makeClient(): ChatClient & {
     getChatUnreadCount: getChatUnreadCountMock,
     deleteMessage: deleteMessageMock,
     getChat: getChatMock,
+    deleteChat: deleteChatMock,
     close: vi.fn(),
     openChatMock,
     sendMessageMock,
@@ -79,6 +82,7 @@ function makeClient(): ChatClient & {
     getChatUnreadCountMock,
     deleteMessageMock,
     getChatMock,
+    deleteChatMock,
   };
 }
 
@@ -763,5 +767,71 @@ describe('GET /api/v1/chats/:chatId', () => {
     expect(res.statusCode).toBe(200);
     expect(client.getChatUnreadCountMock).toHaveBeenCalledTimes(1);
     expect(client.getChatMock).not.toHaveBeenCalled();
+  });
+});
+
+// --- DELETE /api/v1/chats/:chatId -----------------------------------
+
+describe('DELETE /api/v1/chats/:chatId', () => {
+  let app: FastifyInstance;
+  let client: ReturnType<typeof makeClient>;
+
+  beforeEach(async () => {
+    client = makeClient();
+    app = await buildApp(client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('forwards chat id + reason and returns success envelope', async () => {
+    client.deleteChatMock.mockResolvedValueOnce({ chat: CHAT_FIXTURE });
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/chats/chat-1',
+      headers: {
+        'x-user-id': 'usr-1',
+        'x-user-roles': 'adopter',
+        'content-type': 'application/json',
+      },
+      payload: { reason: 'cleanup' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { success: boolean; message: string; data: { chatId: string } };
+    expect(body.success).toBe(true);
+    expect(body.message).toBe('Chat deleted');
+    expect(body.data.chatId).toBe('chat-1');
+    const [grpcReq] = client.deleteChatMock.mock.calls[0] as [
+      { chatId: string; reason?: string },
+      Metadata,
+    ];
+    expect(grpcReq.chatId).toBe('chat-1');
+    expect(grpcReq.reason).toBe('cleanup');
+  });
+
+  it('maps NOT_FOUND → 404', async () => {
+    client.deleteChatMock.mockRejectedValueOnce({
+      code: status.NOT_FOUND,
+      details: 'gone',
+    });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/chats/missing',
+      headers: { 'x-user-id': 'usr-1' },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('reachable via /api/v1/conversations alias', async () => {
+    client.deleteChatMock.mockResolvedValueOnce({ chat: CHAT_FIXTURE });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/conversations/chat-1',
+      headers: { 'x-user-id': 'usr-1' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(client.deleteChatMock).toHaveBeenCalledTimes(1);
   });
 });

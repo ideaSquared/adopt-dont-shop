@@ -24,6 +24,8 @@ import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/even
 import type { Permission } from '@adopt-dont-shop/lib.types';
 import type {
   Chat,
+  DeleteChatRequest,
+  DeleteChatResponse,
   DeleteMessageRequest,
   DeleteMessageResponse,
   GetChatRequest,
@@ -1002,4 +1004,71 @@ export async function getChat(
   }
 
   return { chat: await chatRowToProto(deps, result.rows[0]) };
+}
+
+// --- DeleteChat -----------------------------------------------------
+
+export async function deleteChat(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: DeleteChatRequest
+): Promise<DeleteChatResponse> {
+  if (!req.chatId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'chat_id is required');
+  }
+  if (!hasPermission(principal, CHAT_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${CHAT_READ}' required`);
+  }
+  // Participant-or-admin gate. Non-participants get NOT_FOUND posture
+  // so the row's existence isn't enumerable.
+  if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
+    throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
+  }
+
+  // Fetch the row to decide idempotent vs first-time delete.
+  const existing = await deps.pool.query<ChatRow & { deleted_at: Date | null }>(
+    `SELECT * FROM chats WHERE chat_id = $1 LIMIT 1`,
+    [req.chatId]
+  );
+  if (existing.rows.length === 0) {
+    throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
+  }
+  const row = existing.rows[0];
+
+  // Idempotent — already deleted.
+  if (row.deleted_at) {
+    return { chat: await chatRowToProto(deps, row) };
+  }
+
+  let updated: ChatRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    const result = await client.query<ChatRow>(
+      `
+      UPDATE chats
+      SET deleted_at = now(), updated_at = now()
+      WHERE chat_id = $1
+      RETURNING *
+      `,
+      [req.chatId]
+    );
+    updated = result.rows[0];
+
+    const participantUserIds = await loadChatParticipantsTx(client, req.chatId);
+
+    publish({
+      type: 'chat.deleted',
+      id: `chat.deleted.${req.chatId}`,
+      payload: {
+        chatId: req.chatId,
+        deletedBy: principal.userId,
+        reason: req.reason ?? null,
+        participantUserIds,
+      },
+    });
+  });
+
+  if (!updated) {
+    throw new HandlerError('INTERNAL', 'delete returned no rows');
+  }
+  return { chat: await chatRowToProto(deps, updated) };
 }
