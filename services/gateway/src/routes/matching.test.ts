@@ -262,6 +262,63 @@ describe('POST /api/v1/matching/sessions/:id/swipes', () => {
   });
 });
 
+describe('POST /api/v1/discovery/swipe/action — SPA-facing alias', () => {
+  let app: FastifyInstance;
+  let recordSwipeMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    const m = makeClient();
+    recordSwipeMock = m.recordSwipeMock;
+    app = await makeApp(m.client);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns 200 with the monolith envelope on success', async () => {
+    recordSwipeMock.mockResolvedValue({ action: SWIPE_FIXTURE, session: SESSION_FIXTURE });
+    const httpRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/discovery/swipe/action',
+      headers: ADOPTER_HEADERS,
+      payload: { sessionId: 'sess-1', petId: 'pet-1', action: 'like' },
+    });
+    expect(httpRes.statusCode).toBe(200);
+    expect(JSON.parse(httpRes.body)).toEqual({
+      success: true,
+      message: 'Swipe action recorded successfully',
+    });
+  });
+
+  it('forwards sessionId from body (not URL) to RecordSwipe', async () => {
+    recordSwipeMock.mockResolvedValue({ action: SWIPE_FIXTURE, session: SESSION_FIXTURE });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/discovery/swipe/action',
+      headers: ADOPTER_HEADERS,
+      payload: { sessionId: 'sess-body', petId: 'pet-1', action: 'pass' },
+    });
+    expect(recordSwipeMock.mock.calls[0][0]).toMatchObject({
+      sessionId: 'sess-body',
+      petId: 'pet-1',
+      action: MatchingV1.SwipeAction.SWIPE_ACTION_PASS,
+    });
+  });
+
+  it('returns 400 when sessionId is missing', async () => {
+    const httpRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/discovery/swipe/action',
+      headers: ADOPTER_HEADERS,
+      payload: { petId: 'pet-1', action: 'like' },
+    });
+    expect(httpRes.statusCode).toBe(400);
+    expect(JSON.parse(httpRes.body)).toEqual({ error: 'sessionId is required' });
+    expect(recordSwipeMock).not.toHaveBeenCalled();
+  });
+});
+
 describe('GET /api/v1/matching/swipes', () => {
   let app: FastifyInstance;
   let listSwipeHistoryMock: ReturnType<typeof vi.fn>;

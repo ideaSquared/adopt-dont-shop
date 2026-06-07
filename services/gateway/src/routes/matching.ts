@@ -149,6 +149,37 @@ export const registerMatchingRoutes = async (
     }
   );
 
+  // POST /api/v1/discovery/swipe/action — SPA-facing alias for
+  // RecordSwipe used by lib.discovery. Body carries sessionId rather
+  // than the URL path. Returns 200 + a monolith-shaped envelope
+  // ({ success, message }) so the SPA doesn't notice the cutover.
+  app.post(
+    '/api/v1/discovery/swipe/action',
+    { config: { rateLimit: MATCHING_RATE_LIMITS.recordSwipe } },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as RecordSwipeBody & { sessionId?: string };
+      if (!body.sessionId) {
+        return reply.code(400).send({ error: 'sessionId is required' });
+      }
+      const grpcReq: RecordSwipeRequest = {
+        sessionId: body.sessionId,
+        petId: body.petId ?? '',
+        action: parseSwipeAction(body.action),
+        responseTime: body.responseTime,
+        deviceType: body.deviceType,
+      };
+      try {
+        await client.recordSwipe(grpcReq, buildMetadata(req));
+        return reply.send({
+          success: true,
+          message: 'Swipe action recorded successfully',
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   app.get(
     '/api/v1/matching/swipes',
     { config: { rateLimit: MATCHING_RATE_LIMITS.listSwipeHistory } },
