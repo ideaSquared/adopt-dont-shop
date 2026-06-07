@@ -245,6 +245,8 @@ export type {
   DeleteMessageResponse,
   GetChatRequest,
   GetChatResponse,
+  DeleteChatRequest,
+  DeleteChatResponse,
   ChatServiceServer,
   ChatServiceClient,
 } from './generated/proto/adopt_dont_shop/chat/v1/chat.js';

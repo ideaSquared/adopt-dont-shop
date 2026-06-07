@@ -71,6 +71,12 @@ service ChatService {
   // ids + last-message preview. Caller MUST be a participant or
   // super_admin; non-participants get NOT_FOUND (no enumeration).
   rpc GetChat(GetChatRequest) returns (GetChatResponse);
+
+  // Soft-delete a chat (sets deleted_at). Caller MUST be a participant
+  // or super_admin. Idempotent — a second delete on the same chat
+  // returns the same row without re-publishing. Publishes chat.deleted
+  // with the participant list for WS fan-out.
+  rpc DeleteChat(DeleteChatRequest) returns (DeleteChatResponse);
 }
 
 // --- Messages --------------------------------------------------------
@@ -271,5 +277,16 @@ message GetChatRequest {
 }
 
 message GetChatResponse {
+  Chat chat = 1;
+}
+
+// --- DeleteChat ------------------------------------------------------
+
+message DeleteChatRequest {
+  string chat_id = 1;
+  optional string reason = 2;
+}
+
+message DeleteChatResponse {
   Chat chat = 1;
 }

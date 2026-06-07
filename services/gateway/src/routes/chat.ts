@@ -204,6 +204,29 @@ const registerChatRoutesForPrefix = (
     }
   });
 
+  // ---- DELETE <prefix>/:chatId -------------------------------------
+  // Soft-delete (archive) a chat. Participant-or-admin only.
+  app.delete<{ Params: { chatId: string }; Body?: { reason?: string } }>(
+    `${prefix}/:chatId`,
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as { reason?: string };
+      try {
+        const res = await client.deleteChat(
+          { chatId: req.params.chatId, reason: body.reason },
+          metadata
+        );
+        return reply.send({
+          success: true,
+          message: 'Chat deleted',
+          data: res.chat ? ChatV1.Chat.toJSON(res.chat) : null,
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // ---- GET <prefix>/:chatId/messages -------------------------------
   app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId/messages`, async (req, reply) => {
     const metadata = buildMetadata(req);
