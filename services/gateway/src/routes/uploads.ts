@@ -19,6 +19,7 @@ import crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
 
+import rateLimit from '@fastify/rate-limit';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import {
@@ -54,6 +55,18 @@ const MIME_BY_EXT: Record<string, string> = {
   '.pdf': 'application/pdf',
 };
 
+// Per-route rate limits. /images is authenticated but still bounded so
+// one logged-in adopter can't fire-hose the storage backend. The
+// signed-serve route is unauthenticated by design (HMAC is the auth) and
+// gets a tighter window so a leaked signed URL — or someone fuzzing the
+// signature — can't pin the gateway. Matches the monolith's apiLimiter
+// shape (60-per-minute by default; tighter for the unauthenticated
+// serve path).
+const UPLOAD_RATE_LIMITS = {
+  images: { max: 30, timeWindow: '1 minute' },
+  signedServe: { max: 120, timeWindow: '1 minute' },
+} as const;
+
 export const registerUploadsRoutes = async (
   app: FastifyInstance,
   opts: UploadsRoutesOptions
@@ -61,57 +74,66 @@ export const registerUploadsRoutes = async (
   const provider = createStorageProvider(opts.storage);
   const uploadDir = path.resolve(opts.storage.local.directory);
 
+  // Encapsulated rate-limit registration — limits apply only to the
+  // routes registered in this plugin, not gateway-wide. Same pattern as
+  // the auth routes plugin.
+  await app.register(rateLimit, { global: false });
+
   // POST /api/v1/uploads/images — multipart, single file under field
   // `image`. Returns the shape lib.api's ImageUploadResponseSchema
   // expects: { url, thumbnail_url, original_filename, size_bytes,
   // content_type }. Storage package doesn't generate thumbnails today,
   // so thumbnail_url aliases url (matches the monolith's fallback when
   // the resize step is skipped).
-  app.post('/api/v1/uploads/images', async (req, reply) => {
-    if (typeof (req as { isMultipart?: () => boolean }).isMultipart !== 'function') {
-      return reply.code(500).send({ error: 'multipart support not registered' });
-    }
-
-    let originalName = '';
-    let mimetype = '';
-    let buffer: Buffer | null = null;
-
-    try {
-      const parts = (req as unknown as { parts: () => AsyncIterable<MultipartPart> }).parts();
-      for await (const part of parts) {
-        if (part.type === 'file' && part.fieldname === 'image') {
-          originalName = part.filename ?? '';
-          mimetype = part.mimetype ?? 'application/octet-stream';
-          buffer = await part.toBuffer();
-        }
+  app.post(
+    '/api/v1/uploads/images',
+    { config: { rateLimit: UPLOAD_RATE_LIMITS.images } },
+    async (req, reply) => {
+      if (typeof (req as { isMultipart?: () => boolean }).isMultipart !== 'function') {
+        return reply.code(500).send({ error: 'multipart support not registered' });
       }
-    } catch (err) {
-      return reply.code(400).send({ error: `multipart parse failed: ${(err as Error).message}` });
-    }
 
-    if (buffer === null || originalName === '') {
-      return reply.code(400).send({ error: 'No file uploaded' });
-    }
+      let originalName = '';
+      let mimetype = '';
+      let buffer: Buffer | null = null;
 
-    if (!ALLOWED_IMAGE_MIME.has(mimetype)) {
-      return reply.code(400).send({ error: `File type ${mimetype} is not allowed` });
-    }
+      try {
+        const parts = (req as unknown as { parts: () => AsyncIterable<MultipartPart> }).parts();
+        for await (const part of parts) {
+          if (part.type === 'file' && part.fieldname === 'image') {
+            originalName = part.filename ?? '';
+            mimetype = part.mimetype ?? 'application/octet-stream';
+            buffer = await part.toBuffer();
+          }
+        }
+      } catch (err) {
+        return reply.code(400).send({ error: `multipart parse failed: ${(err as Error).message}` });
+      }
 
-    let upload;
-    try {
-      upload = await provider.uploadFile(buffer, originalName, mimetype, 'pets');
-    } catch (err) {
-      return reply.code(500).send({ error: `storage write failed: ${(err as Error).message}` });
-    }
+      if (buffer === null || originalName === '') {
+        return reply.code(400).send({ error: 'No file uploaded' });
+      }
 
-    return reply.code(200).send({
-      url: upload.url,
-      thumbnail_url: upload.url,
-      original_filename: sanitizeDisplayFilename(originalName),
-      size_bytes: upload.size,
-      content_type: mimetype,
-    });
-  });
+      if (!ALLOWED_IMAGE_MIME.has(mimetype)) {
+        return reply.code(400).send({ error: `File type ${mimetype} is not allowed` });
+      }
+
+      let upload;
+      try {
+        upload = await provider.uploadFile(buffer, originalName, mimetype, 'pets');
+      } catch (err) {
+        return reply.code(500).send({ error: `storage write failed: ${(err as Error).message}` });
+      }
+
+      return reply.code(200).send({
+        url: upload.url,
+        thumbnail_url: upload.url,
+        original_filename: sanitizeDisplayFilename(originalName),
+        size_bytes: upload.size,
+        content_type: mimetype,
+      });
+    }
+  );
 
   // GET /uploads-signed/:expiresAt/:signature/*filepath — unauthenticated
   // signed-URL serve. The HMAC over `(filepath, expiresAt)` is the proof
@@ -119,39 +141,43 @@ export const registerUploadsRoutes = async (
   // valid URL, so refusing requests when secret is missing is correct.
   app.get<{
     Params: { expiresAt: string; signature: string; '*': string };
-  }>('/uploads-signed/:expiresAt/:signature/*', async (req, reply) => {
-    if (!opts.signingSecret) {
-      return reply.code(503).send({ error: 'Signed serving not configured' });
-    }
-
-    const expiresAt = Number.parseInt(req.params.expiresAt, 10);
-    const { signature } = req.params;
-    const filePath = req.params['*'] ?? '';
-
-    if (!Number.isFinite(expiresAt) || expiresAt < Math.floor(Date.now() / 1000)) {
-      return reply.code(410).send({ error: 'Signed URL expired' });
-    }
-
-    if (!verifySignature(filePath, expiresAt, signature, opts.signingSecret)) {
-      return reply.code(403).send({ error: 'Invalid signature' });
-    }
-
-    // Remote backend: signature already authorised, redirect to a short
-    // presigned URL so bytes flow client→S3 directly. Same approach the
-    // monolith uses.
-    if (provider.supportsSignedUrls()) {
-      const redirected = await tryRedirectToProvider(provider, filePath, reply);
-      if (redirected) {
-        return reply;
+  }>(
+    '/uploads-signed/:expiresAt/:signature/*',
+    { config: { rateLimit: UPLOAD_RATE_LIMITS.signedServe } },
+    async (req, reply) => {
+      if (!opts.signingSecret) {
+        return reply.code(503).send({ error: 'Signed serving not configured' });
       }
-    }
 
-    const resolved = safeResolve(uploadDir, filePath);
-    if (resolved === null) {
-      return reply.code(400).send({ error: 'Invalid file path' });
+      const expiresAt = Number.parseInt(req.params.expiresAt, 10);
+      const { signature } = req.params;
+      const filePath = req.params['*'] ?? '';
+
+      if (!Number.isFinite(expiresAt) || expiresAt < Math.floor(Date.now() / 1000)) {
+        return reply.code(410).send({ error: 'Signed URL expired' });
+      }
+
+      if (!verifySignature(filePath, expiresAt, signature, opts.signingSecret)) {
+        return reply.code(403).send({ error: 'Invalid signature' });
+      }
+
+      // Remote backend: signature already authorised, redirect to a short
+      // presigned URL so bytes flow client→S3 directly. Same approach the
+      // monolith uses.
+      if (provider.supportsSignedUrls()) {
+        const redirected = await tryRedirectToProvider(provider, filePath, reply);
+        if (redirected) {
+          return reply;
+        }
+      }
+
+      const resolved = safeResolve(uploadDir, filePath);
+      if (resolved === null) {
+        return reply.code(400).send({ error: 'Invalid file path' });
+      }
+      return streamFile(resolved, reply);
     }
-    return streamFile(resolved, reply);
-  });
+  );
 };
 
 // --- Helpers ---------------------------------------------------------
