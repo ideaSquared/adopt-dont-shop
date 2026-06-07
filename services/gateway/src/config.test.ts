@@ -24,6 +24,7 @@ describe('loadConfig', () => {
       matching: false,
       audit: false,
       chat: false,
+      cms: false,
     });
   });
 

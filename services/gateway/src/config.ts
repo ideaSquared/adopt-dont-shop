@@ -45,6 +45,10 @@ export type GatewayConfig = {
   // service.chat gRPC URL — Phase 6.x cuts /api/v1/chats/* + the
   // message-level reaction endpoint over to this address.
   chatGrpcUrl: string;
+  // service.cms gRPC URL. CMS extracted as its own service (the original
+  // plan folded it into the gateway, but the SPA shape is large enough
+  // — content, menus, versions — that it earns its own schema/service).
+  cmsGrpcUrl: string;
   // Storage for uploaded files (e.g. application documents). The gateway
   // stores bytes via @adopt-dont-shop/storage, then records metadata via
   // the owning service's RPC. Defaults to local under ./uploads — set
@@ -81,6 +85,7 @@ export type GatewayConfig = {
     matching: boolean;
     audit: boolean;
     chat: boolean;
+    cms: boolean;
   };
   // Gateway-folded routes — per the plan's "small static reads fold
   // into service.gateway" guidance. Each block is independently
@@ -110,6 +115,7 @@ const DEFAULT_MODERATION_GRPC_URL = 'service-moderation:6007';
 const DEFAULT_MATCHING_GRPC_URL = 'service-matching:6008';
 const DEFAULT_AUDIT_GRPC_URL = 'service-audit:6009';
 const DEFAULT_CHAT_GRPC_URL = 'service-chat:6006';
+const DEFAULT_CMS_GRPC_URL = 'service-cms:6010';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig => {
   const portRaw = env.GATEWAY_PORT?.trim();
@@ -133,6 +139,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     matchingGrpcUrl: env.MATCHING_GRPC_URL?.trim() || DEFAULT_MATCHING_GRPC_URL,
     auditGrpcUrl: env.AUDIT_GRPC_URL?.trim() || DEFAULT_AUDIT_GRPC_URL,
     chatGrpcUrl: env.CHAT_GRPC_URL?.trim() || DEFAULT_CHAT_GRPC_URL,
+    cmsGrpcUrl: env.CMS_GRPC_URL?.trim() || DEFAULT_CMS_GRPC_URL,
     storage: buildStorageConfig(env),
     cutover: {
       auth: isEnabled(env.CUTOVER_AUTH),
@@ -144,6 +151,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
       matching: isEnabled(env.CUTOVER_MATCHING),
       audit: isEnabled(env.CUTOVER_AUDIT),
       chat: isEnabled(env.CUTOVER_CHAT),
+      cms: isEnabled(env.CUTOVER_CMS),
     },
     legal: {
       enabled: env.GATEWAY_LEGAL_ENABLED?.trim().toLowerCase() !== 'false',
