@@ -33,15 +33,16 @@ describe('matching migrations', () => {
     }
   });
 
-  it.each(['001_create_swipe_sessions.ts', '002_create_swipe_actions.ts'])(
-    '%s exports `up` and `down` functions',
-    async filename => {
-      const mod = (await import(`./${filename}`)) as {
-        up: unknown;
-        down: unknown;
-      };
-      expect(typeof mod.up).toBe('function');
-      expect(typeof mod.down).toBe('function');
-    }
-  );
+  it.each([
+    '001_create_swipe_sessions.ts',
+    '002_create_swipe_actions.ts',
+    '003_create_adopter_match_profiles.ts',
+  ])('%s exports `up` and `down` functions', async filename => {
+    const mod = (await import(`./${filename}`)) as {
+      up: unknown;
+      down: unknown;
+    };
+    expect(typeof mod.up).toBe('function');
+    expect(typeof mod.down).toBe('function');
+  });
 });

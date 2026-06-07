@@ -24,6 +24,10 @@ function makeClient(): {
   listSwipeHistoryMock: ReturnType<typeof vi.fn>;
   recommendMock: ReturnType<typeof vi.fn>;
   searchPetsMock: ReturnType<typeof vi.fn>;
+  getMatchProfileMock: ReturnType<typeof vi.fn>;
+  upsertMatchProfileMock: ReturnType<typeof vi.fn>;
+  getUserSwipeStatsMock: ReturnType<typeof vi.fn>;
+  getSessionStatsMock: ReturnType<typeof vi.fn>;
 } {
   const startSessionMock = vi.fn();
   const endSessionMock = vi.fn();
@@ -31,6 +35,10 @@ function makeClient(): {
   const listSwipeHistoryMock = vi.fn();
   const recommendMock = vi.fn();
   const searchPetsMock = vi.fn();
+  const getMatchProfileMock = vi.fn();
+  const upsertMatchProfileMock = vi.fn();
+  const getUserSwipeStatsMock = vi.fn();
+  const getSessionStatsMock = vi.fn();
   const client: MatchingClient = {
     startSession: startSessionMock,
     endSession: endSessionMock,
@@ -38,6 +46,10 @@ function makeClient(): {
     listSwipeHistory: listSwipeHistoryMock,
     recommend: recommendMock,
     searchPets: searchPetsMock,
+    getMatchProfile: getMatchProfileMock,
+    upsertMatchProfile: upsertMatchProfileMock,
+    getUserSwipeStats: getUserSwipeStatsMock,
+    getSessionStats: getSessionStatsMock,
     close: vi.fn(),
   };
   return {
@@ -48,6 +60,10 @@ function makeClient(): {
     listSwipeHistoryMock,
     recommendMock,
     searchPetsMock,
+    getMatchProfileMock,
+    upsertMatchProfileMock,
+    getUserSwipeStatsMock,
+    getSessionStatsMock,
   };
 }
 
@@ -487,6 +503,144 @@ describe('GET /api/v1/search/pets (SearchPets)', () => {
         limit: 10,
         filtersJson: '{"species":"dog"}',
       });
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('match profile + swipe stats', () => {
+  it('GET /api/v1/match/profile returns the parsed profile', async () => {
+    const m = makeClient();
+    m.getMatchProfileMock.mockResolvedValue({
+      profile: {
+        userId: 'usr-1',
+        preferredTypesJson: '["dog"]',
+        preferredSizesJson: '',
+        preferredAgeGroupsJson: '',
+        preferredEnergyJson: '',
+        preferredTemperamentJson: '',
+        lifestyleJson: '{"activity":"high"}',
+        openToSpecialNeeds: false,
+        notifyNewMatches: true,
+        minNotificationScore: 50,
+        inferredPrefsJson: '{}',
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+      },
+    });
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/match/profile',
+        headers: ADOPTER_HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { success: boolean; data: Record<string, unknown> };
+      expect(body.success).toBe(true);
+      expect(body.data.preferred_types).toEqual(['dog']);
+      expect(body.data.lifestyle).toEqual({ activity: 'high' });
+      expect(body.data.preferred_sizes).toBeNull();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('PUT /api/v1/match/profile maps snake_case body to set_* pairs', async () => {
+    const m = makeClient();
+    m.upsertMatchProfileMock.mockResolvedValue({
+      profile: {
+        userId: 'usr-1',
+        preferredTypesJson: '["cat"]',
+        preferredSizesJson: '',
+        preferredAgeGroupsJson: '',
+        preferredEnergyJson: '',
+        preferredTemperamentJson: '',
+        lifestyleJson: '{}',
+        openToSpecialNeeds: true,
+        notifyNewMatches: true,
+        minNotificationScore: 0,
+        inferredPrefsJson: '{}',
+        createdAt: '2026-06-01T00:00:00Z',
+        updatedAt: '2026-06-01T00:00:00Z',
+      },
+    });
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'PUT',
+        url: '/api/v1/match/profile',
+        headers: ADOPTER_HEADERS,
+        payload: { preferred_types: ['cat'], open_to_special_needs: true },
+      });
+      expect(res.statusCode).toBe(200);
+      const grpcReq = m.upsertMatchProfileMock.mock.calls[0][0];
+      expect(grpcReq).toMatchObject({
+        setPreferredTypes: true,
+        preferredTypesJson: '["cat"]',
+        openToSpecialNeeds: true,
+        // Not in the body → unset.
+        setLifestyle: false,
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('GET /api/v1/discovery/swipe/stats/:userId returns stats', async () => {
+    const m = makeClient();
+    m.getUserSwipeStatsMock.mockResolvedValue({
+      stats: { totalSwipes: 10, likes: 6, passes: 3, superLikes: 1, infoViews: 0 },
+    });
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/discovery/swipe/stats/usr-1',
+        headers: ADOPTER_HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).data.likes).toBe(6);
+      expect(m.getUserSwipeStatsMock.mock.calls[0][0]).toEqual({ userId: 'usr-1' });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('GET /api/v1/discovery/swipe/session/:sessionId returns stats', async () => {
+    const m = makeClient();
+    m.getSessionStatsMock.mockResolvedValue({
+      stats: { totalSwipes: 4, likes: 2, passes: 2, superLikes: 0, infoViews: 0 },
+    });
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/discovery/swipe/session/sess-1',
+        headers: ADOPTER_HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(m.getSessionStatsMock.mock.calls[0][0]).toEqual({ sessionId: 'sess-1' });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps gRPC PERMISSION_DENIED on cross-user swipe stats to 403', async () => {
+    const m = makeClient();
+    m.getUserSwipeStatsMock.mockRejectedValue({
+      code: grpcStatus.PERMISSION_DENIED,
+      details: 'no',
+    });
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/discovery/swipe/stats/usr-other',
+        headers: ADOPTER_HEADERS,
+      });
+      expect(res.statusCode).toBe(403);
     } finally {
       await app.close();
     }

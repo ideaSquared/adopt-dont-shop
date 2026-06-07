@@ -27,6 +27,12 @@ import type { MatchingConfig } from '../config.js';
 import { adapt } from './adapter.js';
 import { endSession, listSwipeHistory, recordSwipe, startSession } from './handlers.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
+import {
+  getMatchProfile,
+  getSessionStats,
+  getUserSwipeStats,
+  upsertMatchProfile,
+} from './profile-stats-handlers.js';
 import { makeRecommend, makeSearchPets } from './recommend-handlers.js';
 
 export type CreateGrpcServerOptions = {
@@ -60,6 +66,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     listSwipeHistory: adapt(listSwipeHistory, { deps, logger }),
     recommend: adapt(makeRecommend(petsClient), { deps, logger }),
     searchPets: adapt(makeSearchPets(petsClient), { deps, logger }),
+    getMatchProfile: adapt(getMatchProfile, { deps, logger }),
+    upsertMatchProfile: adapt(upsertMatchProfile, { deps, logger }),
+    getUserSwipeStats: adapt(getUserSwipeStats, { deps, logger }),
+    getSessionStats: adapt(getSessionStats, { deps, logger }),
   });
 
   logger.info('gRPC MatchingService registered', {
@@ -70,6 +80,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'listSwipeHistory',
       'recommend',
       'searchPets',
+      'getMatchProfile',
+      'upsertMatchProfile',
+      'getUserSwipeStats',
+      'getSessionStats',
     ],
     grpcPort: config.grpcPort,
   });

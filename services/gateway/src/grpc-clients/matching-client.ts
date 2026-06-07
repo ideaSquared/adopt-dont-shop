@@ -17,6 +17,12 @@ import {
   MatchingV1,
   type EndSessionRequest,
   type EndSessionResponse,
+  type GetMatchProfileRequest,
+  type GetMatchProfileResponse,
+  type GetSessionStatsRequest,
+  type GetSessionStatsResponse,
+  type GetUserSwipeStatsRequest,
+  type GetUserSwipeStatsResponse,
   type ListSwipeHistoryRequest,
   type ListSwipeHistoryResponse,
   type RecommendRequest,
@@ -27,6 +33,8 @@ import {
   type SearchPetsResponse,
   type StartSessionRequest,
   type StartSessionResponse,
+  type UpsertMatchProfileRequest,
+  type UpsertMatchProfileResponse,
 } from '@adopt-dont-shop/proto';
 
 export type MatchingClient = {
@@ -39,6 +47,22 @@ export type MatchingClient = {
   ): Promise<ListSwipeHistoryResponse>;
   recommend(req: RecommendRequest, metadata: Metadata): Promise<RecommendResponse>;
   searchPets(req: SearchPetsRequest, metadata: Metadata): Promise<SearchPetsResponse>;
+  getMatchProfile(
+    req: GetMatchProfileRequest,
+    metadata: Metadata
+  ): Promise<GetMatchProfileResponse>;
+  upsertMatchProfile(
+    req: UpsertMatchProfileRequest,
+    metadata: Metadata
+  ): Promise<UpsertMatchProfileResponse>;
+  getUserSwipeStats(
+    req: GetUserSwipeStatsRequest,
+    metadata: Metadata
+  ): Promise<GetUserSwipeStatsResponse>;
+  getSessionStats(
+    req: GetSessionStatsRequest,
+    metadata: Metadata
+  ): Promise<GetSessionStatsResponse>;
   close(): void;
 };
 
@@ -71,6 +95,10 @@ export const createMatchingClient = (opts: CreateMatchingClientOptions): Matchin
     listSwipeHistory: (req, metadata) => callUnary(stub.listSwipeHistory, req, metadata),
     recommend: (req, metadata) => callUnary(stub.recommend, req, metadata),
     searchPets: (req, metadata) => callUnary(stub.searchPets, req, metadata),
+    getMatchProfile: (req, metadata) => callUnary(stub.getMatchProfile, req, metadata),
+    upsertMatchProfile: (req, metadata) => callUnary(stub.upsertMatchProfile, req, metadata),
+    getUserSwipeStats: (req, metadata) => callUnary(stub.getUserSwipeStats, req, metadata),
+    getSessionStats: (req, metadata) => callUnary(stub.getSessionStats, req, metadata),
     close: () => stub.close(),
   };
 };
