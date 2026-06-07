@@ -64,12 +64,6 @@ function clampLimit(raw: number): number {
   return Math.min(Math.trunc(raw), MAX_LIMIT);
 }
 
-function ensureModerationPermission(principal: Principal): void {
-  if (!requirePermission(principal, ADMIN_DASHBOARD)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_DASHBOARD}' required`);
-  }
-}
-
 // --- OpenSupportTicket -----------------------------------------------
 
 export async function openSupportTicket(
@@ -152,8 +146,6 @@ export async function getSupportTicket(
   principal: Principal,
   req: GetSupportTicketRequest
 ): Promise<GetSupportTicketResponse> {
-  ensureModerationPermission(principal);
-
   if (req.ticketId === undefined || req.ticketId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'ticket_id is required');
   }
@@ -164,6 +156,13 @@ export async function getSupportTicket(
   );
 
   if (rows.length === 0) {
+    throw new HandlerError('NOT_FOUND', `ticket ${req.ticketId} not found`);
+  }
+
+  // Admins can read any ticket; non-admins must own it. Anonymous-
+  // owner tickets (user_id NULL) are admin-only.
+  const isAdmin = requirePermission(principal, ADMIN_DASHBOARD);
+  if (!isAdmin && rows[0].user_id !== principal.userId) {
     throw new HandlerError('NOT_FOUND', `ticket ${req.ticketId} not found`);
   }
 
@@ -193,13 +192,27 @@ export async function listSupportTickets(
   principal: Principal,
   req: ListSupportTicketsRequest
 ): Promise<ListSupportTicketsResponse> {
-  ensureModerationPermission(principal);
+  const isAdmin = requirePermission(principal, ADMIN_DASHBOARD);
 
   const limit = clampLimit(req.limit);
 
   const where: string[] = [];
   const params: unknown[] = [];
   let p = 1;
+
+  // Non-admins are strictly self-scoped: any explicit user_id filter
+  // must match the principal; otherwise the list is forced to the
+  // caller's own tickets.
+  if (!isAdmin) {
+    if (req.userId !== undefined && req.userId !== '' && req.userId !== principal.userId) {
+      throw new HandlerError(
+        'PERMISSION_DENIED',
+        `'${ADMIN_DASHBOARD}' required to list another user's tickets`
+      );
+    }
+    where.push(`user_id = $${p++}`);
+    params.push(principal.userId);
+  }
 
   if (req.status !== undefined && req.status !== 0) {
     where.push(`status = $${p++}`);
@@ -221,7 +234,10 @@ export async function listSupportTickets(
       params.push(req.assignedTo);
     }
   }
-  if (req.userId !== undefined && req.userId !== '') {
+  // For admins, an explicit user_id filter narrows the list to a single
+  // user. For non-admins this branch is unreachable — the self-scope
+  // clause above already added a user_id condition.
+  if (isAdmin && req.userId !== undefined && req.userId !== '') {
     where.push(`user_id = $${p++}`);
     params.push(req.userId);
   }
@@ -276,35 +292,55 @@ export async function respondToTicket(
   principal: Principal,
   req: RespondToTicketRequest
 ): Promise<RespondToTicketResponse> {
-  ensureModerationPermission(principal);
-
   if (req.ticketId === undefined || req.ticketId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'ticket_id is required');
   }
   if (req.content === undefined || req.content === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'content is required');
   }
+  const isAdmin = requirePermission(principal, ADMIN_DASHBOARD);
+  // Non-admins MUST NOT post internal-only notes.
+  if (!isAdmin && req.isInternal) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      `'${ADMIN_DASHBOARD}' required for internal responses`
+    );
+  }
 
   return withTransaction(deps, async ({ client, publish }) => {
     // Lock the ticket so the last_response_at update is consistent.
-    const ticket = await client.query<{ ticket_id: string }>(
-      `SELECT ticket_id FROM support_tickets WHERE ticket_id = $1 FOR UPDATE`,
+    const ticket = await client.query<{ ticket_id: string; user_id: string | null }>(
+      `SELECT ticket_id, user_id FROM support_tickets WHERE ticket_id = $1 FOR UPDATE`,
       [req.ticketId]
     );
 
     if (ticket.rows.length === 0) {
       throw new HandlerError('NOT_FOUND', `ticket ${req.ticketId} not found`);
     }
+    // Non-admin responders must be the ticket owner.
+    if (!isAdmin && ticket.rows[0].user_id !== principal.userId) {
+      throw new HandlerError('NOT_FOUND', `ticket ${req.ticketId} not found`);
+    }
 
+    // responder_type reflects WHO is replying — staff for admins,
+    // 'user' for the ticket owner.
+    const responderType = isAdmin ? 'staff' : 'user';
     const responseId = randomUUID();
     const inserted = await client.query<SupportTicketResponseRow>(
       `INSERT INTO support_ticket_responses (
          response_id, ticket_id, responder_id, responder_type, content,
          is_internal
        )
-       VALUES ($1, $2, $3, 'staff', $4, $5)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING ${RESPONSE_SELECT}`,
-      [responseId, req.ticketId, principal.userId, req.content, req.isInternal ?? false]
+      [
+        responseId,
+        req.ticketId,
+        principal.userId,
+        responderType,
+        req.content,
+        req.isInternal ?? false,
+      ]
     );
 
     if (inserted.rows.length !== 1) {
