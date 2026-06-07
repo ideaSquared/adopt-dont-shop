@@ -852,6 +852,114 @@ export function notificationDigestFrequencyToJSON(object: NotificationDigestFreq
   }
 }
 
+export enum EmailTemplateType {
+  EMAIL_TEMPLATE_TYPE_UNSPECIFIED = 0,
+  EMAIL_TEMPLATE_TYPE_TRANSACTIONAL = 1,
+  EMAIL_TEMPLATE_TYPE_NOTIFICATION = 2,
+  EMAIL_TEMPLATE_TYPE_MARKETING = 3,
+  EMAIL_TEMPLATE_TYPE_SYSTEM = 4,
+  EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE = 5,
+  UNRECOGNIZED = -1,
+}
+
+export function emailTemplateTypeFromJSON(object: any): EmailTemplateType {
+  switch (object) {
+    case 0:
+    case 'EMAIL_TEMPLATE_TYPE_UNSPECIFIED':
+      return EmailTemplateType.EMAIL_TEMPLATE_TYPE_UNSPECIFIED;
+    case 1:
+    case 'EMAIL_TEMPLATE_TYPE_TRANSACTIONAL':
+      return EmailTemplateType.EMAIL_TEMPLATE_TYPE_TRANSACTIONAL;
+    case 2:
+    case 'EMAIL_TEMPLATE_TYPE_NOTIFICATION':
+      return EmailTemplateType.EMAIL_TEMPLATE_TYPE_NOTIFICATION;
+    case 3:
+    case 'EMAIL_TEMPLATE_TYPE_MARKETING':
+      return EmailTemplateType.EMAIL_TEMPLATE_TYPE_MARKETING;
+    case 4:
+    case 'EMAIL_TEMPLATE_TYPE_SYSTEM':
+      return EmailTemplateType.EMAIL_TEMPLATE_TYPE_SYSTEM;
+    case 5:
+    case 'EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE':
+      return EmailTemplateType.EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return EmailTemplateType.UNRECOGNIZED;
+  }
+}
+
+export function emailTemplateTypeToJSON(object: EmailTemplateType): string {
+  switch (object) {
+    case EmailTemplateType.EMAIL_TEMPLATE_TYPE_UNSPECIFIED:
+      return 'EMAIL_TEMPLATE_TYPE_UNSPECIFIED';
+    case EmailTemplateType.EMAIL_TEMPLATE_TYPE_TRANSACTIONAL:
+      return 'EMAIL_TEMPLATE_TYPE_TRANSACTIONAL';
+    case EmailTemplateType.EMAIL_TEMPLATE_TYPE_NOTIFICATION:
+      return 'EMAIL_TEMPLATE_TYPE_NOTIFICATION';
+    case EmailTemplateType.EMAIL_TEMPLATE_TYPE_MARKETING:
+      return 'EMAIL_TEMPLATE_TYPE_MARKETING';
+    case EmailTemplateType.EMAIL_TEMPLATE_TYPE_SYSTEM:
+      return 'EMAIL_TEMPLATE_TYPE_SYSTEM';
+    case EmailTemplateType.EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE:
+      return 'EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE';
+    case EmailTemplateType.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+export enum EmailTemplateStatus {
+  EMAIL_TEMPLATE_STATUS_UNSPECIFIED = 0,
+  EMAIL_TEMPLATE_STATUS_DRAFT = 1,
+  EMAIL_TEMPLATE_STATUS_ACTIVE = 2,
+  EMAIL_TEMPLATE_STATUS_INACTIVE = 3,
+  EMAIL_TEMPLATE_STATUS_ARCHIVED = 4,
+  UNRECOGNIZED = -1,
+}
+
+export function emailTemplateStatusFromJSON(object: any): EmailTemplateStatus {
+  switch (object) {
+    case 0:
+    case 'EMAIL_TEMPLATE_STATUS_UNSPECIFIED':
+      return EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_UNSPECIFIED;
+    case 1:
+    case 'EMAIL_TEMPLATE_STATUS_DRAFT':
+      return EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_DRAFT;
+    case 2:
+    case 'EMAIL_TEMPLATE_STATUS_ACTIVE':
+      return EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_ACTIVE;
+    case 3:
+    case 'EMAIL_TEMPLATE_STATUS_INACTIVE':
+      return EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_INACTIVE;
+    case 4:
+    case 'EMAIL_TEMPLATE_STATUS_ARCHIVED':
+      return EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_ARCHIVED;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return EmailTemplateStatus.UNRECOGNIZED;
+  }
+}
+
+export function emailTemplateStatusToJSON(object: EmailTemplateStatus): string {
+  switch (object) {
+    case EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_UNSPECIFIED:
+      return 'EMAIL_TEMPLATE_STATUS_UNSPECIFIED';
+    case EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_DRAFT:
+      return 'EMAIL_TEMPLATE_STATUS_DRAFT';
+    case EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_ACTIVE:
+      return 'EMAIL_TEMPLATE_STATUS_ACTIVE';
+    case EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_INACTIVE:
+      return 'EMAIL_TEMPLATE_STATUS_INACTIVE';
+    case EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_ARCHIVED:
+      return 'EMAIL_TEMPLATE_STATUS_ARCHIVED';
+    case EmailTemplateStatus.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
 /**
  * Notification mirrors the `notifications.notifications` row plus the
  * JSON-stringified `data` / `template_variables` payloads. Kept as
@@ -1256,6 +1364,111 @@ export interface CleanupExpiredNotificationsRequest {
 export interface CleanupExpiredNotificationsResponse {
   /** Number of rows that transitioned from kept → soft-deleted. */
   deletedCount: number;
+}
+
+/**
+ * EmailTemplate mirrors the authoring-relevant columns of
+ * email_templates. Category is kept as a raw string (the Postgres enum
+ * has 12 values that evolve per-feature; a string avoids a proto rebuild
+ * each time one is added).
+ */
+export interface EmailTemplate {
+  templateId: string;
+  name: string;
+  description?: string | undefined;
+  type: EmailTemplateType;
+  category: string;
+  status: EmailTemplateStatus;
+  subject: string;
+  htmlContent: string;
+  textContent?: string | undefined;
+  /** JSON-stringified array of declared variables. Empty string == []. */
+  variablesJson: string;
+  locale: string;
+  usageCount: number;
+  lastUsedAt?: string | undefined;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListEmailTemplatesRequest {
+  /** Optional filters. UNSPECIFIED = no filter on that field. */
+  typeFilter: EmailTemplateType;
+  statusFilter: EmailTemplateStatus;
+  categoryFilter?: string | undefined;
+  search?: string | undefined;
+  page: number;
+  limit: number;
+}
+
+export interface ListEmailTemplatesResponse {
+  templates: EmailTemplate[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface GetEmailTemplateRequest {
+  templateId: string;
+}
+
+export interface GetEmailTemplateResponse {
+  template?: EmailTemplate | undefined;
+}
+
+export interface CreateEmailTemplateRequest {
+  name: string;
+  description?: string | undefined;
+  type: EmailTemplateType;
+  category: string;
+  status: EmailTemplateStatus;
+  subject: string;
+  htmlContent: string;
+  textContent?: string | undefined;
+  variablesJson: string;
+  locale?: string | undefined;
+}
+
+export interface CreateEmailTemplateResponse {
+  template?: EmailTemplate | undefined;
+}
+
+export interface UpdateEmailTemplateRequest {
+  templateId: string;
+  /** Only set fields are written. */
+  name?: string | undefined;
+  description?: string | undefined;
+  type: EmailTemplateType;
+  category?: string | undefined;
+  status: EmailTemplateStatus;
+  subject?: string | undefined;
+  htmlContent?: string | undefined;
+  textContent?: string | undefined;
+  variablesJson?: string | undefined;
+}
+
+export interface UpdateEmailTemplateResponse {
+  template?: EmailTemplate | undefined;
+}
+
+export interface DeleteEmailTemplateRequest {
+  templateId: string;
+}
+
+export interface DeleteEmailTemplateResponse {
+  deleted: boolean;
+}
+
+export interface PreviewEmailTemplateRequest {
+  templateId: string;
+  /** JSON-stringified variable map for substitution. Empty string == {}. */
+  variablesJson: string;
+}
+
+export interface PreviewEmailTemplateResponse {
+  subject: string;
+  htmlContent: string;
+  textContent?: string | undefined;
 }
 
 function createBaseNotification(): Notification {
@@ -6480,6 +6693,1712 @@ export const CleanupExpiredNotificationsResponse: MessageFns<CleanupExpiredNotif
     },
   };
 
+function createBaseEmailTemplate(): EmailTemplate {
+  return {
+    templateId: '',
+    name: '',
+    description: undefined,
+    type: 0,
+    category: '',
+    status: 0,
+    subject: '',
+    htmlContent: '',
+    textContent: undefined,
+    variablesJson: '',
+    locale: '',
+    usageCount: 0,
+    lastUsedAt: undefined,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const EmailTemplate: MessageFns<EmailTemplate> = {
+  encode(message: EmailTemplate, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.templateId !== '') {
+      writer.uint32(10).string(message.templateId);
+    }
+    if (message.name !== '') {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(26).string(message.description);
+    }
+    if (message.type !== 0) {
+      writer.uint32(32).int32(message.type);
+    }
+    if (message.category !== '') {
+      writer.uint32(42).string(message.category);
+    }
+    if (message.status !== 0) {
+      writer.uint32(48).int32(message.status);
+    }
+    if (message.subject !== '') {
+      writer.uint32(58).string(message.subject);
+    }
+    if (message.htmlContent !== '') {
+      writer.uint32(66).string(message.htmlContent);
+    }
+    if (message.textContent !== undefined) {
+      writer.uint32(74).string(message.textContent);
+    }
+    if (message.variablesJson !== '') {
+      writer.uint32(82).string(message.variablesJson);
+    }
+    if (message.locale !== '') {
+      writer.uint32(90).string(message.locale);
+    }
+    if (message.usageCount !== 0) {
+      writer.uint32(96).uint32(message.usageCount);
+    }
+    if (message.lastUsedAt !== undefined) {
+      writer.uint32(106).string(message.lastUsedAt);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(114).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(122).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EmailTemplate {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEmailTemplate();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.templateId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.category = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.subject = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.htmlContent = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.textContent = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.variablesJson = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.locale = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 96) {
+            break;
+          }
+
+          message.usageCount = reader.uint32();
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.lastUsedAt = reader.string();
+          continue;
+        }
+        case 14: {
+          if (tag !== 114) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EmailTemplate {
+    return {
+      templateId: isSet(object.templateId)
+        ? globalThis.String(object.templateId)
+        : isSet(object.template_id)
+          ? globalThis.String(object.template_id)
+          : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      type: isSet(object.type) ? emailTemplateTypeFromJSON(object.type) : 0,
+      category: isSet(object.category) ? globalThis.String(object.category) : '',
+      status: isSet(object.status) ? emailTemplateStatusFromJSON(object.status) : 0,
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : '',
+      htmlContent: isSet(object.htmlContent)
+        ? globalThis.String(object.htmlContent)
+        : isSet(object.html_content)
+          ? globalThis.String(object.html_content)
+          : '',
+      textContent: isSet(object.textContent)
+        ? globalThis.String(object.textContent)
+        : isSet(object.text_content)
+          ? globalThis.String(object.text_content)
+          : undefined,
+      variablesJson: isSet(object.variablesJson)
+        ? globalThis.String(object.variablesJson)
+        : isSet(object.variables_json)
+          ? globalThis.String(object.variables_json)
+          : '',
+      locale: isSet(object.locale) ? globalThis.String(object.locale) : '',
+      usageCount: isSet(object.usageCount)
+        ? globalThis.Number(object.usageCount)
+        : isSet(object.usage_count)
+          ? globalThis.Number(object.usage_count)
+          : 0,
+      lastUsedAt: isSet(object.lastUsedAt)
+        ? globalThis.String(object.lastUsedAt)
+        : isSet(object.last_used_at)
+          ? globalThis.String(object.last_used_at)
+          : undefined,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: EmailTemplate): unknown {
+    const obj: any = {};
+    if (message.templateId !== '') {
+      obj.templateId = message.templateId;
+    }
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.type !== 0) {
+      obj.type = emailTemplateTypeToJSON(message.type);
+    }
+    if (message.category !== '') {
+      obj.category = message.category;
+    }
+    if (message.status !== 0) {
+      obj.status = emailTemplateStatusToJSON(message.status);
+    }
+    if (message.subject !== '') {
+      obj.subject = message.subject;
+    }
+    if (message.htmlContent !== '') {
+      obj.htmlContent = message.htmlContent;
+    }
+    if (message.textContent !== undefined) {
+      obj.textContent = message.textContent;
+    }
+    if (message.variablesJson !== '') {
+      obj.variablesJson = message.variablesJson;
+    }
+    if (message.locale !== '') {
+      obj.locale = message.locale;
+    }
+    if (message.usageCount !== 0) {
+      obj.usageCount = Math.round(message.usageCount);
+    }
+    if (message.lastUsedAt !== undefined) {
+      obj.lastUsedAt = message.lastUsedAt;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EmailTemplate>, I>>(base?: I): EmailTemplate {
+    return EmailTemplate.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EmailTemplate>, I>>(object: I): EmailTemplate {
+    const message = createBaseEmailTemplate();
+    message.templateId = object.templateId ?? '';
+    message.name = object.name ?? '';
+    message.description = object.description ?? undefined;
+    message.type = object.type ?? 0;
+    message.category = object.category ?? '';
+    message.status = object.status ?? 0;
+    message.subject = object.subject ?? '';
+    message.htmlContent = object.htmlContent ?? '';
+    message.textContent = object.textContent ?? undefined;
+    message.variablesJson = object.variablesJson ?? '';
+    message.locale = object.locale ?? '';
+    message.usageCount = object.usageCount ?? 0;
+    message.lastUsedAt = object.lastUsedAt ?? undefined;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseListEmailTemplatesRequest(): ListEmailTemplatesRequest {
+  return {
+    typeFilter: 0,
+    statusFilter: 0,
+    categoryFilter: undefined,
+    search: undefined,
+    page: 0,
+    limit: 0,
+  };
+}
+
+export const ListEmailTemplatesRequest: MessageFns<ListEmailTemplatesRequest> = {
+  encode(
+    message: ListEmailTemplatesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.typeFilter !== 0) {
+      writer.uint32(8).int32(message.typeFilter);
+    }
+    if (message.statusFilter !== 0) {
+      writer.uint32(16).int32(message.statusFilter);
+    }
+    if (message.categoryFilter !== undefined) {
+      writer.uint32(26).string(message.categoryFilter);
+    }
+    if (message.search !== undefined) {
+      writer.uint32(34).string(message.search);
+    }
+    if (message.page !== 0) {
+      writer.uint32(40).uint32(message.page);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(48).uint32(message.limit);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListEmailTemplatesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListEmailTemplatesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.typeFilter = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.statusFilter = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.categoryFilter = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.search = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListEmailTemplatesRequest {
+    return {
+      typeFilter: isSet(object.typeFilter)
+        ? emailTemplateTypeFromJSON(object.typeFilter)
+        : isSet(object.type_filter)
+          ? emailTemplateTypeFromJSON(object.type_filter)
+          : 0,
+      statusFilter: isSet(object.statusFilter)
+        ? emailTemplateStatusFromJSON(object.statusFilter)
+        : isSet(object.status_filter)
+          ? emailTemplateStatusFromJSON(object.status_filter)
+          : 0,
+      categoryFilter: isSet(object.categoryFilter)
+        ? globalThis.String(object.categoryFilter)
+        : isSet(object.category_filter)
+          ? globalThis.String(object.category_filter)
+          : undefined,
+      search: isSet(object.search) ? globalThis.String(object.search) : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+    };
+  },
+
+  toJSON(message: ListEmailTemplatesRequest): unknown {
+    const obj: any = {};
+    if (message.typeFilter !== 0) {
+      obj.typeFilter = emailTemplateTypeToJSON(message.typeFilter);
+    }
+    if (message.statusFilter !== 0) {
+      obj.statusFilter = emailTemplateStatusToJSON(message.statusFilter);
+    }
+    if (message.categoryFilter !== undefined) {
+      obj.categoryFilter = message.categoryFilter;
+    }
+    if (message.search !== undefined) {
+      obj.search = message.search;
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListEmailTemplatesRequest>, I>>(
+    base?: I
+  ): ListEmailTemplatesRequest {
+    return ListEmailTemplatesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListEmailTemplatesRequest>, I>>(
+    object: I
+  ): ListEmailTemplatesRequest {
+    const message = createBaseListEmailTemplatesRequest();
+    message.typeFilter = object.typeFilter ?? 0;
+    message.statusFilter = object.statusFilter ?? 0;
+    message.categoryFilter = object.categoryFilter ?? undefined;
+    message.search = object.search ?? undefined;
+    message.page = object.page ?? 0;
+    message.limit = object.limit ?? 0;
+    return message;
+  },
+};
+
+function createBaseListEmailTemplatesResponse(): ListEmailTemplatesResponse {
+  return { templates: [], total: 0, page: 0, totalPages: 0 };
+}
+
+export const ListEmailTemplatesResponse: MessageFns<ListEmailTemplatesResponse> = {
+  encode(
+    message: ListEmailTemplatesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.templates) {
+      EmailTemplate.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.total !== 0) {
+      writer.uint32(16).uint32(message.total);
+    }
+    if (message.page !== 0) {
+      writer.uint32(24).uint32(message.page);
+    }
+    if (message.totalPages !== 0) {
+      writer.uint32(32).uint32(message.totalPages);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListEmailTemplatesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListEmailTemplatesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.templates.push(EmailTemplate.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.totalPages = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListEmailTemplatesResponse {
+    return {
+      templates: globalThis.Array.isArray(object?.templates)
+        ? object.templates.map((e: any) => EmailTemplate.fromJSON(e))
+        : [],
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      totalPages: isSet(object.totalPages)
+        ? globalThis.Number(object.totalPages)
+        : isSet(object.total_pages)
+          ? globalThis.Number(object.total_pages)
+          : 0,
+    };
+  },
+
+  toJSON(message: ListEmailTemplatesResponse): unknown {
+    const obj: any = {};
+    if (message.templates?.length) {
+      obj.templates = message.templates.map(e => EmailTemplate.toJSON(e));
+    }
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.totalPages !== 0) {
+      obj.totalPages = Math.round(message.totalPages);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListEmailTemplatesResponse>, I>>(
+    base?: I
+  ): ListEmailTemplatesResponse {
+    return ListEmailTemplatesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListEmailTemplatesResponse>, I>>(
+    object: I
+  ): ListEmailTemplatesResponse {
+    const message = createBaseListEmailTemplatesResponse();
+    message.templates = object.templates?.map(e => EmailTemplate.fromPartial(e)) || [];
+    message.total = object.total ?? 0;
+    message.page = object.page ?? 0;
+    message.totalPages = object.totalPages ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetEmailTemplateRequest(): GetEmailTemplateRequest {
+  return { templateId: '' };
+}
+
+export const GetEmailTemplateRequest: MessageFns<GetEmailTemplateRequest> = {
+  encode(
+    message: GetEmailTemplateRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.templateId !== '') {
+      writer.uint32(10).string(message.templateId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetEmailTemplateRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetEmailTemplateRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.templateId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetEmailTemplateRequest {
+    return {
+      templateId: isSet(object.templateId)
+        ? globalThis.String(object.templateId)
+        : isSet(object.template_id)
+          ? globalThis.String(object.template_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetEmailTemplateRequest): unknown {
+    const obj: any = {};
+    if (message.templateId !== '') {
+      obj.templateId = message.templateId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetEmailTemplateRequest>, I>>(
+    base?: I
+  ): GetEmailTemplateRequest {
+    return GetEmailTemplateRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetEmailTemplateRequest>, I>>(
+    object: I
+  ): GetEmailTemplateRequest {
+    const message = createBaseGetEmailTemplateRequest();
+    message.templateId = object.templateId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetEmailTemplateResponse(): GetEmailTemplateResponse {
+  return { template: undefined };
+}
+
+export const GetEmailTemplateResponse: MessageFns<GetEmailTemplateResponse> = {
+  encode(
+    message: GetEmailTemplateResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.template !== undefined) {
+      EmailTemplate.encode(message.template, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetEmailTemplateResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetEmailTemplateResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.template = EmailTemplate.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetEmailTemplateResponse {
+    return {
+      template: isSet(object.template) ? EmailTemplate.fromJSON(object.template) : undefined,
+    };
+  },
+
+  toJSON(message: GetEmailTemplateResponse): unknown {
+    const obj: any = {};
+    if (message.template !== undefined) {
+      obj.template = EmailTemplate.toJSON(message.template);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetEmailTemplateResponse>, I>>(
+    base?: I
+  ): GetEmailTemplateResponse {
+    return GetEmailTemplateResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetEmailTemplateResponse>, I>>(
+    object: I
+  ): GetEmailTemplateResponse {
+    const message = createBaseGetEmailTemplateResponse();
+    message.template =
+      object.template !== undefined && object.template !== null
+        ? EmailTemplate.fromPartial(object.template)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseCreateEmailTemplateRequest(): CreateEmailTemplateRequest {
+  return {
+    name: '',
+    description: undefined,
+    type: 0,
+    category: '',
+    status: 0,
+    subject: '',
+    htmlContent: '',
+    textContent: undefined,
+    variablesJson: '',
+    locale: undefined,
+  };
+}
+
+export const CreateEmailTemplateRequest: MessageFns<CreateEmailTemplateRequest> = {
+  encode(
+    message: CreateEmailTemplateRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.name !== '') {
+      writer.uint32(10).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(18).string(message.description);
+    }
+    if (message.type !== 0) {
+      writer.uint32(24).int32(message.type);
+    }
+    if (message.category !== '') {
+      writer.uint32(34).string(message.category);
+    }
+    if (message.status !== 0) {
+      writer.uint32(40).int32(message.status);
+    }
+    if (message.subject !== '') {
+      writer.uint32(50).string(message.subject);
+    }
+    if (message.htmlContent !== '') {
+      writer.uint32(58).string(message.htmlContent);
+    }
+    if (message.textContent !== undefined) {
+      writer.uint32(66).string(message.textContent);
+    }
+    if (message.variablesJson !== '') {
+      writer.uint32(74).string(message.variablesJson);
+    }
+    if (message.locale !== undefined) {
+      writer.uint32(82).string(message.locale);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateEmailTemplateRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateEmailTemplateRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.category = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.subject = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.htmlContent = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.textContent = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.variablesJson = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.locale = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateEmailTemplateRequest {
+    return {
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      type: isSet(object.type) ? emailTemplateTypeFromJSON(object.type) : 0,
+      category: isSet(object.category) ? globalThis.String(object.category) : '',
+      status: isSet(object.status) ? emailTemplateStatusFromJSON(object.status) : 0,
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : '',
+      htmlContent: isSet(object.htmlContent)
+        ? globalThis.String(object.htmlContent)
+        : isSet(object.html_content)
+          ? globalThis.String(object.html_content)
+          : '',
+      textContent: isSet(object.textContent)
+        ? globalThis.String(object.textContent)
+        : isSet(object.text_content)
+          ? globalThis.String(object.text_content)
+          : undefined,
+      variablesJson: isSet(object.variablesJson)
+        ? globalThis.String(object.variablesJson)
+        : isSet(object.variables_json)
+          ? globalThis.String(object.variables_json)
+          : '',
+      locale: isSet(object.locale) ? globalThis.String(object.locale) : undefined,
+    };
+  },
+
+  toJSON(message: CreateEmailTemplateRequest): unknown {
+    const obj: any = {};
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.type !== 0) {
+      obj.type = emailTemplateTypeToJSON(message.type);
+    }
+    if (message.category !== '') {
+      obj.category = message.category;
+    }
+    if (message.status !== 0) {
+      obj.status = emailTemplateStatusToJSON(message.status);
+    }
+    if (message.subject !== '') {
+      obj.subject = message.subject;
+    }
+    if (message.htmlContent !== '') {
+      obj.htmlContent = message.htmlContent;
+    }
+    if (message.textContent !== undefined) {
+      obj.textContent = message.textContent;
+    }
+    if (message.variablesJson !== '') {
+      obj.variablesJson = message.variablesJson;
+    }
+    if (message.locale !== undefined) {
+      obj.locale = message.locale;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateEmailTemplateRequest>, I>>(
+    base?: I
+  ): CreateEmailTemplateRequest {
+    return CreateEmailTemplateRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateEmailTemplateRequest>, I>>(
+    object: I
+  ): CreateEmailTemplateRequest {
+    const message = createBaseCreateEmailTemplateRequest();
+    message.name = object.name ?? '';
+    message.description = object.description ?? undefined;
+    message.type = object.type ?? 0;
+    message.category = object.category ?? '';
+    message.status = object.status ?? 0;
+    message.subject = object.subject ?? '';
+    message.htmlContent = object.htmlContent ?? '';
+    message.textContent = object.textContent ?? undefined;
+    message.variablesJson = object.variablesJson ?? '';
+    message.locale = object.locale ?? undefined;
+    return message;
+  },
+};
+
+function createBaseCreateEmailTemplateResponse(): CreateEmailTemplateResponse {
+  return { template: undefined };
+}
+
+export const CreateEmailTemplateResponse: MessageFns<CreateEmailTemplateResponse> = {
+  encode(
+    message: CreateEmailTemplateResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.template !== undefined) {
+      EmailTemplate.encode(message.template, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateEmailTemplateResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateEmailTemplateResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.template = EmailTemplate.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateEmailTemplateResponse {
+    return {
+      template: isSet(object.template) ? EmailTemplate.fromJSON(object.template) : undefined,
+    };
+  },
+
+  toJSON(message: CreateEmailTemplateResponse): unknown {
+    const obj: any = {};
+    if (message.template !== undefined) {
+      obj.template = EmailTemplate.toJSON(message.template);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateEmailTemplateResponse>, I>>(
+    base?: I
+  ): CreateEmailTemplateResponse {
+    return CreateEmailTemplateResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateEmailTemplateResponse>, I>>(
+    object: I
+  ): CreateEmailTemplateResponse {
+    const message = createBaseCreateEmailTemplateResponse();
+    message.template =
+      object.template !== undefined && object.template !== null
+        ? EmailTemplate.fromPartial(object.template)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateEmailTemplateRequest(): UpdateEmailTemplateRequest {
+  return {
+    templateId: '',
+    name: undefined,
+    description: undefined,
+    type: 0,
+    category: undefined,
+    status: 0,
+    subject: undefined,
+    htmlContent: undefined,
+    textContent: undefined,
+    variablesJson: undefined,
+  };
+}
+
+export const UpdateEmailTemplateRequest: MessageFns<UpdateEmailTemplateRequest> = {
+  encode(
+    message: UpdateEmailTemplateRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.templateId !== '') {
+      writer.uint32(10).string(message.templateId);
+    }
+    if (message.name !== undefined) {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(26).string(message.description);
+    }
+    if (message.type !== 0) {
+      writer.uint32(32).int32(message.type);
+    }
+    if (message.category !== undefined) {
+      writer.uint32(42).string(message.category);
+    }
+    if (message.status !== 0) {
+      writer.uint32(48).int32(message.status);
+    }
+    if (message.subject !== undefined) {
+      writer.uint32(58).string(message.subject);
+    }
+    if (message.htmlContent !== undefined) {
+      writer.uint32(66).string(message.htmlContent);
+    }
+    if (message.textContent !== undefined) {
+      writer.uint32(74).string(message.textContent);
+    }
+    if (message.variablesJson !== undefined) {
+      writer.uint32(82).string(message.variablesJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateEmailTemplateRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateEmailTemplateRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.templateId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.category = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.subject = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.htmlContent = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.textContent = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.variablesJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateEmailTemplateRequest {
+    return {
+      templateId: isSet(object.templateId)
+        ? globalThis.String(object.templateId)
+        : isSet(object.template_id)
+          ? globalThis.String(object.template_id)
+          : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : undefined,
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      type: isSet(object.type) ? emailTemplateTypeFromJSON(object.type) : 0,
+      category: isSet(object.category) ? globalThis.String(object.category) : undefined,
+      status: isSet(object.status) ? emailTemplateStatusFromJSON(object.status) : 0,
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : undefined,
+      htmlContent: isSet(object.htmlContent)
+        ? globalThis.String(object.htmlContent)
+        : isSet(object.html_content)
+          ? globalThis.String(object.html_content)
+          : undefined,
+      textContent: isSet(object.textContent)
+        ? globalThis.String(object.textContent)
+        : isSet(object.text_content)
+          ? globalThis.String(object.text_content)
+          : undefined,
+      variablesJson: isSet(object.variablesJson)
+        ? globalThis.String(object.variablesJson)
+        : isSet(object.variables_json)
+          ? globalThis.String(object.variables_json)
+          : undefined,
+    };
+  },
+
+  toJSON(message: UpdateEmailTemplateRequest): unknown {
+    const obj: any = {};
+    if (message.templateId !== '') {
+      obj.templateId = message.templateId;
+    }
+    if (message.name !== undefined) {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.type !== 0) {
+      obj.type = emailTemplateTypeToJSON(message.type);
+    }
+    if (message.category !== undefined) {
+      obj.category = message.category;
+    }
+    if (message.status !== 0) {
+      obj.status = emailTemplateStatusToJSON(message.status);
+    }
+    if (message.subject !== undefined) {
+      obj.subject = message.subject;
+    }
+    if (message.htmlContent !== undefined) {
+      obj.htmlContent = message.htmlContent;
+    }
+    if (message.textContent !== undefined) {
+      obj.textContent = message.textContent;
+    }
+    if (message.variablesJson !== undefined) {
+      obj.variablesJson = message.variablesJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateEmailTemplateRequest>, I>>(
+    base?: I
+  ): UpdateEmailTemplateRequest {
+    return UpdateEmailTemplateRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateEmailTemplateRequest>, I>>(
+    object: I
+  ): UpdateEmailTemplateRequest {
+    const message = createBaseUpdateEmailTemplateRequest();
+    message.templateId = object.templateId ?? '';
+    message.name = object.name ?? undefined;
+    message.description = object.description ?? undefined;
+    message.type = object.type ?? 0;
+    message.category = object.category ?? undefined;
+    message.status = object.status ?? 0;
+    message.subject = object.subject ?? undefined;
+    message.htmlContent = object.htmlContent ?? undefined;
+    message.textContent = object.textContent ?? undefined;
+    message.variablesJson = object.variablesJson ?? undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateEmailTemplateResponse(): UpdateEmailTemplateResponse {
+  return { template: undefined };
+}
+
+export const UpdateEmailTemplateResponse: MessageFns<UpdateEmailTemplateResponse> = {
+  encode(
+    message: UpdateEmailTemplateResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.template !== undefined) {
+      EmailTemplate.encode(message.template, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateEmailTemplateResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateEmailTemplateResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.template = EmailTemplate.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateEmailTemplateResponse {
+    return {
+      template: isSet(object.template) ? EmailTemplate.fromJSON(object.template) : undefined,
+    };
+  },
+
+  toJSON(message: UpdateEmailTemplateResponse): unknown {
+    const obj: any = {};
+    if (message.template !== undefined) {
+      obj.template = EmailTemplate.toJSON(message.template);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateEmailTemplateResponse>, I>>(
+    base?: I
+  ): UpdateEmailTemplateResponse {
+    return UpdateEmailTemplateResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateEmailTemplateResponse>, I>>(
+    object: I
+  ): UpdateEmailTemplateResponse {
+    const message = createBaseUpdateEmailTemplateResponse();
+    message.template =
+      object.template !== undefined && object.template !== null
+        ? EmailTemplate.fromPartial(object.template)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseDeleteEmailTemplateRequest(): DeleteEmailTemplateRequest {
+  return { templateId: '' };
+}
+
+export const DeleteEmailTemplateRequest: MessageFns<DeleteEmailTemplateRequest> = {
+  encode(
+    message: DeleteEmailTemplateRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.templateId !== '') {
+      writer.uint32(10).string(message.templateId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteEmailTemplateRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteEmailTemplateRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.templateId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteEmailTemplateRequest {
+    return {
+      templateId: isSet(object.templateId)
+        ? globalThis.String(object.templateId)
+        : isSet(object.template_id)
+          ? globalThis.String(object.template_id)
+          : '',
+    };
+  },
+
+  toJSON(message: DeleteEmailTemplateRequest): unknown {
+    const obj: any = {};
+    if (message.templateId !== '') {
+      obj.templateId = message.templateId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteEmailTemplateRequest>, I>>(
+    base?: I
+  ): DeleteEmailTemplateRequest {
+    return DeleteEmailTemplateRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteEmailTemplateRequest>, I>>(
+    object: I
+  ): DeleteEmailTemplateRequest {
+    const message = createBaseDeleteEmailTemplateRequest();
+    message.templateId = object.templateId ?? '';
+    return message;
+  },
+};
+
+function createBaseDeleteEmailTemplateResponse(): DeleteEmailTemplateResponse {
+  return { deleted: false };
+}
+
+export const DeleteEmailTemplateResponse: MessageFns<DeleteEmailTemplateResponse> = {
+  encode(
+    message: DeleteEmailTemplateResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.deleted !== false) {
+      writer.uint32(8).bool(message.deleted);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteEmailTemplateResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteEmailTemplateResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.deleted = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteEmailTemplateResponse {
+    return { deleted: isSet(object.deleted) ? globalThis.Boolean(object.deleted) : false };
+  },
+
+  toJSON(message: DeleteEmailTemplateResponse): unknown {
+    const obj: any = {};
+    if (message.deleted !== false) {
+      obj.deleted = message.deleted;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteEmailTemplateResponse>, I>>(
+    base?: I
+  ): DeleteEmailTemplateResponse {
+    return DeleteEmailTemplateResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteEmailTemplateResponse>, I>>(
+    object: I
+  ): DeleteEmailTemplateResponse {
+    const message = createBaseDeleteEmailTemplateResponse();
+    message.deleted = object.deleted ?? false;
+    return message;
+  },
+};
+
+function createBasePreviewEmailTemplateRequest(): PreviewEmailTemplateRequest {
+  return { templateId: '', variablesJson: '' };
+}
+
+export const PreviewEmailTemplateRequest: MessageFns<PreviewEmailTemplateRequest> = {
+  encode(
+    message: PreviewEmailTemplateRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.templateId !== '') {
+      writer.uint32(10).string(message.templateId);
+    }
+    if (message.variablesJson !== '') {
+      writer.uint32(18).string(message.variablesJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PreviewEmailTemplateRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePreviewEmailTemplateRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.templateId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.variablesJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PreviewEmailTemplateRequest {
+    return {
+      templateId: isSet(object.templateId)
+        ? globalThis.String(object.templateId)
+        : isSet(object.template_id)
+          ? globalThis.String(object.template_id)
+          : '',
+      variablesJson: isSet(object.variablesJson)
+        ? globalThis.String(object.variablesJson)
+        : isSet(object.variables_json)
+          ? globalThis.String(object.variables_json)
+          : '',
+    };
+  },
+
+  toJSON(message: PreviewEmailTemplateRequest): unknown {
+    const obj: any = {};
+    if (message.templateId !== '') {
+      obj.templateId = message.templateId;
+    }
+    if (message.variablesJson !== '') {
+      obj.variablesJson = message.variablesJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PreviewEmailTemplateRequest>, I>>(
+    base?: I
+  ): PreviewEmailTemplateRequest {
+    return PreviewEmailTemplateRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<PreviewEmailTemplateRequest>, I>>(
+    object: I
+  ): PreviewEmailTemplateRequest {
+    const message = createBasePreviewEmailTemplateRequest();
+    message.templateId = object.templateId ?? '';
+    message.variablesJson = object.variablesJson ?? '';
+    return message;
+  },
+};
+
+function createBasePreviewEmailTemplateResponse(): PreviewEmailTemplateResponse {
+  return { subject: '', htmlContent: '', textContent: undefined };
+}
+
+export const PreviewEmailTemplateResponse: MessageFns<PreviewEmailTemplateResponse> = {
+  encode(
+    message: PreviewEmailTemplateResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.subject !== '') {
+      writer.uint32(10).string(message.subject);
+    }
+    if (message.htmlContent !== '') {
+      writer.uint32(18).string(message.htmlContent);
+    }
+    if (message.textContent !== undefined) {
+      writer.uint32(26).string(message.textContent);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): PreviewEmailTemplateResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePreviewEmailTemplateResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.subject = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.htmlContent = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.textContent = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PreviewEmailTemplateResponse {
+    return {
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : '',
+      htmlContent: isSet(object.htmlContent)
+        ? globalThis.String(object.htmlContent)
+        : isSet(object.html_content)
+          ? globalThis.String(object.html_content)
+          : '',
+      textContent: isSet(object.textContent)
+        ? globalThis.String(object.textContent)
+        : isSet(object.text_content)
+          ? globalThis.String(object.text_content)
+          : undefined,
+    };
+  },
+
+  toJSON(message: PreviewEmailTemplateResponse): unknown {
+    const obj: any = {};
+    if (message.subject !== '') {
+      obj.subject = message.subject;
+    }
+    if (message.htmlContent !== '') {
+      obj.htmlContent = message.htmlContent;
+    }
+    if (message.textContent !== undefined) {
+      obj.textContent = message.textContent;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PreviewEmailTemplateResponse>, I>>(
+    base?: I
+  ): PreviewEmailTemplateResponse {
+    return PreviewEmailTemplateResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<PreviewEmailTemplateResponse>, I>>(
+    object: I
+  ): PreviewEmailTemplateResponse {
+    const message = createBasePreviewEmailTemplateResponse();
+    message.subject = object.subject ?? '';
+    message.htmlContent = object.htmlContent ?? '';
+    message.textContent = object.textContent ?? undefined;
+    return message;
+  },
+};
+
 /**
  * NotificationService is the gRPC contract for the in-app notification
  * store. The gateway translates `POST/GET/DELETE /api/notifications/*`
@@ -6737,6 +8656,88 @@ export const NotificationServiceService = {
     responseDeserialize: (value: Buffer): UpdateEmailPreferencesResponse =>
       UpdateEmailPreferencesResponse.decode(value),
   },
+  listEmailTemplates: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/ListEmailTemplates' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListEmailTemplatesRequest): Buffer =>
+      Buffer.from(ListEmailTemplatesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListEmailTemplatesRequest =>
+      ListEmailTemplatesRequest.decode(value),
+    responseSerialize: (value: ListEmailTemplatesResponse): Buffer =>
+      Buffer.from(ListEmailTemplatesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListEmailTemplatesResponse =>
+      ListEmailTemplatesResponse.decode(value),
+  },
+  getEmailTemplate: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/GetEmailTemplate' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetEmailTemplateRequest): Buffer =>
+      Buffer.from(GetEmailTemplateRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetEmailTemplateRequest =>
+      GetEmailTemplateRequest.decode(value),
+    responseSerialize: (value: GetEmailTemplateResponse): Buffer =>
+      Buffer.from(GetEmailTemplateResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetEmailTemplateResponse =>
+      GetEmailTemplateResponse.decode(value),
+  },
+  createEmailTemplate: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/CreateEmailTemplate' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CreateEmailTemplateRequest): Buffer =>
+      Buffer.from(CreateEmailTemplateRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateEmailTemplateRequest =>
+      CreateEmailTemplateRequest.decode(value),
+    responseSerialize: (value: CreateEmailTemplateResponse): Buffer =>
+      Buffer.from(CreateEmailTemplateResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateEmailTemplateResponse =>
+      CreateEmailTemplateResponse.decode(value),
+  },
+  updateEmailTemplate: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/UpdateEmailTemplate' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateEmailTemplateRequest): Buffer =>
+      Buffer.from(UpdateEmailTemplateRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateEmailTemplateRequest =>
+      UpdateEmailTemplateRequest.decode(value),
+    responseSerialize: (value: UpdateEmailTemplateResponse): Buffer =>
+      Buffer.from(UpdateEmailTemplateResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateEmailTemplateResponse =>
+      UpdateEmailTemplateResponse.decode(value),
+  },
+  deleteEmailTemplate: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/DeleteEmailTemplate' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteEmailTemplateRequest): Buffer =>
+      Buffer.from(DeleteEmailTemplateRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteEmailTemplateRequest =>
+      DeleteEmailTemplateRequest.decode(value),
+    responseSerialize: (value: DeleteEmailTemplateResponse): Buffer =>
+      Buffer.from(DeleteEmailTemplateResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteEmailTemplateResponse =>
+      DeleteEmailTemplateResponse.decode(value),
+  },
+  /**
+   * Render a template with caller-supplied sample variables — returns the
+   * resolved subject + html without queueing anything.
+   */
+  previewEmailTemplate: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/PreviewEmailTemplate' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: PreviewEmailTemplateRequest): Buffer =>
+      Buffer.from(PreviewEmailTemplateRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): PreviewEmailTemplateRequest =>
+      PreviewEmailTemplateRequest.decode(value),
+    responseSerialize: (value: PreviewEmailTemplateResponse): Buffer =>
+      Buffer.from(PreviewEmailTemplateResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): PreviewEmailTemplateResponse =>
+      PreviewEmailTemplateResponse.decode(value),
+  },
   /**
    * Idempotent on (user_id, device_token): a second Register with the
    * same pair refreshes `last_used_at` and returns the existing row.
@@ -6885,6 +8886,16 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
     UpdateEmailPreferencesRequest,
     UpdateEmailPreferencesResponse
   >;
+  listEmailTemplates: handleUnaryCall<ListEmailTemplatesRequest, ListEmailTemplatesResponse>;
+  getEmailTemplate: handleUnaryCall<GetEmailTemplateRequest, GetEmailTemplateResponse>;
+  createEmailTemplate: handleUnaryCall<CreateEmailTemplateRequest, CreateEmailTemplateResponse>;
+  updateEmailTemplate: handleUnaryCall<UpdateEmailTemplateRequest, UpdateEmailTemplateResponse>;
+  deleteEmailTemplate: handleUnaryCall<DeleteEmailTemplateRequest, DeleteEmailTemplateResponse>;
+  /**
+   * Render a template with caller-supplied sample variables — returns the
+   * resolved subject + html without queueing anything.
+   */
+  previewEmailTemplate: handleUnaryCall<PreviewEmailTemplateRequest, PreviewEmailTemplateResponse>;
   /**
    * Idempotent on (user_id, device_token): a second Register with the
    * same pair refreshes `last_used_at` and returns the existing row.
@@ -7180,6 +9191,100 @@ export interface NotificationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: UpdateEmailPreferencesResponse) => void
+  ): ClientUnaryCall;
+  listEmailTemplates(
+    request: ListEmailTemplatesRequest,
+    callback: (error: ServiceError | null, response: ListEmailTemplatesResponse) => void
+  ): ClientUnaryCall;
+  listEmailTemplates(
+    request: ListEmailTemplatesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListEmailTemplatesResponse) => void
+  ): ClientUnaryCall;
+  listEmailTemplates(
+    request: ListEmailTemplatesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListEmailTemplatesResponse) => void
+  ): ClientUnaryCall;
+  getEmailTemplate(
+    request: GetEmailTemplateRequest,
+    callback: (error: ServiceError | null, response: GetEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  getEmailTemplate(
+    request: GetEmailTemplateRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  getEmailTemplate(
+    request: GetEmailTemplateRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  createEmailTemplate(
+    request: CreateEmailTemplateRequest,
+    callback: (error: ServiceError | null, response: CreateEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  createEmailTemplate(
+    request: CreateEmailTemplateRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  createEmailTemplate(
+    request: CreateEmailTemplateRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreateEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  updateEmailTemplate(
+    request: UpdateEmailTemplateRequest,
+    callback: (error: ServiceError | null, response: UpdateEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  updateEmailTemplate(
+    request: UpdateEmailTemplateRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  updateEmailTemplate(
+    request: UpdateEmailTemplateRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  deleteEmailTemplate(
+    request: DeleteEmailTemplateRequest,
+    callback: (error: ServiceError | null, response: DeleteEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  deleteEmailTemplate(
+    request: DeleteEmailTemplateRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  deleteEmailTemplate(
+    request: DeleteEmailTemplateRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Render a template with caller-supplied sample variables — returns the
+   * resolved subject + html without queueing anything.
+   */
+  previewEmailTemplate(
+    request: PreviewEmailTemplateRequest,
+    callback: (error: ServiceError | null, response: PreviewEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  previewEmailTemplate(
+    request: PreviewEmailTemplateRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: PreviewEmailTemplateResponse) => void
+  ): ClientUnaryCall;
+  previewEmailTemplate(
+    request: PreviewEmailTemplateRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: PreviewEmailTemplateResponse) => void
   ): ClientUnaryCall;
   /**
    * Idempotent on (user_id, device_token): a second Register with the

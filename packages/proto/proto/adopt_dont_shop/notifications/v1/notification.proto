@@ -103,6 +103,19 @@ service NotificationService {
   rpc UpdateEmailPreferences(UpdateEmailPreferencesRequest)
       returns (UpdateEmailPreferencesResponse);
 
+  // --- Email template admin ------------------------------------------
+  // Admin CRUD over the email_templates table the SendEmail render path
+  // reads. Each RPC gates on the matching email.templates.* permission.
+
+  rpc ListEmailTemplates(ListEmailTemplatesRequest) returns (ListEmailTemplatesResponse);
+  rpc GetEmailTemplate(GetEmailTemplateRequest) returns (GetEmailTemplateResponse);
+  rpc CreateEmailTemplate(CreateEmailTemplateRequest) returns (CreateEmailTemplateResponse);
+  rpc UpdateEmailTemplate(UpdateEmailTemplateRequest) returns (UpdateEmailTemplateResponse);
+  rpc DeleteEmailTemplate(DeleteEmailTemplateRequest) returns (DeleteEmailTemplateResponse);
+  // Render a template with caller-supplied sample variables — returns the
+  // resolved subject + html without queueing anything.
+  rpc PreviewEmailTemplate(PreviewEmailTemplateRequest) returns (PreviewEmailTemplateResponse);
+
   // --- Push device tokens --------------------------------------------
   // Phase 7 round-out. Clients (mobile, browser PWAs) register their
   // FCM / APNs / web-push token with the notifications service; the
@@ -656,4 +669,126 @@ message CleanupExpiredNotificationsRequest {
 message CleanupExpiredNotificationsResponse {
   // Number of rows that transitioned from kept → soft-deleted.
   uint32 deleted_count = 1;
+}
+
+// --- Email template admin --------------------------------------------
+
+enum EmailTemplateType {
+  EMAIL_TEMPLATE_TYPE_UNSPECIFIED = 0;
+  EMAIL_TEMPLATE_TYPE_TRANSACTIONAL = 1;
+  EMAIL_TEMPLATE_TYPE_NOTIFICATION = 2;
+  EMAIL_TEMPLATE_TYPE_MARKETING = 3;
+  EMAIL_TEMPLATE_TYPE_SYSTEM = 4;
+  EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE = 5;
+}
+
+enum EmailTemplateStatus {
+  EMAIL_TEMPLATE_STATUS_UNSPECIFIED = 0;
+  EMAIL_TEMPLATE_STATUS_DRAFT = 1;
+  EMAIL_TEMPLATE_STATUS_ACTIVE = 2;
+  EMAIL_TEMPLATE_STATUS_INACTIVE = 3;
+  EMAIL_TEMPLATE_STATUS_ARCHIVED = 4;
+}
+
+// EmailTemplate mirrors the authoring-relevant columns of
+// email_templates. Category is kept as a raw string (the Postgres enum
+// has 12 values that evolve per-feature; a string avoids a proto rebuild
+// each time one is added).
+message EmailTemplate {
+  string template_id = 1;
+  string name = 2;
+  optional string description = 3;
+  EmailTemplateType type = 4;
+  string category = 5;
+  EmailTemplateStatus status = 6;
+  string subject = 7;
+  string html_content = 8;
+  optional string text_content = 9;
+  // JSON-stringified array of declared variables. Empty string == [].
+  string variables_json = 10;
+  string locale = 11;
+  uint32 usage_count = 12;
+  optional string last_used_at = 13;
+  string created_at = 14;
+  string updated_at = 15;
+}
+
+message ListEmailTemplatesRequest {
+  // Optional filters. UNSPECIFIED = no filter on that field.
+  EmailTemplateType type_filter = 1;
+  EmailTemplateStatus status_filter = 2;
+  optional string category_filter = 3;
+  optional string search = 4;
+  uint32 page = 5;
+  uint32 limit = 6;
+}
+
+message ListEmailTemplatesResponse {
+  repeated EmailTemplate templates = 1;
+  uint32 total = 2;
+  uint32 page = 3;
+  uint32 total_pages = 4;
+}
+
+message GetEmailTemplateRequest {
+  string template_id = 1;
+}
+
+message GetEmailTemplateResponse {
+  EmailTemplate template = 1;
+}
+
+message CreateEmailTemplateRequest {
+  string name = 1;
+  optional string description = 2;
+  EmailTemplateType type = 3;
+  string category = 4;
+  EmailTemplateStatus status = 5;
+  string subject = 6;
+  string html_content = 7;
+  optional string text_content = 8;
+  string variables_json = 9;
+  optional string locale = 10;
+}
+
+message CreateEmailTemplateResponse {
+  EmailTemplate template = 1;
+}
+
+message UpdateEmailTemplateRequest {
+  string template_id = 1;
+  // Only set fields are written.
+  optional string name = 2;
+  optional string description = 3;
+  EmailTemplateType type = 4;
+  optional string category = 5;
+  EmailTemplateStatus status = 6;
+  optional string subject = 7;
+  optional string html_content = 8;
+  optional string text_content = 9;
+  optional string variables_json = 10;
+}
+
+message UpdateEmailTemplateResponse {
+  EmailTemplate template = 1;
+}
+
+message DeleteEmailTemplateRequest {
+  string template_id = 1;
+}
+
+message DeleteEmailTemplateResponse {
+  bool deleted = 1;
+}
+
+message PreviewEmailTemplateRequest {
+  string template_id = 1;
+  // JSON-stringified variable map for substitution. Empty string == {}.
+  string variables_json = 2;
+}
+
+message PreviewEmailTemplateResponse {
+  string subject = 1;
+  string html_content = 2;
+  optional string text_content = 3;
 }

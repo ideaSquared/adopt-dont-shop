@@ -24,6 +24,14 @@ import {
   registerDeviceTokenHandler,
   unregisterDeviceTokenHandler,
 } from './device-token-handlers.js';
+import {
+  createEmailTemplate,
+  deleteEmailTemplate,
+  getEmailTemplate,
+  listEmailTemplates,
+  previewEmailTemplate,
+  updateEmailTemplate,
+} from './email-template-handlers.js';
 import { getEmailPreferences, sendEmail, updateEmailPreferences } from './email-handlers.js';
 import { createNotification, dismissNotification, listNotifications } from './handlers.js';
 import {
@@ -88,6 +96,12 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     registerDeviceToken: adapt(registerDeviceTokenHandler, { deps: { pool, nats }, logger }),
     unregisterDeviceToken: adapt(unregisterDeviceTokenHandler, { deps: { pool, nats }, logger }),
     listDeviceTokens: adapt(listDeviceTokensHandler, { deps: { pool, nats }, logger }),
+    listEmailTemplates: adapt(listEmailTemplates, { deps: { pool, nats }, logger }),
+    getEmailTemplate: adapt(getEmailTemplate, { deps: { pool, nats }, logger }),
+    createEmailTemplate: adapt(createEmailTemplate, { deps: { pool, nats }, logger }),
+    updateEmailTemplate: adapt(updateEmailTemplate, { deps: { pool, nats }, logger }),
+    deleteEmailTemplate: adapt(deleteEmailTemplate, { deps: { pool, nats }, logger }),
+    previewEmailTemplate: adapt(previewEmailTemplate, { deps: { pool, nats }, logger }),
   });
 
   logger.info('gRPC NotificationService registered', {
@@ -109,6 +123,12 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'registerDeviceToken',
       'unregisterDeviceToken',
       'listDeviceTokens',
+      'listEmailTemplates',
+      'getEmailTemplate',
+      'createEmailTemplate',
+      'updateEmailTemplate',
+      'deleteEmailTemplate',
+      'previewEmailTemplate',
     ],
     grpcPort: config.grpcPort,
   });

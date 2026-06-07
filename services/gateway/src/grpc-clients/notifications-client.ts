@@ -42,6 +42,18 @@ import {
   type ResetNotificationPreferencesResponse,
   type CleanupExpiredNotificationsRequest,
   type CleanupExpiredNotificationsResponse,
+  type ListEmailTemplatesRequest,
+  type ListEmailTemplatesResponse,
+  type GetEmailTemplateRequest,
+  type GetEmailTemplateResponse,
+  type CreateEmailTemplateRequest,
+  type CreateEmailTemplateResponse,
+  type UpdateEmailTemplateRequest,
+  type UpdateEmailTemplateResponse,
+  type DeleteEmailTemplateRequest,
+  type DeleteEmailTemplateResponse,
+  type PreviewEmailTemplateRequest,
+  type PreviewEmailTemplateResponse,
 } from '@adopt-dont-shop/proto';
 
 export type NotificationsClient = {
@@ -89,6 +101,30 @@ export type NotificationsClient = {
     req: CleanupExpiredNotificationsRequest,
     metadata: Metadata
   ): Promise<CleanupExpiredNotificationsResponse>;
+  listEmailTemplates(
+    req: ListEmailTemplatesRequest,
+    metadata: Metadata
+  ): Promise<ListEmailTemplatesResponse>;
+  getEmailTemplate(
+    req: GetEmailTemplateRequest,
+    metadata: Metadata
+  ): Promise<GetEmailTemplateResponse>;
+  createEmailTemplate(
+    req: CreateEmailTemplateRequest,
+    metadata: Metadata
+  ): Promise<CreateEmailTemplateResponse>;
+  updateEmailTemplate(
+    req: UpdateEmailTemplateRequest,
+    metadata: Metadata
+  ): Promise<UpdateEmailTemplateResponse>;
+  deleteEmailTemplate(
+    req: DeleteEmailTemplateRequest,
+    metadata: Metadata
+  ): Promise<DeleteEmailTemplateResponse>;
+  previewEmailTemplate(
+    req: PreviewEmailTemplateRequest,
+    metadata: Metadata
+  ): Promise<PreviewEmailTemplateResponse>;
   close(): void;
 };
 
@@ -142,6 +178,12 @@ export const createNotificationsClient = (
       callUnary(stub.resetNotificationPreferences, req, metadata),
     cleanupExpiredNotifications: (req, metadata) =>
       callUnary(stub.cleanupExpiredNotifications, req, metadata),
+    listEmailTemplates: (req, metadata) => callUnary(stub.listEmailTemplates, req, metadata),
+    getEmailTemplate: (req, metadata) => callUnary(stub.getEmailTemplate, req, metadata),
+    createEmailTemplate: (req, metadata) => callUnary(stub.createEmailTemplate, req, metadata),
+    updateEmailTemplate: (req, metadata) => callUnary(stub.updateEmailTemplate, req, metadata),
+    deleteEmailTemplate: (req, metadata) => callUnary(stub.deleteEmailTemplate, req, metadata),
+    previewEmailTemplate: (req, metadata) => callUnary(stub.previewEmailTemplate, req, metadata),
     close: () => stub.close(),
   };
 };
