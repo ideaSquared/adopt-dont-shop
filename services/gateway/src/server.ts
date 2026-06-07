@@ -40,6 +40,7 @@ import { registerDevicesRoutes } from './routes/devices.js';
 import { registerLegalRoutes } from './routes/legal.js';
 import { registerMatchingRoutes } from './routes/matching.js';
 import { registerModerationAdminRoutes } from './routes/moderation-admin.js';
+import { registerSupportRoutes } from './routes/support.js';
 import { registerModerationRoutes } from './routes/moderation.js';
 import { registerNotificationsRoutes } from './routes/notifications.js';
 import { registerPetsRoutes } from './routes/pets.js';
@@ -188,6 +189,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // SPA-facing surface at /api/v1/admin/{moderation,support}/* with
     // frontend-shape envelopes (lib.moderation, lib.support-tickets).
     await registerModerationAdminRoutes(server, { client: opts.moderationClient });
+    // User-facing /api/v1/support/* — adopters opening + replying to
+    // their own tickets. Handlers self-scope by principal.userId.
+    await registerSupportRoutes(server, { client: opts.moderationClient });
   }
   if (opts.applicationsClient && cutover.applications) {
     await registerApplicationsRoutes(server, { client: opts.applicationsClient });

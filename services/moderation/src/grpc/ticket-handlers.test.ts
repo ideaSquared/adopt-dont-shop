@@ -155,13 +155,21 @@ describe('openSupportTicket', () => {
 });
 
 describe('getSupportTicket', () => {
-  it('throws PERMISSION_DENIED without admin.dashboard', async () => {
-    const { deps } = makeDeps([]);
+  it('returns NOT_FOUND when a non-admin reads someone else’s ticket (no enumeration)', async () => {
+    const { deps } = makeDeps([{ rows: [ticketRow({ user_id: 'usr-other' })] }]);
     await expect(
-      getSupportTicket(deps, makePrincipal({ permissions: [] }), {
+      getSupportTicket(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
         ticketId: 'tkt-1',
       } as GetSupportTicketRequest)
-    ).rejects.toBeInstanceOf(HandlerError);
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('allows the ticket owner to read their own ticket without admin.dashboard', async () => {
+    const { deps } = makeDeps([{ rows: [ticketRow({ user_id: 'usr-1' })] }]);
+    const res = await getSupportTicket(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+      ticketId: 'tkt-1',
+    } as GetSupportTicketRequest);
+    expect(res.ticket.ticketId).toBe('tkt-1');
   });
 
   it('throws NOT_FOUND on a missing ticket', async () => {
@@ -195,11 +203,25 @@ describe('getSupportTicket', () => {
 });
 
 describe('listSupportTickets', () => {
-  it('throws PERMISSION_DENIED without admin.dashboard', async () => {
+  it('non-admins are self-scoped: WHERE user_id = principal.userId is forced', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await listSupportTickets(
+      deps,
+      makePrincipal({ userId: 'usr-1', permissions: [] }),
+      {} as ListSupportTicketsRequest
+    );
+    const sql = query.mock.calls[0][0] as string;
+    expect(sql).toMatch(/user_id = \$1/);
+    expect(query.mock.calls[0][1][0]).toBe('usr-1');
+  });
+
+  it('rejects a non-admin trying to filter by another user_id', async () => {
     const { deps } = makeDeps([]);
     await expect(
-      listSupportTickets(deps, makePrincipal({ permissions: [] }), {} as ListSupportTicketsRequest)
-    ).rejects.toBeInstanceOf(HandlerError);
+      listSupportTickets(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+        userId: 'usr-other',
+      } as ListSupportTicketsRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
   it('applies status / priority / category / assigned_to / user filters', async () => {
@@ -287,7 +309,43 @@ describe('respondToTicket', () => {
       isInternal: true,
     });
     expect(res.response.isInternal).toBe(true);
-    // is_internal param at index 4 (0-based) on the INSERT.
-    expect(query.mock.calls[1][1][4]).toBe(true);
+    // INSERT params: [responseId, ticketId, responderId, responderType,
+    // content, isInternal] — is_internal is index 5 (0-based).
+    expect(query.mock.calls[1][1][5]).toBe(true);
+  });
+
+  it('non-admin owner can reply; responder_type is forced to "user"', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [{ ticket_id: 'tkt-1', user_id: 'usr-1' }] },
+      { rows: [responseRow({ responder_type: 'user' })] },
+      { rows: [] },
+    ]);
+    await respondToTicket(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+      ticketId: 'tkt-1',
+      content: 'Reply from owner',
+    });
+    // responder_type at INSERT param index 3.
+    expect(query.mock.calls[1][1][3]).toBe('user');
+  });
+
+  it('non-admin trying to post an internal note → PERMISSION_DENIED', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      respondToTicket(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+        ticketId: 'tkt-1',
+        content: 'sneaky',
+        isInternal: true,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('non-admin replying to someone else’s ticket → NOT_FOUND', async () => {
+    const { deps } = makeDeps([{ rows: [{ ticket_id: 'tkt-1', user_id: 'usr-other' }] }]);
+    await expect(
+      respondToTicket(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+        ticketId: 'tkt-1',
+        content: 'not mine',
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });
