@@ -224,6 +224,14 @@ export interface DeleteMessageResponse {
   message?: Message | undefined;
 }
 
+export interface GetChatRequest {
+  chatId: string;
+}
+
+export interface GetChatResponse {
+  chat?: Chat | undefined;
+}
+
 function createBaseChat(): Chat {
   return {
     chatId: '',
@@ -2284,6 +2292,129 @@ export const DeleteMessageResponse: MessageFns<DeleteMessageResponse> = {
   },
 };
 
+function createBaseGetChatRequest(): GetChatRequest {
+  return { chatId: '' };
+}
+
+export const GetChatRequest: MessageFns<GetChatRequest> = {
+  encode(message: GetChatRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.chatId !== '') {
+      writer.uint32(10).string(message.chatId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetChatRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetChatRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.chatId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetChatRequest {
+    return {
+      chatId: isSet(object.chatId)
+        ? globalThis.String(object.chatId)
+        : isSet(object.chat_id)
+          ? globalThis.String(object.chat_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetChatRequest): unknown {
+    const obj: any = {};
+    if (message.chatId !== '') {
+      obj.chatId = message.chatId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetChatRequest>, I>>(base?: I): GetChatRequest {
+    return GetChatRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetChatRequest>, I>>(object: I): GetChatRequest {
+    const message = createBaseGetChatRequest();
+    message.chatId = object.chatId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetChatResponse(): GetChatResponse {
+  return { chat: undefined };
+}
+
+export const GetChatResponse: MessageFns<GetChatResponse> = {
+  encode(message: GetChatResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.chat !== undefined) {
+      Chat.encode(message.chat, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetChatResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetChatResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.chat = Chat.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetChatResponse {
+    return { chat: isSet(object.chat) ? Chat.fromJSON(object.chat) : undefined };
+  },
+
+  toJSON(message: GetChatResponse): unknown {
+    const obj: any = {};
+    if (message.chat !== undefined) {
+      obj.chat = Chat.toJSON(message.chat);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetChatResponse>, I>>(base?: I): GetChatResponse {
+    return GetChatResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetChatResponse>, I>>(object: I): GetChatResponse {
+    const message = createBaseGetChatResponse();
+    message.chat =
+      object.chat !== undefined && object.chat !== null ? Chat.fromPartial(object.chat) : undefined;
+    return message;
+  },
+};
+
 /**
  * ChatService is the gRPC contract for the chat vertical. It owns
  * the `chat.*` schema (Chat, ChatParticipant, Message, MessageReaction,
@@ -2454,6 +2585,22 @@ export const ChatServiceService = {
     responseDeserialize: (value: Buffer): DeleteMessageResponse =>
       DeleteMessageResponse.decode(value),
   },
+  /**
+   * Fetch a chat by id. Returns the canonical Chat row + participant
+   * ids + last-message preview. Caller MUST be a participant or
+   * super_admin; non-participants get NOT_FOUND (no enumeration).
+   */
+  getChat: {
+    path: '/adopt_dont_shop.chat.v1.ChatService/GetChat' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetChatRequest): Buffer =>
+      Buffer.from(GetChatRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetChatRequest => GetChatRequest.decode(value),
+    responseSerialize: (value: GetChatResponse): Buffer =>
+      Buffer.from(GetChatResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetChatResponse => GetChatResponse.decode(value),
+  },
 } as const;
 
 export interface ChatServiceServer extends UntypedServiceImplementation {
@@ -2516,6 +2663,12 @@ export interface ChatServiceServer extends UntypedServiceImplementation {
    * Publishes chat.messageDeleted.
    */
   deleteMessage: handleUnaryCall<DeleteMessageRequest, DeleteMessageResponse>;
+  /**
+   * Fetch a chat by id. Returns the canonical Chat row + participant
+   * ids + last-message preview. Caller MUST be a participant or
+   * super_admin; non-participants get NOT_FOUND (no enumeration).
+   */
+  getChat: handleUnaryCall<GetChatRequest, GetChatResponse>;
 }
 
 export interface ChatServiceClient extends Client {
@@ -2703,6 +2856,26 @@ export interface ChatServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteMessageResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Fetch a chat by id. Returns the canonical Chat row + participant
+   * ids + last-message preview. Caller MUST be a participant or
+   * super_admin; non-participants get NOT_FOUND (no enumeration).
+   */
+  getChat(
+    request: GetChatRequest,
+    callback: (error: ServiceError | null, response: GetChatResponse) => void
+  ): ClientUnaryCall;
+  getChat(
+    request: GetChatRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetChatResponse) => void
+  ): ClientUnaryCall;
+  getChat(
+    request: GetChatRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetChatResponse) => void
   ): ClientUnaryCall;
 }
 

@@ -183,6 +183,27 @@ const registerChatRoutesForPrefix = (
     }
   });
 
+  // ---- GET <prefix>/:chatId ----------------------------------------
+  // Fetch single chat details. Registered AFTER the more-specific
+  // /:chatId/{unread-count,messages,read} routes above so they win
+  // Fastify's first-registered-wins matcher. Returns the monolith
+  // envelope { success, data: Chat } where Chat is the proto JSON.
+  app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId`, async (req, reply) => {
+    const metadata = buildMetadata(req);
+    try {
+      const res = await client.getChat({ chatId: req.params.chatId }, metadata);
+      if (!res.chat) {
+        return reply.code(404).send({ success: false, error: 'Chat not found' });
+      }
+      return reply.send({
+        success: true,
+        data: ChatV1.Chat.toJSON(res.chat),
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
   // ---- GET <prefix>/:chatId/messages -------------------------------
   app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId/messages`, async (req, reply) => {
     const metadata = buildMetadata(req);
