@@ -24,6 +24,8 @@ import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/even
 import type { Permission } from '@adopt-dont-shop/lib.types';
 import type {
   Chat,
+  DeleteMessageRequest,
+  DeleteMessageResponse,
   GetChatUnreadCountRequest,
   GetChatUnreadCountResponse,
   ListChatsRequest,
@@ -885,4 +887,86 @@ export async function getChatUnreadCount(
   );
 
   return { unreadCount: Number.parseInt(result.rows[0]?.count ?? '0', 10) };
+}
+
+// --- DeleteMessage ---------------------------------------------------
+
+const CHAT_MESSAGE_DELETE_ANY: Permission = 'chat.message.delete:any' as Permission;
+
+export async function deleteMessage(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: DeleteMessageRequest
+): Promise<DeleteMessageResponse> {
+  if (!req.messageId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'message_id is required');
+  }
+
+  // Fetch the row to determine ownership + chat scope.
+  const existing = await deps.pool.query<MessageRow>(
+    `SELECT * FROM messages WHERE message_id = $1 LIMIT 1`,
+    [req.messageId]
+  );
+  if (existing.rows.length === 0) {
+    throw new HandlerError('NOT_FOUND', `message ${req.messageId} not found`);
+  }
+  const row = existing.rows[0];
+
+  // The sender may always delete their own message. Moderators / admins
+  // need chat.message.delete:any to delete someone else's.
+  const isSender = row.sender_id === principal.userId;
+  if (!isSender && !hasPermission(principal, CHAT_MESSAGE_DELETE_ANY)) {
+    // Non-sender without admin perm. Use NOT_FOUND posture so we don't
+    // confirm message existence to non-participants — but still allow
+    // participants to learn it exists by hitting other RPCs they're
+    // entitled to call.
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      `'${CHAT_MESSAGE_DELETE_ANY}' required to delete another user's message`
+    );
+  }
+
+  // Idempotent — return the already-deleted row without re-publishing.
+  if (row.deleted_at) {
+    const reactions = await loadMessageReactions(deps, [row.message_id]);
+    return {
+      message: messageRowToProto(row, reactions.get(row.message_id) ?? []),
+    };
+  }
+
+  let updated: MessageRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    const result = await client.query<MessageRow>(
+      `
+      UPDATE messages
+      SET deleted_at = now()
+      WHERE message_id = $1
+      RETURNING *
+      `,
+      [req.messageId]
+    );
+    updated = result.rows[0];
+
+    const participantUserIds = await loadChatParticipantsTx(client, row.chat_id);
+
+    publish({
+      type: 'chat.messageDeleted',
+      id: `chat.messageDeleted.${req.messageId}`,
+      payload: {
+        messageId: req.messageId,
+        chatId: row.chat_id,
+        deletedBy: principal.userId,
+        reason: req.reason ?? null,
+        participantUserIds,
+      },
+    });
+  });
+
+  if (!updated) {
+    throw new HandlerError('INTERNAL', 'delete returned no rows');
+  }
+  const reactions = await loadMessageReactions(deps, [updated.message_id]);
+  return {
+    message: messageRowToProto(updated, reactions.get(updated.message_id) ?? []),
+  };
 }

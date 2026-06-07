@@ -58,6 +58,14 @@ service ChatService {
   // membership (or super_admin).
   rpc GetChatUnreadCount(GetChatUnreadCountRequest)
       returns (GetChatUnreadCountResponse);
+
+  // Soft-delete a message. Caller MUST be the message's sender OR
+  // hold chat.message.delete:any (moderators / admins). Sets
+  // deleted_at on the row; the content stays in place so the audit
+  // trail (and the message_reads chain) is intact. Idempotent —
+  // a second delete on the same message returns the same row.
+  // Publishes chat.messageDeleted.
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
 }
 
 // --- Messages --------------------------------------------------------
@@ -236,4 +244,17 @@ message GetChatUnreadCountRequest {
 
 message GetChatUnreadCountResponse {
   uint32 unread_count = 1;
+}
+
+// --- DeleteMessage ---------------------------------------------------
+
+message DeleteMessageRequest {
+  string message_id = 1;
+  // Optional moderator/admin reason. Captured in the NATS event for
+  // downstream audit.
+  optional string reason = 2;
+}
+
+message DeleteMessageResponse {
+  Message message = 1;
 }

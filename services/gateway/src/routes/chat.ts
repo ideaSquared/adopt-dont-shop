@@ -201,6 +201,32 @@ const registerChatRoutesForPrefix = (
     }
   });
 
+  // ---- DELETE <prefix>/:chatId/messages/:messageId -----------------
+  // Soft-deletes the message. Senders can delete their own; moderators
+  // / admins need chat.message.delete:any (enforced at the handler).
+  // chat_id from the path is informational — the handler resolves the
+  // message by its own id and verifies the chat link itself.
+  app.delete<{ Params: { chatId: string; messageId: string }; Body?: { reason?: string } }>(
+    `${prefix}/:chatId/messages/:messageId`,
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as { reason?: string };
+      try {
+        const res = await client.deleteMessage(
+          { messageId: req.params.messageId, reason: body.reason },
+          metadata
+        );
+        return reply.send({
+          success: true,
+          message: 'Message deleted',
+          data: res.message ? ChatV1.Message.toJSON(res.message) : null,
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // ---- POST <prefix>/:chatId/messages ------------------------------
   app.post<{ Params: { chatId: string } }>(`${prefix}/:chatId/messages`, async (req, reply) => {
     const metadata = buildMetadata(req);

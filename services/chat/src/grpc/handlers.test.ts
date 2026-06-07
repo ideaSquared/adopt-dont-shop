@@ -20,6 +20,7 @@ import {
   markRead,
   openChat,
   react,
+  deleteMessage,
   getChatUnreadCount,
   searchChats,
   sendMessage,
@@ -634,5 +635,55 @@ describe('HandlerError', () => {
     const err = new HandlerError('NOT_FOUND', 'gone');
     expect(err.code).toBe('NOT_FOUND');
     expect(err.message).toBe('gone');
+  });
+});
+
+// --- deleteMessage --------------------------------------------------
+
+describe('deleteMessage', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects missing message_id', async () => {
+    await expect(
+      deleteMessage(mocks.deps, ADOPTER_PRINCIPAL, { messageId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('returns NOT_FOUND for non-existent message', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      deleteMessage(mocks.deps, ADOPTER_PRINCIPAL, { messageId: 'missing' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it("rejects when a non-sender tries to delete someone else's message", async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [messageRowFixture({ sender_id: 'usr-someone-else' })],
+    });
+
+    await expect(
+      deleteMessage(mocks.deps, ADOPTER_PRINCIPAL, { messageId: 'msg-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('is idempotent on an already-deleted row (no write, no publish)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        messageRowFixture({
+          sender_id: 'usr-adopter',
+          deleted_at: new Date('2026-05-01T00:00:00Z'),
+        }),
+      ],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // reactions
+    const res = await deleteMessage(mocks.deps, ADOPTER_PRINCIPAL, { messageId: 'msg-1' });
+    expect(res.message?.deletedAt).toBeDefined();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
