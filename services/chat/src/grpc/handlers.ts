@@ -126,6 +126,23 @@ const loadChatParticipants = async (deps: HandlerDeps, chatId: string): Promise<
   return res.rows.map(r => r.participant_id);
 };
 
+// Same lookup but on an open transactional client — used by SendMessage /
+// MarkRead / React to include the participant list in their NATS event
+// payloads so the gateway can fan to every member of the chat without
+// calling back into this service.
+const loadChatParticipantsTx = async (
+  client: Parameters<Parameters<typeof withTransaction>[1]>[0]['client'],
+  chatId: string
+): Promise<string[]> => {
+  const res = await client.query<{ participant_id: string }>(
+    `SELECT participant_id FROM chat_participants
+     WHERE chat_id = $1 AND deleted_at IS NULL
+     ORDER BY created_at ASC`,
+    [chatId]
+  );
+  return res.rows.map(r => r.participant_id);
+};
+
 const loadLastMessagePreview = async (
   deps: HandlerDeps,
   chatId: string
@@ -355,6 +372,7 @@ export async function sendMessage(
     // surfaces it. messages_chat_created_idx handles the actual sort.
     await client.query(`UPDATE chats SET updated_at = now() WHERE chat_id = $1`, [req.chatId]);
 
+    const participantUserIds = await loadChatParticipantsTx(client, req.chatId);
     publish({
       type: 'chat.messageCreated',
       id: `chat.messageCreated.${messageId}`,
@@ -363,6 +381,7 @@ export async function sendMessage(
         chatId: req.chatId,
         senderUserId: principal.userId,
         body: req.body,
+        participantUserIds,
       },
     });
   });
@@ -573,6 +592,7 @@ export async function markRead(
       [req.chatId, principal.userId]
     );
 
+    const participantUserIds = await loadChatParticipantsTx(client, req.chatId);
     publish({
       type: 'chat.messageRead',
       id: `chat.messageRead.${req.chatId}.${principal.userId}.${req.upToMessageId}`,
@@ -580,6 +600,7 @@ export async function markRead(
         chatId: req.chatId,
         userId: principal.userId,
         upToMessageId: req.upToMessageId,
+        participantUserIds,
       },
     });
   });
@@ -619,6 +640,7 @@ export async function react(
   }
 
   await withTransaction(deps, async ({ client, publish }) => {
+    const participantUserIds = await loadChatParticipantsTx(client, chatId);
     if (req.remove) {
       await client.query(
         `DELETE FROM message_reactions
@@ -633,6 +655,7 @@ export async function react(
           chatId,
           userId: principal.userId,
           emoji: req.emoji,
+          participantUserIds,
         },
       });
     } else {
@@ -652,6 +675,7 @@ export async function react(
           chatId,
           userId: principal.userId,
           emoji: req.emoji,
+          participantUserIds,
         },
       });
     }

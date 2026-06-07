@@ -220,13 +220,16 @@ describe('sendMessage', () => {
   it('inserts the message and publishes chat.messageCreated after commit', async () => {
     // isParticipantOrAdmin → one row
     mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
-    // INSERT message, UPDATE chats.updated_at
+    // INSERT message, UPDATE chats.updated_at, SELECT participants
     mocks.clientScript.push({ rows: [messageRowFixture()] });
     mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
 
     const res = await sendMessage(mocks.deps, ADOPTER_PRINCIPAL, BASE_SEND);
     expect(res.message?.body).toBe('Hello world');
-    expect(realClientQueries(mocks)).toEqual(['INSERT', 'UPDATE']);
+    expect(realClientQueries(mocks)).toEqual(['INSERT', 'UPDATE', 'SELECT']);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.messageCreated');
   });
 });
@@ -345,13 +348,16 @@ describe('markRead', () => {
   it('stamps reads + bumps the participant last_read_at watermark', async () => {
     mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
     mocks.poolScript.push({ rows: [{ created_at: new Date('2026-06-01T00:01:00Z') }] });
-    // INSERT message_reads, UPDATE chat_participants
+    // INSERT message_reads, UPDATE chat_participants, SELECT participants
     mocks.clientScript.push({ rows: [] });
     mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
 
     const res = await markRead(mocks.deps, ADOPTER_PRINCIPAL, BASE_MARK);
     expect(res.upToMessageId).toBe('msg-1');
-    expect(realClientQueries(mocks)).toEqual(['INSERT', 'UPDATE']);
+    expect(realClientQueries(mocks)).toEqual(['INSERT', 'UPDATE', 'SELECT']);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.messageRead');
   });
 });
@@ -383,7 +389,10 @@ describe('react', () => {
     mocks.poolScript.push({ rows: [{ chat_id: 'chat-1' }] });
     // isParticipantOrAdmin → ok
     mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
-    // Inside withTransaction: INSERT reaction
+    // Inside withTransaction: SELECT participants, INSERT reaction
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
     mocks.clientScript.push({ rows: [] });
     // After-commit: re-fetch message, reactions
     mocks.poolScript.push({ rows: [messageRowFixture()] });
@@ -401,14 +410,17 @@ describe('react', () => {
 
     const res = await react(mocks.deps, ADOPTER_PRINCIPAL, BASE_REACT);
     expect(res.message?.reactions).toHaveLength(1);
-    expect(realClientQueries(mocks)).toEqual(['INSERT']);
+    expect(realClientQueries(mocks)).toEqual(['SELECT', 'INSERT']);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.reactionAdded');
   });
 
   it('removes a reaction and publishes chat.reactionRemoved', async () => {
     mocks.poolScript.push({ rows: [{ chat_id: 'chat-1' }] });
     mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
-    // DELETE reaction
+    // Inside withTransaction: SELECT participants, DELETE reaction
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
     mocks.clientScript.push({ rows: [] });
     // Re-fetch
     mocks.poolScript.push({ rows: [messageRowFixture()] });
@@ -419,7 +431,7 @@ describe('react', () => {
       remove: true,
     });
     expect(res.message?.reactions).toHaveLength(0);
-    expect(realClientQueries(mocks)).toEqual(['DELETE']);
+    expect(realClientQueries(mocks)).toEqual(['SELECT', 'DELETE']);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.reactionRemoved');
   });
 });
