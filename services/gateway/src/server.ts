@@ -24,6 +24,7 @@ import type { ApplicationsClient } from './grpc-clients/applications-client.js';
 import type { AuditClient } from './grpc-clients/audit-client.js';
 import type { AuthClient } from './grpc-clients/auth-client.js';
 import type { ChatClient } from './grpc-clients/chat-client.js';
+import type { CmsClient } from './grpc-clients/cms-client.js';
 import type { MatchingClient } from './grpc-clients/matching-client.js';
 import type { ModerationClient } from './grpc-clients/moderation-client.js';
 import type { NotificationsClient } from './grpc-clients/notifications-client.js';
@@ -36,6 +37,7 @@ import { registerApplicationsRoutes } from './routes/applications.js';
 import { registerAuditRoutes } from './routes/audit.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerChatRoutes } from './routes/chat.js';
+import { registerCmsRoutes } from './routes/cms.js';
 import { registerConfigRoutes } from './routes/config.js';
 import { registerDashboardRoutes } from './routes/dashboard.js';
 import { registerDevicesRoutes } from './routes/devices.js';
@@ -97,6 +99,9 @@ export type CreateServerOptions = {
   // the message-level reaction endpoint over to this address. Same
   // optional shape.
   chatClient?: ChatClient;
+  // gRPC client to service.cms. Same optional shape — when omitted,
+  // /api/v1/cms/* falls through to the catch-all proxy.
+  cmsClient?: CmsClient;
 };
 
 export const createServer = async (opts: CreateServerOptions): Promise<FastifyInstance> => {
@@ -252,6 +257,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.chatClient && cutover.chat) {
     await registerChatRoutes(server, { client: opts.chatClient });
+  }
+  if (opts.cmsClient && cutover.cms) {
+    await registerCmsRoutes(server, { client: opts.cmsClient });
   }
   // /api/v1/dashboard/* — cross-service composition (pets stats + apps
   // stats + rescue staff count + recent pet/application activity). Only

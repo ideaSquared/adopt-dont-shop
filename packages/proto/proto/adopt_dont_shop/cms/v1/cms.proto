@@ -1,0 +1,280 @@
+syntax = "proto3";
+
+package adopt_dont_shop.cms.v1;
+
+// CmsService — content + navigation menus for the public-facing pages
+// (help articles, blog posts, static pages, top-nav structure). Owns
+// the `cms.*` schema (cms_content, cms_navigation_menus).
+//
+// Public reads are unauthenticated; everything else gates on
+// `cms.content.*` / `cms.menu.*` permissions. Publish / unpublish /
+// archive emit `cms.contentPublished`, `cms.contentUnpublished`,
+// `cms.contentArchived` on NATS (publish-after-commit) so any future
+// downstream (search index, cache invalidation) can subscribe.
+service CmsService {
+  // --- Public reads (no auth) --------------------------------------
+  rpc ListPublicContent(ListPublicContentRequest) returns (ListPublicContentResponse);
+  rpc GetPublicContentBySlug(GetPublicContentBySlugRequest) returns (GetPublicContentBySlugResponse);
+
+  // --- Admin content CRUD ------------------------------------------
+  rpc ListContent(ListContentRequest) returns (ListContentResponse);
+  rpc GetContent(GetContentRequest) returns (GetContentResponse);
+  rpc GetContentBySlug(GetContentBySlugRequest) returns (GetContentBySlugResponse);
+  rpc CreateContent(CreateContentRequest) returns (CreateContentResponse);
+  rpc UpdateContent(UpdateContentRequest) returns (UpdateContentResponse);
+  rpc DeleteContent(DeleteContentRequest) returns (DeleteContentResponse);
+
+  // --- Workflow actions --------------------------------------------
+  rpc PublishContent(PublishContentRequest) returns (PublishContentResponse);
+  rpc UnpublishContent(UnpublishContentRequest) returns (UnpublishContentResponse);
+  rpc ArchiveContent(ArchiveContentRequest) returns (ArchiveContentResponse);
+
+  // --- Version history ---------------------------------------------
+  rpc GetVersionHistory(GetVersionHistoryRequest) returns (GetVersionHistoryResponse);
+  rpc RestoreVersion(RestoreVersionRequest) returns (RestoreVersionResponse);
+
+  // --- Navigation menus --------------------------------------------
+  rpc ListMenus(ListMenusRequest) returns (ListMenusResponse);
+  rpc GetMenu(GetMenuRequest) returns (GetMenuResponse);
+  rpc CreateMenu(CreateMenuRequest) returns (CreateMenuResponse);
+  rpc UpdateMenu(UpdateMenuRequest) returns (UpdateMenuResponse);
+  rpc DeleteMenu(DeleteMenuRequest) returns (DeleteMenuResponse);
+}
+
+enum ContentType {
+  CONTENT_TYPE_UNSPECIFIED = 0;
+  CONTENT_TYPE_PAGE = 1;
+  CONTENT_TYPE_BLOG_POST = 2;
+  CONTENT_TYPE_HELP_ARTICLE = 3;
+}
+
+enum ContentStatus {
+  CONTENT_STATUS_UNSPECIFIED = 0;
+  CONTENT_STATUS_DRAFT = 1;
+  CONTENT_STATUS_PUBLISHED = 2;
+  CONTENT_STATUS_ARCHIVED = 3;
+  CONTENT_STATUS_SCHEDULED = 4;
+}
+
+// Single content row. Big text + the versions blob are inline — same
+// shape as the monolith.
+message Content {
+  string content_id = 1;
+  string title = 2;
+  string slug = 3;
+  ContentType content_type = 4;
+  ContentStatus status = 5;
+  string content = 6;
+  optional string excerpt = 7;
+  optional string meta_title = 8;
+  optional string meta_description = 9;
+  repeated string meta_keywords = 10;
+  optional string featured_image_url = 11;
+  optional string published_at = 12;
+  optional string scheduled_publish_at = 13;
+  optional string scheduled_unpublish_at = 14;
+  // Version history snapshots. `versions_json` carries the full
+  // serialised array so the proto stays cheap to evolve — same
+  // approach the field-permission defaults take.
+  string versions_json = 15;
+  uint32 current_version = 16;
+  string author_id = 17;
+  optional string last_modified_by = 18;
+  string created_at = 19;
+  string updated_at = 20;
+}
+
+message ListPublicContentRequest {
+  optional ContentType content_type = 1;
+  uint32 page = 2;
+  uint32 limit = 3;
+}
+message ListPublicContentResponse {
+  repeated Content items = 1;
+  uint32 total = 2;
+  uint32 page = 3;
+  uint32 total_pages = 4;
+}
+
+message GetPublicContentBySlugRequest {
+  string slug = 1;
+}
+message GetPublicContentBySlugResponse {
+  Content content = 1;
+}
+
+message ListContentRequest {
+  optional ContentType content_type = 1;
+  optional ContentStatus status = 2;
+  optional string search = 3;
+  uint32 page = 4;
+  uint32 limit = 5;
+}
+message ListContentResponse {
+  repeated Content items = 1;
+  uint32 total = 2;
+  uint32 page = 3;
+  uint32 total_pages = 4;
+}
+
+message GetContentRequest {
+  string content_id = 1;
+}
+message GetContentResponse {
+  Content content = 1;
+}
+
+message GetContentBySlugRequest {
+  string slug = 1;
+}
+message GetContentBySlugResponse {
+  Content content = 1;
+}
+
+message CreateContentRequest {
+  string title = 1;
+  string slug = 2;
+  ContentType content_type = 3;
+  string content = 4;
+  optional string excerpt = 5;
+  optional string meta_title = 6;
+  optional string meta_description = 7;
+  repeated string meta_keywords = 8;
+  optional string featured_image_url = 9;
+  optional string scheduled_publish_at = 10;
+  optional string scheduled_unpublish_at = 11;
+}
+message CreateContentResponse {
+  Content content = 1;
+}
+
+message UpdateContentRequest {
+  string content_id = 1;
+  optional string title = 2;
+  optional string slug = 3;
+  optional string content = 4;
+  optional string excerpt = 5;
+  optional string meta_title = 6;
+  optional string meta_description = 7;
+  // set_meta_keywords toggles whether meta_keywords is written
+  // (partial-update presence flag, same convention as the rest of
+  // the codebase's *Request messages).
+  bool set_meta_keywords = 8;
+  repeated string meta_keywords = 9;
+  optional string featured_image_url = 10;
+  optional string change_note = 11;
+}
+message UpdateContentResponse {
+  Content content = 1;
+}
+
+message DeleteContentRequest {
+  string content_id = 1;
+}
+message DeleteContentResponse {
+  bool deleted = 1;
+}
+
+message PublishContentRequest {
+  string content_id = 1;
+}
+message PublishContentResponse {
+  Content content = 1;
+}
+
+message UnpublishContentRequest {
+  string content_id = 1;
+}
+message UnpublishContentResponse {
+  Content content = 1;
+}
+
+message ArchiveContentRequest {
+  string content_id = 1;
+}
+message ArchiveContentResponse {
+  Content content = 1;
+}
+
+message ContentVersion {
+  uint32 version = 1;
+  string title = 2;
+  string content = 3;
+  optional string excerpt = 4;
+  string changed_by = 5;
+  optional string change_note = 6;
+  string created_at = 7;
+}
+
+message GetVersionHistoryRequest {
+  string content_id = 1;
+}
+message GetVersionHistoryResponse {
+  repeated ContentVersion versions = 1;
+  uint32 current_version = 2;
+}
+
+message RestoreVersionRequest {
+  string content_id = 1;
+  uint32 version = 2;
+}
+message RestoreVersionResponse {
+  Content content = 1;
+}
+
+// Navigation menu — a tree-shaped collection of items, JSON-stringified
+// in `items_json` to keep the proto cheap.
+message Menu {
+  string menu_id = 1;
+  string name = 2;
+  string location = 3;
+  // JSON array of { label, url, target?, children? } items. Stored as
+  // a single column on the table; structure validated server-side.
+  string items_json = 4;
+  bool is_active = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message ListMenusRequest {
+  optional string location = 1;
+  optional bool is_active = 2;
+}
+message ListMenusResponse {
+  repeated Menu menus = 1;
+}
+
+message GetMenuRequest {
+  string menu_id = 1;
+}
+message GetMenuResponse {
+  Menu menu = 1;
+}
+
+message CreateMenuRequest {
+  string name = 1;
+  string location = 2;
+  string items_json = 3;
+  optional bool is_active = 4;
+}
+message CreateMenuResponse {
+  Menu menu = 1;
+}
+
+message UpdateMenuRequest {
+  string menu_id = 1;
+  optional string name = 2;
+  optional string location = 3;
+  optional string items_json = 4;
+  optional bool is_active = 5;
+}
+message UpdateMenuResponse {
+  Menu menu = 1;
+}
+
+message DeleteMenuRequest {
+  string menu_id = 1;
+}
+message DeleteMenuResponse {
+  bool deleted = 1;
+}
