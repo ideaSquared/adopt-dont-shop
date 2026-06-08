@@ -62,6 +62,11 @@ export type GatewayConfig = {
       cloudFrontDomain?: string;
     };
     maxFileSize: number;
+    // HMAC secret used to sign + verify /uploads-signed URLs. Optional
+    // because dev environments may run without it (the route then returns
+    // 503). Production sets UPLOAD_SIGNING_SECRET — shared with anything
+    // else that wants to mint a signed URL.
+    signingSecret?: string;
   };
   // Per-domain strangler cutover switches. When false (the default), the
   // gateway does NOT register that domain's /api/v1/* routes, so requests
@@ -183,5 +188,6 @@ function buildStorageConfig(env: NodeJS.ProcessEnv): GatewayConfig['storage'] {
     // Multipart body limit — 10 MiB default. Override with MAX_FILE_SIZE
     // if larger PDFs are expected.
     maxFileSize: Number.parseInt(env.MAX_FILE_SIZE?.trim() || '10485760', 10),
+    signingSecret: env.UPLOAD_SIGNING_SECRET?.trim() || undefined,
   };
 }

@@ -1,0 +1,251 @@
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import Fastify, { type FastifyInstance } from 'fastify';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import {
+  computeUploadSignature,
+  registerUploadsRoutes,
+  sanitizeDisplayFilename,
+} from './uploads.js';
+
+const SECRET = 'test-secret-12345';
+
+async function buildApp(tmp: string, secret?: string): Promise<FastifyInstance> {
+  const app = Fastify({ logger: false });
+  const { default: multipart } = await import('@fastify/multipart');
+  await app.register(multipart, { limits: { fileSize: 1_000_000, files: 1 } });
+  await registerUploadsRoutes(app, {
+    storage: {
+      provider: 'local',
+      local: { directory: tmp, publicPath: '/uploads' },
+      s3: {},
+    },
+    signingSecret: secret,
+  });
+  return app;
+}
+
+function multipartBody(boundary: string, file: Buffer, filename: string, mime: string): Buffer {
+  return Buffer.concat([
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\n` +
+        `Content-Type: ${mime}\r\n\r\n`,
+      'utf8'
+    ),
+    file,
+    Buffer.from(`\r\n--${boundary}--\r\n`, 'utf8'),
+  ]);
+}
+
+describe('POST /api/v1/uploads/images', () => {
+  let app: FastifyInstance;
+  let tmp: string;
+
+  beforeEach(async () => {
+    tmp = mkdtempSync(join(tmpdir(), 'ads-uploads-'));
+    app = await buildApp(tmp, SECRET);
+  });
+
+  afterEach(async () => {
+    await app.close();
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it('returns the monolith response shape on a valid JPEG upload', async () => {
+    const boundary = 'b1';
+    const body = multipartBody(
+      boundary,
+      Buffer.from('\xff\xd8\xffjpegbytes'),
+      'cat.jpg',
+      'image/jpeg'
+    );
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(200);
+    const json = res.json() as Record<string, unknown>;
+    expect(json.url).toMatch(/\/uploads\/pets\//);
+    expect(json.thumbnail_url).toBe(json.url);
+    expect(json.original_filename).toBe('file.jpg');
+    expect(json.size_bytes).toBeGreaterThan(0);
+    expect(json.content_type).toBe('image/jpeg');
+  });
+
+  it('rejects disallowed MIME types with 400', async () => {
+    const boundary = 'b2';
+    const body = multipartBody(boundary, Buffer.from('<svg/>'), 'x.svg', 'image/svg+xml');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ error: expect.stringContaining('image/svg+xml') });
+  });
+
+  it('returns 400 when no file part is present', async () => {
+    const boundary = 'b3';
+    const body = Buffer.from(`--${boundary}--\r\n`, 'utf8');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ error: 'No file uploaded' });
+  });
+
+  it('sanitises the display filename — PII in original_filename is stripped', async () => {
+    const boundary = 'b4';
+    const body = multipartBody(
+      boundary,
+      Buffer.from('\xff\xd8\xffx'),
+      'Jane_Doe_Passport_123456.jpg',
+      'image/jpeg'
+    );
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as Record<string, unknown>).original_filename).toBe('file.jpg');
+  });
+});
+
+describe('GET /uploads-signed/:expiresAt/:signature/*', () => {
+  let app: FastifyInstance;
+  let tmp: string;
+
+  beforeEach(async () => {
+    tmp = mkdtempSync(join(tmpdir(), 'ads-uploads-'));
+    mkdirSync(join(tmp, 'pets'), { recursive: true });
+    writeFileSync(join(tmp, 'pets', 'kitten.jpg'), Buffer.from('\xff\xd8\xffjpeg'));
+    app = await buildApp(tmp, SECRET);
+  });
+
+  afterEach(async () => {
+    await app.close();
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it('streams the file when signature + expiry are valid', async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) + 60;
+    const filePath = 'pets/kitten.jpg';
+    const signature = computeUploadSignature(filePath, expiresAt, SECRET);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/uploads-signed/${expiresAt}/${signature}/${filePath}`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toBe('image/jpeg');
+    expect(res.headers['cache-control']).toBe('private, max-age=300');
+    expect(res.rawPayload.length).toBeGreaterThan(0);
+  });
+
+  it('returns 410 when expiresAt has passed', async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) - 1;
+    const signature = computeUploadSignature('pets/kitten.jpg', expiresAt, SECRET);
+    const res = await app.inject({
+      method: 'GET',
+      url: `/uploads-signed/${expiresAt}/${signature}/pets/kitten.jpg`,
+    });
+    expect(res.statusCode).toBe(410);
+  });
+
+  it('returns 403 when the signature is wrong', async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) + 60;
+    const signature = computeUploadSignature('pets/kitten.jpg', expiresAt, 'wrong-secret');
+    const res = await app.inject({
+      method: 'GET',
+      url: `/uploads-signed/${expiresAt}/${signature}/pets/kitten.jpg`,
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('returns 403 when the signature length differs from the expected hex digest', async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) + 60;
+    const res = await app.inject({
+      method: 'GET',
+      url: `/uploads-signed/${expiresAt}/deadbeef/pets/kitten.jpg`,
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('rejects path traversal attempts even with a valid signature', async () => {
+    // Write a sibling file outside the upload dir we should never reach.
+    const sibling = mkdtempSync(join(tmpdir(), 'ads-sibling-'));
+    writeFileSync(join(sibling, 'secret.txt'), 'leaked');
+    try {
+      const expiresAt = Math.floor(Date.now() / 1000) + 60;
+      const filePath = '../../etc/passwd';
+      const signature = computeUploadSignature(filePath, expiresAt, SECRET);
+      const res = await app.inject({
+        method: 'GET',
+        url: `/uploads-signed/${expiresAt}/${signature}/${filePath}`,
+      });
+      // Either Fastify path normalisation drops the traversal before the
+      // route matches (404) or safeResolve rejects it (400). What matters
+      // for the security property is the response is NEVER 200.
+      expect(res.statusCode).not.toBe(200);
+      expect(res.statusCode).toBeGreaterThanOrEqual(400);
+    } finally {
+      rmSync(sibling, { recursive: true, force: true });
+    }
+  });
+
+  it('returns 404 when the file does not exist on disk', async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) + 60;
+    const filePath = 'pets/missing.jpg';
+    const signature = computeUploadSignature(filePath, expiresAt, SECRET);
+    const res = await app.inject({
+      method: 'GET',
+      url: `/uploads-signed/${expiresAt}/${signature}/${filePath}`,
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('returns 503 when no signing secret is configured', async () => {
+    await app.close();
+    app = await buildApp(tmp, undefined);
+    const res = await app.inject({
+      method: 'GET',
+      url: `/uploads-signed/9999999999/deadbeef/pets/kitten.jpg`,
+    });
+    expect(res.statusCode).toBe(503);
+  });
+});
+
+describe('sanitizeDisplayFilename', () => {
+  it('strips the basename and keeps a normalised extension', () => {
+    expect(sanitizeDisplayFilename('Jane Doe Passport.PDF')).toBe('file.pdf');
+    expect(sanitizeDisplayFilename('cat.jpeg')).toBe('file.jpeg');
+  });
+
+  it('falls back to .bin when the original has no extension', () => {
+    expect(sanitizeDisplayFilename('no-extension-here')).toBe('file.bin');
+  });
+
+  it('drops disallowed characters from the extension', () => {
+    expect(sanitizeDisplayFilename('weird.PDF?query=1')).toBe('file.pdfquery1');
+  });
+});

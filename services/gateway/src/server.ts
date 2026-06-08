@@ -51,6 +51,7 @@ import { registerRescueRoutes } from './routes/rescue.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
 import { registerSessionsRoutes } from './routes/sessions.js';
 import { registerStaffFosterRoutes } from './routes/staff-foster.js';
+import { registerUploadsRoutes } from './routes/uploads.js';
 import { registerUsersRoutes } from './routes/users.js';
 
 export type CreateServerOptions = {
@@ -210,19 +211,35 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // their own tickets. Handlers self-scope by principal.userId.
     await registerSupportRoutes(server, { client: opts.moderationClient });
   }
+  // Multipart support is a prerequisite for any route that accepts a
+  // file upload (image staging, application docs). Register it once
+  // here; @fastify/multipart errors if registered twice, and routes that
+  // don't use it pay no runtime cost. The gateway-only `maxFileSize`
+  // field is stripped before passing the rest to @adopt-dont-shop/storage
+  // (which doesn't carry it).
+  const { default: multipart } = await import('@fastify/multipart');
+  await server.register(multipart, {
+    limits: { fileSize: config.storage.maxFileSize, files: 1 },
+  });
+  const {
+    maxFileSize: _ignoredMax,
+    signingSecret: _ignoredSecret,
+    ...storageConfig
+  } = config.storage;
+  void _ignoredMax;
+  void _ignoredSecret;
+
+  // /api/v1/uploads/images — staged image upload. Pure gateway: bytes
+  // go to @adopt-dont-shop/storage, no upstream service. The matching
+  // signed-serve route mounts at /uploads-signed/* (also gateway-only).
+  await registerUploadsRoutes(server, {
+    storage: storageConfig,
+    signingSecret: config.storage.signingSecret,
+  });
+
   if (opts.applicationsClient && cutover.applications) {
     await registerApplicationsRoutes(server, { client: opts.applicationsClient });
     // Application document routes (multipart upload → storage → AddDocument).
-    // Registered as part of the applications cutover surface; multipart is
-    // scoped here so non-applications routes are unaffected. The
-    // gateway-only `maxFileSize` field is stripped before passing to the
-    // storage package (which doesn't carry it).
-    const { default: multipart } = await import('@fastify/multipart');
-    await server.register(multipart, {
-      limits: { fileSize: config.storage.maxFileSize, files: 1 },
-    });
-    const { maxFileSize: _ignored, ...storageConfig } = config.storage;
-    void _ignored;
     await registerApplicationDocumentsRoutes(server, {
       client: opts.applicationsClient,
       storage: storageConfig,
