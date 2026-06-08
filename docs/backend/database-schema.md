@@ -2,7 +2,7 @@
 
 ## Overview
 
-PostgreSQL 16 with the PostGIS extension and Sequelize 7. Models live in `service.backend/src/models/` and are mirrored 1:1 by baseline migrations under `service.backend/src/migrations/`. This document is a high-level reference — the source of truth is always the model file.
+PostgreSQL 16 with the PostGIS extension and Sequelize 6. Models live in `service.backend/src/models/` and are mirrored 1:1 by baseline migrations under `service.backend/src/migrations/`. This document is a high-level reference — the source of truth is always the model file.
 
 ## Entity Relationships
 

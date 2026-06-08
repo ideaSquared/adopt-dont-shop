@@ -22,14 +22,14 @@ LOG_LEVEL=debug npm run dev
 ### Health Check Diagnostics
 
 ```bash
-# Basic health check
+# Basic liveness probe (status + timestamp)
 curl http://localhost:5000/health
 
-# Detailed health check with service status
-curl http://localhost:5000/health/detailed
+# Readiness probe — checks DB, Redis, and queue together
+curl http://localhost:5000/health/ready
 
-# Database health check
-curl http://localhost:5000/health/db
+# Per-service detail (admin auth required)
+curl http://localhost:5000/api/v1/health/services
 ```
 
 ## Database Issues

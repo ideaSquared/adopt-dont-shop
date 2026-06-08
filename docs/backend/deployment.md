@@ -62,7 +62,7 @@ CORS_ORIGIN=https://adoptdontshop.example,https://admin.adoptdontshop.example
 ### Optional tuning
 
 ```bash
-JWT_EXPIRES_IN=1h          # default 1h
+JWT_EXPIRES_IN=15m         # default 15m
 JWT_REFRESH_EXPIRES_IN=7d  # default 7d
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100

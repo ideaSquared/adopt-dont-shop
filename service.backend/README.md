@@ -260,7 +260,7 @@ UPLOAD_SIGNING_SECRET=...
 CORS_ORIGIN=https://yourdomain.com
 
 # Optional tuning
-JWT_EXPIRES_IN=1h            # default 1h; refresh tokens last 7 days
+JWT_EXPIRES_IN=15m           # default 15m; refresh tokens last 7 days
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=100
 ```
