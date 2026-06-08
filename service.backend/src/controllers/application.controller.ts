@@ -350,6 +350,11 @@ export class ApplicationController extends BaseController {
   // Get application activity log (paginated audit-log entries).
   getApplicationActivityLog = async (req: AuthenticatedRequest, res: Response) => {
     const { applicationId } = req.params;
+    await ApplicationService.assertApplicationAccess(
+      applicationId,
+      req.user!.userId,
+      req.user!.userType as UserType
+    );
     const { from, to, limit, offset } = req.query;
     const activity = await ApplicationService.getApplicationActivityLog(applicationId, {
       from: typeof from === 'string' ? from : undefined,

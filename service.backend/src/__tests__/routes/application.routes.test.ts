@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import express, { NextFunction, Response } from 'express';
 import request from 'supertest';
 import { AuthenticatedRequest } from '../../types';
+import { errorHandler, ForbiddenError } from '../../middleware/error-handler';
 
 vi.mock('../../utils/logger', () => ({
   logger: {
@@ -45,6 +46,7 @@ vi.mock('../../services/application.service', () => ({
     validateApplicationAnswers: vi.fn(),
     updateHomeVisit: vi.fn(),
     getApplicationActivityLog: vi.fn(),
+    assertApplicationAccess: vi.fn(),
   },
   default: {
     getApplications: vi.fn(),
@@ -62,6 +64,7 @@ vi.mock('../../services/application.service', () => ({
     validateApplicationAnswers: vi.fn(),
     updateHomeVisit: vi.fn(),
     getApplicationActivityLog: vi.fn(),
+    assertApplicationAccess: vi.fn(),
   },
 }));
 
@@ -150,6 +153,7 @@ vi.mock('../../middleware/rbac', () => ({
 
 import applicationRouter from '../../routes/application.routes';
 import { ApplicationService } from '../../services/application.service';
+import { UserType } from '../../models/User';
 
 const mockAdopterUser = {
   userId: 'adopter-uuid-1',
@@ -182,6 +186,7 @@ const buildApp = () => {
   const app = express();
   app.use(express.json());
   app.use('/api/v1/applications', applicationRouter);
+  app.use(errorHandler);
   return app;
 };
 
@@ -596,6 +601,54 @@ describe('Application routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ success: true, data: activity });
+    });
+
+    it('returns 403 when a rescue staff member from a different rescue requests the activity log', async () => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = mockRescueStaffUser as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+      vi.mocked(ApplicationService.assertApplicationAccess).mockRejectedValue(
+        new ForbiddenError('Access denied')
+      );
+
+      const res = await request(buildApp()).get(`/api/v1/applications/${applicationId}/activity`);
+
+      expect(res.status).toBe(403);
+      expect(ApplicationService.getApplicationActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('returns 403 when an adopter requests another adopter activity log', async () => {
+      vi.mocked(ApplicationService.assertApplicationAccess).mockRejectedValue(
+        new ForbiddenError('Access denied')
+      );
+
+      const res = await request(buildApp()).get(`/api/v1/applications/${applicationId}/activity`);
+
+      expect(res.status).toBe(403);
+      expect(ApplicationService.getApplicationActivityLog).not.toHaveBeenCalled();
+    });
+
+    it('calls assertApplicationAccess with the caller identity before fetching the log', async () => {
+      authenticateTokenMock.mockImplementation(
+        (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+          req.user = mockRescueStaffUser as AuthenticatedRequest['user'];
+          next();
+        }
+      );
+      vi.mocked(ApplicationService.assertApplicationAccess).mockResolvedValue(undefined);
+      vi.mocked(ApplicationService.getApplicationActivityLog).mockResolvedValue([]);
+
+      await request(buildApp()).get(`/api/v1/applications/${applicationId}/activity`);
+
+      expect(ApplicationService.assertApplicationAccess).toHaveBeenCalledWith(
+        applicationId,
+        mockRescueStaffUser.userId,
+        mockRescueStaffUser.userType
+      );
+      expect(ApplicationService.getApplicationActivityLog).toHaveBeenCalled();
     });
   });
 });
