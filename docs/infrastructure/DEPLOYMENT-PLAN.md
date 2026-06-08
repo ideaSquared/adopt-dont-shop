@@ -71,7 +71,7 @@ Server layout (single CPX42):
 |---|---|---|
 | `HETZNER_HOST` | Server IP | |
 | `HETZNER_SSH_KEY` | Private key for `deploy` user | |
-| `GHCR_TOKEN` | PAT with `read:packages` + `write:packages` | Used on server to pull images |
+| `GHCR_TOKEN` | PAT with `read:packages` **only** | `docker pull` images from GHCR on the deploy server. Do not grant `write:packages` (ADS-671). |
 
 ### Repository
 

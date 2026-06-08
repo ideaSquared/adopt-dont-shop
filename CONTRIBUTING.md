@@ -47,7 +47,7 @@ fail CI if it reappears.
 
 ## Before opening a PR
 
-CI runs **ten** checks across `.github/workflows/ci.yml`, `lib-test-guard.yml`, `security.yml` and `quality.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
+CI runs several blocking checks across `.github/workflows/ci.yml`, `lib-test-guard.yml`, and `security.yml`. The four-command list previously documented here only covered a subset, so PRs that passed locally could still fail CI. Run the relevant tiers below before pushing.
 
 The PR description includes a short "Before requesting review" checklist (see [`.github/pull_request_template.md`](./.github/pull_request_template.md)) that mirrors the most-failed CI checks — tick it off before requesting review.
 
@@ -107,22 +107,21 @@ npm run test:e2e
 
 ### Full CI matrix (for reference)
 
-The ten required-to-pass checks CI runs on every PR:
+The required-to-pass checks CI runs on every PR. All of these feed the `CI Required` aggregator in `ci.yml` (jobs that are path-filtered out report `skipped`, which the aggregator treats as success):
 
 1. **Verify Workspace ↔ Filesystem Alignment** (`ci.yml` → `workspace-drift`) — catches a `lib.*` added to `package.json` workspaces with no matching directory (or vice-versa).
-2. **Backend Tests** (`ci.yml` → `test-backend`) — lint + `test:coverage` (with thresholds) + build.
-3. **Frontend Tests (app.client / app.admin / app.rescue)** (`ci.yml` → `test-frontend` matrix, ×3) — lint + test + type-check + build per app.
-4. **Library Tests** (`ci.yml` → `test-libs`) — lint, test and type-check across every `lib.*`.
-5. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. Blocking since ADS-419.
-6. **Verify every lib.\* package has tests** (`lib-test-guard.yml`) — runs `scripts/check-lib-tests.mjs`.
-7. **Dependency Audit** (`security.yml`) — `npm audit --workspaces --audit-level=high`.
-8. **Dependency Check** (`quality.yml`) — `npm ls --workspaces --depth=0` for duplicates.
-9. **Build** (per app, per lib) — covered by the build steps inside the backend, frontend and lib jobs above.
-10. **Per-package Lint, Test, Type check** — each app/lib runs its own lint, test and type-check step inside the matching matrix job.
+2. **Build Shared Libraries** (`ci.yml` → `build-libs`) — produces the lib `dist/` artifact downstream jobs consume.
+3. **Backend Tests** (`ci.yml` → `test-backend`) — lint + `test:coverage` (with thresholds) + build.
+4. **Frontend Tests (app.client / app.admin / app.rescue)** (`ci.yml` → `test-frontend` matrix, ×3) — lint + test + type-check + build per app.
+5. **Library Tests** (`ci.yml` → `test-libs`) — lint, test and type-check across every `lib.*`.
+6. **Verify Dev Auth is Properly Gated** (`ci.yml` → `dev-auth-guard`) — fails the PR if dev-auth bypass patterns leak outside `import.meta.env.DEV` guards (ADS-676).
+7. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. Blocking since ADS-419.
+8. **Verify every lib.\* package has tests** (`lib-test-guard.yml`) — runs `scripts/check-lib-tests.mjs`.
+9. **Dependency Audit** (`security.yml`) — `npm audit --workspaces --audit-level=high`.
 
-The Quality workflow's `npm outdated` step is informational (`continue-on-error: true`) and does not block merge.
+The Quality workflow's `dependency-check` job (outdated + duplicate dependency scan) and the `npm outdated` step run `continue-on-error: true` and do **not** block merge — they're informational.
 
-If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the ten checks above will not be merged.
+If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the blocking checks above will not be merged.
 
 ## Code style
 
