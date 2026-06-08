@@ -30,7 +30,7 @@ The Rescue App is the operational hub for rescue organizations to manage pets, r
 
 **Backend status model (authoritative):**
 
-`ApplicationStatus = SUBMITTED | APPROVED | REJECTED | WITHDRAWN`
+`ApplicationStatus = 'submitted' | 'approved' | 'rejected' | 'withdrawn'`
 
 **Frontend stage presentation (UI-only):**
 
@@ -38,7 +38,7 @@ For richer UX, the rescue app maps backend status + side-effects (home visits, r
 
 `PENDING → REVIEWING → VISITING → DECIDING → RESOLVED`
 
-These stages are **display-only**; they do not persist as a backend column. Stage transitions in the UI translate to status changes (only the SUBMITTED → {APPROVED, REJECTED, WITHDRAWN} transitions are accepted by the backend). Final-outcome `CONDITIONAL` is not currently supported and is on roadmap (would require backend status model change).
+These stages are **display-only**; they do not persist as a backend column. Stage transitions in the UI translate to status changes (only the `submitted` → {`approved`, `rejected`, `withdrawn`} transitions are accepted by the backend). Final-outcome `conditional` is not currently supported and is on roadmap (would require backend status model change).
 
 **Core Features:**
 

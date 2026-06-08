@@ -27,7 +27,10 @@ From `@adopt-dont-shop/lib.auth`:
 
 - `AuthProvider`, `AuthContext` — provider + raw context
 - `useAuth()` — hook that throws if used outside `AuthProvider`
-- `AuthLayout`, `LoginForm`, `RegisterForm`, `TwoFactorSettings` — UI components (plus `*Props` types)
+- `PermissionsProvider`, `PermissionsContext`, `usePermissions()` — permission set for the current user
+- `useHasPermission()`, `useHasAnyPermission()`, `useHasAllPermissions()` — permission-check hooks
+- `PermissionGate` — declarative component gate (plus `PermissionGateProps`)
+- `AuthLayout`, `LoginForm`, `RegisterForm`, `SocialSignInButtons`, `TwoFactorSettings` — UI components (plus `*Props` types)
 
 **Types**
 
@@ -121,9 +124,9 @@ Token storage (local):
 ```
 lib.auth/
 ├── src/
-│   ├── components/          AuthLayout, LoginForm, RegisterForm, TwoFactorSettings
-│   ├── contexts/            AuthContext + AuthProvider
-│   ├── hooks/               useAuth
+│   ├── components/          AuthLayout, LoginForm, RegisterForm, SocialSignInButtons, TwoFactorSettings, PermissionGate
+│   ├── contexts/            AuthContext + AuthProvider, PermissionsContext + PermissionsProvider
+│   ├── hooks/               useAuth, useHasPermission (+ useHasAnyPermission, useHasAllPermissions)
 │   ├── services/            AuthService + singleton
 │   ├── types/               shared types
 │   └── index.ts             public entrypoint

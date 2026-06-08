@@ -39,7 +39,7 @@ function MyComponent() {
 - `advanced_search_filters` — toggles the advanced filter UI in `SearchPage`
 - `new_hero_design` — toggles the new hero variant in `HomePage`
 
-Gate identifiers ship as constants in `@adopt-dont-shop/lib.feature-flags` under `KNOWN_GATES` — see that package's README for the full list and prefer the constants over string literals.
+These two are passed as string literals to `useFeatureGate(...)`. The broader catalog of platform-wide gates ships as constants in `@adopt-dont-shop/lib.feature-flags` under `KNOWN_GATES` — prefer those constants when you're adding a gate that appears in the catalog.
 
 ### Setting up new gates in Statsig Console:
 
