@@ -9,6 +9,9 @@ import {
 } from '../services/email/webhook-idempotency.service';
 import { RichTextProcessingService } from '../services/rich-text-processing.service';
 import { AuthenticatedRequest } from '../types/auth';
+import { ForbiddenError } from '../middleware/error-handler';
+import { AuditLogService, AuditLogAction } from '../services/auditLog.service';
+import { isAdminRole } from '../utils/is-admin-role';
 
 // Template Management
 export const getTemplates = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -226,6 +229,22 @@ export const getUserPreferences = async (
   res: Response
 ): Promise<void> => {
   const { userId } = req.params;
+  const callerId = req.user?.userId;
+
+  if (callerId !== userId && !isAdminRole(req.user?.userType)) {
+    await AuditLogService.log({
+      userId: callerId ?? null,
+      action: AuditLogAction.FORBIDDEN_ACCESS_ATTEMPT,
+      entity: 'EmailPreferences',
+      entityId: userId,
+      level: 'WARNING',
+      status: 'failure',
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+    throw new ForbiddenError('Cannot access another user\'s preferences');
+  }
+
   const preferences = await emailService.getUserPreferences(userId);
 
   if (!preferences) {
@@ -246,6 +265,22 @@ export const updateUserPreferences = async (
   res: Response
 ): Promise<void> => {
   const { userId } = req.params;
+  const callerId = req.user?.userId;
+
+  if (callerId !== userId && !isAdminRole(req.user?.userType)) {
+    await AuditLogService.log({
+      userId: callerId ?? null,
+      action: AuditLogAction.FORBIDDEN_ACCESS_ATTEMPT,
+      entity: 'EmailPreferences',
+      entityId: userId,
+      level: 'WARNING',
+      status: 'failure',
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+    throw new ForbiddenError('Cannot access another user\'s preferences');
+  }
+
   const preferences = await emailService.updateUserPreferences(userId, req.body);
 
   res.json({
