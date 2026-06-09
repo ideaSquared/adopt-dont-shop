@@ -12,17 +12,53 @@ import { credentials, Metadata } from '@grpc/grpc-js';
 
 import {
   AuditV1,
+  type AuditCreateSavedReportRequest,
+  type AuditCreateSavedReportResponse,
+  type AuditDeleteSavedReportRequest,
+  type AuditDeleteSavedReportResponse,
   type AuditGetByTargetRequest,
   type AuditGetByTargetResponse,
   type AuditGetGdprErasureRequestRequest,
   type AuditGetGdprErasureRequestResponse,
+  type AuditGetSavedReportRequest,
+  type AuditGetSavedReportResponse,
+  type AuditListReportTemplatesRequest,
+  type AuditListReportTemplatesResponse,
+  type AuditListSavedReportsRequest,
+  type AuditListSavedReportsResponse,
   type AuditQueryRequest,
   type AuditQueryResponse,
+  type AuditUpdateSavedReportRequest,
+  type AuditUpdateSavedReportResponse,
 } from '@adopt-dont-shop/proto';
 
 export type AuditClient = {
   query(req: AuditQueryRequest, metadata: Metadata): Promise<AuditQueryResponse>;
   getByTarget(req: AuditGetByTargetRequest, metadata: Metadata): Promise<AuditGetByTargetResponse>;
+  listSavedReports(
+    req: AuditListSavedReportsRequest,
+    metadata: Metadata
+  ): Promise<AuditListSavedReportsResponse>;
+  getSavedReport(
+    req: AuditGetSavedReportRequest,
+    metadata: Metadata
+  ): Promise<AuditGetSavedReportResponse>;
+  createSavedReport(
+    req: AuditCreateSavedReportRequest,
+    metadata: Metadata
+  ): Promise<AuditCreateSavedReportResponse>;
+  updateSavedReport(
+    req: AuditUpdateSavedReportRequest,
+    metadata: Metadata
+  ): Promise<AuditUpdateSavedReportResponse>;
+  deleteSavedReport(
+    req: AuditDeleteSavedReportRequest,
+    metadata: Metadata
+  ): Promise<AuditDeleteSavedReportResponse>;
+  listReportTemplates(
+    req: AuditListReportTemplatesRequest,
+    metadata: Metadata
+  ): Promise<AuditListReportTemplatesResponse>;
   getGdprErasureRequest(
     req: AuditGetGdprErasureRequestRequest,
     metadata: Metadata
@@ -55,6 +91,12 @@ export const createAuditClient = (opts: CreateAuditClientOptions): AuditClient =
   return {
     query: (req, metadata) => callUnary(stub.query, req, metadata),
     getByTarget: (req, metadata) => callUnary(stub.getByTarget, req, metadata),
+    listSavedReports: (req, metadata) => callUnary(stub.listSavedReports, req, metadata),
+    getSavedReport: (req, metadata) => callUnary(stub.getSavedReport, req, metadata),
+    createSavedReport: (req, metadata) => callUnary(stub.createSavedReport, req, metadata),
+    updateSavedReport: (req, metadata) => callUnary(stub.updateSavedReport, req, metadata),
+    deleteSavedReport: (req, metadata) => callUnary(stub.deleteSavedReport, req, metadata),
+    listReportTemplates: (req, metadata) => callUnary(stub.listReportTemplates, req, metadata),
     getGdprErasureRequest: (req, metadata) => callUnary(stub.getGdprErasureRequest, req, metadata),
     close: () => stub.close(),
   };

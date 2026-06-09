@@ -26,6 +26,21 @@ service AuditQueryService {
   // notifications.*, moderation.* events tied to it).
   rpc GetByTarget(GetByTargetRequest) returns (GetByTargetResponse);
 
+  // --- Saved reports admin -------------------------------------------
+  // CRUD over the audit.saved_reports table that backs the SPA's
+  // "saved analytics reports" surface. Permissions:
+  //   reports.read[/own] for reads, reports.create / update / delete
+  //   for writes. Self-ownership applies to reads when the principal
+  //   doesn't have :any.
+  rpc ListSavedReports(ListSavedReportsRequest) returns (ListSavedReportsResponse);
+  rpc GetSavedReport(GetSavedReportRequest) returns (GetSavedReportResponse);
+  rpc CreateSavedReport(CreateSavedReportRequest) returns (CreateSavedReportResponse);
+  rpc UpdateSavedReport(UpdateSavedReportRequest) returns (UpdateSavedReportResponse);
+  rpc DeleteSavedReport(DeleteSavedReportRequest) returns (DeleteSavedReportResponse);
+
+  // Templates are seed/migration-owned. Read-only here.
+  rpc ListReportTemplates(ListReportTemplatesRequest) returns (ListReportTemplatesResponse);
+
   // GDPR saga status. Returns a single row from
   // audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
   // the saga hasn't been requested. Gated on admin.gdpr.read OR
@@ -154,4 +169,101 @@ message GetByTargetResponse {
   // Descending on occurred_at — most recent activity first.
   repeated AuditEvent events = 1;
   optional string next_cursor = 2;
+}
+
+// --- Saved reports messages -----------------------------------------
+
+enum ReportTemplateCategory {
+  REPORT_TEMPLATE_CATEGORY_UNSPECIFIED = 0;
+  REPORT_TEMPLATE_CATEGORY_ADOPTION = 1;
+  REPORT_TEMPLATE_CATEGORY_ENGAGEMENT = 2;
+  REPORT_TEMPLATE_CATEGORY_OPERATIONS = 3;
+  REPORT_TEMPLATE_CATEGORY_FUNDRAISING = 4;
+  REPORT_TEMPLATE_CATEGORY_CUSTOM = 5;
+}
+
+message SavedReport {
+  string saved_report_id = 1;
+  string user_id = 2;
+  optional string rescue_id = 3;
+  optional string template_id = 4;
+  string name = 5;
+  optional string description = 6;
+  // JSON-stringified ReportConfig blob. SPA owns the schema; service
+  // persists as-is so new widget types don't need a migration here.
+  string config_json = 7;
+  bool is_archived = 8;
+  string created_at = 9;
+  string updated_at = 10;
+}
+
+message ReportTemplate {
+  string template_id = 1;
+  string name = 2;
+  optional string description = 3;
+  ReportTemplateCategory category = 4;
+  string config_json = 5;
+  bool is_system = 6;
+  optional string rescue_id = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message ListSavedReportsRequest {
+  // Restrict to a single rescue's reports. Empty = any (platform admin view).
+  optional string rescue_id = 1;
+  optional bool is_archived = 2;
+  uint32 page = 3;
+  uint32 limit = 4;
+}
+message ListSavedReportsResponse {
+  repeated SavedReport reports = 1;
+  uint32 total = 2;
+  uint32 page = 3;
+  uint32 total_pages = 4;
+}
+
+message GetSavedReportRequest {
+  string saved_report_id = 1;
+}
+message GetSavedReportResponse {
+  SavedReport report = 1;
+}
+
+message CreateSavedReportRequest {
+  string name = 1;
+  optional string description = 2;
+  optional string rescue_id = 3;
+  optional string template_id = 4;
+  string config_json = 5;
+}
+message CreateSavedReportResponse {
+  SavedReport report = 1;
+}
+
+message UpdateSavedReportRequest {
+  string saved_report_id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string config_json = 4;
+  optional bool is_archived = 5;
+}
+message UpdateSavedReportResponse {
+  SavedReport report = 1;
+}
+
+message DeleteSavedReportRequest {
+  string saved_report_id = 1;
+}
+message DeleteSavedReportResponse {
+  bool deleted = 1;
+}
+
+message ListReportTemplatesRequest {
+  ReportTemplateCategory category = 1;
+  optional string rescue_id = 2;
+  optional bool system_only = 3;
+}
+message ListReportTemplatesResponse {
+  repeated ReportTemplate templates = 1;
 }
