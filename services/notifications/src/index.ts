@@ -43,6 +43,18 @@ const main = async (): Promise<void> => {
     // can't race against partially-constructed deps. Shutdown drains the
     // whole NATS connection later, which transparently cancels these.
     registerSubscribers({ nats, deps: { pool, nats }, logger });
+
+    // GDPR erasure subscriber — drops the user's notifications + prefs
+    // + device tokens. Reported back via gdpr.erasureCompleted.
+    const { registerGdprSubscriber } = await import('@adopt-dont-shop/events');
+    const { eraseNotifications } = await import('./gdpr/erase.js');
+    registerGdprSubscriber({
+      nats,
+      pool,
+      service: 'notifications',
+      erase: eraseNotifications,
+      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
+    });
     // Email worker drains the email_queue table. Enabled by default;
     // tests + the migrations-only smoke set EMAIL_WORKER_ENABLED=false
     // to keep the loop quiet. Provider factory enforces ADS-549 (no

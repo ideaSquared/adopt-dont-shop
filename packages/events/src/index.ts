@@ -2,3 +2,11 @@ export { withTransaction } from './publish.js';
 export type { DomainEvent, TransactionalScope, WithTransactionDeps } from './publish.js';
 export { subscribe } from './subscribe.js';
 export type { MessageHandler, SubscribeOptions } from './subscribe.js';
+export {
+  GDPR_ERASURE_REQUESTED,
+  GDPR_ERASURE_COMPLETED,
+  type GdprErasureRequestedPayload,
+  type GdprErasureCompletedPayload,
+} from './gdpr.js';
+export { registerGdprSubscriber } from './gdpr-saga.js';
+export type { GdprEraseFn, RegisterGdprSubscriberOptions } from './gdpr-saga.js';

@@ -19,7 +19,7 @@ import { AuditV1 } from '@adopt-dont-shop/proto';
 import type { AuditConfig } from '../config.js';
 
 import { adapt } from './adapter.js';
-import { getByTarget, query } from './handlers.js';
+import { getByTarget, getGdprErasureRequest, query } from './handlers.js';
 
 export type CreateGrpcServerOptions = {
   config: AuditConfig;
@@ -42,10 +42,11 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   server.addService(AuditV1.AuditQueryServiceService, {
     query: adapt(query, { deps, logger }),
     getByTarget: adapt(getByTarget, { deps, logger }),
+    getGdprErasureRequest: adapt(getGdprErasureRequest, { deps, logger }),
   });
 
   logger.info('gRPC AuditQueryService registered', {
-    methods: ['query', 'getByTarget'],
+    methods: ['query', 'getByTarget', 'getGdprErasureRequest'],
     grpcPort: config.grpcPort,
   });
 

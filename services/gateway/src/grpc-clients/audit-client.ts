@@ -14,6 +14,8 @@ import {
   AuditV1,
   type AuditGetByTargetRequest,
   type AuditGetByTargetResponse,
+  type AuditGetGdprErasureRequestRequest,
+  type AuditGetGdprErasureRequestResponse,
   type AuditQueryRequest,
   type AuditQueryResponse,
 } from '@adopt-dont-shop/proto';
@@ -21,6 +23,10 @@ import {
 export type AuditClient = {
   query(req: AuditQueryRequest, metadata: Metadata): Promise<AuditQueryResponse>;
   getByTarget(req: AuditGetByTargetRequest, metadata: Metadata): Promise<AuditGetByTargetResponse>;
+  getGdprErasureRequest(
+    req: AuditGetGdprErasureRequestRequest,
+    metadata: Metadata
+  ): Promise<AuditGetGdprErasureRequestResponse>;
   close(): void;
 };
 
@@ -49,6 +55,7 @@ export const createAuditClient = (opts: CreateAuditClientOptions): AuditClient =
   return {
     query: (req, metadata) => callUnary(stub.query, req, metadata),
     getByTarget: (req, metadata) => callUnary(stub.getByTarget, req, metadata),
+    getGdprErasureRequest: (req, metadata) => callUnary(stub.getGdprErasureRequest, req, metadata),
     close: () => stub.close(),
   };
 };

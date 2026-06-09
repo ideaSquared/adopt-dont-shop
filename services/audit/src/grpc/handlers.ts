@@ -203,3 +203,61 @@ export async function getByTarget(
 
   return response;
 }
+
+// --- GetGdprErasureRequest -------------------------------------------
+
+type GdprRow = {
+  correlation_id: string;
+  user_id: string;
+  reason: string | null;
+  requested_at: Date;
+  completions: unknown;
+  completed_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+const ADMIN_GDPR_READ = 'admin.gdpr.read' as import('@adopt-dont-shop/lib.types').Permission;
+
+export async function getGdprErasureRequest(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: import('@adopt-dont-shop/proto').AuditGetGdprErasureRequestRequest
+): Promise<import('@adopt-dont-shop/proto').AuditGetGdprErasureRequestResponse> {
+  const correlationId = req.correlationId?.trim() ?? '';
+  if (correlationId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'correlation_id is required');
+  }
+
+  const result = await deps.pool.query<GdprRow>(
+    `SELECT correlation_id, user_id, reason, requested_at,
+            completions, completed_at, created_at, updated_at
+       FROM gdpr_erasure_requests
+       WHERE correlation_id = $1`,
+    [correlationId]
+  );
+  const row = result.rows[0];
+  if (!row) {
+    throw new HandlerError('NOT_FOUND', `erasure request ${correlationId} not found`);
+  }
+
+  // Admin OR self can read. Anything else is denied.
+  const isOwner = row.user_id === principal.userId;
+  const isAdmin = requirePermission(principal, ADMIN_GDPR_READ);
+  if (!isOwner && !isAdmin) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_GDPR_READ}' required`);
+  }
+
+  return {
+    request: {
+      correlationId: row.correlation_id,
+      userId: row.user_id,
+      reason: row.reason ?? undefined,
+      requestedAt: row.requested_at.toISOString(),
+      completionsJson: JSON.stringify(row.completions ?? {}),
+      completedAt: row.completed_at?.toISOString(),
+      createdAt: row.created_at.toISOString(),
+      updatedAt: row.updated_at.toISOString(),
+    },
+  };
+}

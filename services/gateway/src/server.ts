@@ -43,6 +43,7 @@ import { registerDashboardRoutes } from './routes/dashboard.js';
 import { registerDevicesRoutes } from './routes/devices.js';
 import { registerEmailRoutes } from './routes/email.js';
 import { registerFieldPermissionsRoutes } from './routes/field-permissions.js';
+import { registerGdprRoutes } from './routes/gdpr.js';
 import { registerLegalRoutes } from './routes/legal.js';
 import { registerMatchingRoutes } from './routes/matching.js';
 import { registerModerationAdminRoutes } from './routes/moderation-admin.js';
@@ -102,6 +103,11 @@ export type CreateServerOptions = {
   // gRPC client to service.cms. Same optional shape — when omitted,
   // /api/v1/cms/* falls through to the catch-all proxy.
   cmsClient?: CmsClient;
+  // NATS connection used by the GDPR erasure-request route to publish
+  // `gdpr.erasureRequested`. Optional in tests; when omitted the route
+  // is skipped (falls through to the catch-all proxy, which means
+  // erasure is monolith-owned).
+  nats?: import('nats').NatsConnection;
 };
 
 export const createServer = async (opts: CreateServerOptions): Promise<FastifyInstance> => {
@@ -294,6 +300,18 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // implementation was log-only (winston → Loki, no DB). Folds here so
   // the SPA's analytics flushes don't pay an extra http-proxy hop.
   await registerAnalyticsRoutes(server, { logger });
+
+  // GDPR erasure-request route — only enabled when NATS is wired (real
+  // boot always wires it; smoke tests that mount only /health/simple
+  // skip). When unwired the route doesn't register, which means
+  // /api/v1/users/me/erasure-request falls through to the catch-all
+  // proxy → monolith, preserving today's behaviour.
+  if (opts.nats) {
+    await registerGdprRoutes(server, {
+      nats: opts.nats,
+      auditClient: opts.auditClient,
+    });
+  }
 
   // Catch-all proxy. Phase 0f shipped this; Phase 1.6 leaves it in
   // place for every /api/* path that isn't owned by an extracted

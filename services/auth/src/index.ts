@@ -43,6 +43,20 @@ const main = async (): Promise<void> => {
       logger,
     });
 
+    // GDPR erasure subscriber. Listens on `gdpr.erasureRequested`,
+    // scrubs the user's row + drops sessions/prefs/roles, then publishes
+    // `gdpr.erasureCompleted` with service='auth'. The subscriber lives
+    // for the whole process — drained on shutdown via nats.drain().
+    const { registerGdprSubscriber } = await import('@adopt-dont-shop/events');
+    const { eraseAuth } = await import('./gdpr/erase.js');
+    registerGdprSubscriber({
+      nats,
+      pool,
+      service: 'auth',
+      erase: eraseAuth,
+      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
+    });
+
     const httpServer = createServer({ config, logger });
     await httpServer.listen({ port: config.port, host: config.host });
 
