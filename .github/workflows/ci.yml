@@ -393,13 +393,18 @@ jobs:
           timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U postgres; do sleep 2; done'
 
       - name: Build and start the full stack
+        # Phase 11: the monolith is gone. The microservices live behind
+        # the 'services' profile (gateway + all 9 extracted services);
+        # bring them up alongside the three frontend apps so e2e can hit
+        # gateway port 4000 instead of the removed monolith on 5000.
         run: |
+          docker compose -f docker-compose.yml --profile services up -d --build
           docker compose -f docker-compose.yml up -d --build app-client app-admin app-rescue
 
       - name: Wait for services
         run: |
           set -euo pipefail
-          for url in http://localhost:5000/health http://localhost:3000 http://localhost:3001 http://localhost:3002; do
+          for url in http://localhost:4000/health/simple http://localhost:3000 http://localhost:3001 http://localhost:3002; do
             echo "Waiting for $url"
             for i in $(seq 1 90); do
               if curl -fsS --max-time 5 "$url" >/dev/null 2>&1; then
