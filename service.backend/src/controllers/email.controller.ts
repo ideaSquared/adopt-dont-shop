@@ -242,7 +242,7 @@ export const getUserPreferences = async (
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
     });
-    throw new ForbiddenError('Cannot access another user\'s preferences');
+    throw new ForbiddenError("Cannot access another user's preferences");
   }
 
   const preferences = await emailService.getUserPreferences(userId);
@@ -278,7 +278,7 @@ export const updateUserPreferences = async (
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
     });
-    throw new ForbiddenError('Cannot access another user\'s preferences');
+    throw new ForbiddenError("Cannot access another user's preferences");
   }
 
   const preferences = await emailService.updateUserPreferences(userId, req.body);

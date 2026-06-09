@@ -60,8 +60,7 @@ vi.mock('../../middleware/rbac', () => ({
       next(),
   requireAdmin: (_req: AuthenticatedRequest, _res: Response, next: NextFunction) => next(),
   requirePermission:
-    (_perm: string) =>
-    (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
+    (_perm: string) => (_req: AuthenticatedRequest, _res: Response, next: NextFunction) =>
       next(),
   ForbiddenError: class ForbiddenError extends Error {
     statusCode = 403;
@@ -110,15 +109,13 @@ describe('Email preferences ownership guard (ADS-769)', () => {
         }
       );
 
-      const res = await request(buildApp()).get(
-        `/api/v1/email/preferences/${TARGET_USER_ID}`
-      );
+      const res = await request(buildApp()).get(`/api/v1/email/preferences/${TARGET_USER_ID}`);
 
       expect(res.status).toBe(200);
       expect(mockGetUserPreferences).toHaveBeenCalledWith(TARGET_USER_ID);
     });
 
-    it('returns 403 when a user tries to read another user\'s preferences', async () => {
+    it("returns 403 when a user tries to read another user's preferences", async () => {
       authenticateTokenMock.mockImplementation(
         (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
           req.user = makeUser(OTHER_USER_ID, UserType.ADOPTER) as AuthenticatedRequest['user'];
@@ -126,9 +123,7 @@ describe('Email preferences ownership guard (ADS-769)', () => {
         }
       );
 
-      const res = await request(buildApp()).get(
-        `/api/v1/email/preferences/${TARGET_USER_ID}`
-      );
+      const res = await request(buildApp()).get(`/api/v1/email/preferences/${TARGET_USER_ID}`);
 
       expect(res.status).toBe(403);
       expect(mockGetUserPreferences).not.toHaveBeenCalled();
@@ -156,7 +151,7 @@ describe('Email preferences ownership guard (ADS-769)', () => {
       );
     });
 
-    it('allows an ADMIN to read any user\'s preferences', async () => {
+    it("allows an ADMIN to read any user's preferences", async () => {
       authenticateTokenMock.mockImplementation(
         (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
           req.user = makeUser(ADMIN_USER_ID, UserType.ADMIN) as AuthenticatedRequest['user'];
@@ -164,15 +159,13 @@ describe('Email preferences ownership guard (ADS-769)', () => {
         }
       );
 
-      const res = await request(buildApp()).get(
-        `/api/v1/email/preferences/${TARGET_USER_ID}`
-      );
+      const res = await request(buildApp()).get(`/api/v1/email/preferences/${TARGET_USER_ID}`);
 
       expect(res.status).toBe(200);
       expect(mockGetUserPreferences).toHaveBeenCalledWith(TARGET_USER_ID);
     });
 
-    it('allows a SUPER_ADMIN to read any user\'s preferences', async () => {
+    it("allows a SUPER_ADMIN to read any user's preferences", async () => {
       authenticateTokenMock.mockImplementation(
         (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
           req.user = makeUser(ADMIN_USER_ID, UserType.SUPER_ADMIN) as AuthenticatedRequest['user'];
@@ -180,9 +173,7 @@ describe('Email preferences ownership guard (ADS-769)', () => {
         }
       );
 
-      const res = await request(buildApp()).get(
-        `/api/v1/email/preferences/${TARGET_USER_ID}`
-      );
+      const res = await request(buildApp()).get(`/api/v1/email/preferences/${TARGET_USER_ID}`);
 
       expect(res.status).toBe(200);
       expect(mockGetUserPreferences).toHaveBeenCalledWith(TARGET_USER_ID);
@@ -205,13 +196,10 @@ describe('Email preferences ownership guard (ADS-769)', () => {
         .send(preferencesPayload);
 
       expect(res.status).toBe(200);
-      expect(mockUpdateUserPreferences).toHaveBeenCalledWith(
-        TARGET_USER_ID,
-        expect.any(Object)
-      );
+      expect(mockUpdateUserPreferences).toHaveBeenCalledWith(TARGET_USER_ID, expect.any(Object));
     });
 
-    it('returns 403 when a user tries to update another user\'s preferences', async () => {
+    it("returns 403 when a user tries to update another user's preferences", async () => {
       authenticateTokenMock.mockImplementation(
         (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
           req.user = makeUser(OTHER_USER_ID, UserType.ADOPTER) as AuthenticatedRequest['user'];
@@ -251,7 +239,7 @@ describe('Email preferences ownership guard (ADS-769)', () => {
       );
     });
 
-    it('allows an ADMIN to update any user\'s preferences', async () => {
+    it("allows an ADMIN to update any user's preferences", async () => {
       authenticateTokenMock.mockImplementation(
         (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
           req.user = makeUser(ADMIN_USER_ID, UserType.ADMIN) as AuthenticatedRequest['user'];
@@ -264,13 +252,10 @@ describe('Email preferences ownership guard (ADS-769)', () => {
         .send(preferencesPayload);
 
       expect(res.status).toBe(200);
-      expect(mockUpdateUserPreferences).toHaveBeenCalledWith(
-        TARGET_USER_ID,
-        expect.any(Object)
-      );
+      expect(mockUpdateUserPreferences).toHaveBeenCalledWith(TARGET_USER_ID, expect.any(Object));
     });
 
-    it('allows a SUPER_ADMIN to update any user\'s preferences', async () => {
+    it("allows a SUPER_ADMIN to update any user's preferences", async () => {
       authenticateTokenMock.mockImplementation(
         (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
           req.user = makeUser(ADMIN_USER_ID, UserType.SUPER_ADMIN) as AuthenticatedRequest['user'];
@@ -283,10 +268,7 @@ describe('Email preferences ownership guard (ADS-769)', () => {
         .send(preferencesPayload);
 
       expect(res.status).toBe(200);
-      expect(mockUpdateUserPreferences).toHaveBeenCalledWith(
-        TARGET_USER_ID,
-        expect.any(Object)
-      );
+      expect(mockUpdateUserPreferences).toHaveBeenCalledWith(TARGET_USER_ID, expect.any(Object));
     });
   });
 });
