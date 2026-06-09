@@ -134,6 +134,26 @@ export function reportTemplateCategoryToJSON(object: ReportTemplateCategory): st
   }
 }
 
+export interface GdprErasureRequest {
+  correlationId: string;
+  userId: string;
+  reason?: string | undefined;
+  requestedAt: string;
+  /** JSON-encoded { service: { recordsErased, completedAt, error? } } map. */
+  completionsJson: string;
+  completedAt?: string | undefined;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetGdprErasureRequestRequest {
+  correlationId: string;
+}
+
+export interface GetGdprErasureRequestResponse {
+  request?: GdprErasureRequest | undefined;
+}
+
 /**
  * AuditEvent mirrors the audit.audit_events row. Schema-less
  * payload_json captures the full event body the producing service
@@ -323,6 +343,356 @@ export interface ListReportTemplatesRequest {
 export interface ListReportTemplatesResponse {
   templates: ReportTemplate[];
 }
+
+function createBaseGdprErasureRequest(): GdprErasureRequest {
+  return {
+    correlationId: '',
+    userId: '',
+    reason: undefined,
+    requestedAt: '',
+    completionsJson: '',
+    completedAt: undefined,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const GdprErasureRequest: MessageFns<GdprErasureRequest> = {
+  encode(message: GdprErasureRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.correlationId !== '') {
+      writer.uint32(10).string(message.correlationId);
+    }
+    if (message.userId !== '') {
+      writer.uint32(18).string(message.userId);
+    }
+    if (message.reason !== undefined) {
+      writer.uint32(26).string(message.reason);
+    }
+    if (message.requestedAt !== '') {
+      writer.uint32(34).string(message.requestedAt);
+    }
+    if (message.completionsJson !== '') {
+      writer.uint32(42).string(message.completionsJson);
+    }
+    if (message.completedAt !== undefined) {
+      writer.uint32(50).string(message.completedAt);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(58).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(66).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GdprErasureRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGdprErasureRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.correlationId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.requestedAt = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.completionsJson = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.completedAt = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GdprErasureRequest {
+    return {
+      correlationId: isSet(object.correlationId)
+        ? globalThis.String(object.correlationId)
+        : isSet(object.correlation_id)
+          ? globalThis.String(object.correlation_id)
+          : '',
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
+      requestedAt: isSet(object.requestedAt)
+        ? globalThis.String(object.requestedAt)
+        : isSet(object.requested_at)
+          ? globalThis.String(object.requested_at)
+          : '',
+      completionsJson: isSet(object.completionsJson)
+        ? globalThis.String(object.completionsJson)
+        : isSet(object.completions_json)
+          ? globalThis.String(object.completions_json)
+          : '',
+      completedAt: isSet(object.completedAt)
+        ? globalThis.String(object.completedAt)
+        : isSet(object.completed_at)
+          ? globalThis.String(object.completed_at)
+          : undefined,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: GdprErasureRequest): unknown {
+    const obj: any = {};
+    if (message.correlationId !== '') {
+      obj.correlationId = message.correlationId;
+    }
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.reason !== undefined) {
+      obj.reason = message.reason;
+    }
+    if (message.requestedAt !== '') {
+      obj.requestedAt = message.requestedAt;
+    }
+    if (message.completionsJson !== '') {
+      obj.completionsJson = message.completionsJson;
+    }
+    if (message.completedAt !== undefined) {
+      obj.completedAt = message.completedAt;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GdprErasureRequest>, I>>(base?: I): GdprErasureRequest {
+    return GdprErasureRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GdprErasureRequest>, I>>(object: I): GdprErasureRequest {
+    const message = createBaseGdprErasureRequest();
+    message.correlationId = object.correlationId ?? '';
+    message.userId = object.userId ?? '';
+    message.reason = object.reason ?? undefined;
+    message.requestedAt = object.requestedAt ?? '';
+    message.completionsJson = object.completionsJson ?? '';
+    message.completedAt = object.completedAt ?? undefined;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseGetGdprErasureRequestRequest(): GetGdprErasureRequestRequest {
+  return { correlationId: '' };
+}
+
+export const GetGdprErasureRequestRequest: MessageFns<GetGdprErasureRequestRequest> = {
+  encode(
+    message: GetGdprErasureRequestRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.correlationId !== '') {
+      writer.uint32(10).string(message.correlationId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetGdprErasureRequestRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetGdprErasureRequestRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.correlationId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetGdprErasureRequestRequest {
+    return {
+      correlationId: isSet(object.correlationId)
+        ? globalThis.String(object.correlationId)
+        : isSet(object.correlation_id)
+          ? globalThis.String(object.correlation_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetGdprErasureRequestRequest): unknown {
+    const obj: any = {};
+    if (message.correlationId !== '') {
+      obj.correlationId = message.correlationId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetGdprErasureRequestRequest>, I>>(
+    base?: I
+  ): GetGdprErasureRequestRequest {
+    return GetGdprErasureRequestRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetGdprErasureRequestRequest>, I>>(
+    object: I
+  ): GetGdprErasureRequestRequest {
+    const message = createBaseGetGdprErasureRequestRequest();
+    message.correlationId = object.correlationId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetGdprErasureRequestResponse(): GetGdprErasureRequestResponse {
+  return { request: undefined };
+}
+
+export const GetGdprErasureRequestResponse: MessageFns<GetGdprErasureRequestResponse> = {
+  encode(
+    message: GetGdprErasureRequestResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.request !== undefined) {
+      GdprErasureRequest.encode(message.request, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetGdprErasureRequestResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetGdprErasureRequestResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.request = GdprErasureRequest.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetGdprErasureRequestResponse {
+    return {
+      request: isSet(object.request) ? GdprErasureRequest.fromJSON(object.request) : undefined,
+    };
+  },
+
+  toJSON(message: GetGdprErasureRequestResponse): unknown {
+    const obj: any = {};
+    if (message.request !== undefined) {
+      obj.request = GdprErasureRequest.toJSON(message.request);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetGdprErasureRequestResponse>, I>>(
+    base?: I
+  ): GetGdprErasureRequestResponse {
+    return GetGdprErasureRequestResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetGdprErasureRequestResponse>, I>>(
+    object: I
+  ): GetGdprErasureRequestResponse {
+    const message = createBaseGetGdprErasureRequestResponse();
+    message.request =
+      object.request !== undefined && object.request !== null
+        ? GdprErasureRequest.fromPartial(object.request)
+        : undefined;
+    return message;
+  },
+};
 
 function createBaseAuditEvent(): AuditEvent {
   return {
@@ -2848,6 +3218,25 @@ export const AuditQueryServiceService = {
     responseDeserialize: (value: Buffer): ListReportTemplatesResponse =>
       ListReportTemplatesResponse.decode(value),
   },
+  /**
+   * GDPR saga status. Returns a single row from
+   * audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
+   * the saga hasn't been requested. Gated on admin.gdpr.read OR
+   * self-ownership (the requesting user reads their own row).
+   */
+  getGdprErasureRequest: {
+    path: '/adopt_dont_shop.audit.v1.AuditQueryService/GetGdprErasureRequest' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetGdprErasureRequestRequest): Buffer =>
+      Buffer.from(GetGdprErasureRequestRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetGdprErasureRequestRequest =>
+      GetGdprErasureRequestRequest.decode(value),
+    responseSerialize: (value: GetGdprErasureRequestResponse): Buffer =>
+      Buffer.from(GetGdprErasureRequestResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetGdprErasureRequestResponse =>
+      GetGdprErasureRequestResponse.decode(value),
+  },
 } as const;
 
 export interface AuditQueryServiceServer extends UntypedServiceImplementation {
@@ -2882,6 +3271,16 @@ export interface AuditQueryServiceServer extends UntypedServiceImplementation {
   deleteSavedReport: handleUnaryCall<DeleteSavedReportRequest, DeleteSavedReportResponse>;
   /** Templates are seed/migration-owned. Read-only here. */
   listReportTemplates: handleUnaryCall<ListReportTemplatesRequest, ListReportTemplatesResponse>;
+  /**
+   * GDPR saga status. Returns a single row from
+   * audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
+   * the saga hasn't been requested. Gated on admin.gdpr.read OR
+   * self-ownership (the requesting user reads their own row).
+   */
+  getGdprErasureRequest: handleUnaryCall<
+    GetGdprErasureRequestRequest,
+    GetGdprErasureRequestResponse
+  >;
 }
 
 export interface AuditQueryServiceClient extends Client {
@@ -3027,6 +3426,27 @@ export interface AuditQueryServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListReportTemplatesResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * GDPR saga status. Returns a single row from
+   * audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
+   * the saga hasn't been requested. Gated on admin.gdpr.read OR
+   * self-ownership (the requesting user reads their own row).
+   */
+  getGdprErasureRequest(
+    request: GetGdprErasureRequestRequest,
+    callback: (error: ServiceError | null, response: GetGdprErasureRequestResponse) => void
+  ): ClientUnaryCall;
+  getGdprErasureRequest(
+    request: GetGdprErasureRequestRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetGdprErasureRequestResponse) => void
+  ): ClientUnaryCall;
+  getGdprErasureRequest(
+    request: GetGdprErasureRequestRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetGdprErasureRequestResponse) => void
   ): ClientUnaryCall;
 }
 

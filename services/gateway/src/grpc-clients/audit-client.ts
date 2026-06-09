@@ -18,6 +18,8 @@ import {
   type AuditDeleteSavedReportResponse,
   type AuditGetByTargetRequest,
   type AuditGetByTargetResponse,
+  type AuditGetGdprErasureRequestRequest,
+  type AuditGetGdprErasureRequestResponse,
   type AuditGetSavedReportRequest,
   type AuditGetSavedReportResponse,
   type AuditListReportTemplatesRequest,
@@ -57,6 +59,10 @@ export type AuditClient = {
     req: AuditListReportTemplatesRequest,
     metadata: Metadata
   ): Promise<AuditListReportTemplatesResponse>;
+  getGdprErasureRequest(
+    req: AuditGetGdprErasureRequestRequest,
+    metadata: Metadata
+  ): Promise<AuditGetGdprErasureRequestResponse>;
   close(): void;
 };
 
@@ -91,6 +97,7 @@ export const createAuditClient = (opts: CreateAuditClientOptions): AuditClient =
     updateSavedReport: (req, metadata) => callUnary(stub.updateSavedReport, req, metadata),
     deleteSavedReport: (req, metadata) => callUnary(stub.deleteSavedReport, req, metadata),
     listReportTemplates: (req, metadata) => callUnary(stub.listReportTemplates, req, metadata),
+    getGdprErasureRequest: (req, metadata) => callUnary(stub.getGdprErasureRequest, req, metadata),
     close: () => stub.close(),
   };
 };

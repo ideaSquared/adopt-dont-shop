@@ -4,7 +4,7 @@ import { AuditV1, type AuditQueryRequest } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
 import { encodeCursor } from './cursor.js';
-import { getByTarget, query } from './handlers.js';
+import { getByTarget, getGdprErasureRequest, query } from './handlers.js';
 
 function makePrincipal(overrides: Partial<{ userId: string; permissions: string[] }> = {}) {
   return {
@@ -204,5 +204,87 @@ describe('getByTarget', () => {
     });
     expect(res.events).toHaveLength(10);
     expect(res.nextCursor).toBeDefined();
+  });
+});
+
+// --- getGdprErasureRequest -------------------------------------------
+
+function makeGdprRow(overrides: Record<string, unknown> = {}) {
+  return {
+    correlation_id: 'corr-1',
+    user_id: 'usr-1',
+    reason: 'leaving',
+    requested_at: new Date('2026-06-09T12:00:00Z'),
+    completions: { auth: { recordsErased: 7, completedAt: '2026-06-09T12:01:00Z' } },
+    completed_at: null,
+    created_at: new Date('2026-06-09T12:00:00Z'),
+    updated_at: new Date('2026-06-09T12:01:00Z'),
+    ...overrides,
+  };
+}
+
+describe('getGdprErasureRequest', () => {
+  it('returns NOT_FOUND when the row is missing', async () => {
+    const queryMock = vi.fn(() => Promise.resolve({ rows: [] }));
+    const deps = {
+      pool: { query: queryMock },
+      nats: {},
+    } as unknown as HandlerDeps;
+    await expect(
+      getGdprErasureRequest(deps, makePrincipal(), { correlationId: 'corr-x' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns the row to an admin', async () => {
+    const queryMock = vi.fn(() => Promise.resolve({ rows: [makeGdprRow()] }));
+    const deps = {
+      pool: { query: queryMock },
+      nats: {},
+    } as unknown as HandlerDeps;
+    const res = await getGdprErasureRequest(
+      deps,
+      makePrincipal({ permissions: ['admin.gdpr.read'] }),
+      { correlationId: 'corr-1' }
+    );
+    expect(res.request?.correlationId).toBe('corr-1');
+    expect(res.request?.completionsJson).toContain('"auth"');
+  });
+
+  it('returns the row to the requesting user (self-ownership)', async () => {
+    const queryMock = vi.fn(() => Promise.resolve({ rows: [makeGdprRow()] }));
+    const deps = {
+      pool: { query: queryMock },
+      nats: {},
+    } as unknown as HandlerDeps;
+    const res = await getGdprErasureRequest(
+      deps,
+      makePrincipal({ userId: 'usr-1', permissions: [] }),
+      { correlationId: 'corr-1' }
+    );
+    expect(res.request?.userId).toBe('usr-1');
+  });
+
+  it('refuses a different user without admin.gdpr.read', async () => {
+    const queryMock = vi.fn(() => Promise.resolve({ rows: [makeGdprRow()] }));
+    const deps = {
+      pool: { query: queryMock },
+      nats: {},
+    } as unknown as HandlerDeps;
+    await expect(
+      getGdprErasureRequest(deps, makePrincipal({ userId: 'usr-2', permissions: [] }), {
+        correlationId: 'corr-1',
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects empty correlationId with INVALID_ARGUMENT', async () => {
+    const queryMock = vi.fn();
+    const deps = {
+      pool: { query: queryMock },
+      nats: {},
+    } as unknown as HandlerDeps;
+    await expect(
+      getGdprErasureRequest(deps, makePrincipal(), { correlationId: '   ' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 });

@@ -396,6 +396,9 @@ export type {
   DeleteSavedReportResponse as AuditDeleteSavedReportResponse,
   ListReportTemplatesRequest as AuditListReportTemplatesRequest,
   ListReportTemplatesResponse as AuditListReportTemplatesResponse,
+  GdprErasureRequest as AuditGdprErasureRequest,
+  GetGdprErasureRequestRequest as AuditGetGdprErasureRequestRequest,
+  GetGdprErasureRequestResponse as AuditGetGdprErasureRequestResponse,
   AuditQueryServiceServer,
   AuditQueryServiceClient,
 } from './generated/proto/adopt_dont_shop/audit/v1/audit.js';
