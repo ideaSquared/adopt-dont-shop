@@ -9,7 +9,6 @@
 # resolved list will fail the guard.
 
 paths:
-  - 'service.backend/**'
   - 'app.client/**'
   - 'app.admin/**'
   - 'app.rescue/**'
