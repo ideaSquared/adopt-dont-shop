@@ -26,6 +26,8 @@ import {
   type GetUserStatisticsResponse,
   type ReactivateUserRequest,
   type ReactivateUserResponse,
+  type ListUserIdsByCohortRequest,
+  type ListUserIdsByCohortResponse,
   type SearchUsersRequest,
   type SearchUsersResponse,
 } from '@adopt-dont-shop/proto';
@@ -499,5 +501,77 @@ export async function bulkUpdateUsers(
     successCount: results.length - failedCount,
     failedCount,
     results,
+  };
+}
+
+// --- ListUserIdsByCohort ---------------------------------------------
+
+const ADMIN_USERS_BROADCAST: Permission = 'admin.users.broadcast' as Permission;
+
+export async function listUserIdsByCohort(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ListUserIdsByCohortRequest
+): Promise<ListUserIdsByCohortResponse> {
+  if (!hasPermission(principal, ADMIN_USERS_BROADCAST)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_USERS_BROADCAST}' required`);
+  }
+
+  const limit = clampLimit(req.limit);
+  const page = Math.max(req.page || 1, 1);
+  const offset = (page - 1) * limit;
+
+  const where: string[] = ['deleted_at IS NULL'];
+  const params: unknown[] = [];
+
+  // user_types filter — empty list means any.
+  const types = (req.userTypes ?? []).filter(t => t !== AuthV1.UserRole.USER_ROLE_UNSPECIFIED);
+  if (types.length > 0) {
+    const placeholders = types.map((_, i) => `$${params.length + 1 + i}`).join(', ');
+    where.push(`user_type IN (${placeholders})`);
+    for (const t of types) {
+      params.push(roleToDb(t));
+    }
+  }
+
+  // statuses filter — empty list means active-only (safe default).
+  const statuses = (req.statuses ?? []).filter(
+    s => s !== AuthV1.UserStatus.USER_STATUS_UNSPECIFIED
+  );
+  if (statuses.length > 0) {
+    const placeholders = statuses.map((_, i) => `$${params.length + 1 + i}`).join(', ');
+    where.push(`status IN (${placeholders})`);
+    for (const s of statuses) {
+      params.push(statusToDb(s));
+    }
+  } else {
+    where.push(`status = 'active'`);
+  }
+
+  if (req.emailVerified !== undefined) {
+    where.push(`email_verified = $${params.length + 1}`);
+    params.push(req.emailVerified);
+  }
+
+  const whereSql = `WHERE ${where.join(' AND ')}`;
+  const countRes = await deps.pool.query<{ total: string }>(
+    `SELECT COUNT(*)::text AS total FROM auth.users ${whereSql}`,
+    params
+  );
+  const total = Number.parseInt(countRes.rows[0]?.total ?? '0', 10);
+
+  const result = await deps.pool.query<{ user_id: string }>(
+    `SELECT user_id FROM auth.users ${whereSql}
+       ORDER BY created_at ASC
+       LIMIT $${params.length + 1}
+       OFFSET $${params.length + 2}`,
+    [...params, limit, offset]
+  );
+
+  return {
+    userIds: result.rows.map(r => r.user_id),
+    total,
+    page,
+    totalPages: limit > 0 ? Math.ceil(total / limit) : 0,
   };
 }

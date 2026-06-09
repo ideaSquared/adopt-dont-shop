@@ -13,6 +13,7 @@ import {
   deactivateUser,
   getUserPermissions,
   getUserStatistics,
+  listUserIdsByCohort,
   reactivateUser,
   searchUsers,
 } from './admin-handlers.js';
@@ -438,5 +439,120 @@ describe('bulkUpdateUsers', () => {
     expect(res.results.find(r => r.userId === 'usr-1')?.success).toBe(true);
     expect(res.results.find(r => r.userId === 'usr-missing')?.success).toBe(false);
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
+  });
+});
+
+// --- listUserIdsByCohort --------------------------------------------
+
+const BROADCASTER: Principal = {
+  userId: 'svc-bcast' as UserId,
+  roles: ['admin'],
+  permissions: ['admin.users.broadcast' as Permission],
+};
+
+describe('listUserIdsByCohort', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => vi.clearAllMocks());
+
+  it('rejects callers without admin.users.broadcast', async () => {
+    await expect(
+      listUserIdsByCohort(mocks.deps, NO_PERMS, {
+        userTypes: [],
+        statuses: [],
+        page: 1,
+        limit: 100,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('defaults to status=active when no statuses are supplied', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ total: '2' }] })
+      .mockResolvedValueOnce({ rows: [{ user_id: 'u-1' }, { user_id: 'u-2' }] });
+
+    const res = await listUserIdsByCohort(mocks.deps, BROADCASTER, {
+      userTypes: [],
+      statuses: [],
+      page: 1,
+      limit: 50,
+    });
+
+    expect(res.total).toBe(2);
+    expect(res.userIds).toEqual(['u-1', 'u-2']);
+    const [countSql] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(countSql).toContain("status = 'active'");
+  });
+
+  it('filters by user_types IN list', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await listUserIdsByCohort(mocks.deps, BROADCASTER, {
+      userTypes: [AuthV1.UserRole.USER_ROLE_ADOPTER, AuthV1.UserRole.USER_ROLE_RESCUE_STAFF],
+      statuses: [],
+      page: 1,
+      limit: 50,
+    });
+
+    const [countSql, countParams] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(countSql).toContain('user_type IN');
+    expect(countParams).toContain('adopter');
+    expect(countParams).toContain('rescue_staff');
+  });
+
+  it('filters by statuses IN list (overrides the active default)', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await listUserIdsByCohort(mocks.deps, BROADCASTER, {
+      userTypes: [],
+      statuses: [AuthV1.UserStatus.USER_STATUS_SUSPENDED],
+      page: 1,
+      limit: 50,
+    });
+
+    const [countSql, countParams] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(countSql).toContain('status IN');
+    expect(countSql).not.toContain("status = 'active'");
+    expect(countParams).toContain('suspended');
+  });
+
+  it('applies email_verified filter when set', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await listUserIdsByCohort(mocks.deps, BROADCASTER, {
+      userTypes: [],
+      statuses: [],
+      emailVerified: true,
+      page: 1,
+      limit: 50,
+    });
+
+    const [countSql] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(countSql).toContain('email_verified');
+  });
+
+  it('paginates: total + page + totalPages reflect the count', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ total: '237' }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const res = await listUserIdsByCohort(mocks.deps, BROADCASTER, {
+      userTypes: [],
+      statuses: [],
+      page: 3,
+      limit: 50,
+    });
+
+    expect(res.total).toBe(237);
+    expect(res.page).toBe(3);
+    expect(res.totalPages).toBe(5);
   });
 });

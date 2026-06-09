@@ -82,6 +82,9 @@ export type {
   DeleteEmailTemplateResponse,
   PreviewEmailTemplateRequest,
   PreviewEmailTemplateResponse,
+  BroadcastCohort,
+  BroadcastRequest,
+  BroadcastResponse,
   NotificationServiceServer,
   NotificationServiceClient,
 } from './generated/proto/adopt_dont_shop/notifications/v1/notification.js';
@@ -161,6 +164,8 @@ export type {
   BulkUpsertFieldPermissionsResponse,
   DeleteFieldPermissionRequest,
   DeleteFieldPermissionResponse,
+  ListUserIdsByCohortRequest,
+  ListUserIdsByCohortResponse,
   AuthServiceServer,
   AuthServiceClient,
 } from './generated/proto/adopt_dont_shop/auth/v1/auth.js';

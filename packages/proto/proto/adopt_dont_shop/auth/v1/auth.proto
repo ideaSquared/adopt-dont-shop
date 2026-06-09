@@ -194,6 +194,19 @@ service AuthService {
   // Delete a single override, reverting that field to the lib.types default.
   rpc DeleteFieldPermission(DeleteFieldPermissionRequest)
     returns (DeleteFieldPermissionResponse);
+
+  // --- Broadcast cohort lookup ----------------------------------------
+
+  // Resolve a user cohort to a set of user_ids. The notifications
+  // service calls this from its Broadcast RPC so it can fan out a
+  // single admin notification across the targeted users without the
+  // admin having to enumerate them. admin.users.broadcast.
+  //
+  // Cohorts compose (AND): any user_type filter AND any status filter
+  // AND the verified-email filter all apply together. Pagination via
+  // page/limit; the caller iterates until total is consumed.
+  rpc ListUserIdsByCohort(ListUserIdsByCohortRequest)
+    returns (ListUserIdsByCohortResponse);
 }
 
 // --- Shared messages --------------------------------------------------
@@ -786,4 +799,28 @@ message DeleteFieldPermissionResponse {
   // True if a row was deleted; false if no override existed for that key
   // (the field already used the default).
   bool deleted = 1;
+}
+
+// --- ListUserIdsByCohort ---------------------------------------------
+
+message ListUserIdsByCohortRequest {
+  // Filter to users with these types (admin / adopter / rescue_staff /
+  // ...). Empty means any.
+  repeated UserRole user_types = 1;
+  // Filter to users with these statuses (active / suspended / ...).
+  // Empty means active-only — the broadcast safe default.
+  repeated UserStatus statuses = 2;
+  // When true, only include users whose email is verified.
+  optional bool email_verified = 3;
+  // 1-based page index.
+  uint32 page = 4;
+  // Page size; clamped server-side.
+  uint32 limit = 5;
+}
+
+message ListUserIdsByCohortResponse {
+  repeated string user_ids = 1;
+  uint32 total = 2;
+  uint32 page = 3;
+  uint32 total_pages = 4;
 }

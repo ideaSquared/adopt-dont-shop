@@ -44,6 +44,7 @@ import {
   deactivateUser,
   getUserPermissions,
   getUserStatistics,
+  listUserIdsByCohort,
   reactivateUser,
   searchUsers,
 } from './admin-handlers.js';
@@ -118,6 +119,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getUserStatistics: adapt(getUserStatistics, { deps, logger }),
     getUserPermissions: adapt(getUserPermissions, { deps, logger }),
     bulkUpdateUsers: adapt(bulkUpdateUsers, { deps, logger }),
+    listUserIdsByCohort: adapt(listUserIdsByCohort, { deps, logger }),
     // Field-level permissions admin — /api/v1/field-permissions/*.
     getFieldPermissionDefaults: adapt(getFieldPermissionDefaults, { deps, logger }),
     getFieldPermissionDefaultsForRole: adapt(getFieldPermissionDefaultsForRole, { deps, logger }),
@@ -159,6 +161,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getUserStatistics',
       'getUserPermissions',
       'bulkUpdateUsers',
+      'listUserIdsByCohort',
       'getFieldPermissionDefaults',
       'getFieldPermissionDefaultsForRole',
       'listFieldPermissionOverrides',

@@ -52,7 +52,20 @@ import {
   type RelatedEntityTypeDb,
 } from './enum-map.js';
 
-export type HandlerDeps = WithTransactionDeps;
+// AuthCohortClient — the slice of @adopt-dont-shop/proto's AuthServiceClient
+// the broadcast handler needs. Defined inline so handler tests can supply a
+// simple mock object without standing up a real gRPC stub.
+export type AuthCohortClient = {
+  listUserIdsByCohort: (
+    req: import('@adopt-dont-shop/proto').ListUserIdsByCohortRequest
+  ) => Promise<import('@adopt-dont-shop/proto').ListUserIdsByCohortResponse>;
+};
+
+export type HandlerDeps = WithTransactionDeps & {
+  // Optional — only broadcast-handlers reads it. Other handlers (Create,
+  // List, Dismiss, etc.) work fine without a cross-service client wired.
+  authClient?: AuthCohortClient;
+};
 
 export type HandlerErrorCode =
   | 'INVALID_ARGUMENT'
