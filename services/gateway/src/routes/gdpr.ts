@@ -1,0 +1,141 @@
+// POST /api/v1/users/me/erasure-request — mint a correlationId and
+// publish gdpr.erasureRequested on NATS. Each service that owns user-
+// keyed data picks it up via @adopt-dont-shop/events.registerGdprSubscriber
+// and acks with gdpr.erasureCompleted.
+//
+// GET /api/v1/users/me/erasure-request/:correlationId — read saga
+// status from service.audit (which aggregates request + completions).
+//
+// The gateway holds no state for the saga.
+
+import { randomUUID } from 'node:crypto';
+
+import { Metadata, status } from '@grpc/grpc-js';
+import { GDPR_ERASURE_REQUESTED, type GdprErasureRequestedPayload } from '@adopt-dont-shop/events';
+import type { NatsConnection } from 'nats';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+
+import type { AuditClient } from '../grpc-clients/audit-client.js';
+
+export type GdprRoutesOptions = {
+  nats: NatsConnection;
+  // Optional — when wired, the GET status endpoint is registered.
+  auditClient?: AuditClient;
+};
+
+const GRPC_TO_HTTP: Record<number, number> = {
+  [status.OK]: 200,
+  [status.INVALID_ARGUMENT]: 400,
+  [status.UNAUTHENTICATED]: 401,
+  [status.PERMISSION_DENIED]: 403,
+  [status.NOT_FOUND]: 404,
+  [status.INTERNAL]: 500,
+};
+
+export const registerGdprRoutes = async (
+  app: FastifyInstance,
+  opts: GdprRoutesOptions
+): Promise<void> => {
+  const { nats, auditClient } = opts;
+
+  app.post('/api/v1/users/me/erasure-request', async (req, reply) => {
+    const userId = principalUserId(req);
+    if (!userId) {
+      return reply.code(401).send({ success: false, error: 'unauthenticated' });
+    }
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const reason = typeof body.reason === 'string' ? body.reason : undefined;
+
+    const correlationId = randomUUID();
+    const payload: GdprErasureRequestedPayload = {
+      userId,
+      correlationId,
+      requestedAt: new Date().toISOString(),
+      reason,
+    };
+    const envelope = {
+      id: correlationId,
+      occurredAt: new Date().toISOString(),
+      payload,
+    };
+    nats.publish(GDPR_ERASURE_REQUESTED, JSON.stringify(envelope));
+
+    // 202 — the request is accepted, but actual erasure happens
+    // asynchronously across the services. The client polls the status
+    // endpoint to confirm.
+    return reply.code(202).send({
+      success: true,
+      correlationId,
+      requestedAt: payload.requestedAt,
+    });
+  });
+
+  // GET /api/v1/users/me/erasure-request/:correlationId — read saga
+  // status. The audit handler gates on self-ownership OR admin.gdpr.read,
+  // so this endpoint is safe for both the requesting user and an admin.
+  if (auditClient) {
+    app.get<{ Params: { correlationId: string } }>(
+      '/api/v1/users/me/erasure-request/:correlationId',
+      async (req, reply) => {
+        try {
+          const res = await auditClient.getGdprErasureRequest(
+            { correlationId: req.params.correlationId },
+            buildMetadata(req)
+          );
+          if (!res.request) {
+            return reply.code(404).send({ success: false, error: 'not found' });
+          }
+          let completions: Record<string, unknown> = {};
+          try {
+            completions = JSON.parse(res.request.completionsJson) as Record<string, unknown>;
+          } catch {
+            // Leave as empty object; the SPA can still display the
+            // request state without per-service detail.
+          }
+          return reply.send({
+            success: true,
+            data: {
+              correlationId: res.request.correlationId,
+              userId: res.request.userId,
+              reason: res.request.reason,
+              requestedAt: res.request.requestedAt,
+              completions,
+              completedAt: res.request.completedAt,
+            },
+          });
+        } catch (err) {
+          return handleGrpcError(err, reply);
+        }
+      }
+    );
+  }
+};
+
+function buildMetadata(req: FastifyRequest): Metadata {
+  const m = new Metadata();
+  const headers = req.headers as Record<string, string | string[] | undefined>;
+  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
+    const raw = headers[key];
+    if (typeof raw === 'string' && raw.length > 0) {
+      m.set(key, raw);
+    }
+  }
+  return m;
+}
+
+type GrpcError = { code?: number; details?: string; message?: string };
+
+function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
+  const grpcErr = err as GrpcError;
+  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
+  return reply.code(httpStatus).send({
+    success: false,
+    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
+  });
+}
+
+function principalUserId(req: FastifyRequest): string | null {
+  const headers = req.headers as Record<string, string | string[] | undefined>;
+  const raw = headers['x-user-id'];
+  return typeof raw === 'string' && raw.length > 0 ? raw : null;
+}

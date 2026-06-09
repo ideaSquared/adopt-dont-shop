@@ -25,6 +25,34 @@ service AuditQueryService {
   // (e.g. an application aggregate may have applications.*,
   // notifications.*, moderation.* events tied to it).
   rpc GetByTarget(GetByTargetRequest) returns (GetByTargetResponse);
+
+  // GDPR saga status. Returns a single row from
+  // audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
+  // the saga hasn't been requested. Gated on admin.gdpr.read OR
+  // self-ownership (the requesting user reads their own row).
+  rpc GetGdprErasureRequest(GetGdprErasureRequestRequest)
+      returns (GetGdprErasureRequestResponse);
+}
+
+// --- GDPR saga messages ----------------------------------------------
+
+message GdprErasureRequest {
+  string correlation_id = 1;
+  string user_id = 2;
+  optional string reason = 3;
+  string requested_at = 4;
+  // JSON-encoded { service: { recordsErased, completedAt, error? } } map.
+  string completions_json = 5;
+  optional string completed_at = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message GetGdprErasureRequestRequest {
+  string correlation_id = 1;
+}
+message GetGdprErasureRequestResponse {
+  GdprErasureRequest request = 1;
 }
 
 // ===== Enums =========================================================

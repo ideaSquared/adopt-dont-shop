@@ -5,6 +5,7 @@ import { createLogger } from '@adopt-dont-shop/observability';
 
 import { loadConfig } from './config.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
+import { registerGdprSubscribers } from './nats/gdpr-subscribers.js';
 import { registerSubscribers } from './nats/subscribers.js';
 import { createServer } from './server.js';
 
@@ -35,7 +36,10 @@ const main = async (): Promise<void> => {
     // service is never in a state where it's accepting NATS messages
     // without being able to serve any query routed through gRPC.
     // Phase 10.4 — subscribes to *.actionTaken; persists every event.
-    subscriptions = registerSubscribers({ nats, pool, logger });
+    subscriptions = [
+      ...registerSubscribers({ nats, pool, logger }),
+      ...registerGdprSubscribers({ nats, pool, logger }),
+    ];
 
     const httpServer = createServer({ config, logger });
     await httpServer.listen({ port: config.port, host: config.host });

@@ -29,6 +29,17 @@ const main = async (): Promise<void> => {
     nats = await connect({ servers: config.natsUrl });
 
     grpc = await startGrpcServer({ config, pool, nats, logger });
+    // GDPR erasure subscriber — drops the user's data in this schema.
+    // Reports back via gdpr.erasureCompleted with service='moderation'.
+    const { registerGdprSubscriber } = await import('@adopt-dont-shop/events');
+    const { eraseModeration } = await import('./gdpr/erase.js');
+    registerGdprSubscriber({
+      nats,
+      pool,
+      service: 'moderation',
+      erase: eraseModeration,
+      onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
+    });
 
     // Phase 8.4: content-scan + auto-report subscribers on
     // chat.messageCreated, pets.created, applications.submitted. Returned

@@ -52,6 +52,10 @@ const main = async (): Promise<void> => {
     applicationsClient = createApplicationsClient({ address: config.applicationsGrpcUrl });
     chatClient = createChatClient({ address: config.chatGrpcUrl });
 
+    // NATS comes up BEFORE createServer so the GDPR erasure-request route
+    // can publish on it. Socket.IO still attaches after server.listen.
+    nats = await connect({ servers: config.natsUrl });
+
     const server = await createServer({
       config,
       logger,
@@ -64,13 +68,10 @@ const main = async (): Promise<void> => {
       moderationClient,
       applicationsClient,
       chatClient,
+      nats,
     });
 
     await server.listen({ port: config.port, host: config.host });
-
-    // NATS + Socket.IO get wired AFTER the HTTP server binds so the
-    // underlying node http.Server exists for socket.io to attach to.
-    nats = await connect({ servers: config.natsUrl });
     const registry = new SocketRegistry();
     io = attachSocketServer({ httpServer: server.server, registry, logger });
     registerNotificationSubscribers({ nats, registry, logger });

@@ -382,6 +382,9 @@ export type {
   QueryResponse as AuditQueryResponse,
   GetByTargetRequest as AuditGetByTargetRequest,
   GetByTargetResponse as AuditGetByTargetResponse,
+  GdprErasureRequest as AuditGdprErasureRequest,
+  GetGdprErasureRequestRequest as AuditGetGdprErasureRequestRequest,
+  GetGdprErasureRequestResponse as AuditGetGdprErasureRequestResponse,
   AuditQueryServiceServer,
   AuditQueryServiceClient,
 } from './generated/proto/adopt_dont_shop/audit/v1/audit.js';
