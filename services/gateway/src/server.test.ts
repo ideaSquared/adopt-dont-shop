@@ -19,7 +19,6 @@ const quietLogger = {
 const baseConfig: GatewayConfig = {
   port: 0,
   host: '127.0.0.1',
-  upstreamBackendUrl: 'http://localhost:0',
   environment: 'test',
   storage: {
     provider: 'local',
@@ -32,24 +31,6 @@ const baseConfig: GatewayConfig = {
   legal: { enabled: false, docsDir: 'docs/legal' },
   config: { publicEnabled: false },
 } as GatewayConfig;
-
-/**
- * Boot a stub upstream Fastify on an ephemeral port so the proxy plugin
- * has a real HTTP target to reach. Returns the running instance and its
- * address — caller closes it in afterEach.
- */
-async function startUpstream(
-  handler: (server: FastifyInstance) => void
-): Promise<{ instance: FastifyInstance; url: string }> {
-  const instance = Fastify({ logger: false });
-  handler(instance);
-  await instance.listen({ port: 0, host: '127.0.0.1' });
-  const address = instance.server.address();
-  if (!address || typeof address !== 'object') {
-    throw new Error('Upstream did not bind a port');
-  }
-  return { instance, url: `http://127.0.0.1:${address.port}` };
-}
 
 describe('createServer — health endpoint', () => {
   let server: FastifyInstance;
@@ -86,123 +67,44 @@ describe('createServer — health endpoint', () => {
   });
 });
 
-describe('createServer — strangler-fig /api/* proxy', () => {
-  let upstream: { instance: FastifyInstance; url: string };
+// Phase 11: the residual service.backend monolith is gone. Anything
+// under /api/* that isn't owned by an extracted service must 404 — no
+// silent fallthrough to a backend that doesn't exist.
+describe('createServer — /api/* fallback', () => {
   let server: FastifyInstance;
-
   afterEach(async () => {
     await server?.close();
-    await upstream?.instance?.close();
   });
 
-  it('forwards a GET /api/pets to the configured upstream and returns its response', async () => {
-    upstream = await startUpstream(s => {
-      s.get('/api/pets', async () => ({ pets: [{ id: 'p1', name: 'Rex' }] }));
-    });
-    server = await createServer({
-      config: { ...baseConfig, upstreamBackendUrl: upstream.url },
-      logger: quietLogger,
-    });
-
-    const res = await server.inject({ method: 'GET', url: '/api/pets' });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ pets: [{ id: 'p1', name: 'Rex' }] });
-  });
-
-  it('forwards POST /api/applications with the request body intact', async () => {
-    const received: Array<{ method: string; url: string; body: unknown }> = [];
-    upstream = await startUpstream(s => {
-      s.post('/api/applications', async req => {
-        received.push({ method: req.method, url: req.url, body: req.body });
-        return { id: 'app-1' };
-      });
-    });
-    server = await createServer({
-      config: { ...baseConfig, upstreamBackendUrl: upstream.url },
-      logger: quietLogger,
-    });
-
-    const res = await server.inject({
-      method: 'POST',
-      url: '/api/applications',
-      headers: { 'content-type': 'application/json' },
-      payload: { petId: 'p1', adopterId: 'u1' },
-    });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ id: 'app-1' });
-    expect(received).toHaveLength(1);
-    expect(received[0]).toMatchObject({
-      method: 'POST',
-      url: '/api/applications',
-      body: { petId: 'p1', adopterId: 'u1' },
-    });
-  });
-
-  it('preserves the upstream status code (4xx) so client error semantics survive the hop', async () => {
-    upstream = await startUpstream(s => {
-      s.get('/api/missing', async (_req, reply) => {
-        reply.code(404).send({ error: 'not_found' });
-      });
-    });
-    server = await createServer({
-      config: { ...baseConfig, upstreamBackendUrl: upstream.url },
-      logger: quietLogger,
-    });
-
-    const res = await server.inject({ method: 'GET', url: '/api/missing' });
-
+  it('404s unknown /api/* paths', async () => {
+    server = await createServer({ config: baseConfig, logger: quietLogger });
+    const res = await server.inject({ method: 'GET', url: '/api/some/unknown/path' });
     expect(res.statusCode).toBe(404);
     expect(res.json()).toEqual({ error: 'not_found' });
   });
 
-  it('does NOT proxy paths outside /api/* — health endpoint stays local', async () => {
-    // The catch-all only mounts under /api. /health/simple is owned by
-    // the gateway itself; the upstream must not see it.
-    let upstreamHits = 0;
-    upstream = await startUpstream(s => {
-      s.get('/health/simple', async () => {
-        upstreamHits++;
-        return { status: 'upstream' };
-      });
+  it('404s unknown /api/* paths for POST too', async () => {
+    server = await createServer({ config: baseConfig, logger: quietLogger });
+    const res = await server.inject({
+      method: 'POST',
+      url: '/api/another/missing/path',
+      payload: {},
     });
-    server = await createServer({
-      config: { ...baseConfig, upstreamBackendUrl: upstream.url },
-      logger: quietLogger,
-    });
-
-    const res = await server.inject({ method: 'GET', url: '/health/simple' });
-
-    expect(res.json()).toMatchObject({ service: 'service.gateway' });
-    expect(upstreamHits).toBe(0);
+    expect(res.statusCode).toBe(404);
   });
 
-  it('forwards the request path including query string', async () => {
-    let receivedUrl = '';
-    upstream = await startUpstream(s => {
-      s.get('/api/pets', async req => {
-        receivedUrl = req.url;
-        return { ok: true };
-      });
-    });
-    server = await createServer({
-      config: { ...baseConfig, upstreamBackendUrl: upstream.url },
-      logger: quietLogger,
-    });
-
-    await server.inject({ method: 'GET', url: '/api/pets?species=cat&age=2' });
-
-    expect(receivedUrl).toBe('/api/pets?species=cat&age=2');
+  it('does NOT intercept paths outside /api/* — health endpoint stays local', async () => {
+    server = await createServer({ config: baseConfig, logger: quietLogger });
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ service: 'service.gateway' });
   });
 });
 
-// Stage A — the per-domain cutover gate. With the flag OFF (default) the
-// gateway must NOT register the domain's /api/v1/* routes even when a
-// client is wired, so the frontend's request still proxies to the
-// monolith. With the flag ON the gateway intercepts it.
+// Per-domain cutover gate. With the flag OFF (default) the gateway does
+// NOT register the domain's /api/v1/* routes, so the request 404s.
+// With the flag ON the gateway's route plugin intercepts it.
 describe('createServer — per-domain cutover gate', () => {
-  let upstream: { instance: FastifyInstance; url: string };
   let server: FastifyInstance;
 
   const allOff = {
@@ -214,6 +116,8 @@ describe('createServer — per-domain cutover gate', () => {
     moderation: false,
     matching: false,
     audit: false,
+    chat: false,
+    cms: false,
   } as const;
 
   // A stub applications client whose List resolves an empty page. Only
@@ -224,53 +128,30 @@ describe('createServer — per-domain cutover gate', () => {
 
   afterEach(async () => {
     await server?.close();
-    await upstream?.instance?.close();
   });
 
-  it('proxies /api/v1/applications to the monolith when cutover.applications is OFF (even with a client)', async () => {
-    let upstreamHits = 0;
-    upstream = await startUpstream(s => {
-      s.get('/api/v1/applications', async () => {
-        upstreamHits++;
-        return { from: 'monolith' };
-      });
-    });
+  it('404s /api/v1/applications when cutover.applications is OFF (even with a client)', async () => {
     server = await createServer({
-      config: { ...baseConfig, upstreamBackendUrl: upstream.url, cutover: { ...allOff } },
+      config: { ...baseConfig, cutover: { ...allOff } },
       logger: quietLogger,
       applicationsClient,
     });
-
     const res = await server.inject({ method: 'GET', url: '/api/v1/applications' });
-
-    expect(res.json()).toEqual({ from: 'monolith' });
-    expect(upstreamHits).toBe(1);
+    expect(res.statusCode).toBe(404);
   });
 
   it('intercepts /api/v1/applications at the gateway route when cutover.applications is ON', async () => {
-    let upstreamHits = 0;
-    upstream = await startUpstream(s => {
-      s.get('/api/v1/applications', async () => {
-        upstreamHits++;
-        return { from: 'monolith' };
-      });
-    });
     server = await createServer({
       config: {
         ...baseConfig,
-        upstreamBackendUrl: upstream.url,
         cutover: { ...allOff, applications: true },
       },
       logger: quietLogger,
       applicationsClient,
     });
-
     const res = await server.inject({ method: 'GET', url: '/api/v1/applications' });
-
-    // The gateway route served it — the Stage B view adapter wraps the
-    // (empty) result in the frontend's `{ data }` envelope; the monolith
-    // ({ from: 'monolith' }) was never hit.
+    // The gateway route served it — Stage B view adapter wraps the
+    // (empty) result in the frontend's `{ data }` envelope.
     expect(res.json()).toEqual({ data: [] });
-    expect(upstreamHits).toBe(0);
   });
 });

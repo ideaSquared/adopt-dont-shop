@@ -99,99 +99,6 @@ services:
       start_period: 10s
 
   # ============================================================================
-  # BACKEND SERVICE
-  # ============================================================================
-
-  # Main backend service - Connects to single database
-  service-backend:
-    build:
-      context: .
-      dockerfile: ./service.backend/Dockerfile
-      target: development
-    ports:
-      - '127.0.0.1:5000:5000'
-    volumes:
-      - ./service.backend:/app/service.backend
-      - ./lib.types:/app/lib.types
-      - /app/service.backend/node_modules
-      - lib_types_node_modules:/app/lib.types/node_modules
-      - ./uploads:/app/service.backend/uploads
-      # legal-content.service.ts reads markdown from /app/docs/legal/*.md
-      - ./docs:/app/docs:ro
-    entrypoint: /app/service.backend/docker-entrypoint.sh
-    command: npm run dev
-    environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      PORT: 5000
-      # Database configuration - using backend's expected variable names
-      DB_HOST: ${DB_HOST:-database}
-      DB_PORT: ${DB_PORT:-5432}
-      DB_USERNAME: ${POSTGRES_USER:-adopt_user}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DEV_DB_NAME: ${POSTGRES_DB:-adopt_dont_shop_dev}
-      DB_LOGGING: ${DB_LOGGING:-false}
-      # Development mode configuration
-      FORCE_SEED: ${FORCE_SEED:-false}
-      # ADS-536: deterministic seed password for local + CI fixtures. Without
-      # this the seeder mints a fresh random password each run, which breaks
-      # the Playwright `john.smith@gmail.com / DevPassword123!` API probe in
-      # global-setup.ts. docker-compose.prod.yml sets FORCE_SEED=false so the
-      # seeder doesn't run in production at all.
-      SEED_PASSWORD: ${SEED_PASSWORD:-DevPassword123!}
-      # Redis configuration. The backend's lib/redis.ts and BullMQ scheduler
-      # read REDIS_URL — without it Redis stays disabled, the /health probe
-      # returns 503 (ADS-446/460), and the docker healthcheck fails. Build it
-      # from the discrete vars so existing per-component overrides still work.
-      REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_PASSWORD: "${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}"
-      REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD}@${REDIS_HOST:-redis}:${REDIS_PORT:-6379}}
-      # Security - JWT tokens (REQUIRED)
-      JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET required}"
-      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}"
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
-      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
-      # Security - Session & CSRF
-      SESSION_SECRET: "${SESSION_SECRET:?Error: SESSION_SECRET required}"
-      CSRF_SECRET: "${CSRF_SECRET:?Error: CSRF_SECRET required}"
-      # Security - Encryption key for at-rest secrets (TOTP).
-      # 64 hex chars = 32 bytes for AES-256. Required by env validation.
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
-      API_URL: ${API_URL:-http://api.localhost}
-      # URL the user clicks in verification / password-reset emails.
-      # Default to app.client (3000); override per-env.
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required (set to comma-separated allowed origins, e.g. http://localhost:3000,http://localhost:3001,http://localhost:3002)}"
-      # Loki log shipping (optional). When set, winston-loki ships every log
-      # line (including audit events tagged `audit: true`) to the Loki
-      # service. Leave unset in dev to keep logs to console + file only.
-      LOKI_URL: ${LOKI_URL:-}
-      # File watching for hot reload — polling is only needed on macOS/Windows
-      # where Docker bind-mounts cross a VM boundary and don't propagate
-      # inotify events. Linux contributors should leave these unset.
-      # See docs/DOCKER.md "Hot reload" and ADS-766.
-      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-}
-      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-}
-    depends_on:
-      database:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    # Healthcheck so a crash-looping backend is caught by Docker health
-    # machinery and dependents can wait on service_healthy. [ADS-449, ADS-463]
-    healthcheck:
-      # ADS-545: probe /health/simple (cheap, no service detail leak).
-      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:5000/health/simple || exit 1']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    mem_limit: 1g
-    memswap_limit: 1g
-    cpus: '1.0'
-
-  # ============================================================================
   # LIB.TYPES WATCHER - Continuously compiles lib.types so the backend picks
   # up changes automatically via the workspace symlink (no manual rebuild)
   # ============================================================================
@@ -237,7 +144,6 @@ services:
       CHOKIDAR_AWAITWRITEFINISH: ${CHOKIDAR_AWAITWRITEFINISH:-}
       NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     depends_on:
-      - service-backend
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
@@ -275,7 +181,6 @@ services:
       CHOKIDAR_AWAITWRITEFINISH: ${CHOKIDAR_AWAITWRITEFINISH:-}
       NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     depends_on:
-      - service-backend
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
@@ -315,7 +220,6 @@ services:
       FAST_REFRESH: true
       NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     depends_on:
-      - service-backend
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
@@ -344,8 +248,6 @@ services:
     # nginx still starts under any profile combination — including the "plain"
     # `docker compose up` case where no app services are active.
     depends_on:
-      service-backend:
-        condition: service_started
       app-client:
         condition: service_started
         required: false
@@ -419,7 +321,6 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       NATS_URL: nats://nats:4222
-      UPSTREAM_BACKEND_URL: http://service-backend:5000
     ports:
       - '127.0.0.1:4000:4000'
     depends_on:

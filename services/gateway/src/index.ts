@@ -80,7 +80,6 @@ const main = async (): Promise<void> => {
     logger.info('service.gateway listening', {
       port: config.port,
       host: config.host,
-      upstream: config.upstreamBackendUrl,
       natsUrl: config.natsUrl,
       notificationsGrpcUrl: config.notificationsGrpcUrl,
       authGrpcUrl: config.authGrpcUrl,

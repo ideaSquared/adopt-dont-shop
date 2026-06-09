@@ -1,21 +1,28 @@
 // services/gateway — BFF for the microservices migration.
 //
-// Phase 0f role (strangler-fig start): a thin reverse proxy that routes
-// every /api/* path through to the residual service.backend monolith.
-// Once the gateway is in front of nginx, the public api.localhost host
-// terminates here, and adding routes for extracted services becomes a
-// per-PR concern instead of an nginx config wrestle.
-//
-// Future phases register service-specific Fastify plugins BEFORE the
-// catch-all proxy below, so:
-//   - /api/auth/*         → service.auth        (Phase 2)
-//   - /api/applications/* → service.applications (Phase 5)
-//   - /api/chat/*         → service.chat        (Phase 6)
-//   - /api/*              → service.backend     (residual; deletes at Phase 11)
-// Fastify's plugin precedence (first-registered-wins for the same prefix)
-// makes that the simplest extraction unit.
+// As of Phase 11, the residual service.backend monolith has been
+// deleted. The gateway is now the single REST surface, fanning out to
+// the extracted services via gRPC:
+//   - /api/v1/auth/*          → service.auth
+//   - /api/v1/users/*         → service.auth (admin user mgmt)
+//   - /api/v1/sessions/*      → service.auth
+//   - /api/v1/field-permissions/* → service.auth
+//   - /api/v1/users/me/erasure-request → service.audit (GDPR saga)
+//   - /api/v1/pets/*          → service.pets
+//   - /api/v1/rescues/*       → service.rescue (+ /staff, /foster, /invitations)
+//   - /api/v1/applications/*  → service.applications
+//   - /api/v1/chats/*         → service.chat
+//   - /api/v1/notifications/* → service.notifications (+ /devices, /email)
+//   - /api/v1/moderation/*    → service.moderation (+ /support, /admin)
+//   - /api/v1/matching/*      → service.matching
+//   - /api/v1/cms/*           → service.cms
+//   - /api/v1/audit/*         → service.audit (+ /reports)
+// Gateway-folded surface (no upstream service):
+//   - /api/v1/legal/*, /api/v1/config, /api/v1/analytics
+//   - /api/v1/dashboard       (cross-service composition)
+//   - /api/v1/uploads/*       (multipart + signed serve)
+// Anything else under /api/* now returns 404 — there's no fallback.
 
-import httpProxy from '@fastify/http-proxy';
 import { createLogger } from '@adopt-dont-shop/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
@@ -323,19 +330,15 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
   }
 
-  // Catch-all proxy. Phase 0f shipped this; Phase 1.6 leaves it in
-  // place for every /api/* path that isn't owned by an extracted
-  // service yet. Decommissions at Phase 11 when the monolith is gone.
-  await server.register(httpProxy, {
-    upstream: config.upstreamBackendUrl,
-    prefix: '/api',
-    rewritePrefix: '/api',
-    // Disable WS proxying. The gateway terminates Socket.IO itself —
-    // handing that to http-proxy would couple us to the monolith's
-    // socket lifecycle when we want the opposite.
-    websocket: false,
-    http2: false,
-  });
+  // Phase 11: the residual monolith has been deleted, so the catch-all
+  // proxy is gone with it. Any /api/* path the gateway doesn't explicitly
+  // own now 404s rather than silently round-tripping bytes to a backend
+  // that doesn't exist.
+  server.get('/api/*', async (_req, reply) => reply.code(404).send({ error: 'not_found' }));
+  server.post('/api/*', async (_req, reply) => reply.code(404).send({ error: 'not_found' }));
+  server.put('/api/*', async (_req, reply) => reply.code(404).send({ error: 'not_found' }));
+  server.patch('/api/*', async (_req, reply) => reply.code(404).send({ error: 'not_found' }));
+  server.delete('/api/*', async (_req, reply) => reply.code(404).send({ error: 'not_found' }));
 
   return server;
 };
