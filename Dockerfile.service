@@ -49,10 +49,10 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
 # Pruned source — only the workspaces this service depends on.
 COPY --from=pruner /app/out/full/ ./
-# turbo prune --docker doesn't copy root-level config files into out/full/;
-# every workspace tsconfig.json `extends`-es ../tsconfig.base.json so the
-# build needs it.
-COPY tsconfig.base.json ./tsconfig.base.json
+# turbo prune --docker doesn't copy root-level config files into out/full/.
+# Workspace tsconfigs extend ../tsconfig.base.json (ESM build) and lib.types
+# additionally extends ../tsconfig.cjs.base.json for its dual ESM+CJS build.
+COPY tsconfig.base.json tsconfig.cjs.base.json ./
 # `^build` ordering means turbo builds the workspace deps (proto, events, …)
 # before the service itself.
 RUN --mount=type=cache,target=/app/.turbo \
