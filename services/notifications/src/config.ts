@@ -17,6 +17,11 @@ export type NotificationsConfig = {
   // Fastify HTTP server; the gateway dials this address when proxying
   // /api/notifications/* to the extracted service (Phase 1.6).
   grpcPort: number;
+  // service.auth gRPC URL — needed by the Broadcast RPC which calls
+  // AuthService.ListUserIdsByCohort to expand the cohort filter into
+  // concrete user_ids. Optional in tests / migrations smokes; Broadcast
+  // returns INTERNAL when unset.
+  authGrpcUrl?: string;
   // Environment label, surfaced in health responses and on log lines.
   environment: string;
   // Postgres connection string. Required for migrations + the runtime
@@ -72,6 +77,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
   return {
     port,
     grpcPort,
+    authGrpcUrl: env.AUTH_GRPC_URL?.trim() || undefined,
     host: env.NOTIFICATIONS_HOST?.trim() || DEFAULT_HOST,
     environment: env.NODE_ENV?.trim() || 'development',
     databaseUrl,

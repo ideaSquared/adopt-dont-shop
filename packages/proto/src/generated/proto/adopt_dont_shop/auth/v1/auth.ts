@@ -868,6 +868,32 @@ export interface DeleteFieldPermissionResponse {
   deleted: boolean;
 }
 
+export interface ListUserIdsByCohortRequest {
+  /**
+   * Filter to users with these types (admin / adopter / rescue_staff /
+   * ...). Empty means any.
+   */
+  userTypes: UserRole[];
+  /**
+   * Filter to users with these statuses (active / suspended / ...).
+   * Empty means active-only — the broadcast safe default.
+   */
+  statuses: UserStatus[];
+  /** When true, only include users whose email is verified. */
+  emailVerified?: boolean | undefined;
+  /** 1-based page index. */
+  page: number;
+  /** Page size; clamped server-side. */
+  limit: number;
+}
+
+export interface ListUserIdsByCohortResponse {
+  userIds: string[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
 function createBasePrincipal(): Principal {
   return { userId: '', roles: [], permissions: [], rescueId: undefined };
 }
@@ -8125,6 +8151,294 @@ export const DeleteFieldPermissionResponse: MessageFns<DeleteFieldPermissionResp
   },
 };
 
+function createBaseListUserIdsByCohortRequest(): ListUserIdsByCohortRequest {
+  return { userTypes: [], statuses: [], emailVerified: undefined, page: 0, limit: 0 };
+}
+
+export const ListUserIdsByCohortRequest: MessageFns<ListUserIdsByCohortRequest> = {
+  encode(
+    message: ListUserIdsByCohortRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    writer.uint32(10).fork();
+    for (const v of message.userTypes) {
+      writer.int32(v);
+    }
+    writer.join();
+    writer.uint32(18).fork();
+    for (const v of message.statuses) {
+      writer.int32(v);
+    }
+    writer.join();
+    if (message.emailVerified !== undefined) {
+      writer.uint32(24).bool(message.emailVerified);
+    }
+    if (message.page !== 0) {
+      writer.uint32(32).uint32(message.page);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(40).uint32(message.limit);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListUserIdsByCohortRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListUserIdsByCohortRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag === 8) {
+            message.userTypes.push(reader.int32() as any);
+
+            continue;
+          }
+
+          if (tag === 10) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.userTypes.push(reader.int32() as any);
+            }
+
+            continue;
+          }
+
+          break;
+        }
+        case 2: {
+          if (tag === 16) {
+            message.statuses.push(reader.int32() as any);
+
+            continue;
+          }
+
+          if (tag === 18) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.statuses.push(reader.int32() as any);
+            }
+
+            continue;
+          }
+
+          break;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.emailVerified = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListUserIdsByCohortRequest {
+    return {
+      userTypes: globalThis.Array.isArray(object?.userTypes)
+        ? object.userTypes.map((e: any) => userRoleFromJSON(e))
+        : globalThis.Array.isArray(object?.user_types)
+          ? object.user_types.map((e: any) => userRoleFromJSON(e))
+          : [],
+      statuses: globalThis.Array.isArray(object?.statuses)
+        ? object.statuses.map((e: any) => userStatusFromJSON(e))
+        : [],
+      emailVerified: isSet(object.emailVerified)
+        ? globalThis.Boolean(object.emailVerified)
+        : isSet(object.email_verified)
+          ? globalThis.Boolean(object.email_verified)
+          : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+    };
+  },
+
+  toJSON(message: ListUserIdsByCohortRequest): unknown {
+    const obj: any = {};
+    if (message.userTypes?.length) {
+      obj.userTypes = message.userTypes.map(e => userRoleToJSON(e));
+    }
+    if (message.statuses?.length) {
+      obj.statuses = message.statuses.map(e => userStatusToJSON(e));
+    }
+    if (message.emailVerified !== undefined) {
+      obj.emailVerified = message.emailVerified;
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListUserIdsByCohortRequest>, I>>(
+    base?: I
+  ): ListUserIdsByCohortRequest {
+    return ListUserIdsByCohortRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListUserIdsByCohortRequest>, I>>(
+    object: I
+  ): ListUserIdsByCohortRequest {
+    const message = createBaseListUserIdsByCohortRequest();
+    message.userTypes = object.userTypes?.map(e => e) || [];
+    message.statuses = object.statuses?.map(e => e) || [];
+    message.emailVerified = object.emailVerified ?? undefined;
+    message.page = object.page ?? 0;
+    message.limit = object.limit ?? 0;
+    return message;
+  },
+};
+
+function createBaseListUserIdsByCohortResponse(): ListUserIdsByCohortResponse {
+  return { userIds: [], total: 0, page: 0, totalPages: 0 };
+}
+
+export const ListUserIdsByCohortResponse: MessageFns<ListUserIdsByCohortResponse> = {
+  encode(
+    message: ListUserIdsByCohortResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.userIds) {
+      writer.uint32(10).string(v!);
+    }
+    if (message.total !== 0) {
+      writer.uint32(16).uint32(message.total);
+    }
+    if (message.page !== 0) {
+      writer.uint32(24).uint32(message.page);
+    }
+    if (message.totalPages !== 0) {
+      writer.uint32(32).uint32(message.totalPages);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListUserIdsByCohortResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListUserIdsByCohortResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userIds.push(reader.string());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.totalPages = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListUserIdsByCohortResponse {
+    return {
+      userIds: globalThis.Array.isArray(object?.userIds)
+        ? object.userIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.user_ids)
+          ? object.user_ids.map((e: any) => globalThis.String(e))
+          : [],
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      totalPages: isSet(object.totalPages)
+        ? globalThis.Number(object.totalPages)
+        : isSet(object.total_pages)
+          ? globalThis.Number(object.total_pages)
+          : 0,
+    };
+  },
+
+  toJSON(message: ListUserIdsByCohortResponse): unknown {
+    const obj: any = {};
+    if (message.userIds?.length) {
+      obj.userIds = message.userIds;
+    }
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.totalPages !== 0) {
+      obj.totalPages = Math.round(message.totalPages);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListUserIdsByCohortResponse>, I>>(
+    base?: I
+  ): ListUserIdsByCohortResponse {
+    return ListUserIdsByCohortResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListUserIdsByCohortResponse>, I>>(
+    object: I
+  ): ListUserIdsByCohortResponse {
+    const message = createBaseListUserIdsByCohortResponse();
+    message.userIds = object.userIds?.map(e => e) || [];
+    message.total = object.total ?? 0;
+    message.page = object.page ?? 0;
+    message.totalPages = object.totalPages ?? 0;
+    return message;
+  },
+};
+
 /**
  * AuthService is the gRPC contract for the auth vertical. It owns the
  * `auth.*` schema (User, Role, Permission, RefreshToken, RevokedToken,
@@ -8677,6 +8991,29 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): DeleteFieldPermissionResponse =>
       DeleteFieldPermissionResponse.decode(value),
   },
+  /**
+   * Resolve a user cohort to a set of user_ids. The notifications
+   * service calls this from its Broadcast RPC so it can fan out a
+   * single admin notification across the targeted users without the
+   * admin having to enumerate them. admin.users.broadcast.
+   *
+   * Cohorts compose (AND): any user_type filter AND any status filter
+   * AND the verified-email filter all apply together. Pagination via
+   * page/limit; the caller iterates until total is consumed.
+   */
+  listUserIdsByCohort: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ListUserIdsByCohort' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListUserIdsByCohortRequest): Buffer =>
+      Buffer.from(ListUserIdsByCohortRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListUserIdsByCohortRequest =>
+      ListUserIdsByCohortRequest.decode(value),
+    responseSerialize: (value: ListUserIdsByCohortResponse): Buffer =>
+      Buffer.from(ListUserIdsByCohortResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListUserIdsByCohortResponse =>
+      ListUserIdsByCohortResponse.decode(value),
+  },
 } as const;
 
 export interface AuthServiceServer extends UntypedServiceImplementation {
@@ -8869,6 +9206,17 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
     DeleteFieldPermissionRequest,
     DeleteFieldPermissionResponse
   >;
+  /**
+   * Resolve a user cohort to a set of user_ids. The notifications
+   * service calls this from its Broadcast RPC so it can fan out a
+   * single admin notification across the targeted users without the
+   * admin having to enumerate them. admin.users.broadcast.
+   *
+   * Cohorts compose (AND): any user_type filter AND any status filter
+   * AND the verified-email filter all apply together. Pagination via
+   * page/limit; the caller iterates until total is consumed.
+   */
+  listUserIdsByCohort: handleUnaryCall<ListUserIdsByCohortRequest, ListUserIdsByCohortResponse>;
 }
 
 export interface AuthServiceClient extends Client {
@@ -9510,6 +9858,31 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteFieldPermissionResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Resolve a user cohort to a set of user_ids. The notifications
+   * service calls this from its Broadcast RPC so it can fan out a
+   * single admin notification across the targeted users without the
+   * admin having to enumerate them. admin.users.broadcast.
+   *
+   * Cohorts compose (AND): any user_type filter AND any status filter
+   * AND the verified-email filter all apply together. Pagination via
+   * page/limit; the caller iterates until total is consumed.
+   */
+  listUserIdsByCohort(
+    request: ListUserIdsByCohortRequest,
+    callback: (error: ServiceError | null, response: ListUserIdsByCohortResponse) => void
+  ): ClientUnaryCall;
+  listUserIdsByCohort(
+    request: ListUserIdsByCohortRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListUserIdsByCohortResponse) => void
+  ): ClientUnaryCall;
+  listUserIdsByCohort(
+    request: ListUserIdsByCohortRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListUserIdsByCohortResponse) => void
   ): ClientUnaryCall;
 }
 

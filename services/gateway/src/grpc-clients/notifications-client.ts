@@ -125,6 +125,10 @@ export type NotificationsClient = {
     req: PreviewEmailTemplateRequest,
     metadata: Metadata
   ): Promise<PreviewEmailTemplateResponse>;
+  broadcast(
+    req: import('@adopt-dont-shop/proto').BroadcastRequest,
+    metadata: Metadata
+  ): Promise<import('@adopt-dont-shop/proto').BroadcastResponse>;
   close(): void;
 };
 
@@ -184,6 +188,7 @@ export const createNotificationsClient = (
     updateEmailTemplate: (req, metadata) => callUnary(stub.updateEmailTemplate, req, metadata),
     deleteEmailTemplate: (req, metadata) => callUnary(stub.deleteEmailTemplate, req, metadata),
     previewEmailTemplate: (req, metadata) => callUnary(stub.previewEmailTemplate, req, metadata),
+    broadcast: (req, metadata) => callUnary(stub.broadcast, req, metadata),
     close: () => stub.close(),
   };
 };

@@ -1471,6 +1471,66 @@ export interface PreviewEmailTemplateResponse {
   textContent?: string | undefined;
 }
 
+/**
+ * Recipient cohort. Reuses the auth-side filter shape so the admin UI
+ * builds a single payload that flows through Broadcast → auth.
+ */
+export interface BroadcastCohort {
+  /**
+   * String form of auth.UserRole (admin / adopter / rescue_staff / ...).
+   * Empty means any.
+   */
+  userTypes: string[];
+  /**
+   * String form of auth.UserStatus. Empty means active-only (the safe
+   * broadcast default).
+   */
+  statuses: string[];
+  emailVerified?: boolean | undefined;
+}
+
+export interface BroadcastRequest {
+  /** The cohort that should receive the notification. */
+  cohort?: BroadcastCohort | undefined;
+  /**
+   * Type tag — drives the per-user channel toggle on the prefs check
+   * (e.g. NOTIFICATION_TYPE_ANNOUNCEMENT is admin-broadcast). Defaults
+   * to NOTIFICATION_TYPE_ANNOUNCEMENT when omitted.
+   */
+  type: NotificationType;
+  title: string;
+  message: string;
+  /** Per-notification action URL embedded into the row. */
+  actionUrl?: string | undefined;
+  /**
+   * Free-form JSON-encoded blob the SPA may render alongside the
+   * message.
+   */
+  dataJson?: string | undefined;
+  /**
+   * Defer delivery to a future timestamp (server stores; worker fires
+   * when due). Empty = send immediately.
+   */
+  scheduledFor?: string | undefined;
+}
+
+export interface BroadcastResponse {
+  /** Number of users the cohort lookup returned. */
+  targeted: number;
+  /**
+   * Number actually written to the notifications table (after prefs +
+   * DND filtering).
+   */
+  delivered: number;
+  /** Suppressed by per-user channel preference or DND window. */
+  suppressed: number;
+  /**
+   * Failed inserts (unexpected DB errors); the loop continues so a
+   * single bad row doesn't poison the batch.
+   */
+  failed: number;
+}
+
 function createBaseNotification(): Notification {
   return {
     notificationId: '',
@@ -8399,6 +8459,395 @@ export const PreviewEmailTemplateResponse: MessageFns<PreviewEmailTemplateRespon
   },
 };
 
+function createBaseBroadcastCohort(): BroadcastCohort {
+  return { userTypes: [], statuses: [], emailVerified: undefined };
+}
+
+export const BroadcastCohort: MessageFns<BroadcastCohort> = {
+  encode(message: BroadcastCohort, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.userTypes) {
+      writer.uint32(10).string(v!);
+    }
+    for (const v of message.statuses) {
+      writer.uint32(18).string(v!);
+    }
+    if (message.emailVerified !== undefined) {
+      writer.uint32(24).bool(message.emailVerified);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BroadcastCohort {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBroadcastCohort();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userTypes.push(reader.string());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.statuses.push(reader.string());
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.emailVerified = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BroadcastCohort {
+    return {
+      userTypes: globalThis.Array.isArray(object?.userTypes)
+        ? object.userTypes.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.user_types)
+          ? object.user_types.map((e: any) => globalThis.String(e))
+          : [],
+      statuses: globalThis.Array.isArray(object?.statuses)
+        ? object.statuses.map((e: any) => globalThis.String(e))
+        : [],
+      emailVerified: isSet(object.emailVerified)
+        ? globalThis.Boolean(object.emailVerified)
+        : isSet(object.email_verified)
+          ? globalThis.Boolean(object.email_verified)
+          : undefined,
+    };
+  },
+
+  toJSON(message: BroadcastCohort): unknown {
+    const obj: any = {};
+    if (message.userTypes?.length) {
+      obj.userTypes = message.userTypes;
+    }
+    if (message.statuses?.length) {
+      obj.statuses = message.statuses;
+    }
+    if (message.emailVerified !== undefined) {
+      obj.emailVerified = message.emailVerified;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BroadcastCohort>, I>>(base?: I): BroadcastCohort {
+    return BroadcastCohort.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BroadcastCohort>, I>>(object: I): BroadcastCohort {
+    const message = createBaseBroadcastCohort();
+    message.userTypes = object.userTypes?.map(e => e) || [];
+    message.statuses = object.statuses?.map(e => e) || [];
+    message.emailVerified = object.emailVerified ?? undefined;
+    return message;
+  },
+};
+
+function createBaseBroadcastRequest(): BroadcastRequest {
+  return {
+    cohort: undefined,
+    type: 0,
+    title: '',
+    message: '',
+    actionUrl: undefined,
+    dataJson: undefined,
+    scheduledFor: undefined,
+  };
+}
+
+export const BroadcastRequest: MessageFns<BroadcastRequest> = {
+  encode(message: BroadcastRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.cohort !== undefined) {
+      BroadcastCohort.encode(message.cohort, writer.uint32(10).fork()).join();
+    }
+    if (message.type !== 0) {
+      writer.uint32(16).int32(message.type);
+    }
+    if (message.title !== '') {
+      writer.uint32(26).string(message.title);
+    }
+    if (message.message !== '') {
+      writer.uint32(34).string(message.message);
+    }
+    if (message.actionUrl !== undefined) {
+      writer.uint32(42).string(message.actionUrl);
+    }
+    if (message.dataJson !== undefined) {
+      writer.uint32(50).string(message.dataJson);
+    }
+    if (message.scheduledFor !== undefined) {
+      writer.uint32(58).string(message.scheduledFor);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BroadcastRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBroadcastRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.cohort = BroadcastCohort.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.title = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.message = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.actionUrl = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.dataJson = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.scheduledFor = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BroadcastRequest {
+    return {
+      cohort: isSet(object.cohort) ? BroadcastCohort.fromJSON(object.cohort) : undefined,
+      type: isSet(object.type) ? notificationTypeFromJSON(object.type) : 0,
+      title: isSet(object.title) ? globalThis.String(object.title) : '',
+      message: isSet(object.message) ? globalThis.String(object.message) : '',
+      actionUrl: isSet(object.actionUrl)
+        ? globalThis.String(object.actionUrl)
+        : isSet(object.action_url)
+          ? globalThis.String(object.action_url)
+          : undefined,
+      dataJson: isSet(object.dataJson)
+        ? globalThis.String(object.dataJson)
+        : isSet(object.data_json)
+          ? globalThis.String(object.data_json)
+          : undefined,
+      scheduledFor: isSet(object.scheduledFor)
+        ? globalThis.String(object.scheduledFor)
+        : isSet(object.scheduled_for)
+          ? globalThis.String(object.scheduled_for)
+          : undefined,
+    };
+  },
+
+  toJSON(message: BroadcastRequest): unknown {
+    const obj: any = {};
+    if (message.cohort !== undefined) {
+      obj.cohort = BroadcastCohort.toJSON(message.cohort);
+    }
+    if (message.type !== 0) {
+      obj.type = notificationTypeToJSON(message.type);
+    }
+    if (message.title !== '') {
+      obj.title = message.title;
+    }
+    if (message.message !== '') {
+      obj.message = message.message;
+    }
+    if (message.actionUrl !== undefined) {
+      obj.actionUrl = message.actionUrl;
+    }
+    if (message.dataJson !== undefined) {
+      obj.dataJson = message.dataJson;
+    }
+    if (message.scheduledFor !== undefined) {
+      obj.scheduledFor = message.scheduledFor;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BroadcastRequest>, I>>(base?: I): BroadcastRequest {
+    return BroadcastRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BroadcastRequest>, I>>(object: I): BroadcastRequest {
+    const message = createBaseBroadcastRequest();
+    message.cohort =
+      object.cohort !== undefined && object.cohort !== null
+        ? BroadcastCohort.fromPartial(object.cohort)
+        : undefined;
+    message.type = object.type ?? 0;
+    message.title = object.title ?? '';
+    message.message = object.message ?? '';
+    message.actionUrl = object.actionUrl ?? undefined;
+    message.dataJson = object.dataJson ?? undefined;
+    message.scheduledFor = object.scheduledFor ?? undefined;
+    return message;
+  },
+};
+
+function createBaseBroadcastResponse(): BroadcastResponse {
+  return { targeted: 0, delivered: 0, suppressed: 0, failed: 0 };
+}
+
+export const BroadcastResponse: MessageFns<BroadcastResponse> = {
+  encode(message: BroadcastResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.targeted !== 0) {
+      writer.uint32(8).uint32(message.targeted);
+    }
+    if (message.delivered !== 0) {
+      writer.uint32(16).uint32(message.delivered);
+    }
+    if (message.suppressed !== 0) {
+      writer.uint32(24).uint32(message.suppressed);
+    }
+    if (message.failed !== 0) {
+      writer.uint32(32).uint32(message.failed);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BroadcastResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBroadcastResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.targeted = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.delivered = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.suppressed = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.failed = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BroadcastResponse {
+    return {
+      targeted: isSet(object.targeted) ? globalThis.Number(object.targeted) : 0,
+      delivered: isSet(object.delivered) ? globalThis.Number(object.delivered) : 0,
+      suppressed: isSet(object.suppressed) ? globalThis.Number(object.suppressed) : 0,
+      failed: isSet(object.failed) ? globalThis.Number(object.failed) : 0,
+    };
+  },
+
+  toJSON(message: BroadcastResponse): unknown {
+    const obj: any = {};
+    if (message.targeted !== 0) {
+      obj.targeted = Math.round(message.targeted);
+    }
+    if (message.delivered !== 0) {
+      obj.delivered = Math.round(message.delivered);
+    }
+    if (message.suppressed !== 0) {
+      obj.suppressed = Math.round(message.suppressed);
+    }
+    if (message.failed !== 0) {
+      obj.failed = Math.round(message.failed);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BroadcastResponse>, I>>(base?: I): BroadcastResponse {
+    return BroadcastResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BroadcastResponse>, I>>(object: I): BroadcastResponse {
+    const message = createBaseBroadcastResponse();
+    message.targeted = object.targeted ?? 0;
+    message.delivered = object.delivered ?? 0;
+    message.suppressed = object.suppressed ?? 0;
+    message.failed = object.failed ?? 0;
+    return message;
+  },
+};
+
 /**
  * NotificationService is the gRPC contract for the in-app notification
  * store. The gateway translates `POST/GET/DELETE /api/notifications/*`
@@ -8790,6 +9239,25 @@ export const NotificationServiceService = {
     responseDeserialize: (value: Buffer): ListDeviceTokensResponse =>
       ListDeviceTokensResponse.decode(value),
   },
+  /**
+   * Fan a single in-app notification across a cohort of users. The
+   * service resolves the cohort via AuthService.ListUserIdsByCohort
+   * and creates one notification row per recipient, honouring each
+   * user's in-app preference and DND window (skipping silently if
+   * either says no). Returns aggregate counters so the admin UI can
+   * confirm the reach. admin.notifications.broadcast.
+   */
+  broadcast: {
+    path: '/adopt_dont_shop.notifications.v1.NotificationService/Broadcast' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: BroadcastRequest): Buffer =>
+      Buffer.from(BroadcastRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): BroadcastRequest => BroadcastRequest.decode(value),
+    responseSerialize: (value: BroadcastResponse): Buffer =>
+      Buffer.from(BroadcastResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): BroadcastResponse => BroadcastResponse.decode(value),
+  },
 } as const;
 
 export interface NotificationServiceServer extends UntypedServiceImplementation {
@@ -8915,6 +9383,15 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
    * need device-tokens:list:any to read another user's tokens).
    */
   listDeviceTokens: handleUnaryCall<ListDeviceTokensRequest, ListDeviceTokensResponse>;
+  /**
+   * Fan a single in-app notification across a cohort of users. The
+   * service resolves the cohort via AuthService.ListUserIdsByCohort
+   * and creates one notification row per recipient, honouring each
+   * user's in-app preference and DND window (skipping silently if
+   * either says no). Returns aggregate counters so the admin UI can
+   * confirm the reach. admin.notifications.broadcast.
+   */
+  broadcast: handleUnaryCall<BroadcastRequest, BroadcastResponse>;
 }
 
 export interface NotificationServiceClient extends Client {
@@ -9343,6 +9820,29 @@ export interface NotificationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Fan a single in-app notification across a cohort of users. The
+   * service resolves the cohort via AuthService.ListUserIdsByCohort
+   * and creates one notification row per recipient, honouring each
+   * user's in-app preference and DND window (skipping silently if
+   * either says no). Returns aggregate counters so the admin UI can
+   * confirm the reach. admin.notifications.broadcast.
+   */
+  broadcast(
+    request: BroadcastRequest,
+    callback: (error: ServiceError | null, response: BroadcastResponse) => void
+  ): ClientUnaryCall;
+  broadcast(
+    request: BroadcastRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: BroadcastResponse) => void
+  ): ClientUnaryCall;
+  broadcast(
+    request: BroadcastRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: BroadcastResponse) => void
   ): ClientUnaryCall;
 }
 

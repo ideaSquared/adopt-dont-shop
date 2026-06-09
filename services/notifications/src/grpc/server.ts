@@ -19,6 +19,7 @@ import { NotificationsV1 } from '@adopt-dont-shop/proto';
 import type { NotificationsConfig } from '../config.js';
 
 import { adapt } from './adapter.js';
+import { broadcast } from './broadcast-handlers.js';
 import {
   listDeviceTokensHandler,
   registerDeviceTokenHandler,
@@ -50,6 +51,11 @@ export type CreateGrpcServerOptions = {
   pool: Pool;
   nats: NatsConnection;
   logger: Logger;
+  // Optional cross-service client for cohort lookups. Only the Broadcast
+  // RPC reads it; wiring it in production happens from index.ts. Smoke
+  // tests + unit tests can omit it — Broadcast will return INTERNAL when
+  // the wiring is missing, which is the correct signal.
+  authClient?: import('./handlers.js').AuthCohortClient;
 };
 
 export type RunningGrpcServer = {
@@ -63,7 +69,8 @@ export type RunningGrpcServer = {
 };
 
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
-  const { config, pool, nats, logger } = opts;
+  const { config, pool, nats, logger, authClient } = opts;
+  const deps = { pool, nats, authClient };
   const server = new Server();
 
   // ts-proto emits `NotificationServiceService` as the Definition
@@ -102,6 +109,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     updateEmailTemplate: adapt(updateEmailTemplate, { deps: { pool, nats }, logger }),
     deleteEmailTemplate: adapt(deleteEmailTemplate, { deps: { pool, nats }, logger }),
     previewEmailTemplate: adapt(previewEmailTemplate, { deps: { pool, nats }, logger }),
+    broadcast: adapt(broadcast, { deps, logger }),
   });
 
   logger.info('gRPC NotificationService registered', {
@@ -129,6 +137,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'updateEmailTemplate',
       'deleteEmailTemplate',
       'previewEmailTemplate',
+      'broadcast',
     ],
     grpcPort: config.grpcPort,
   });

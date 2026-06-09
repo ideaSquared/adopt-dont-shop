@@ -4,6 +4,7 @@ import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
 
 import { loadConfig } from './config.js';
+import { createAuthCohortClient } from './grpc/auth-client.js';
 import { createProvider } from './email/providers/factory.js';
 import { startEmailWorker, type RunningEmailWorker } from './email/worker.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
@@ -37,7 +38,13 @@ const main = async (): Promise<void> => {
     });
     nats = await connect({ servers: config.natsUrl });
 
-    grpc = await startGrpcServer({ config, pool, nats, logger });
+    // Auth-cohort client for the Broadcast RPC. Only created when the
+    // AUTH_GRPC_URL env is set; without it, Broadcast returns INTERNAL.
+    const authClient = config.authGrpcUrl
+      ? createAuthCohortClient({ address: config.authGrpcUrl })
+      : undefined;
+
+    grpc = await startGrpcServer({ config, pool, nats, logger, authClient });
     // NATS subscribers register AFTER gRPC so a fast event arriving on
     // applications.submitted before we're ready to handle gRPC calls
     // can't race against partially-constructed deps. Shutdown drains the

@@ -41,6 +41,7 @@ import { registerCmsRoutes } from './routes/cms.js';
 import { registerConfigRoutes } from './routes/config.js';
 import { registerDashboardRoutes } from './routes/dashboard.js';
 import { registerDevicesRoutes } from './routes/devices.js';
+import { registerBroadcastRoutes } from './routes/broadcast.js';
 import { registerEmailRoutes } from './routes/email.js';
 import { registerFieldPermissionsRoutes } from './routes/field-permissions.js';
 import { registerLegalRoutes } from './routes/legal.js';
@@ -183,6 +184,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // /api/v1/email/templates/* — admin email-template CRUD. The
     // email_templates table is owned by service.notifications.
     await registerEmailRoutes(server, { client: opts.notificationsClient });
+    // /api/v1/notifications/broadcast — admin fan-out. Sits under the
+    // notifications cutover gate (the upstream call lives in service.
+    // notifications, which in turn calls service.auth for the cohort).
+    await registerBroadcastRoutes(server, { client: opts.notificationsClient });
   }
   // /api/v1/users/* — profile + composed preferences. Requires BOTH
   // auth (profile + privacy prefs) and notifications (in-app channel

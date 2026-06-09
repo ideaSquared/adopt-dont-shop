@@ -136,6 +136,16 @@ service NotificationService {
   // List active tokens for the calling principal. Self-scoped (admins
   // need device-tokens:list:any to read another user's tokens).
   rpc ListDeviceTokens(ListDeviceTokensRequest) returns (ListDeviceTokensResponse);
+
+  // --- Broadcast ----------------------------------------------------
+
+  // Fan a single in-app notification across a cohort of users. The
+  // service resolves the cohort via AuthService.ListUserIdsByCohort
+  // and creates one notification row per recipient, honouring each
+  // user's in-app preference and DND window (skipping silently if
+  // either says no). Returns aggregate counters so the admin UI can
+  // confirm the reach. admin.notifications.broadcast.
+  rpc Broadcast(BroadcastRequest) returns (BroadcastResponse);
 }
 
 // Notification mirrors the `notifications.notifications` row plus the
@@ -791,4 +801,50 @@ message PreviewEmailTemplateResponse {
   string subject = 1;
   string html_content = 2;
   optional string text_content = 3;
+}
+
+// --- Broadcast --------------------------------------------------------
+
+// Recipient cohort. Reuses the auth-side filter shape so the admin UI
+// builds a single payload that flows through Broadcast → auth.
+message BroadcastCohort {
+  // String form of auth.UserRole (admin / adopter / rescue_staff / ...).
+  // Empty means any.
+  repeated string user_types = 1;
+  // String form of auth.UserStatus. Empty means active-only (the safe
+  // broadcast default).
+  repeated string statuses = 2;
+  optional bool email_verified = 3;
+}
+
+message BroadcastRequest {
+  // The cohort that should receive the notification.
+  BroadcastCohort cohort = 1;
+  // Type tag — drives the per-user channel toggle on the prefs check
+  // (e.g. NOTIFICATION_TYPE_ANNOUNCEMENT is admin-broadcast). Defaults
+  // to NOTIFICATION_TYPE_ANNOUNCEMENT when omitted.
+  NotificationType type = 2;
+  string title = 3;
+  string message = 4;
+  // Per-notification action URL embedded into the row.
+  optional string action_url = 5;
+  // Free-form JSON-encoded blob the SPA may render alongside the
+  // message.
+  optional string data_json = 6;
+  // Defer delivery to a future timestamp (server stores; worker fires
+  // when due). Empty = send immediately.
+  optional string scheduled_for = 7;
+}
+
+message BroadcastResponse {
+  // Number of users the cohort lookup returned.
+  uint32 targeted = 1;
+  // Number actually written to the notifications table (after prefs +
+  // DND filtering).
+  uint32 delivered = 2;
+  // Suppressed by per-user channel preference or DND window.
+  uint32 suppressed = 3;
+  // Failed inserts (unexpected DB errors); the loop continues so a
+  // single bad row doesn't poison the batch.
+  uint32 failed = 4;
 }
