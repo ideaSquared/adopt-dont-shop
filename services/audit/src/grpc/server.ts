@@ -20,6 +20,14 @@ import type { AuditConfig } from '../config.js';
 
 import { adapt } from './adapter.js';
 import { getByTarget, query } from './handlers.js';
+import {
+  createSavedReport,
+  deleteSavedReport,
+  getSavedReport,
+  listReportTemplates,
+  listSavedReports,
+  updateSavedReport,
+} from './reports-handlers.js';
 
 export type CreateGrpcServerOptions = {
   config: AuditConfig;
@@ -42,10 +50,25 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   server.addService(AuditV1.AuditQueryServiceService, {
     query: adapt(query, { deps, logger }),
     getByTarget: adapt(getByTarget, { deps, logger }),
+    listSavedReports: adapt(listSavedReports, { deps, logger }),
+    getSavedReport: adapt(getSavedReport, { deps, logger }),
+    createSavedReport: adapt(createSavedReport, { deps, logger }),
+    updateSavedReport: adapt(updateSavedReport, { deps, logger }),
+    deleteSavedReport: adapt(deleteSavedReport, { deps, logger }),
+    listReportTemplates: adapt(listReportTemplates, { deps, logger }),
   });
 
   logger.info('gRPC AuditQueryService registered', {
-    methods: ['query', 'getByTarget'],
+    methods: [
+      'query',
+      'getByTarget',
+      'listSavedReports',
+      'getSavedReport',
+      'createSavedReport',
+      'updateSavedReport',
+      'deleteSavedReport',
+      'listReportTemplates',
+    ],
     grpcPort: config.grpcPort,
   });
 

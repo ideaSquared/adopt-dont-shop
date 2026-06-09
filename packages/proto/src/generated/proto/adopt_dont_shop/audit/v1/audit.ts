@@ -77,6 +77,63 @@ export function auditOutcomeToJSON(object: AuditOutcome): string {
   }
 }
 
+export enum ReportTemplateCategory {
+  REPORT_TEMPLATE_CATEGORY_UNSPECIFIED = 0,
+  REPORT_TEMPLATE_CATEGORY_ADOPTION = 1,
+  REPORT_TEMPLATE_CATEGORY_ENGAGEMENT = 2,
+  REPORT_TEMPLATE_CATEGORY_OPERATIONS = 3,
+  REPORT_TEMPLATE_CATEGORY_FUNDRAISING = 4,
+  REPORT_TEMPLATE_CATEGORY_CUSTOM = 5,
+  UNRECOGNIZED = -1,
+}
+
+export function reportTemplateCategoryFromJSON(object: any): ReportTemplateCategory {
+  switch (object) {
+    case 0:
+    case 'REPORT_TEMPLATE_CATEGORY_UNSPECIFIED':
+      return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_UNSPECIFIED;
+    case 1:
+    case 'REPORT_TEMPLATE_CATEGORY_ADOPTION':
+      return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_ADOPTION;
+    case 2:
+    case 'REPORT_TEMPLATE_CATEGORY_ENGAGEMENT':
+      return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_ENGAGEMENT;
+    case 3:
+    case 'REPORT_TEMPLATE_CATEGORY_OPERATIONS':
+      return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_OPERATIONS;
+    case 4:
+    case 'REPORT_TEMPLATE_CATEGORY_FUNDRAISING':
+      return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_FUNDRAISING;
+    case 5:
+    case 'REPORT_TEMPLATE_CATEGORY_CUSTOM':
+      return ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_CUSTOM;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return ReportTemplateCategory.UNRECOGNIZED;
+  }
+}
+
+export function reportTemplateCategoryToJSON(object: ReportTemplateCategory): string {
+  switch (object) {
+    case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_UNSPECIFIED:
+      return 'REPORT_TEMPLATE_CATEGORY_UNSPECIFIED';
+    case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_ADOPTION:
+      return 'REPORT_TEMPLATE_CATEGORY_ADOPTION';
+    case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_ENGAGEMENT:
+      return 'REPORT_TEMPLATE_CATEGORY_ENGAGEMENT';
+    case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_OPERATIONS:
+      return 'REPORT_TEMPLATE_CATEGORY_OPERATIONS';
+    case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_FUNDRAISING:
+      return 'REPORT_TEMPLATE_CATEGORY_FUNDRAISING';
+    case ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_CUSTOM:
+      return 'REPORT_TEMPLATE_CATEGORY_CUSTOM';
+    case ReportTemplateCategory.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
 /**
  * AuditEvent mirrors the audit.audit_events row. Schema-less
  * payload_json captures the full event body the producing service
@@ -171,6 +228,100 @@ export interface GetByTargetResponse {
   /** Descending on occurred_at — most recent activity first. */
   events: AuditEvent[];
   nextCursor?: string | undefined;
+}
+
+export interface SavedReport {
+  savedReportId: string;
+  userId: string;
+  rescueId?: string | undefined;
+  templateId?: string | undefined;
+  name: string;
+  description?: string | undefined;
+  /**
+   * JSON-stringified ReportConfig blob. SPA owns the schema; service
+   * persists as-is so new widget types don't need a migration here.
+   */
+  configJson: string;
+  isArchived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReportTemplate {
+  templateId: string;
+  name: string;
+  description?: string | undefined;
+  category: ReportTemplateCategory;
+  configJson: string;
+  isSystem: boolean;
+  rescueId?: string | undefined;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListSavedReportsRequest {
+  /** Restrict to a single rescue's reports. Empty = any (platform admin view). */
+  rescueId?: string | undefined;
+  isArchived?: boolean | undefined;
+  page: number;
+  limit: number;
+}
+
+export interface ListSavedReportsResponse {
+  reports: SavedReport[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface GetSavedReportRequest {
+  savedReportId: string;
+}
+
+export interface GetSavedReportResponse {
+  report?: SavedReport | undefined;
+}
+
+export interface CreateSavedReportRequest {
+  name: string;
+  description?: string | undefined;
+  rescueId?: string | undefined;
+  templateId?: string | undefined;
+  configJson: string;
+}
+
+export interface CreateSavedReportResponse {
+  report?: SavedReport | undefined;
+}
+
+export interface UpdateSavedReportRequest {
+  savedReportId: string;
+  name?: string | undefined;
+  description?: string | undefined;
+  configJson?: string | undefined;
+  isArchived?: boolean | undefined;
+}
+
+export interface UpdateSavedReportResponse {
+  report?: SavedReport | undefined;
+}
+
+export interface DeleteSavedReportRequest {
+  savedReportId: string;
+}
+
+export interface DeleteSavedReportResponse {
+  deleted: boolean;
+}
+
+export interface ListReportTemplatesRequest {
+  category: ReportTemplateCategory;
+  rescueId?: string | undefined;
+  systemOnly?: boolean | undefined;
+}
+
+export interface ListReportTemplatesResponse {
+  templates: ReportTemplate[];
 }
 
 function createBaseAuditEvent(): AuditEvent {
@@ -971,6 +1122,1596 @@ export const GetByTargetResponse: MessageFns<GetByTargetResponse> = {
   },
 };
 
+function createBaseSavedReport(): SavedReport {
+  return {
+    savedReportId: '',
+    userId: '',
+    rescueId: undefined,
+    templateId: undefined,
+    name: '',
+    description: undefined,
+    configJson: '',
+    isArchived: false,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const SavedReport: MessageFns<SavedReport> = {
+  encode(message: SavedReport, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.savedReportId !== '') {
+      writer.uint32(10).string(message.savedReportId);
+    }
+    if (message.userId !== '') {
+      writer.uint32(18).string(message.userId);
+    }
+    if (message.rescueId !== undefined) {
+      writer.uint32(26).string(message.rescueId);
+    }
+    if (message.templateId !== undefined) {
+      writer.uint32(34).string(message.templateId);
+    }
+    if (message.name !== '') {
+      writer.uint32(42).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(50).string(message.description);
+    }
+    if (message.configJson !== '') {
+      writer.uint32(58).string(message.configJson);
+    }
+    if (message.isArchived !== false) {
+      writer.uint32(64).bool(message.isArchived);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(74).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(82).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SavedReport {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSavedReport();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.savedReportId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.templateId = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.configJson = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.isArchived = reader.bool();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SavedReport {
+    return {
+      savedReportId: isSet(object.savedReportId)
+        ? globalThis.String(object.savedReportId)
+        : isSet(object.saved_report_id)
+          ? globalThis.String(object.saved_report_id)
+          : '',
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : undefined,
+      templateId: isSet(object.templateId)
+        ? globalThis.String(object.templateId)
+        : isSet(object.template_id)
+          ? globalThis.String(object.template_id)
+          : undefined,
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      configJson: isSet(object.configJson)
+        ? globalThis.String(object.configJson)
+        : isSet(object.config_json)
+          ? globalThis.String(object.config_json)
+          : '',
+      isArchived: isSet(object.isArchived)
+        ? globalThis.Boolean(object.isArchived)
+        : isSet(object.is_archived)
+          ? globalThis.Boolean(object.is_archived)
+          : false,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: SavedReport): unknown {
+    const obj: any = {};
+    if (message.savedReportId !== '') {
+      obj.savedReportId = message.savedReportId;
+    }
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.rescueId !== undefined) {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.templateId !== undefined) {
+      obj.templateId = message.templateId;
+    }
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.configJson !== '') {
+      obj.configJson = message.configJson;
+    }
+    if (message.isArchived !== false) {
+      obj.isArchived = message.isArchived;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SavedReport>, I>>(base?: I): SavedReport {
+    return SavedReport.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SavedReport>, I>>(object: I): SavedReport {
+    const message = createBaseSavedReport();
+    message.savedReportId = object.savedReportId ?? '';
+    message.userId = object.userId ?? '';
+    message.rescueId = object.rescueId ?? undefined;
+    message.templateId = object.templateId ?? undefined;
+    message.name = object.name ?? '';
+    message.description = object.description ?? undefined;
+    message.configJson = object.configJson ?? '';
+    message.isArchived = object.isArchived ?? false;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseReportTemplate(): ReportTemplate {
+  return {
+    templateId: '',
+    name: '',
+    description: undefined,
+    category: 0,
+    configJson: '',
+    isSystem: false,
+    rescueId: undefined,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const ReportTemplate: MessageFns<ReportTemplate> = {
+  encode(message: ReportTemplate, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.templateId !== '') {
+      writer.uint32(10).string(message.templateId);
+    }
+    if (message.name !== '') {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(26).string(message.description);
+    }
+    if (message.category !== 0) {
+      writer.uint32(32).int32(message.category);
+    }
+    if (message.configJson !== '') {
+      writer.uint32(42).string(message.configJson);
+    }
+    if (message.isSystem !== false) {
+      writer.uint32(48).bool(message.isSystem);
+    }
+    if (message.rescueId !== undefined) {
+      writer.uint32(58).string(message.rescueId);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(66).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(74).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ReportTemplate {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseReportTemplate();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.templateId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.category = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.configJson = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.isSystem = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ReportTemplate {
+    return {
+      templateId: isSet(object.templateId)
+        ? globalThis.String(object.templateId)
+        : isSet(object.template_id)
+          ? globalThis.String(object.template_id)
+          : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      category: isSet(object.category) ? reportTemplateCategoryFromJSON(object.category) : 0,
+      configJson: isSet(object.configJson)
+        ? globalThis.String(object.configJson)
+        : isSet(object.config_json)
+          ? globalThis.String(object.config_json)
+          : '',
+      isSystem: isSet(object.isSystem)
+        ? globalThis.Boolean(object.isSystem)
+        : isSet(object.is_system)
+          ? globalThis.Boolean(object.is_system)
+          : false,
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : undefined,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: ReportTemplate): unknown {
+    const obj: any = {};
+    if (message.templateId !== '') {
+      obj.templateId = message.templateId;
+    }
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.category !== 0) {
+      obj.category = reportTemplateCategoryToJSON(message.category);
+    }
+    if (message.configJson !== '') {
+      obj.configJson = message.configJson;
+    }
+    if (message.isSystem !== false) {
+      obj.isSystem = message.isSystem;
+    }
+    if (message.rescueId !== undefined) {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ReportTemplate>, I>>(base?: I): ReportTemplate {
+    return ReportTemplate.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ReportTemplate>, I>>(object: I): ReportTemplate {
+    const message = createBaseReportTemplate();
+    message.templateId = object.templateId ?? '';
+    message.name = object.name ?? '';
+    message.description = object.description ?? undefined;
+    message.category = object.category ?? 0;
+    message.configJson = object.configJson ?? '';
+    message.isSystem = object.isSystem ?? false;
+    message.rescueId = object.rescueId ?? undefined;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseListSavedReportsRequest(): ListSavedReportsRequest {
+  return { rescueId: undefined, isArchived: undefined, page: 0, limit: 0 };
+}
+
+export const ListSavedReportsRequest: MessageFns<ListSavedReportsRequest> = {
+  encode(
+    message: ListSavedReportsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescueId !== undefined) {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.isArchived !== undefined) {
+      writer.uint32(16).bool(message.isArchived);
+    }
+    if (message.page !== 0) {
+      writer.uint32(24).uint32(message.page);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(32).uint32(message.limit);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListSavedReportsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListSavedReportsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.isArchived = reader.bool();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListSavedReportsRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : undefined,
+      isArchived: isSet(object.isArchived)
+        ? globalThis.Boolean(object.isArchived)
+        : isSet(object.is_archived)
+          ? globalThis.Boolean(object.is_archived)
+          : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+    };
+  },
+
+  toJSON(message: ListSavedReportsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== undefined) {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.isArchived !== undefined) {
+      obj.isArchived = message.isArchived;
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListSavedReportsRequest>, I>>(
+    base?: I
+  ): ListSavedReportsRequest {
+    return ListSavedReportsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListSavedReportsRequest>, I>>(
+    object: I
+  ): ListSavedReportsRequest {
+    const message = createBaseListSavedReportsRequest();
+    message.rescueId = object.rescueId ?? undefined;
+    message.isArchived = object.isArchived ?? undefined;
+    message.page = object.page ?? 0;
+    message.limit = object.limit ?? 0;
+    return message;
+  },
+};
+
+function createBaseListSavedReportsResponse(): ListSavedReportsResponse {
+  return { reports: [], total: 0, page: 0, totalPages: 0 };
+}
+
+export const ListSavedReportsResponse: MessageFns<ListSavedReportsResponse> = {
+  encode(
+    message: ListSavedReportsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.reports) {
+      SavedReport.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.total !== 0) {
+      writer.uint32(16).uint32(message.total);
+    }
+    if (message.page !== 0) {
+      writer.uint32(24).uint32(message.page);
+    }
+    if (message.totalPages !== 0) {
+      writer.uint32(32).uint32(message.totalPages);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListSavedReportsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListSavedReportsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.reports.push(SavedReport.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.totalPages = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListSavedReportsResponse {
+    return {
+      reports: globalThis.Array.isArray(object?.reports)
+        ? object.reports.map((e: any) => SavedReport.fromJSON(e))
+        : [],
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      totalPages: isSet(object.totalPages)
+        ? globalThis.Number(object.totalPages)
+        : isSet(object.total_pages)
+          ? globalThis.Number(object.total_pages)
+          : 0,
+    };
+  },
+
+  toJSON(message: ListSavedReportsResponse): unknown {
+    const obj: any = {};
+    if (message.reports?.length) {
+      obj.reports = message.reports.map(e => SavedReport.toJSON(e));
+    }
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.totalPages !== 0) {
+      obj.totalPages = Math.round(message.totalPages);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListSavedReportsResponse>, I>>(
+    base?: I
+  ): ListSavedReportsResponse {
+    return ListSavedReportsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListSavedReportsResponse>, I>>(
+    object: I
+  ): ListSavedReportsResponse {
+    const message = createBaseListSavedReportsResponse();
+    message.reports = object.reports?.map(e => SavedReport.fromPartial(e)) || [];
+    message.total = object.total ?? 0;
+    message.page = object.page ?? 0;
+    message.totalPages = object.totalPages ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetSavedReportRequest(): GetSavedReportRequest {
+  return { savedReportId: '' };
+}
+
+export const GetSavedReportRequest: MessageFns<GetSavedReportRequest> = {
+  encode(message: GetSavedReportRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.savedReportId !== '') {
+      writer.uint32(10).string(message.savedReportId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSavedReportRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetSavedReportRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.savedReportId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetSavedReportRequest {
+    return {
+      savedReportId: isSet(object.savedReportId)
+        ? globalThis.String(object.savedReportId)
+        : isSet(object.saved_report_id)
+          ? globalThis.String(object.saved_report_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetSavedReportRequest): unknown {
+    const obj: any = {};
+    if (message.savedReportId !== '') {
+      obj.savedReportId = message.savedReportId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetSavedReportRequest>, I>>(base?: I): GetSavedReportRequest {
+    return GetSavedReportRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetSavedReportRequest>, I>>(
+    object: I
+  ): GetSavedReportRequest {
+    const message = createBaseGetSavedReportRequest();
+    message.savedReportId = object.savedReportId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetSavedReportResponse(): GetSavedReportResponse {
+  return { report: undefined };
+}
+
+export const GetSavedReportResponse: MessageFns<GetSavedReportResponse> = {
+  encode(message: GetSavedReportResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.report !== undefined) {
+      SavedReport.encode(message.report, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetSavedReportResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetSavedReportResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.report = SavedReport.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetSavedReportResponse {
+    return { report: isSet(object.report) ? SavedReport.fromJSON(object.report) : undefined };
+  },
+
+  toJSON(message: GetSavedReportResponse): unknown {
+    const obj: any = {};
+    if (message.report !== undefined) {
+      obj.report = SavedReport.toJSON(message.report);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetSavedReportResponse>, I>>(
+    base?: I
+  ): GetSavedReportResponse {
+    return GetSavedReportResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetSavedReportResponse>, I>>(
+    object: I
+  ): GetSavedReportResponse {
+    const message = createBaseGetSavedReportResponse();
+    message.report =
+      object.report !== undefined && object.report !== null
+        ? SavedReport.fromPartial(object.report)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseCreateSavedReportRequest(): CreateSavedReportRequest {
+  return {
+    name: '',
+    description: undefined,
+    rescueId: undefined,
+    templateId: undefined,
+    configJson: '',
+  };
+}
+
+export const CreateSavedReportRequest: MessageFns<CreateSavedReportRequest> = {
+  encode(
+    message: CreateSavedReportRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.name !== '') {
+      writer.uint32(10).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(18).string(message.description);
+    }
+    if (message.rescueId !== undefined) {
+      writer.uint32(26).string(message.rescueId);
+    }
+    if (message.templateId !== undefined) {
+      writer.uint32(34).string(message.templateId);
+    }
+    if (message.configJson !== '') {
+      writer.uint32(42).string(message.configJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateSavedReportRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateSavedReportRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.templateId = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.configJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateSavedReportRequest {
+    return {
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : undefined,
+      templateId: isSet(object.templateId)
+        ? globalThis.String(object.templateId)
+        : isSet(object.template_id)
+          ? globalThis.String(object.template_id)
+          : undefined,
+      configJson: isSet(object.configJson)
+        ? globalThis.String(object.configJson)
+        : isSet(object.config_json)
+          ? globalThis.String(object.config_json)
+          : '',
+    };
+  },
+
+  toJSON(message: CreateSavedReportRequest): unknown {
+    const obj: any = {};
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.rescueId !== undefined) {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.templateId !== undefined) {
+      obj.templateId = message.templateId;
+    }
+    if (message.configJson !== '') {
+      obj.configJson = message.configJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateSavedReportRequest>, I>>(
+    base?: I
+  ): CreateSavedReportRequest {
+    return CreateSavedReportRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateSavedReportRequest>, I>>(
+    object: I
+  ): CreateSavedReportRequest {
+    const message = createBaseCreateSavedReportRequest();
+    message.name = object.name ?? '';
+    message.description = object.description ?? undefined;
+    message.rescueId = object.rescueId ?? undefined;
+    message.templateId = object.templateId ?? undefined;
+    message.configJson = object.configJson ?? '';
+    return message;
+  },
+};
+
+function createBaseCreateSavedReportResponse(): CreateSavedReportResponse {
+  return { report: undefined };
+}
+
+export const CreateSavedReportResponse: MessageFns<CreateSavedReportResponse> = {
+  encode(
+    message: CreateSavedReportResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.report !== undefined) {
+      SavedReport.encode(message.report, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateSavedReportResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateSavedReportResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.report = SavedReport.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateSavedReportResponse {
+    return { report: isSet(object.report) ? SavedReport.fromJSON(object.report) : undefined };
+  },
+
+  toJSON(message: CreateSavedReportResponse): unknown {
+    const obj: any = {};
+    if (message.report !== undefined) {
+      obj.report = SavedReport.toJSON(message.report);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateSavedReportResponse>, I>>(
+    base?: I
+  ): CreateSavedReportResponse {
+    return CreateSavedReportResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateSavedReportResponse>, I>>(
+    object: I
+  ): CreateSavedReportResponse {
+    const message = createBaseCreateSavedReportResponse();
+    message.report =
+      object.report !== undefined && object.report !== null
+        ? SavedReport.fromPartial(object.report)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateSavedReportRequest(): UpdateSavedReportRequest {
+  return {
+    savedReportId: '',
+    name: undefined,
+    description: undefined,
+    configJson: undefined,
+    isArchived: undefined,
+  };
+}
+
+export const UpdateSavedReportRequest: MessageFns<UpdateSavedReportRequest> = {
+  encode(
+    message: UpdateSavedReportRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.savedReportId !== '') {
+      writer.uint32(10).string(message.savedReportId);
+    }
+    if (message.name !== undefined) {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(26).string(message.description);
+    }
+    if (message.configJson !== undefined) {
+      writer.uint32(34).string(message.configJson);
+    }
+    if (message.isArchived !== undefined) {
+      writer.uint32(40).bool(message.isArchived);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateSavedReportRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateSavedReportRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.savedReportId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.configJson = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.isArchived = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateSavedReportRequest {
+    return {
+      savedReportId: isSet(object.savedReportId)
+        ? globalThis.String(object.savedReportId)
+        : isSet(object.saved_report_id)
+          ? globalThis.String(object.saved_report_id)
+          : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : undefined,
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      configJson: isSet(object.configJson)
+        ? globalThis.String(object.configJson)
+        : isSet(object.config_json)
+          ? globalThis.String(object.config_json)
+          : undefined,
+      isArchived: isSet(object.isArchived)
+        ? globalThis.Boolean(object.isArchived)
+        : isSet(object.is_archived)
+          ? globalThis.Boolean(object.is_archived)
+          : undefined,
+    };
+  },
+
+  toJSON(message: UpdateSavedReportRequest): unknown {
+    const obj: any = {};
+    if (message.savedReportId !== '') {
+      obj.savedReportId = message.savedReportId;
+    }
+    if (message.name !== undefined) {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.configJson !== undefined) {
+      obj.configJson = message.configJson;
+    }
+    if (message.isArchived !== undefined) {
+      obj.isArchived = message.isArchived;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateSavedReportRequest>, I>>(
+    base?: I
+  ): UpdateSavedReportRequest {
+    return UpdateSavedReportRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateSavedReportRequest>, I>>(
+    object: I
+  ): UpdateSavedReportRequest {
+    const message = createBaseUpdateSavedReportRequest();
+    message.savedReportId = object.savedReportId ?? '';
+    message.name = object.name ?? undefined;
+    message.description = object.description ?? undefined;
+    message.configJson = object.configJson ?? undefined;
+    message.isArchived = object.isArchived ?? undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateSavedReportResponse(): UpdateSavedReportResponse {
+  return { report: undefined };
+}
+
+export const UpdateSavedReportResponse: MessageFns<UpdateSavedReportResponse> = {
+  encode(
+    message: UpdateSavedReportResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.report !== undefined) {
+      SavedReport.encode(message.report, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateSavedReportResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateSavedReportResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.report = SavedReport.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateSavedReportResponse {
+    return { report: isSet(object.report) ? SavedReport.fromJSON(object.report) : undefined };
+  },
+
+  toJSON(message: UpdateSavedReportResponse): unknown {
+    const obj: any = {};
+    if (message.report !== undefined) {
+      obj.report = SavedReport.toJSON(message.report);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateSavedReportResponse>, I>>(
+    base?: I
+  ): UpdateSavedReportResponse {
+    return UpdateSavedReportResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateSavedReportResponse>, I>>(
+    object: I
+  ): UpdateSavedReportResponse {
+    const message = createBaseUpdateSavedReportResponse();
+    message.report =
+      object.report !== undefined && object.report !== null
+        ? SavedReport.fromPartial(object.report)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseDeleteSavedReportRequest(): DeleteSavedReportRequest {
+  return { savedReportId: '' };
+}
+
+export const DeleteSavedReportRequest: MessageFns<DeleteSavedReportRequest> = {
+  encode(
+    message: DeleteSavedReportRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.savedReportId !== '') {
+      writer.uint32(10).string(message.savedReportId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteSavedReportRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteSavedReportRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.savedReportId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteSavedReportRequest {
+    return {
+      savedReportId: isSet(object.savedReportId)
+        ? globalThis.String(object.savedReportId)
+        : isSet(object.saved_report_id)
+          ? globalThis.String(object.saved_report_id)
+          : '',
+    };
+  },
+
+  toJSON(message: DeleteSavedReportRequest): unknown {
+    const obj: any = {};
+    if (message.savedReportId !== '') {
+      obj.savedReportId = message.savedReportId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteSavedReportRequest>, I>>(
+    base?: I
+  ): DeleteSavedReportRequest {
+    return DeleteSavedReportRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteSavedReportRequest>, I>>(
+    object: I
+  ): DeleteSavedReportRequest {
+    const message = createBaseDeleteSavedReportRequest();
+    message.savedReportId = object.savedReportId ?? '';
+    return message;
+  },
+};
+
+function createBaseDeleteSavedReportResponse(): DeleteSavedReportResponse {
+  return { deleted: false };
+}
+
+export const DeleteSavedReportResponse: MessageFns<DeleteSavedReportResponse> = {
+  encode(
+    message: DeleteSavedReportResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.deleted !== false) {
+      writer.uint32(8).bool(message.deleted);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteSavedReportResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteSavedReportResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.deleted = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteSavedReportResponse {
+    return { deleted: isSet(object.deleted) ? globalThis.Boolean(object.deleted) : false };
+  },
+
+  toJSON(message: DeleteSavedReportResponse): unknown {
+    const obj: any = {};
+    if (message.deleted !== false) {
+      obj.deleted = message.deleted;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteSavedReportResponse>, I>>(
+    base?: I
+  ): DeleteSavedReportResponse {
+    return DeleteSavedReportResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteSavedReportResponse>, I>>(
+    object: I
+  ): DeleteSavedReportResponse {
+    const message = createBaseDeleteSavedReportResponse();
+    message.deleted = object.deleted ?? false;
+    return message;
+  },
+};
+
+function createBaseListReportTemplatesRequest(): ListReportTemplatesRequest {
+  return { category: 0, rescueId: undefined, systemOnly: undefined };
+}
+
+export const ListReportTemplatesRequest: MessageFns<ListReportTemplatesRequest> = {
+  encode(
+    message: ListReportTemplatesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.category !== 0) {
+      writer.uint32(8).int32(message.category);
+    }
+    if (message.rescueId !== undefined) {
+      writer.uint32(18).string(message.rescueId);
+    }
+    if (message.systemOnly !== undefined) {
+      writer.uint32(24).bool(message.systemOnly);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListReportTemplatesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListReportTemplatesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.category = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.systemOnly = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListReportTemplatesRequest {
+    return {
+      category: isSet(object.category) ? reportTemplateCategoryFromJSON(object.category) : 0,
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : undefined,
+      systemOnly: isSet(object.systemOnly)
+        ? globalThis.Boolean(object.systemOnly)
+        : isSet(object.system_only)
+          ? globalThis.Boolean(object.system_only)
+          : undefined,
+    };
+  },
+
+  toJSON(message: ListReportTemplatesRequest): unknown {
+    const obj: any = {};
+    if (message.category !== 0) {
+      obj.category = reportTemplateCategoryToJSON(message.category);
+    }
+    if (message.rescueId !== undefined) {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.systemOnly !== undefined) {
+      obj.systemOnly = message.systemOnly;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListReportTemplatesRequest>, I>>(
+    base?: I
+  ): ListReportTemplatesRequest {
+    return ListReportTemplatesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListReportTemplatesRequest>, I>>(
+    object: I
+  ): ListReportTemplatesRequest {
+    const message = createBaseListReportTemplatesRequest();
+    message.category = object.category ?? 0;
+    message.rescueId = object.rescueId ?? undefined;
+    message.systemOnly = object.systemOnly ?? undefined;
+    return message;
+  },
+};
+
+function createBaseListReportTemplatesResponse(): ListReportTemplatesResponse {
+  return { templates: [] };
+}
+
+export const ListReportTemplatesResponse: MessageFns<ListReportTemplatesResponse> = {
+  encode(
+    message: ListReportTemplatesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.templates) {
+      ReportTemplate.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListReportTemplatesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListReportTemplatesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.templates.push(ReportTemplate.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListReportTemplatesResponse {
+    return {
+      templates: globalThis.Array.isArray(object?.templates)
+        ? object.templates.map((e: any) => ReportTemplate.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListReportTemplatesResponse): unknown {
+    const obj: any = {};
+    if (message.templates?.length) {
+      obj.templates = message.templates.map(e => ReportTemplate.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListReportTemplatesResponse>, I>>(
+    base?: I
+  ): ListReportTemplatesResponse {
+    return ListReportTemplatesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListReportTemplatesResponse>, I>>(
+    object: I
+  ): ListReportTemplatesResponse {
+    const message = createBaseListReportTemplatesResponse();
+    message.templates = object.templates?.map(e => ReportTemplate.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * AuditQueryService is the gRPC contract for the audit vertical's
  * READ surface. The audit service is the sole producer (NATS
@@ -1020,6 +2761,93 @@ export const AuditQueryServiceService = {
       Buffer.from(GetByTargetResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetByTargetResponse => GetByTargetResponse.decode(value),
   },
+  /**
+   * --- Saved reports admin -------------------------------------------
+   * CRUD over the audit.saved_reports table that backs the SPA's
+   * "saved analytics reports" surface. Permissions:
+   *   reports.read[/own] for reads, reports.create / update / delete
+   *   for writes. Self-ownership applies to reads when the principal
+   *   doesn't have :any.
+   */
+  listSavedReports: {
+    path: '/adopt_dont_shop.audit.v1.AuditQueryService/ListSavedReports' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListSavedReportsRequest): Buffer =>
+      Buffer.from(ListSavedReportsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListSavedReportsRequest =>
+      ListSavedReportsRequest.decode(value),
+    responseSerialize: (value: ListSavedReportsResponse): Buffer =>
+      Buffer.from(ListSavedReportsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListSavedReportsResponse =>
+      ListSavedReportsResponse.decode(value),
+  },
+  getSavedReport: {
+    path: '/adopt_dont_shop.audit.v1.AuditQueryService/GetSavedReport' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetSavedReportRequest): Buffer =>
+      Buffer.from(GetSavedReportRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetSavedReportRequest =>
+      GetSavedReportRequest.decode(value),
+    responseSerialize: (value: GetSavedReportResponse): Buffer =>
+      Buffer.from(GetSavedReportResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetSavedReportResponse =>
+      GetSavedReportResponse.decode(value),
+  },
+  createSavedReport: {
+    path: '/adopt_dont_shop.audit.v1.AuditQueryService/CreateSavedReport' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CreateSavedReportRequest): Buffer =>
+      Buffer.from(CreateSavedReportRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateSavedReportRequest =>
+      CreateSavedReportRequest.decode(value),
+    responseSerialize: (value: CreateSavedReportResponse): Buffer =>
+      Buffer.from(CreateSavedReportResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateSavedReportResponse =>
+      CreateSavedReportResponse.decode(value),
+  },
+  updateSavedReport: {
+    path: '/adopt_dont_shop.audit.v1.AuditQueryService/UpdateSavedReport' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateSavedReportRequest): Buffer =>
+      Buffer.from(UpdateSavedReportRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateSavedReportRequest =>
+      UpdateSavedReportRequest.decode(value),
+    responseSerialize: (value: UpdateSavedReportResponse): Buffer =>
+      Buffer.from(UpdateSavedReportResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateSavedReportResponse =>
+      UpdateSavedReportResponse.decode(value),
+  },
+  deleteSavedReport: {
+    path: '/adopt_dont_shop.audit.v1.AuditQueryService/DeleteSavedReport' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteSavedReportRequest): Buffer =>
+      Buffer.from(DeleteSavedReportRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteSavedReportRequest =>
+      DeleteSavedReportRequest.decode(value),
+    responseSerialize: (value: DeleteSavedReportResponse): Buffer =>
+      Buffer.from(DeleteSavedReportResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteSavedReportResponse =>
+      DeleteSavedReportResponse.decode(value),
+  },
+  /** Templates are seed/migration-owned. Read-only here. */
+  listReportTemplates: {
+    path: '/adopt_dont_shop.audit.v1.AuditQueryService/ListReportTemplates' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListReportTemplatesRequest): Buffer =>
+      Buffer.from(ListReportTemplatesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListReportTemplatesRequest =>
+      ListReportTemplatesRequest.decode(value),
+    responseSerialize: (value: ListReportTemplatesResponse): Buffer =>
+      Buffer.from(ListReportTemplatesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListReportTemplatesResponse =>
+      ListReportTemplatesResponse.decode(value),
+  },
 } as const;
 
 export interface AuditQueryServiceServer extends UntypedServiceImplementation {
@@ -1039,6 +2867,21 @@ export interface AuditQueryServiceServer extends UntypedServiceImplementation {
    * notifications.*, moderation.* events tied to it).
    */
   getByTarget: handleUnaryCall<GetByTargetRequest, GetByTargetResponse>;
+  /**
+   * --- Saved reports admin -------------------------------------------
+   * CRUD over the audit.saved_reports table that backs the SPA's
+   * "saved analytics reports" surface. Permissions:
+   *   reports.read[/own] for reads, reports.create / update / delete
+   *   for writes. Self-ownership applies to reads when the principal
+   *   doesn't have :any.
+   */
+  listSavedReports: handleUnaryCall<ListSavedReportsRequest, ListSavedReportsResponse>;
+  getSavedReport: handleUnaryCall<GetSavedReportRequest, GetSavedReportResponse>;
+  createSavedReport: handleUnaryCall<CreateSavedReportRequest, CreateSavedReportResponse>;
+  updateSavedReport: handleUnaryCall<UpdateSavedReportRequest, UpdateSavedReportResponse>;
+  deleteSavedReport: handleUnaryCall<DeleteSavedReportRequest, DeleteSavedReportResponse>;
+  /** Templates are seed/migration-owned. Read-only here. */
+  listReportTemplates: handleUnaryCall<ListReportTemplatesRequest, ListReportTemplatesResponse>;
 }
 
 export interface AuditQueryServiceClient extends Client {
@@ -1085,6 +2928,105 @@ export interface AuditQueryServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetByTargetResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * --- Saved reports admin -------------------------------------------
+   * CRUD over the audit.saved_reports table that backs the SPA's
+   * "saved analytics reports" surface. Permissions:
+   *   reports.read[/own] for reads, reports.create / update / delete
+   *   for writes. Self-ownership applies to reads when the principal
+   *   doesn't have :any.
+   */
+  listSavedReports(
+    request: ListSavedReportsRequest,
+    callback: (error: ServiceError | null, response: ListSavedReportsResponse) => void
+  ): ClientUnaryCall;
+  listSavedReports(
+    request: ListSavedReportsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListSavedReportsResponse) => void
+  ): ClientUnaryCall;
+  listSavedReports(
+    request: ListSavedReportsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListSavedReportsResponse) => void
+  ): ClientUnaryCall;
+  getSavedReport(
+    request: GetSavedReportRequest,
+    callback: (error: ServiceError | null, response: GetSavedReportResponse) => void
+  ): ClientUnaryCall;
+  getSavedReport(
+    request: GetSavedReportRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetSavedReportResponse) => void
+  ): ClientUnaryCall;
+  getSavedReport(
+    request: GetSavedReportRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetSavedReportResponse) => void
+  ): ClientUnaryCall;
+  createSavedReport(
+    request: CreateSavedReportRequest,
+    callback: (error: ServiceError | null, response: CreateSavedReportResponse) => void
+  ): ClientUnaryCall;
+  createSavedReport(
+    request: CreateSavedReportRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateSavedReportResponse) => void
+  ): ClientUnaryCall;
+  createSavedReport(
+    request: CreateSavedReportRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreateSavedReportResponse) => void
+  ): ClientUnaryCall;
+  updateSavedReport(
+    request: UpdateSavedReportRequest,
+    callback: (error: ServiceError | null, response: UpdateSavedReportResponse) => void
+  ): ClientUnaryCall;
+  updateSavedReport(
+    request: UpdateSavedReportRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateSavedReportResponse) => void
+  ): ClientUnaryCall;
+  updateSavedReport(
+    request: UpdateSavedReportRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateSavedReportResponse) => void
+  ): ClientUnaryCall;
+  deleteSavedReport(
+    request: DeleteSavedReportRequest,
+    callback: (error: ServiceError | null, response: DeleteSavedReportResponse) => void
+  ): ClientUnaryCall;
+  deleteSavedReport(
+    request: DeleteSavedReportRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteSavedReportResponse) => void
+  ): ClientUnaryCall;
+  deleteSavedReport(
+    request: DeleteSavedReportRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteSavedReportResponse) => void
+  ): ClientUnaryCall;
+  /** Templates are seed/migration-owned. Read-only here. */
+  listReportTemplates(
+    request: ListReportTemplatesRequest,
+    callback: (error: ServiceError | null, response: ListReportTemplatesResponse) => void
+  ): ClientUnaryCall;
+  listReportTemplates(
+    request: ListReportTemplatesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListReportTemplatesResponse) => void
+  ): ClientUnaryCall;
+  listReportTemplates(
+    request: ListReportTemplatesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListReportTemplatesResponse) => void
   ): ClientUnaryCall;
 }
 

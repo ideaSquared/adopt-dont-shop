@@ -51,6 +51,7 @@ import { registerSupportRoutes } from './routes/support.js';
 import { registerModerationRoutes } from './routes/moderation.js';
 import { registerNotificationsRoutes } from './routes/notifications.js';
 import { registerPetsRoutes } from './routes/pets.js';
+import { registerReportsRoutes } from './routes/reports.js';
 import { registerRescueRoutes } from './routes/rescue.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
 import { registerSessionsRoutes } from './routes/sessions.js';
@@ -213,6 +214,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.auditClient && cutover.audit) {
     await registerAuditRoutes(server, { client: opts.auditClient });
+    // /api/v1/reports/* — saved reports + templates. Owned by
+    // service.audit (same gRPC stub). Shares the audit cutover flag
+    // because the audit service ships the rows.
+    await registerReportsRoutes(server, { client: opts.auditClient });
   }
   if (opts.matchingClient && cutover.matching) {
     await registerMatchingRoutes(server, { client: opts.matchingClient });
