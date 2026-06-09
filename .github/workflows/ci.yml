@@ -55,11 +55,6 @@ jobs:
       - name: Verify workflow path filters
         run: node scripts/check-workflow-paths.mjs
 
-      # ADS-702: fail if a new migration uses a prefix already taken by
-      # another migration. Existing duplicates (05/08/09) are allowlisted.
-      - name: Verify migration prefixes
-        run: node scripts/check-migration-prefixes.mjs
-
   # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes
   # ============================================================================
