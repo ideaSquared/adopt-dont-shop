@@ -19,11 +19,11 @@ x-logging: &default-logging
 # + Redis and migrates its own schema on start (entrypoint runs
 # `npm run db:migrate --if-present`).
 #
-# NOTE (post-monolith cleanup): the per-service production env contract here is
-# adapted from the dev compose. DATABASE_URL is composed from the db_password
-# Docker secret via shell interpolation at container start; review per-service
-# env (TLS, pool sizes, service-specific secrets) before relying on this for a
-# real deploy.
+# Credentials are sourced from file-mounted Docker secrets via the shared
+# `@adopt-dont-shop/config-secrets` loader (readSecret/requireSecret) — each
+# service reads e.g. DATABASE_URL_FILE / JWT_SECRET_FILE instead of the raw
+# env value. The loader also accepts plaintext env vars (NAME=…) as a
+# documented escape hatch, which is what the dev compose still uses.
 # ----------------------------------------------------------------------------
 x-service-common: &service-common
   restart: always
@@ -37,6 +37,12 @@ x-service-common: &service-common
       condition: service_healthy
     nats:
       condition: service_healthy
+  # Default secret mounts for every domain service: DATABASE_URL_FILE +
+  # REDIS_URL_FILE come from these. Services that need additional secrets
+  # (auth → jwt; gateway → upload signing) override this list.
+  secrets:
+    - database_url
+    - redis_url
   deploy:
     resources:
       limits:
@@ -48,13 +54,13 @@ x-service-common: &service-common
 
 x-service-env: &service-env
   NODE_ENV: production
-  # DATABASE_URL mirrors the dev compose anchor. POSTGRES_PASSWORD must be set
-  # in the staging host .env (alongside the db_password secret file used by the
-  # database container). See the post-monolith cleanup note above — moving the
-  # services onto file-mounted secrets is a follow-up.
-  DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required for service DATABASE_URL}@database:5432/${POSTGRES_DB}"
+  # The loader (@adopt-dont-shop/config-secrets) reads ${NAME}_FILE when set
+  # and falls back to ${NAME} otherwise. Staging gives every service the file
+  # path; the deploy workflow materialises ./secrets/<name> on the host before
+  # `docker compose up -d`.
+  DATABASE_URL_FILE: /run/secrets/database_url
   NATS_URL: "nats://nats:4222"
-  REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+  REDIS_URL_FILE: /run/secrets/redis_url
 
 services:
   database:
@@ -174,6 +180,10 @@ services:
       CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required}"
       # Staging has no per-stack nginx; the gateway serves /uploads itself.
       SERVE_LOCAL_UPLOADS: "true"
+      UPLOAD_SIGNING_SECRET_FILE: /run/secrets/upload_signing_secret
+    # Gateway has no DB; it only needs the upload-signing secret.
+    secrets:
+      - upload_signing_secret
     volumes:
       - uploads:/app/uploads
     expose:
@@ -195,8 +205,14 @@ services:
     container_name: ads_staging_auth
     environment:
       <<: *service-env
-      JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET required}"
-      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}"
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      JWT_REFRESH_SECRET_FILE: /run/secrets/jwt_refresh_secret
+    # Auth needs the JWT signing secrets on top of the common DB/Redis ones.
+    secrets:
+      - database_url
+      - redis_url
+      - jwt_secret
+      - jwt_refresh_secret
     expose:
       - "5002"
     healthcheck:
@@ -439,16 +455,21 @@ networks:
 # Docker Secrets (ADS-752)
 # ============================================================================
 # Mounted as in-memory tmpfs files at /run/secrets/<name>; never written to
-# disk and invisible to `docker inspect`. The database reads db_password via
-# POSTGRES_PASSWORD_FILE. The deploy workflow (.github/workflows/deploy.yml)
-# materialises secrets/db_password on the host before `docker compose up -d`.
-#
-# TODO (post-monolith): the gRPC services currently take JWT/Redis/DB creds via
-# plaintext env interpolation (POSTGRES_PASSWORD / JWT_SECRET / REDIS_PASSWORD
-# in the host .env). Moving them onto file-mounted secrets — as the monolith
-# did via readSecretOrEnv() — is a follow-up once each service grows a
-# secret-file loader. The jwt_secret/session_secret/etc. files the monolith
-# consumed are no longer wired here.
+# disk and invisible to `docker inspect`. The database container reads
+# db_password via POSTGRES_PASSWORD_FILE; the gRPC services read every other
+# credential through the @adopt-dont-shop/config-secrets loader (NAME_FILE wins
+# over NAME). The deploy workflow (.github/workflows/deploy.yml) materialises
+# these files on the host before `docker compose up -d`.
 secrets:
   db_password:
     file: ./secrets/db_password
+  database_url:
+    file: ./secrets/database_url
+  redis_url:
+    file: ./secrets/redis_url
+  jwt_secret:
+    file: ./secrets/jwt_secret
+  jwt_refresh_secret:
+    file: ./secrets/jwt_refresh_secret
+  upload_signing_secret:
+    file: ./secrets/upload_signing_secret

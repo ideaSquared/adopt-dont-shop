@@ -1,3 +1,5 @@
+import { readSecret } from '@adopt-dont-shop/config-secrets';
+
 export type ModerationConfig = {
   // HTTP port for the boot-readiness surface (/health/simple). Distinct
   // from every other service in the stack (5000 backend, 4000 gateway,
@@ -34,7 +36,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ModerationConf
   const port = parsePort(env.MODERATION_PORT, DEFAULT_PORT, 'MODERATION_PORT');
   const grpcPort = parsePort(env.MODERATION_GRPC_PORT, DEFAULT_GRPC_PORT, 'MODERATION_GRPC_PORT');
 
-  const databaseUrl = env.DATABASE_URL?.trim();
+  const databaseUrl = readSecret('DATABASE_URL', env)?.trim();
   if (!databaseUrl) {
     throw new Error('DATABASE_URL is required (Postgres connection string)');
   }
