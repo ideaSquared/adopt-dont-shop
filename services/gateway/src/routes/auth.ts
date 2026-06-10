@@ -110,7 +110,30 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/login',
-    { config: { rateLimit: AUTH_RATE_LIMITS.login } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.login },
+      schema: {
+        tags: ['auth'],
+        summary: 'Exchange email + password for an access token',
+        // Login is unauthenticated — override the document-level
+        // bearerAuth requirement so the Swagger UI doesn't ask for a
+        // token before letting the user try it.
+        security: [],
+        // Body shape is documentation-only here: we deliberately don't
+        // mark email/password as `required` and don't constrain `format`,
+        // so the existing handler keeps full control of validation
+        // (returns the gRPC INVALID_ARGUMENT → 400 the SPA already
+        // expects). The OpenAPI doc still tells consumers what to send.
+        body: {
+          type: 'object',
+          properties: {
+            email: { type: 'string' },
+            password: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as LoginBody;
       const grpcReq: LoginRequest = {
@@ -163,7 +186,13 @@ export const registerAuthRoutes = async (
 
   app.get(
     '/api/v1/auth/me',
-    { config: { rateLimit: AUTH_RATE_LIMITS.getMe } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.getMe },
+      schema: {
+        tags: ['auth'],
+        summary: 'Return the principal resolved from the Bearer token',
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.getMe({}, buildMetadata(req));

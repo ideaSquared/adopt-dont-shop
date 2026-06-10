@@ -157,6 +157,56 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // hook. Substrate only — no domain-specific instruments here.
   registerMetrics(server);
 
+  // OpenAPI spec generation. Register @fastify/swagger BEFORE any route
+  // plugins so it can collect their `schema` blocks as they register —
+  // the plugin works by hooking onRoute, which only fires for routes
+  // added AFTER registration. @fastify/swagger-ui mounts the human-
+  // browsable UI at /docs and the machine-readable JSON at /openapi.json
+  // (we override the default /documentation/json so external integrators
+  // get a predictable URL).
+  //
+  // The Bearer security scheme is declared at the document level and
+  // applied as the default `security` so the Swagger UI "Authorize"
+  // button works. Public routes (login, register, health) override with
+  // `security: []` in their per-route schema.
+  //
+  // /docs and /openapi.json stay open in this PR — the spec doesn't
+  // reveal anything beyond the route URLs already visible in the
+  // codebase. TODO: a follow-up may want to gate /docs behind admin
+  // auth once we have an admin-only route group to lean on.
+  const { default: swagger } = await import('@fastify/swagger');
+  const { default: swaggerUi } = await import('@fastify/swagger-ui');
+  await server.register(swagger, {
+    openapi: {
+      info: {
+        title: 'adopt-dont-shop gateway API',
+        description:
+          'REST surface for the adopt-dont-shop gateway. Fan-out routes proxy to ' +
+          'extracted gRPC services; gateway-folded routes (legal, config, ' +
+          'analytics, dashboard, uploads) are served in-process.',
+        version: '1.0.0',
+      },
+      servers: [{ url: '/' }],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+          },
+        },
+      },
+      security: [{ bearerAuth: [] }],
+    },
+  });
+  await server.register(swaggerUi, {
+    routePrefix: '/docs',
+  });
+  // Mirror the spec at the conventional /openapi.json path so external
+  // integrators don't have to know about the swagger-ui-specific
+  // /documentation/json URL.
+  server.get('/openapi.json', async () => server.swagger());
+
   // Health endpoint — matches service.backend's `/health/simple` path
   // so the Docker compose healthcheck (already wired in the broader
   // stack) Just Works once the gateway is added.
