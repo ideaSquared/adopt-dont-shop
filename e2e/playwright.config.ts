@@ -20,10 +20,10 @@ export const AUTH_FILES = {
 } as const;
 
 // Phase 11 follow-up: the legacy app.client / app.rescue / app.admin
-// projects below are temporarily restricted to a single placeholder spec
-// (`tests/_disabled.spec.ts`) that test.skip()s itself with a TODO so the
-// Playwright run reports the skip count instead of crashing on storageState
-// / contract changes.
+// projects below are temporarily parked — every spec under their testDirs
+// is matched by `testIgnore: PARKED_TESTS` so none execute. The projects
+// remain in the config (rather than being deleted) so storageState wiring
+// and project naming stay stable while the rework lands.
 //
 // Why each project is parked rather than removed:
 //   1. The monolith's CSRF + httpOnly-cookie contract is gone; lib.auth
