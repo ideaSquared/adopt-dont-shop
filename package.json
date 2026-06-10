@@ -89,7 +89,6 @@
     "check:workflow-paths": "node scripts/check-workflow-paths.mjs",
     "hooks:enable": "touch .husky/.prepush-enabled && echo 'pre-push hook enabled (runs ci:local:quick on git push)'",
     "hooks:disable": "rm -f .husky/.prepush-enabled && echo 'pre-push hook disabled'",
-    "ratchet:coverage": "node scripts/ratchet-coverage.mjs",
     "new-app": "node scripts/create-new-app.js",
     "new-lib": "node scripts/create-new-lib.js",
     "generate:attachments": "node scripts/generate-test-attachments.js"

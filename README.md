@@ -1,6 +1,6 @@
 # Adopt Don't Shop — Pet Adoption Platform
 
-A monorepo containing three React frontends, a Node.js/Express backend, and shared libraries for connecting rescue organizations with potential adopters.
+A monorepo containing three React frontends, a Fastify API gateway fronting a fleet of Node.js gRPC microservices, and shared libraries for connecting rescue organizations with potential adopters.
 
 ## Quick Start
 
@@ -34,7 +34,7 @@ That's it. `npm run setup` is the one-shot bootstrap and it will:
 5. Build shared libraries (required by apps)
 6. Run `npm run validate:env` to surface any remaining required values
 7. Install Playwright browsers so `npm run test:e2e` works out of the box (~200 MB download)
-8. Offer to start the docker dev stack and wait until `http://localhost:5000/health` returns 200
+8. Offer to start the docker dev stack and wait until the nginx edge `http://localhost/health` returns 200
 
 Skip the Playwright step with `npm run setup -- --skip-playwright` if you don't plan to run E2E tests locally; install them later with `npm run test:e2e:install`.
 
@@ -55,9 +55,8 @@ You'll need Postgres + Redis running locally. The quickest option is to let Dock
 
 ```bash
 npm run dev:services        # start Postgres + Redis in Docker (detached)
-npm run dev                 # all packages via Turbo
+npm run dev                 # all packages via Turbo (apps + gateway + services)
 npm run dev:apps            # frontend apps only
-npm run dev:backend         # backend only
 ```
 
 ### Access
@@ -67,8 +66,8 @@ npm run dev:backend         # backend only
 | Client | http://localhost:3000 | Public adoption portal |
 | Admin | http://localhost:3001 | Internal management |
 | Rescue | http://localhost:3002 | Rescue organization portal |
-| Backend API | http://localhost:5000 | REST + WebSocket |
-| Nginx proxy | http://localhost | Reverse proxy (subdomains: api, admin, rescue) |
+| API gateway | http://localhost:4000 | Fastify REST + WebSocket edge (health: `/health/simple`) |
+| Nginx proxy | http://localhost | Reverse proxy (subdomains: api, admin, rescue); `/api` + `/socket.io` route to the gateway |
 
 ## Project Structure
 
@@ -77,10 +76,17 @@ adopt-dont-shop/
 ├── app.admin/          # Internal management (React + Vite)
 ├── app.client/         # Public adoption portal (React + Vite)
 ├── app.rescue/         # Rescue organization portal (React + Vite)
-├── service.backend/    # API server (Express + Sequelize + PostgreSQL)
+├── services/           # Fastify gateway + gRPC microservices
+│   ├── gateway/        # REST/WS edge (port 4000) — fronts every service
+│   ├── auth/           notifications/  pets/         rescue/
+│   ├── applications/   chat/           moderation/   matching/
+│   └── cms/            audit/          # one Node gRPC service per domain
+├── packages/           # Service-only shared packages (proto, events, authz, db, observability)
 ├── lib.*               # Shared libraries (api, auth, chat, components, types, etc.)
-├── docker-compose.yml          # Dev stack
+├── docker-compose.yml          # Dev stack (gateway + services + apps under the `full` profile)
+├── docker-compose.staging.yml  # Staging (pre-built GHCR images)
 ├── docker-compose.prod.yml     # Production overlay
+├── Dockerfile.service          # Parameterised image for the gateway + services
 ├── Dockerfile.app.optimized    # Multi-stage frontend Dockerfile
 └── docs/                       # Detailed guides
 ```
@@ -89,9 +95,8 @@ adopt-dont-shop/
 
 ```bash
 # Dev (Docker)
-npm run docker:dev               # start
+npm run docker:dev               # start full stack (gateway + services + apps)
 npm run docker:logs              # follow logs
-npm run docker:shell:backend     # shell into backend
 npm run docker:shell:db          # psql into database
 npm run docker:reset             # nuke containers + volumes (DESTROYS data)
 
@@ -108,20 +113,16 @@ npm run format / format:check
 npm run ci:local:quick           # fast preflight (~30s): format + lint + type-check
 npm run ci:local                 # full preflight (~3-5min): everything CI runs
 
-# Database (containers must be running)
-npm run db:migrate
-npm run db:seed
-npm run db:reset                 # migrate + seed
-
-# Production (smoke test)
-npm run prod:build
-npm run prod:up
-npm run prod:down
+# Database — each service migrates its own schema automatically on container
+# start (the entrypoint runs `npm run db:migrate --if-present`). To migrate a
+# single service by hand, exec into its container, e.g.:
+npm run docker:shell:db          # psql into the shared database
+docker compose exec service-auth npm run db:migrate
 
 # Per-package — use Turbo's --filter directly
 npx turbo dev --filter=@adopt-dont-shop/lib.api
 npx turbo build --filter=@adopt-dont-shop/app.admin
-npx turbo test --filter=@adopt-dont-shop/service-backend
+npx turbo test --filter=@adopt-dont-shop/service.gateway
 ```
 
 ## Hot Reload
@@ -129,14 +130,14 @@ npx turbo test --filter=@adopt-dont-shop/service-backend
 The Docker dev stack is configured for HMR on Windows/macOS/Linux:
 
 - **Frontend apps** — Vite HMR with polling (`CHOKIDAR_USEPOLLING=true`). Edits to `app.*/src/**` and `lib.*/src/**` reload in the browser within ~1-2 seconds.
-- **Backend** — `tsx watch` reloads on edits to `service.backend/src/**` within ~1 second.
-- **lib.types** — the `lib-types-watcher` sidecar runs `tsc --watch` and writes to `dist/` continuously; the backend picks up changes automatically via the workspace symlink.
+- **Gateway + services** — `tsx watch` reloads each on edits to its `services/<name>/src/**` within ~1 second.
+- **lib.types** — the `lib-types-watcher` sidecar runs `tsc --watch` and writes to `dist/` continuously; the services pick up changes automatically via the workspace symlink.
 - **Other libraries** (`lib.api`, `lib.auth`, etc.) — Vite aliases point at their `src/` folders, so HMR picks up changes automatically.
 
 ## Tech Stack
 
 **Frontend:** React 19, TypeScript, Vite, vanilla-extract, React Router, React Query, Socket.io
-**Backend:** Node.js 22, Express, TypeScript, Sequelize, PostgreSQL 16 + PostGIS, Redis 7, Socket.io, JWT
+**Backend:** Node.js 22, Fastify (gateway), gRPC microservices, TypeScript, Sequelize, PostgreSQL 16 + PostGIS, Redis 7, NATS JetStream, Socket.io, JWT
 **Tooling:** Turborepo, Docker (BuildKit), Nginx, GitHub Actions
 
 ## Environment Configuration
@@ -153,17 +154,17 @@ JWT_REFRESH_SECRET=<auto-generated by npm run setup>
 SESSION_SECRET=<auto-generated by npm run setup>
 CSRF_SECRET=<auto-generated by npm run setup>
 
-VITE_API_BASE_URL=        # empty in Docker (uses Vite proxy)
-VITE_WS_BASE_URL=ws://localhost:5000
+VITE_API_BASE_URL=        # empty in Docker (uses Vite proxy → nginx → gateway)
+VITE_WS_BASE_URL=ws://localhost:4000
 ```
 
 ### Rotating secrets
 
 To replace all JWT / session / CSRF / encryption secrets (e.g. after a suspected compromise), run `npm run secrets:generate` and append the output to your `.env`.
 
-CORS origins are defined once in the root `.env` (`CORS_ORIGIN`), covering both direct container access and nginx-proxied subdomains. After changing CORS, restart the backend: `docker compose restart service-backend`.
+CORS origins are defined once in the root `.env` (`CORS_ORIGIN`), covering both direct container access and nginx-proxied subdomains. After changing CORS, restart the gateway: `docker compose restart service-gateway`.
 
-All API endpoints live under `/api/v1/` (e.g. `/api/v1/auth/login`). Swagger UI: http://localhost:5000/api/docs (or http://api.localhost/api/docs via the nginx proxy).
+All API endpoints live under `/api/v1/` (e.g. `/api/v1/auth/login`) and are served by the gateway on port 4000 (or via the nginx proxy at http://api.localhost).
 
 ## Deployment
 
@@ -184,7 +185,7 @@ make history               # list recent commits to pick a rollback target
 - [docs/dependency-graph.md](./docs/dependency-graph.md) — Turbo dependency graph generator and layered architecture guide
 - [docs/README.md](./docs/README.md) — full documentation index
 - [docs/libraries/](./docs/libraries/) — per-library reference
-- [service.backend/README.md](./service.backend/README.md) — backend service
+- [services/gateway/README.md](./services/gateway/README.md) — API gateway
 - [lib.components/README.md](./lib.components/README.md) — UI components
 
 ## Troubleshooting
@@ -198,7 +199,7 @@ npm run docker:dev:build         # rebuild images from scratch
 
 Common issues:
 
-- **Port conflict** — check 3000-3002, 5000, 5432, 6379 are free
+- **Port conflict** — check 3000-3002 (apps), 4000 (gateway), 5001-5010 (services), 5432 (Postgres), 6379 (Redis), 4222/8222 (NATS) are free
 - **HMR not firing** — verify `CHOKIDAR_USEPOLLING=true` is set in container env (it is by default in `docker-compose.yml`)
 - **Slow builds** — ensure BuildKit is on: `export DOCKER_BUILDKIT=1`
 

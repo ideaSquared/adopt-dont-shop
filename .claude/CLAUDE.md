@@ -80,7 +80,7 @@ We follow Test-Driven Development (TDD) with a strong emphasis on behaviour-driv
 **Preferred Tools:**
 
 - **Language**: TypeScript (strict mode)
-- **Testing**: Vitest everywhere (`lib.*`, `service.backend`, `app.*`) + React Testing Library for React
+- **Testing**: Vitest everywhere (`lib.*`, `services/*`, `app.*`) + React Testing Library for React
 - **State Management**: Prefer immutable patterns
 
 ---
@@ -96,7 +96,13 @@ adopt-dont-shop/
 ├── app.admin/          # Admin dashboard (React + Vite)
 ├── app.client/         # Client-facing app (React + Vite)
 ├── app.rescue/         # Rescue organization app (React + Vite)
-├── service.backend/    # API server (Express + Sequelize)
+├── services/           # Fastify gateway + gRPC microservices (replaces the
+│   │                   #   deleted service.backend monolith — phase 11)
+│   ├── gateway/        # REST/WS edge on port 4000 (health: /health/simple)
+│   ├── auth/ notifications/ pets/ rescue/ applications/
+│   └── chat/ moderation/ matching/ cms/ audit/
+├── packages/           # Service-only shared packages (proto, events, authz,
+│                       #   db, observability, storage)
 └── lib.*/             # Shared libraries (24 packages)
     ├── lib.analytics
     ├── lib.api
@@ -130,7 +136,8 @@ adopt-dont-shop/
 
 - Apps: `@adopt-dont-shop/app.*` (e.g. `@adopt-dont-shop/app.admin`)
 - Libraries: `@adopt-dont-shop/lib.*` (e.g. `@adopt-dont-shop/lib.api`)
-- Service: `@adopt-dont-shop/service-backend` (hyphen, not dot)
+- Services: `@adopt-dont-shop/service.*` (e.g. `@adopt-dont-shop/service.gateway`, `@adopt-dont-shop/service.auth`)
+- Service-only shared packages: `@adopt-dont-shop/<name>` under `packages/` (e.g. `@adopt-dont-shop/proto`)
 
 **Key Scripts:**
 
@@ -142,13 +149,12 @@ npm run docker:dev:detach      # Start in background
 npm run docker:down            # Stop containers
 npm run docker:reset           # Stop and wipe volumes (incl. DB)
 npm run docker:logs            # Follow logs
-npm run docker:shell:backend   # Shell into backend container
 npm run docker:shell:db        # Open psql in database container
 
 # Native dev (no Docker — fastest HMR but you must run Postgres yourself)
-npm run dev                    # Run everything via Turbo
+npm run dev                    # Run everything via Turbo (apps + gateway + services)
 npm run dev:apps               # Frontend apps only
-npm run dev:backend            # Backend only
+npm run dev:services           # Start Postgres + Redis in Docker (detached)
 
 # Build / test / quality
 npm run build                  # Build everything (Turbo handles ordering)
@@ -159,24 +165,22 @@ npm run lint / lint:fix        # Lint
 npm run type-check             # TypeScript type-check
 npm run format / format:check  # Prettier
 
-# Database (run inside backend container — requires docker:dev to be running)
-npm run db:migrate             # Run migrations
-npm run db:seed                # Seed database
-npm run db:reset               # Migrate + seed
+# Database — each service migrates its own schema automatically when its
+# container starts (entrypoint runs `npm run db:migrate --if-present`). To
+# migrate one service by hand (containers must be running):
+docker compose exec service-auth npm run db:migrate
 
-# Production (Docker)
-npm run prod:build             # Build production images
-npm run prod:up                # Start production stack (detached)
-npm run prod:down              # Stop production stack
+# Production / staging (Docker — pulls pre-built GHCR images, requires DEPLOY_SHA)
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.staging.yml up -d
 
 # Utilities
-npm run secrets:generate       # Print fresh JWT/session/CSRF secrets for .env
 npm run validate:env           # Validate .env against required vars
 
 # Per-package commands — use Turbo's --filter flag directly:
 npx turbo dev --filter=@adopt-dont-shop/lib.api
 npx turbo build --filter=@adopt-dont-shop/app.admin
-npx turbo test --filter=@adopt-dont-shop/service-backend
+npx turbo test --filter=@adopt-dont-shop/service.gateway
 ```
 
 **Important Monorepo Rules:**
@@ -202,7 +206,7 @@ npx turbo test --filter=@adopt-dont-shop/service-backend
 
 #### Testing Tools
 
-- **Vitest** — used by every workspace package: the React apps (`app.admin`, `app.client`, `app.rescue`), `service.backend`, and every `lib.*` (each ships a `vitest.config.ts` and an `npm test` script that runs `vitest run`)
+- **Vitest** — used by every workspace package: the React apps (`app.admin`, `app.client`, `app.rescue`), every `services/*` and `packages/*`, and every `lib.*` (each ships a `vitest.config.ts` and an `npm test` script that runs `vitest run`)
 - **React Testing Library** for React components
 - **MSW (Mock Service Worker)** for API mocking when needed
 - All test code must follow the same TypeScript strict mode rules as production code
