@@ -23,6 +23,50 @@ x-logging: &default-logging
     max-size: "50m"
     max-file: "5"
 
+# ----------------------------------------------------------------------------
+# Shared config for the extracted gRPC services (replaces the service.backend
+# monolith, deleted in phase 11). Mirrors the dev docker-compose.yml `*-env` /
+# `*-deps` anchors but for the prebuilt-image production stack. Every service
+# shares one Postgres (schema-per-service) + NATS + Redis and migrates its own
+# schema on start (entrypoint runs `npm run db:migrate --if-present`).
+#
+# TODO (post-monolith hardening): the monolith read JWT / session / CSRF /
+# encryption / upload-signing / db / redis secrets from file-mounted Docker
+# secrets via readSecretOrEnv(). The extracted services don't yet have a
+# secret-file loader, so credentials are passed via env interpolation
+# (POSTGRES_PASSWORD / JWT_SECRET / REDIS_PASSWORD from the host .env). Re-wire
+# onto file-mounted secrets once each service grows that loader.
+# ----------------------------------------------------------------------------
+x-service-common: &service-common
+  restart: always
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  logging: *default-logging
+  depends_on:
+    database:
+      condition: service_healthy
+    nats:
+      condition: service_healthy
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 512m
+      reservations:
+        cpus: '0.1'
+        memory: 128m
+
+x-service-env: &service-env
+  NODE_ENV: production
+  DATABASE_URL: "postgresql://${POSTGRES_USER:?Error: POSTGRES_USER required}:${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required}@database:5432/${POSTGRES_DB:?Error: POSTGRES_DB required}"
+  NATS_URL: "nats://nats:4222"
+  REDIS_URL: "redis://:${REDIS_PASSWORD:?Error: REDIS_PASSWORD required}@redis:6379"
+
 services:
   # Database - Production configuration
   database:
@@ -129,153 +173,194 @@ services:
           cpus: '0.25'
           memory: 128m
 
-  # Migration runner - one-shot init container that applies pending migrations
-  # before the backend starts. Skipping this leaves the running service hitting
-  # a stale schema on every release. [ADS-393]
-  service-backend-migrate:
-    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
-    container_name: ads_prod_backend_migrate
-    restart: 'no'
-    command: ['node', 'dist/migrations/runner.js', 'up']
-    working_dir: /app/service.backend
-    environment:
-      NODE_ENV: production
-      DB_HOST: database
-      DB_PORT: 5432
-      DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
-      # DB_PASSWORD is read from the db_password Docker secret at
-      # /run/secrets/db_password via readSecretOrEnv(). [ADS-675]
-      PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
-      # ADS-540: enforce TLS on the DB link. In-cluster Postgres on the
-      # docker network can opt out via ALLOW_INSECURE_DB=true; managed
-      # Postgres should leave DB_SSL_MODE=require (or verify-full + CA).
-      DB_SSL_MODE: ${DB_SSL_MODE:-require}
-      ALLOW_INSECURE_DB: ${ALLOW_INSECURE_DB:-}
-      DB_SSL_ROOT_CERT: ${DB_SSL_ROOT_CERT:-}
-    secrets:
-      - db_password
-    depends_on:
-      database:
-        condition: service_healthy
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    logging: *default-logging
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512m
+  # ==========================================================================
+  # GATEWAY + EXTRACTED MICROSERVICES (replaces the service.backend monolith,
+  # deleted in phase 11). The gateway is the REST/WS edge on :4000; the
+  # per-stack nginx proxies /api, /auth, /socket.io and /uploads to it. Each
+  # domain service exposes HTTP health on :500x and gRPC on :600x. Service
+  # *compose keys* (service-auth, …) are the DNS names the gateway's gRPC URL
+  # defaults resolve, so the gateway needs no explicit *_GRPC_URL env.
+  # ==========================================================================
 
-  # Backend Service - Production
-  service-backend:
-    image: ghcr.io/ideasquared/adopt-dont-shop/backend:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
-    container_name: ads_prod_backend
-    restart: always
+  service-gateway:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-gateway:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    container_name: ads_prod_gateway
     environment:
       NODE_ENV: production
-      PORT: 5000
-      # Database - NO DEFAULTS
-      DB_HOST: database
-      DB_PORT: 5432
-      DB_USERNAME: "${POSTGRES_USER:?Error: POSTGRES_USER required}"
-      # DB_PASSWORD is provided via the db_password Docker secret (/run/secrets/db_password);
-      # readSecretOrEnv() reads the file first. [ADS-675]
-      PROD_DB_NAME: "${POSTGRES_DB:?Error: POSTGRES_DB required}"
-      DB_POOL_MAX: ${DB_POOL_MAX:-20}
-      DB_POOL_MIN: ${DB_POOL_MIN:-5}
-      # ADS-540: enforce TLS on the DB link. See migrate service above.
-      DB_SSL_MODE: ${DB_SSL_MODE:-require}
-      ALLOW_INSECURE_DB: ${ALLOW_INSECURE_DB:-}
-      DB_SSL_ROOT_CERT: ${DB_SSL_ROOT_CERT:-}
-      # Redis - NO DEFAULTS
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      # REDIS_PASSWORD / JWT_SECRET / JWT_REFRESH_SECRET / SESSION_SECRET /
-      # CSRF_SECRET / ENCRYPTION_KEY are provided via Docker secrets mounted at
-      # /run/secrets/<name>; the backend reads them via readSecretOrEnv(). Do
-      # not duplicate them as plaintext env vars — secrets files take priority
-      # and plaintext would be visible in `docker inspect`. [ADS-675]
-      # URLs
-      API_URL: "${API_URL:?Error: API_URL required}"
+      NATS_URL: "nats://nats:4222"
       CORS_ORIGIN: "${CORS_ORIGIN:?Error: CORS_ORIGIN required}"
-      # ADS-410: backend builds password-reset / verification / invitation
-      # email links from these. Without them, every email links to localhost.
-      FRONTEND_URL: "${FRONTEND_URL:?Error: FRONTEND_URL required (used to build email links)}"
-      RESCUE_FRONTEND_URL: "${RESCUE_FRONTEND_URL:?Error: RESCUE_FRONTEND_URL required (used to build rescue invitation links)}"
-      # Email (required for production)
-      EMAIL_PROVIDER: "${EMAIL_PROVIDER:?Error: EMAIL_PROVIDER required}"
-      EMAIL_FROM: "${EMAIL_FROM:?Error: EMAIL_FROM required}"
-      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-${EMAIL_FROM}}
-      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-${EMAIL_FROM}}
-      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-${EMAIL_FROM}}
-      # ADS-411: feature flags silently default-off without this key.
-      STATSIG_SERVER_SECRET_KEY: "${STATSIG_SERVER_SECRET_KEY:?Error: STATSIG_SERVER_SECRET_KEY required (server-side feature flags silently disabled when missing)}"
-      # ADS-451: optional / operational
-      WORKER_ENABLED: ${WORKER_ENABLED:-false}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-      LOG_DIR: ${LOG_DIR:-logs}
-      SMS_DEFAULT_COUNTRY_CODE: ${SMS_DEFAULT_COUNTRY_CODE:-GB}
-      JWT_REPORT_SHARE_SECRET: ${JWT_REPORT_SHARE_SECRET:-}
-      # ADS-422: nginx serves /uploads directly; disable Express fallback.
+      # ADS-422: the per-stack nginx serves /uploads via auth_request; disable
+      # the gateway's own file streaming in production.
       SERVE_LOCAL_UPLOADS: "false"
-      # Disable development features
-      FORCE_SEED: "false"
-      DB_LOGGING: "false"
-      # ADS-512: never enable raw error responses in production. The startup
-      # validator also enforces this, but make the default explicit.
-      DEBUG_ERRORS: "false"
     volumes:
-      # Only mount uploads directory in production
       - uploads:/app/uploads
-    # ADS-454/468: harden the backend container filesystem. Application code
-    # and node_modules are baked into the image; the only writable surface is
-    # the uploads volume (mounted above) and a small tmpfs for /tmp.
-    read_only: true
-    tmpfs:
-      - /tmp:size=64m,mode=1777
-    # Don't expose port directly - use nginx
     expose:
-      - "5000"
+      - "4000"
     healthcheck:
-      # ADS-545: probe /health/simple (cheap, no service detail leak).
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:5000/health/simple']
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health/simple']
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
-    # ADS-675: secrets mounted at /run/secrets/<name>; backend reads via
-    # readSecretOrEnv() with env-var fallback.
-    secrets:
-      - jwt_secret
-      - jwt_refresh_secret
-      - session_secret
-      - csrf_secret
-      - encryption_key
-      - upload_signing_secret
-      - db_password
-      - redis_password
+    # The gateway only needs NATS + the downstream services; it has no DB.
     depends_on:
-      database:
+      nats:
         condition: service_healthy
-      redis:
-        condition: service_healthy
-      service-backend-migrate:
-        condition: service_completed_successfully
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    logging: *default-logging
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 2g
-        reservations:
-          cpus: '0.5'
-          memory: 512m
+
+  service-auth:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-auth:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    container_name: ads_prod_auth
+    environment:
+      <<: *service-env
+      JWT_SECRET: "${JWT_SECRET:?Error: JWT_SECRET required}"
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}"
+    expose:
+      - "5002"
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5002/health/simple']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  service-notifications:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-notifications:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    container_name: ads_prod_notifications
+    environment:
+      <<: *service-env
+    expose:
+      - "5001"
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5001/health/simple']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  service-pets:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-pets:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    container_name: ads_prod_pets
+    environment:
+      <<: *service-env
+    expose:
+      - "5003"
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5003/health/simple']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  service-rescue:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-rescue:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    container_name: ads_prod_rescue_svc
+    environment:
+      <<: *service-env
+    expose:
+      - "5004"
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5004/health/simple']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  service-applications:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-applications:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    container_name: ads_prod_applications
+    environment:
+      <<: *service-env
+      PETS_GRPC_URL: service-pets:6003
+    expose:
+      - "5005"
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5005/health/simple']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  service-chat:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-chat:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    container_name: ads_prod_chat
+    environment:
+      <<: *service-env
+    expose:
+      - "5006"
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5006/health/simple']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  service-moderation:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-moderation:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    container_name: ads_prod_moderation
+    environment:
+      <<: *service-env
+    expose:
+      - "5007"
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5007/health/simple']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  service-matching:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-matching:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    container_name: ads_prod_matching
+    environment:
+      <<: *service-env
+      PETS_GRPC_URL: service-pets:6003
+    expose:
+      - "5008"
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5008/health/simple']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  service-audit:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-audit:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    container_name: ads_prod_audit
+    environment:
+      <<: *service-env
+    expose:
+      - "5009"
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5009/health/simple']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  service-cms:
+    <<: *service-common
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-cms:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    container_name: ads_prod_cms
+    environment:
+      <<: *service-env
+    expose:
+      - "5010"
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5010/health/simple']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # Frontend Apps - Production
   app-admin:
@@ -407,7 +492,7 @@ services:
       retries: 3
       start_period: 10s
     depends_on:
-      - service-backend
+      - service-gateway
       - app-client
       - app-admin
       - app-rescue
@@ -442,43 +527,17 @@ networks:
     external: false
 
 # ============================================================================
-# Docker Secrets (ADS-675)
+# Docker Secrets — REMOVED in the post-monolith cleanup
 # ============================================================================
-# Secrets are mounted as in-memory tmpfs files at /run/secrets/<name>, never
-# written to disk and invisible to `docker inspect`. The backend reads these
-# via readSecretOrEnv() (config/env.ts) with env-var fallback.
+# The monolith (ADS-675) consumed JWT / session / CSRF / encryption /
+# upload-signing / db / redis secrets as file-mounted Docker secrets via
+# readSecretOrEnv(). The extracted gRPC services don't yet have a secret-file
+# loader, so the stack now passes those credentials via env interpolation
+# (POSTGRES_PASSWORD / JWT_SECRET / REDIS_PASSWORD from the host .env — see the
+# x-service-env anchor at the top of this file). The database container reads
+# POSTGRES_PASSWORD directly.
 #
-# Secret files are written to ./secrets/<name> on the host by the deploy
-# workflow (deploy.yml) before `docker compose up -d` is called. Each file
-# contains only the raw secret value (no trailing newline). They are
-# chmod 600 and owned by the deploy user. The deploy workflow removes them
-# after `up -d` completes. Do NOT commit the secrets/ directory.
-#
-# To provision manually:
-#   mkdir -p secrets && chmod 700 secrets
-#   printf '%s' "$(openssl rand -base64 32)" > secrets/jwt_secret
-#   printf '%s' "$(openssl rand -base64 32)" > secrets/jwt_refresh_secret
-#   printf '%s' "$(openssl rand -base64 32)" > secrets/session_secret
-#   printf '%s' "$(openssl rand -base64 32)" > secrets/csrf_secret
-#   printf '%s' "$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")" > secrets/encryption_key
-#   printf '%s' "$(openssl rand -base64 32)" > secrets/upload_signing_secret
-#   printf '%s' "$(openssl rand -base64 32)" > secrets/db_password
-#   printf '%s' "$(openssl rand -base64 32)" > secrets/redis_password
-#   chmod 600 secrets/*
-secrets:
-  jwt_secret:
-    file: ./secrets/jwt_secret
-  jwt_refresh_secret:
-    file: ./secrets/jwt_refresh_secret
-  session_secret:
-    file: ./secrets/session_secret
-  csrf_secret:
-    file: ./secrets/csrf_secret
-  encryption_key:
-    file: ./secrets/encryption_key
-  upload_signing_secret:
-    file: ./secrets/upload_signing_secret
-  db_password:
-    file: ./secrets/db_password
-  redis_password:
-    file: ./secrets/redis_password
+# TODO (post-monolith hardening): re-introduce a top-level `secrets:` block and
+# wire each service onto file-mounted secrets once the services grow a
+# secret-file loader, to keep credentials out of `docker inspect`. The deploy
+# workflow's secret-file materialisation hook is preserved for that purpose.
