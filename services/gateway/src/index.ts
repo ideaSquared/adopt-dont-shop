@@ -73,7 +73,7 @@ const main = async (): Promise<void> => {
 
     await server.listen({ port: config.port, host: config.host });
     const registry = new SocketRegistry();
-    io = attachSocketServer({ httpServer: server.server, registry, logger });
+    io = attachSocketServer({ httpServer: server.server, registry, logger, authClient });
     registerNotificationSubscribers({ nats, registry, logger });
     registerChatSubscribers({ nats, registry, logger });
 
