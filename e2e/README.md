@@ -46,7 +46,7 @@ This keeps tests resilient to markup changes and surfaces accessibility regressi
 - `e2e/.auth/rescue.json` — `rescue.manager@pawsrescue.dev`
 - `e2e/.auth/admin.json` — `superadmin@adoptdontshop.dev`
 
-All seeded users use the password `DevPassword123!` from `service.backend/src/seeders/04-users.ts`.
+All seeded users use the password `DevPassword123!`. The personas are defined in `services/auth/src/db/seed-data.ts` (with matching rescue/pet fixtures in `services/rescue/src/db/seed-data.ts` and `services/pets/src/db/seed-data.ts`) and inserted by the per-service `db:seed` scripts — see [Seeding the stack](#seeding-the-stack) below.
 
 Each project (`client`, `rescue`, `admin`) reuses its role's storageState. Specs that need to test login/registration itself live in the `*-anon` projects with no storageState. Cross-app journeys use the `asRole(...)` fixture to spin up a second authenticated context for a different role.
 
@@ -74,8 +74,12 @@ for url in \
   until curl -fsS --max-time 5 "$url" >/dev/null 2>&1; do sleep 2; done
 done
 
-# 4. Migrate + seed the database
-npm run db:reset
+# 4. Seed the database with the canonical personas + reference data.
+#    Each microservice migrates its own schema on boot; `db:seed` populates
+#    the dev/e2e fixtures (idempotent — safe to re-run). See "Seeding the
+#    stack" below. The dev Docker image also runs this automatically on
+#    container start, so step 4 is only needed if you bypass that.
+npm run db:seed
 
 # 5. Run the suite
 npm run test:e2e                                      # full suite
@@ -90,6 +94,46 @@ E2E_SKIP_HEALTH=1 E2E_SKIP_AUTH=1 npm run test:e2e
 ```
 
 The `test:e2e:single` script forwards all arguments straight through to Playwright in the `e2e` workspace, so any Playwright flag works (`--headed`, `--debug`, `--repeat-each=3`, `--grep "approves"`, etc.).
+
+## Seeding the stack
+
+The microservice stack ships no data on a fresh boot. The dev/e2e seed recreates the canonical personas (so the suite can log in) plus enough reference data to exercise the golden path (browse a pet, view a rescue).
+
+**How it runs:** each schema-owning service exposes a `db:seed` script (`tsx ./src/db/seed.ts`) that inserts directly into its own Postgres schema with idempotent `ON CONFLICT DO UPDATE` upserts. The dev Docker image runs `db:migrate` then `db:seed` on container start, so `npm run docker:dev:detach` already produces a seeded stack. To (re-)seed an already-running stack by hand:
+
+```bash
+npm run db:seed        # root orchestrator: docker compose exec into
+                       # service-auth → service-rescue → service-pets,
+                       # running each service's db:seed in dependency order
+```
+
+`npm run db:seed` is safe to re-run at any time. Per-service overrides are available too (`docker compose exec service-auth npm run db:seed`).
+
+**Seeded personas** (all share the password `DevPassword123!`, override with `SEED_PASSWORD`):
+
+| Email | Role | App |
+| --- | --- | --- |
+| `john.smith@gmail.com` | adopter | app.client |
+| `emily.davis@yahoo.com` | adopter | app.client |
+| `michael.brown@outlook.com` | adopter | app.client |
+| `rescue.manager@pawsrescue.dev` | rescue_staff | app.rescue |
+| `sarah.johnson@pawsrescue.dev` | rescue_staff | app.rescue |
+| `maria@happytailsrescue.dev` | rescue_staff | app.rescue |
+| `superadmin@adoptdontshop.dev` | super_admin | app.admin |
+| `admin@adoptdontshop.dev` | admin | app.admin |
+| `moderator@adoptdontshop.dev` | moderator | app.admin |
+
+**Reference data:** two verified rescues (Paws Rescue, Happy Tails Rescue) with staff links, plus a small pet catalogue (available / pending / adopted / on-hold) attached to those rescues. Pet + adopter ids are pinned to the values `helpers/seeds.ts` expects.
+
+**Verify login** against a running gateway (the gateway is exposed on
+`localhost:4000` in the microservice stack):
+
+```bash
+curl -s -X POST http://localhost:4000/api/v1/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"email":"john.smith@gmail.com","password":"DevPassword123!"}'
+# → 200 with { "user": {...}, "tokens": { "accessToken": "...", ... } }
+```
 
 ## Debugging Failures
 

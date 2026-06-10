@@ -67,9 +67,11 @@ ENV NODE_ENV=development
 WORKDIR /app/${SERVICE_DIR}
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 # Migrate the service's own schema (only services that own a schema define
-# db:migrate — the gateway doesn't, hence --if-present), then start with
-# watch-reload.
-CMD ["sh", "-c", "npm run db:migrate --if-present && npm run dev"]
+# db:migrate — the gateway doesn't, hence --if-present), then seed the
+# canonical dev/e2e fixtures (auth/rescue/pets define db:seed; idempotent
+# ON CONFLICT upserts make re-runs safe), then start with watch-reload.
+# Seeding is dev-only — the production CMD below deliberately omits it.
+CMD ["sh", "-c", "npm run db:migrate --if-present && npm run db:seed --if-present && npm run dev"]
 
 # ---------------------------------------------------------------------------
 # production — compiled dist run with node
