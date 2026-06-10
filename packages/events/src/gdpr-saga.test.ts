@@ -1,4 +1,4 @@
-import type { NatsConnection, Subscription } from 'nats';
+import type { NatsConnection } from 'nats';
 import type { Pool, PoolClient } from 'pg';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -10,48 +10,79 @@ import {
   type GdprErasureRequestedPayload,
 } from './index.js';
 
-function fakeSubscription(messages: Array<Record<string, unknown>>): Subscription {
-  const enc = new TextEncoder();
-  const queue = messages.map(m => ({
-    subject: GDPR_ERASURE_REQUESTED,
-    data: enc.encode(JSON.stringify({ payload: m })),
-  }));
-  return {
-    async *[Symbol.asyncIterator]() {
-      for (const m of queue) {
-        yield m;
-      }
+// JetStream fake tuned for the saga: the request event sits in the durable
+// stream backlog (modelling "arrived while this service was restarting"), the
+// subscriber binds a durable consumer and replays it, and js.publish()
+// captures the completion event. One bus serves both the read (consume) and
+// write (publish) sides — the same NatsConnection the saga uses for both.
+function makeBus(request: GdprErasureRequestedPayload) {
+  const published: Array<{ subject: string; data: Uint8Array; opts?: { msgID?: string } }> = [];
+
+  // The request event is already durably in the stream before the subscriber
+  // exists — the compliance scenario this migration fixes.
+  const backlog = new TextEncoder().encode(JSON.stringify({ payload: request }));
+
+  const consumersAdded: Array<{ durable_name?: string; filter_subject?: string }> = [];
+
+  const jsm = {
+    consumers: {
+      add: vi.fn(
+        async (_stream: string, cfg: { durable_name?: string; filter_subject?: string }) => {
+          consumersAdded.push(cfg);
+          return cfg;
+        }
+      ),
     },
-    drain: vi.fn(),
-    unsubscribe: vi.fn(),
-  } as unknown as Subscription;
-}
-
-function fakeNats(payload: GdprErasureRequestedPayload) {
-  // publish() callers pass either a JSON string (from publishStaged) or a
-  // Uint8Array (from the failure path's raw publish). Store both shapes.
-  const published: Array<{ subject: string; data: string | Uint8Array }> = [];
-  const nc = {
-    subscribe: vi
-      .fn()
-      .mockReturnValue(fakeSubscription([payload as unknown as Record<string, unknown>])),
-    publish: vi.fn((subject: string, data: string | Uint8Array) =>
-      published.push({ subject, data })
-    ),
   };
-  return { nc: nc as unknown as NatsConnection, published };
+
+  const js = {
+    publish: vi.fn(async (subject: string, data: Uint8Array, opts?: { msgID?: string }) => {
+      published.push({ subject, data, opts });
+      return { stream: 'DOMAIN_EVENTS', seq: published.length, duplicate: false };
+    }),
+    consumers: {
+      get: vi.fn(async (_stream: string, durable: string) => {
+        const cfg = consumersAdded.find(c => c.durable_name === durable);
+        const onlyRequest = cfg?.filter_subject === GDPR_ERASURE_REQUESTED;
+        return {
+          consume: vi.fn(async () => ({
+            async *[Symbol.asyncIterator]() {
+              if (onlyRequest) {
+                yield {
+                  subject: GDPR_ERASURE_REQUESTED,
+                  data: backlog,
+                  ack: vi.fn(),
+                  nak: vi.fn(),
+                  term: vi.fn(),
+                  redelivered: false,
+                };
+              }
+            },
+            close: vi.fn(async () => undefined),
+          })),
+        };
+      }),
+    },
+  };
+
+  const nc = {
+    jetstreamManager: vi.fn(async () => jsm),
+    jetstream: vi.fn(() => js),
+  } as unknown as NatsConnection;
+
+  return { nc, published, consumersAdded };
 }
 
-function fakePool(client: PoolClient) {
+function fakePool(client: PoolClient): Pool {
   return {
     connect: vi.fn().mockResolvedValue(client),
   } as unknown as Pool;
 }
 
 const flush = async (): Promise<void> => {
-  // The subscriber drives a `for await` loop, plus withTransaction does its
-  // own BEGIN → callback → COMMIT chain. We need to step over enough
-  // microtasks for all three to settle.
+  // The subscriber drives a consume loop, plus withTransaction does its own
+  // BEGIN → callback → COMMIT chain and an awaited JetStream publish. Step
+  // over enough microtasks for all of it to settle.
   for (let i = 0; i < 50; i++) {
     await new Promise(r => setImmediate(r));
   }
@@ -63,13 +94,12 @@ const PAYLOAD: GdprErasureRequestedPayload = {
   requestedAt: '2026-06-09T12:00:00Z',
 };
 
-function decode(data: string | Uint8Array): Record<string, unknown> {
-  const s = typeof data === 'string' ? data : new TextDecoder().decode(data);
-  return JSON.parse(s) as Record<string, unknown>;
+function decode(data: Uint8Array): Record<string, unknown> {
+  return JSON.parse(new TextDecoder().decode(data)) as Record<string, unknown>;
 }
 
 describe('registerGdprSubscriber', () => {
-  it('runs erase inside a transaction and publishes a completion event', async () => {
+  it('replays a request from the durable stream, erases in a transaction, and publishes completion', async () => {
     const queries: string[] = [];
     const client = {
       query: vi.fn(async (sql: string) => {
@@ -79,9 +109,9 @@ describe('registerGdprSubscriber', () => {
       release: vi.fn(),
     } as unknown as PoolClient;
 
-    const { nc, published } = fakeNats(PAYLOAD);
+    const bus = makeBus(PAYLOAD);
     registerGdprSubscriber({
-      nats: nc,
+      nats: bus.nc,
       pool: fakePool(client),
       service: 'auth',
       erase: async () => 7,
@@ -92,10 +122,10 @@ describe('registerGdprSubscriber', () => {
     expect(queries[0]).toBe('BEGIN');
     expect(queries[queries.length - 1]).toBe('COMMIT');
 
-    // Completion event published after commit.
-    expect(published).toHaveLength(1);
-    expect(published[0].subject).toBe(GDPR_ERASURE_COMPLETED);
-    const env = decode(published[0].data) as { payload: GdprErasureCompletedPayload };
+    // Completion event published to JetStream after commit.
+    expect(bus.published).toHaveLength(1);
+    expect(bus.published[0].subject).toBe(GDPR_ERASURE_COMPLETED);
+    const env = decode(bus.published[0].data) as { payload: GdprErasureCompletedPayload };
     expect(env.payload).toMatchObject({
       userId: 'usr-1',
       correlationId: 'corr-abc',
@@ -105,15 +135,15 @@ describe('registerGdprSubscriber', () => {
     expect(env.payload.error).toBeUndefined();
   });
 
-  it('rolls back and publishes a failure completion when erase throws', async () => {
+  it('rolls back and publishes a (durable) failure completion when erase throws', async () => {
     const client = {
       query: vi.fn(async () => ({ rows: [] })),
       release: vi.fn(),
     } as unknown as PoolClient;
 
-    const { nc, published } = fakeNats(PAYLOAD);
+    const bus = makeBus(PAYLOAD);
     registerGdprSubscriber({
-      nats: nc,
+      nats: bus.nc,
       pool: fakePool(client),
       service: 'notifications',
       erase: async () => {
@@ -122,25 +152,31 @@ describe('registerGdprSubscriber', () => {
     });
     await flush();
 
-    expect(published).toHaveLength(1);
-    const env = decode(published[0].data) as { payload: GdprErasureCompletedPayload };
+    expect(bus.published).toHaveLength(1);
+    const env = decode(bus.published[0].data) as { payload: GdprErasureCompletedPayload };
     expect(env.payload).toMatchObject({
       service: 'notifications',
       recordsErased: 0,
       error: 'boom',
     });
+    // The failure completion is published with a msgID for de-dup.
+    expect(bus.published[0].opts).toMatchObject({ msgID: 'corr-abc.notifications' });
   });
 
-  it('uses gdpr.<service> as the queue group by default', () => {
+  it('binds a durable consumer named gdpr-<service> by default', async () => {
     const client = { query: vi.fn(), release: vi.fn() } as unknown as PoolClient;
-    const subscribe = vi.fn().mockReturnValue(fakeSubscription([]));
-    const nc = { subscribe, publish: vi.fn() } as unknown as NatsConnection;
+    const bus = makeBus(PAYLOAD);
     registerGdprSubscriber({
-      nats: nc,
+      nats: bus.nc,
       pool: fakePool(client),
       service: 'pets',
       erase: async () => 0,
     });
-    expect(subscribe.mock.calls[0][1]).toMatchObject({ queue: 'gdpr.pets' });
+    await flush();
+
+    expect(bus.consumersAdded[0]).toMatchObject({
+      durable_name: 'gdpr-pets',
+      filter_subject: GDPR_ERASURE_REQUESTED,
+    });
   });
 });

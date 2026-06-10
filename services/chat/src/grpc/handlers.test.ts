@@ -89,7 +89,10 @@ function makeMocks() {
     connect: vi.fn().mockResolvedValue(client),
     query: vi.fn(async () => poolScript.shift() ?? { rows: [] }),
   };
-  const nats = { publish: vi.fn() };
+  const natsPublish = vi.fn();
+  // JetStream publish routes to the same spy so existing publish assertions
+  // keep working; withTransaction now publishes via nats.jetstream().publish().
+  const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
   return {
     pool: pool as unknown as Pool,
     client: client as unknown as PoolClient,
@@ -829,7 +832,10 @@ describe('deleteChat', () => {
     expect(res.chat?.chatId).toBe('chat-1');
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.deleted');
-    const envelope = JSON.parse(mocks.natsMock.publish.mock.calls[0][1] as string) as {
+    const rawData = mocks.natsMock.publish.mock.calls[0][1];
+    const dataStr =
+      rawData instanceof Uint8Array ? new TextDecoder().decode(rawData) : String(rawData);
+    const envelope = JSON.parse(dataStr) as {
       payload: { reason: string | null; participantUserIds: string[] };
     };
     expect(envelope.payload.reason).toBe('cleanup');

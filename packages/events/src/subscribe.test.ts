@@ -1,121 +1,236 @@
-import type { NatsConnection, Subscription } from 'nats';
+import type { NatsConnection } from 'nats';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { subscribe } from './subscribe.js';
+import { DOMAIN_STREAM } from './stream.js';
 
-// A tiny replayable Subscription stand-in. NATS' real Subscription is an
-// async iterable that yields `Msg` objects; we provide our own queue and
-// resolve the iterator once the queue is drained.
-function makeSubscription(messages: Array<{ subject: string; data: Uint8Array }>): Subscription {
-  let index = 0;
-  return {
-    [Symbol.asyncIterator]() {
-      return {
-        next: async () => {
-          if (index >= messages.length) {
-            return { value: undefined, done: true };
-          }
-          return { value: messages[index++], done: false };
-        },
-      };
-    },
-  } as unknown as Subscription;
-}
+// A minimal in-memory JetStream stand-in. It models the one property that
+// matters for this migration: messages live in the STREAM (not in a live
+// subscription), so a consumer created AFTER publish still receives the
+// backlog — that's the durable/at-least-once guarantee we're testing. Each
+// delivered message carries ack/nak/term spies; nak() requeues once as a
+// redelivery so we can prove idempotent reprocessing.
 
-function makeNats(messages: Array<{ subject: string; data: Uint8Array }>) {
-  const subscription = makeSubscription(messages);
-  const subscribeFn = vi.fn().mockReturnValue(subscription);
-  return {
-    nats: { subscribe: subscribeFn } as unknown as NatsConnection,
-    subscribeFn,
-  };
-}
+type FakeMsg = {
+  subject: string;
+  data: Uint8Array;
+  ack: ReturnType<typeof vi.fn>;
+  nak: ReturnType<typeof vi.fn>;
+  term: ReturnType<typeof vi.fn>;
+  redelivered: boolean;
+};
 
 function encode(obj: unknown): Uint8Array {
   return new TextEncoder().encode(JSON.stringify(obj));
 }
 
-// Spin until all queued microtasks settle. Used because subscribe() drives
-// the for-await loop in a fire-and-forget IIFE.
-async function flushMicrotasks(): Promise<void> {
-  for (let i = 0; i < 10; i++) {
-    await Promise.resolve();
+function makeBus() {
+  // Subject → list of raw published payloads (the durable stream backlog).
+  const stream: Array<{ subject: string; data: Uint8Array }> = [];
+  const consumersAdded: Array<{ durable_name?: string; filter_subject?: string }> = [];
+
+  // Publish into the stream BEFORE any consumer exists — simulating an event
+  // that fired while the subscriber was down.
+  const publish = (subject: string, data: Uint8Array): void => {
+    stream.push({ subject, data });
+  };
+
+  const jsm = {
+    consumers: {
+      add: vi.fn(
+        async (_stream: string, cfg: { durable_name?: string; filter_subject?: string }) => {
+          consumersAdded.push(cfg);
+          return cfg;
+        }
+      ),
+    },
+  };
+
+  const buildConsume = (filterSubject: string) => {
+    const queue: FakeMsg[] = [];
+
+    const makeMsg = (subject: string, data: Uint8Array, redelivered: boolean): FakeMsg => ({
+      subject,
+      data,
+      redelivered,
+      ack: vi.fn(),
+      term: vi.fn(),
+      nak: vi.fn(() => {
+        // Requeue once as a redelivery so a transient handler failure is
+        // retried (and the handler can dedupe on its second attempt).
+        if (!redelivered) {
+          queue.push(makeMsg(subject, data, true));
+        }
+      }),
+    });
+
+    // Seed from the stream backlog matching this consumer's filter — exactly
+    // the messages a durable consumer replays on (re)connect.
+    for (const m of stream) {
+      if (subjectMatches(filterSubject, m.subject)) {
+        queue.push(makeMsg(m.subject, m.data, false));
+      }
+    }
+
+    return {
+      async *[Symbol.asyncIterator]() {
+        // Drain everything queued, including redeliveries nak() pushes back.
+        while (queue.length > 0) {
+          const msg = queue.shift();
+          if (msg) {
+            yield msg;
+          }
+        }
+      },
+      close: vi.fn(async () => undefined),
+    };
+  };
+
+  const js = {
+    consumers: {
+      get: vi.fn(async (_stream: string, durable: string) => {
+        const cfg = consumersAdded.find(c => c.durable_name === durable);
+        const filter = cfg?.filter_subject ?? '>';
+        return { consume: vi.fn(async () => buildConsume(filter)) };
+      }),
+    },
+  };
+
+  const nc = {
+    jetstreamManager: vi.fn(async () => jsm),
+    jetstream: vi.fn(() => js),
+  } as unknown as NatsConnection;
+
+  return { nc, publish, consumersAdded, jsmAdd: jsm.consumers.add };
+}
+
+function subjectMatches(filter: string, subject: string): boolean {
+  if (filter === '>' || filter === subject) {
+    return true;
+  }
+  // Good enough for tests: support a trailing `>` wildcard.
+  if (filter.endsWith('.>')) {
+    return subject.startsWith(filter.slice(0, -1));
+  }
+  return false;
+}
+
+// Spin until queued tasks settle — subscribe() drives the consume loop in a
+// fire-and-forget IIFE that awaits the JetStream manager + consumer.
+async function flush(): Promise<void> {
+  for (let i = 0; i < 50; i++) {
+    await new Promise(r => setImmediate(r));
   }
 }
 
-describe('subscribe', () => {
+describe('subscribe (durable JetStream consumer)', () => {
   let calls: Array<{ payload: unknown; meta: { subject: string; id?: string } }>;
 
   beforeEach(() => {
     calls = [];
   });
 
-  it('invokes the handler once per message with the decoded payload + envelope metadata', async () => {
-    const { nats } = makeNats([
-      {
-        subject: 'pets.created',
-        data: encode({ id: 'evt-1', occurredAt: '2026-01-01T00:00:00Z', payload: { petId: 'p1' } }),
-      },
-      {
-        subject: 'pets.created',
-        data: encode({ id: 'evt-2', occurredAt: '2026-01-01T00:00:01Z', payload: { petId: 'p2' } }),
-      },
-    ]);
+  it('creates a durable consumer filtered to the subject with explicit ack', async () => {
+    const bus = makeBus();
+    subscribe(bus.nc, { subject: 'pets.created', durable: 'pets-workers' }, async () => undefined);
+    await flush();
 
-    subscribe<{ petId: string }>(nats, { subject: 'pets.created' }, async (payload, meta) => {
-      calls.push({ payload, meta: { subject: meta.subject, id: meta.id } });
-    });
+    expect(bus.jsmAdd).toHaveBeenCalledWith(
+      DOMAIN_STREAM,
+      expect.objectContaining({
+        durable_name: 'pets-workers',
+        filter_subject: 'pets.created',
+      })
+    );
+  });
 
-    await flushMicrotasks();
+  it('delivers an event that was published WHILE the subscriber was down', async () => {
+    const bus = makeBus();
+    // Event fires first — no consumer exists yet (subscriber is "down").
+    bus.publish('pets.created', encode({ id: 'evt-1', payload: { petId: 'p1' } }));
 
+    // Subscriber comes up afterwards and binds a durable consumer.
+    subscribe<{ petId: string }>(
+      bus.nc,
+      { subject: 'pets.created', durable: 'pets-workers' },
+      async (payload, meta) => {
+        calls.push({ payload, meta: { subject: meta.subject, id: meta.id } });
+      }
+    );
+    await flush();
+
+    // The backlogged event is redelivered to the late subscriber.
     expect(calls).toEqual([
       { payload: { petId: 'p1' }, meta: { subject: 'pets.created', id: 'evt-1' } },
-      { payload: { petId: 'p2' }, meta: { subject: 'pets.created', id: 'evt-2' } },
     ]);
   });
 
-  it('continues processing after a handler throws (CAD #4 — no poison-pill crash)', async () => {
-    const errors: unknown[] = [];
-    const { nats } = makeNats([
-      { subject: 's', data: encode({ id: '1', payload: { ok: true } }) },
-      { subject: 's', data: encode({ id: '2', payload: { ok: false } }) },
-      { subject: 's', data: encode({ id: '3', payload: { ok: true } }) },
-    ]);
+  it('acks each successfully-handled message (no redelivery loop)', async () => {
+    const bus = makeBus();
+    bus.publish('pets.created', encode({ id: 'evt-1', payload: { petId: 'p1' } }));
 
-    subscribe<{ ok: boolean }>(
-      nats,
+    let handled = 0;
+    subscribe<{ petId: string }>(bus.nc, { subject: 'pets.created', durable: 'd1' }, async () => {
+      handled += 1;
+    });
+    await flush();
+
+    // One handler call → the message was acked, not nak()'d into a loop.
+    expect(handled).toBe(1);
+  });
+
+  it('nak()s a thrown handler so JetStream redelivers it (CAD #4); the handler dedupes on redelivery', async () => {
+    const bus = makeBus();
+    bus.publish('s', encode({ id: 'evt-1', payload: { n: 1 } }));
+
+    const errors: unknown[] = [];
+    const seen: string[] = [];
+    let attempts = 0;
+
+    subscribe<{ n: number }>(
+      bus.nc,
       {
         subject: 's',
+        durable: 'd2',
         onError: err => {
           errors.push(err);
         },
       },
-      async payload => {
-        if (!payload.ok) {
-          throw new Error('handler crashed');
+      async (_payload, meta) => {
+        attempts += 1;
+        // Fail the first delivery (transient), succeed on the redelivery —
+        // and prove the handler dedupes on the event id.
+        if (attempts === 1) {
+          throw new Error('transient blip');
         }
-        calls.push({ payload, meta: { subject: 's' } });
+        if (meta.id && seen.includes(meta.id)) {
+          return; // idempotent skip
+        }
+        if (meta.id) {
+          seen.push(meta.id);
+        }
       }
     );
+    await flush();
 
-    await flushMicrotasks();
-
-    expect(calls.map(c => c.payload)).toEqual([{ ok: true }, { ok: true }]);
     expect(errors).toHaveLength(1);
-    expect((errors[0] as Error).message).toBe('handler crashed');
+    expect((errors[0] as Error).message).toBe('transient blip');
+    // First delivery failed → nak; redelivery succeeded.
+    expect(attempts).toBe(2);
+    expect(seen).toEqual(['evt-1']);
   });
 
-  it('treats a malformed (non-JSON) message as a clean skip', async () => {
-    const errors: unknown[] = [];
-    const { nats } = makeNats([
-      { subject: 's', data: new TextEncoder().encode('not-valid-json{{') },
-      { subject: 's', data: encode({ id: '2', payload: { ok: true } }) },
-    ]);
+  it('term()s a malformed (non-JSON) message — a clean skip', async () => {
+    const bus = makeBus();
+    bus.publish('s', new TextEncoder().encode('not-valid-json{{'));
+    bus.publish('s', encode({ id: 'evt-2', payload: { ok: true } }));
 
+    const errors: unknown[] = [];
     subscribe<{ ok: boolean }>(
-      nats,
+      bus.nc,
       {
         subject: 's',
+        durable: 'd3',
         onError: err => {
           errors.push(err);
         },
@@ -124,27 +239,28 @@ describe('subscribe', () => {
         calls.push({ payload, meta: { subject: 's' } });
       }
     );
+    await flush();
 
-    await flushMicrotasks();
-
+    // The malformed message is skipped; the valid one is handled.
     expect(calls).toHaveLength(1);
     expect(calls[0].payload).toEqual({ ok: true });
     expect(errors).toHaveLength(1);
   });
 
-  it('passes the queue option through when supplied (load-shared consumers)', async () => {
-    const { nats, subscribeFn } = makeNats([]);
+  it('processes a backlog of multiple events in order', async () => {
+    const bus = makeBus();
+    bus.publish('pets.created', encode({ id: '1', payload: { petId: 'p1' } }));
+    bus.publish('pets.created', encode({ id: '2', payload: { petId: 'p2' } }));
 
-    subscribe(nats, { subject: 'pets.>', queue: 'pets-workers' }, async () => undefined);
+    subscribe<{ petId: string }>(
+      bus.nc,
+      { subject: 'pets.created', durable: 'd4' },
+      async (payload, meta) => {
+        calls.push({ payload, meta: { subject: meta.subject, id: meta.id } });
+      }
+    );
+    await flush();
 
-    expect(subscribeFn).toHaveBeenCalledWith('pets.>', { queue: 'pets-workers' });
-  });
-
-  it('does not pass a queue option when omitted', async () => {
-    const { nats, subscribeFn } = makeNats([]);
-
-    subscribe(nats, { subject: 'pets.>' }, async () => undefined);
-
-    expect(subscribeFn).toHaveBeenCalledWith('pets.>', undefined);
+    expect(calls.map(c => c.meta.id)).toEqual(['1', '2']);
   });
 });

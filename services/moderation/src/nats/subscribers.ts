@@ -24,10 +24,10 @@
 //     event from the same SYSTEM_USER_ID is a no-op (the SQL UPSERT
 //     returns the existing row).
 
-import type { NatsConnection, Subscription } from 'nats';
+import type { NatsConnection } from 'nats';
 import type { Logger } from 'winston';
 
-import { subscribe } from '@adopt-dont-shop/events';
+import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
 import { ModerationV1, type FileReportRequest } from '@adopt-dont-shop/proto';
 
@@ -48,7 +48,11 @@ export type RegisterSubscribersOptions = {
   logger: Logger;
 };
 
-const QUEUE_GROUP = 'moderation-workers';
+// Durable-consumer name prefix — all replicas bind the same durable per
+// subject so JetStream load-shares each event across the moderation pool.
+const DURABLE_PREFIX = 'moderation-workers';
+
+const durableFor = (subject: string): string => `${DURABLE_PREFIX}-${subject.replace(/\./g, '-')}`;
 
 // Map the scanner's category onto the proto ReportCategory enum.
 const CATEGORY_TO_PROTO: Record<ScanCategory, ModerationV1.ReportCategory> = {
@@ -67,7 +71,7 @@ function severityFor(hit: ScanHit): ModerationV1.Severity {
   return ModerationV1.Severity.SEVERITY_MEDIUM;
 }
 
-export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscription[] => {
+export const registerSubscribers = (opts: RegisterSubscribersOptions): SubscriptionHandle[] => {
   const { nats, deps, logger } = opts;
   const onError = (err: unknown, ctx: { subject: string }): void => {
     logger.error('moderation subscriber failed', {
@@ -76,12 +80,12 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     });
   };
 
-  const subscriptions: Subscription[] = [];
+  const subscriptions: SubscriptionHandle[] = [];
 
   subscriptions.push(
     subscribe<ChatMessageCreatedEvent>(
       nats,
-      { subject: 'chat.messageCreated', queue: QUEUE_GROUP, onError },
+      { subject: 'chat.messageCreated', durable: durableFor('chat.messageCreated'), onError },
       async event => {
         const hit = scanContent(event.content);
         if (hit === null) {
@@ -103,7 +107,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<PetCreatedEvent>(
       nats,
-      { subject: 'pets.created', queue: QUEUE_GROUP, onError },
+      { subject: 'pets.created', durable: durableFor('pets.created'), onError },
       async event => {
         const text = [event.shortDescription, event.longDescription]
           .filter((s): s is string => typeof s === 'string' && s.length > 0)
@@ -127,7 +131,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<ApplicationSubmittedEvent>(
       nats,
-      { subject: 'applications.submitted', queue: QUEUE_GROUP, onError },
+      { subject: 'applications.submitted', durable: durableFor('applications.submitted'), onError },
       async event => {
         const text = [event.message, event.whyAdopt]
           .filter((s): s is string => typeof s === 'string' && s.length > 0)
@@ -151,7 +155,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
 
   logger.info('moderation NATS subscribers registered', {
     subjects: subscriptions.length,
-    queue: QUEUE_GROUP,
+    durablePrefix: DURABLE_PREFIX,
   });
 
   return subscriptions;

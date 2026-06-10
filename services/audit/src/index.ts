@@ -1,6 +1,7 @@
-import { connect, type NatsConnection, type Subscription } from 'nats';
+import { connect, type NatsConnection } from 'nats';
 
 import { createDbClient } from '@adopt-dont-shop/db';
+import { type SubscriptionHandle } from '@adopt-dont-shop/events';
 import { createLogger } from '@adopt-dont-shop/observability';
 
 import { loadConfig } from './config.js';
@@ -15,7 +16,7 @@ const main = async (): Promise<void> => {
   let nats: NatsConnection | undefined;
   let pool: ReturnType<typeof createDbClient> | undefined;
   let grpc: RunningGrpcServer | undefined;
-  let subscriptions: Subscription[] = [];
+  let subscriptions: SubscriptionHandle[] = [];
   let httpClosed = false;
 
   try {
@@ -29,6 +30,12 @@ const main = async (): Promise<void> => {
       schema: config.schema,
     });
     nats = await connect({ servers: config.natsUrl });
+    // Create-or-update the JetStream DOMAIN_EVENTS stream before anything
+    // publishes or subscribes. Idempotent across every service's boot.
+    {
+      const { ensureStream } = await import('@adopt-dont-shop/events');
+      await ensureStream(nats);
+    }
 
     grpc = await startGrpcServer({ config, pool, nats, logger });
 

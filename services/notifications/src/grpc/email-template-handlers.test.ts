@@ -34,7 +34,10 @@ const NO_PERMS: Principal = {
 
 function makeMocks() {
   const pool = { query: vi.fn(), connect: vi.fn() };
-  const nats = { publish: vi.fn() };
+  const natsPublish = vi.fn();
+  // JetStream publish routes to the same spy so existing publish assertions
+  // keep working; withTransaction now publishes via nats.jetstream().publish().
+  const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
   return {
     deps: {
       pool: pool as unknown as Pool,

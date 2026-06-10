@@ -1,24 +1,43 @@
-import type { NatsConnection, Subscription } from 'nats';
+import type { NatsConnection } from 'nats';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { HandlerDeps } from '../grpc/adapter.js';
 
 import { registerSubscribers } from './subscribers.js';
 
-// Async-iterable stub the subscribe()'s for-await loop can drain
-// immediately (no messages → consumer cleans up).
-function fakeSubscription(): Subscription {
-  return {
-    [Symbol.asyncIterator]() {
-      return { next: async () => ({ value: undefined, done: true }) as const };
-    },
-  } as unknown as Subscription;
-}
+// subscribe() now binds durable JetStream consumers: it calls
+// jetstreamManager().consumers.add(...) then jetstream().consumers.get(...)
+// .consume(). We stub a JetStream connection whose consume() yields nothing
+// and capture the durable configs each subscriber requests.
+type AddedConsumer = { durable_name?: string; filter_subject?: string };
 
-function makeNats(): { nats: NatsConnection; subscribeFn: ReturnType<typeof vi.fn> } {
-  const subscribeFn = vi.fn().mockReturnValue(fakeSubscription());
-  const nats = { subscribe: subscribeFn } as unknown as NatsConnection;
-  return { nats, subscribeFn };
+function makeNats(): { nats: NatsConnection; consumersAdded: AddedConsumer[] } {
+  const consumersAdded: AddedConsumer[] = [];
+  const jsm = {
+    consumers: {
+      add: vi.fn(async (_stream: string, cfg: AddedConsumer) => {
+        consumersAdded.push(cfg);
+        return cfg;
+      }),
+    },
+  };
+  const js = {
+    consumers: {
+      get: vi.fn(async () => ({
+        consume: vi.fn(async () => ({
+          async *[Symbol.asyncIterator]() {
+            // no messages
+          },
+          close: vi.fn(),
+        })),
+      })),
+    },
+  };
+  const nats = {
+    jetstreamManager: vi.fn(async () => jsm),
+    jetstream: vi.fn(() => js),
+  } as unknown as NatsConnection;
+  return { nats, consumersAdded };
 }
 
 const deps = { pool: {}, nats: {} } as unknown as HandlerDeps;
@@ -30,19 +49,26 @@ const logger = {
   silly: () => undefined,
 } as unknown as Parameters<typeof registerSubscribers>[0]['logger'];
 
+const flush = async (): Promise<void> => {
+  for (let i = 0; i < 20; i++) {
+    await new Promise(r => setImmediate(r));
+  }
+};
+
 describe('registerSubscribers', () => {
-  it('subscribes to chat.messageCreated + pets.created + applications.submitted under one queue group', () => {
-    const { nats, subscribeFn } = makeNats();
+  it('binds a durable consumer for chat.messageCreated + pets.created + applications.submitted under the moderation-workers prefix', async () => {
+    const { nats, consumersAdded } = makeNats();
     const subs = registerSubscribers({ nats, deps, logger });
+    await flush();
 
     expect(subs).toHaveLength(3);
-    expect(subscribeFn.mock.calls.map(c => c[0])).toEqual([
+    expect(consumersAdded.map(c => c.filter_subject)).toEqual([
       'chat.messageCreated',
       'pets.created',
       'applications.submitted',
     ]);
-    for (const call of subscribeFn.mock.calls) {
-      expect(call[1]).toEqual({ queue: 'moderation-workers' });
+    for (const cfg of consumersAdded) {
+      expect(cfg.durable_name).toMatch(/^moderation-workers-/);
     }
   });
 });

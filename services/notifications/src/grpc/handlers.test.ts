@@ -82,8 +82,12 @@ function makeMocks() {
     connect: vi.fn().mockResolvedValue(client),
     query: vi.fn(),
   };
+  const natsPublish = vi.fn();
+  // JetStream publish routes to the same spy so existing publish assertions
+  // keep working; withTransaction now publishes via nats.jetstream().publish().
   const nats = {
-    publish: vi.fn(),
+    publish: natsPublish,
+    jetstream: () => ({ publish: natsPublish }),
   };
   return {
     pool: pool as unknown as Pool,
@@ -188,7 +192,9 @@ describe('createNotification', () => {
 
     const [subject, body] = mocks.natsMock.publish.mock.calls[0];
     expect(subject).toBe('notifications.created');
-    const envelope = JSON.parse(body as string);
+    const envelope = JSON.parse(
+      body instanceof Uint8Array ? new TextDecoder().decode(body) : (body as string)
+    );
     expect(envelope.id).toMatch(/^notifications\.created\.[0-9a-f-]{36}$/);
     expect(envelope.payload.userId).toBe('usr-adopter');
     expect(envelope.payload.type).toBe('application_status');
@@ -407,7 +413,9 @@ describe('dismissNotification', () => {
     );
     const [subject, body] = mocks.natsMock.publish.mock.calls[0];
     expect(subject).toBe('notifications.dismissed');
-    const envelope = JSON.parse(body as string);
+    const envelope = JSON.parse(
+      body instanceof Uint8Array ? new TextDecoder().decode(body) : (body as string)
+    );
     expect(envelope.id).toBe('notifications.dismissed.n-1');
     expect(envelope.payload.userId).toBe('usr-adopter');
   });

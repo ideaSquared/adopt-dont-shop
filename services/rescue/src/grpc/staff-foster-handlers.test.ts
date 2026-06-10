@@ -59,7 +59,10 @@ function makeMocks() {
   const client = { query: c.fn, release: vi.fn() };
   const pool = { connect: vi.fn().mockResolvedValue(client), query: vi.fn() };
   pool.query.mockResolvedValue({ rows: [] });
-  const nats = { publish: vi.fn() };
+  const natsPublish = vi.fn();
+  // JetStream publish routes to the same spy so existing publish assertions
+  // keep working; withTransaction now publishes via nats.jetstream().publish().
+  const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
   const deps: HandlerDeps = {
     pool: pool as unknown as Pool,
     nats: nats as unknown as NatsConnection,
