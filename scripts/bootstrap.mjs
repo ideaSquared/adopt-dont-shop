@@ -183,19 +183,20 @@ async function startStack() {
     return false;
   }
   runCommand('docker compose ps');
-  logInfo('Waiting for backend /health (up to 60s)...');
-  const ok = await waitForHealth('http://localhost:5000/health', 60000);
+  logInfo('Waiting for nginx edge /health (up to 60s)...');
+  const ok = await waitForHealth('http://localhost/health', 60000);
   if (!ok) {
-    logError('Backend did not become healthy within 60s. Run `npm run docker:logs` to investigate.');
+    logError('Nginx edge did not become healthy within 60s. Run `npm run docker:logs` to investigate.');
     return false;
   }
-  logSuccess('Backend is healthy.');
+  logSuccess('Nginx edge is healthy.');
   log('', RESET);
   log('Access the stack at:', BLUE);
   log('   http://localhost:3000   # app.client', RESET);
   log('   http://localhost:3001   # app.admin', RESET);
   log('   http://localhost:3002   # app.rescue', RESET);
-  log('   http://localhost:5000   # service.backend', RESET);
+  log('   http://localhost          # nginx edge (apps + /api proxy)', RESET);
+  log('   http://localhost:4000   # service.gateway (REST/WS API — requires `--profile services`)', RESET);
   log('', RESET);
   return true;
 }

@@ -68,10 +68,15 @@ jobs:
 
             printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u ideasquared --password-stdin
 
-            docker pull $IMAGE_PREFIX/backend:$SHA
-            docker pull $IMAGE_PREFIX/app-client:$SHA
-            docker pull $IMAGE_PREFIX/app-admin:$SHA
-            docker pull $IMAGE_PREFIX/app-rescue:$SHA
+            # Post-monolith: the gateway + 10 gRPC services replace the deleted
+            # service.backend image, plus the three frontends.
+            for image in \
+              service-gateway service-auth service-notifications service-pets \
+              service-rescue service-applications service-chat service-moderation \
+              service-matching service-audit service-cms \
+              app-client app-admin app-rescue; do
+              docker pull "$IMAGE_PREFIX/$image:$SHA"
+            done
 
             # Update SHA in .env
             sed -i "s/^DEPLOY_SHA=.*/DEPLOY_SHA=$SHA/" .env || echo "DEPLOY_SHA=$SHA" >> .env
@@ -100,14 +105,14 @@ jobs:
 
             docker compose -f $COMPOSE_FILE --env-file .env up -d
 
-            # Wait for backend health
+            # Wait for the gateway (the REST/WS edge) to report healthy.
             for i in $(seq 1 30); do
-              if docker compose -f $COMPOSE_FILE exec -T service-backend wget -q --spider http://localhost:5000/health/simple > /dev/null 2>&1; then
-                echo "Backend healthy after rollback."
+              if docker compose -f $COMPOSE_FILE exec -T service-gateway curl -fsS http://localhost:4000/health/simple > /dev/null 2>&1; then
+                echo "Gateway healthy after rollback."
                 break
               fi
               if [ $i -eq 30 ]; then
-                echo "WARNING: Backend not healthy after rollback"
+                echo "WARNING: Gateway not healthy after rollback"
                 exit 1
               fi
               sleep 2

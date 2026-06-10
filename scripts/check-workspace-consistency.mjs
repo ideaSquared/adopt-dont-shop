@@ -224,8 +224,6 @@ const JEST_REF_FILE_ALLOWLIST = new Set([
   'app.rescue/src/__mocks__/lib-rescue.ts',
   'app.rescue/src/setup-tests.tsx',
   'app.rescue/src/test-utils/setup-tests.ts',
-  'service.backend/src/__mocks__/logger.ts',
-  'service.backend/src/__mocks__/models/ApplicationTimeline.ts',
   // Documentation-style comments referencing jest.mock semantics in
   // tests that are themselves Vitest. Pure prose, no wiring.
   'lib.feature-flags/src/hooks/useDynamicConfig.test.ts',
@@ -394,7 +392,7 @@ function main() {
   }
 
   // 6. Test files outside src/ (ADS-737)
-  const strayTests = findStrayTests([...libs, ...apps, 'service.backend']);
+  const strayTests = findStrayTests([...libs, ...apps]);
   for (const file of strayTests) {
     failures.push(
       `[test-layout] test file outside src/: ${file} — move tests under src/ (co-located for React libs/apps, src/__tests__/ for backend/non-UI libs). See CONTRIBUTING.md "Test layout".`,

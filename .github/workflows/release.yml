@@ -60,13 +60,34 @@ jobs:
   # ============================================================================
 
   # ============================================================================
-  # BUILD & PUSH BACKEND — production image to Docker Hub
+  # BUILD & PUSH GATEWAY + SERVICES — production images to Docker Hub
+  # ----------------------------------------------------------------------------
+  # Post-monolith: the service.backend image is gone. Each matrix entry builds
+  # one image from the shared Dockerfile.service, parameterised by SERVICE
+  # (workspace package) + SERVICE_DIR (path under the repo). Image name prefix
+  # is service-<name>- to mirror the old service-backend- convention.
   # ============================================================================
-  build-backend:
-    name: Build and Push Backend
+  build-services:
+    name: Build and Push ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: guard
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: service-gateway,       pkg: '@adopt-dont-shop/service.gateway',       dir: services/gateway }
+          - { name: service-auth,          pkg: '@adopt-dont-shop/service.auth',          dir: services/auth }
+          - { name: service-notifications, pkg: '@adopt-dont-shop/service.notifications', dir: services/notifications }
+          - { name: service-pets,          pkg: '@adopt-dont-shop/service.pets',          dir: services/pets }
+          - { name: service-rescue,        pkg: '@adopt-dont-shop/service.rescue',        dir: services/rescue }
+          - { name: service-applications,  pkg: '@adopt-dont-shop/service.applications',  dir: services/applications }
+          - { name: service-chat,          pkg: '@adopt-dont-shop/service.chat',          dir: services/chat }
+          - { name: service-moderation,    pkg: '@adopt-dont-shop/service.moderation',    dir: services/moderation }
+          - { name: service-matching,      pkg: '@adopt-dont-shop/service.matching',      dir: services/matching }
+          - { name: service-audit,         pkg: '@adopt-dont-shop/service.audit',         dir: services/audit }
+          - { name: service-cms,           pkg: '@adopt-dont-shop/service.cms',           dir: services/cms }
 
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
@@ -86,7 +107,7 @@ jobs:
         uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9  # v6.1.0
         with:
           images: paragonjenko/adoptdontshop
-          flavor: prefix=service-backend-
+          flavor: prefix=${{ matrix.name }}-
           # Tags are intentionally immutable so rollbacks are deterministic.
           # `:latest` is only emitted on stable semver tags (v1.2.3) — it is
           # NOT updated on every push to main. SHA + semver tags are the
@@ -102,14 +123,17 @@ jobs:
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
         with:
           context: .
-          file: ./service.backend/Dockerfile
+          file: ./Dockerfile.service
           target: production
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: BUILDKIT_INLINE_CACHE=1
+          build-args: |
+            SERVICE=${{ matrix.pkg }}
+            SERVICE_DIR=${{ matrix.dir }}
+            BUILDKIT_INLINE_CACHE=1
 
   # ============================================================================
   # BUILD & PUSH FRONTEND APPS — production images to Docker Hub

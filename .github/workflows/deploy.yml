@@ -109,30 +109,55 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5  # v3.10.1
 
-      - name: Build and push backend
+      - name: Build and push gateway + services
         run: |
           # ADS-rollback: :latest is only updated for production deploys.
           # The SHA tag is always pushed so every build is individually
           # addressable for rollback. :latest on non-production would
           # overwrite the production pointer mid-window.
+          #
+          # Post-monolith: the service.backend image is gone. We build the
+          # Fastify gateway + the 10 extracted gRPC services from the shared,
+          # parameterised Dockerfile.service (SERVICE = workspace package,
+          # SERVICE_DIR = path under the repo). Image name is service-<name>.
           PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
-          docker build \
-            -f service.backend/Dockerfile \
-            --target production \
-            -t $IMAGE_PREFIX/backend:${{ github.sha }} \
-            .
-          docker push $IMAGE_PREFIX/backend:${{ github.sha }}
-          if [ "$PUSH_LATEST" = "true" ]; then
-            docker tag $IMAGE_PREFIX/backend:${{ github.sha }} $IMAGE_PREFIX/backend:latest
-            docker push $IMAGE_PREFIX/backend:latest
-          fi
-          # ADS-673: Sign the image by digest (immutable) via cosign keyless
-          # OIDC. RepoDigests is populated by `docker push` from the registry
-          # response. Sign only the SHA tag — :latest resolves to the same
-          # digest so a single signature covers both.
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/backend:${{ github.sha }}" | cut -d@ -f2)
-          echo "Signing $IMAGE_PREFIX/backend@$DIGEST"
-          cosign sign --yes "$IMAGE_PREFIX/backend@$DIGEST"
+          # "<image-name> <workspace-package> <service-dir>"
+          SERVICES=(
+            "service-gateway       @adopt-dont-shop/service.gateway       services/gateway"
+            "service-auth          @adopt-dont-shop/service.auth          services/auth"
+            "service-notifications @adopt-dont-shop/service.notifications services/notifications"
+            "service-pets          @adopt-dont-shop/service.pets          services/pets"
+            "service-rescue        @adopt-dont-shop/service.rescue        services/rescue"
+            "service-applications  @adopt-dont-shop/service.applications  services/applications"
+            "service-chat          @adopt-dont-shop/service.chat          services/chat"
+            "service-moderation    @adopt-dont-shop/service.moderation    services/moderation"
+            "service-matching      @adopt-dont-shop/service.matching      services/matching"
+            "service-audit         @adopt-dont-shop/service.audit         services/audit"
+            "service-cms           @adopt-dont-shop/service.cms           services/cms"
+          )
+          for entry in "${SERVICES[@]}"; do
+            read -r image pkg dir <<< "$entry"
+            ref="$IMAGE_PREFIX/$image:${{ github.sha }}"
+            echo "::group::Build $image"
+            docker build \
+              -f Dockerfile.service \
+              --target production \
+              --build-arg SERVICE="$pkg" \
+              --build-arg SERVICE_DIR="$dir" \
+              -t "$ref" \
+              .
+            docker push "$ref"
+            if [ "$PUSH_LATEST" = "true" ]; then
+              docker tag "$ref" "$IMAGE_PREFIX/$image:latest"
+              docker push "$IMAGE_PREFIX/$image:latest"
+            fi
+            # ADS-673: sign by digest (immutable) via cosign keyless OIDC.
+            # :latest resolves to the same digest so one signature covers both.
+            DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$ref" | cut -d@ -f2)
+            echo "Signing $IMAGE_PREFIX/$image@$DIGEST"
+            cosign sign --yes "$IMAGE_PREFIX/$image@$DIGEST"
+            echo "::endgroup::"
+          done
 
       - name: Build and push app.client
         run: |
@@ -256,7 +281,11 @@ jobs:
           IDENTITY_REGEX='^https://github.com/ideaSquared/adopt-dont-shop/\.github/workflows/.+@refs/heads/main$'
           ISSUER='https://token.actions.githubusercontent.com'
 
-          for image in backend app-client app-admin app-rescue; do
+          for image in \
+            service-gateway service-auth service-notifications service-pets \
+            service-rescue service-applications service-chat service-moderation \
+            service-matching service-audit service-cms \
+            app-client app-admin app-rescue; do
             ref="$IMAGE_PREFIX/$image:$SHA"
             # Resolve tag -> digest via the registry API so we verify the
             # immutable artifact, not whatever the tag happens to point at
@@ -316,11 +345,15 @@ jobs:
             # Login to GHCR (uses a PAT stored on the server, not the job-scoped GITHUB_TOKEN)
             printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u ideasquared --password-stdin
 
-            # Pull new images
-            docker pull $IMAGE_PREFIX/backend:$SHA
-            docker pull $IMAGE_PREFIX/app-client:$SHA
-            docker pull $IMAGE_PREFIX/app-admin:$SHA
-            docker pull $IMAGE_PREFIX/app-rescue:$SHA
+            # Pull new images — the Fastify gateway + 10 gRPC services replace
+            # the deleted service.backend monolith, plus the three frontends.
+            for image in \
+              service-gateway service-auth service-notifications service-pets \
+              service-rescue service-applications service-chat service-moderation \
+              service-matching service-audit service-cms \
+              app-client app-admin app-rescue; do
+              docker pull "$IMAGE_PREFIX/$image:$SHA"
+            done
 
             # Persist SHA in .env so restarts use correct version
             sed -i "s/^DEPLOY_SHA=.*/DEPLOY_SHA=$SHA/" .env || echo "DEPLOY_SHA=$SHA" >> .env
@@ -349,20 +382,21 @@ jobs:
               chmod 600 secrets/*
             fi
 
-            # Bring up new containers. The service-backend-migrate sidecar
-            # runs `sequelize-cli db:migrate` to completion before the backend
-            # starts (depends_on: service_completed_successfully). [ADS-393]
+            # Bring up new containers. Each service migrates its own schema on
+            # start (the Dockerfile.service entrypoint runs
+            # `npm run db:migrate --if-present`), so there is no separate
+            # migrate sidecar to wait on. [post-monolith; was ADS-393]
             docker compose -f $COMPOSE_FILE --env-file .env up -d
 
-            # Wait for backend health
-            echo "Waiting for backend health check..."
+            # Wait for the gateway (the REST/WS edge) to report healthy.
+            echo "Waiting for gateway health check..."
             for i in $(seq 1 30); do
-              if docker compose -f $COMPOSE_FILE exec -T service-backend wget -q --spider http://localhost:5000/health/simple > /dev/null 2>&1; then
-                echo "Backend healthy."
+              if docker compose -f $COMPOSE_FILE exec -T service-gateway curl -fsS http://localhost:4000/health/simple > /dev/null 2>&1; then
+                echo "Gateway healthy."
                 break
               fi
               if [ $i -eq 30 ]; then
-                echo "ERROR: Backend failed health check after 60s"
+                echo "ERROR: Gateway failed health check after 60s"
                 exit 1
               fi
               sleep 2

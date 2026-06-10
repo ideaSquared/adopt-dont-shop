@@ -10,12 +10,12 @@ This directory contains GitHub Actions workflows for the Adopt Don't Shop platfo
 | `quality.yml`              | Code quality, formatting, type checking, dependency health.                                             |
 | `security.yml`             | Dependency audit and weekly security scans.                                                             |
 | `codeql.yml`               | GitHub CodeQL static analysis for JavaScript / TypeScript (ADS-498).                                    |
-| `docker.yml`               | Builds backend and per-app Docker images, then tests the docker-compose stack.                          |
+| `docker.yml`               | Builds the gateway / service and per-app Docker images, then tests the docker-compose stack.            |
 | `lib-test-guard.yml`       | Fails when any `lib.*` package has zero test files (ADS-186 / ADS-328 safety net).                      |
 | `schema-equivalence.yml`   | Bootstraps DB-A (migrate) and DB-B (sync), diffs normalised `pg_dump` to detect schema drift.            |
 | `deploy.yml`               | Manual deploy to staging or production via GHCR + SSH.                                                  |
 | `rollback.yml`             | Manual rollback to a previously published GHCR image SHA.                                               |
-| `release.yml`              | Builds and pushes production Docker images to Docker Hub on tag pushes (`v*`) and successful CI runs to `main`. |
+| `release.yml`              | Builds and pushes production Docker images (gateway + 10 services + 3 apps) to Docker Hub on tag pushes (`v*`) and successful CI runs to `main`. |
 | `release-please.yml`       | Generates release PRs, version tags, and GitHub Releases with changelogs from conventional commits.     |
 | `storybook.yml`            | Builds and deploys `lib.components` Storybook to GitHub Pages.                                          |
 | `labeler.yml`              | Auto-labels pull requests using `.github/labeler.yml` rules.                                            |
@@ -76,7 +76,7 @@ Tag a test with `@smoke` in its title to add it to the PR set. Keep the smoke se
 - **Pull request**: only on changes to Dockerfiles, `docker-compose*.yml`, or `.dockerignore`. Source-only PRs are validated by `ci.yml` (`test-frontend`/`test-backend` run native `npm run build`, and `test-e2e` brings the dev stack up via `docker compose up --build`).
 - **Push to main/develop**: triggers on the broader source path set so a regression that only manifests inside a container is caught before deploy. Production images and the Trivy scan run only on this branch — `deploy.yml` is the consumer.
 
-**Note**: the previous `test-compose` job (backend-container `/health` probe) was removed; `ci.yml`'s `test-e2e` brings up the full stack and is a strict superset of that signal.
+**Note**: the previous `test-compose` job (a container `/health` probe) was removed; `ci.yml`'s `test-e2e` brings up the full stack and is a strict superset of that signal.
 
 ---
 
@@ -86,7 +86,7 @@ Tag a test with `@smoke` in its title to add it to the PR set. Keep the smoke se
 
 **What it does**:
 
-- 🐳 Builds and pushes the backend image to Docker Hub (`paragonjenko/adoptdontshop`)
+- 🐳 Builds and pushes the gateway + 10 gRPC service images (`service-gateway`, `service-auth`, …) to Docker Hub (`paragonjenko/adoptdontshop`)
 - 🐳 Builds and pushes per-app frontend images (`app.client`, `app.admin`, `app.rescue`) to Docker Hub
 - 🏷️ Tags images with semver (when triggered by a `v*` tag), branch name, and commit SHA
 
@@ -150,7 +150,7 @@ For release and deploy workflows to function fully, add these secrets to your re
 DOCKER_USERNAME=your-docker-username
 DOCKER_PASSWORD=your-docker-password
 
-# Deploy / rollback — Hetzner host accessed over SSH; backend image pulled from GHCR
+# Deploy / rollback — Hetzner host accessed over SSH; gateway + service images pulled from GHCR
 HETZNER_HOST=your-server-hostname
 HETZNER_SSH_KEY=your-private-ssh-key
 HETZNER_HOST_FINGERPRINT=ssh-host-key-fingerprint  # computed via `ssh-keyscan -t ed25519 $HOST | ssh-keygen -lf -`
@@ -227,7 +227,7 @@ npm run lint
 npm run type-check
 
 # One package only
-npx turbo test --filter=@adopt-dont-shop/service-backend
+npx turbo test --filter=@adopt-dont-shop/service.gateway
 npx turbo test --filter=@adopt-dont-shop/app.admin
 ```
 
