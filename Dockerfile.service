@@ -23,6 +23,10 @@ RUN apk update && apk upgrade && apk add --no-cache \
     curl \
     dumb-init \
     && rm -rf /var/cache/apk/*
+# Create non-root user for security [ADS-771]. Build stages stay root (npm
+# install / turbo build); the production stage drops to svcuser below.
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S svcuser -u 1001 -G nodejs
 WORKDIR /app
 # Husky is a dev-only git hook tool; not available (or wanted) in containers.
 ENV HUSKY=0
@@ -79,7 +83,23 @@ CMD ["sh", "-c", "npm run db:migrate --if-present && npm run db:seed --if-presen
 FROM base AS production
 ARG SERVICE_DIR
 ENV NODE_ENV=production
-COPY --from=build /app ./
+COPY --from=build --chown=svcuser:nodejs /app ./
+# Pre-create the uploads mount point owned by svcuser so a *fresh* named
+# volume (uploads:/app/uploads in docker-compose.prod/staging.yml) is
+# initialised writable by the runtime user. [ADS-771]
+RUN mkdir -p /app/uploads && chown svcuser:nodejs /app/uploads
+# Strip setuid/setgid bits from every binary on the image — nothing the
+# Node runtime does legitimately needs a suid/sgid helper, so removing the
+# bits closes off a privilege-escalation path for any RCE. -xdev keeps the
+# find within this layer's filesystem. Mirrors Dockerfile.app.optimized.
+# [ADS-771]
+RUN find / -xdev -perm -4000 -exec chmod -s {} + 2>/dev/null || true && \
+    find / -xdev -perm -2000 -exec chmod -s {} + 2>/dev/null || true
 WORKDIR /app/${SERVICE_DIR}
+# Drop to the unprivileged user for runtime. The CMD only talks to
+# Postgres (db:migrate) and starts node — no root-writable paths needed;
+# the gateway's local upload writes land under /app, owned by svcuser.
+# [ADS-771]
+USER svcuser
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["sh", "-c", "npm run db:migrate --if-present && npm run start"]
