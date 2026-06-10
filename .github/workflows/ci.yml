@@ -66,6 +66,7 @@ jobs:
       backend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.backend }}
       frontend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.frontend }}
       libs: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.libs }}
+      e2e: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.e2e }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
@@ -75,6 +76,7 @@ jobs:
           filters: |
             backend:
               - 'services/**'
+              - 'packages/**'
               - 'lib.types/**'
               - 'lib.validation/**'
               - 'package.json'
@@ -102,6 +104,17 @@ jobs:
               - 'tsconfig.json'
               - 'turbo.json'
               - 'eslint-config-base/**'
+            # ADS-802: paths that change the e2e stack itself but match no
+            # other filter. Without these, a PR that only touches the
+            # Playwright specs, the compose file, the service image, or this
+            # workflow runs zero integration coverage.
+            e2e:
+              - 'e2e/**'
+              - 'docker-compose.yml'
+              - 'Dockerfile.service'
+              - 'Dockerfile.app.optimized'
+              - 'nginx/**'
+              - '.github/workflows/ci.yml'
 
   # ============================================================================
   # BUILD-LIBS — single source of truth for compiled lib.*/dist artifacts
@@ -312,7 +325,7 @@ jobs:
     # in branch protection.
     if: |
       always() &&
-      (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true') &&
+      (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.e2e == 'true') &&
       (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -423,19 +436,25 @@ jobs:
           docker compose -f docker-compose.yml --profile full up -d --build
 
       - name: Wait for services
+        # The gateway is first in the list and carries the whole budget: it
+        # boots 10 sibling services' worth of migrations + tsx compiles on a
+        # contended 4-core runner, so it gets 240×2s (8 min) rather than the
+        # 90×2s that used to time out. Log dumps need --profile full — the
+        # service/app containers live in that profile, so a bare `compose
+        # logs` shows only the infra containers and hides the actual failure.
         run: |
           set -euo pipefail
           for url in http://localhost:4000/health/simple http://localhost:3000 http://localhost:3001 http://localhost:3002; do
             echo "Waiting for $url"
-            for i in $(seq 1 90); do
+            for i in $(seq 1 240); do
               if curl -fsS --max-time 5 "$url" >/dev/null 2>&1; then
                 echo "  ready: $url"
                 break
               fi
-              if [ "$i" = "90" ]; then
+              if [ "$i" = "240" ]; then
                 echo "  timeout: $url"
-                docker compose -f docker-compose.yml ps
-                docker compose -f docker-compose.yml logs --tail=200
+                docker compose -f docker-compose.yml --profile full ps
+                docker compose -f docker-compose.yml --profile full logs --tail=300
                 exit 1
               fi
               sleep 2
@@ -491,7 +510,10 @@ jobs:
 
       - name: Capture docker-compose logs on failure
         if: failure()
-        run: docker compose -f docker-compose.yml logs --no-color > docker-compose.log
+        # --profile full: without it the dump only contains the default-profile
+        # infra containers (database/redis/nats/...) and silently omits every
+        # service and app container — the part that actually fails.
+        run: docker compose -f docker-compose.yml --profile full logs --no-color > docker-compose.log
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         if: always()
