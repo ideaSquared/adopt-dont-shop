@@ -25,7 +25,7 @@
 // handlers re-check the permission as defence-in-depth.
 
 import rateLimit from '@fastify/rate-limit';
-import { Metadata, status } from '@grpc/grpc-js';
+import { status } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import {
@@ -41,6 +41,7 @@ import {
 import type { MatchingClient } from '../grpc-clients/matching-client.js';
 
 import { recommendToQueue, searchToView } from './matching-view.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type MatchingRoutesOptions = {
   client: MatchingClient;
@@ -343,7 +344,9 @@ export const registerMatchingRoutes = async (
 function matchProfileToView(
   profile: MatchingV1.MatchProfile | undefined
 ): Record<string, unknown> | undefined {
-  if (!profile) return undefined;
+  if (!profile) {
+    return undefined;
+  }
   const parseOrNull = (s: string): unknown => (s === '' ? null : safeJson(s));
   return {
     user_id: profile.userId,
@@ -443,18 +446,6 @@ async function openSession(
 }
 
 // --- Helpers ---------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 

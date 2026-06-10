@@ -3,12 +3,13 @@
 // Thin REST → gRPC translation: parse the JSON body into BroadcastRequest,
 // forward principal metadata, return the aggregate counters.
 
-import { Metadata, status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { status } from '@grpc/grpc-js';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import type { BroadcastRequest } from '@adopt-dont-shop/proto';
 
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type BroadcastRoutesOptions = {
   client: NotificationsClient;
@@ -85,18 +86,6 @@ export const registerBroadcastRoutes = async (
     }
   });
 };
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 

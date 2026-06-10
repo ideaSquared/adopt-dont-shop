@@ -101,6 +101,38 @@ describe('createServer — /api/* fallback', () => {
   });
 });
 
+describe('createServer — /metrics endpoint', () => {
+  let server: FastifyInstance;
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('exposes Prometheus metrics with http_request_duration_seconds', async () => {
+    server = await createServer({ config: baseConfig, logger: quietLogger });
+    await server.inject({ method: 'GET', url: '/health/simple' });
+    const res = await server.inject({ method: 'GET', url: '/metrics' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('http_request_duration_seconds');
+  });
+});
+
+describe('createServer — x-request-id', () => {
+  let server: FastifyInstance;
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('echoes the inbound x-request-id header on the response', async () => {
+    server = await createServer({ config: baseConfig, logger: quietLogger });
+    const res = await server.inject({
+      method: 'GET',
+      url: '/health/simple',
+      headers: { 'x-request-id': 'gw-test-id-1234' },
+    });
+    expect(res.headers['x-request-id']).toBe('gw-test-id-1234');
+  });
+});
+
 // Per-domain cutover gate. With the flag OFF (default) the gateway does
 // NOT register the domain's /api/v1/* routes, so the request 404s.
 // With the flag ON the gateway's route plugin intercepts it.

@@ -88,3 +88,33 @@ describe('createServer — error handler', () => {
     expect(res.json()).toEqual({ error: 'internal_error' });
   });
 });
+
+describe('createServer — /metrics endpoint', () => {
+  it('exposes Prometheus metrics with http_request_duration_seconds', async () => {
+    const server = createServer({ config: baseConfig, logger: quietLogger });
+    try {
+      await server.inject({ method: 'GET', url: '/health/simple' });
+      const res = await server.inject({ method: 'GET', url: '/metrics' });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toContain('http_request_duration_seconds');
+    } finally {
+      await server.close();
+    }
+  });
+});
+
+describe('createServer — x-request-id', () => {
+  it('echoes the inbound x-request-id header on the response', async () => {
+    const server = createServer({ config: baseConfig, logger: quietLogger });
+    try {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/health/simple',
+        headers: { 'x-request-id': 'svc-test-id-1234' },
+      });
+      expect(res.headers['x-request-id']).toBe('svc-test-id-1234');
+    } finally {
+      await server.close();
+    }
+  });
+});

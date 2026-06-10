@@ -17,7 +17,7 @@
 // metadata is set). Admins can pass ?rescueId= explicitly to scope
 // elsewhere. Adopters get 403.
 
-import { Metadata, status } from '@grpc/grpc-js';
+import { status } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import {
@@ -33,6 +33,7 @@ import {
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type DashboardRoutesOptions = {
   petsClient: PetsClient;
@@ -53,9 +54,13 @@ const DEFAULT_ACTIVITY_LIMIT = 10;
 const MAX_ACTIVITY_LIMIT = 100;
 
 const parseLimit = (raw: string | undefined): number => {
-  if (!raw) return DEFAULT_ACTIVITY_LIMIT;
+  if (!raw) {
+    return DEFAULT_ACTIVITY_LIMIT;
+  }
   const n = Number.parseInt(raw, 10);
-  if (Number.isNaN(n) || n < 1) return DEFAULT_ACTIVITY_LIMIT;
+  if (Number.isNaN(n) || n < 1) {
+    return DEFAULT_ACTIVITY_LIMIT;
+  }
   return Math.min(n, MAX_ACTIVITY_LIMIT);
 };
 
@@ -66,7 +71,9 @@ const parseLimit = (raw: string | undefined): number => {
 // ?rescueId= in the query string.
 const resolveRescueScope = (req: FastifyRequest): string | null => {
   const query = req.query as Record<string, string | undefined>;
-  if (query.rescueId) return query.rescueId;
+  if (query.rescueId) {
+    return query.rescueId;
+  }
   const headers = req.headers as Record<string, string | string[] | undefined>;
   const raw = headers['x-rescue-id'];
   return typeof raw === 'string' && raw.length > 0 ? raw : null;
@@ -241,18 +248,6 @@ export const registerDashboardRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 

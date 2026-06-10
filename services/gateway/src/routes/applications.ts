@@ -28,7 +28,7 @@
 // to the monolith) — see server.ts.
 
 import rateLimit from '@fastify/rate-limit';
-import { Metadata, status } from '@grpc/grpc-js';
+import { status } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import {
@@ -48,6 +48,7 @@ import {
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
 
 import { applicationToView, statsToView, type ApplicationView } from './applications-view.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type ApplicationsRoutesOptions = {
   client: ApplicationsClient;
@@ -426,18 +427,6 @@ export const registerApplicationsRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 function headerUserId(req: FastifyRequest): string | undefined {
   const raw = (req.headers as Record<string, string | string[] | undefined>)['x-user-id'];

@@ -8,8 +8,8 @@
 // handlers' principal extractor reads, and they gate on
 // email.templates.* permissions.
 
-import { Metadata, status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { status } from '@grpc/grpc-js';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import {
   NotificationsV1,
@@ -19,6 +19,7 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type EmailRoutesOptions = {
   client: NotificationsClient;
@@ -34,7 +35,9 @@ const GRPC_TO_HTTP: Record<number, number> = {
 };
 
 const typeFromString = (raw: string | undefined): NotificationsV1.EmailTemplateType => {
-  if (!raw) return NotificationsV1.EmailTemplateType.EMAIL_TEMPLATE_TYPE_UNSPECIFIED;
+  if (!raw) {
+    return NotificationsV1.EmailTemplateType.EMAIL_TEMPLATE_TYPE_UNSPECIFIED;
+  }
   const upper = `EMAIL_TEMPLATE_TYPE_${raw.toUpperCase()}`;
   const parsed = NotificationsV1.emailTemplateTypeFromJSON(
     Object.values(NotificationsV1.EmailTemplateType).includes(upper as never) ? upper : raw
@@ -45,7 +48,9 @@ const typeFromString = (raw: string | undefined): NotificationsV1.EmailTemplateT
 };
 
 const statusFromString = (raw: string | undefined): NotificationsV1.EmailTemplateStatus => {
-  if (!raw) return NotificationsV1.EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_UNSPECIFIED;
+  if (!raw) {
+    return NotificationsV1.EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_UNSPECIFIED;
+  }
   const upper = `EMAIL_TEMPLATE_STATUS_${raw.toUpperCase()}`;
   const parsed = NotificationsV1.emailTemplateStatusFromJSON(
     Object.values(NotificationsV1.EmailTemplateStatus).includes(upper as never) ? upper : raw
@@ -59,8 +64,12 @@ const statusFromString = (raw: string | undefined): NotificationsV1.EmailTemplat
 // send `variables` as an array; we JSON-stringify it for the proto's
 // variables_json field.
 const variablesJson = (v: unknown): string | undefined => {
-  if (v === undefined) return undefined;
-  if (typeof v === 'string') return v;
+  if (v === undefined) {
+    return undefined;
+  }
+  if (typeof v === 'string') {
+    return v;
+  }
   return JSON.stringify(v);
 };
 
@@ -237,18 +246,6 @@ export const registerEmailRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 

@@ -39,8 +39,17 @@ const deps = {
   tokenIssuer: { mint: vi.fn(), verifyAccess: vi.fn(), verifyRefresh: vi.fn() },
 } as unknown as HandlerDeps;
 
-function makeCall<Req>(request: Req, metadata: Metadata): ServerUnaryCall<Req, unknown> {
-  return { request, metadata } as ServerUnaryCall<Req, unknown>;
+function makeCall<Req>(
+  request: Req,
+  metadata: Metadata
+): ServerUnaryCall<Req, unknown> & { sentMetadata: Metadata[] } {
+  const sentMetadata: Metadata[] = [];
+  return {
+    request,
+    metadata,
+    sentMetadata,
+    sendMetadata: (m: Metadata) => sentMetadata.push(m),
+  } as unknown as ServerUnaryCall<Req, unknown> & { sentMetadata: Metadata[] };
 }
 
 describe('adapt (principal-required) — happy path', () => {
@@ -169,5 +178,39 @@ describe('adaptUnauth (principal-optional) — Login/Refresh/Validate', () => {
       code: status.UNAUTHENTICATED,
       details: 'invalid credentials',
     });
+  });
+});
+
+describe('adapt — x-request-id propagation', () => {
+  it('echoes the inbound x-request-id back on the response metadata', async () => {
+    const handler = vi.fn(async (_deps, _principal, _req: unknown) => ({ ok: true }));
+    const { logger } = makeLogger();
+    const wrapped = adapt(handler, { deps, logger });
+
+    const md = buildMetadata({ ...VALID_PRINCIPAL_HEADERS, 'x-request-id': 'req-abc-123' });
+    const call = makeCall({}, md);
+    const callback = vi.fn() as unknown as sendUnaryData<unknown>;
+    wrapped(call, callback);
+    await new Promise(r => setImmediate(r));
+
+    expect(call.sentMetadata).toHaveLength(1);
+    const sent = call.sentMetadata[0].get('x-request-id');
+    expect(sent).toEqual(['req-abc-123']);
+  });
+
+  it('mints a fresh x-request-id when the inbound metadata has none', async () => {
+    const handler = vi.fn(async (_deps, _principal, _req: unknown) => ({ ok: true }));
+    const { logger } = makeLogger();
+    const wrapped = adapt(handler, { deps, logger });
+
+    const call = makeCall({}, buildMetadata(VALID_PRINCIPAL_HEADERS));
+    const callback = vi.fn() as unknown as sendUnaryData<unknown>;
+    wrapped(call, callback);
+    await new Promise(r => setImmediate(r));
+
+    expect(call.sentMetadata).toHaveLength(1);
+    const sent = call.sentMetadata[0].get('x-request-id');
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
   });
 });

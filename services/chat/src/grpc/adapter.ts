@@ -5,16 +5,24 @@
 
 import {
   status,
-  type Metadata,
+  Metadata,
   type ServerUnaryCall,
   type ServiceError,
   type sendUnaryData,
 } from '@grpc/grpc-js';
 
+import {
+  extractRequestIdFromMetadata,
+  REQUEST_ID_HEADER_NAME,
+  runWithRequestId,
+  startGrpcTimer,
+} from '@adopt-dont-shop/observability';
 import type { Logger } from 'winston';
 
 import { HandlerError, type HandlerDeps, type HandlerErrorCode } from './handlers.js';
 import { extractPrincipal, MissingPrincipalError } from './principal.js';
+
+const SERVICE_NAME = 'service.chat';
 
 const CODE_TO_GRPC: Record<HandlerErrorCode, number> = {
   INVALID_ARGUMENT: status.INVALID_ARGUMENT,
@@ -42,15 +50,22 @@ export function adapt<Req, Res>(
   { deps, logger }: AdaptOptions
 ): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
   return (call, callback) => {
-    void (async () => {
+    const method = handler.name || 'unknown';
+    const stop = startGrpcTimer(SERVICE_NAME, method);
+    const requestId = extractRequestIdFromMetadata(call.metadata);
+    echoRequestId(call, requestId);
+    void runWithRequestId(requestId, async () => {
       try {
         const principal = extractPrincipal(call.metadata);
         const response = await handler(deps, principal, call.request);
+        stop(status.OK);
         callback(null, response);
       } catch (err) {
-        callback(toServiceError(err, call.metadata, logger), null);
+        const svcErr = toServiceError(err, call.metadata, logger);
+        stop(svcErr.code ?? status.INTERNAL);
+        callback(svcErr, null);
       }
-    })();
+    });
   };
 }
 
@@ -71,4 +86,17 @@ function makeServiceError(code: number, message: string, metadata: Metadata): Se
   err.details = message;
   err.metadata = metadata;
   return err;
+}
+
+// Echo x-request-id on the response metadata where the transport
+// supports it. Errors out of sendMetadata (e.g. already sent) are
+// swallowed — observability must never affect the call outcome.
+function echoRequestId<Req, Res>(call: ServerUnaryCall<Req, Res>, requestId: string): void {
+  try {
+    const md = new Metadata();
+    md.set(REQUEST_ID_HEADER_NAME, requestId);
+    call.sendMetadata(md);
+  } catch {
+    // No-op — never let observability break the call.
+  }
 }

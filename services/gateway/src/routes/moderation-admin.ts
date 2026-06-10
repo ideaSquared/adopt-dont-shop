@@ -10,8 +10,8 @@
 // SPA-facing layer.
 
 import rateLimit from '@fastify/rate-limit';
-import { Metadata, status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { status } from '@grpc/grpc-js';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import {
   ModerationV1,
@@ -36,6 +36,7 @@ import {
   supportTicketResponseToView,
   supportTicketToView,
 } from './moderation-view.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type ModerationAdminRoutesOptions = {
   client: ModerationClient;
@@ -504,18 +505,6 @@ export const registerModerationAdminRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 
