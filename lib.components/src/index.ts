@@ -146,9 +146,11 @@ export type { WidgetPickerProps, WidgetPreset } from './components/reports/Widge
 export { DrillDownModal } from './components/reports/DrillDownModal';
 export type { DrillDownModalProps } from './components/reports/DrillDownModal';
 
-// ADS-14: Shared image component
+// ADS-14: Shared image components
 export { ProgressiveImage } from './components/ui/ProgressiveImage';
 export type { ProgressiveImageProps } from './components/ui/ProgressiveImage';
+export { PetImage } from './components/ui/PetImage';
+export type { PetImageProps } from './components/ui/PetImage';
 
 // PWA install prompt
 export { InstallPwaBanner } from './components/ui/InstallPwaBanner';
