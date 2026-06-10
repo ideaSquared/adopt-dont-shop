@@ -76,24 +76,50 @@ export const registerPetsRoutes = async (
 
   await app.register(rateLimit, { global: false });
 
-  app.get('/api/v1/pets', { config: { rateLimit: PETS_RATE_LIMITS.list } }, async (req, reply) => {
-    const query = req.query as Record<string, string | undefined>;
-    const grpcReq: ListPetsRequest = {
-      cursor: query.cursor,
-      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
-      statusFilter: parseStatus(query.status),
-      typeFilter: parseType(query.type),
-      sizeFilter: parseSize(query.size),
-      rescueIdFilter: query.rescueId,
-    };
-    try {
-      const res = await client.list(grpcReq, buildMetadata(req));
-      // Stage B: frontend lib.pets shape ({ success, data, meta }).
-      return reply.send(listToEnvelope(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.get(
+    '/api/v1/pets',
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.list },
+      schema: {
+        tags: ['pets'],
+        summary: 'List pets with cursor pagination and optional filters',
+        // Querystring is documented only — no `required`, no integer
+        // coercion (the existing handler does its own parseInt). Keeps
+        // OpenAPI useful for SDK generation without changing runtime
+        // validation behaviour.
+        querystring: {
+          type: 'object',
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            status: { type: 'string' },
+            type: { type: 'string' },
+            size: { type: 'string' },
+            rescueId: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
+    async (req, reply) => {
+      const query = req.query as Record<string, string | undefined>;
+      const grpcReq: ListPetsRequest = {
+        cursor: query.cursor,
+        limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+        statusFilter: parseStatus(query.status),
+        typeFilter: parseType(query.type),
+        sizeFilter: parseSize(query.size),
+        rescueIdFilter: query.rescueId,
+      };
+      try {
+        const res = await client.list(grpcReq, buildMetadata(req));
+        // Stage B: frontend lib.pets shape ({ success, data, meta }).
+        return reply.send(listToEnvelope(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // /stats must register BEFORE the dynamic /:id route so the literal
   // segment wins Fastify's first-registered-wins matcher.
