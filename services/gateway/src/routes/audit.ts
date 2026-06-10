@@ -29,6 +29,7 @@ import {
 
 import type { AuditClient } from '../grpc-clients/audit-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type AuditRoutesOptions = {
   client: AuditClient;
@@ -64,9 +65,13 @@ export const registerAuditRoutes = async (
     { config: { rateLimit: AUDIT_RATE_LIMITS.query } },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(query, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
       const grpcReq: AuditQueryRequest = {
         cursor: query.cursor,
-        limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+        limit: pagination.limit,
         service: query.service,
         subject: query.subject,
         actorUserId: query.actor_user_id,
@@ -88,11 +93,15 @@ export const registerAuditRoutes = async (
     { config: { rateLimit: AUDIT_RATE_LIMITS.getByTarget } },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(query, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
       const grpcReq: AuditGetByTargetRequest = {
         aggregateType: req.params.type,
         aggregateId: req.params.id,
         cursor: query.cursor,
-        limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+        limit: pagination.limit,
       };
       try {
         const res = await client.getByTarget(grpcReq, buildMetadata(req));

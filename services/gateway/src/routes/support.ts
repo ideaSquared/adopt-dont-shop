@@ -24,6 +24,7 @@ import {
 
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type SupportRoutesOptions = {
   client: ModerationClient;
@@ -121,12 +122,16 @@ export const registerSupportRoutes = async (
   // filter needed.
   app.get('/api/v1/support/my-tickets', async (req, reply) => {
     const query = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(query, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ error: pagination.error });
+    }
     const grpcReq: ListSupportTicketsRequest = {
       status: statusFromString(query.status),
       // page/limit — the monolith uses page-based; we forward limit
       // only. Page-based pagination over a keyset cursor RPC is left
       // to the SPA (cursor in/out).
-      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+      limit: pagination.limit,
       cursor: query.cursor,
     } as ListSupportTicketsRequest;
     try {

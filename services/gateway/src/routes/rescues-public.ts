@@ -22,6 +22,7 @@ import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { rescueDataEnvelope, rescueListEnvelope } from './rescue-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type RescuesPublicRoutesOptions = {
   client: RescueClient;
@@ -52,7 +53,11 @@ export const registerRescuesPublicRoutes = async (
   // hit this with `search=` / cursor params.
   app.get('/api/v1/rescues', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
-    const grpcReq = buildListRequest(q);
+    const pagination = parsePagination(q, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ success: false, error: pagination.error });
+    }
+    const grpcReq = buildListRequest(q, pagination.limit);
     try {
       const res = await client.list(grpcReq, buildMetadata(req));
       return reply.send(rescueListEnvelope(res));
@@ -65,8 +70,12 @@ export const registerRescuesPublicRoutes = async (
   // defaults to 8 since the SPA renders a small carousel.
   app.get('/api/v1/rescues/featured', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q, { limit: 8 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ success: false, error: pagination.error });
+    }
     const grpcReq: ListRescuesRequest = {
-      limit: q.limit ? Number.parseInt(q.limit, 10) : 8,
+      limit: pagination.limit,
       statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
       randomize: true,
     };
@@ -82,7 +91,11 @@ export const registerRescuesPublicRoutes = async (
   // name_search wired in.
   app.get('/api/v1/rescues/search', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
-    const grpcReq = buildListRequest({ ...q, search: q.search ?? q.q });
+    const pagination = parsePagination(q, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ success: false, error: pagination.error });
+    }
+    const grpcReq = buildListRequest({ ...q, search: q.search ?? q.q }, pagination.limit);
     try {
       const res = await client.list(grpcReq, buildMetadata(req));
       return reply.send(rescueListEnvelope(res));
@@ -97,11 +110,15 @@ export const registerRescuesPublicRoutes = async (
   // cleanly when that happens.
   app.get('/api/v1/rescues/nearby', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q, { limit: 20 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ success: false, error: pagination.error });
+    }
     const lat = q.lat ? Number.parseFloat(q.lat) : undefined;
     const lng = q.lng ? Number.parseFloat(q.lng) : undefined;
     const radius = q.radiusKm ? Number.parseFloat(q.radiusKm) : undefined;
     const grpcReq: ListRescuesRequest = {
-      limit: q.limit ? Number.parseInt(q.limit, 10) : 20,
+      limit: pagination.limit,
       statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED,
       latitude: lat,
       longitude: lng,
@@ -159,7 +176,10 @@ export const registerRescuesPublicRoutes = async (
 
 // --- Helpers ---------------------------------------------------------
 
-function buildListRequest(q: Record<string, string | undefined>): ListRescuesRequest {
+function buildListRequest(
+  q: Record<string, string | undefined>,
+  limit: number
+): ListRescuesRequest {
   const status = q.status;
   const statusFilter =
     !status || status === ''
@@ -167,7 +187,7 @@ function buildListRequest(q: Record<string, string | undefined>): ListRescuesReq
       : parseStatusFilter(status);
   return {
     cursor: q.cursor,
-    limit: q.limit ? Number.parseInt(q.limit, 10) : 0,
+    limit,
     statusFilter,
     nameSearch: q.search,
   };

@@ -49,6 +49,7 @@ import type { ApplicationsClient } from '../grpc-clients/applications-client.js'
 
 import { applicationToView, statsToView, type ApplicationView } from './applications-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type ApplicationsRoutesOptions = {
   client: ApplicationsClient;
@@ -381,9 +382,13 @@ export const registerApplicationsRoutes = async (
 
   app.get('/api/v1/applications', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ error: pagination.error });
+    }
     const grpcReq: ListApplicationsRequest = {
       cursor: q.cursor,
-      limit: q.limit ? Number.parseInt(q.limit, 10) : 0,
+      limit: pagination.limit,
       statusFilter: parseStatus(q.status),
       rescueIdFilter: q.rescue,
       adopterIdFilter: q.adopter,

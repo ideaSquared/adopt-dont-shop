@@ -42,6 +42,7 @@ import type { MatchingClient } from '../grpc-clients/matching-client.js';
 
 import { recommendToQueue, searchToView } from './matching-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type MatchingRoutesOptions = {
   client: MatchingClient;
@@ -186,9 +187,13 @@ export const registerMatchingRoutes = async (
     { config: { rateLimit: MATCHING_RATE_LIMITS.listSwipeHistory } },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(query, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
       const grpcReq: ListSwipeHistoryRequest = {
         cursor: query.cursor,
-        limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+        limit: pagination.limit,
         actionFilter: parseSwipeAction(query.action),
       };
       try {
@@ -255,11 +260,15 @@ export const registerMatchingRoutes = async (
     { config: { rateLimit: MATCHING_RATE_LIMITS.search } },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(query, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
       const grpcReq: SearchPetsRequest = {
         query: query.q ?? query.query,
         filtersJson: query.filters,
         cursor: query.cursor,
-        limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+        limit: pagination.limit,
       };
       try {
         const res = await client.searchPets(grpcReq, buildMetadata(req));

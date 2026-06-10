@@ -16,6 +16,7 @@ import {
 
 import type { CmsClient } from '../grpc-clients/cms-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type CmsRoutesOptions = {
   client: CmsClient;
@@ -163,10 +164,14 @@ export const registerCmsRoutes = async (
   // --- Public reads (no auth) ----------------------------------------
   app.get('/api/v1/cms/public/content', async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q);
+    if (!pagination.ok) {
+      return reply.code(400).send({ success: false, error: pagination.error });
+    }
     const grpcReq: CmsListPublicContentRequest = {
       contentType: contentTypeFromString(q.type),
-      page: q.page ? Number.parseInt(q.page, 10) : 1,
-      limit: q.limit ? Number.parseInt(q.limit, 10) : 20,
+      page: pagination.page,
+      limit: pagination.limit,
     };
     try {
       const res = await client.listPublicContent(grpcReq, buildMetadata(req));
@@ -203,12 +208,16 @@ export const registerCmsRoutes = async (
   // --- Admin content reads ------------------------------------------
   app.get('/api/v1/cms/content', async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q);
+    if (!pagination.ok) {
+      return reply.code(400).send({ success: false, error: pagination.error });
+    }
     const grpcReq: CmsListContentRequest = {
       contentType: contentTypeFromString(q.type),
       status: contentStatusFromString(q.status),
       search: q.search,
-      page: q.page ? Number.parseInt(q.page, 10) : 1,
-      limit: q.limit ? Number.parseInt(q.limit, 10) : 20,
+      page: pagination.page,
+      limit: pagination.limit,
     };
     try {
       const res = await client.listContent(grpcReq, buildMetadata(req));

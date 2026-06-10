@@ -135,13 +135,25 @@ describe('GET /api/v1/pets', () => {
 
   it('maps INVALID_ARGUMENT → 400', async () => {
     listMock.mockRejectedValueOnce(
-      Object.assign(new Error('bad limit'), {
+      Object.assign(new Error('bad filter'), {
         code: grpcStatus.INVALID_ARGUMENT,
-        details: 'bad limit',
+        details: 'bad filter',
       })
     );
+    const res = await app.inject({ method: 'GET', url: '/api/v1/pets?limit=50' });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('rejects limit > 100 at the gateway without calling the service', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/pets?limit=200' });
     expect(res.statusCode).toBe(400);
+    expect(listMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a non-numeric limit at the gateway', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/pets?limit=abc' });
+    expect(res.statusCode).toBe(400);
+    expect(listMock).not.toHaveBeenCalled();
   });
 });
 

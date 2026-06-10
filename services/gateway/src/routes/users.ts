@@ -35,6 +35,7 @@ import {
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type UsersRoutesOptions = {
   authClient: AuthClient;
@@ -246,6 +247,10 @@ export const registerUsersRoutes = async (
   app.get('/api/v1/users/search', async (req, reply) => {
     const metadata = buildMetadata(req);
     const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ success: false, error: pagination.error });
+    }
     const grpcReq: SearchUsersRequest = {
       search: q.search,
       statusFilter: statusFilterFromString(q.status),
@@ -253,8 +258,8 @@ export const registerUsersRoutes = async (
       emailVerified: q.emailVerified ? q.emailVerified === 'true' : undefined,
       createdFrom: q.createdFrom ?? q.created_from,
       createdTo: q.createdTo ?? q.created_to,
-      page: q.page ? Number.parseInt(q.page, 10) : 1,
-      limit: q.limit ? Number.parseInt(q.limit, 10) : 0,
+      page: pagination.page,
+      limit: pagination.limit,
       sortBy: q.sortBy ?? q.sort_by,
       sortOrder: q.sortOrder ?? q.sort_order,
     };
