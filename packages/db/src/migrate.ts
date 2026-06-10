@@ -34,8 +34,11 @@ export async function runMigrations(opts: MigrationOptions): Promise<void> {
     direction: 'up',
     // CAD lesson #3: directory scan picks up `.js.map` sidecars and tries
     // to `import()` them — dies with ERR_UNKNOWN_FILE_EXTENSION. Also skips
-    // dotfiles.
-    ignorePattern: '(\\..*|.*\\.map)',
+    // dotfiles. Test files (`*.test.ts` / `*.spec.ts`) co-located with
+    // migrations also get scanned otherwise — importing them at migrate
+    // time runs `describe()` outside a vitest context and crashes the
+    // runner with "Cannot read properties of undefined (reading 'config')".
+    ignorePattern: '(\\..*|.*\\.map|.*\\.test\\.[jt]s|.*\\.spec\\.[jt]s)',
     log: () => {
       /* silent — callers wrap in their own observability layer */
     },
