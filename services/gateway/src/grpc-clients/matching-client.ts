@@ -37,6 +37,8 @@ import {
   type UpsertMatchProfileResponse,
 } from '@adopt-dont-shop/proto';
 
+import { startGrpcTimer } from '@adopt-dont-shop/observability';
+
 export type MatchingClient = {
   startSession(req: StartSessionRequest, metadata: Metadata): Promise<StartSessionResponse>;
   endSession(req: EndSessionRequest, metadata: Metadata): Promise<EndSessionResponse>;
@@ -92,7 +94,19 @@ export const createMatchingClient = (opts: CreateMatchingClientOptions): Matchin
       const options: Partial<CallOptions> = {
         deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
       };
+      const method = fn.name || 'unknown';
+      const stop = startGrpcTimer('service.matching', method, 'out');
       fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
+        const code =
+          err &&
+          typeof err === 'object' &&
+          'code' in err &&
+          typeof (err as { code?: unknown }).code === 'number'
+            ? (err as { code: number }).code
+            : err
+              ? 2 // UNKNOWN
+              : 0;
+        stop(code);
         if (err) {
           reject(err);
           return;

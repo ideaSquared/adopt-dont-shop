@@ -9,7 +9,7 @@
 // API (1.3), NATS subscriber for fan-out (1.4), and the gateway WS
 // wiring (1.5) build on this foundation.
 
-import { createLogger } from '@adopt-dont-shop/observability';
+import { createLogger, registerMetrics, registerRequestId } from '@adopt-dont-shop/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import type { NotificationsConfig } from './config.js';
@@ -44,6 +44,14 @@ export const createServer = (opts: CreateServerOptions): FastifyInstance => {
     });
     void reply.status(err.statusCode ?? 500).send({ error: 'internal_error' });
   });
+
+  // Request-id middleware runs FIRST so the id is on req for every
+  // hook after it (metrics onResponse + any per-route hook).
+  registerRequestId(server);
+
+  // Prometheus /metrics + http_request_duration_seconds onResponse
+  // hook. Substrate only — no domain-specific instruments here.
+  registerMetrics(server);
 
   // Health endpoint — matches service.backend + service.gateway's
   // `/health/simple` path so the existing Docker compose healthcheck

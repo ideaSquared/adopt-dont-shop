@@ -11,7 +11,7 @@
 // gRPC (6.3), NATS publishers (6.4), gateway routing (6.5), and
 // cutover (6.6) arrive in subsequent commits.
 
-import { createLogger } from '@adopt-dont-shop/observability';
+import { createLogger, registerMetrics, registerRequestId } from '@adopt-dont-shop/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import type { ChatConfig } from './config.js';
@@ -46,6 +46,14 @@ export const createServer = (opts: CreateServerOptions): FastifyInstance => {
     });
     void reply.status(err.statusCode ?? 500).send({ error: 'internal_error' });
   });
+
+  // Request-id middleware runs FIRST so the id is on req for every
+  // hook after it (metrics onResponse + any per-route hook).
+  registerRequestId(server);
+
+  // Prometheus /metrics + http_request_duration_seconds onResponse
+  // hook. Substrate only — no domain-specific instruments here.
+  registerMetrics(server);
 
   // Health endpoint — matches the rest of the stack's
   // `/health/simple` path so the existing Docker compose healthcheck

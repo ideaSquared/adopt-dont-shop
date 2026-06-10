@@ -41,6 +41,8 @@ import {
   type VerifyRescueResponse,
 } from '@adopt-dont-shop/proto';
 
+import { startGrpcTimer } from '@adopt-dont-shop/observability';
+
 export type RescueClient = {
   create(req: CreateRescueRequest, metadata: Metadata): Promise<CreateRescueResponse>;
   get(req: GetRescueRequest, metadata: Metadata): Promise<GetRescueResponse>;
@@ -105,7 +107,19 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
       const options: Partial<CallOptions> = {
         deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
       };
+      const method = fn.name || 'unknown';
+      const stop = startGrpcTimer('service.rescue', method, 'out');
       fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
+        const code =
+          err &&
+          typeof err === 'object' &&
+          'code' in err &&
+          typeof (err as { code?: unknown }).code === 'number'
+            ? (err as { code: number }).code
+            : err
+              ? 2 // UNKNOWN
+              : 0;
+        stop(code);
         if (err) {
           reject(err);
           return;
