@@ -24,12 +24,18 @@
 // already has the response; the other participant picks it up on their
 // next ListChats refresh / chat-list re-fetch).
 
-import type { NatsConnection, Subscription } from 'nats';
+import { randomUUID } from 'node:crypto';
+
+import type { NatsConnection } from 'nats';
 import type { Logger } from 'winston';
 
-import { subscribe } from '@adopt-dont-shop/events';
+import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
 import type { SocketRegistry } from './socket-registry.js';
+
+// Unique per gateway process so replicas fan-out independently (each sees
+// every chat event) rather than load-sharing.
+const REPLICA_ID = randomUUID();
 
 export type RegisterChatSubscribersOptions = {
   nats: NatsConnection;
@@ -91,7 +97,9 @@ const fanToParticipants = <T extends ChatEventBase>(
   }
 };
 
-export const registerChatSubscribers = (opts: RegisterChatSubscribersOptions): Subscription[] => {
+export const registerChatSubscribers = (
+  opts: RegisterChatSubscribersOptions
+): SubscriptionHandle[] => {
   const { nats, registry, logger } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
@@ -101,29 +109,62 @@ export const registerChatSubscribers = (opts: RegisterChatSubscribersOptions): S
     });
   };
 
-  const subs: Subscription[] = [];
+  // deliverNew: realtime fan-out — replicas pick up from "now", not replay a
+  // backlog of stale chat events on reconnect.
+  const durableFor = (subject: string): string =>
+    `gw-ws-${subject.replace(/\./g, '-')}-${REPLICA_ID}`;
+
+  const subs: SubscriptionHandle[] = [];
 
   subs.push(
-    subscribe<MessageCreatedPayload>(nats, { subject: 'chat.messageCreated', onError }, payload =>
-      fanToParticipants(registry, payload, 'chat:message:created')
+    subscribe<MessageCreatedPayload>(
+      nats,
+      {
+        subject: 'chat.messageCreated',
+        durable: durableFor('chat.messageCreated'),
+        deliverNew: true,
+        onError,
+      },
+      payload => fanToParticipants(registry, payload, 'chat:message:created')
     )
   );
 
   subs.push(
-    subscribe<MessageReadPayload>(nats, { subject: 'chat.messageRead', onError }, payload =>
-      fanToParticipants(registry, payload, 'chat:message:read')
+    subscribe<MessageReadPayload>(
+      nats,
+      {
+        subject: 'chat.messageRead',
+        durable: durableFor('chat.messageRead'),
+        deliverNew: true,
+        onError,
+      },
+      payload => fanToParticipants(registry, payload, 'chat:message:read')
     )
   );
 
   subs.push(
-    subscribe<ReactionPayload>(nats, { subject: 'chat.reactionAdded', onError }, payload =>
-      fanToParticipants(registry, payload, 'chat:reaction:added')
+    subscribe<ReactionPayload>(
+      nats,
+      {
+        subject: 'chat.reactionAdded',
+        durable: durableFor('chat.reactionAdded'),
+        deliverNew: true,
+        onError,
+      },
+      payload => fanToParticipants(registry, payload, 'chat:reaction:added')
     )
   );
 
   subs.push(
-    subscribe<ReactionPayload>(nats, { subject: 'chat.reactionRemoved', onError }, payload =>
-      fanToParticipants(registry, payload, 'chat:reaction:removed')
+    subscribe<ReactionPayload>(
+      nats,
+      {
+        subject: 'chat.reactionRemoved',
+        durable: durableFor('chat.reactionRemoved'),
+        deliverNew: true,
+        onError,
+      },
+      payload => fanToParticipants(registry, payload, 'chat:reaction:removed')
     )
   );
 

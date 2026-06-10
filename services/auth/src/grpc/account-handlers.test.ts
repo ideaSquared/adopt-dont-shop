@@ -79,7 +79,10 @@ function makeMocks() {
   };
   const pool = { connect: vi.fn().mockResolvedValue(client), query: vi.fn() };
   pool.query.mockResolvedValue({ rows: [] });
-  const nats = { publish: vi.fn() };
+  const natsPublish = vi.fn();
+  // JetStream publish routes to the same spy so existing publish assertions
+  // keep working; withTransaction now publishes via nats.jetstream().publish().
+  const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
   const passwordHasher = { compare: vi.fn(), hash: vi.fn() };
   const tokenIssuer = { mint: vi.fn(), verifyAccess: vi.fn(), verifyRefresh: vi.fn() };
   const deps: HandlerDeps = {

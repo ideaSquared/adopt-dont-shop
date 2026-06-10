@@ -1,4 +1,4 @@
-import type { NatsConnection, Subscription } from 'nats';
+import type { NatsConnection } from 'nats';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { UserId } from '@adopt-dont-shop/lib.types';
@@ -251,24 +251,44 @@ describe('event → CreateNotificationRequest translation', () => {
 // --- Subscriber registration ----------------------------------------
 
 describe('registerSubscribers', () => {
-  // Real subscribe() from @adopt-dont-shop/events kicks off a for-await
-  // loop on the returned Subscription. We need a stub that's async-
-  // iterable + immediately done so the loop completes without yielding
-  // any messages.
-  function fakeSubscription(): Subscription {
-    return {
-      [Symbol.asyncIterator]() {
-        return {
-          next: async () => ({ value: undefined, done: true }) as const,
-        };
-      },
-    } as unknown as Subscription;
-  }
+  // Real subscribe() from @adopt-dont-shop/events now binds a durable
+  // JetStream consumer: it calls jetstreamManager().consumers.add(...) to
+  // create the durable, then jetstream().consumers.get(...).consume() to
+  // drive the loop. We stub a JetStream connection whose consume() yields
+  // nothing so the loop completes immediately, and capture the durable
+  // configs each subscriber requests.
+  type AddedConsumer = { durable_name?: string; filter_subject?: string };
 
-  function makeNats(): { nats: NatsConnection; subscribeFn: ReturnType<typeof vi.fn> } {
-    const subscribeFn = vi.fn().mockReturnValue(fakeSubscription());
-    const nats = { subscribe: subscribeFn } as unknown as NatsConnection;
-    return { nats, subscribeFn };
+  function makeNats(): {
+    nats: NatsConnection;
+    consumersAdded: AddedConsumer[];
+  } {
+    const consumersAdded: AddedConsumer[] = [];
+    const jsm = {
+      consumers: {
+        add: vi.fn(async (_stream: string, cfg: AddedConsumer) => {
+          consumersAdded.push(cfg);
+          return cfg;
+        }),
+      },
+    };
+    const js = {
+      consumers: {
+        get: vi.fn(async () => ({
+          consume: vi.fn(async () => ({
+            async *[Symbol.asyncIterator]() {
+              // no messages
+            },
+            close: vi.fn(),
+          })),
+        })),
+      },
+    };
+    const nats = {
+      jetstreamManager: vi.fn(async () => jsm),
+      jetstream: vi.fn(() => js),
+    } as unknown as NatsConnection;
+    return { nats, consumersAdded };
   }
 
   const deps = {
@@ -284,15 +304,20 @@ describe('registerSubscribers', () => {
     silly: () => undefined,
   } as unknown as Parameters<typeof registerSubscribers>[0]['logger'];
 
-  it('registers a NATS subscription per known cross-service subject', () => {
-    const { nats, subscribeFn } = makeNats();
+  const flush = async (): Promise<void> => {
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setImmediate(r));
+    }
+  };
+
+  it('registers a durable consumer per known cross-service subject', async () => {
+    const { nats, consumersAdded } = makeNats();
 
     const subs = registerSubscribers({ nats, deps, logger });
+    await flush();
 
     expect(subs).toHaveLength(14);
-    // Subscribed subjects (raw nats.subscribe receives the subject as
-    // first arg, then an options object containing `queue`).
-    const subjects = subscribeFn.mock.calls.map(call => call[0]);
+    const subjects = consumersAdded.map(c => c.filter_subject);
     expect(subjects).toEqual([
       'applications.submitted',
       'applications.approved',
@@ -311,15 +336,14 @@ describe('registerSubscribers', () => {
     ]);
   });
 
-  it('joins each subscription to the shared notifications-workers queue group', () => {
-    const { nats, subscribeFn } = makeNats();
+  it('names each durable consumer with the shared notifications-workers prefix', async () => {
+    const { nats, consumersAdded } = makeNats();
 
     registerSubscribers({ nats, deps, logger });
+    await flush();
 
-    for (const call of subscribeFn.mock.calls) {
-      // Second arg is the opts object @adopt-dont-shop/events.subscribe
-      // hands the underlying nats client: { queue: 'notifications-workers' }
-      expect(call[1]).toEqual({ queue: 'notifications-workers' });
+    for (const cfg of consumersAdded) {
+      expect(cfg.durable_name).toMatch(/^notifications-workers-/);
     }
   });
 });

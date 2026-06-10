@@ -91,7 +91,10 @@ function makeMocks() {
       return next;
     }),
   };
-  const nats = { publish: vi.fn() };
+  const natsPublish = vi.fn();
+  // JetStream publish routes to the same spy so existing publish assertions
+  // keep working; withTransaction now publishes via nats.jetstream().publish().
+  const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
   return {
     pool: pool as unknown as Pool,
     client: client as unknown as PoolClient,
@@ -192,7 +195,9 @@ describe('sendEmail', () => {
     // publishStaged calls nats.publish(subject, JSON-envelope).
     const [subject, body] = mocks.natsMock.publish.mock.calls[0];
     expect(subject).toBe('notifications.email.queued');
-    const envelope = JSON.parse(body as string) as {
+    const envelope = JSON.parse(
+      body instanceof Uint8Array ? new TextDecoder().decode(body) : (body as string)
+    ) as {
       id: string;
       payload: Record<string, unknown>;
     };

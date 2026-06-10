@@ -55,6 +55,12 @@ const main = async (): Promise<void> => {
     // NATS comes up BEFORE createServer so the GDPR erasure-request route
     // can publish on it. Socket.IO still attaches after server.listen.
     nats = await connect({ servers: config.natsUrl });
+    // Create-or-update the JetStream DOMAIN_EVENTS stream before anything
+    // publishes or subscribes. Idempotent across every service's boot.
+    {
+      const { ensureStream } = await import('@adopt-dont-shop/events');
+      await ensureStream(nats);
+    }
 
     const server = await createServer({
       config,

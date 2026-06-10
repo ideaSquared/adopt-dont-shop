@@ -12,8 +12,15 @@ import { registerGdprRoutes } from './gdpr.js';
 
 function fakeNats() {
   const published: Array<{ subject: string; data: string }> = [];
+  // The route publishes the request through JetStream now. The fake decodes
+  // the Uint8Array back to a string so the existing payload assertions hold,
+  // and returns a PubAck so the awaited publish resolves.
+  const jsPublish = vi.fn(async (subject: string, data: Uint8Array) => {
+    published.push({ subject, data: new TextDecoder().decode(data) });
+    return { stream: 'DOMAIN_EVENTS', seq: published.length, duplicate: false };
+  });
   const nats = {
-    publish: vi.fn((subject: string, data: string) => published.push({ subject, data })),
+    jetstream: () => ({ publish: jsPublish }),
   } as unknown as NatsConnection;
   return { nats, published };
 }

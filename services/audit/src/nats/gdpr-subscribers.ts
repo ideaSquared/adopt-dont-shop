@@ -9,7 +9,7 @@
 // Both subscribers share the audit-workers queue group so a replicated
 // audit deployment load-balances saga tracking.
 
-import type { NatsConnection, Subscription } from 'nats';
+import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import type { Logger } from 'winston';
 
@@ -19,6 +19,7 @@ import {
   subscribe,
   type GdprErasureCompletedPayload,
   type GdprErasureRequestedPayload,
+  type SubscriptionHandle,
 } from '@adopt-dont-shop/events';
 
 // The set of services we expect to ack each request. Once every one of
@@ -38,7 +39,11 @@ export const EXPECTED_SERVICES = [
   'rescue',
 ] as const;
 
-const QUEUE_GROUP = 'audit-workers';
+// Durable consumer names — all audit replicas bind the same durables so the
+// saga-tracking work is load-shared. Distinct durables per subject keep each
+// subscriber's redelivery cursor independent.
+const DURABLE_REQUEST = 'audit-workers-gdpr-request';
+const DURABLE_COMPLETION = 'audit-workers-gdpr-completion';
 
 export type RegisterGdprSubscribersOptions = {
   nats: NatsConnection;
@@ -46,7 +51,9 @@ export type RegisterGdprSubscribersOptions = {
   logger: Logger;
 };
 
-export const registerGdprSubscribers = (opts: RegisterGdprSubscribersOptions): Subscription[] => {
+export const registerGdprSubscribers = (
+  opts: RegisterGdprSubscribersOptions
+): SubscriptionHandle[] => {
   const { nats, pool, logger } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
@@ -59,14 +66,14 @@ export const registerGdprSubscribers = (opts: RegisterGdprSubscribersOptions): S
   return [
     subscribe<GdprErasureRequestedPayload>(
       nats,
-      { subject: GDPR_ERASURE_REQUESTED, queue: QUEUE_GROUP, onError },
+      { subject: GDPR_ERASURE_REQUESTED, durable: DURABLE_REQUEST, onError },
       async payload => {
         await recordRequest(pool, payload);
       }
     ),
     subscribe<GdprErasureCompletedPayload>(
       nats,
-      { subject: GDPR_ERASURE_COMPLETED, queue: QUEUE_GROUP, onError },
+      { subject: GDPR_ERASURE_COMPLETED, durable: DURABLE_COMPLETION, onError },
       async payload => {
         await recordCompletion(pool, payload);
       }

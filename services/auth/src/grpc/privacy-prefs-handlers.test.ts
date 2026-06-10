@@ -61,7 +61,10 @@ function makeMocks() {
     connect: vi.fn().mockResolvedValue(client),
     query: vi.fn(async () => poolScript.shift() ?? { rows: [] }),
   };
-  const nats = { publish: vi.fn() };
+  const natsPublish = vi.fn();
+  // JetStream publish routes to the same spy so existing publish assertions
+  // keep working; withTransaction now publishes via nats.jetstream().publish().
+  const nats = { publish: natsPublish, jetstream: () => ({ publish: natsPublish }) };
   // HandlerDeps requires passwordHasher + tokenIssuer — privacy handlers
   // never read them so we stub with no-op fakes.
   const deps: HandlerDeps = {

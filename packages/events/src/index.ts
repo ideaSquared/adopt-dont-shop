@@ -1,7 +1,8 @@
 export { withTransaction } from './publish.js';
 export type { DomainEvent, TransactionalScope, WithTransactionDeps } from './publish.js';
 export { subscribe } from './subscribe.js';
-export type { MessageHandler, SubscribeOptions } from './subscribe.js';
+export type { MessageHandler, SubscribeOptions, SubscriptionHandle } from './subscribe.js';
+export { ensureStream, DOMAIN_STREAM, DOMAIN_SUBJECTS } from './stream.js';
 export {
   GDPR_ERASURE_REQUESTED,
   GDPR_ERASURE_COMPLETED,

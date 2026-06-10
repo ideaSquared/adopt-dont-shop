@@ -58,7 +58,16 @@ export const registerGdprRoutes = async (
       occurredAt: new Date().toISOString(),
       payload,
     };
-    nats.publish(GDPR_ERASURE_REQUESTED, JSON.stringify(envelope));
+    // Publish through JetStream so the erasure request is durably stored in
+    // the stream BEFORE we 202. Any service that owns user data — even one
+    // mid-deploy right now — receives it on reconnect via its durable
+    // consumer. This is the compliance-critical guarantee: the request can't
+    // be lost to a subscriber being briefly down.
+    await nats
+      .jetstream()
+      .publish(GDPR_ERASURE_REQUESTED, new TextEncoder().encode(JSON.stringify(envelope)), {
+        msgID: correlationId,
+      });
 
     // 202 — the request is accepted, but actual erasure happens
     // asynchronously across the services. The client polls the status

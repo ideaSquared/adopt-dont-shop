@@ -24,10 +24,10 @@
 // notification rows. For now the canonical handler's INSERT generates
 // a fresh notification_id per call.
 
-import type { NatsConnection, Subscription } from 'nats';
+import type { NatsConnection } from 'nats';
 import type { Logger } from 'winston';
 
-import { subscribe } from '@adopt-dont-shop/events';
+import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
 import { NotificationsV1, type CreateNotificationRequest } from '@adopt-dont-shop/proto';
 
@@ -57,13 +57,17 @@ export type RegisterSubscribersOptions = {
   logger: Logger;
 };
 
-// Single queue group so multiple replicas of service.notifications
-// share work — NATS delivers each message to exactly one subscriber in
-// the group. The string is part of the deployment contract; changing
-// it elsewhere means duplicate handling during the rollover.
-const QUEUE_GROUP = 'notifications-workers';
+// Durable-consumer name prefix so multiple replicas of service.notifications
+// share work — all replicas bind the SAME durable per subject, so JetStream
+// delivers each message to exactly one of them. The string is part of the
+// deployment contract; changing it elsewhere means duplicate handling during
+// the rollover. One durable per subject (subject dots → dashes) keeps each
+// subscriber's redelivery cursor independent.
+const DURABLE_PREFIX = 'notifications-workers';
 
-export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscription[] => {
+const durableFor = (subject: string): string => `${DURABLE_PREFIX}-${subject.replace(/\./g, '-')}`;
+
+export const registerSubscribers = (opts: RegisterSubscribersOptions): SubscriptionHandle[] => {
   const { nats, deps, logger } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
@@ -73,12 +77,12 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     });
   };
 
-  const subscriptions: Subscription[] = [];
+  const subscriptions: SubscriptionHandle[] = [];
 
   subscriptions.push(
     subscribe<ApplicationSubmittedEvent>(
       nats,
-      { subject: 'applications.submitted', queue: QUEUE_GROUP, onError },
+      { subject: 'applications.submitted', durable: durableFor('applications.submitted'), onError },
       async payload => {
         await createNotification(deps, SYSTEM_PRINCIPAL, buildApplicationSubmittedCreate(payload));
       }
@@ -88,7 +92,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<ApplicationApprovedEvent>(
       nats,
-      { subject: 'applications.approved', queue: QUEUE_GROUP, onError },
+      { subject: 'applications.approved', durable: durableFor('applications.approved'), onError },
       async payload => {
         await createNotification(deps, SYSTEM_PRINCIPAL, buildApplicationApprovedCreate(payload));
       }
@@ -98,7 +102,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<ApplicationRejectedEvent>(
       nats,
-      { subject: 'applications.rejected', queue: QUEUE_GROUP, onError },
+      { subject: 'applications.rejected', durable: durableFor('applications.rejected'), onError },
       async payload => {
         await createNotification(deps, SYSTEM_PRINCIPAL, buildApplicationRejectedCreate(payload));
       }
@@ -108,7 +112,11 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<ApplicationHomeVisitScheduledEvent>(
       nats,
-      { subject: 'applications.homeVisitScheduled', queue: QUEUE_GROUP, onError },
+      {
+        subject: 'applications.homeVisitScheduled',
+        durable: durableFor('applications.homeVisitScheduled'),
+        onError,
+      },
       async payload => {
         await createNotification(
           deps,
@@ -122,7 +130,11 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<ApplicationHomeVisitCompletedEvent>(
       nats,
-      { subject: 'applications.homeVisitCompleted', queue: QUEUE_GROUP, onError },
+      {
+        subject: 'applications.homeVisitCompleted',
+        durable: durableFor('applications.homeVisitCompleted'),
+        onError,
+      },
       async payload => {
         await createNotification(
           deps,
@@ -136,7 +148,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<ApplicationAdoptedEvent>(
       nats,
-      { subject: 'applications.adopted', queue: QUEUE_GROUP, onError },
+      { subject: 'applications.adopted', durable: durableFor('applications.adopted'), onError },
       async payload => {
         await createNotification(deps, SYSTEM_PRINCIPAL, buildApplicationAdoptedCreate(payload));
       }
@@ -146,7 +158,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<AuthUserLoggedInEvent>(
       nats,
-      { subject: 'auth.userLoggedIn', queue: QUEUE_GROUP, onError },
+      { subject: 'auth.userLoggedIn', durable: durableFor('auth.userLoggedIn'), onError },
       async payload => {
         await createNotification(deps, SYSTEM_PRINCIPAL, buildAuthUserLoggedInCreate(payload));
       }
@@ -156,7 +168,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<AuthRoleAssignedEvent>(
       nats,
-      { subject: 'auth.roleAssigned', queue: QUEUE_GROUP, onError },
+      { subject: 'auth.roleAssigned', durable: durableFor('auth.roleAssigned'), onError },
       async payload => {
         await createNotification(deps, SYSTEM_PRINCIPAL, buildAuthRoleAssignedCreate(payload));
       }
@@ -173,7 +185,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<PetStatusChangedEvent>(
       nats,
-      { subject: 'pets.statusChanged', queue: QUEUE_GROUP, onError },
+      { subject: 'pets.statusChanged', durable: durableFor('pets.statusChanged'), onError },
       async payload => {
         logger.info('pets.statusChanged received', {
           petId: payload.petId,
@@ -188,7 +200,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<PetDeletedEvent>(
       nats,
-      { subject: 'pets.deleted', queue: QUEUE_GROUP, onError },
+      { subject: 'pets.deleted', durable: durableFor('pets.deleted'), onError },
       async payload => {
         logger.info('pets.deleted received', {
           petId: payload.petId,
@@ -205,7 +217,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<RescueVerifiedEvent>(
       nats,
-      { subject: 'rescue.verified', queue: QUEUE_GROUP, onError },
+      { subject: 'rescue.verified', durable: durableFor('rescue.verified'), onError },
       async payload => {
         logger.info('rescue.verified received', {
           rescueId: payload.rescueId,
@@ -219,7 +231,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<RescueRejectedEvent>(
       nats,
-      { subject: 'rescue.rejected', queue: QUEUE_GROUP, onError },
+      { subject: 'rescue.rejected', durable: durableFor('rescue.rejected'), onError },
       async payload => {
         logger.info('rescue.rejected received', {
           rescueId: payload.rescueId,
@@ -232,7 +244,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<RescueStaffInvitedEvent>(
       nats,
-      { subject: 'rescue.staffInvited', queue: QUEUE_GROUP, onError },
+      { subject: 'rescue.staffInvited', durable: durableFor('rescue.staffInvited'), onError },
       async payload => {
         logger.info('rescue.staffInvited received', {
           invitationId: payload.invitationId,
@@ -251,7 +263,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   subscriptions.push(
     subscribe<ChatMessageCreatedEvent>(
       nats,
-      { subject: 'chat.messageCreated', queue: QUEUE_GROUP, onError },
+      { subject: 'chat.messageCreated', durable: durableFor('chat.messageCreated'), onError },
       async payload => {
         const recipients = payload.participantUserIds.filter(id => id !== payload.senderUserId);
         // Each recipient gets one in-app notification. Errors from a
@@ -279,7 +291,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
 
   logger.info('NATS subscribers registered', {
     subjects: subscriptions.length,
-    queue: QUEUE_GROUP,
+    durablePrefix: DURABLE_PREFIX,
   });
 
   return subscriptions;

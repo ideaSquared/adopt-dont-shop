@@ -27,6 +27,10 @@ const main = async (): Promise<void> => {
       schema: config.schema,
     });
     nats = await connect({ servers: config.natsUrl });
+    // Create-or-update the JetStream DOMAIN_EVENTS stream before anything
+    // publishes or subscribes. Idempotent across every service's boot.
+    const { ensureStream } = await import('@adopt-dont-shop/events');
+    await ensureStream(nats);
 
     const passwordHasher = createBcryptPasswordHasher();
     const tokenIssuer = createJwtTokenIssuer({

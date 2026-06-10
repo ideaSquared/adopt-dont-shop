@@ -20,11 +20,11 @@
 // ON CONFLICT clause is enough — we don't need a separate
 // processed_events table because the event_id IS the audit_events PK.
 
-import type { NatsConnection, Subscription } from 'nats';
+import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import type { Logger } from 'winston';
 
-import { subscribe } from '@adopt-dont-shop/events';
+import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
 import type { AuditEventPayload } from './event-types.js';
 
@@ -34,9 +34,10 @@ export type RegisterSubscribersOptions = {
   logger: Logger;
 };
 
-// Queue group is part of the deployment contract — changing it
-// elsewhere means duplicate handling during the rollover.
-const QUEUE_GROUP = 'audit-workers';
+// Durable consumer name — all replicas bind the same durable so JetStream
+// load-shares the action-taken stream across the audit pool. Part of the
+// deployment contract — changing it means duplicate handling during rollover.
+const DURABLE = 'audit-workers-actionTaken';
 
 const INSERT_SQL = `
   INSERT INTO audit_events (
@@ -48,7 +49,7 @@ const INSERT_SQL = `
   ON CONFLICT (event_id) DO NOTHING
 `;
 
-export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscription[] => {
+export const registerSubscribers = (opts: RegisterSubscribersOptions): SubscriptionHandle[] => {
   const { nats, pool, logger } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
@@ -61,7 +62,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   return [
     subscribe<AuditEventPayload>(
       nats,
-      { subject: '*.actionTaken', queue: QUEUE_GROUP, onError },
+      { subject: '*.actionTaken', durable: DURABLE, onError },
       async (payload, meta) => {
         await persistAuditEvent(pool, payload, meta.subject);
       }

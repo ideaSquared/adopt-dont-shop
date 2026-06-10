@@ -1,4 +1,4 @@
-import type { NatsConnection, Subscription } from 'nats';
+import type { NatsConnection } from 'nats';
 import type { Socket } from 'socket.io';
 import type { Logger } from 'winston';
 import { describe, expect, it, vi } from 'vitest';
@@ -20,73 +20,93 @@ function quietLogger(): Logger {
   } as unknown as Logger;
 }
 
-// Reused from notifications-subscriber.test.ts — same shape but kept
-// inline so each WS subscriber test is self-contained.
+type AddedConsumer = { durable_name?: string; filter_subject?: string; deliver_policy?: string };
+
+// JetStream stand-in for the gateway WS fan-out subscribers. subscribe() now
+// binds a durable consumer (jetstreamManager().consumers.add) then drives
+// jetstream().consumers.get(...).consume(). The consume() iterator blocks on a
+// per-filter-subject waiter queue so a test can `push` a message into a live
+// subscriber on demand — same ergonomics as the old waiter harness.
 function makeNats(): {
   nats: NatsConnection;
-  subscribeFn: ReturnType<typeof vi.fn>;
+  consumersAdded: AddedConsumer[];
   push: (subject: string, payload: unknown, id?: string) => Promise<void>;
 } {
-  const queues = new Map<
-    string,
-    { resolve: (msg: { subject: string; data: Uint8Array } | typeof DONE) => void }[]
-  >();
-  const DONE = Symbol('done');
+  const consumersAdded: AddedConsumer[] = [];
+  // filter_subject → list of pending next() resolvers.
+  const waiters = new Map<string, ((msg: { subject: string; data: Uint8Array }) => void)[]>();
 
-  const subscribeFn = vi.fn((subject: string) => {
-    const sub = {
-      [Symbol.asyncIterator]() {
+  const jsm = {
+    consumers: {
+      add: vi.fn(async (_stream: string, cfg: AddedConsumer) => {
+        consumersAdded.push(cfg);
+        return cfg;
+      }),
+    },
+  };
+
+  const js = {
+    consumers: {
+      get: vi.fn(async (_stream: string, durable: string) => {
+        const cfg = consumersAdded.find(c => c.durable_name === durable);
+        const filter = cfg?.filter_subject ?? '';
         return {
-          next: (): Promise<{ value: { subject: string; data: Uint8Array }; done: boolean }> => {
-            return new Promise(resolve => {
-              const waiters = queues.get(subject) ?? [];
-              waiters.push({
-                resolve: msg => {
-                  if (msg === DONE) {
-                    resolve({ value: undefined as never, done: true });
-                  } else {
-                    resolve({ value: msg, done: false });
-                  }
-                },
-              });
-              queues.set(subject, waiters);
-            });
-          },
+          consume: vi.fn(async () => ({
+            async *[Symbol.asyncIterator]() {
+              // Block until a test pushes a message for this filter subject.
+              for (;;) {
+                const data = await new Promise<{ subject: string; data: Uint8Array }>(resolve => {
+                  const list = waiters.get(filter) ?? [];
+                  list.push(resolve);
+                  waiters.set(filter, list);
+                });
+                yield { ...data, ack: vi.fn(), nak: vi.fn(), term: vi.fn(), redelivered: false };
+              }
+            },
+            close: vi.fn(),
+          })),
         };
-      },
-    };
-    return sub as unknown as Subscription;
-  });
+      }),
+    },
+  };
 
-  const nats = { subscribe: subscribeFn } as unknown as NatsConnection;
+  const nats = {
+    jetstreamManager: vi.fn(async () => jsm),
+    jetstream: vi.fn(() => js),
+  } as unknown as NatsConnection;
 
   const push = async (subject: string, payload: unknown, id = 'evt-1'): Promise<void> => {
-    const waiters = queues.get(subject);
-    const waiter = waiters?.shift();
-    if (!waiter) {
+    const list = waiters.get(subject);
+    const resolve = list?.shift();
+    if (!resolve) {
       throw new Error(`no waiter on ${subject}`);
     }
     const envelope = { id, occurredAt: '2026-06-01T10:00:00Z', payload };
-    waiter.resolve({
-      subject,
-      data: new TextEncoder().encode(JSON.stringify(envelope)),
-    });
-    for (let i = 0; i < 5; i++) {
+    resolve({ subject, data: new TextEncoder().encode(JSON.stringify(envelope)) });
+    for (let i = 0; i < 10; i++) {
       await Promise.resolve();
     }
   };
 
-  return { nats, subscribeFn, push };
+  return { nats, consumersAdded, push };
+}
+
+// The consume loop is created in a fire-and-forget async task; give it a few
+// microtasks to register its waiters before a test pushes a message.
+async function settle(): Promise<void> {
+  for (let i = 0; i < 20; i++) {
+    await new Promise(r => setImmediate(r));
+  }
 }
 
 describe('registerChatSubscribers — wiring', () => {
-  it('subscribes to all four chat.* subjects', () => {
-    const { nats, subscribeFn } = makeNats();
+  it('binds a durable consumer for all four chat.* subjects', async () => {
+    const { nats, consumersAdded } = makeNats();
     registerChatSubscribers({ nats, registry: new SocketRegistry(), logger: quietLogger() });
+    await settle();
 
-    expect(subscribeFn).toHaveBeenCalledTimes(4);
-    const subjects = subscribeFn.mock.calls.map(c => c[0]);
-    expect(subjects).toEqual([
+    expect(consumersAdded).toHaveLength(4);
+    expect(consumersAdded.map(c => c.filter_subject)).toEqual([
       'chat.messageCreated',
       'chat.messageRead',
       'chat.reactionAdded',
@@ -94,11 +114,16 @@ describe('registerChatSubscribers — wiring', () => {
     ]);
   });
 
-  it('does NOT use a queue group — every replica sees every event', () => {
-    const { nats, subscribeFn } = makeNats();
+  it('uses a per-replica durable with deliver-new so every replica sees every event from now', async () => {
+    const { nats, consumersAdded } = makeNats();
     registerChatSubscribers({ nats, registry: new SocketRegistry(), logger: quietLogger() });
-    for (const call of subscribeFn.mock.calls) {
-      expect(call[1]).toBeUndefined();
+    await settle();
+
+    for (const cfg of consumersAdded) {
+      // gw-ws-<subject>-<uuid> — unique per process, not a shared load-shared
+      // durable, so the fan-out isn't split across replicas.
+      expect(cfg.durable_name).toMatch(/^gw-ws-chat-.+-[0-9a-f-]{36}$/);
+      expect(cfg.deliver_policy).toBe('new');
     }
   });
 });
@@ -115,6 +140,7 @@ describe('registerChatSubscribers — fan-out', () => {
     registry.add('usr-bystander', otherUserSocket);
 
     registerChatSubscribers({ nats, registry, logger: quietLogger() });
+    await settle();
 
     await push('chat.messageCreated', {
       messageId: 'msg-1',
@@ -146,6 +172,7 @@ describe('registerChatSubscribers — fan-out', () => {
     const s1 = fakeSocket();
     registry.add('usr-adopter', s1);
     registerChatSubscribers({ nats, registry, logger: quietLogger() });
+    await settle();
 
     await push('chat.messageCreated', {
       messageId: 'msg-1',
@@ -167,6 +194,7 @@ describe('registerChatSubscribers — fan-out', () => {
     registry.add('usr-adopter', s1);
     registry.add('usr-rescue', s2);
     registerChatSubscribers({ nats, registry, logger: quietLogger() });
+    await settle();
 
     await push('chat.messageRead', {
       chatId: 'chat-1',
@@ -192,6 +220,7 @@ describe('registerChatSubscribers — fan-out', () => {
     const s1 = fakeSocket();
     registry.add('usr-adopter', s1);
     registerChatSubscribers({ nats, registry, logger: quietLogger() });
+    await settle();
 
     await push('chat.reactionAdded', {
       messageId: 'msg-1',
@@ -218,6 +247,7 @@ describe('registerChatSubscribers — fan-out', () => {
     const s1 = fakeSocket();
     registry.add('usr-adopter', s1);
     registerChatSubscribers({ nats, registry, logger: quietLogger() });
+    await settle();
 
     await push('chat.reactionRemoved', {
       messageId: 'msg-1',
@@ -236,6 +266,7 @@ describe('registerChatSubscribers — fan-out', () => {
     const s1 = fakeSocket();
     registry.add('usr-adopter', s1);
     registerChatSubscribers({ nats, registry, logger: quietLogger() });
+    await settle();
 
     await push('chat.messageCreated', {
       messageId: 'msg-1',
@@ -254,6 +285,7 @@ describe('registerChatSubscribers — fan-out', () => {
     const s1 = fakeSocket();
     registry.add('usr-other', s1);
     registerChatSubscribers({ nats, registry, logger: quietLogger() });
+    await settle();
 
     await push('chat.messageCreated', {
       messageId: 'msg-1',

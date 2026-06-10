@@ -19,6 +19,12 @@ const main = async (): Promise<void> => {
     const config = loadConfig();
     pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
     nats = await connect({ servers: config.natsUrl });
+    // Create-or-update the JetStream DOMAIN_EVENTS stream before anything
+    // publishes or subscribes. Idempotent across every service's boot.
+    {
+      const { ensureStream } = await import('@adopt-dont-shop/events');
+      await ensureStream(nats);
+    }
     grpc = await startGrpcServer({ config, pool, nats, logger });
     // GDPR erasure subscriber — drops the user's data in this schema.
     // Reports back via gdpr.erasureCompleted with service='cms'.

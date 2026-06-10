@@ -17,7 +17,7 @@ import { subscribe } from '@adopt-dont-shop/events';
 import { listDeviceTokensForUser, markDeviceTokenInvalid } from './device-tokens.js';
 import type { PushProvider, PushSendRequest } from './types.js';
 
-const QUEUE_GROUP = 'notifications-push-workers';
+const DURABLE = 'notifications-push-workers';
 
 export type PushWorkerEvent = {
   notificationId: string;
@@ -85,7 +85,7 @@ export const startPushWorker = (opts: PushWorkerOptions): RunningPushWorker => {
     opts.nats,
     {
       subject: 'notifications.created',
-      queue: QUEUE_GROUP,
+      durable: DURABLE,
       onError: err => {
         opts.logger.error('push.worker.subscriber_error', { err });
       },
