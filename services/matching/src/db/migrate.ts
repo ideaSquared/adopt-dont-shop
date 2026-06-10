@@ -31,7 +31,11 @@ const main = async (): Promise<void> => {
     });
     logger.info('migrations complete');
   } catch (err) {
-    logger.error('migrations failed', { err });
+    logger.error('migrations failed', {
+      message: (err as Error)?.message,
+      stack: (err as Error)?.stack,
+    });
+    console.error(err);
     process.exit(1);
   }
 };

@@ -20,7 +20,6 @@ on:
     # the Docker-specific `extra:` entries (ADS-767). Drift fails
     # scripts/check-workflow-paths.mjs.
     paths:
-      - 'service.backend/**'
       - 'app.client/**'
       - 'app.admin/**'
       - 'app.rescue/**'
@@ -51,88 +50,6 @@ env:
   COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
-  # ============================================================================
-  # BUILD BACKEND — dev + production images
-  # ============================================================================
-  build-backend:
-    name: Build Backend Image
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      security-events: write
-      packages: read
-
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
-
-      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
-        with:
-          driver-opts: |
-            image=moby/buildkit:v0.23.0
-            network=host
-
-      - name: Log in to GHCR (for Trivy DB pulls)
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee  # v4.2.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build development image
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
-        with:
-          context: .
-          file: ./service.backend/Dockerfile
-          target: development
-          push: false
-          tags: paragonjenko/adoptdontshop:service-backend-dev-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max,ignore-error=true
-          build-args: BUILDKIT_INLINE_CACHE=1
-
-      # Production build + Trivy scan are deploy-gating signals, not PR
-      # signals: ci.yml's test-backend already exercises `tsc` natively, so
-      # rebuilding the multi-stage prod image on every PR was duplicative.
-      # Keeping them on push-to-main ensures we still catch prod-only
-      # regressions (npm prune fallout, asset paths) before deploy.yml runs.
-      - name: Build production image
-        if: github.event_name != 'pull_request'
-        id: build-prod
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
-        with:
-          context: .
-          file: ./service.backend/Dockerfile
-          target: production
-          push: false
-          load: true
-          tags: paragonjenko/adoptdontshop:service-backend-prod-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max,ignore-error=true
-          build-args: BUILDKIT_INLINE_CACHE=1
-
-      - name: Run Trivy vulnerability scanner
-        if: github.event_name != 'pull_request'
-        run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$PWD:/workspace" -w /workspace \
-            -e TRIVY_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-db:2 \
-            -e TRIVY_JAVA_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-java-db:1 \
-            aquasec/trivy:0.63.0 image \
-              --format sarif \
-              --output trivy-results.sarif \
-              --severity CRITICAL,HIGH \
-              --exit-code 1 \
-              paragonjenko/adoptdontshop:service-backend-prod-${{ github.sha }}
-
-      - name: Upload Trivy results to GitHub Security tab
-        if: github.event_name != 'pull_request' && always() && hashFiles('trivy-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@87557b9c84dde89fdd9b10e88954ac2f4248e463  # v4.36.1
-        with:
-          sarif_file: 'trivy-results.sarif'
-
   # ============================================================================
   # BUILD FRONTEND APPS — dev + production images for each app
   # ============================================================================
@@ -187,8 +104,3 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
 
-# NOTE: The previous `test-compose` job (backend-container `/health` probe)
-# was removed as part of the CI streamline pass. ci.yml's `test-e2e` brings
-# up the same stack via `docker compose up -d --build` and would fail
-# loudly if the backend didn't reach `/health` — `test-compose` was a
-# strict subset of that signal and added ~5 min on every relevant PR.
