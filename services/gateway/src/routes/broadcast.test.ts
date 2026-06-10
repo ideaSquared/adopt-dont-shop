@@ -2,6 +2,8 @@ import { status as grpcStatus } from '@grpc/grpc-js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { NotificationsV1 } from '@adopt-dont-shop/proto';
+
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 
 import { registerBroadcastRoutes } from './broadcast.js';
@@ -91,6 +93,81 @@ describe('POST /api/v1/notifications/broadcast', () => {
     });
     const [grpcReq] = broadcast.mock.calls[0];
     expect(grpcReq.dataJson).toBe('{"severity":"high"}');
+  });
+
+  it('forwards a string body.type of "pet_available" as the matching enum value', async () => {
+    broadcast.mockResolvedValue({ targeted: 0, delivered: 0, suppressed: 0, failed: 0 });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/broadcast',
+      headers: ADMIN_HEADERS,
+      payload: { cohort: {}, title: 'T', message: 'M', type: 'pet_available' },
+    });
+    const [grpcReq] = broadcast.mock.calls[0];
+    expect(grpcReq.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_PET_AVAILABLE);
+  });
+
+  it('forwards a string body.type of "application_status" as the matching enum value', async () => {
+    broadcast.mockResolvedValue({ targeted: 0, delivered: 0, suppressed: 0, failed: 0 });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/broadcast',
+      headers: ADMIN_HEADERS,
+      payload: { cohort: {}, title: 'T', message: 'M', type: 'application_status' },
+    });
+    const [grpcReq] = broadcast.mock.calls[0];
+    expect(grpcReq.type).toBe(
+      NotificationsV1.NotificationType.NOTIFICATION_TYPE_APPLICATION_STATUS
+    );
+  });
+
+  it('forwards a known numeric body.type unchanged', async () => {
+    broadcast.mockResolvedValue({ targeted: 0, delivered: 0, suppressed: 0, failed: 0 });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/broadcast',
+      headers: ADMIN_HEADERS,
+      payload: {
+        cohort: {},
+        title: 'T',
+        message: 'M',
+        type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_MESSAGE_RECEIVED,
+      },
+    });
+    const [grpcReq] = broadcast.mock.calls[0];
+    expect(grpcReq.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_MESSAGE_RECEIVED);
+  });
+
+  it('defaults a missing body.type to UNSPECIFIED', async () => {
+    broadcast.mockResolvedValue({ targeted: 0, delivered: 0, suppressed: 0, failed: 0 });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/broadcast',
+      headers: ADMIN_HEADERS,
+      payload: { cohort: {}, title: 'T', message: 'M' },
+    });
+    const [grpcReq] = broadcast.mock.calls[0];
+    expect(grpcReq.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED);
+  });
+
+  it('defaults an unknown body.type to UNSPECIFIED', async () => {
+    broadcast.mockResolvedValue({ targeted: 0, delivered: 0, suppressed: 0, failed: 0 });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/broadcast',
+      headers: ADMIN_HEADERS,
+      payload: { cohort: {}, title: 'T', message: 'M', type: 'not_a_real_type' },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/broadcast',
+      headers: ADMIN_HEADERS,
+      payload: { cohort: {}, title: 'T', message: 'M', type: 999 },
+    });
+    const [stringReq] = broadcast.mock.calls[0];
+    const [numericReq] = broadcast.mock.calls[1];
+    expect(stringReq.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED);
+    expect(numericReq.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED);
   });
 
   it('maps gRPC INVALID_ARGUMENT → 400', async () => {

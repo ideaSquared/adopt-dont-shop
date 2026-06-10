@@ -26,6 +26,7 @@ import {
 
 import type { ChatClient } from '../grpc-clients/chat-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type ChatRoutesOptions = {
   client: ChatClient;
@@ -92,9 +93,13 @@ const registerChatRoutesForPrefix = (
   app.get(prefix, async (req, reply) => {
     const metadata = buildMetadata(req);
     const query = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(query, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ error: pagination.error });
+    }
     const grpcReq: ListChatsRequest = {
       cursor: query.cursor,
-      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+      limit: pagination.limit,
       unreadOnly: query.unreadOnly === 'true' || query.unread_only === 'true',
     };
 
@@ -132,10 +137,14 @@ const registerChatRoutesForPrefix = (
   app.get(`${prefix}/search`, async (req, reply) => {
     const metadata = buildMetadata(req);
     const query = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(query, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ error: pagination.error });
+    }
     const grpcReq: SearchChatsRequest = {
       query: query.query ?? query.q ?? '',
-      page: query.page ? Number.parseInt(query.page, 10) : 1,
-      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+      page: pagination.page,
+      limit: pagination.limit,
       rescueId: query.rescueId ?? query.rescue_id,
     };
 
@@ -232,10 +241,14 @@ const registerChatRoutesForPrefix = (
   app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId/messages`, async (req, reply) => {
     const metadata = buildMetadata(req);
     const query = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(query, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ error: pagination.error });
+    }
     const grpcReq: ListMessagesRequest = {
       chatId: req.params.chatId,
       cursor: query.cursor,
-      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+      limit: pagination.limit,
     };
 
     try {

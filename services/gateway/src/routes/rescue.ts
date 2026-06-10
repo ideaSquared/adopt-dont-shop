@@ -32,6 +32,7 @@ import {
 
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type RescueRoutesOptions = {
   client: RescueClient;
@@ -85,9 +86,13 @@ export const registerRescueRoutes = async (
     { config: { rateLimit: RESCUE_RATE_LIMITS.list } },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(query, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
       const grpcReq: ListRescuesRequest = {
         cursor: query.cursor,
-        limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+        limit: pagination.limit,
         statusFilter: parseStatus(query.status),
       };
       try {

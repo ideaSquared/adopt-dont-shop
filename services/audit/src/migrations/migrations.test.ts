@@ -38,7 +38,7 @@ describe('audit migrations', () => {
     }
   });
 
-  it.each(['001_create_audit_events.ts'])(
+  it.each(['001_create_audit_events.ts', '004_add_gdpr_failed_at.ts'])(
     '%s exports `up` and `down` functions',
     async filename => {
       const mod = (await import(`./${filename}`)) as {

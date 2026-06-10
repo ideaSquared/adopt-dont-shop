@@ -37,6 +37,7 @@ import {
   supportTicketToView,
 } from './moderation-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type ModerationAdminRoutesOptions = {
   client: ModerationClient;
@@ -69,9 +70,13 @@ export const registerModerationAdminRoutes = async (
     { config: { rateLimit: RL_READ } },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
       const grpcReq: ListReportsRequest = {
         cursor: q.cursor,
-        limit: q.limit ? Number.parseInt(q.limit, 10) : 0,
+        limit: pagination.limit,
         status: parseEnum(
           ModerationV1.ReportStatus,
           'REPORT_STATUS',
@@ -292,9 +297,13 @@ export const registerModerationAdminRoutes = async (
     { config: { rateLimit: RL_READ } },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
       const grpcReq: ListModeratorActionsRequest = {
         cursor: q.cursor,
-        limit: q.limit ? Number.parseInt(q.limit, 10) : 0,
+        limit: pagination.limit,
         targetUserId: q.user,
         reportId: q.report,
         actionType: parseEnum(
@@ -377,9 +386,13 @@ export const registerModerationAdminRoutes = async (
     { config: { rateLimit: RL_READ } },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
       const grpcReq: ListSupportTicketsRequest = {
         cursor: q.cursor,
-        limit: q.limit ? Number.parseInt(q.limit, 10) : 0,
+        limit: pagination.limit,
         status: parseEnum(
           ModerationV1.SupportTicketStatus,
           'SUPPORT_TICKET_STATUS',

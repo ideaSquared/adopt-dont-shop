@@ -12,8 +12,9 @@
 //      which the prefs row models with no opt-out (only email/push/sms
 //      have toggles).
 //   4. Per-user failures are absorbed so a single bad row doesn't
-//      poison the batch; failed counter increments and the loop moves
-//      on.
+//      poison the batch; failed counter increments, a warn is logged
+//      (capped at MAX_LOGGED_FAILURES per broadcast), and the loop
+//      moves on.
 //
 // publish-after-commit: each insert + its `notifications.broadcastSent`
 // event runs inside its own withTransaction. Per-recipient atomicity
@@ -57,6 +58,11 @@ const STATUS_FROM_STRING: Record<string, AuthV1.UserStatus> = {
 };
 
 const COHORT_PAGE_LIMIT = 500;
+
+// Per-recipient failures are warned individually so operators can see
+// which users missed a broadcast — but capped so a systemic outage
+// (e.g. DB down mid-fan-out) doesn't flood the logs.
+const MAX_LOGGED_FAILURES = 50;
 
 type PrefsRow = {
   user_id: string;
@@ -145,6 +151,7 @@ export async function broadcast(
   let delivered = 0;
   let suppressed = 0;
   let failed = 0;
+  let loggedFailures = 0;
 
   const type =
     req.type === undefined ||
@@ -192,8 +199,15 @@ export async function broadcast(
         } else if (outcome === 'suppressed') {
           suppressed++;
         }
-      } catch {
+      } catch (err) {
         failed++;
+        if (loggedFailures < MAX_LOGGED_FAILURES) {
+          loggedFailures++;
+          deps.logger?.warn('broadcast recipient write failed', {
+            userId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       }
     }
     if (lookup.userIds.length < COHORT_PAGE_LIMIT) {

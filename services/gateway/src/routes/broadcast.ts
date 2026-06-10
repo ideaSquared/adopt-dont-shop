@@ -6,10 +6,11 @@
 import { status } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 
-import type { BroadcastRequest } from '@adopt-dont-shop/proto';
+import { NotificationsV1, type BroadcastRequest } from '@adopt-dont-shop/proto';
 
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parseType } from './notifications.js';
 
 export type BroadcastRoutesOptions = {
   client: NotificationsClient;
@@ -49,7 +50,7 @@ export const registerBroadcastRoutes = async (
               ? cohort.email_verified
               : undefined,
       },
-      type: 0,
+      type: parseBodyType(body.type),
       title: typeof body.title === 'string' ? body.title : '',
       message: typeof body.message === 'string' ? body.message : '',
       actionUrl:
@@ -86,6 +87,22 @@ export const registerBroadcastRoutes = async (
     }
   });
 };
+
+// body.type arrives either as the REST string form ('pet_available') or a
+// numeric proto enum value. Missing / unknown values stay UNSPECIFIED so
+// the downstream handler's default (system_announcement) is unchanged.
+function parseBodyType(raw: unknown): NotificationsV1.NotificationType {
+  if (typeof raw === 'number') {
+    const out = NotificationsV1.notificationTypeFromJSON(raw);
+    return out === NotificationsV1.NotificationType.UNRECOGNIZED
+      ? NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED
+      : out;
+  }
+  if (typeof raw === 'string') {
+    return parseType(raw);
+  }
+  return NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED;
+}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 

@@ -20,6 +20,8 @@
 
 import { randomUUID } from 'node:crypto';
 
+import type { Logger } from 'winston';
+
 import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
@@ -65,6 +67,9 @@ export type HandlerDeps = WithTransactionDeps & {
   // Optional — only broadcast-handlers reads it. Other handlers (Create,
   // List, Dismiss, etc.) work fine without a cross-service client wired.
   authClient?: AuthCohortClient;
+  // Optional — only broadcast-handlers reads it (per-recipient failure
+  // warns). Other handlers log via the adapt() wrapper's logger.
+  logger?: Logger;
 };
 
 export type HandlerErrorCode =

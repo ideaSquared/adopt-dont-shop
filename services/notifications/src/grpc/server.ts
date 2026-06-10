@@ -70,7 +70,7 @@ export type RunningGrpcServer = {
 
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger, authClient } = opts;
-  const deps = { pool, nats, authClient };
+  const deps = { pool, nats, authClient, logger };
   const server = new Server();
 
   // ts-proto emits `NotificationServiceService` as the Definition

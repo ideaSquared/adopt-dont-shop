@@ -4,7 +4,9 @@
 //     audit.gdpr_erasure_requests. Idempotent via ON CONFLICT (correlation_id).
 //   * `gdpr.erasureCompleted` — merge the per-service completion into the
 //     `completions` JSONB blob. Updates `completed_at` once every service
-//     in the configured EXPECTED_SERVICES set has acked.
+//     in the configured EXPECTED_SERVICES set has acked without an error;
+//     errored acks stamp `failed_at` instead so operators see the saga
+//     needs attention.
 //
 // Both subscribers share the audit-workers queue group so a replicated
 // audit deployment load-balances saga tracking.
@@ -23,7 +25,8 @@ import {
 } from '@adopt-dont-shop/events';
 
 // The set of services we expect to ack each request. Once every one of
-// these has a completion entry, the request flips to completed_at = now().
+// these has an error-free completion entry, the request flips to
+// completed_at = now().
 // Keep this in sync with services/{auth,notifications,pets,chat,
 // applications,matching,moderation,cms,rescue}/src/index.ts subscriber
 // wiring.
@@ -75,17 +78,18 @@ export const registerGdprSubscribers = (
       nats,
       { subject: GDPR_ERASURE_COMPLETED, durable: DURABLE_COMPLETION, onError },
       async payload => {
-        await recordCompletion(pool, payload);
+        await recordCompletion(pool, payload, logger);
       }
     ),
   ];
 };
 
-// INSERT the saga row. ON CONFLICT means a replayed event is a no-op,
-// and a completion that arrives BEFORE the request (the bus can reorder
-// across subjects) still gets attached when the request finally lands —
-// the completion handler's UPDATE locks the row and merges into the
-// existing completions blob.
+// INSERT the saga row. A completion that arrives BEFORE the request (the
+// bus can reorder across subjects) INSERTs a skeleton with reason = NULL
+// and requested_at = the completion timestamp, so the conflict clause
+// back-fills the real values instead of dropping them (ADS-776):
+// COALESCE keeps any already-known reason/user_id (replay safety) and
+// LEAST keeps the earliest requested_at (the true request time).
 export async function recordRequest(
   pool: Pool,
   payload: GdprErasureRequestedPayload
@@ -94,19 +98,35 @@ export async function recordRequest(
     `INSERT INTO audit.gdpr_erasure_requests
        (correlation_id, user_id, reason, requested_at)
      VALUES ($1, $2, $3, $4)
-     ON CONFLICT (correlation_id) DO NOTHING`,
+     ON CONFLICT (correlation_id) DO UPDATE
+       SET reason = COALESCE(audit.gdpr_erasure_requests.reason, EXCLUDED.reason),
+           requested_at = LEAST(audit.gdpr_erasure_requests.requested_at, EXCLUDED.requested_at),
+           user_id = COALESCE(audit.gdpr_erasure_requests.user_id, EXCLUDED.user_id),
+           updated_at = now()`,
     [payload.correlationId, payload.userId, payload.reason ?? null, payload.requestedAt]
   );
 }
 
-// Merge a per-service completion into the row. When every expected
-// service has acked, stamp completed_at. If the row hasn't been recorded
-// yet (out-of-order delivery), INSERT a skeleton with the completion
-// already merged.
+// Merge a per-service completion into the row. completed_at is only
+// stamped once every expected service has acked WITHOUT an error —
+// errored acks still merge into the blob but don't count (ADS-777).
+// The first errored ack stamps failed_at (a later success never clears
+// it; the operator resolves and re-runs the saga) and emits a Layer-1
+// warning. If the row hasn't been recorded yet (out-of-order delivery),
+// INSERT a skeleton with the completion already merged.
 export async function recordCompletion(
   pool: Pool,
-  payload: GdprErasureCompletedPayload
+  payload: GdprErasureCompletedPayload,
+  logger: Logger
 ): Promise<void> {
+  if (payload.error) {
+    logger.warn('gdpr erasure completion reported an error', {
+      correlationId: payload.correlationId,
+      service: payload.service,
+      error: payload.error,
+    });
+  }
+
   const entry = {
     recordsErased: payload.recordsErased,
     completedAt: payload.completedAt,
@@ -115,8 +135,9 @@ export async function recordCompletion(
 
   await pool.query(
     `INSERT INTO audit.gdpr_erasure_requests
-       (correlation_id, user_id, reason, requested_at, completions)
-     VALUES ($1, $2, NULL, $3, jsonb_build_object($4::text, $5::jsonb))
+       (correlation_id, user_id, reason, requested_at, completions, failed_at)
+     VALUES ($1, $2, NULL, $3, jsonb_build_object($4::text, $5::jsonb),
+             CASE WHEN $5::jsonb ? 'error' THEN now() END)
      ON CONFLICT (correlation_id) DO UPDATE
        SET completions = audit.gdpr_erasure_requests.completions
                        || jsonb_build_object($4::text, $5::jsonb),
@@ -124,14 +145,18 @@ export async function recordCompletion(
              WHEN audit.gdpr_erasure_requests.completed_at IS NOT NULL
                THEN audit.gdpr_erasure_requests.completed_at
              WHEN (
-               SELECT count(*) FROM jsonb_object_keys(
+               SELECT count(*) FROM jsonb_each(
                  audit.gdpr_erasure_requests.completions
                    || jsonb_build_object($4::text, $5::jsonb)
-               )
+               ) WHERE NOT (value ? 'error')
              ) >= $6
                THEN now()
              ELSE NULL
            END,
+           failed_at = COALESCE(
+             audit.gdpr_erasure_requests.failed_at,
+             CASE WHEN $5::jsonb ? 'error' THEN now() END
+           ),
            updated_at = now()`,
     [
       payload.correlationId,

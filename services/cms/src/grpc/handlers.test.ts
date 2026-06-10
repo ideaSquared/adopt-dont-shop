@@ -147,6 +147,22 @@ describe('public reads', () => {
     expect(res.items).toHaveLength(1);
     const [sql1] = mocks.poolMock.query.mock.calls[0] as [string];
     expect(sql1).toContain("status = 'published'");
+    const [sql2, params2] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    expect(sql2).toContain('LIMIT $1 OFFSET $2');
+    expect(params2).toEqual([10, 0]);
+  });
+
+  it('listPublicContent: parameterises LIMIT/OFFSET after filter params', async () => {
+    mocks.poolScript.push({ rows: [{ count: '0' }] });
+    mocks.poolScript.push({ rows: [] });
+    await listPublicContent(mocks.deps, null, {
+      contentType: CmsV1.ContentType.CONTENT_TYPE_PAGE,
+      page: 3,
+      limit: 10,
+    });
+    const [sql, params] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    expect(sql).toContain('LIMIT $2 OFFSET $3');
+    expect(params).toEqual(['page', 10, 20]);
   });
 
   it('getPublicContentBySlug: 404 when not found', async () => {
@@ -193,6 +209,9 @@ describe('admin reads', () => {
     });
     const [, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
     expect(params[0]).toBe('%100\\%%');
+    const [sql2, params2] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    expect(sql2).toContain('LIMIT $2 OFFSET $3');
+    expect(params2).toEqual(['%100\\%%', 10, 0]);
   });
 
   it('getContent: 404 when missing', async () => {

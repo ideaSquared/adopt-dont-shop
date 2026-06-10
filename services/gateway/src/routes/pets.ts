@@ -34,6 +34,7 @@ import {
   viewToUpdateRequest,
 } from './pets-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type PetsRoutesOptions = {
   client: PetsClient;
@@ -104,9 +105,13 @@ export const registerPetsRoutes = async (
     },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(query, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
       const grpcReq: ListPetsRequest = {
         cursor: query.cursor,
-        limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+        limit: pagination.limit,
         statusFilter: parseStatus(query.status),
         typeFilter: parseType(query.type),
         sizeFilter: parseSize(query.size),

@@ -96,6 +96,20 @@ describe('cms gateway routes', () => {
     expect(json.pagination.total).toBe(1);
   });
 
+  it('GET /public/content rejects a non-numeric page with 400 before calling the service', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/cms/public/content?page=abc' });
+    expect(res.statusCode).toBe(400);
+    const json = res.json() as { success: boolean; error: string };
+    expect(json.success).toBe(false);
+    expect(mocks.listPublicContent).not.toHaveBeenCalled();
+  });
+
+  it('GET /public/content rejects limit > 100 with 400 instead of clamping', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/cms/public/content?limit=101' });
+    expect(res.statusCode).toBe(400);
+    expect(mocks.listPublicContent).not.toHaveBeenCalled();
+  });
+
   it('GET /public/content/:slug returns the content view', async () => {
     mocks.getPublicContentBySlug.mockResolvedValue({ content: CONTENT_FIXTURE });
     const res = await app.inject({ method: 'GET', url: '/api/v1/cms/public/content/hello' });

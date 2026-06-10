@@ -54,6 +54,7 @@ import {
 
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type ModerationRoutesOptions = {
   client: ModerationClient;
@@ -109,9 +110,13 @@ export const registerModerationRoutes = async (
 
   app.get('/api/v1/moderation/reports', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ error: pagination.error });
+    }
     const grpcReq: ListReportsRequest = {
       cursor: q.cursor,
-      limit: q.limit ? Number.parseInt(q.limit, 10) : 0,
+      limit: pagination.limit,
       status: parseReportStatus(q.status),
       severity: parseSeverity(q.severity),
       category: parseCategory(q.category),
@@ -210,9 +215,13 @@ export const registerModerationRoutes = async (
 
   app.get('/api/v1/moderation/actions', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ error: pagination.error });
+    }
     const grpcReq: ListModeratorActionsRequest = {
       cursor: q.cursor,
-      limit: q.limit ? Number.parseInt(q.limit, 10) : 0,
+      limit: pagination.limit,
       targetUserId: q.user,
       reportId: q.report,
       actionType: parseActionType(q.action),
@@ -336,9 +345,13 @@ export const registerModerationRoutes = async (
 
   app.get('/api/v1/moderation/tickets', { config: { rateLimit: RL_READ } }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ error: pagination.error });
+    }
     const grpcReq: ListSupportTicketsRequest = {
       cursor: q.cursor,
-      limit: q.limit ? Number.parseInt(q.limit, 10) : 0,
+      limit: pagination.limit,
       status: parseTicketStatus(q.status),
       priority: parseTicketPriority(q.priority),
       category: parseTicketCategory(q.category),

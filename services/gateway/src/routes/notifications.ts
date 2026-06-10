@@ -29,6 +29,7 @@ import {
 
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type NotificationsRoutesOptions = {
   client: NotificationsClient;
@@ -55,12 +56,16 @@ export const registerNotificationsRoutes = async (
   app.get('/api/v1/notifications', async (req, reply) => {
     const metadata = buildMetadata(req);
     const query = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(query, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ error: pagination.error });
+    }
 
     const grpcReq: ListNotificationsRequest = {
       cursor: query.cursor,
       // Default 0 → handler clamps to the canonical default. Same shape
       // service.notifications.handlers.listNotifications expects.
-      limit: query.limit ? Number.parseInt(query.limit, 10) : 0,
+      limit: pagination.limit,
       statusFilter: parseStatus(query.status),
       channelFilter: parseChannel(query.channel),
       typeFilter: parseType(query.type),
@@ -347,7 +352,9 @@ function parseChannel(raw: string | undefined): NotificationsV1.NotificationChan
     : out;
 }
 
-function parseType(raw: string | undefined): NotificationsV1.NotificationType {
+// Exported for reuse by the broadcast route, which accepts the same
+// REST string forms for `type`.
+export function parseType(raw: string | undefined): NotificationsV1.NotificationType {
   if (!raw) {
     return NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED;
   }

@@ -20,6 +20,7 @@ import {
 
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type EmailRoutesOptions = {
   client: NotificationsClient;
@@ -83,13 +84,17 @@ export const registerEmailRoutes = async (
   app.get('/api/v1/email/templates', async (req, reply) => {
     const metadata = buildMetadata(req);
     const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ success: false, error: pagination.error });
+    }
     const grpcReq: ListEmailTemplatesRequest = {
       typeFilter: typeFromString(q.type),
       statusFilter: statusFromString(q.status),
       categoryFilter: q.category,
       search: q.search,
-      page: q.page ? Number.parseInt(q.page, 10) : 1,
-      limit: q.limit ? Number.parseInt(q.limit, 10) : 0,
+      page: pagination.page,
+      limit: pagination.limit,
     };
     try {
       const res = await client.listEmailTemplates(grpcReq, metadata);

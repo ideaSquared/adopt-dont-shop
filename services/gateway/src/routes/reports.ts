@@ -19,6 +19,7 @@ import {
 
 import type { AuditClient } from '../grpc-clients/audit-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { parsePagination } from '../middleware/pagination.js';
 
 export type ReportsRoutesOptions = {
   client: AuditClient;
@@ -99,6 +100,10 @@ export const registerReportsRoutes = async (
   // GET /api/v1/reports — paginated list. Self-scoped at the service.
   app.get('/api/v1/reports', async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q);
+    if (!pagination.ok) {
+      return reply.code(400).send({ success: false, error: pagination.error });
+    }
     const grpcReq: AuditListSavedReportsRequest = {
       rescueId: q.rescue_id || q.rescueId,
       isArchived:
@@ -107,8 +112,8 @@ export const registerReportsRoutes = async (
           : q.is_archived === 'false' || q.archived === 'false'
             ? false
             : undefined,
-      page: q.page ? Number.parseInt(q.page, 10) : 1,
-      limit: q.limit ? Number.parseInt(q.limit, 10) : 20,
+      page: pagination.page,
+      limit: pagination.limit,
     };
     try {
       const res = await client.listSavedReports(grpcReq, buildMetadata(req));
