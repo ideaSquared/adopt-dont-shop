@@ -1,3 +1,5 @@
+import { readSecret } from '@adopt-dont-shop/config-secrets';
+
 export type GatewayConfig = {
   // Port the gateway listens on. Nginx (already in docker-compose)
   // routes the public api.localhost host here.
@@ -188,6 +190,6 @@ function buildStorageConfig(env: NodeJS.ProcessEnv): GatewayConfig['storage'] {
     // Multipart body limit — 10 MiB default. Override with MAX_FILE_SIZE
     // if larger PDFs are expected.
     maxFileSize: Number.parseInt(env.MAX_FILE_SIZE?.trim() || '10485760', 10),
-    signingSecret: env.UPLOAD_SIGNING_SECRET?.trim() || undefined,
+    signingSecret: readSecret('UPLOAD_SIGNING_SECRET', env)?.trim() || undefined,
   };
 }

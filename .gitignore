@@ -62,8 +62,11 @@ uploads
 ### Docker ###
 docker-compose.override.yml
 # Materialized Docker secret files (written by deploy workflow, never committed)
-secrets/
-**/secrets/
+# — the README + the directory-local .gitignore are kept so the directory
+# exists in the repo and explains the layout to operators.
+secrets/*
+!secrets/README.md
+!secrets/.gitignore
 
 ### Development ###
 .env.development

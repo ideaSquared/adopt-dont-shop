@@ -1,3 +1,5 @@
+import { readSecret } from '@adopt-dont-shop/config-secrets';
+
 export type AuthConfig = {
   // HTTP port for the boot-readiness surface (/health/simple). Distinct
   // from service.backend's 5000, service.gateway's 4000,
@@ -39,17 +41,17 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuthConfig => 
   const port = parsePort(env.AUTH_PORT, DEFAULT_PORT, 'AUTH_PORT');
   const grpcPort = parsePort(env.AUTH_GRPC_PORT, DEFAULT_GRPC_PORT, 'AUTH_GRPC_PORT');
 
-  const databaseUrl = env.DATABASE_URL?.trim();
+  const databaseUrl = readSecret('DATABASE_URL', env)?.trim();
   if (!databaseUrl) {
     throw new Error('DATABASE_URL is required (Postgres connection string)');
   }
 
-  const jwtSecret = env.JWT_SECRET?.trim();
+  const jwtSecret = readSecret('JWT_SECRET', env)?.trim();
   if (!jwtSecret) {
     throw new Error('JWT_SECRET is required (access-token signing secret)');
   }
 
-  const jwtRefreshSecret = env.JWT_REFRESH_SECRET?.trim();
+  const jwtRefreshSecret = readSecret('JWT_REFRESH_SECRET', env)?.trim();
   if (!jwtRefreshSecret) {
     throw new Error('JWT_REFRESH_SECRET is required (refresh-token signing secret)');
   }

@@ -1,0 +1,33 @@
+{
+  "name": "@adopt-dont-shop/config-secrets",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared boot-time secret loader for backend microservices. Reads credentials from file-mounted Docker secrets (NAME_FILE) when present, otherwise from plain env vars (NAME). Mirrors the readSecretOrEnv() helper the deleted service.backend monolith used so each extracted service can opt onto file-mounted secrets without changing its config contract.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  }
+}
