@@ -4,7 +4,7 @@
 // callback-shaped methods get wrapped in Promises, and the interface
 // is exported so route tests can substitute a mock.
 
-import { credentials, Metadata } from '@grpc/grpc-js';
+import { credentials, Metadata, type CallOptions } from '@grpc/grpc-js';
 
 import {
   ChatV1,
@@ -54,16 +54,29 @@ export type CreateChatClientOptions = {
   address: string;
 };
 
+// Default per-call deadline. Without one, a hung downstream service
+// would hang the gateway request forever; 5s caps the blast radius
+// and lets the caller fail fast with DEADLINE_EXCEEDED.
+const DEFAULT_DEADLINE_MS = 5_000;
+
 export const createChatClient = (opts: CreateChatClientOptions): ChatClient => {
   const stub = new ChatV1.ChatServiceClient(opts.address, credentials.createInsecure());
 
   const callUnary = <Req, Res>(
-    fn: (req: Req, metadata: Metadata, cb: (err: unknown, res: Res) => void) => unknown,
+    fn: (
+      req: Req,
+      metadata: Metadata,
+      options: Partial<CallOptions>,
+      cb: (err: unknown, res: Res) => void
+    ) => unknown,
     req: Req,
     metadata: Metadata
   ): Promise<Res> =>
     new Promise<Res>((resolve, reject) => {
-      fn.call(stub, req, metadata, (err: unknown, res: Res) => {
+      const options: Partial<CallOptions> = {
+        deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
+      };
+      fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
         if (err) {
           reject(err);
           return;

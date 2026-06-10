@@ -7,7 +7,7 @@
 // The interface is exported so tests can substitute a mock; the routes
 // depend on the shape, not the @grpc/grpc-js client.
 
-import { credentials, Metadata } from '@grpc/grpc-js';
+import { credentials, Metadata, type CallOptions } from '@grpc/grpc-js';
 
 import {
   ApplicationsV1,
@@ -78,6 +78,11 @@ export type CreateApplicationsClientOptions = {
   address: string;
 };
 
+// Default per-call deadline. Without one, a hung downstream service
+// would hang the gateway request forever; 5s caps the blast radius
+// and lets the caller fail fast with DEADLINE_EXCEEDED.
+const DEFAULT_DEADLINE_MS = 5_000;
+
 export const createApplicationsClient = (
   opts: CreateApplicationsClientOptions
 ): ApplicationsClient => {
@@ -87,12 +92,20 @@ export const createApplicationsClient = (
   );
 
   const callUnary = <Req, Res>(
-    fn: (req: Req, metadata: Metadata, cb: (err: unknown, res: Res) => void) => unknown,
+    fn: (
+      req: Req,
+      metadata: Metadata,
+      options: Partial<CallOptions>,
+      cb: (err: unknown, res: Res) => void
+    ) => unknown,
     req: Req,
     metadata: Metadata
   ): Promise<Res> =>
     new Promise<Res>((resolve, reject) => {
-      fn.call(stub, req, metadata, (err: unknown, res: Res) => {
+      const options: Partial<CallOptions> = {
+        deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
+      };
+      fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
         if (err) {
           reject(err);
           return;
