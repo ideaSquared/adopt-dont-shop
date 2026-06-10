@@ -289,8 +289,8 @@ export async function listPublicContent(
   const result = await deps.pool.query<ContentRow>(
     `SELECT ${CONTENT_COLUMNS} FROM cms_content ${whereSql}
        ORDER BY published_at DESC NULLS LAST, created_at DESC
-       LIMIT ${limit} OFFSET ${offset}`,
-    params
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, limit, offset]
   );
   return {
     items: result.rows.map(rowToContent),
@@ -369,8 +369,8 @@ export async function listContent(
   const result = await deps.pool.query<ContentRow>(
     `SELECT ${CONTENT_COLUMNS} FROM cms_content ${whereSql}
        ORDER BY updated_at DESC
-       LIMIT ${limit} OFFSET ${offset}`,
-    params
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, limit, offset]
   );
   return {
     items: result.rows.map(rowToContent),
