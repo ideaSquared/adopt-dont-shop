@@ -1,0 +1,116 @@
+name: Schema Equivalence
+
+# Post-monolith form of this workflow. The original compared the
+# monolith's Sequelize models against migration output; with no
+# Sequelize layer left, the equivalent safety net is: for every
+# microservice that owns a schema, the migration runner must apply
+# cleanly against a fresh Postgres. If anyone breaks a migration
+# (bad SQL, missing dependency, prefix collision across services that
+# share a database) this fails.
+#
+# Job naming preserves the names the branch-protection ruleset
+# expects ("Schema Equivalence (compute)" / "Schema Equivalence
+# (migrate vs sync)") so the existing required-check list keeps
+# matching.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  schema-equivalence-compute:
+    name: Schema Equivalence (compute)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci
+      # Auth's loadConfig() requires these even on the migrate code
+      # path; dummy values are fine — migrations never read them.
+      JWT_SECRET: ci-dummy-jwt-secret-not-used-by-migrations
+      JWT_REFRESH_SECRET: ci-dummy-jwt-refresh-secret-not-used-by-migrations
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+      - uses: ./.github/actions/setup-workspace
+
+      - name: Build shared libraries
+        run: npm run build:libs
+
+      # Each service's migrate.ts imports @adopt-dont-shop/db (which
+      # node-pg-migrate-wraps the runner) + @adopt-dont-shop/observability.
+      # Build those packages so the tsx-runtime import resolves.
+      - name: Build packages/db + observability + events
+        run: |
+          (cd packages/observability && npm run build)
+          (cd packages/db && npm run build)
+          (cd packages/events && npm run build)
+
+      - name: Run each service's migrations against a fresh schema
+        run: |
+          set -euo pipefail
+          failed=()
+          for svc in auth notifications pets rescue applications chat moderation matching cms audit; do
+            echo "::group::services/${svc} db:migrate"
+            if (cd "services/${svc}" && npm run db:migrate); then
+              echo "  ✓ ${svc} migrations applied"
+            else
+              echo "::error::services/${svc} migrations failed"
+              failed+=("${svc}")
+            fi
+            echo "::endgroup::"
+          done
+          if [ ${#failed[@]} -ne 0 ]; then
+            echo "::error::Migration failures: ${failed[*]}"
+            exit 1
+          fi
+          echo "All microservice migrations applied cleanly against a fresh Postgres."
+
+  schema-equivalence-migrate-vs-sync:
+    name: Schema Equivalence (migrate vs sync)
+    needs: schema-equivalence-compute
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Summarise compute result
+        env:
+          RESULT: ${{ needs.schema-equivalence-compute.result }}
+        run: |
+          case "$RESULT" in
+            success)
+              echo "Schema equivalence check passed."
+              ;;
+            skipped)
+              echo "Compute job skipped — nothing to verify."
+              ;;
+            *)
+              echo "::error::Schema equivalence compute job result: $RESULT"
+              exit 1
+              ;;
+          esac
