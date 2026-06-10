@@ -1,6 +1,7 @@
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Logger } from 'winston';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
@@ -21,7 +22,7 @@ const NO_PERMS: Principal = {
   permissions: [],
 };
 
-function makeMocks(authClient?: AuthCohortClient) {
+function makeMocks(authClient?: AuthCohortClient, logger?: Logger) {
   const clientScript: Array<{ rows: unknown[] }> = [];
   const client = {
     query: vi.fn(async (sql: string) => {
@@ -49,6 +50,7 @@ function makeMocks(authClient?: AuthCohortClient) {
     pool: pool as unknown as Pool,
     nats: nats as unknown as NatsConnection,
     authClient,
+    logger,
   };
   return { deps, poolMock: pool, clientMock: client, natsMock: nats, clientScript };
 }
@@ -201,6 +203,93 @@ describe('broadcast', () => {
 
     expect(res.delivered).toBe(1);
     expect(res.failed).toBe(1);
+  });
+
+  it('logs a warn with the userId and error message when a recipient write fails', async () => {
+    const authClient: AuthCohortClient = {
+      listUserIdsByCohort: vi.fn().mockResolvedValue({
+        userIds: ['u-1', 'u-2'],
+        total: 2,
+        page: 1,
+        totalPages: 1,
+      }),
+    };
+    const warn = vi.fn();
+    const logger = { warn } as unknown as Logger;
+    const mocks = makeMocks(authClient, logger);
+    // u-1's INSERT throws; u-2's succeeds.
+    let insertCount = 0;
+    mocks.clientMock.query = vi.fn(async (sql: string) => {
+      const op = sql.trim().split(/\s+/)[0].toUpperCase();
+      if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
+        return { rows: [] };
+      }
+      if (sql.includes('INSERT INTO notifications.notifications')) {
+        insertCount++;
+        if (insertCount === 1) {
+          throw new Error('boom');
+        }
+        return { rows: [] };
+      }
+      const next = mocks.clientScript.shift();
+      if (!next) {
+        throw new Error(`client.query unscripted: ${sql.slice(0, 80)}`);
+      }
+      return next;
+    });
+    mocks.clientScript.push({ rows: [prefsRow({ user_id: 'u-1' })] });
+    mocks.clientScript.push({ rows: [prefsRow({ user_id: 'u-2' })] });
+
+    const res = await broadcast(mocks.deps, BROADCASTER, {
+      cohort: { userTypes: [], statuses: [] },
+      type: 0,
+      title: 't',
+      message: 'm',
+    });
+
+    expect(res.delivered).toBe(1);
+    expect(res.failed).toBe(1);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith('broadcast recipient write failed', {
+      userId: 'u-1',
+      error: 'boom',
+    });
+  });
+
+  it('caps failure logging at 50 entries per broadcast', async () => {
+    const userIds = Array.from({ length: 60 }, (_, i) => `u-${i}`);
+    const authClient: AuthCohortClient = {
+      listUserIdsByCohort: vi.fn().mockResolvedValue({
+        userIds,
+        total: userIds.length,
+        page: 1,
+        totalPages: 1,
+      }),
+    };
+    const warn = vi.fn();
+    const logger = { warn } as unknown as Logger;
+    const mocks = makeMocks(authClient, logger);
+    // Every INSERT fails; prefs upserts succeed for everyone.
+    mocks.clientMock.query = vi.fn(async (sql: string) => {
+      const op = sql.trim().split(/\s+/)[0].toUpperCase();
+      if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
+        return { rows: [] };
+      }
+      if (sql.includes('INSERT INTO notifications.notifications')) {
+        throw new Error('boom');
+      }
+      return { rows: [prefsRow()] };
+    });
+
+    const res = await broadcast(mocks.deps, BROADCASTER, {
+      cohort: { userTypes: [], statuses: [] },
+      type: 0,
+      title: 't',
+      message: 'm',
+    });
+
+    expect(res.failed).toBe(60);
+    expect(warn).toHaveBeenCalledTimes(50);
   });
 
   it('defers when scheduledFor is set (passes Date through to INSERT)', async () => {
