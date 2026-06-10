@@ -244,4 +244,14 @@ vi.mock('@adopt-dont-shop/lib.components', () => ({
     dismiss: vi.fn(),
   }),
   Toaster: () => null,
+  PetImage: ({
+    src,
+    alt,
+    className,
+  }: {
+    src?: string;
+    alt: string;
+    className?: string;
+    eager?: boolean;
+  }) => React.createElement('img', { src, alt, className }),
 }));

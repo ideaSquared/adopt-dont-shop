@@ -33,40 +33,6 @@ globalStyle(`${imageContainer}:hover img`, {
   transform: 'scale(1.05)',
 });
 
-export const placeholderImage = style({
-  width: '100%',
-  height: '100%',
-  background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  position: 'relative',
-  overflow: 'hidden',
-  '::before': {
-    content: '""',
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: '60px',
-    height: '60px',
-    backgroundImage:
-      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23a0a0a0'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E\")",
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'center',
-    backgroundSize: 'contain',
-    opacity: 0.3,
-  },
-  '::after': {
-    content: '"No Photo Available"',
-    position: 'absolute',
-    bottom: '20px',
-    fontSize: '0.9rem',
-    opacity: 0.8,
-    color: '#666',
-  },
-});
-
 export const favoriteButton = style({
   position: 'absolute',
   top: '12px',

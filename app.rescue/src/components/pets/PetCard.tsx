@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, Button, ProgressiveImage } from '@adopt-dont-shop/lib.components';
+import { Card, Button, PetImage } from '@adopt-dont-shop/lib.components';
 import { Pet, PetStatus } from '@adopt-dont-shop/lib.pets';
 import { formatRelativeDate } from '@adopt-dont-shop/lib.utils';
 import * as styles from './PetCard.css';
@@ -145,15 +145,7 @@ const PetCard: React.FC<PetCardProps> = ({
           </label>
         )}
         <div className={styles.petImageContainer}>
-          {primaryImage ? (
-            <ProgressiveImage
-              src={primaryImage.url}
-              alt={pet.name}
-              errorFallback={<div className={styles.placeholderImage}>🐾</div>}
-            />
-          ) : (
-            <div className={styles.placeholderImage}>🐾</div>
-          )}
+          <PetImage src={primaryImage?.url} alt={pet.name} />
           <div className={styles.statusBadgeContainer}>
             {pet.status === 'foster' ? (
               // ADS-644: link the foster badge to the foster page filtered to
