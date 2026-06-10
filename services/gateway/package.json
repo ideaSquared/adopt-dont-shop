@@ -32,6 +32,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@adopt-dont-shop/config-secrets": "*",
     "@adopt-dont-shop/events": "*",
     "@adopt-dont-shop/observability": "*",
     "@adopt-dont-shop/proto": "*",

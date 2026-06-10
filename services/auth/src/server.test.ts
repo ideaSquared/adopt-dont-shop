@@ -59,6 +59,37 @@ describe('createServer — health endpoint', () => {
   });
 });
 
+describe('createServer — /metrics endpoint', () => {
+  it('exposes Prometheus metrics with http_request_duration_seconds', async () => {
+    const server = createServer({ config: baseConfig, logger: quietLogger });
+    try {
+      // Issue a request first so the histogram has at least one sample.
+      await server.inject({ method: 'GET', url: '/health/simple' });
+      const res = await server.inject({ method: 'GET', url: '/metrics' });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toContain('http_request_duration_seconds');
+    } finally {
+      await server.close();
+    }
+  });
+});
+
+describe('createServer — x-request-id', () => {
+  it('echoes inbound x-request-id and stamps it on req.requestId', async () => {
+    const server = createServer({ config: baseConfig, logger: quietLogger });
+    try {
+      const res = await server.inject({
+        method: 'GET',
+        url: '/health/simple',
+        headers: { 'x-request-id': 'svc-auth-abc' },
+      });
+      expect(res.headers['x-request-id']).toBe('svc-auth-abc');
+    } finally {
+      await server.close();
+    }
+  });
+});
+
 describe('createServer — error handler', () => {
   let server: FastifyInstance;
 

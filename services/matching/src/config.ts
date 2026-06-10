@@ -1,3 +1,5 @@
+import { readSecret } from '@adopt-dont-shop/config-secrets';
+
 export type MatchingConfig = {
   // HTTP port for the boot-readiness surface (/health/simple). Distinct
   // from every other service in the stack (5000 backend, 4000 gateway,
@@ -38,7 +40,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): MatchingConfig
   const port = parsePort(env.MATCHING_PORT, DEFAULT_PORT, 'MATCHING_PORT');
   const grpcPort = parsePort(env.MATCHING_GRPC_PORT, DEFAULT_GRPC_PORT, 'MATCHING_GRPC_PORT');
 
-  const databaseUrl = env.DATABASE_URL?.trim();
+  const databaseUrl = readSecret('DATABASE_URL', env)?.trim();
   if (!databaseUrl) {
     throw new Error('DATABASE_URL is required (Postgres connection string)');
   }

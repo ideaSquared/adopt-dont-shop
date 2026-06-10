@@ -11,8 +11,8 @@
 //   POST /api/v1/support/tickets/:ticketId/reply          → respondToTicket
 //   GET  /api/v1/support/tickets/:ticketId/messages       → getSupportTicket(includeResponses=true)
 
-import { Metadata, status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { status } from '@grpc/grpc-js';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import {
   ModerationV1,
@@ -23,6 +23,7 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type SupportRoutesOptions = {
   client: ModerationClient;
@@ -38,7 +39,9 @@ const GRPC_TO_HTTP: Record<number, number> = {
 };
 
 const priorityFromString = (raw: string | undefined): ModerationV1.SupportTicketPriority => {
-  if (!raw) return ModerationV1.SupportTicketPriority.SUPPORT_TICKET_PRIORITY_NORMAL;
+  if (!raw) {
+    return ModerationV1.SupportTicketPriority.SUPPORT_TICKET_PRIORITY_NORMAL;
+  }
   const upper = `SUPPORT_TICKET_PRIORITY_${raw.toUpperCase()}`;
   const value = ModerationV1.supportTicketPriorityFromJSON(
     Object.values(ModerationV1.SupportTicketPriority).includes(upper as never) ? upper : raw
@@ -49,7 +52,9 @@ const priorityFromString = (raw: string | undefined): ModerationV1.SupportTicket
 };
 
 const categoryFromString = (raw: string | undefined): ModerationV1.SupportTicketCategory => {
-  if (!raw) return ModerationV1.SupportTicketCategory.SUPPORT_TICKET_CATEGORY_UNSPECIFIED;
+  if (!raw) {
+    return ModerationV1.SupportTicketCategory.SUPPORT_TICKET_CATEGORY_UNSPECIFIED;
+  }
   const upper = `SUPPORT_TICKET_CATEGORY_${raw.toUpperCase()}`;
   const value = ModerationV1.supportTicketCategoryFromJSON(
     Object.values(ModerationV1.SupportTicketCategory).includes(upper as never) ? upper : raw
@@ -60,7 +65,9 @@ const categoryFromString = (raw: string | undefined): ModerationV1.SupportTicket
 };
 
 const statusFromString = (raw: string | undefined): ModerationV1.SupportTicketStatus => {
-  if (!raw) return ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_UNSPECIFIED;
+  if (!raw) {
+    return ModerationV1.SupportTicketStatus.SUPPORT_TICKET_STATUS_UNSPECIFIED;
+  }
   const upper = `SUPPORT_TICKET_STATUS_${raw.toUpperCase()}`;
   const value = ModerationV1.supportTicketStatusFromJSON(
     Object.values(ModerationV1.SupportTicketStatus).includes(upper as never) ? upper : raw
@@ -199,18 +206,6 @@ export const registerSupportRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 

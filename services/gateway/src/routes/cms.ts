@@ -3,7 +3,7 @@
 // the existing lib.api CMS client deserialises unchanged.
 
 import { Metadata, status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import {
   CmsV1,
@@ -15,6 +15,7 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import type { CmsClient } from '../grpc-clients/cms-client.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type CmsRoutesOptions = {
   client: CmsClient;
@@ -524,18 +525,6 @@ export const registerCmsRoutes = async (
 };
 
 // --- Helpers --------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 

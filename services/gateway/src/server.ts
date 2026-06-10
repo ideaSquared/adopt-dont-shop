@@ -23,7 +23,7 @@
 //   - /api/v1/uploads/*       (multipart + signed serve)
 // Anything else under /api/* now returns 404 — there's no fallback.
 
-import { createLogger } from '@adopt-dont-shop/observability';
+import { createLogger, registerMetrics, registerRequestId } from '@adopt-dont-shop/observability';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import type { GatewayConfig } from './config.js';
@@ -147,6 +147,15 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
     void reply.status(err.statusCode ?? 500).send({ error: 'internal_error' });
   });
+
+  // Request-id middleware runs FIRST so the id is on req for every
+  // hook after it (including the metrics onResponse hook + the
+  // authenticate hook, which forwards it on downstream gRPC metadata).
+  registerRequestId(server);
+
+  // Prometheus /metrics + http_request_duration_seconds onResponse
+  // hook. Substrate only — no domain-specific instruments here.
+  registerMetrics(server);
 
   // OpenAPI spec generation. Register @fastify/swagger BEFORE any route
   // plugins so it can collect their `schema` blocks as they register —

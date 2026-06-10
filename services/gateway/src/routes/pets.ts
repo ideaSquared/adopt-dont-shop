@@ -20,8 +20,8 @@
 // principal so we never pass anonymous traffic through.
 
 import rateLimit from '@fastify/rate-limit';
-import { Metadata, status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { status } from '@grpc/grpc-js';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import { PetsV1, type ListPetsRequest, type UpdatePetStatusRequest } from '@adopt-dont-shop/proto';
 
@@ -33,6 +33,7 @@ import {
   viewToCreateRequest,
   viewToUpdateRequest,
 } from './pets-view.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type PetsRoutesOptions = {
   client: PetsClient;
@@ -221,18 +222,6 @@ export const registerPetsRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 

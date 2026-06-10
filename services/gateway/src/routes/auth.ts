@@ -21,8 +21,8 @@
 // requests with no Authorization header through to the route.
 
 import rateLimit from '@fastify/rate-limit';
-import { Metadata, status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { status } from '@grpc/grpc-js';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import {
   AuthV1,
@@ -33,6 +33,7 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type AuthRoutesOptions = {
   client: AuthClient;
@@ -401,21 +402,6 @@ export const registerAuthRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  // Same set the notifications routes forward — the authenticate
-  // middleware already stripped any spoofs and (when there's a valid
-  // Bearer) stamped the validated principal.
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 

@@ -33,8 +33,8 @@
 // x-user-* metadata via the Phase 2.5 authenticate middleware.
 
 import rateLimit from '@fastify/rate-limit';
-import { Metadata, status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { status } from '@grpc/grpc-js';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import {
   ModerationV1,
@@ -53,6 +53,7 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type ModerationRoutesOptions = {
   client: ModerationClient;
@@ -390,18 +391,6 @@ export const registerModerationRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 

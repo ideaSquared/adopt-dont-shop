@@ -11,12 +11,13 @@
 // Mounted under the existing CUTOVER_AUTH flag — sessions are an auth
 // surface, so they cut over together with login/logout/etc.
 
-import { Metadata, status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { status } from '@grpc/grpc-js';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import { AuthV1, type RevokeSessionRequest } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type SessionsRoutesOptions = {
   client: AuthClient;
@@ -77,18 +78,6 @@ export const registerSessionsRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 

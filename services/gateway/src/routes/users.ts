@@ -16,8 +16,8 @@
 // rows. We preserve that contract here so the SPA's lib.api client
 // keeps working without a re-spin.
 
-import { Metadata, status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { status } from '@grpc/grpc-js';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import {
   AuthV1,
@@ -34,6 +34,7 @@ import {
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
+import { buildMetadata } from '../middleware/metadata.js';
 
 export type UsersRoutesOptions = {
   authClient: AuthClient;
@@ -63,7 +64,9 @@ const visibilityProtoToString = (v: AuthV1.ProfileVisibility): string => {
 };
 
 const visibilityStringToProto = (raw: string | undefined): AuthV1.ProfileVisibility => {
-  if (!raw) return AuthV1.ProfileVisibility.PROFILE_VISIBILITY_UNSPECIFIED;
+  if (!raw) {
+    return AuthV1.ProfileVisibility.PROFILE_VISIBILITY_UNSPECIFIED;
+  }
   switch (raw) {
     case 'public':
       return AuthV1.ProfileVisibility.PROFILE_VISIBILITY_PUBLIC;
@@ -459,7 +462,9 @@ export const registerUsersRoutes = async (
 // --- Enum parsing helpers --------------------------------------------
 
 function statusFilterFromString(raw: string | undefined): AuthV1.UserStatus {
-  if (!raw) return AuthV1.UserStatus.USER_STATUS_UNSPECIFIED;
+  if (!raw) {
+    return AuthV1.UserStatus.USER_STATUS_UNSPECIFIED;
+  }
   const upper = `USER_STATUS_${raw.toUpperCase()}`;
   const parsed = AuthV1.userStatusFromJSON(
     Object.values(AuthV1.UserStatus).includes(upper as never) ? upper : raw
@@ -470,7 +475,9 @@ function statusFilterFromString(raw: string | undefined): AuthV1.UserStatus {
 }
 
 function userTypeFilterFromString(raw: string | undefined): AuthV1.UserRole {
-  if (!raw) return AuthV1.UserRole.USER_ROLE_UNSPECIFIED;
+  if (!raw) {
+    return AuthV1.UserRole.USER_ROLE_UNSPECIFIED;
+  }
   const upper = `USER_ROLE_${raw.toUpperCase()}`;
   const parsed = AuthV1.userRoleFromJSON(
     Object.values(AuthV1.UserRole).includes(upper as never) ? upper : raw
@@ -479,18 +486,6 @@ function userTypeFilterFromString(raw: string | undefined): AuthV1.UserRole {
 }
 
 // --- Helpers ---------------------------------------------------------
-
-function buildMetadata(req: FastifyRequest): Metadata {
-  const m = new Metadata();
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  for (const key of ['x-user-id', 'x-user-roles', 'x-user-permissions', 'x-rescue-id']) {
-    const raw = headers[key];
-    if (typeof raw === 'string' && raw.length > 0) {
-      m.set(key, raw);
-    }
-  }
-  return m;
-}
 
 type GrpcError = { code?: number; details?: string; message?: string };
 
