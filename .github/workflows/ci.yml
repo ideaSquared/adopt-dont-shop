@@ -385,6 +385,23 @@ jobs:
             # out.
             echo "UPLOAD_SIGNING_SECRET=$(openssl rand -base64 32)"
             echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002"
+            # Phase 11 follow-up: per-domain cutover flags must be on so
+            # the gateway actually registers its /api/v1/* routes. With
+            # them off (the production-prod default during strangler
+            # migration) the gateway returns 404 for every API path,
+            # which makes the e2e suite uniformly red. The monolith is
+            # gone — there is no fall-through — so for e2e we want all
+            # extracted domains live.
+            echo "CUTOVER_AUTH=true"
+            echo "CUTOVER_NOTIFICATIONS=true"
+            echo "CUTOVER_PETS=true"
+            echo "CUTOVER_RESCUE=true"
+            echo "CUTOVER_APPLICATIONS=true"
+            echo "CUTOVER_MODERATION=true"
+            echo "CUTOVER_MATCHING=true"
+            echo "CUTOVER_AUDIT=true"
+            echo "CUTOVER_CHAT=true"
+            echo "CUTOVER_CMS=true"
           } > .env
 
       - name: Start database and cache
@@ -393,13 +410,17 @@ jobs:
           timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U postgres; do sleep 2; done'
 
       - name: Build and start the full stack
-        # Phase 11: the monolith is gone. The microservices live behind
-        # the 'services' profile (gateway + all 9 extracted services);
-        # bring them up alongside the three frontend apps so e2e can hit
-        # gateway port 4000 instead of the removed monolith on 5000.
+        # Phase 11 follow-up: bring the apps + gateway + services + nginx up
+        # in ONE compose invocation under the `full` profile. The previous
+        # two-step `--profile services up` + `up app-client app-admin
+        # app-rescue` left nginx (which has no profile and therefore
+        # auto-starts on the first invocation) crash-looping for six minutes
+        # because its `app-client:3000` upstream wasn't resolvable. nginx is
+        # now in the `full`/`proxy` profiles so it starts only alongside the
+        # apps it proxies, and a single `up` honours the compose dependency
+        # graph instead of racing two independent stacks.
         run: |
-          docker compose -f docker-compose.yml --profile services up -d --build
-          docker compose -f docker-compose.yml up -d --build app-client app-admin app-rescue
+          docker compose -f docker-compose.yml --profile full up -d --build
 
       - name: Wait for services
         run: |

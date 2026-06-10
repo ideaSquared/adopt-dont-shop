@@ -228,8 +228,17 @@ services:
   # REVERSE PROXY
   # ============================================================================
 
-  # Nginx reverse proxy with subdomain routing
+  # Nginx reverse proxy with subdomain routing.
+  #
+  # Profile-gated (proxy / full) — without this, nginx would start on EVERY
+  # `docker compose up` (including the bare/services-only invocation used by
+  # CI's two-step boot), then crash-loop because its upstream `app-client:3000`
+  # DNS doesn't resolve until the app-* services come up. Adding it to the
+  # `full` profile means it only boots when the apps that back its upstreams
+  # are also part of the start command, and `proxy` lets devs opt into nginx
+  # alongside a single frontend profile when they want subdomain routing.
   nginx:
+    profiles: ['proxy', 'full']
     image: nginx:1.27-alpine
     ports:
       - '127.0.0.1:80:80'

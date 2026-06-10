@@ -2,7 +2,9 @@
 
 Behaviour-focused end-to-end tests for the adopt-dont-shop monorepo, driven by [Playwright](https://playwright.dev/).
 
-The suite exercises real user journeys across the three React apps (`app.client`, `app.rescue`, `app.admin`) and the `service.backend` API. Tests assert on **user-observable outcomes** (visible text, route changes, API responses) rather than on component internals — those concerns are covered by the per-package Vitest suites.
+The suite exercises real user journeys across the three React apps (`app.client`, `app.rescue`, `app.admin`) and the gateway API. Tests assert on **user-observable outcomes** (visible text, route changes, API responses) rather than on component internals — those concerns are covered by the per-package Vitest suites.
+
+> **Phase 11 status (post-monolith).** The legacy app-driven projects (`client`, `rescue`, `admin`) are temporarily parked in `playwright.config.ts` via `testIgnore`. The deleted monolith's CSRF + httpOnly-cookie auth contract is gone; the Fastify gateway returns `{ user, tokens: { accessToken, refreshToken } }` in the JSON body. Until `lib.auth` is reworked against that contract, only the `gateway-smoke` project runs — it probes the gateway health endpoint and asserts each seeded persona logs in cleanly via `POST /api/v1/auth/login`. Re-enable the parked projects (and re-add `test-e2e` to `ci-required`) once the auth rework lands.
 
 ## Layout
 
@@ -66,7 +68,7 @@ npm run docker:dev:detach
 #    Poll the four endpoints the suite depends on. The CI workflow does the
 #    same wait — see `.github/workflows/ci.yml` ("Wait for services").
 for url in \
-  http://localhost:5000/health \
+  http://localhost:4000/health/simple \
   http://localhost:3000 \
   http://localhost:3001 \
   http://localhost:3002; do
@@ -204,7 +206,7 @@ Aim to keep the smoke suite under ~5 minutes total. If you tag a new spec, run `
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `E2E_API_URL` | service.backend base URL | `http://localhost:5000` |
+| `E2E_API_URL` | gateway base URL | `http://localhost:4000` |
 | `E2E_CLIENT_URL` | app.client base URL | `http://localhost:3000` |
 | `E2E_ADMIN_URL` | app.admin base URL | `http://localhost:3001` |
 | `E2E_RESCUE_URL` | app.rescue base URL | `http://localhost:3002` |
@@ -227,7 +229,7 @@ Aim to keep the smoke suite under ~5 minutes total. If you tag a new spec, run `
 The `test-e2e` job in `.github/workflows/ci.yml` runs after `test-backend` and `test-frontend` succeed. It:
 
 1. Boots the stack with `docker-compose.yml` + `docker-compose.ci.yml`.
-2. Waits for `:5000/health`, `:3000`, `:3001`, `:3002`.
+2. Waits for `:4000/health/simple`, `:3000`, `:3001`, `:3002`.
 3. Runs migrations and seeds inside the backend container.
 4. Executes `npm run test:e2e`.
 5. Uploads `e2e/playwright-report/`, `e2e/test-results/`, and `docker-compose.log` as artifacts.
