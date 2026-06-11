@@ -202,7 +202,7 @@ export async function loadPrincipal(
 
   const extraRolesRes = await deps.pool.query<{ name: UserRoleDb }>(
     `
-    SELECT r.name FROM auth.roles r
+    SELECT r.role_name AS name FROM auth.roles r
     INNER JOIN auth.user_roles ur ON ur.role_id = r.role_id
     WHERE ur.user_id = $1
     `,
@@ -213,7 +213,7 @@ export async function loadPrincipal(
 
   const permsRes = await deps.pool.query<{ name: string }>(
     `
-    SELECT DISTINCT p.name FROM auth.permissions p
+    SELECT DISTINCT p.permission_name AS name FROM auth.permissions p
     INNER JOIN auth.role_permissions rp ON rp.permission_id = p.permission_id
     INNER JOIN auth.user_roles ur ON ur.role_id = rp.role_id
     WHERE ur.user_id = $1
@@ -558,7 +558,7 @@ export async function assignRole(
 
   // Resolve role_id.
   const roleRes = await deps.pool.query<{ role_id: string }>(
-    `SELECT role_id FROM auth.roles WHERE name = $1`,
+    `SELECT role_id FROM auth.roles WHERE role_name = $1`,
     [roleName]
   );
   if (roleRes.rows.length === 0) {

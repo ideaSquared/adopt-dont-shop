@@ -2,12 +2,14 @@
 //
 // We run a SINGLE stream — DOMAIN_EVENTS — that captures every domain
 // subject (`<service>.<entity>.<verb>`, e.g. `pets.unit.statusChanged`,
-// `gdpr.erasureRequested`, `chat.messageCreated`). One stream over the
-// wildcard `*.>` is the cleanest choice here:
+// `gdpr.erasureRequested`, `chat.messageCreated`) via an explicit list of
+// `<prefix>.>` filters, one per service domain:
 //
-//   * Every subject in this system is exactly `<prefix>.<...>` with a
-//     single-token service prefix, so `*.>` matches all of them and
-//     nothing leaks in from outside the convention.
+//   * A bare token wildcard (`*.>`) is NOT usable here: `*` matches `$JS`
+//     and `$SYS` too, so the stream would overlap JetStream's own API
+//     namespace and the server rejects it at creation time (err 10052,
+//     "subjects that overlap with jetstream api require no-ack to be
+//     true") — crashing every service at boot.
 //   * A single stream means one retention/storage policy to reason about
 //     and no risk of a subject falling through the cracks between several
 //     prefix-keyed streams (the GDPR-correctness failure mode we're
@@ -15,17 +17,30 @@
 //   * Durable consumers each filter the stream down to their own subject,
 //     so the single stream costs us nothing on the read side.
 //
-// If a future subject needs a different retention policy (e.g. a
-// high-volume analytics firehose we don't want to keep for 7 days), split
-// it into its own stream then — until then, one stream is simplest.
+// Adding a new service domain? Add its prefix to DOMAIN_SUBJECTS (and the
+// coverage test in stream.test.ts). An unused prefix costs nothing; a
+// missing one means that domain's events have no durable stream.
 
 import { type NatsConnection, RetentionPolicy, StorageType } from 'nats';
 
 // The one stream every service publishes to and consumes from.
 export const DOMAIN_STREAM = 'DOMAIN_EVENTS';
 
-// Wildcard capturing every `<service>.<...>` subject.
-export const DOMAIN_SUBJECTS = ['*.>'] as const;
+// One `<prefix>.>` filter per service domain (plus the cross-service gdpr
+// saga subjects). Explicit on purpose — see the header comment.
+export const DOMAIN_SUBJECTS = [
+  'auth.>',
+  'pets.>',
+  'rescue.>',
+  'applications.>',
+  'chat.>',
+  'notifications.>',
+  'moderation.>',
+  'matching.>',
+  'cms.>',
+  'audit.>',
+  'gdpr.>',
+] as const;
 
 // ensureStream creates-or-updates the DOMAIN_EVENTS stream. Idempotent:
 // safe to call on every service boot. The first service to boot creates

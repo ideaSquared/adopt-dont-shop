@@ -324,6 +324,20 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       NATS_URL: nats://nats:4222
+      # Phase 11: the monolith is deleted, so there is no proxy fall-through —
+      # a domain whose flag is off just 404s at the gateway. Dev and e2e want
+      # every extracted domain live, so default each flag on (overridable via
+      # .env). Without these the gateway registers no /api/v1/* routes at all.
+      CUTOVER_AUTH: ${CUTOVER_AUTH:-true}
+      CUTOVER_NOTIFICATIONS: ${CUTOVER_NOTIFICATIONS:-true}
+      CUTOVER_PETS: ${CUTOVER_PETS:-true}
+      CUTOVER_RESCUE: ${CUTOVER_RESCUE:-true}
+      CUTOVER_APPLICATIONS: ${CUTOVER_APPLICATIONS:-true}
+      CUTOVER_MODERATION: ${CUTOVER_MODERATION:-true}
+      CUTOVER_MATCHING: ${CUTOVER_MATCHING:-true}
+      CUTOVER_AUDIT: ${CUTOVER_AUDIT:-true}
+      CUTOVER_CHAT: ${CUTOVER_CHAT:-true}
+      CUTOVER_CMS: ${CUTOVER_CMS:-true}
     ports:
       - '127.0.0.1:4000:4000'
     depends_on:

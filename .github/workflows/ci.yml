@@ -66,6 +66,7 @@ jobs:
       backend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.backend }}
       frontend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.frontend }}
       libs: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.libs }}
+      e2e: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.e2e }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
@@ -75,6 +76,7 @@ jobs:
           filters: |
             backend:
               - 'services/**'
+              - 'packages/**'
               - 'lib.types/**'
               - 'lib.validation/**'
               - 'package.json'
@@ -102,6 +104,17 @@ jobs:
               - 'tsconfig.json'
               - 'turbo.json'
               - 'eslint-config-base/**'
+            # ADS-802: paths that change the e2e stack itself but match no
+            # other filter. Without these, a PR that only touches the
+            # Playwright specs, the compose file, the service image, or this
+            # workflow runs zero integration coverage.
+            e2e:
+              - 'e2e/**'
+              - 'docker-compose.yml'
+              - 'Dockerfile.service'
+              - 'Dockerfile.app.optimized'
+              - 'nginx/**'
+              - '.github/workflows/ci.yml'
 
   # ============================================================================
   # BUILD-LIBS — single source of truth for compiled lib.*/dist artifacts
@@ -312,7 +325,7 @@ jobs:
     # in branch protection.
     if: |
       always() &&
-      (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true') &&
+      (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.e2e == 'true') &&
       (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -329,16 +342,30 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
       - name: Free up disk space
+        # The 14-image compose build needs ~25GB; the hosted runner has ~14GB
+        # free. Evict the big preinstalled toolchains (Android SDK, .NET, GHC,
+        # Swift, CodeQL, runner docker images) before building. Without this
+        # the build dies with ENOSPC mid-export, or — worse — limps through
+        # and the services then sit "unhealthy" because nothing inside the
+        # containers can write (the failure signature ADS-792 describes).
         run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" \
+            /usr/local/lib/android /usr/share/swift /opt/hostedtoolcache/CodeQL \
+            "$AGENT_TOOLSDIRECTORY"
+          sudo docker image prune -af
+          df -h /
 
       - uses: ./.github/actions/setup-workspace
 
-      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
-        with:
-          driver-opts: |
-            image=moby/buildkit:v0.23.0
-            network=host
+      # NOTE: deliberately NO docker/setup-buildx-action here. The
+      # docker-container builder it creates stores every image twice — once
+      # in the BuildKit cache, once exported as a tarball and re-imported
+      # into the daemon ("sending tarball" / "importing to docker") — which
+      # doubles peak disk for a 14-image build. The daemon's integrated
+      # BuildKit (DOCKER_BUILDKIT=1 is set job-wide) builds straight into
+      # the image store and still supports the dockerfile:1.4 syntax and
+      # RUN --mount=type=cache used by Dockerfile.service.
 
       - name: Resolve Playwright version
         id: pw
@@ -360,7 +387,12 @@ jobs:
           {
             echo "NODE_ENV=development"
             echo "POSTGRES_USER=postgres"
-            echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)"
+            # Hex, not base64, for the same reason as REDIS_PASSWORD below:
+            # compose interpolates this into DATABASE_URL=postgresql://user:
+            # ${POSTGRES_PASSWORD}@database:5432/db and base64's / + = break
+            # `new URL()` in every service's db:migrate — intermittently,
+            # whenever the random draw happens to contain one.
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)"
             echo "POSTGRES_DB=adopt_dont_shop_dev"
             echo "JWT_SECRET=$(openssl rand -base64 32)"
             echo "JWT_REFRESH_SECRET=$(openssl rand -base64 32)"
@@ -421,25 +453,55 @@ jobs:
         # graph instead of racing two independent stacks.
         run: |
           docker compose -f docker-compose.yml --profile full up -d --build
+          df -h /
 
       - name: Wait for services
+        # The gateway is first in the list and carries the whole budget: it
+        # boots 10 sibling services' worth of migrations + tsx compiles on a
+        # contended 4-core runner, so it gets 240×2s (8 min) rather than the
+        # 90×2s that used to time out. Log dumps need --profile full — the
+        # service/app containers live in that profile, so a bare `compose
+        # logs` shows only the infra containers and hides the actual failure.
         run: |
           set -euo pipefail
           for url in http://localhost:4000/health/simple http://localhost:3000 http://localhost:3001 http://localhost:3002; do
             echo "Waiting for $url"
-            for i in $(seq 1 90); do
+            for i in $(seq 1 240); do
               if curl -fsS --max-time 5 "$url" >/dev/null 2>&1; then
                 echo "  ready: $url"
                 break
               fi
-              if [ "$i" = "90" ]; then
+              if [ "$i" = "240" ]; then
                 echo "  timeout: $url"
-                docker compose -f docker-compose.yml ps
-                docker compose -f docker-compose.yml logs --tail=200
+                docker compose -f docker-compose.yml --profile full ps
+                docker compose -f docker-compose.yml --profile full logs --tail=300
                 exit 1
               fi
               sleep 2
             done
+          done
+
+          # The URL loop only proves the gateway + apps are up. The gateway
+          # answers /health/simple before its sibling gRPC services finish
+          # their own migrate→seed→boot cycle, so a Playwright login probe
+          # fired now hits ECONNREFUSED on service-auth:6002. Every service
+          # binds gRPC before its HTTP health server (see services/*/src/
+          # index.ts), so compose-healthy ⇒ gRPC ready — wait for that.
+          echo "Waiting for service containers to report healthy"
+          for i in $(seq 1 120); do
+            not_healthy=$(docker compose -f docker-compose.yml --profile full ps --format '{{.Service}} {{.Health}}' \
+              | awk '$1 ~ /^service-/ && $2 != "healthy" {print $1}')
+            if [ -z "$not_healthy" ]; then
+              echo "  all service containers healthy"
+              break
+            fi
+            if [ "$i" = "120" ]; then
+              echo "  timeout waiting for: $not_healthy"
+              docker compose -f docker-compose.yml --profile full ps
+              docker compose -f docker-compose.yml --profile full logs --tail=300
+              exit 1
+            fi
+            sleep 2
           done
 
       - name: Warm up Vite bundles
@@ -489,9 +551,21 @@ jobs:
             echo "No retried tests detected in this run."
           fi
 
+      - name: Dump service logs on failure
+        # Inline (not just the artifact): the artifact requires a download to
+        # inspect, while the job log is immediately searchable. gRPC adapters
+        # mask unexpected handler errors as INTERNAL 'internal error', so the
+        # real exception only exists in the owning service's stdout.
+        if: failure()
+        run: |
+          docker compose -f docker-compose.yml --profile full logs --no-color --tail=150
+
       - name: Capture docker-compose logs on failure
         if: failure()
-        run: docker compose -f docker-compose.yml logs --no-color > docker-compose.log
+        # --profile full: without it the dump only contains the default-profile
+        # infra containers (database/redis/nats/...) and silently omits every
+        # service and app container — the part that actually fails.
+        run: docker compose -f docker-compose.yml --profile full logs --no-color > docker-compose.log
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         if: always()

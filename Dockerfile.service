@@ -49,7 +49,11 @@ ARG SERVICE
 # Workspace metadata + pruned lockfile first (cache-friendly install layer).
 COPY --from=pruner /app/out/json/ ./
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
-RUN --mount=type=cache,target=/root/.npm \
+# Cache mounts are keyed per service: the e2e stack builds all 14 images
+# concurrently, and a shared /root/.npm mount makes parallel npm processes
+# race on the same cacache tmp paths (npm error EEXIST, exit 239). Runners
+# are fresh VMs, so per-image caches cost nothing cross-build.
+RUN --mount=type=cache,id=npm-${SERVICE},target=/root/.npm \
     npm ci --prefer-offline
 # Pruned source — only the workspaces this service depends on.
 COPY --from=pruner /app/out/full/ ./
@@ -59,7 +63,7 @@ COPY --from=pruner /app/out/full/ ./
 COPY tsconfig.base.json tsconfig.cjs.base.json ./
 # `^build` ordering means turbo builds the workspace deps (proto, events, …)
 # before the service itself.
-RUN --mount=type=cache,target=/app/.turbo \
+RUN --mount=type=cache,id=turbo-${SERVICE},target=/app/.turbo \
     npx turbo build --filter=${SERVICE}
 
 # ---------------------------------------------------------------------------
