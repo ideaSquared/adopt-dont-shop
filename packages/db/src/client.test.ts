@@ -50,29 +50,24 @@ describe('createDbClient', () => {
   });
 
   describe('connection behaviour', () => {
-    it(
-      'rejects within ~connectionTimeoutMillis when connecting to a non-routable address',
-      async () => {
-        const startMs = Date.now();
-        const pool = createDbClient({
-          schema: 'test',
-          // 10.255.255.1 is a non-routable address — TCP SYN will never be answered
-          host: '10.255.255.1',
-          port: 5432,
-          // Small override to keep the test fast and also proves overridability
-          connectionTimeoutMillis: 500,
-        });
+    it('rejects within ~connectionTimeoutMillis when connecting to a non-routable address', async () => {
+      const startMs = Date.now();
+      const pool = createDbClient({
+        schema: 'test',
+        // 10.255.255.1 is a non-routable address — TCP SYN will never be answered
+        host: '10.255.255.1',
+        port: 5432,
+        // Small override to keep the test fast and also proves overridability
+        connectionTimeoutMillis: 500,
+      });
 
-        await expect(pool.connect()).rejects.toThrow();
+      await expect(pool.connect()).rejects.toThrow();
 
-        const elapsedMs = Date.now() - startMs;
-        // Should have rejected within roughly 2× the timeout (generous upper bound)
-        expect(elapsedMs).toBeLessThan(2_000);
+      const elapsedMs = Date.now() - startMs;
+      // Should have rejected within roughly 2× the timeout (generous upper bound)
+      expect(elapsedMs).toBeLessThan(2_000);
 
-        void pool.end();
-      },
-      // Test-level timeout: well above the pool timeout, below the default 5s
-      3_000,
-    );
+      void pool.end();
+    }, 3_000); // Test-level timeout: well above the pool timeout, below the default 5s
   });
 });
