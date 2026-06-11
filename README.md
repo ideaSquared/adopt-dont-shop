@@ -73,16 +73,20 @@ npm run dev:apps            # frontend apps only
 
 ```
 adopt-dont-shop/
-├── app.admin/          # Internal management (React + Vite)
-├── app.client/         # Public adoption portal (React + Vite)
-├── app.rescue/         # Rescue organization portal (React + Vite)
-├── services/           # Fastify gateway + gRPC microservices
-│   ├── gateway/        # REST/WS edge (port 4000) — fronts every service
+├── apps/                       # React + Vite frontends
+│   ├── admin/                  #   internal management
+│   ├── client/                 #   public adoption portal
+│   └── rescue/                 #   rescue organization portal
+├── services/                   # Fastify gateway + gRPC microservices
+│   ├── gateway/                #   REST/WS edge (port 4000) — fronts every service
 │   ├── auth/           notifications/  pets/         rescue/
 │   ├── applications/   chat/           moderation/   matching/
 │   └── cms/            audit/          # one Node gRPC service per domain
-├── packages/           # Service-only shared packages (proto, events, authz, db, observability)
-├── lib.*               # Shared libraries (api, auth, chat, components, types, etc.)
+├── packages/                   # All shared workspace packages
+│   ├── proto/ events/ authz/   #   service-only shared packages
+│   ├── db/ observability/ storage/ config-secrets/
+│   ├── eslint-config-{base,node,react}/
+│   └── lib.*                   #   24 frontend libs (api, auth, chat, components, types, …)
 ├── docker-compose.yml          # Dev stack (gateway + services + apps under the `full` profile)
 ├── docker-compose.staging.yml  # Staging (pre-built GHCR images)
 ├── docker-compose.prod.yml     # Production overlay
@@ -129,7 +133,7 @@ npx turbo test --filter=@adopt-dont-shop/service.gateway
 
 The Docker dev stack is configured for HMR on Windows/macOS/Linux:
 
-- **Frontend apps** — Vite HMR with polling (`CHOKIDAR_USEPOLLING=true`). Edits to `app.*/src/**` and `lib.*/src/**` reload in the browser within ~1-2 seconds.
+- **Frontend apps** — Vite HMR with polling (`CHOKIDAR_USEPOLLING=true`). Edits to `apps/*/src/**` and `packages/lib.*/src/**` reload in the browser within ~1-2 seconds.
 - **Gateway + services** — `tsx watch` reloads each on edits to its `services/<name>/src/**` within ~1 second.
 - **lib.types** — the `lib-types-watcher` sidecar runs `tsc --watch` and writes to `dist/` continuously; the services pick up changes automatically via the workspace symlink.
 - **Other libraries** (`lib.api`, `lib.auth`, etc.) — Vite aliases point at their `src/` folders, so HMR picks up changes automatically.
@@ -186,7 +190,7 @@ make history               # list recent commits to pick a rollback target
 - [docs/README.md](./docs/README.md) — full documentation index
 - [docs/libraries/](./docs/libraries/) — per-library reference
 - [services/gateway/README.md](./services/gateway/README.md) — API gateway
-- [lib.components/README.md](./lib.components/README.md) — UI components
+- [packages/lib.components/README.md](./packages/lib.components/README.md) — UI components
 
 ## Troubleshooting
 

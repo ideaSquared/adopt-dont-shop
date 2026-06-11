@@ -109,7 +109,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-      - lib_types_node_modules:/app/lib.types/node_modules
+      - lib_types_node_modules:/app/packages/lib.types/node_modules
     command: sh -c "npm install --workspace=@adopt-dont-shop/lib.types --include-workspace-root --prefer-offline && npm run -w @adopt-dont-shop/lib.types dev"
     restart: unless-stopped
 
@@ -125,14 +125,14 @@ services:
       dockerfile: Dockerfile.app.optimized
       target: development
       args:
-        APP_NAME: app.admin
+        APP_NAME: admin
     ports:
       - '127.0.0.1:3001:3000'
     volumes:
       # Single workspace mount - npm workspace handles library resolution
       - .:/app
       - /app/node_modules
-      - /app/app.admin/node_modules
+      - /app/apps/admin/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       DOCKER_ENV: 'true'
@@ -160,14 +160,14 @@ services:
       dockerfile: Dockerfile.app.optimized
       target: development
       args:
-        APP_NAME: app.client
+        APP_NAME: client
     ports:
       - '127.0.0.1:3000:3000'
     volumes:
       # Single workspace mount - npm workspace handles library resolution
       - .:/app
       - /app/node_modules
-      - /app/app.client/node_modules
+      - /app/apps/client/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       DOCKER_ENV: 'true'
@@ -195,14 +195,14 @@ services:
       dockerfile: Dockerfile.app.optimized
       target: development
       args:
-        APP_NAME: app.rescue
+        APP_NAME: rescue
     ports:
       - '127.0.0.1:3002:3000'
     volumes:
       # Single workspace mount - npm workspace handles library resolution
       - .:/app
       - /app/node_modules
-      - /app/app.rescue/node_modules
+      - /app/apps/rescue/node_modules
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       DOCKER_ENV: 'true'

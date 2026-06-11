@@ -74,15 +74,32 @@ const EXPECTED_SCRIPT_BODIES = {
 
 const EXPECTED_LINT_BODIES = ['eslint .', 'eslint src'];
 
-function listWorkspaces(prefix) {
-  return readdirSync(ROOT, { withFileTypes: true })
-    .filter(e => e.isDirectory() && e.name.startsWith(prefix))
+// After the Phase 0 restructure (apps/ + packages/lib.* + services/), libs
+// live under packages/ and apps live under apps/. The functions below still
+// return workspace identifiers in `lib.X` / `app.X` form (the package-name
+// suffix) — callers join them with `pkgDir(...)` to get the filesystem path.
+function listLibs() {
+  return readdirSync(join(ROOT, 'packages'), { withFileTypes: true })
+    .filter(e => e.isDirectory() && e.name.startsWith('lib.'))
     .map(e => e.name)
     .sort();
 }
 
+function listApps() {
+  return readdirSync(join(ROOT, 'apps'), { withFileTypes: true })
+    .filter(e => e.isDirectory())
+    .map(e => `app.${e.name}`)
+    .sort();
+}
+
+function pkgDir(workspace) {
+  if (workspace.startsWith('lib.')) return join('packages', workspace);
+  if (workspace.startsWith('app.')) return join('apps', workspace.slice(4));
+  return workspace;
+}
+
 function readPkg(workspace) {
-  const path = join(ROOT, workspace, 'package.json');
+  const path = join(ROOT, pkgDir(workspace), 'package.json');
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
@@ -111,19 +128,19 @@ function checkScriptBodyDrift(workspace, scripts) {
 function checkVitestWorkspace(libs) {
   const path = join(ROOT, 'vitest.workspace.ts');
   const contents = readFileSync(path, 'utf8');
-  // A `lib.*/vitest.config.ts` glob entry transparently covers every
+  // A `packages/lib.*/vitest.config.ts` glob entry transparently covers every
   // lib with a vitest config on disk, so explicit per-lib entries
   // aren't required when the glob is present.
-  if (/['"]lib\.\*\/vitest\.config\.ts['"]/.test(contents)) {
+  if (/['"]packages\/lib\.\*\/vitest\.config\.ts['"]/.test(contents)) {
     return [];
   }
   const missing = libs.filter(lib => {
     try {
-      statSync(join(ROOT, lib, 'vitest.config.ts'));
+      statSync(join(ROOT, pkgDir(lib), 'vitest.config.ts'));
     } catch {
       return false;
     }
-    return !contents.includes(`${lib}/vitest.config.ts`);
+    return !contents.includes(`packages/${lib}/vitest.config.ts`);
   });
   return missing;
 }
@@ -171,7 +188,7 @@ function checkTypesInDependencies(workspaces) {
 function checkAppVitestAliases(apps) {
   const offenders = [];
   for (const app of apps) {
-    const cfgPath = join(ROOT, app, 'vitest.config.ts');
+    const cfgPath = join(ROOT, pkgDir(app), 'vitest.config.ts');
     let contents;
     try {
       contents = readFileSync(cfgPath, 'utf8');
@@ -218,16 +235,16 @@ const JEST_REF_FILE_ALLOWLIST = new Set([
   // Mocks + tests still using jest.fn / jest.mock via Vitest's jest-compat
   // globals. Functional today; explicit migration to vi.fn / vi.mock is a
   // follow-up to ADS-617 (Jest cleanup).
-  'app.rescue/src/__mocks__/lib-applications.ts',
-  'app.rescue/src/__mocks__/lib-auth.ts',
-  'app.rescue/src/__mocks__/lib-pets.ts',
-  'app.rescue/src/__mocks__/lib-rescue.ts',
-  'app.rescue/src/setup-tests.tsx',
-  'app.rescue/src/test-utils/setup-tests.ts',
+  'apps/rescue/src/__mocks__/lib-applications.ts',
+  'apps/rescue/src/__mocks__/lib-auth.ts',
+  'apps/rescue/src/__mocks__/lib-pets.ts',
+  'apps/rescue/src/__mocks__/lib-rescue.ts',
+  'apps/rescue/src/setup-tests.tsx',
+  'apps/rescue/src/test-utils/setup-tests.ts',
   // Documentation-style comments referencing jest.mock semantics in
   // tests that are themselves Vitest. Pure prose, no wiring.
-  'lib.feature-flags/src/hooks/useDynamicConfig.test.ts',
-  'lib.feature-flags/src/hooks/useFeatureGate.test.ts',
+  'packages/lib.feature-flags/src/hooks/useDynamicConfig.test.ts',
+  'packages/lib.feature-flags/src/hooks/useFeatureGate.test.ts',
 ]);
 
 // Patterns that indicate active Jest wiring (as opposed to merely
@@ -281,7 +298,7 @@ function findJestReferences() {
 // stay allowlisted until their separate cleanup ticket lands (e.g. ADS-725
 // for lib.auth/__tests__). New offenders fail the guard.
 const TEST_LAYOUT_ALLOWLIST = new Set([
-  'lib.auth/__tests__/auth-service.test.ts', // ADS-725 will relocate this
+  'packages/lib.auth/__tests__/auth-service.test.ts', // ADS-725 will relocate this
 ]);
 
 function findStrayTests(workspaces) {
@@ -305,7 +322,7 @@ function findStrayTests(workspaces) {
   }
   for (const ws of workspaces) {
     try {
-      walk(join(ROOT, ws), ws);
+      walk(join(ROOT, pkgDir(ws)), ws);
     } catch {
       // Workspace dir missing — other guards will catch it.
     }
@@ -314,8 +331,8 @@ function findStrayTests(workspaces) {
 }
 
 function main() {
-  const libs = listWorkspaces('lib.');
-  const apps = listWorkspaces('app.');
+  const libs = listLibs();
+  const apps = listApps();
 
   const failures = [];
   const warnings = [];
@@ -340,7 +357,7 @@ function main() {
   const missingVitest = checkVitestWorkspace(libs);
   for (const lib of missingVitest) {
     failures.push(
-      `[vitest.workspace.ts] missing entry: '${lib}/vitest.config.ts' (lib has a vitest.config.ts on disk but is not listed)`,
+      `[vitest.workspace.ts] missing entry: 'packages/${lib}/vitest.config.ts' (lib has a vitest.config.ts on disk but is not listed)`
     );
   }
 
@@ -348,7 +365,7 @@ function main() {
   const missingAliases = checkViteAliases(libs);
   for (const lib of missingAliases) {
     failures.push(
-      `[vite.shared.config.ts] getLibraryAliases() missing entry for '@adopt-dont-shop/${lib}'`,
+      `[vite.shared.config.ts] getLibraryAliases() missing entry for '@adopt-dont-shop/${lib}'`
     );
   }
 
@@ -356,8 +373,8 @@ function main() {
   const appAliasOffenders = checkAppVitestAliases(apps);
   for (const { app, libs: handRolled } of appAliasOffenders) {
     failures.push(
-      `[${app}/vitest.config.ts] hand-rolled @adopt-dont-shop alias(es): ${handRolled.join(', ')}. ` +
-        `Use getLibraryAliases(__dirname, 'development') from vite.shared.config.ts instead (ADS-762).`,
+      `[${pkgDir(app)}/vitest.config.ts] hand-rolled @adopt-dont-shop alias(es): ${handRolled.join(', ')}. ` +
+        `Use getLibraryAliases(__dirname, 'development') from vite.shared.config.ts instead (ADS-762).`
     );
   }
 
@@ -365,8 +382,8 @@ function main() {
   const typesOffenders = checkTypesInDependencies([...libs, ...apps]);
   for (const { workspace, types } of typesOffenders) {
     failures.push(
-      `[${workspace}/package.json] @types/* in 'dependencies': ${types.join(', ')}. ` +
-        `Move to devDependencies — type-only packages must not be runtime deps (ADS-765).`,
+      `[${pkgDir(workspace)}/package.json] @types/* in 'dependencies': ${types.join(', ')}. ` +
+        `Move to devDependencies — type-only packages must not be runtime deps (ADS-765).`
     );
   }
 
@@ -374,8 +391,8 @@ function main() {
   const domOffenders = checkBannedDomEnv([...libs, ...apps]);
   for (const ws of domOffenders) {
     failures.push(
-      `[${ws}/package.json] declares 'happy-dom'. ` +
-        `jsdom is the canonical test-DOM environment — remove happy-dom (ADS-764).`,
+      `[${pkgDir(ws)}/package.json] declares 'happy-dom'. ` +
+        `jsdom is the canonical test-DOM environment — remove happy-dom (ADS-764).`
     );
   }
 
@@ -395,7 +412,7 @@ function main() {
   const strayTests = findStrayTests([...libs, ...apps]);
   for (const file of strayTests) {
     failures.push(
-      `[test-layout] test file outside src/: ${file} — move tests under src/ (co-located for React libs/apps, src/__tests__/ for backend/non-UI libs). See CONTRIBUTING.md "Test layout".`,
+      `[test-layout] test file outside src/: ${file} — move tests under src/ (co-located for React libs/apps, src/__tests__/ for backend/non-UI libs). See CONTRIBUTING.md "Test layout".`
     );
   }
 
@@ -418,7 +435,7 @@ function main() {
     const reintroduced = HOISTED_DEVDEPS.filter(dep => dep in devDeps);
     if (reintroduced.length > 0) {
       failures.push(
-        `[${lib}] re-introduces hoisted devDependencies: ${reintroduced.join(', ')} (declare them only in the root package.json — see ADS-730)`,
+        `[${lib}] re-introduces hoisted devDependencies: ${reintroduced.join(', ')} (declare them only in the root package.json — see ADS-730)`
       );
     }
   }
@@ -427,7 +444,7 @@ function main() {
     console.warn('Warnings (non-fatal — script body drift):');
     for (const w of warnings) {
       console.warn(
-        `  - [${w.workspace}] '${w.script}' body is '${w.actual}', expected one of: ${w.expected.join(' | ')}`,
+        `  - [${w.workspace}] '${w.script}' body is '${w.actual}', expected one of: ${w.expected.join(' | ')}`
       );
     }
     console.warn('');

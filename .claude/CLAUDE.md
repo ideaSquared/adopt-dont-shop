@@ -80,7 +80,7 @@ We follow Test-Driven Development (TDD) with a strong emphasis on behaviour-driv
 **Preferred Tools:**
 
 - **Language**: TypeScript (strict mode)
-- **Testing**: Vitest everywhere (`lib.*`, `services/*`, `app.*`) + React Testing Library for React
+- **Testing**: Vitest everywhere (`packages/*`, `services/*`, `apps/*`) + React Testing Library for React
 - **State Management**: Prefer immutable patterns
 
 ---
@@ -93,41 +93,20 @@ This project is a **Turborepo monorepo** with npm workspaces containing multiple
 
 ```
 adopt-dont-shop/
-├── app.admin/          # Admin dashboard (React + Vite)
-├── app.client/         # Client-facing app (React + Vite)
-├── app.rescue/         # Rescue organization app (React + Vite)
-├── services/           # Fastify gateway + gRPC microservices (replaces the
-│   │                   #   deleted service.backend monolith — phase 11)
-│   ├── gateway/        # REST/WS edge on port 4000 (health: /health/simple)
+├── apps/                       # React + Vite frontends
+│   ├── admin/                  #   app.admin — admin dashboard
+│   ├── client/                 #   app.client — public adoption portal
+│   └── rescue/                 #   app.rescue — rescue org portal
+├── services/                   # Fastify gateway + gRPC microservices
+│   ├── gateway/                #   REST/WS edge on port 4000
 │   ├── auth/ notifications/ pets/ rescue/ applications/
 │   └── chat/ moderation/ matching/ cms/ audit/
-├── packages/           # Service-only shared packages (proto, events, authz,
-│                       #   db, observability, storage)
-└── lib.*/             # Shared libraries (24 packages)
-    ├── lib.analytics
-    ├── lib.api
-    ├── lib.applications
-    ├── lib.audit-logs
-    ├── lib.auth
-    ├── lib.chat
-    ├── lib.components
-    ├── lib.dev-tools
-    ├── lib.discovery
-    ├── lib.feature-flags
-    ├── lib.invitations
-    ├── lib.legal
-    ├── lib.matching
-    ├── lib.moderation
-    ├── lib.notifications
-    ├── lib.observability
-    ├── lib.permissions
-    ├── lib.pets
-    ├── lib.rescue
-    ├── lib.search
-    ├── lib.support-tickets
-    ├── lib.types
-    ├── lib.utils
-    └── lib.validation
+└── packages/                   # All shared workspace packages
+    ├── proto/ events/ authz/   #   service-only shared packages
+    ├── db/ observability/ storage/ config-secrets/
+    ├── eslint-config-{base,node,react}/
+    └── lib.*/                  #   24 frontend-shared libs (lib.api, lib.auth,
+                                #   lib.components, lib.types, …)
 ```
 
 ### Working with Packages
@@ -213,24 +192,19 @@ npx turbo test --filter=@adopt-dont-shop/service.gateway
 
 ### Test Organization
 
-**Backend Service:**
+**Microservices:**
 
 ```
-service.backend/src/
-  __tests__/
-    services/
-      auth.service.test.ts
-      user.service.test.ts
-    controllers/
-      user.controller.test.ts
-    routes/
-      user.routes.test.ts
+services/auth/src/
+  grpc/
+    handlers.ts
+    handlers.test.ts
 ```
 
 **Shared Libraries:**
 
 ```
-lib.auth/src/
+packages/lib.auth/src/
     auth-service.ts
     auth-service.test.ts
 ```
@@ -238,7 +212,7 @@ lib.auth/src/
 **React Applications:**
 
 ```
-app.admin/src/
+apps/admin/src/
     components/
         ErrorBoundary.tsx
         ErrorBoundary.test.tsx
@@ -579,7 +553,7 @@ export const useUser = (userId: string) => {
 
 ### Styling (vanilla-extract)
 
-Styles are authored using [vanilla-extract](https://vanilla-extract.style/) (`.css.ts` files). Theme tokens are imported from `lib.components/src/styles/theme.css.ts` as `vars`:
+Styles are authored using [vanilla-extract](https://vanilla-extract.style/) (`.css.ts` files). Theme tokens are imported from `packages/lib.components/src/styles/theme.css.ts` as `vars`:
 
 ```typescript
 // Component.css.ts

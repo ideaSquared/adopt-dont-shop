@@ -165,7 +165,7 @@ jobs:
           docker build \
             -f Dockerfile.app.optimized \
             --target production \
-            --build-arg APP_NAME=app.client \
+            --build-arg APP_NAME=client \
             --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
             --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
             --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \
@@ -192,7 +192,7 @@ jobs:
           docker build \
             -f Dockerfile.app.optimized \
             --target production \
-            --build-arg APP_NAME=app.admin \
+            --build-arg APP_NAME=admin \
             --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
             --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
             --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \
@@ -219,7 +219,7 @@ jobs:
           docker build \
             -f Dockerfile.app.optimized \
             --target production \
-            --build-arg APP_NAME=app.rescue \
+            --build-arg APP_NAME=rescue \
             --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
             --build-arg VITE_WS_BASE_URL="${{ vars.VITE_WS_BASE_URL }}" \
             --build-arg VITE_SENTRY_DSN="${{ vars.VITE_SENTRY_DSN }}" \

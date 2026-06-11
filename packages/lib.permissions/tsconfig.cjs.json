@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.cjs.base.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "rootDir": "./src",
+    "outDir": "./dist/cjs",
+    "ignoreDeprecations": "6.0",
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "incremental": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "src/test-utils"]
+}

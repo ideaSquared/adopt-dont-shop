@@ -39,7 +39,7 @@ ARG APP_NAME
 # package.json. node_modules / dist are excluded via .dockerignore.
 COPY . .
 
-RUN npx -y turbo@2.9.14 prune @adopt-dont-shop/${APP_NAME} --docker
+RUN npx -y turbo@2.9.14 prune @adopt-dont-shop/app.${APP_NAME} --docker
 
 # Development stage
 FROM base AS development
@@ -62,7 +62,7 @@ USER viteuser
 
 EXPOSE 3000
 
-WORKDIR /app/${APP_NAME}
+WORKDIR /app/apps/${APP_NAME}
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["npm", "run", "dev"]
@@ -107,7 +107,7 @@ COPY --from=pruner --chown=viteuser:nodejs /app/out/full/ ./
 # The '...' prefix builds all dependencies first, then the target app
 # Set NODE_ENV=production to use "import" exports instead of "development" (src/*.ts)
 RUN --mount=type=cache,id=turbo-${APP_NAME},target=/app/.turbo,uid=1001 \
-    NODE_ENV=production npx turbo run build --filter=...@adopt-dont-shop/${APP_NAME}
+    NODE_ENV=production npx turbo run build --filter=...@adopt-dont-shop/app.${APP_NAME}
 
 # Upload sourcemaps to Sentry using a BuildKit secret so the auth token never
 # lands in an image layer. Gracefully skips when the secret is absent so local
@@ -115,19 +115,19 @@ RUN --mount=type=cache,id=turbo-${APP_NAME},target=/app/.turbo,uid=1001 \
 RUN --mount=type=secret,id=sentry_auth \
     if [ -s /run/secrets/sentry_auth ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT" ]; then \
       export SENTRY_AUTH_TOKEN=$(cat /run/secrets/sentry_auth); \
-      npx @sentry/cli sourcemaps inject /app/${APP_NAME}/dist && \
+      npx @sentry/cli sourcemaps inject /app/apps/${APP_NAME}/dist && \
       npx @sentry/cli sourcemaps upload \
         --org "$SENTRY_ORG" \
         --project "$SENTRY_PROJECT" \
         --release "$DEPLOY_SHA" \
-        /app/${APP_NAME}/dist; \
+        /app/apps/${APP_NAME}/dist; \
     else \
       echo "No SENTRY_AUTH_TOKEN or SENTRY_ORG/PROJECT — skipping sourcemap upload"; \
     fi
 
 # Strip sourcemaps from the dist directory before they are copied into the
 # nginx image — sourcemaps must never be served to end users.
-RUN find /app/${APP_NAME}/dist -name '*.map' -delete
+RUN find /app/apps/${APP_NAME}/dist -name '*.map' -delete
 
 # ============================================================================
 # PRODUCTION STAGE - Minimal Nginx image for static assets
@@ -147,7 +147,7 @@ USER root
 RUN apk update && apk upgrade && rm -rf /var/cache/apk/*
 
 # Copy built app from build stage
-COPY --from=build /app/${APP_NAME}/dist /usr/share/nginx/html
+COPY --from=build /app/apps/${APP_NAME}/dist /usr/share/nginx/html
 
 # Strip setuid/setgid bits from every binary on the image. Nginx workers
 # drop privileges after startup; none of the static-serving runtime

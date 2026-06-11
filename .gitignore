@@ -55,9 +55,9 @@ uploads
 ### Per-package lockfiles ###
 # Per-package lockfiles aren't authoritative in npm workspaces; only the
 # root package-lock.json is. Delete any that get accidentally created.
-/service.backend/package-lock.json
-/app.*/package-lock.json
-/lib.*/package-lock.json
+/apps/*/package-lock.json
+/packages/*/package-lock.json
+/services/*/package-lock.json
 
 ### Docker ###
 docker-compose.override.yml
@@ -81,7 +81,7 @@ secrets/*
 .claude/worktrees/
 
 ## Storybook static
-lib.components/storybook-static/
+packages/lib.components/storybook-static/
 
 ### E2E (Playwright)
 e2e/test-results/

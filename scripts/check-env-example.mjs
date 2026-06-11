@@ -15,7 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.dirname(__dirname);
 
 // Keep this list in sync with the required fields in
-// lib.validation/src/schemas/env.ts (envBaseSchema) and the per-env
+// packages/lib.validation/src/schemas/env.ts (envBaseSchema) and the per-env
 // dbName checks consumed by scripts/validate-env.ts.
 const REQUIRED_KEYS = [
   'NODE_ENV',
@@ -43,7 +43,9 @@ const requiredMatch = content.match(
   /# REQUIRED — must be set[\s\S]*?# OPTIONAL — change only if you know why/
 );
 if (!requiredMatch) {
-  console.error('check-env-example: .env.example is missing the REQUIRED ... OPTIONAL banner block.');
+  console.error(
+    'check-env-example: .env.example is missing the REQUIRED ... OPTIONAL banner block.'
+  );
   process.exit(1);
 }
 

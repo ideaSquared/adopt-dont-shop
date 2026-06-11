@@ -40,8 +40,10 @@ describe('runMigrations', () => {
         schema: 'pets',
         // CAD lesson #1
         createSchema: true,
-        // CAD lesson #3
-        ignorePattern: '(\\..*|.*\\.map)',
+        // CAD lesson #3 — also drops *.test.[jt]s / *.spec.[jt]s so vitest
+        // test files never get loaded as migrations (the import side-effect
+        // crashed the schema-equivalence smoke).
+        ignorePattern: '(\\..*|.*\\.map|.*\\.test\\.[jt]s|.*\\.spec\\.[jt]s)',
         // Set by the helper, not the caller
         migrationsTable: 'pgmigrations',
         direction: 'up',
