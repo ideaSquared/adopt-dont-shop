@@ -2,6 +2,7 @@ import { connect, type NatsConnection } from 'nats';
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
+import { runServiceShutdown } from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from './config.js';
 import { createAuthCohortClient } from './grpc/auth-client.js';
@@ -24,7 +25,6 @@ const main = async (): Promise<void> => {
   let emailWorker: RunningEmailWorker | undefined;
   let pushWorker: RunningPushWorker | undefined;
   let scheduler: RunningScheduler | undefined;
-  let httpClosed = false;
   let grpcReady = false;
 
   try {
@@ -142,15 +142,7 @@ const main = async (): Promise<void> => {
 
     const shutdown = async (signal: string): Promise<void> => {
       logger.info('service.notifications shutting down', { signal });
-      // Stop accepting new traffic first, then drain pending work.
-      try {
-        if (!httpClosed) {
-          await httpServer.close();
-          httpClosed = true;
-        }
-      } catch (err) {
-        logger.error('http close error', { err });
-      }
+      // Stop workers before draining the common deps.
       try {
         await emailWorker?.stop();
       } catch (err) {
@@ -166,21 +158,7 @@ const main = async (): Promise<void> => {
       } catch (err) {
         logger.error('scheduler stop error', { err });
       }
-      try {
-        await grpc?.shutdown();
-      } catch (err) {
-        logger.error('grpc shutdown error', { err });
-      }
-      try {
-        await nats?.drain();
-      } catch (err) {
-        logger.error('nats drain error', { err });
-      }
-      try {
-        await pool?.end();
-      } catch (err) {
-        logger.error('pool end error', { err });
-      }
+      await runServiceShutdown({ httpServer, grpc, nats, pool, logger });
       process.exit(0);
     };
 

@@ -2,6 +2,7 @@ import { connect, type NatsConnection } from 'nats';
 
 import { createDbClient } from '@adopt-dont-shop/db';
 import { createLogger } from '@adopt-dont-shop/observability';
+import { runServiceShutdown } from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from './config.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
@@ -13,7 +14,6 @@ const main = async (): Promise<void> => {
   let nats: NatsConnection | undefined;
   let pool: ReturnType<typeof createDbClient> | undefined;
   let grpc: RunningGrpcServer | undefined;
-  let httpClosed = false;
   let grpcReady = false;
 
   try {
@@ -61,29 +61,7 @@ const main = async (): Promise<void> => {
 
     const shutdown = async (signal: string): Promise<void> => {
       logger.info('service.matching shutting down', { signal });
-      try {
-        if (!httpClosed) {
-          await httpServer.close();
-          httpClosed = true;
-        }
-      } catch (err) {
-        logger.error('http close error', { err });
-      }
-      try {
-        await grpc?.shutdown();
-      } catch (err) {
-        logger.error('grpc shutdown error', { err });
-      }
-      try {
-        await nats?.drain();
-      } catch (err) {
-        logger.error('nats drain error', { err });
-      }
-      try {
-        await pool?.end();
-      } catch (err) {
-        logger.error('pool end error', { err });
-      }
+      await runServiceShutdown({ httpServer, grpc, nats, pool, logger });
       process.exit(0);
     };
 
