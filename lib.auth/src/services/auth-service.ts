@@ -32,17 +32,9 @@ const AUTH_ENDPOINTS = {
   TWO_FACTOR_BACKUP_CODES: '/api/v1/auth/2fa/backup-codes',
 } as const;
 
-/**
- * AuthService - Authentication and user management service
- *
- * Access tokens are stored in httpOnly cookies (managed by the backend,
- * not accessible to JavaScript — XSS-safe). Refresh tokens use a separate
- * httpOnly cookie. All authenticated requests rely on the browser sending
- * these cookies automatically via `credentials: 'include'`.
- */
 export class AuthService {
   constructor() {
-    // Configure the API service to get auth tokens from this service
+    // Wire the API service so Bearer tokens are sent on every authenticated request
     apiService.updateConfig({
       getAuthToken: () => this.getToken(),
     });
@@ -54,13 +46,10 @@ export class AuthService {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await apiService.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, credentials);
 
-    // Access token is set as httpOnly cookie by the backend; refresh token likewise.
+    this.setToken(response.tokens.accessToken);
     this.setUser(response.user);
 
-    return {
-      ...response,
-      accessToken: response.token, // Map backend 'token' to frontend 'accessToken'
-    };
+    return response;
   }
 
   /**
@@ -134,12 +123,12 @@ export class AuthService {
   }
 
   /**
-   * Refresh access token — refresh token and new access token are both set
-   * as httpOnly cookies by the backend; no JS-side storage needed.
+   * Refresh access token — stores the new access token and returns it.
    */
   async refreshToken(): Promise<string> {
     const response = await apiService.post<RefreshTokenResponse>(AUTH_ENDPOINTS.REFRESH, {});
-    return response.token;
+    this.setToken(response.tokens.accessToken);
+    return response.tokens.accessToken;
   }
 
   /**
@@ -273,29 +262,26 @@ export class AuthService {
   }
 
   /**
-   * Returns null — the access token lives in an httpOnly cookie managed by
-   * the backend and is not readable from JavaScript. HTTP requests send it
-   * automatically via `credentials: 'include'`; Socket.IO connections use the
-   * same cookie on the WebSocket upgrade request.
+   * Returns the stored Bearer access token, or null if not authenticated.
    */
-  getToken(): null {
-    return null;
+  getToken(): string | null {
+    return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   }
 
   /**
-   * No-op — the access token is set as an httpOnly cookie by the backend
-   * login/refresh response and is never written to JS-accessible storage.
+   * Stores the Bearer access token in localStorage.
    */
-  setToken(_token: string | null | undefined): void {
-    // intentional no-op
+  setToken(token: string | null | undefined): void {
+    if (token) {
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
+    }
   }
 
   /**
-   * Clears local user state. The access/refresh token cookies are cleared
-   * by the backend logout endpoint.
+   * Removes the stored access token.
    */
   clearTokens(): void {
-    // Token cookies are cleared server-side on logout; nothing to do here.
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
   }
 
   // Private helper methods

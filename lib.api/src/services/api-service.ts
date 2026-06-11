@@ -41,27 +41,6 @@ export class ApiService {
   }
 
   private setupDefaultInterceptors(): void {
-    // Add default request interceptor for CSRF token (must be first)
-    this.interceptors.addRequestInterceptor(async (config) => {
-      // Only add CSRF token for state-changing requests
-      const needsCsrfToken = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(config.method);
-
-      if (needsCsrfToken && !config.headers['x-csrf-token']) {
-        try {
-          const csrfToken = await this.getCsrfToken();
-          if (csrfToken) {
-            config.headers['x-csrf-token'] = csrfToken;
-          }
-        } catch (error) {
-          if (this.config.debug) {
-            console.warn('Failed to get CSRF token:', error);
-          }
-          // Continue without CSRF token - let the server reject if needed
-        }
-      }
-      return config;
-    });
-
     // Add default request interceptor for authentication
     this.interceptors.addRequestInterceptor(async (config) => {
       const token = this.getAuthToken();

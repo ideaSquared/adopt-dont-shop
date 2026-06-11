@@ -183,14 +183,17 @@ export interface RegisterRequest {
   confirmPassword?: string;
 }
 
-export interface AuthResponse {
+export type TokenPair = {
+  accessToken: string;
+  refreshToken: string;
+  accessExpiresAt?: string;
+  refreshExpiresAt?: string;
+};
+
+export type AuthResponse = {
   user: User;
-  token: string; // Backend returns 'token', not 'accessToken'
-  refreshToken?: string; // No longer returned in body — sent as httpOnly cookie
-  expiresIn: number;
-  // Legacy field for frontend compatibility
-  accessToken?: string;
-}
+  tokens: TokenPair;
+};
 
 export interface ChangePasswordRequest {
   currentPassword: string;
@@ -201,10 +204,9 @@ export interface RefreshTokenRequest {
   refreshToken?: string;
 }
 
-export interface RefreshTokenResponse {
-  token: string;
-  refreshToken?: string; // No longer returned in body — rotated via httpOnly cookie
-}
+export type RefreshTokenResponse = {
+  tokens: TokenPair;
+};
 
 export interface PasswordResetRequest {
   email: string;

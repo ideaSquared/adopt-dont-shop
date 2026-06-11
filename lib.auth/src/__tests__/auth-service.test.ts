@@ -39,12 +39,12 @@ describe('AuthService', () => {
     updatedAt: '2023-01-01T00:00:00Z',
   };
 
-  // Backend no longer returns refreshToken in body — it's set as httpOnly cookie
   const mockAuthResponse: AuthResponse = {
     user: mockUser,
-    token: 'mock-token',
-    expiresIn: 3600,
-    accessToken: 'mock-token',
+    tokens: {
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token',
+    },
   };
 
   beforeEach(() => {
@@ -69,7 +69,7 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('should login successfully, store user in localStorage, and not write tokens to JS storage', async () => {
+    it('should login successfully, store user and Bearer token in localStorage', async () => {
       const credentials: LoginRequest = {
         email: 'test@example.com',
         password: 'password123',
@@ -80,21 +80,15 @@ describe('AuthService', () => {
       const result = await authService.login(credentials);
 
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/login', credentials);
-      // User stored in localStorage (persists across sessions)
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         STORAGE_KEYS.USER,
         JSON.stringify(mockUser)
       );
-      // Access token NOT stored anywhere JS-accessible — it's an httpOnly cookie
-      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(
-        STORAGE_KEYS.AUTH_TOKEN,
-        expect.any(String)
-      );
-      expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         STORAGE_KEYS.ACCESS_TOKEN,
-        expect.any(String)
+        'mock-access-token'
       );
-      expect(result).toEqual({ ...mockAuthResponse, accessToken: 'mock-token' });
+      expect(result).toEqual(mockAuthResponse);
     });
 
     it('should handle login failure', async () => {
@@ -136,17 +130,14 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
-    it('should logout successfully and clear user from localStorage', async () => {
+    it('should logout successfully and clear user and access token from localStorage', async () => {
       (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue({});
 
       await authService.logout();
 
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/logout');
-      // User removed from localStorage
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
-      // Token cookies are cleared server-side — no JS-side removal needed
-      expect(mockLocalStorage.removeItem).not.toHaveBeenCalledWith(STORAGE_KEYS.AUTH_TOKEN);
-      expect(mockLocalStorage.removeItem).not.toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
     });
 
     it('should clear storage even if API call fails', async () => {
@@ -230,7 +221,18 @@ describe('AuthService', () => {
   });
 
   describe('getToken', () => {
-    it('should return null — access token lives in httpOnly cookie, not JS storage', () => {
+    it('should return the stored Bearer access token from localStorage', () => {
+      mockLocalStorage.getItem.mockReturnValue('stored-access-token');
+
+      const token = authService.getToken();
+
+      expect(mockLocalStorage.getItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
+      expect(token).toBe('stored-access-token');
+    });
+
+    it('should return null when no token is stored', () => {
+      mockLocalStorage.getItem.mockReturnValue(null);
+
       const token = authService.getToken();
 
       expect(token).toBeNull();
@@ -238,37 +240,46 @@ describe('AuthService', () => {
   });
 
   describe('setToken', () => {
-    it('should be a no-op — token is managed as httpOnly cookie by the backend', () => {
-      authService.setToken('some-token');
+    it('should store the Bearer token in localStorage', () => {
+      authService.setToken('new-access-token');
+
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.ACCESS_TOKEN,
+        'new-access-token'
+      );
+    });
+
+    it('should not write to storage when token is null', () => {
+      authService.setToken(null);
 
       expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
     });
   });
 
   describe('clearTokens', () => {
-    it('should be a no-op — token cookies are cleared by the backend logout endpoint', () => {
+    it('should remove the access token from localStorage', () => {
       authService.clearTokens();
 
-      expect(mockLocalStorage.removeItem).not.toHaveBeenCalled();
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
     });
   });
 
   describe('refreshToken', () => {
-    it('should refresh token via cookie and return the new token value', async () => {
+    it('should refresh the access token, store it, and return the new value', async () => {
       const refreshResponse = {
-        token: 'new-token',
-        // refreshToken not returned — it's set as httpOnly cookie by backend
+        tokens: { accessToken: 'new-access-token', refreshToken: 'new-refresh-token' },
       };
 
       (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(refreshResponse);
 
       const newToken = await authService.refreshToken();
 
-      // Should NOT send refresh token in body — cookie is auto-sent by browser
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/refresh-token', {});
-      // No token stored in JS-accessible storage
-      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
-      expect(newToken).toBe('new-token');
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.ACCESS_TOKEN,
+        'new-access-token'
+      );
+      expect(newToken).toBe('new-access-token');
     });
 
     it('should propagate error if refresh API call fails', async () => {
