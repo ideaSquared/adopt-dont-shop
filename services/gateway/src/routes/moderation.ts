@@ -33,8 +33,7 @@
 // x-user-* metadata via the Phase 2.5 authenticate middleware.
 
 import rateLimit from '@fastify/rate-limit';
-import { status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
 import {
   ModerationV1,
@@ -54,19 +53,11 @@ import {
 
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
 
 export type ModerationRoutesOptions = {
   client: ModerationClient;
-};
-
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.INTERNAL]: 500,
 };
 
 // Writes 30/min, reads 120/min — moderation is admin-driven so these
@@ -404,16 +395,6 @@ export const registerModerationRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}
 
 // Enum parsers — each accepts DB form ('harassment') AND the SCREAMING
 // proto form ('REPORT_CATEGORY_HARASSMENT'). Unknown coerces to

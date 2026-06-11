@@ -28,7 +28,6 @@
 // to the monolith) — see server.ts.
 
 import rateLimit from '@fastify/rate-limit';
-import { status } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import {
@@ -49,20 +48,11 @@ import type { ApplicationsClient } from '../grpc-clients/applications-client.js'
 
 import { applicationToView, statsToView, type ApplicationView } from './applications-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
 
 export type ApplicationsRoutesOptions = {
   client: ApplicationsClient;
-};
-
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.UNIMPLEMENTED]: 501,
-  [status.INTERNAL]: 500,
 };
 
 // Writes 30/min, reads 120/min — adopter + rescue-staff human use.
@@ -463,16 +453,6 @@ function sendView(
     return reply.code(500).send({ error: 'unexpected application state' });
   }
   return reply.code(code).send({ data: view });
-}
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
 }
 
 // Enum parsers — accept the DB form ('passed', 'approved') AND the

@@ -34,6 +34,8 @@ import {
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
 
+import { callWithResilience, getOrCreateCircuitBreaker } from './resilience.js';
+
 export type AuditClient = {
   query(req: AuditQueryRequest, metadata: Metadata): Promise<AuditQueryResponse>;
   getByTarget(req: AuditGetByTargetRequest, metadata: Metadata): Promise<AuditGetByTargetResponse>;
@@ -77,8 +79,11 @@ export type CreateAuditClientOptions = {
 // and lets the caller fail fast with DEADLINE_EXCEEDED.
 const DEFAULT_DEADLINE_MS = 5_000;
 
+const SERVICE_NAME = 'service.audit';
+
 export const createAuditClient = (opts: CreateAuditClientOptions): AuditClient => {
   const stub = new AuditV1.AuditQueryServiceClient(opts.address, credentials.createInsecure());
+  const breaker = getOrCreateCircuitBreaker(SERVICE_NAME);
 
   const callUnary = <Req, Res>(
     fn: (
@@ -88,43 +93,55 @@ export const createAuditClient = (opts: CreateAuditClientOptions): AuditClient =
       cb: (err: unknown, res: Res) => void
     ) => unknown,
     req: Req,
-    metadata: Metadata
+    metadata: Metadata,
+    idempotent: boolean
   ): Promise<Res> =>
-    new Promise<Res>((resolve, reject) => {
-      const options: Partial<CallOptions> = {
-        deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
-      };
-      const method = fn.name || 'unknown';
-      const stop = startGrpcTimer('service.audit', method, 'out');
-      fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
-        const code =
-          err &&
-          typeof err === 'object' &&
-          'code' in err &&
-          typeof (err as { code?: unknown }).code === 'number'
-            ? (err as { code: number }).code
-            : err
-              ? 2 // UNKNOWN
-              : 0;
-        stop(code);
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(res);
-      });
-    });
+    callWithResilience<Res>(
+      deadline =>
+        new Promise<Res>((resolve, reject) => {
+          const options: Partial<CallOptions> = { deadline };
+          const method = fn.name || 'unknown';
+          const stop = startGrpcTimer(SERVICE_NAME, method, 'out');
+          fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
+            const code =
+              err &&
+              typeof err === 'object' &&
+              'code' in err &&
+              typeof (err as { code?: unknown }).code === 'number'
+                ? (err as { code: number }).code
+                : err
+                  ? 2 // UNKNOWN
+                  : 0;
+            stop(code);
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(res);
+          });
+        }),
+      {
+        service: SERVICE_NAME,
+        deadlineMs: DEFAULT_DEADLINE_MS,
+        idempotent,
+        circuitBreaker: breaker,
+      }
+    );
 
   return {
-    query: (req, metadata) => callUnary(stub.query, req, metadata),
-    getByTarget: (req, metadata) => callUnary(stub.getByTarget, req, metadata),
-    listSavedReports: (req, metadata) => callUnary(stub.listSavedReports, req, metadata),
-    getSavedReport: (req, metadata) => callUnary(stub.getSavedReport, req, metadata),
-    createSavedReport: (req, metadata) => callUnary(stub.createSavedReport, req, metadata),
-    updateSavedReport: (req, metadata) => callUnary(stub.updateSavedReport, req, metadata),
-    deleteSavedReport: (req, metadata) => callUnary(stub.deleteSavedReport, req, metadata),
-    listReportTemplates: (req, metadata) => callUnary(stub.listReportTemplates, req, metadata),
-    getGdprErasureRequest: (req, metadata) => callUnary(stub.getGdprErasureRequest, req, metadata),
+    // ── Non-idempotent (writes) ──────────────────────────────────────
+    createSavedReport: (req, metadata) => callUnary(stub.createSavedReport, req, metadata, false),
+    updateSavedReport: (req, metadata) => callUnary(stub.updateSavedReport, req, metadata, false),
+    deleteSavedReport: (req, metadata) => callUnary(stub.deleteSavedReport, req, metadata, false),
+    // ── Idempotent (reads / queries) ─────────────────────────────────
+    query: (req, metadata) => callUnary(stub.query, req, metadata, true),
+    getByTarget: (req, metadata) => callUnary(stub.getByTarget, req, metadata, true),
+    listSavedReports: (req, metadata) => callUnary(stub.listSavedReports, req, metadata, true),
+    getSavedReport: (req, metadata) => callUnary(stub.getSavedReport, req, metadata, true),
+    listReportTemplates: (req, metadata) =>
+      callUnary(stub.listReportTemplates, req, metadata, true),
+    getGdprErasureRequest: (req, metadata) =>
+      callUnary(stub.getGdprErasureRequest, req, metadata, true),
     close: () => stub.close(),
   };
 };

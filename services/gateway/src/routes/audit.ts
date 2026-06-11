@@ -18,8 +18,7 @@
 // middleware already stamps x-user-* metadata.
 
 import rateLimit from '@fastify/rate-limit';
-import { status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
 import {
   AuditV1,
@@ -29,19 +28,11 @@ import {
 
 import type { AuditClient } from '../grpc-clients/audit-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
 
 export type AuditRoutesOptions = {
   client: AuditClient;
-};
-
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.INTERNAL]: 500,
 };
 
 // Per-route rate limits. Audit is admin-only — these are sized for
@@ -114,16 +105,6 @@ export const registerAuditRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}
 
 // parseOutcome accepts the DB string ('success', 'denied', 'failure')
 // AND the SCREAMING proto form ('AUDIT_OUTCOME_DENIED'). Unknown

@@ -9,7 +9,7 @@
 //
 // Canonical CODE_TO_GRPC table (superset across all services):
 //   INVALID_ARGUMENT, UNAUTHENTICATED, PERMISSION_DENIED,
-//   NOT_FOUND, ALREADY_EXISTS, INTERNAL
+//   NOT_FOUND, ALREADY_EXISTS, FAILED_PRECONDITION, INTERNAL
 //
 // Services whose HandlerErrorCode union is a strict subset of the
 // canonical table work unchanged — TypeScript enforces that every
@@ -44,6 +44,7 @@ export type HandlerErrorCode =
   | 'PERMISSION_DENIED'
   | 'NOT_FOUND'
   | 'ALREADY_EXISTS'
+  | 'FAILED_PRECONDITION'
   | 'INTERNAL';
 
 export class HandlerError extends Error {
@@ -69,6 +70,7 @@ const CODE_TO_GRPC: Record<HandlerErrorCode, number> = {
   PERMISSION_DENIED: status.PERMISSION_DENIED,
   NOT_FOUND: status.NOT_FOUND,
   ALREADY_EXISTS: status.ALREADY_EXISTS,
+  FAILED_PRECONDITION: status.FAILED_PRECONDITION,
   INTERNAL: status.INTERNAL,
 };
 

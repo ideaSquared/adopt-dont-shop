@@ -5,7 +5,7 @@
 // source: proto/adopt_dont_shop/moderation/v1/moderation.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -17,9 +17,9 @@ import {
   type Metadata,
   type ServiceError,
   type UntypedServiceImplementation,
-} from '@grpc/grpc-js';
+} from "@grpc/grpc-js";
 
-export const protobufPackage = 'adopt_dont_shop.moderation.v1';
+export const protobufPackage = "adopt_dont_shop.moderation.v1";
 
 export enum ReportEntityType {
   REPORT_ENTITY_TYPE_UNSPECIFIED = 0,
@@ -35,28 +35,28 @@ export enum ReportEntityType {
 export function reportEntityTypeFromJSON(object: any): ReportEntityType {
   switch (object) {
     case 0:
-    case 'REPORT_ENTITY_TYPE_UNSPECIFIED':
+    case "REPORT_ENTITY_TYPE_UNSPECIFIED":
       return ReportEntityType.REPORT_ENTITY_TYPE_UNSPECIFIED;
     case 1:
-    case 'REPORT_ENTITY_TYPE_USER':
+    case "REPORT_ENTITY_TYPE_USER":
       return ReportEntityType.REPORT_ENTITY_TYPE_USER;
     case 2:
-    case 'REPORT_ENTITY_TYPE_RESCUE':
+    case "REPORT_ENTITY_TYPE_RESCUE":
       return ReportEntityType.REPORT_ENTITY_TYPE_RESCUE;
     case 3:
-    case 'REPORT_ENTITY_TYPE_PET':
+    case "REPORT_ENTITY_TYPE_PET":
       return ReportEntityType.REPORT_ENTITY_TYPE_PET;
     case 4:
-    case 'REPORT_ENTITY_TYPE_APPLICATION':
+    case "REPORT_ENTITY_TYPE_APPLICATION":
       return ReportEntityType.REPORT_ENTITY_TYPE_APPLICATION;
     case 5:
-    case 'REPORT_ENTITY_TYPE_MESSAGE':
+    case "REPORT_ENTITY_TYPE_MESSAGE":
       return ReportEntityType.REPORT_ENTITY_TYPE_MESSAGE;
     case 6:
-    case 'REPORT_ENTITY_TYPE_CONVERSATION':
+    case "REPORT_ENTITY_TYPE_CONVERSATION":
       return ReportEntityType.REPORT_ENTITY_TYPE_CONVERSATION;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return ReportEntityType.UNRECOGNIZED;
   }
@@ -65,22 +65,22 @@ export function reportEntityTypeFromJSON(object: any): ReportEntityType {
 export function reportEntityTypeToJSON(object: ReportEntityType): string {
   switch (object) {
     case ReportEntityType.REPORT_ENTITY_TYPE_UNSPECIFIED:
-      return 'REPORT_ENTITY_TYPE_UNSPECIFIED';
+      return "REPORT_ENTITY_TYPE_UNSPECIFIED";
     case ReportEntityType.REPORT_ENTITY_TYPE_USER:
-      return 'REPORT_ENTITY_TYPE_USER';
+      return "REPORT_ENTITY_TYPE_USER";
     case ReportEntityType.REPORT_ENTITY_TYPE_RESCUE:
-      return 'REPORT_ENTITY_TYPE_RESCUE';
+      return "REPORT_ENTITY_TYPE_RESCUE";
     case ReportEntityType.REPORT_ENTITY_TYPE_PET:
-      return 'REPORT_ENTITY_TYPE_PET';
+      return "REPORT_ENTITY_TYPE_PET";
     case ReportEntityType.REPORT_ENTITY_TYPE_APPLICATION:
-      return 'REPORT_ENTITY_TYPE_APPLICATION';
+      return "REPORT_ENTITY_TYPE_APPLICATION";
     case ReportEntityType.REPORT_ENTITY_TYPE_MESSAGE:
-      return 'REPORT_ENTITY_TYPE_MESSAGE';
+      return "REPORT_ENTITY_TYPE_MESSAGE";
     case ReportEntityType.REPORT_ENTITY_TYPE_CONVERSATION:
-      return 'REPORT_ENTITY_TYPE_CONVERSATION';
+      return "REPORT_ENTITY_TYPE_CONVERSATION";
     case ReportEntityType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -100,34 +100,34 @@ export enum ReportCategory {
 export function reportCategoryFromJSON(object: any): ReportCategory {
   switch (object) {
     case 0:
-    case 'REPORT_CATEGORY_UNSPECIFIED':
+    case "REPORT_CATEGORY_UNSPECIFIED":
       return ReportCategory.REPORT_CATEGORY_UNSPECIFIED;
     case 1:
-    case 'REPORT_CATEGORY_INAPPROPRIATE_CONTENT':
+    case "REPORT_CATEGORY_INAPPROPRIATE_CONTENT":
       return ReportCategory.REPORT_CATEGORY_INAPPROPRIATE_CONTENT;
     case 2:
-    case 'REPORT_CATEGORY_SPAM':
+    case "REPORT_CATEGORY_SPAM":
       return ReportCategory.REPORT_CATEGORY_SPAM;
     case 3:
-    case 'REPORT_CATEGORY_HARASSMENT':
+    case "REPORT_CATEGORY_HARASSMENT":
       return ReportCategory.REPORT_CATEGORY_HARASSMENT;
     case 4:
-    case 'REPORT_CATEGORY_FALSE_INFORMATION':
+    case "REPORT_CATEGORY_FALSE_INFORMATION":
       return ReportCategory.REPORT_CATEGORY_FALSE_INFORMATION;
     case 5:
-    case 'REPORT_CATEGORY_SCAM':
+    case "REPORT_CATEGORY_SCAM":
       return ReportCategory.REPORT_CATEGORY_SCAM;
     case 6:
-    case 'REPORT_CATEGORY_ANIMAL_WELFARE':
+    case "REPORT_CATEGORY_ANIMAL_WELFARE":
       return ReportCategory.REPORT_CATEGORY_ANIMAL_WELFARE;
     case 7:
-    case 'REPORT_CATEGORY_IDENTITY_THEFT':
+    case "REPORT_CATEGORY_IDENTITY_THEFT":
       return ReportCategory.REPORT_CATEGORY_IDENTITY_THEFT;
     case 8:
-    case 'REPORT_CATEGORY_OTHER':
+    case "REPORT_CATEGORY_OTHER":
       return ReportCategory.REPORT_CATEGORY_OTHER;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return ReportCategory.UNRECOGNIZED;
   }
@@ -136,26 +136,26 @@ export function reportCategoryFromJSON(object: any): ReportCategory {
 export function reportCategoryToJSON(object: ReportCategory): string {
   switch (object) {
     case ReportCategory.REPORT_CATEGORY_UNSPECIFIED:
-      return 'REPORT_CATEGORY_UNSPECIFIED';
+      return "REPORT_CATEGORY_UNSPECIFIED";
     case ReportCategory.REPORT_CATEGORY_INAPPROPRIATE_CONTENT:
-      return 'REPORT_CATEGORY_INAPPROPRIATE_CONTENT';
+      return "REPORT_CATEGORY_INAPPROPRIATE_CONTENT";
     case ReportCategory.REPORT_CATEGORY_SPAM:
-      return 'REPORT_CATEGORY_SPAM';
+      return "REPORT_CATEGORY_SPAM";
     case ReportCategory.REPORT_CATEGORY_HARASSMENT:
-      return 'REPORT_CATEGORY_HARASSMENT';
+      return "REPORT_CATEGORY_HARASSMENT";
     case ReportCategory.REPORT_CATEGORY_FALSE_INFORMATION:
-      return 'REPORT_CATEGORY_FALSE_INFORMATION';
+      return "REPORT_CATEGORY_FALSE_INFORMATION";
     case ReportCategory.REPORT_CATEGORY_SCAM:
-      return 'REPORT_CATEGORY_SCAM';
+      return "REPORT_CATEGORY_SCAM";
     case ReportCategory.REPORT_CATEGORY_ANIMAL_WELFARE:
-      return 'REPORT_CATEGORY_ANIMAL_WELFARE';
+      return "REPORT_CATEGORY_ANIMAL_WELFARE";
     case ReportCategory.REPORT_CATEGORY_IDENTITY_THEFT:
-      return 'REPORT_CATEGORY_IDENTITY_THEFT';
+      return "REPORT_CATEGORY_IDENTITY_THEFT";
     case ReportCategory.REPORT_CATEGORY_OTHER:
-      return 'REPORT_CATEGORY_OTHER';
+      return "REPORT_CATEGORY_OTHER";
     case ReportCategory.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -171,22 +171,22 @@ export enum Severity {
 export function severityFromJSON(object: any): Severity {
   switch (object) {
     case 0:
-    case 'SEVERITY_UNSPECIFIED':
+    case "SEVERITY_UNSPECIFIED":
       return Severity.SEVERITY_UNSPECIFIED;
     case 1:
-    case 'SEVERITY_LOW':
+    case "SEVERITY_LOW":
       return Severity.SEVERITY_LOW;
     case 2:
-    case 'SEVERITY_MEDIUM':
+    case "SEVERITY_MEDIUM":
       return Severity.SEVERITY_MEDIUM;
     case 3:
-    case 'SEVERITY_HIGH':
+    case "SEVERITY_HIGH":
       return Severity.SEVERITY_HIGH;
     case 4:
-    case 'SEVERITY_CRITICAL':
+    case "SEVERITY_CRITICAL":
       return Severity.SEVERITY_CRITICAL;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return Severity.UNRECOGNIZED;
   }
@@ -195,18 +195,18 @@ export function severityFromJSON(object: any): Severity {
 export function severityToJSON(object: Severity): string {
   switch (object) {
     case Severity.SEVERITY_UNSPECIFIED:
-      return 'SEVERITY_UNSPECIFIED';
+      return "SEVERITY_UNSPECIFIED";
     case Severity.SEVERITY_LOW:
-      return 'SEVERITY_LOW';
+      return "SEVERITY_LOW";
     case Severity.SEVERITY_MEDIUM:
-      return 'SEVERITY_MEDIUM';
+      return "SEVERITY_MEDIUM";
     case Severity.SEVERITY_HIGH:
-      return 'SEVERITY_HIGH';
+      return "SEVERITY_HIGH";
     case Severity.SEVERITY_CRITICAL:
-      return 'SEVERITY_CRITICAL';
+      return "SEVERITY_CRITICAL";
     case Severity.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -223,25 +223,25 @@ export enum ReportStatus {
 export function reportStatusFromJSON(object: any): ReportStatus {
   switch (object) {
     case 0:
-    case 'REPORT_STATUS_UNSPECIFIED':
+    case "REPORT_STATUS_UNSPECIFIED":
       return ReportStatus.REPORT_STATUS_UNSPECIFIED;
     case 1:
-    case 'REPORT_STATUS_PENDING':
+    case "REPORT_STATUS_PENDING":
       return ReportStatus.REPORT_STATUS_PENDING;
     case 2:
-    case 'REPORT_STATUS_UNDER_REVIEW':
+    case "REPORT_STATUS_UNDER_REVIEW":
       return ReportStatus.REPORT_STATUS_UNDER_REVIEW;
     case 3:
-    case 'REPORT_STATUS_RESOLVED':
+    case "REPORT_STATUS_RESOLVED":
       return ReportStatus.REPORT_STATUS_RESOLVED;
     case 4:
-    case 'REPORT_STATUS_DISMISSED':
+    case "REPORT_STATUS_DISMISSED":
       return ReportStatus.REPORT_STATUS_DISMISSED;
     case 5:
-    case 'REPORT_STATUS_ESCALATED':
+    case "REPORT_STATUS_ESCALATED":
       return ReportStatus.REPORT_STATUS_ESCALATED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return ReportStatus.UNRECOGNIZED;
   }
@@ -250,20 +250,20 @@ export function reportStatusFromJSON(object: any): ReportStatus {
 export function reportStatusToJSON(object: ReportStatus): string {
   switch (object) {
     case ReportStatus.REPORT_STATUS_UNSPECIFIED:
-      return 'REPORT_STATUS_UNSPECIFIED';
+      return "REPORT_STATUS_UNSPECIFIED";
     case ReportStatus.REPORT_STATUS_PENDING:
-      return 'REPORT_STATUS_PENDING';
+      return "REPORT_STATUS_PENDING";
     case ReportStatus.REPORT_STATUS_UNDER_REVIEW:
-      return 'REPORT_STATUS_UNDER_REVIEW';
+      return "REPORT_STATUS_UNDER_REVIEW";
     case ReportStatus.REPORT_STATUS_RESOLVED:
-      return 'REPORT_STATUS_RESOLVED';
+      return "REPORT_STATUS_RESOLVED";
     case ReportStatus.REPORT_STATUS_DISMISSED:
-      return 'REPORT_STATUS_DISMISSED';
+      return "REPORT_STATUS_DISMISSED";
     case ReportStatus.REPORT_STATUS_ESCALATED:
-      return 'REPORT_STATUS_ESCALATED';
+      return "REPORT_STATUS_ESCALATED";
     case ReportStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -285,40 +285,40 @@ export enum ModeratorActionType {
 export function moderatorActionTypeFromJSON(object: any): ModeratorActionType {
   switch (object) {
     case 0:
-    case 'MODERATOR_ACTION_TYPE_UNSPECIFIED':
+    case "MODERATOR_ACTION_TYPE_UNSPECIFIED":
       return ModeratorActionType.MODERATOR_ACTION_TYPE_UNSPECIFIED;
     case 1:
-    case 'MODERATOR_ACTION_TYPE_WARNING_ISSUED':
+    case "MODERATOR_ACTION_TYPE_WARNING_ISSUED":
       return ModeratorActionType.MODERATOR_ACTION_TYPE_WARNING_ISSUED;
     case 2:
-    case 'MODERATOR_ACTION_TYPE_CONTENT_REMOVED':
+    case "MODERATOR_ACTION_TYPE_CONTENT_REMOVED":
       return ModeratorActionType.MODERATOR_ACTION_TYPE_CONTENT_REMOVED;
     case 3:
-    case 'MODERATOR_ACTION_TYPE_USER_SUSPENDED':
+    case "MODERATOR_ACTION_TYPE_USER_SUSPENDED":
       return ModeratorActionType.MODERATOR_ACTION_TYPE_USER_SUSPENDED;
     case 4:
-    case 'MODERATOR_ACTION_TYPE_USER_BANNED':
+    case "MODERATOR_ACTION_TYPE_USER_BANNED":
       return ModeratorActionType.MODERATOR_ACTION_TYPE_USER_BANNED;
     case 5:
-    case 'MODERATOR_ACTION_TYPE_ACCOUNT_RESTRICTED':
+    case "MODERATOR_ACTION_TYPE_ACCOUNT_RESTRICTED":
       return ModeratorActionType.MODERATOR_ACTION_TYPE_ACCOUNT_RESTRICTED;
     case 6:
-    case 'MODERATOR_ACTION_TYPE_CONTENT_FLAGGED':
+    case "MODERATOR_ACTION_TYPE_CONTENT_FLAGGED":
       return ModeratorActionType.MODERATOR_ACTION_TYPE_CONTENT_FLAGGED;
     case 7:
-    case 'MODERATOR_ACTION_TYPE_REPORT_DISMISSED':
+    case "MODERATOR_ACTION_TYPE_REPORT_DISMISSED":
       return ModeratorActionType.MODERATOR_ACTION_TYPE_REPORT_DISMISSED;
     case 8:
-    case 'MODERATOR_ACTION_TYPE_ESCALATION':
+    case "MODERATOR_ACTION_TYPE_ESCALATION":
       return ModeratorActionType.MODERATOR_ACTION_TYPE_ESCALATION;
     case 9:
-    case 'MODERATOR_ACTION_TYPE_APPEAL_REVIEWED':
+    case "MODERATOR_ACTION_TYPE_APPEAL_REVIEWED":
       return ModeratorActionType.MODERATOR_ACTION_TYPE_APPEAL_REVIEWED;
     case 10:
-    case 'MODERATOR_ACTION_TYPE_NO_ACTION':
+    case "MODERATOR_ACTION_TYPE_NO_ACTION":
       return ModeratorActionType.MODERATOR_ACTION_TYPE_NO_ACTION;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return ModeratorActionType.UNRECOGNIZED;
   }
@@ -327,30 +327,30 @@ export function moderatorActionTypeFromJSON(object: any): ModeratorActionType {
 export function moderatorActionTypeToJSON(object: ModeratorActionType): string {
   switch (object) {
     case ModeratorActionType.MODERATOR_ACTION_TYPE_UNSPECIFIED:
-      return 'MODERATOR_ACTION_TYPE_UNSPECIFIED';
+      return "MODERATOR_ACTION_TYPE_UNSPECIFIED";
     case ModeratorActionType.MODERATOR_ACTION_TYPE_WARNING_ISSUED:
-      return 'MODERATOR_ACTION_TYPE_WARNING_ISSUED';
+      return "MODERATOR_ACTION_TYPE_WARNING_ISSUED";
     case ModeratorActionType.MODERATOR_ACTION_TYPE_CONTENT_REMOVED:
-      return 'MODERATOR_ACTION_TYPE_CONTENT_REMOVED';
+      return "MODERATOR_ACTION_TYPE_CONTENT_REMOVED";
     case ModeratorActionType.MODERATOR_ACTION_TYPE_USER_SUSPENDED:
-      return 'MODERATOR_ACTION_TYPE_USER_SUSPENDED';
+      return "MODERATOR_ACTION_TYPE_USER_SUSPENDED";
     case ModeratorActionType.MODERATOR_ACTION_TYPE_USER_BANNED:
-      return 'MODERATOR_ACTION_TYPE_USER_BANNED';
+      return "MODERATOR_ACTION_TYPE_USER_BANNED";
     case ModeratorActionType.MODERATOR_ACTION_TYPE_ACCOUNT_RESTRICTED:
-      return 'MODERATOR_ACTION_TYPE_ACCOUNT_RESTRICTED';
+      return "MODERATOR_ACTION_TYPE_ACCOUNT_RESTRICTED";
     case ModeratorActionType.MODERATOR_ACTION_TYPE_CONTENT_FLAGGED:
-      return 'MODERATOR_ACTION_TYPE_CONTENT_FLAGGED';
+      return "MODERATOR_ACTION_TYPE_CONTENT_FLAGGED";
     case ModeratorActionType.MODERATOR_ACTION_TYPE_REPORT_DISMISSED:
-      return 'MODERATOR_ACTION_TYPE_REPORT_DISMISSED';
+      return "MODERATOR_ACTION_TYPE_REPORT_DISMISSED";
     case ModeratorActionType.MODERATOR_ACTION_TYPE_ESCALATION:
-      return 'MODERATOR_ACTION_TYPE_ESCALATION';
+      return "MODERATOR_ACTION_TYPE_ESCALATION";
     case ModeratorActionType.MODERATOR_ACTION_TYPE_APPEAL_REVIEWED:
-      return 'MODERATOR_ACTION_TYPE_APPEAL_REVIEWED';
+      return "MODERATOR_ACTION_TYPE_APPEAL_REVIEWED";
     case ModeratorActionType.MODERATOR_ACTION_TYPE_NO_ACTION:
-      return 'MODERATOR_ACTION_TYPE_NO_ACTION';
+      return "MODERATOR_ACTION_TYPE_NO_ACTION";
     case ModeratorActionType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -364,16 +364,16 @@ export enum EvidenceParentType {
 export function evidenceParentTypeFromJSON(object: any): EvidenceParentType {
   switch (object) {
     case 0:
-    case 'EVIDENCE_PARENT_TYPE_UNSPECIFIED':
+    case "EVIDENCE_PARENT_TYPE_UNSPECIFIED":
       return EvidenceParentType.EVIDENCE_PARENT_TYPE_UNSPECIFIED;
     case 1:
-    case 'EVIDENCE_PARENT_TYPE_REPORT':
+    case "EVIDENCE_PARENT_TYPE_REPORT":
       return EvidenceParentType.EVIDENCE_PARENT_TYPE_REPORT;
     case 2:
-    case 'EVIDENCE_PARENT_TYPE_MODERATOR_ACTION':
+    case "EVIDENCE_PARENT_TYPE_MODERATOR_ACTION":
       return EvidenceParentType.EVIDENCE_PARENT_TYPE_MODERATOR_ACTION;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return EvidenceParentType.UNRECOGNIZED;
   }
@@ -382,14 +382,14 @@ export function evidenceParentTypeFromJSON(object: any): EvidenceParentType {
 export function evidenceParentTypeToJSON(object: EvidenceParentType): string {
   switch (object) {
     case EvidenceParentType.EVIDENCE_PARENT_TYPE_UNSPECIFIED:
-      return 'EVIDENCE_PARENT_TYPE_UNSPECIFIED';
+      return "EVIDENCE_PARENT_TYPE_UNSPECIFIED";
     case EvidenceParentType.EVIDENCE_PARENT_TYPE_REPORT:
-      return 'EVIDENCE_PARENT_TYPE_REPORT';
+      return "EVIDENCE_PARENT_TYPE_REPORT";
     case EvidenceParentType.EVIDENCE_PARENT_TYPE_MODERATOR_ACTION:
-      return 'EVIDENCE_PARENT_TYPE_MODERATOR_ACTION';
+      return "EVIDENCE_PARENT_TYPE_MODERATOR_ACTION";
     case EvidenceParentType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -405,22 +405,22 @@ export enum EvidenceType {
 export function evidenceTypeFromJSON(object: any): EvidenceType {
   switch (object) {
     case 0:
-    case 'EVIDENCE_TYPE_UNSPECIFIED':
+    case "EVIDENCE_TYPE_UNSPECIFIED":
       return EvidenceType.EVIDENCE_TYPE_UNSPECIFIED;
     case 1:
-    case 'EVIDENCE_TYPE_SCREENSHOT':
+    case "EVIDENCE_TYPE_SCREENSHOT":
       return EvidenceType.EVIDENCE_TYPE_SCREENSHOT;
     case 2:
-    case 'EVIDENCE_TYPE_URL':
+    case "EVIDENCE_TYPE_URL":
       return EvidenceType.EVIDENCE_TYPE_URL;
     case 3:
-    case 'EVIDENCE_TYPE_TEXT':
+    case "EVIDENCE_TYPE_TEXT":
       return EvidenceType.EVIDENCE_TYPE_TEXT;
     case 4:
-    case 'EVIDENCE_TYPE_FILE':
+    case "EVIDENCE_TYPE_FILE":
       return EvidenceType.EVIDENCE_TYPE_FILE;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return EvidenceType.UNRECOGNIZED;
   }
@@ -429,18 +429,18 @@ export function evidenceTypeFromJSON(object: any): EvidenceType {
 export function evidenceTypeToJSON(object: EvidenceType): string {
   switch (object) {
     case EvidenceType.EVIDENCE_TYPE_UNSPECIFIED:
-      return 'EVIDENCE_TYPE_UNSPECIFIED';
+      return "EVIDENCE_TYPE_UNSPECIFIED";
     case EvidenceType.EVIDENCE_TYPE_SCREENSHOT:
-      return 'EVIDENCE_TYPE_SCREENSHOT';
+      return "EVIDENCE_TYPE_SCREENSHOT";
     case EvidenceType.EVIDENCE_TYPE_URL:
-      return 'EVIDENCE_TYPE_URL';
+      return "EVIDENCE_TYPE_URL";
     case EvidenceType.EVIDENCE_TYPE_TEXT:
-      return 'EVIDENCE_TYPE_TEXT';
+      return "EVIDENCE_TYPE_TEXT";
     case EvidenceType.EVIDENCE_TYPE_FILE:
-      return 'EVIDENCE_TYPE_FILE';
+      return "EVIDENCE_TYPE_FILE";
     case EvidenceType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -459,31 +459,31 @@ export enum SanctionType {
 export function sanctionTypeFromJSON(object: any): SanctionType {
   switch (object) {
     case 0:
-    case 'SANCTION_TYPE_UNSPECIFIED':
+    case "SANCTION_TYPE_UNSPECIFIED":
       return SanctionType.SANCTION_TYPE_UNSPECIFIED;
     case 1:
-    case 'SANCTION_TYPE_WARNING':
+    case "SANCTION_TYPE_WARNING":
       return SanctionType.SANCTION_TYPE_WARNING;
     case 2:
-    case 'SANCTION_TYPE_RESTRICTION':
+    case "SANCTION_TYPE_RESTRICTION":
       return SanctionType.SANCTION_TYPE_RESTRICTION;
     case 3:
-    case 'SANCTION_TYPE_TEMPORARY_BAN':
+    case "SANCTION_TYPE_TEMPORARY_BAN":
       return SanctionType.SANCTION_TYPE_TEMPORARY_BAN;
     case 4:
-    case 'SANCTION_TYPE_PERMANENT_BAN':
+    case "SANCTION_TYPE_PERMANENT_BAN":
       return SanctionType.SANCTION_TYPE_PERMANENT_BAN;
     case 5:
-    case 'SANCTION_TYPE_MESSAGING_RESTRICTION':
+    case "SANCTION_TYPE_MESSAGING_RESTRICTION":
       return SanctionType.SANCTION_TYPE_MESSAGING_RESTRICTION;
     case 6:
-    case 'SANCTION_TYPE_POSTING_RESTRICTION':
+    case "SANCTION_TYPE_POSTING_RESTRICTION":
       return SanctionType.SANCTION_TYPE_POSTING_RESTRICTION;
     case 7:
-    case 'SANCTION_TYPE_APPLICATION_RESTRICTION':
+    case "SANCTION_TYPE_APPLICATION_RESTRICTION":
       return SanctionType.SANCTION_TYPE_APPLICATION_RESTRICTION;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return SanctionType.UNRECOGNIZED;
   }
@@ -492,24 +492,24 @@ export function sanctionTypeFromJSON(object: any): SanctionType {
 export function sanctionTypeToJSON(object: SanctionType): string {
   switch (object) {
     case SanctionType.SANCTION_TYPE_UNSPECIFIED:
-      return 'SANCTION_TYPE_UNSPECIFIED';
+      return "SANCTION_TYPE_UNSPECIFIED";
     case SanctionType.SANCTION_TYPE_WARNING:
-      return 'SANCTION_TYPE_WARNING';
+      return "SANCTION_TYPE_WARNING";
     case SanctionType.SANCTION_TYPE_RESTRICTION:
-      return 'SANCTION_TYPE_RESTRICTION';
+      return "SANCTION_TYPE_RESTRICTION";
     case SanctionType.SANCTION_TYPE_TEMPORARY_BAN:
-      return 'SANCTION_TYPE_TEMPORARY_BAN';
+      return "SANCTION_TYPE_TEMPORARY_BAN";
     case SanctionType.SANCTION_TYPE_PERMANENT_BAN:
-      return 'SANCTION_TYPE_PERMANENT_BAN';
+      return "SANCTION_TYPE_PERMANENT_BAN";
     case SanctionType.SANCTION_TYPE_MESSAGING_RESTRICTION:
-      return 'SANCTION_TYPE_MESSAGING_RESTRICTION';
+      return "SANCTION_TYPE_MESSAGING_RESTRICTION";
     case SanctionType.SANCTION_TYPE_POSTING_RESTRICTION:
-      return 'SANCTION_TYPE_POSTING_RESTRICTION';
+      return "SANCTION_TYPE_POSTING_RESTRICTION";
     case SanctionType.SANCTION_TYPE_APPLICATION_RESTRICTION:
-      return 'SANCTION_TYPE_APPLICATION_RESTRICTION';
+      return "SANCTION_TYPE_APPLICATION_RESTRICTION";
     case SanctionType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -530,37 +530,37 @@ export enum SanctionReason {
 export function sanctionReasonFromJSON(object: any): SanctionReason {
   switch (object) {
     case 0:
-    case 'SANCTION_REASON_UNSPECIFIED':
+    case "SANCTION_REASON_UNSPECIFIED":
       return SanctionReason.SANCTION_REASON_UNSPECIFIED;
     case 1:
-    case 'SANCTION_REASON_HARASSMENT':
+    case "SANCTION_REASON_HARASSMENT":
       return SanctionReason.SANCTION_REASON_HARASSMENT;
     case 2:
-    case 'SANCTION_REASON_SPAM':
+    case "SANCTION_REASON_SPAM":
       return SanctionReason.SANCTION_REASON_SPAM;
     case 3:
-    case 'SANCTION_REASON_INAPPROPRIATE_CONTENT':
+    case "SANCTION_REASON_INAPPROPRIATE_CONTENT":
       return SanctionReason.SANCTION_REASON_INAPPROPRIATE_CONTENT;
     case 4:
-    case 'SANCTION_REASON_TERMS_VIOLATION':
+    case "SANCTION_REASON_TERMS_VIOLATION":
       return SanctionReason.SANCTION_REASON_TERMS_VIOLATION;
     case 5:
-    case 'SANCTION_REASON_SCAM_ATTEMPT':
+    case "SANCTION_REASON_SCAM_ATTEMPT":
       return SanctionReason.SANCTION_REASON_SCAM_ATTEMPT;
     case 6:
-    case 'SANCTION_REASON_FALSE_INFORMATION':
+    case "SANCTION_REASON_FALSE_INFORMATION":
       return SanctionReason.SANCTION_REASON_FALSE_INFORMATION;
     case 7:
-    case 'SANCTION_REASON_ANIMAL_WELFARE_CONCERN':
+    case "SANCTION_REASON_ANIMAL_WELFARE_CONCERN":
       return SanctionReason.SANCTION_REASON_ANIMAL_WELFARE_CONCERN;
     case 8:
-    case 'SANCTION_REASON_REPEATED_VIOLATIONS':
+    case "SANCTION_REASON_REPEATED_VIOLATIONS":
       return SanctionReason.SANCTION_REASON_REPEATED_VIOLATIONS;
     case 9:
-    case 'SANCTION_REASON_OTHER':
+    case "SANCTION_REASON_OTHER":
       return SanctionReason.SANCTION_REASON_OTHER;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return SanctionReason.UNRECOGNIZED;
   }
@@ -569,28 +569,28 @@ export function sanctionReasonFromJSON(object: any): SanctionReason {
 export function sanctionReasonToJSON(object: SanctionReason): string {
   switch (object) {
     case SanctionReason.SANCTION_REASON_UNSPECIFIED:
-      return 'SANCTION_REASON_UNSPECIFIED';
+      return "SANCTION_REASON_UNSPECIFIED";
     case SanctionReason.SANCTION_REASON_HARASSMENT:
-      return 'SANCTION_REASON_HARASSMENT';
+      return "SANCTION_REASON_HARASSMENT";
     case SanctionReason.SANCTION_REASON_SPAM:
-      return 'SANCTION_REASON_SPAM';
+      return "SANCTION_REASON_SPAM";
     case SanctionReason.SANCTION_REASON_INAPPROPRIATE_CONTENT:
-      return 'SANCTION_REASON_INAPPROPRIATE_CONTENT';
+      return "SANCTION_REASON_INAPPROPRIATE_CONTENT";
     case SanctionReason.SANCTION_REASON_TERMS_VIOLATION:
-      return 'SANCTION_REASON_TERMS_VIOLATION';
+      return "SANCTION_REASON_TERMS_VIOLATION";
     case SanctionReason.SANCTION_REASON_SCAM_ATTEMPT:
-      return 'SANCTION_REASON_SCAM_ATTEMPT';
+      return "SANCTION_REASON_SCAM_ATTEMPT";
     case SanctionReason.SANCTION_REASON_FALSE_INFORMATION:
-      return 'SANCTION_REASON_FALSE_INFORMATION';
+      return "SANCTION_REASON_FALSE_INFORMATION";
     case SanctionReason.SANCTION_REASON_ANIMAL_WELFARE_CONCERN:
-      return 'SANCTION_REASON_ANIMAL_WELFARE_CONCERN';
+      return "SANCTION_REASON_ANIMAL_WELFARE_CONCERN";
     case SanctionReason.SANCTION_REASON_REPEATED_VIOLATIONS:
-      return 'SANCTION_REASON_REPEATED_VIOLATIONS';
+      return "SANCTION_REASON_REPEATED_VIOLATIONS";
     case SanctionReason.SANCTION_REASON_OTHER:
-      return 'SANCTION_REASON_OTHER';
+      return "SANCTION_REASON_OTHER";
     case SanctionReason.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -608,28 +608,28 @@ export enum SupportTicketStatus {
 export function supportTicketStatusFromJSON(object: any): SupportTicketStatus {
   switch (object) {
     case 0:
-    case 'SUPPORT_TICKET_STATUS_UNSPECIFIED':
+    case "SUPPORT_TICKET_STATUS_UNSPECIFIED":
       return SupportTicketStatus.SUPPORT_TICKET_STATUS_UNSPECIFIED;
     case 1:
-    case 'SUPPORT_TICKET_STATUS_OPEN':
+    case "SUPPORT_TICKET_STATUS_OPEN":
       return SupportTicketStatus.SUPPORT_TICKET_STATUS_OPEN;
     case 2:
-    case 'SUPPORT_TICKET_STATUS_IN_PROGRESS':
+    case "SUPPORT_TICKET_STATUS_IN_PROGRESS":
       return SupportTicketStatus.SUPPORT_TICKET_STATUS_IN_PROGRESS;
     case 3:
-    case 'SUPPORT_TICKET_STATUS_WAITING_FOR_USER':
+    case "SUPPORT_TICKET_STATUS_WAITING_FOR_USER":
       return SupportTicketStatus.SUPPORT_TICKET_STATUS_WAITING_FOR_USER;
     case 4:
-    case 'SUPPORT_TICKET_STATUS_RESOLVED':
+    case "SUPPORT_TICKET_STATUS_RESOLVED":
       return SupportTicketStatus.SUPPORT_TICKET_STATUS_RESOLVED;
     case 5:
-    case 'SUPPORT_TICKET_STATUS_CLOSED':
+    case "SUPPORT_TICKET_STATUS_CLOSED":
       return SupportTicketStatus.SUPPORT_TICKET_STATUS_CLOSED;
     case 6:
-    case 'SUPPORT_TICKET_STATUS_ESCALATED':
+    case "SUPPORT_TICKET_STATUS_ESCALATED":
       return SupportTicketStatus.SUPPORT_TICKET_STATUS_ESCALATED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return SupportTicketStatus.UNRECOGNIZED;
   }
@@ -638,22 +638,22 @@ export function supportTicketStatusFromJSON(object: any): SupportTicketStatus {
 export function supportTicketStatusToJSON(object: SupportTicketStatus): string {
   switch (object) {
     case SupportTicketStatus.SUPPORT_TICKET_STATUS_UNSPECIFIED:
-      return 'SUPPORT_TICKET_STATUS_UNSPECIFIED';
+      return "SUPPORT_TICKET_STATUS_UNSPECIFIED";
     case SupportTicketStatus.SUPPORT_TICKET_STATUS_OPEN:
-      return 'SUPPORT_TICKET_STATUS_OPEN';
+      return "SUPPORT_TICKET_STATUS_OPEN";
     case SupportTicketStatus.SUPPORT_TICKET_STATUS_IN_PROGRESS:
-      return 'SUPPORT_TICKET_STATUS_IN_PROGRESS';
+      return "SUPPORT_TICKET_STATUS_IN_PROGRESS";
     case SupportTicketStatus.SUPPORT_TICKET_STATUS_WAITING_FOR_USER:
-      return 'SUPPORT_TICKET_STATUS_WAITING_FOR_USER';
+      return "SUPPORT_TICKET_STATUS_WAITING_FOR_USER";
     case SupportTicketStatus.SUPPORT_TICKET_STATUS_RESOLVED:
-      return 'SUPPORT_TICKET_STATUS_RESOLVED';
+      return "SUPPORT_TICKET_STATUS_RESOLVED";
     case SupportTicketStatus.SUPPORT_TICKET_STATUS_CLOSED:
-      return 'SUPPORT_TICKET_STATUS_CLOSED';
+      return "SUPPORT_TICKET_STATUS_CLOSED";
     case SupportTicketStatus.SUPPORT_TICKET_STATUS_ESCALATED:
-      return 'SUPPORT_TICKET_STATUS_ESCALATED';
+      return "SUPPORT_TICKET_STATUS_ESCALATED";
     case SupportTicketStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -670,25 +670,25 @@ export enum SupportTicketPriority {
 export function supportTicketPriorityFromJSON(object: any): SupportTicketPriority {
   switch (object) {
     case 0:
-    case 'SUPPORT_TICKET_PRIORITY_UNSPECIFIED':
+    case "SUPPORT_TICKET_PRIORITY_UNSPECIFIED":
       return SupportTicketPriority.SUPPORT_TICKET_PRIORITY_UNSPECIFIED;
     case 1:
-    case 'SUPPORT_TICKET_PRIORITY_LOW':
+    case "SUPPORT_TICKET_PRIORITY_LOW":
       return SupportTicketPriority.SUPPORT_TICKET_PRIORITY_LOW;
     case 2:
-    case 'SUPPORT_TICKET_PRIORITY_NORMAL':
+    case "SUPPORT_TICKET_PRIORITY_NORMAL":
       return SupportTicketPriority.SUPPORT_TICKET_PRIORITY_NORMAL;
     case 3:
-    case 'SUPPORT_TICKET_PRIORITY_HIGH':
+    case "SUPPORT_TICKET_PRIORITY_HIGH":
       return SupportTicketPriority.SUPPORT_TICKET_PRIORITY_HIGH;
     case 4:
-    case 'SUPPORT_TICKET_PRIORITY_URGENT':
+    case "SUPPORT_TICKET_PRIORITY_URGENT":
       return SupportTicketPriority.SUPPORT_TICKET_PRIORITY_URGENT;
     case 5:
-    case 'SUPPORT_TICKET_PRIORITY_CRITICAL':
+    case "SUPPORT_TICKET_PRIORITY_CRITICAL":
       return SupportTicketPriority.SUPPORT_TICKET_PRIORITY_CRITICAL;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return SupportTicketPriority.UNRECOGNIZED;
   }
@@ -697,20 +697,20 @@ export function supportTicketPriorityFromJSON(object: any): SupportTicketPriorit
 export function supportTicketPriorityToJSON(object: SupportTicketPriority): string {
   switch (object) {
     case SupportTicketPriority.SUPPORT_TICKET_PRIORITY_UNSPECIFIED:
-      return 'SUPPORT_TICKET_PRIORITY_UNSPECIFIED';
+      return "SUPPORT_TICKET_PRIORITY_UNSPECIFIED";
     case SupportTicketPriority.SUPPORT_TICKET_PRIORITY_LOW:
-      return 'SUPPORT_TICKET_PRIORITY_LOW';
+      return "SUPPORT_TICKET_PRIORITY_LOW";
     case SupportTicketPriority.SUPPORT_TICKET_PRIORITY_NORMAL:
-      return 'SUPPORT_TICKET_PRIORITY_NORMAL';
+      return "SUPPORT_TICKET_PRIORITY_NORMAL";
     case SupportTicketPriority.SUPPORT_TICKET_PRIORITY_HIGH:
-      return 'SUPPORT_TICKET_PRIORITY_HIGH';
+      return "SUPPORT_TICKET_PRIORITY_HIGH";
     case SupportTicketPriority.SUPPORT_TICKET_PRIORITY_URGENT:
-      return 'SUPPORT_TICKET_PRIORITY_URGENT';
+      return "SUPPORT_TICKET_PRIORITY_URGENT";
     case SupportTicketPriority.SUPPORT_TICKET_PRIORITY_CRITICAL:
-      return 'SUPPORT_TICKET_PRIORITY_CRITICAL';
+      return "SUPPORT_TICKET_PRIORITY_CRITICAL";
     case SupportTicketPriority.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -732,40 +732,40 @@ export enum SupportTicketCategory {
 export function supportTicketCategoryFromJSON(object: any): SupportTicketCategory {
   switch (object) {
     case 0:
-    case 'SUPPORT_TICKET_CATEGORY_UNSPECIFIED':
+    case "SUPPORT_TICKET_CATEGORY_UNSPECIFIED":
       return SupportTicketCategory.SUPPORT_TICKET_CATEGORY_UNSPECIFIED;
     case 1:
-    case 'SUPPORT_TICKET_CATEGORY_TECHNICAL_ISSUE':
+    case "SUPPORT_TICKET_CATEGORY_TECHNICAL_ISSUE":
       return SupportTicketCategory.SUPPORT_TICKET_CATEGORY_TECHNICAL_ISSUE;
     case 2:
-    case 'SUPPORT_TICKET_CATEGORY_ACCOUNT_PROBLEM':
+    case "SUPPORT_TICKET_CATEGORY_ACCOUNT_PROBLEM":
       return SupportTicketCategory.SUPPORT_TICKET_CATEGORY_ACCOUNT_PROBLEM;
     case 3:
-    case 'SUPPORT_TICKET_CATEGORY_ADOPTION_INQUIRY':
+    case "SUPPORT_TICKET_CATEGORY_ADOPTION_INQUIRY":
       return SupportTicketCategory.SUPPORT_TICKET_CATEGORY_ADOPTION_INQUIRY;
     case 4:
-    case 'SUPPORT_TICKET_CATEGORY_PAYMENT_ISSUE':
+    case "SUPPORT_TICKET_CATEGORY_PAYMENT_ISSUE":
       return SupportTicketCategory.SUPPORT_TICKET_CATEGORY_PAYMENT_ISSUE;
     case 5:
-    case 'SUPPORT_TICKET_CATEGORY_FEATURE_REQUEST':
+    case "SUPPORT_TICKET_CATEGORY_FEATURE_REQUEST":
       return SupportTicketCategory.SUPPORT_TICKET_CATEGORY_FEATURE_REQUEST;
     case 6:
-    case 'SUPPORT_TICKET_CATEGORY_REPORT_BUG':
+    case "SUPPORT_TICKET_CATEGORY_REPORT_BUG":
       return SupportTicketCategory.SUPPORT_TICKET_CATEGORY_REPORT_BUG;
     case 7:
-    case 'SUPPORT_TICKET_CATEGORY_GENERAL_QUESTION':
+    case "SUPPORT_TICKET_CATEGORY_GENERAL_QUESTION":
       return SupportTicketCategory.SUPPORT_TICKET_CATEGORY_GENERAL_QUESTION;
     case 8:
-    case 'SUPPORT_TICKET_CATEGORY_COMPLIANCE_CONCERN':
+    case "SUPPORT_TICKET_CATEGORY_COMPLIANCE_CONCERN":
       return SupportTicketCategory.SUPPORT_TICKET_CATEGORY_COMPLIANCE_CONCERN;
     case 9:
-    case 'SUPPORT_TICKET_CATEGORY_DATA_REQUEST':
+    case "SUPPORT_TICKET_CATEGORY_DATA_REQUEST":
       return SupportTicketCategory.SUPPORT_TICKET_CATEGORY_DATA_REQUEST;
     case 10:
-    case 'SUPPORT_TICKET_CATEGORY_OTHER':
+    case "SUPPORT_TICKET_CATEGORY_OTHER":
       return SupportTicketCategory.SUPPORT_TICKET_CATEGORY_OTHER;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return SupportTicketCategory.UNRECOGNIZED;
   }
@@ -774,30 +774,30 @@ export function supportTicketCategoryFromJSON(object: any): SupportTicketCategor
 export function supportTicketCategoryToJSON(object: SupportTicketCategory): string {
   switch (object) {
     case SupportTicketCategory.SUPPORT_TICKET_CATEGORY_UNSPECIFIED:
-      return 'SUPPORT_TICKET_CATEGORY_UNSPECIFIED';
+      return "SUPPORT_TICKET_CATEGORY_UNSPECIFIED";
     case SupportTicketCategory.SUPPORT_TICKET_CATEGORY_TECHNICAL_ISSUE:
-      return 'SUPPORT_TICKET_CATEGORY_TECHNICAL_ISSUE';
+      return "SUPPORT_TICKET_CATEGORY_TECHNICAL_ISSUE";
     case SupportTicketCategory.SUPPORT_TICKET_CATEGORY_ACCOUNT_PROBLEM:
-      return 'SUPPORT_TICKET_CATEGORY_ACCOUNT_PROBLEM';
+      return "SUPPORT_TICKET_CATEGORY_ACCOUNT_PROBLEM";
     case SupportTicketCategory.SUPPORT_TICKET_CATEGORY_ADOPTION_INQUIRY:
-      return 'SUPPORT_TICKET_CATEGORY_ADOPTION_INQUIRY';
+      return "SUPPORT_TICKET_CATEGORY_ADOPTION_INQUIRY";
     case SupportTicketCategory.SUPPORT_TICKET_CATEGORY_PAYMENT_ISSUE:
-      return 'SUPPORT_TICKET_CATEGORY_PAYMENT_ISSUE';
+      return "SUPPORT_TICKET_CATEGORY_PAYMENT_ISSUE";
     case SupportTicketCategory.SUPPORT_TICKET_CATEGORY_FEATURE_REQUEST:
-      return 'SUPPORT_TICKET_CATEGORY_FEATURE_REQUEST';
+      return "SUPPORT_TICKET_CATEGORY_FEATURE_REQUEST";
     case SupportTicketCategory.SUPPORT_TICKET_CATEGORY_REPORT_BUG:
-      return 'SUPPORT_TICKET_CATEGORY_REPORT_BUG';
+      return "SUPPORT_TICKET_CATEGORY_REPORT_BUG";
     case SupportTicketCategory.SUPPORT_TICKET_CATEGORY_GENERAL_QUESTION:
-      return 'SUPPORT_TICKET_CATEGORY_GENERAL_QUESTION';
+      return "SUPPORT_TICKET_CATEGORY_GENERAL_QUESTION";
     case SupportTicketCategory.SUPPORT_TICKET_CATEGORY_COMPLIANCE_CONCERN:
-      return 'SUPPORT_TICKET_CATEGORY_COMPLIANCE_CONCERN';
+      return "SUPPORT_TICKET_CATEGORY_COMPLIANCE_CONCERN";
     case SupportTicketCategory.SUPPORT_TICKET_CATEGORY_DATA_REQUEST:
-      return 'SUPPORT_TICKET_CATEGORY_DATA_REQUEST';
+      return "SUPPORT_TICKET_CATEGORY_DATA_REQUEST";
     case SupportTicketCategory.SUPPORT_TICKET_CATEGORY_OTHER:
-      return 'SUPPORT_TICKET_CATEGORY_OTHER';
+      return "SUPPORT_TICKET_CATEGORY_OTHER";
     case SupportTicketCategory.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -811,16 +811,16 @@ export enum SupportTicketResponderType {
 export function supportTicketResponderTypeFromJSON(object: any): SupportTicketResponderType {
   switch (object) {
     case 0:
-    case 'SUPPORT_TICKET_RESPONDER_TYPE_UNSPECIFIED':
+    case "SUPPORT_TICKET_RESPONDER_TYPE_UNSPECIFIED":
       return SupportTicketResponderType.SUPPORT_TICKET_RESPONDER_TYPE_UNSPECIFIED;
     case 1:
-    case 'SUPPORT_TICKET_RESPONDER_TYPE_STAFF':
+    case "SUPPORT_TICKET_RESPONDER_TYPE_STAFF":
       return SupportTicketResponderType.SUPPORT_TICKET_RESPONDER_TYPE_STAFF;
     case 2:
-    case 'SUPPORT_TICKET_RESPONDER_TYPE_USER':
+    case "SUPPORT_TICKET_RESPONDER_TYPE_USER":
       return SupportTicketResponderType.SUPPORT_TICKET_RESPONDER_TYPE_USER;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return SupportTicketResponderType.UNRECOGNIZED;
   }
@@ -829,14 +829,14 @@ export function supportTicketResponderTypeFromJSON(object: any): SupportTicketRe
 export function supportTicketResponderTypeToJSON(object: SupportTicketResponderType): string {
   switch (object) {
     case SupportTicketResponderType.SUPPORT_TICKET_RESPONDER_TYPE_UNSPECIFIED:
-      return 'SUPPORT_TICKET_RESPONDER_TYPE_UNSPECIFIED';
+      return "SUPPORT_TICKET_RESPONDER_TYPE_UNSPECIFIED";
     case SupportTicketResponderType.SUPPORT_TICKET_RESPONDER_TYPE_STAFF:
-      return 'SUPPORT_TICKET_RESPONDER_TYPE_STAFF';
+      return "SUPPORT_TICKET_RESPONDER_TYPE_STAFF";
     case SupportTicketResponderType.SUPPORT_TICKET_RESPONDER_TYPE_USER:
-      return 'SUPPORT_TICKET_RESPONDER_TYPE_USER';
+      return "SUPPORT_TICKET_RESPONDER_TYPE_USER";
     case SupportTicketResponderType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -1008,7 +1008,9 @@ export interface ListReportsRequest {
    */
   status?: ReportStatus | undefined;
   severity?: Severity | undefined;
-  category?: ReportCategory | undefined;
+  category?:
+    | ReportCategory
+    | undefined;
   /**
    * Filter to reports assigned to a specific moderator (or
    * unassigned via the empty string).
@@ -1058,7 +1060,9 @@ export interface LogModeratorActionRequest {
   severity: Severity;
   reason: string;
   description?: string | undefined;
-  metadataJson?: string | undefined;
+  metadataJson?:
+    | string
+    | undefined;
   /** Sanction duration in days, when applicable. Null = permanent. */
   duration?: number | undefined;
 }
@@ -1071,9 +1075,13 @@ export interface ListModeratorActionsRequest {
   cursor?: string | undefined;
   limit: number;
   /** Filter by target user — the user-history modal hits this. */
-  targetUserId?: string | undefined;
+  targetUserId?:
+    | string
+    | undefined;
   /** Filter to actions linked to a specific report. */
-  reportId?: string | undefined;
+  reportId?:
+    | string
+    | undefined;
   /** Filter by action type. */
   actionType?: ModeratorActionType | undefined;
 }
@@ -1108,7 +1116,9 @@ export interface IssueSanctionRequest {
    * Optional duration in days. Null = permanent (only valid with
    * sanction_type = PERMANENT_BAN).
    */
-  duration?: number | undefined;
+  duration?:
+    | number
+    | undefined;
   /**
    * Optional anchors to a report and/or moderator action that led
    * to the sanction.
@@ -1178,9 +1188,13 @@ export interface ListSupportTicketsRequest {
   limit: number;
   status?: SupportTicketStatus | undefined;
   priority?: SupportTicketPriority | undefined;
-  category?: SupportTicketCategory | undefined;
+  category?:
+    | SupportTicketCategory
+    | undefined;
   /** Filter to tickets assigned to a specific staff member. */
-  assignedTo?: string | undefined;
+  assignedTo?:
+    | string
+    | undefined;
   /** Filter to tickets opened by a specific user. */
   userId?: string | undefined;
 }
@@ -1206,17 +1220,17 @@ export interface RespondToTicketResponse {
 
 function createBaseReport(): Report {
   return {
-    reportId: '',
-    reporterId: '',
+    reportId: "",
+    reporterId: "",
     reportedEntityType: 0,
-    reportedEntityId: '',
+    reportedEntityId: "",
     reportedUserId: undefined,
     category: 0,
     severity: 0,
     status: 0,
-    title: '',
-    description: '',
-    metadataJson: '',
+    title: "",
+    description: "",
+    metadataJson: "",
     assignedModerator: undefined,
     assignedAt: undefined,
     resolvedBy: undefined,
@@ -1226,23 +1240,23 @@ function createBaseReport(): Report {
     escalatedTo: undefined,
     escalatedAt: undefined,
     escalationReason: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const Report: MessageFns<Report> = {
   encode(message: Report, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.reportId !== '') {
+    if (message.reportId !== "") {
       writer.uint32(10).string(message.reportId);
     }
-    if (message.reporterId !== '') {
+    if (message.reporterId !== "") {
       writer.uint32(18).string(message.reporterId);
     }
     if (message.reportedEntityType !== 0) {
       writer.uint32(24).int32(message.reportedEntityType);
     }
-    if (message.reportedEntityId !== '') {
+    if (message.reportedEntityId !== "") {
       writer.uint32(34).string(message.reportedEntityId);
     }
     if (message.reportedUserId !== undefined) {
@@ -1257,13 +1271,13 @@ export const Report: MessageFns<Report> = {
     if (message.status !== 0) {
       writer.uint32(64).int32(message.status);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       writer.uint32(74).string(message.title);
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       writer.uint32(82).string(message.description);
     }
-    if (message.metadataJson !== '') {
+    if (message.metadataJson !== "") {
       writer.uint32(90).string(message.metadataJson);
     }
     if (message.assignedModerator !== undefined) {
@@ -1293,10 +1307,10 @@ export const Report: MessageFns<Report> = {
     if (message.escalationReason !== undefined) {
       writer.uint32(162).string(message.escalationReason);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(170).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(178).string(message.updatedAt);
     }
     return writer;
@@ -1499,104 +1513,104 @@ export const Report: MessageFns<Report> = {
       reportId: isSet(object.reportId)
         ? globalThis.String(object.reportId)
         : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : '',
+        ? globalThis.String(object.report_id)
+        : "",
       reporterId: isSet(object.reporterId)
         ? globalThis.String(object.reporterId)
         : isSet(object.reporter_id)
-          ? globalThis.String(object.reporter_id)
-          : '',
+        ? globalThis.String(object.reporter_id)
+        : "",
       reportedEntityType: isSet(object.reportedEntityType)
         ? reportEntityTypeFromJSON(object.reportedEntityType)
         : isSet(object.reported_entity_type)
-          ? reportEntityTypeFromJSON(object.reported_entity_type)
-          : 0,
+        ? reportEntityTypeFromJSON(object.reported_entity_type)
+        : 0,
       reportedEntityId: isSet(object.reportedEntityId)
         ? globalThis.String(object.reportedEntityId)
         : isSet(object.reported_entity_id)
-          ? globalThis.String(object.reported_entity_id)
-          : '',
+        ? globalThis.String(object.reported_entity_id)
+        : "",
       reportedUserId: isSet(object.reportedUserId)
         ? globalThis.String(object.reportedUserId)
         : isSet(object.reported_user_id)
-          ? globalThis.String(object.reported_user_id)
-          : undefined,
+        ? globalThis.String(object.reported_user_id)
+        : undefined,
       category: isSet(object.category) ? reportCategoryFromJSON(object.category) : 0,
       severity: isSet(object.severity) ? severityFromJSON(object.severity) : 0,
       status: isSet(object.status) ? reportStatusFromJSON(object.status) : 0,
-      title: isSet(object.title) ? globalThis.String(object.title) : '',
-      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      description: isSet(object.description) ? globalThis.String(object.description) : "",
       metadataJson: isSet(object.metadataJson)
         ? globalThis.String(object.metadataJson)
         : isSet(object.metadata_json)
-          ? globalThis.String(object.metadata_json)
-          : '',
+        ? globalThis.String(object.metadata_json)
+        : "",
       assignedModerator: isSet(object.assignedModerator)
         ? globalThis.String(object.assignedModerator)
         : isSet(object.assigned_moderator)
-          ? globalThis.String(object.assigned_moderator)
-          : undefined,
+        ? globalThis.String(object.assigned_moderator)
+        : undefined,
       assignedAt: isSet(object.assignedAt)
         ? globalThis.String(object.assignedAt)
         : isSet(object.assigned_at)
-          ? globalThis.String(object.assigned_at)
-          : undefined,
+        ? globalThis.String(object.assigned_at)
+        : undefined,
       resolvedBy: isSet(object.resolvedBy)
         ? globalThis.String(object.resolvedBy)
         : isSet(object.resolved_by)
-          ? globalThis.String(object.resolved_by)
-          : undefined,
+        ? globalThis.String(object.resolved_by)
+        : undefined,
       resolvedAt: isSet(object.resolvedAt)
         ? globalThis.String(object.resolvedAt)
         : isSet(object.resolved_at)
-          ? globalThis.String(object.resolved_at)
-          : undefined,
+        ? globalThis.String(object.resolved_at)
+        : undefined,
       resolution: isSet(object.resolution) ? globalThis.String(object.resolution) : undefined,
       resolutionNotes: isSet(object.resolutionNotes)
         ? globalThis.String(object.resolutionNotes)
         : isSet(object.resolution_notes)
-          ? globalThis.String(object.resolution_notes)
-          : undefined,
+        ? globalThis.String(object.resolution_notes)
+        : undefined,
       escalatedTo: isSet(object.escalatedTo)
         ? globalThis.String(object.escalatedTo)
         : isSet(object.escalated_to)
-          ? globalThis.String(object.escalated_to)
-          : undefined,
+        ? globalThis.String(object.escalated_to)
+        : undefined,
       escalatedAt: isSet(object.escalatedAt)
         ? globalThis.String(object.escalatedAt)
         : isSet(object.escalated_at)
-          ? globalThis.String(object.escalated_at)
-          : undefined,
+        ? globalThis.String(object.escalated_at)
+        : undefined,
       escalationReason: isSet(object.escalationReason)
         ? globalThis.String(object.escalationReason)
         : isSet(object.escalation_reason)
-          ? globalThis.String(object.escalation_reason)
-          : undefined,
+        ? globalThis.String(object.escalation_reason)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: Report): unknown {
     const obj: any = {};
-    if (message.reportId !== '') {
+    if (message.reportId !== "") {
       obj.reportId = message.reportId;
     }
-    if (message.reporterId !== '') {
+    if (message.reporterId !== "") {
       obj.reporterId = message.reporterId;
     }
     if (message.reportedEntityType !== 0) {
       obj.reportedEntityType = reportEntityTypeToJSON(message.reportedEntityType);
     }
-    if (message.reportedEntityId !== '') {
+    if (message.reportedEntityId !== "") {
       obj.reportedEntityId = message.reportedEntityId;
     }
     if (message.reportedUserId !== undefined) {
@@ -1611,13 +1625,13 @@ export const Report: MessageFns<Report> = {
     if (message.status !== 0) {
       obj.status = reportStatusToJSON(message.status);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       obj.title = message.title;
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       obj.description = message.description;
     }
-    if (message.metadataJson !== '') {
+    if (message.metadataJson !== "") {
       obj.metadataJson = message.metadataJson;
     }
     if (message.assignedModerator !== undefined) {
@@ -1647,10 +1661,10 @@ export const Report: MessageFns<Report> = {
     if (message.escalationReason !== undefined) {
       obj.escalationReason = message.escalationReason;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -1661,17 +1675,17 @@ export const Report: MessageFns<Report> = {
   },
   fromPartial<I extends Exact<DeepPartial<Report>, I>>(object: I): Report {
     const message = createBaseReport();
-    message.reportId = object.reportId ?? '';
-    message.reporterId = object.reporterId ?? '';
+    message.reportId = object.reportId ?? "";
+    message.reporterId = object.reporterId ?? "";
     message.reportedEntityType = object.reportedEntityType ?? 0;
-    message.reportedEntityId = object.reportedEntityId ?? '';
+    message.reportedEntityId = object.reportedEntityId ?? "";
     message.reportedUserId = object.reportedUserId ?? undefined;
     message.category = object.category ?? 0;
     message.severity = object.severity ?? 0;
     message.status = object.status ?? 0;
-    message.title = object.title ?? '';
-    message.description = object.description ?? '';
-    message.metadataJson = object.metadataJson ?? '';
+    message.title = object.title ?? "";
+    message.description = object.description ?? "";
+    message.metadataJson = object.metadataJson ?? "";
     message.assignedModerator = object.assignedModerator ?? undefined;
     message.assignedAt = object.assignedAt ?? undefined;
     message.resolvedBy = object.resolvedBy ?? undefined;
@@ -1681,19 +1695,19 @@ export const Report: MessageFns<Report> = {
     message.escalatedTo = object.escalatedTo ?? undefined;
     message.escalatedAt = object.escalatedAt ?? undefined;
     message.escalationReason = object.escalationReason ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseReportStatusTransition(): ReportStatusTransition {
   return {
-    transitionId: '',
-    reportId: '',
+    transitionId: "",
+    reportId: "",
     fromStatus: undefined,
     toStatus: 0,
-    transitionedAt: '',
+    transitionedAt: "",
     transitionedBy: undefined,
     reason: undefined,
   };
@@ -1701,10 +1715,10 @@ function createBaseReportStatusTransition(): ReportStatusTransition {
 
 export const ReportStatusTransition: MessageFns<ReportStatusTransition> = {
   encode(message: ReportStatusTransition, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.transitionId !== '') {
+    if (message.transitionId !== "") {
       writer.uint32(10).string(message.transitionId);
     }
-    if (message.reportId !== '') {
+    if (message.reportId !== "") {
       writer.uint32(18).string(message.reportId);
     }
     if (message.fromStatus !== undefined) {
@@ -1713,7 +1727,7 @@ export const ReportStatusTransition: MessageFns<ReportStatusTransition> = {
     if (message.toStatus !== 0) {
       writer.uint32(32).int32(message.toStatus);
     }
-    if (message.transitionedAt !== '') {
+    if (message.transitionedAt !== "") {
       writer.uint32(42).string(message.transitionedAt);
     }
     if (message.transitionedBy !== undefined) {
@@ -1802,43 +1816,43 @@ export const ReportStatusTransition: MessageFns<ReportStatusTransition> = {
       transitionId: isSet(object.transitionId)
         ? globalThis.String(object.transitionId)
         : isSet(object.transition_id)
-          ? globalThis.String(object.transition_id)
-          : '',
+        ? globalThis.String(object.transition_id)
+        : "",
       reportId: isSet(object.reportId)
         ? globalThis.String(object.reportId)
         : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : '',
+        ? globalThis.String(object.report_id)
+        : "",
       fromStatus: isSet(object.fromStatus)
         ? reportStatusFromJSON(object.fromStatus)
         : isSet(object.from_status)
-          ? reportStatusFromJSON(object.from_status)
-          : undefined,
+        ? reportStatusFromJSON(object.from_status)
+        : undefined,
       toStatus: isSet(object.toStatus)
         ? reportStatusFromJSON(object.toStatus)
         : isSet(object.to_status)
-          ? reportStatusFromJSON(object.to_status)
-          : 0,
+        ? reportStatusFromJSON(object.to_status)
+        : 0,
       transitionedAt: isSet(object.transitionedAt)
         ? globalThis.String(object.transitionedAt)
         : isSet(object.transitioned_at)
-          ? globalThis.String(object.transitioned_at)
-          : '',
+        ? globalThis.String(object.transitioned_at)
+        : "",
       transitionedBy: isSet(object.transitionedBy)
         ? globalThis.String(object.transitionedBy)
         : isSet(object.transitioned_by)
-          ? globalThis.String(object.transitioned_by)
-          : undefined,
+        ? globalThis.String(object.transitioned_by)
+        : undefined,
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
   },
 
   toJSON(message: ReportStatusTransition): unknown {
     const obj: any = {};
-    if (message.transitionId !== '') {
+    if (message.transitionId !== "") {
       obj.transitionId = message.transitionId;
     }
-    if (message.reportId !== '') {
+    if (message.reportId !== "") {
       obj.reportId = message.reportId;
     }
     if (message.fromStatus !== undefined) {
@@ -1847,7 +1861,7 @@ export const ReportStatusTransition: MessageFns<ReportStatusTransition> = {
     if (message.toStatus !== 0) {
       obj.toStatus = reportStatusToJSON(message.toStatus);
     }
-    if (message.transitionedAt !== '') {
+    if (message.transitionedAt !== "") {
       obj.transitionedAt = message.transitionedAt;
     }
     if (message.transitionedBy !== undefined) {
@@ -1859,20 +1873,16 @@ export const ReportStatusTransition: MessageFns<ReportStatusTransition> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ReportStatusTransition>, I>>(
-    base?: I
-  ): ReportStatusTransition {
+  create<I extends Exact<DeepPartial<ReportStatusTransition>, I>>(base?: I): ReportStatusTransition {
     return ReportStatusTransition.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ReportStatusTransition>, I>>(
-    object: I
-  ): ReportStatusTransition {
+  fromPartial<I extends Exact<DeepPartial<ReportStatusTransition>, I>>(object: I): ReportStatusTransition {
     const message = createBaseReportStatusTransition();
-    message.transitionId = object.transitionId ?? '';
-    message.reportId = object.reportId ?? '';
+    message.transitionId = object.transitionId ?? "";
+    message.reportId = object.reportId ?? "";
     message.fromStatus = object.fromStatus ?? undefined;
     message.toStatus = object.toStatus ?? 0;
-    message.transitionedAt = object.transitionedAt ?? '';
+    message.transitionedAt = object.transitionedAt ?? "";
     message.transitionedBy = object.transitionedBy ?? undefined;
     message.reason = object.reason ?? undefined;
     return message;
@@ -1881,32 +1891,32 @@ export const ReportStatusTransition: MessageFns<ReportStatusTransition> = {
 
 function createBaseModeratorAction(): ModeratorAction {
   return {
-    actionId: '',
-    moderatorId: '',
+    actionId: "",
+    moderatorId: "",
     reportId: undefined,
     targetEntityType: 0,
-    targetEntityId: '',
+    targetEntityId: "",
     targetUserId: undefined,
     actionType: 0,
     severity: 0,
-    reason: '',
+    reason: "",
     description: undefined,
-    metadataJson: '',
+    metadataJson: "",
     duration: undefined,
     expiresAt: undefined,
     isActive: false,
     acknowledgedAt: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const ModeratorAction: MessageFns<ModeratorAction> = {
   encode(message: ModeratorAction, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.actionId !== '') {
+    if (message.actionId !== "") {
       writer.uint32(10).string(message.actionId);
     }
-    if (message.moderatorId !== '') {
+    if (message.moderatorId !== "") {
       writer.uint32(18).string(message.moderatorId);
     }
     if (message.reportId !== undefined) {
@@ -1915,7 +1925,7 @@ export const ModeratorAction: MessageFns<ModeratorAction> = {
     if (message.targetEntityType !== 0) {
       writer.uint32(32).int32(message.targetEntityType);
     }
-    if (message.targetEntityId !== '') {
+    if (message.targetEntityId !== "") {
       writer.uint32(42).string(message.targetEntityId);
     }
     if (message.targetUserId !== undefined) {
@@ -1927,13 +1937,13 @@ export const ModeratorAction: MessageFns<ModeratorAction> = {
     if (message.severity !== 0) {
       writer.uint32(64).int32(message.severity);
     }
-    if (message.reason !== '') {
+    if (message.reason !== "") {
       writer.uint32(74).string(message.reason);
     }
     if (message.description !== undefined) {
       writer.uint32(82).string(message.description);
     }
-    if (message.metadataJson !== '') {
+    if (message.metadataJson !== "") {
       writer.uint32(90).string(message.metadataJson);
     }
     if (message.duration !== undefined) {
@@ -1948,10 +1958,10 @@ export const ModeratorAction: MessageFns<ModeratorAction> = {
     if (message.acknowledgedAt !== undefined) {
       writer.uint32(122).string(message.acknowledgedAt);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(130).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(138).string(message.updatedAt);
     }
     return writer;
@@ -2114,81 +2124,81 @@ export const ModeratorAction: MessageFns<ModeratorAction> = {
       actionId: isSet(object.actionId)
         ? globalThis.String(object.actionId)
         : isSet(object.action_id)
-          ? globalThis.String(object.action_id)
-          : '',
+        ? globalThis.String(object.action_id)
+        : "",
       moderatorId: isSet(object.moderatorId)
         ? globalThis.String(object.moderatorId)
         : isSet(object.moderator_id)
-          ? globalThis.String(object.moderator_id)
-          : '',
+        ? globalThis.String(object.moderator_id)
+        : "",
       reportId: isSet(object.reportId)
         ? globalThis.String(object.reportId)
         : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : undefined,
+        ? globalThis.String(object.report_id)
+        : undefined,
       targetEntityType: isSet(object.targetEntityType)
         ? reportEntityTypeFromJSON(object.targetEntityType)
         : isSet(object.target_entity_type)
-          ? reportEntityTypeFromJSON(object.target_entity_type)
-          : 0,
+        ? reportEntityTypeFromJSON(object.target_entity_type)
+        : 0,
       targetEntityId: isSet(object.targetEntityId)
         ? globalThis.String(object.targetEntityId)
         : isSet(object.target_entity_id)
-          ? globalThis.String(object.target_entity_id)
-          : '',
+        ? globalThis.String(object.target_entity_id)
+        : "",
       targetUserId: isSet(object.targetUserId)
         ? globalThis.String(object.targetUserId)
         : isSet(object.target_user_id)
-          ? globalThis.String(object.target_user_id)
-          : undefined,
+        ? globalThis.String(object.target_user_id)
+        : undefined,
       actionType: isSet(object.actionType)
         ? moderatorActionTypeFromJSON(object.actionType)
         : isSet(object.action_type)
-          ? moderatorActionTypeFromJSON(object.action_type)
-          : 0,
+        ? moderatorActionTypeFromJSON(object.action_type)
+        : 0,
       severity: isSet(object.severity) ? severityFromJSON(object.severity) : 0,
-      reason: isSet(object.reason) ? globalThis.String(object.reason) : '',
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
       metadataJson: isSet(object.metadataJson)
         ? globalThis.String(object.metadataJson)
         : isSet(object.metadata_json)
-          ? globalThis.String(object.metadata_json)
-          : '',
+        ? globalThis.String(object.metadata_json)
+        : "",
       duration: isSet(object.duration) ? globalThis.Number(object.duration) : undefined,
       expiresAt: isSet(object.expiresAt)
         ? globalThis.String(object.expiresAt)
         : isSet(object.expires_at)
-          ? globalThis.String(object.expires_at)
-          : undefined,
+        ? globalThis.String(object.expires_at)
+        : undefined,
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-          ? globalThis.Boolean(object.is_active)
-          : false,
+        ? globalThis.Boolean(object.is_active)
+        : false,
       acknowledgedAt: isSet(object.acknowledgedAt)
         ? globalThis.String(object.acknowledgedAt)
         : isSet(object.acknowledged_at)
-          ? globalThis.String(object.acknowledged_at)
-          : undefined,
+        ? globalThis.String(object.acknowledged_at)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: ModeratorAction): unknown {
     const obj: any = {};
-    if (message.actionId !== '') {
+    if (message.actionId !== "") {
       obj.actionId = message.actionId;
     }
-    if (message.moderatorId !== '') {
+    if (message.moderatorId !== "") {
       obj.moderatorId = message.moderatorId;
     }
     if (message.reportId !== undefined) {
@@ -2197,7 +2207,7 @@ export const ModeratorAction: MessageFns<ModeratorAction> = {
     if (message.targetEntityType !== 0) {
       obj.targetEntityType = reportEntityTypeToJSON(message.targetEntityType);
     }
-    if (message.targetEntityId !== '') {
+    if (message.targetEntityId !== "") {
       obj.targetEntityId = message.targetEntityId;
     }
     if (message.targetUserId !== undefined) {
@@ -2209,13 +2219,13 @@ export const ModeratorAction: MessageFns<ModeratorAction> = {
     if (message.severity !== 0) {
       obj.severity = severityToJSON(message.severity);
     }
-    if (message.reason !== '') {
+    if (message.reason !== "") {
       obj.reason = message.reason;
     }
     if (message.description !== undefined) {
       obj.description = message.description;
     }
-    if (message.metadataJson !== '') {
+    if (message.metadataJson !== "") {
       obj.metadataJson = message.metadataJson;
     }
     if (message.duration !== undefined) {
@@ -2230,10 +2240,10 @@ export const ModeratorAction: MessageFns<ModeratorAction> = {
     if (message.acknowledgedAt !== undefined) {
       obj.acknowledgedAt = message.acknowledgedAt;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -2244,60 +2254,52 @@ export const ModeratorAction: MessageFns<ModeratorAction> = {
   },
   fromPartial<I extends Exact<DeepPartial<ModeratorAction>, I>>(object: I): ModeratorAction {
     const message = createBaseModeratorAction();
-    message.actionId = object.actionId ?? '';
-    message.moderatorId = object.moderatorId ?? '';
+    message.actionId = object.actionId ?? "";
+    message.moderatorId = object.moderatorId ?? "";
     message.reportId = object.reportId ?? undefined;
     message.targetEntityType = object.targetEntityType ?? 0;
-    message.targetEntityId = object.targetEntityId ?? '';
+    message.targetEntityId = object.targetEntityId ?? "";
     message.targetUserId = object.targetUserId ?? undefined;
     message.actionType = object.actionType ?? 0;
     message.severity = object.severity ?? 0;
-    message.reason = object.reason ?? '';
+    message.reason = object.reason ?? "";
     message.description = object.description ?? undefined;
-    message.metadataJson = object.metadataJson ?? '';
+    message.metadataJson = object.metadataJson ?? "";
     message.duration = object.duration ?? undefined;
     message.expiresAt = object.expiresAt ?? undefined;
     message.isActive = object.isActive ?? false;
     message.acknowledgedAt = object.acknowledgedAt ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseEvidence(): Evidence {
-  return {
-    evidenceId: '',
-    parentType: 0,
-    parentId: '',
-    type: 0,
-    content: '',
-    description: undefined,
-    uploadedAt: '',
-  };
+  return { evidenceId: "", parentType: 0, parentId: "", type: 0, content: "", description: undefined, uploadedAt: "" };
 }
 
 export const Evidence: MessageFns<Evidence> = {
   encode(message: Evidence, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.evidenceId !== '') {
+    if (message.evidenceId !== "") {
       writer.uint32(10).string(message.evidenceId);
     }
     if (message.parentType !== 0) {
       writer.uint32(16).int32(message.parentType);
     }
-    if (message.parentId !== '') {
+    if (message.parentId !== "") {
       writer.uint32(26).string(message.parentId);
     }
     if (message.type !== 0) {
       writer.uint32(32).int32(message.type);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       writer.uint32(42).string(message.content);
     }
     if (message.description !== undefined) {
       writer.uint32(50).string(message.description);
     }
-    if (message.uploadedAt !== '') {
+    if (message.uploadedAt !== "") {
       writer.uint32(58).string(message.uploadedAt);
     }
     return writer;
@@ -2380,50 +2382,50 @@ export const Evidence: MessageFns<Evidence> = {
       evidenceId: isSet(object.evidenceId)
         ? globalThis.String(object.evidenceId)
         : isSet(object.evidence_id)
-          ? globalThis.String(object.evidence_id)
-          : '',
+        ? globalThis.String(object.evidence_id)
+        : "",
       parentType: isSet(object.parentType)
         ? evidenceParentTypeFromJSON(object.parentType)
         : isSet(object.parent_type)
-          ? evidenceParentTypeFromJSON(object.parent_type)
-          : 0,
+        ? evidenceParentTypeFromJSON(object.parent_type)
+        : 0,
       parentId: isSet(object.parentId)
         ? globalThis.String(object.parentId)
         : isSet(object.parent_id)
-          ? globalThis.String(object.parent_id)
-          : '',
+        ? globalThis.String(object.parent_id)
+        : "",
       type: isSet(object.type) ? evidenceTypeFromJSON(object.type) : 0,
-      content: isSet(object.content) ? globalThis.String(object.content) : '',
+      content: isSet(object.content) ? globalThis.String(object.content) : "",
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
       uploadedAt: isSet(object.uploadedAt)
         ? globalThis.String(object.uploadedAt)
         : isSet(object.uploaded_at)
-          ? globalThis.String(object.uploaded_at)
-          : '',
+        ? globalThis.String(object.uploaded_at)
+        : "",
     };
   },
 
   toJSON(message: Evidence): unknown {
     const obj: any = {};
-    if (message.evidenceId !== '') {
+    if (message.evidenceId !== "") {
       obj.evidenceId = message.evidenceId;
     }
     if (message.parentType !== 0) {
       obj.parentType = evidenceParentTypeToJSON(message.parentType);
     }
-    if (message.parentId !== '') {
+    if (message.parentId !== "") {
       obj.parentId = message.parentId;
     }
     if (message.type !== 0) {
       obj.type = evidenceTypeToJSON(message.type);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       obj.content = message.content;
     }
     if (message.description !== undefined) {
       obj.description = message.description;
     }
-    if (message.uploadedAt !== '') {
+    if (message.uploadedAt !== "") {
       obj.uploadedAt = message.uploadedAt;
     }
     return obj;
@@ -2434,45 +2436,45 @@ export const Evidence: MessageFns<Evidence> = {
   },
   fromPartial<I extends Exact<DeepPartial<Evidence>, I>>(object: I): Evidence {
     const message = createBaseEvidence();
-    message.evidenceId = object.evidenceId ?? '';
+    message.evidenceId = object.evidenceId ?? "";
     message.parentType = object.parentType ?? 0;
-    message.parentId = object.parentId ?? '';
+    message.parentId = object.parentId ?? "";
     message.type = object.type ?? 0;
-    message.content = object.content ?? '';
+    message.content = object.content ?? "";
     message.description = object.description ?? undefined;
-    message.uploadedAt = object.uploadedAt ?? '';
+    message.uploadedAt = object.uploadedAt ?? "";
     return message;
   },
 };
 
 function createBaseUserSanction(): UserSanction {
   return {
-    sanctionId: '',
-    userId: '',
+    sanctionId: "",
+    userId: "",
     sanctionType: 0,
     reason: 0,
-    description: '',
+    description: "",
     isActive: false,
-    startDate: '',
+    startDate: "",
     endDate: undefined,
     duration: undefined,
-    issuedBy: '',
+    issuedBy: "",
     reportId: undefined,
     moderatorActionId: undefined,
     appealedAt: undefined,
     appealReason: undefined,
     appealStatus: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const UserSanction: MessageFns<UserSanction> = {
   encode(message: UserSanction, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sanctionId !== '') {
+    if (message.sanctionId !== "") {
       writer.uint32(10).string(message.sanctionId);
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(18).string(message.userId);
     }
     if (message.sanctionType !== 0) {
@@ -2481,13 +2483,13 @@ export const UserSanction: MessageFns<UserSanction> = {
     if (message.reason !== 0) {
       writer.uint32(32).int32(message.reason);
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       writer.uint32(42).string(message.description);
     }
     if (message.isActive !== false) {
       writer.uint32(48).bool(message.isActive);
     }
-    if (message.startDate !== '') {
+    if (message.startDate !== "") {
       writer.uint32(58).string(message.startDate);
     }
     if (message.endDate !== undefined) {
@@ -2496,7 +2498,7 @@ export const UserSanction: MessageFns<UserSanction> = {
     if (message.duration !== undefined) {
       writer.uint32(72).uint32(message.duration);
     }
-    if (message.issuedBy !== '') {
+    if (message.issuedBy !== "") {
       writer.uint32(82).string(message.issuedBy);
     }
     if (message.reportId !== undefined) {
@@ -2514,10 +2516,10 @@ export const UserSanction: MessageFns<UserSanction> = {
     if (message.appealStatus !== undefined) {
       writer.uint32(122).string(message.appealStatus);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(130).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(138).string(message.updatedAt);
     }
     return writer;
@@ -2680,85 +2682,85 @@ export const UserSanction: MessageFns<UserSanction> = {
       sanctionId: isSet(object.sanctionId)
         ? globalThis.String(object.sanctionId)
         : isSet(object.sanction_id)
-          ? globalThis.String(object.sanction_id)
-          : '',
+        ? globalThis.String(object.sanction_id)
+        : "",
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       sanctionType: isSet(object.sanctionType)
         ? sanctionTypeFromJSON(object.sanctionType)
         : isSet(object.sanction_type)
-          ? sanctionTypeFromJSON(object.sanction_type)
-          : 0,
+        ? sanctionTypeFromJSON(object.sanction_type)
+        : 0,
       reason: isSet(object.reason) ? sanctionReasonFromJSON(object.reason) : 0,
-      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : "",
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-          ? globalThis.Boolean(object.is_active)
-          : false,
+        ? globalThis.Boolean(object.is_active)
+        : false,
       startDate: isSet(object.startDate)
         ? globalThis.String(object.startDate)
         : isSet(object.start_date)
-          ? globalThis.String(object.start_date)
-          : '',
+        ? globalThis.String(object.start_date)
+        : "",
       endDate: isSet(object.endDate)
         ? globalThis.String(object.endDate)
         : isSet(object.end_date)
-          ? globalThis.String(object.end_date)
-          : undefined,
+        ? globalThis.String(object.end_date)
+        : undefined,
       duration: isSet(object.duration) ? globalThis.Number(object.duration) : undefined,
       issuedBy: isSet(object.issuedBy)
         ? globalThis.String(object.issuedBy)
         : isSet(object.issued_by)
-          ? globalThis.String(object.issued_by)
-          : '',
+        ? globalThis.String(object.issued_by)
+        : "",
       reportId: isSet(object.reportId)
         ? globalThis.String(object.reportId)
         : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : undefined,
+        ? globalThis.String(object.report_id)
+        : undefined,
       moderatorActionId: isSet(object.moderatorActionId)
         ? globalThis.String(object.moderatorActionId)
         : isSet(object.moderator_action_id)
-          ? globalThis.String(object.moderator_action_id)
-          : undefined,
+        ? globalThis.String(object.moderator_action_id)
+        : undefined,
       appealedAt: isSet(object.appealedAt)
         ? globalThis.String(object.appealedAt)
         : isSet(object.appealed_at)
-          ? globalThis.String(object.appealed_at)
-          : undefined,
+        ? globalThis.String(object.appealed_at)
+        : undefined,
       appealReason: isSet(object.appealReason)
         ? globalThis.String(object.appealReason)
         : isSet(object.appeal_reason)
-          ? globalThis.String(object.appeal_reason)
-          : undefined,
+        ? globalThis.String(object.appeal_reason)
+        : undefined,
       appealStatus: isSet(object.appealStatus)
         ? globalThis.String(object.appealStatus)
         : isSet(object.appeal_status)
-          ? globalThis.String(object.appeal_status)
-          : undefined,
+        ? globalThis.String(object.appeal_status)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: UserSanction): unknown {
     const obj: any = {};
-    if (message.sanctionId !== '') {
+    if (message.sanctionId !== "") {
       obj.sanctionId = message.sanctionId;
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.sanctionType !== 0) {
@@ -2767,13 +2769,13 @@ export const UserSanction: MessageFns<UserSanction> = {
     if (message.reason !== 0) {
       obj.reason = sanctionReasonToJSON(message.reason);
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       obj.description = message.description;
     }
     if (message.isActive !== false) {
       obj.isActive = message.isActive;
     }
-    if (message.startDate !== '') {
+    if (message.startDate !== "") {
       obj.startDate = message.startDate;
     }
     if (message.endDate !== undefined) {
@@ -2782,7 +2784,7 @@ export const UserSanction: MessageFns<UserSanction> = {
     if (message.duration !== undefined) {
       obj.duration = Math.round(message.duration);
     }
-    if (message.issuedBy !== '') {
+    if (message.issuedBy !== "") {
       obj.issuedBy = message.issuedBy;
     }
     if (message.reportId !== undefined) {
@@ -2800,10 +2802,10 @@ export const UserSanction: MessageFns<UserSanction> = {
     if (message.appealStatus !== undefined) {
       obj.appealStatus = message.appealStatus;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -2814,59 +2816,59 @@ export const UserSanction: MessageFns<UserSanction> = {
   },
   fromPartial<I extends Exact<DeepPartial<UserSanction>, I>>(object: I): UserSanction {
     const message = createBaseUserSanction();
-    message.sanctionId = object.sanctionId ?? '';
-    message.userId = object.userId ?? '';
+    message.sanctionId = object.sanctionId ?? "";
+    message.userId = object.userId ?? "";
     message.sanctionType = object.sanctionType ?? 0;
     message.reason = object.reason ?? 0;
-    message.description = object.description ?? '';
+    message.description = object.description ?? "";
     message.isActive = object.isActive ?? false;
-    message.startDate = object.startDate ?? '';
+    message.startDate = object.startDate ?? "";
     message.endDate = object.endDate ?? undefined;
     message.duration = object.duration ?? undefined;
-    message.issuedBy = object.issuedBy ?? '';
+    message.issuedBy = object.issuedBy ?? "";
     message.reportId = object.reportId ?? undefined;
     message.moderatorActionId = object.moderatorActionId ?? undefined;
     message.appealedAt = object.appealedAt ?? undefined;
     message.appealReason = object.appealReason ?? undefined;
     message.appealStatus = object.appealStatus ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseSupportTicket(): SupportTicket {
   return {
-    ticketId: '',
+    ticketId: "",
     userId: undefined,
-    userEmail: '',
+    userEmail: "",
     userName: undefined,
     assignedTo: undefined,
     status: 0,
     priority: 0,
     category: 0,
-    subject: '',
-    description: '',
+    subject: "",
+    description: "",
     tags: [],
-    metadataJson: '',
+    metadataJson: "",
     firstResponseAt: undefined,
     lastResponseAt: undefined,
     resolvedAt: undefined,
     closedAt: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const SupportTicket: MessageFns<SupportTicket> = {
   encode(message: SupportTicket, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.ticketId !== '') {
+    if (message.ticketId !== "") {
       writer.uint32(10).string(message.ticketId);
     }
     if (message.userId !== undefined) {
       writer.uint32(18).string(message.userId);
     }
-    if (message.userEmail !== '') {
+    if (message.userEmail !== "") {
       writer.uint32(26).string(message.userEmail);
     }
     if (message.userName !== undefined) {
@@ -2884,16 +2886,16 @@ export const SupportTicket: MessageFns<SupportTicket> = {
     if (message.category !== 0) {
       writer.uint32(64).int32(message.category);
     }
-    if (message.subject !== '') {
+    if (message.subject !== "") {
       writer.uint32(74).string(message.subject);
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       writer.uint32(82).string(message.description);
     }
     for (const v of message.tags) {
       writer.uint32(90).string(v!);
     }
-    if (message.metadataJson !== '') {
+    if (message.metadataJson !== "") {
       writer.uint32(98).string(message.metadataJson);
     }
     if (message.firstResponseAt !== undefined) {
@@ -2908,10 +2910,10 @@ export const SupportTicket: MessageFns<SupportTicket> = {
     if (message.closedAt !== undefined) {
       writer.uint32(130).string(message.closedAt);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(138).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(146).string(message.updatedAt);
     }
     return writer;
@@ -3082,83 +3084,83 @@ export const SupportTicket: MessageFns<SupportTicket> = {
       ticketId: isSet(object.ticketId)
         ? globalThis.String(object.ticketId)
         : isSet(object.ticket_id)
-          ? globalThis.String(object.ticket_id)
-          : '',
+        ? globalThis.String(object.ticket_id)
+        : "",
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
       userEmail: isSet(object.userEmail)
         ? globalThis.String(object.userEmail)
         : isSet(object.user_email)
-          ? globalThis.String(object.user_email)
-          : '',
+        ? globalThis.String(object.user_email)
+        : "",
       userName: isSet(object.userName)
         ? globalThis.String(object.userName)
         : isSet(object.user_name)
-          ? globalThis.String(object.user_name)
-          : undefined,
+        ? globalThis.String(object.user_name)
+        : undefined,
       assignedTo: isSet(object.assignedTo)
         ? globalThis.String(object.assignedTo)
         : isSet(object.assigned_to)
-          ? globalThis.String(object.assigned_to)
-          : undefined,
+        ? globalThis.String(object.assigned_to)
+        : undefined,
       status: isSet(object.status) ? supportTicketStatusFromJSON(object.status) : 0,
       priority: isSet(object.priority) ? supportTicketPriorityFromJSON(object.priority) : 0,
       category: isSet(object.category) ? supportTicketCategoryFromJSON(object.category) : 0,
-      subject: isSet(object.subject) ? globalThis.String(object.subject) : '',
-      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : "",
+      description: isSet(object.description) ? globalThis.String(object.description) : "",
       tags: globalThis.Array.isArray(object?.tags)
         ? object.tags.map((e: any) => globalThis.String(e))
         : [],
       metadataJson: isSet(object.metadataJson)
         ? globalThis.String(object.metadataJson)
         : isSet(object.metadata_json)
-          ? globalThis.String(object.metadata_json)
-          : '',
+        ? globalThis.String(object.metadata_json)
+        : "",
       firstResponseAt: isSet(object.firstResponseAt)
         ? globalThis.String(object.firstResponseAt)
         : isSet(object.first_response_at)
-          ? globalThis.String(object.first_response_at)
-          : undefined,
+        ? globalThis.String(object.first_response_at)
+        : undefined,
       lastResponseAt: isSet(object.lastResponseAt)
         ? globalThis.String(object.lastResponseAt)
         : isSet(object.last_response_at)
-          ? globalThis.String(object.last_response_at)
-          : undefined,
+        ? globalThis.String(object.last_response_at)
+        : undefined,
       resolvedAt: isSet(object.resolvedAt)
         ? globalThis.String(object.resolvedAt)
         : isSet(object.resolved_at)
-          ? globalThis.String(object.resolved_at)
-          : undefined,
+        ? globalThis.String(object.resolved_at)
+        : undefined,
       closedAt: isSet(object.closedAt)
         ? globalThis.String(object.closedAt)
         : isSet(object.closed_at)
-          ? globalThis.String(object.closed_at)
-          : undefined,
+        ? globalThis.String(object.closed_at)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: SupportTicket): unknown {
     const obj: any = {};
-    if (message.ticketId !== '') {
+    if (message.ticketId !== "") {
       obj.ticketId = message.ticketId;
     }
     if (message.userId !== undefined) {
       obj.userId = message.userId;
     }
-    if (message.userEmail !== '') {
+    if (message.userEmail !== "") {
       obj.userEmail = message.userEmail;
     }
     if (message.userName !== undefined) {
@@ -3176,16 +3178,16 @@ export const SupportTicket: MessageFns<SupportTicket> = {
     if (message.category !== 0) {
       obj.category = supportTicketCategoryToJSON(message.category);
     }
-    if (message.subject !== '') {
+    if (message.subject !== "") {
       obj.subject = message.subject;
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       obj.description = message.description;
     }
     if (message.tags?.length) {
       obj.tags = message.tags;
     }
-    if (message.metadataJson !== '') {
+    if (message.metadataJson !== "") {
       obj.metadataJson = message.metadataJson;
     }
     if (message.firstResponseAt !== undefined) {
@@ -3200,10 +3202,10 @@ export const SupportTicket: MessageFns<SupportTicket> = {
     if (message.closedAt !== undefined) {
       obj.closedAt = message.closedAt;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -3214,61 +3216,61 @@ export const SupportTicket: MessageFns<SupportTicket> = {
   },
   fromPartial<I extends Exact<DeepPartial<SupportTicket>, I>>(object: I): SupportTicket {
     const message = createBaseSupportTicket();
-    message.ticketId = object.ticketId ?? '';
+    message.ticketId = object.ticketId ?? "";
     message.userId = object.userId ?? undefined;
-    message.userEmail = object.userEmail ?? '';
+    message.userEmail = object.userEmail ?? "";
     message.userName = object.userName ?? undefined;
     message.assignedTo = object.assignedTo ?? undefined;
     message.status = object.status ?? 0;
     message.priority = object.priority ?? 0;
     message.category = object.category ?? 0;
-    message.subject = object.subject ?? '';
-    message.description = object.description ?? '';
-    message.tags = object.tags?.map(e => e) || [];
-    message.metadataJson = object.metadataJson ?? '';
+    message.subject = object.subject ?? "";
+    message.description = object.description ?? "";
+    message.tags = object.tags?.map((e) => e) || [];
+    message.metadataJson = object.metadataJson ?? "";
     message.firstResponseAt = object.firstResponseAt ?? undefined;
     message.lastResponseAt = object.lastResponseAt ?? undefined;
     message.resolvedAt = object.resolvedAt ?? undefined;
     message.closedAt = object.closedAt ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseSupportTicketResponse(): SupportTicketResponse {
   return {
-    responseId: '',
-    ticketId: '',
-    responderId: '',
+    responseId: "",
+    ticketId: "",
+    responderId: "",
     responderType: 0,
-    content: '',
+    content: "",
     isInternal: false,
-    createdAt: '',
+    createdAt: "",
   };
 }
 
 export const SupportTicketResponse: MessageFns<SupportTicketResponse> = {
   encode(message: SupportTicketResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.responseId !== '') {
+    if (message.responseId !== "") {
       writer.uint32(10).string(message.responseId);
     }
-    if (message.ticketId !== '') {
+    if (message.ticketId !== "") {
       writer.uint32(18).string(message.ticketId);
     }
-    if (message.responderId !== '') {
+    if (message.responderId !== "") {
       writer.uint32(26).string(message.responderId);
     }
     if (message.responderType !== 0) {
       writer.uint32(32).int32(message.responderType);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       writer.uint32(42).string(message.content);
     }
     if (message.isInternal !== false) {
       writer.uint32(48).bool(message.isInternal);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(58).string(message.createdAt);
     }
     return writer;
@@ -3351,58 +3353,58 @@ export const SupportTicketResponse: MessageFns<SupportTicketResponse> = {
       responseId: isSet(object.responseId)
         ? globalThis.String(object.responseId)
         : isSet(object.response_id)
-          ? globalThis.String(object.response_id)
-          : '',
+        ? globalThis.String(object.response_id)
+        : "",
       ticketId: isSet(object.ticketId)
         ? globalThis.String(object.ticketId)
         : isSet(object.ticket_id)
-          ? globalThis.String(object.ticket_id)
-          : '',
+        ? globalThis.String(object.ticket_id)
+        : "",
       responderId: isSet(object.responderId)
         ? globalThis.String(object.responderId)
         : isSet(object.responder_id)
-          ? globalThis.String(object.responder_id)
-          : '',
+        ? globalThis.String(object.responder_id)
+        : "",
       responderType: isSet(object.responderType)
         ? supportTicketResponderTypeFromJSON(object.responderType)
         : isSet(object.responder_type)
-          ? supportTicketResponderTypeFromJSON(object.responder_type)
-          : 0,
-      content: isSet(object.content) ? globalThis.String(object.content) : '',
+        ? supportTicketResponderTypeFromJSON(object.responder_type)
+        : 0,
+      content: isSet(object.content) ? globalThis.String(object.content) : "",
       isInternal: isSet(object.isInternal)
         ? globalThis.Boolean(object.isInternal)
         : isSet(object.is_internal)
-          ? globalThis.Boolean(object.is_internal)
-          : false,
+        ? globalThis.Boolean(object.is_internal)
+        : false,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
     };
   },
 
   toJSON(message: SupportTicketResponse): unknown {
     const obj: any = {};
-    if (message.responseId !== '') {
+    if (message.responseId !== "") {
       obj.responseId = message.responseId;
     }
-    if (message.ticketId !== '') {
+    if (message.ticketId !== "") {
       obj.ticketId = message.ticketId;
     }
-    if (message.responderId !== '') {
+    if (message.responderId !== "") {
       obj.responderId = message.responderId;
     }
     if (message.responderType !== 0) {
       obj.responderType = supportTicketResponderTypeToJSON(message.responderType);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       obj.content = message.content;
     }
     if (message.isInternal !== false) {
       obj.isInternal = message.isInternal;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
     return obj;
@@ -3411,17 +3413,15 @@ export const SupportTicketResponse: MessageFns<SupportTicketResponse> = {
   create<I extends Exact<DeepPartial<SupportTicketResponse>, I>>(base?: I): SupportTicketResponse {
     return SupportTicketResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SupportTicketResponse>, I>>(
-    object: I
-  ): SupportTicketResponse {
+  fromPartial<I extends Exact<DeepPartial<SupportTicketResponse>, I>>(object: I): SupportTicketResponse {
     const message = createBaseSupportTicketResponse();
-    message.responseId = object.responseId ?? '';
-    message.ticketId = object.ticketId ?? '';
-    message.responderId = object.responderId ?? '';
+    message.responseId = object.responseId ?? "";
+    message.ticketId = object.ticketId ?? "";
+    message.responderId = object.responderId ?? "";
     message.responderType = object.responderType ?? 0;
-    message.content = object.content ?? '';
+    message.content = object.content ?? "";
     message.isInternal = object.isInternal ?? false;
-    message.createdAt = object.createdAt ?? '';
+    message.createdAt = object.createdAt ?? "";
     return message;
   },
 };
@@ -3429,12 +3429,12 @@ export const SupportTicketResponse: MessageFns<SupportTicketResponse> = {
 function createBaseFileReportRequest(): FileReportRequest {
   return {
     reportedEntityType: 0,
-    reportedEntityId: '',
+    reportedEntityId: "",
     reportedUserId: undefined,
     category: 0,
     severity: 0,
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     metadataJson: undefined,
   };
 }
@@ -3444,7 +3444,7 @@ export const FileReportRequest: MessageFns<FileReportRequest> = {
     if (message.reportedEntityType !== 0) {
       writer.uint32(8).int32(message.reportedEntityType);
     }
-    if (message.reportedEntityId !== '') {
+    if (message.reportedEntityId !== "") {
       writer.uint32(18).string(message.reportedEntityId);
     }
     if (message.reportedUserId !== undefined) {
@@ -3456,10 +3456,10 @@ export const FileReportRequest: MessageFns<FileReportRequest> = {
     if (message.severity !== 0) {
       writer.uint32(40).int32(message.severity);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       writer.uint32(50).string(message.title);
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       writer.uint32(58).string(message.description);
     }
     if (message.metadataJson !== undefined) {
@@ -3553,27 +3553,27 @@ export const FileReportRequest: MessageFns<FileReportRequest> = {
       reportedEntityType: isSet(object.reportedEntityType)
         ? reportEntityTypeFromJSON(object.reportedEntityType)
         : isSet(object.reported_entity_type)
-          ? reportEntityTypeFromJSON(object.reported_entity_type)
-          : 0,
+        ? reportEntityTypeFromJSON(object.reported_entity_type)
+        : 0,
       reportedEntityId: isSet(object.reportedEntityId)
         ? globalThis.String(object.reportedEntityId)
         : isSet(object.reported_entity_id)
-          ? globalThis.String(object.reported_entity_id)
-          : '',
+        ? globalThis.String(object.reported_entity_id)
+        : "",
       reportedUserId: isSet(object.reportedUserId)
         ? globalThis.String(object.reportedUserId)
         : isSet(object.reported_user_id)
-          ? globalThis.String(object.reported_user_id)
-          : undefined,
+        ? globalThis.String(object.reported_user_id)
+        : undefined,
       category: isSet(object.category) ? reportCategoryFromJSON(object.category) : 0,
       severity: isSet(object.severity) ? severityFromJSON(object.severity) : 0,
-      title: isSet(object.title) ? globalThis.String(object.title) : '',
-      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      description: isSet(object.description) ? globalThis.String(object.description) : "",
       metadataJson: isSet(object.metadataJson)
         ? globalThis.String(object.metadataJson)
         : isSet(object.metadata_json)
-          ? globalThis.String(object.metadata_json)
-          : undefined,
+        ? globalThis.String(object.metadata_json)
+        : undefined,
     };
   },
 
@@ -3582,7 +3582,7 @@ export const FileReportRequest: MessageFns<FileReportRequest> = {
     if (message.reportedEntityType !== 0) {
       obj.reportedEntityType = reportEntityTypeToJSON(message.reportedEntityType);
     }
-    if (message.reportedEntityId !== '') {
+    if (message.reportedEntityId !== "") {
       obj.reportedEntityId = message.reportedEntityId;
     }
     if (message.reportedUserId !== undefined) {
@@ -3594,10 +3594,10 @@ export const FileReportRequest: MessageFns<FileReportRequest> = {
     if (message.severity !== 0) {
       obj.severity = severityToJSON(message.severity);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       obj.title = message.title;
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       obj.description = message.description;
     }
     if (message.metadataJson !== undefined) {
@@ -3612,12 +3612,12 @@ export const FileReportRequest: MessageFns<FileReportRequest> = {
   fromPartial<I extends Exact<DeepPartial<FileReportRequest>, I>>(object: I): FileReportRequest {
     const message = createBaseFileReportRequest();
     message.reportedEntityType = object.reportedEntityType ?? 0;
-    message.reportedEntityId = object.reportedEntityId ?? '';
+    message.reportedEntityId = object.reportedEntityId ?? "";
     message.reportedUserId = object.reportedUserId ?? undefined;
     message.category = object.category ?? 0;
     message.severity = object.severity ?? 0;
-    message.title = object.title ?? '';
-    message.description = object.description ?? '';
+    message.title = object.title ?? "";
+    message.description = object.description ?? "";
     message.metadataJson = object.metadataJson ?? undefined;
     return message;
   },
@@ -3676,21 +3676,20 @@ export const FileReportResponse: MessageFns<FileReportResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<FileReportResponse>, I>>(object: I): FileReportResponse {
     const message = createBaseFileReportResponse();
-    message.report =
-      object.report !== undefined && object.report !== null
-        ? Report.fromPartial(object.report)
-        : undefined;
+    message.report = (object.report !== undefined && object.report !== null)
+      ? Report.fromPartial(object.report)
+      : undefined;
     return message;
   },
 };
 
 function createBaseGetReportRequest(): GetReportRequest {
-  return { reportId: '', includeTransitions: false };
+  return { reportId: "", includeTransitions: false };
 }
 
 export const GetReportRequest: MessageFns<GetReportRequest> = {
   encode(message: GetReportRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.reportId !== '') {
+    if (message.reportId !== "") {
       writer.uint32(10).string(message.reportId);
     }
     if (message.includeTransitions !== false) {
@@ -3736,19 +3735,19 @@ export const GetReportRequest: MessageFns<GetReportRequest> = {
       reportId: isSet(object.reportId)
         ? globalThis.String(object.reportId)
         : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : '',
+        ? globalThis.String(object.report_id)
+        : "",
       includeTransitions: isSet(object.includeTransitions)
         ? globalThis.Boolean(object.includeTransitions)
         : isSet(object.include_transitions)
-          ? globalThis.Boolean(object.include_transitions)
-          : false,
+        ? globalThis.Boolean(object.include_transitions)
+        : false,
     };
   },
 
   toJSON(message: GetReportRequest): unknown {
     const obj: any = {};
-    if (message.reportId !== '') {
+    if (message.reportId !== "") {
       obj.reportId = message.reportId;
     }
     if (message.includeTransitions !== false) {
@@ -3762,7 +3761,7 @@ export const GetReportRequest: MessageFns<GetReportRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetReportRequest>, I>>(object: I): GetReportRequest {
     const message = createBaseGetReportRequest();
-    message.reportId = object.reportId ?? '';
+    message.reportId = object.reportId ?? "";
     message.includeTransitions = object.includeTransitions ?? false;
     return message;
   },
@@ -3830,7 +3829,7 @@ export const GetReportResponse: MessageFns<GetReportResponse> = {
       obj.report = Report.toJSON(message.report);
     }
     if (message.transitions?.length) {
-      obj.transitions = message.transitions.map(e => ReportStatusTransition.toJSON(e));
+      obj.transitions = message.transitions.map((e) => ReportStatusTransition.toJSON(e));
     }
     return obj;
   },
@@ -3840,11 +3839,10 @@ export const GetReportResponse: MessageFns<GetReportResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetReportResponse>, I>>(object: I): GetReportResponse {
     const message = createBaseGetReportResponse();
-    message.report =
-      object.report !== undefined && object.report !== null
-        ? Report.fromPartial(object.report)
-        : undefined;
-    message.transitions = object.transitions?.map(e => ReportStatusTransition.fromPartial(e)) || [];
+    message.report = (object.report !== undefined && object.report !== null)
+      ? Report.fromPartial(object.report)
+      : undefined;
+    message.transitions = object.transitions?.map((e) => ReportStatusTransition.fromPartial(e)) || [];
     return message;
   },
 };
@@ -3957,8 +3955,8 @@ export const ListReportsRequest: MessageFns<ListReportsRequest> = {
       assignedModerator: isSet(object.assignedModerator)
         ? globalThis.String(object.assignedModerator)
         : isSet(object.assigned_moderator)
-          ? globalThis.String(object.assigned_moderator)
-          : undefined,
+        ? globalThis.String(object.assigned_moderator)
+        : undefined,
     };
   },
 
@@ -4049,21 +4047,19 @@ export const ListReportsResponse: MessageFns<ListReportsResponse> = {
 
   fromJSON(object: any): ListReportsResponse {
     return {
-      reports: globalThis.Array.isArray(object?.reports)
-        ? object.reports.map((e: any) => Report.fromJSON(e))
-        : [],
+      reports: globalThis.Array.isArray(object?.reports) ? object.reports.map((e: any) => Report.fromJSON(e)) : [],
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-          ? globalThis.String(object.next_cursor)
-          : undefined,
+        ? globalThis.String(object.next_cursor)
+        : undefined,
     };
   },
 
   toJSON(message: ListReportsResponse): unknown {
     const obj: any = {};
     if (message.reports?.length) {
-      obj.reports = message.reports.map(e => Report.toJSON(e));
+      obj.reports = message.reports.map((e) => Report.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -4074,26 +4070,24 @@ export const ListReportsResponse: MessageFns<ListReportsResponse> = {
   create<I extends Exact<DeepPartial<ListReportsResponse>, I>>(base?: I): ListReportsResponse {
     return ListReportsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListReportsResponse>, I>>(
-    object: I
-  ): ListReportsResponse {
+  fromPartial<I extends Exact<DeepPartial<ListReportsResponse>, I>>(object: I): ListReportsResponse {
     const message = createBaseListReportsResponse();
-    message.reports = object.reports?.map(e => Report.fromPartial(e)) || [];
+    message.reports = object.reports?.map((e) => Report.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
 };
 
 function createBaseAssignReportRequest(): AssignReportRequest {
-  return { reportId: '', moderatorId: '', reason: undefined };
+  return { reportId: "", moderatorId: "", reason: undefined };
 }
 
 export const AssignReportRequest: MessageFns<AssignReportRequest> = {
   encode(message: AssignReportRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.reportId !== '') {
+    if (message.reportId !== "") {
       writer.uint32(10).string(message.reportId);
     }
-    if (message.moderatorId !== '') {
+    if (message.moderatorId !== "") {
       writer.uint32(18).string(message.moderatorId);
     }
     if (message.reason !== undefined) {
@@ -4147,23 +4141,23 @@ export const AssignReportRequest: MessageFns<AssignReportRequest> = {
       reportId: isSet(object.reportId)
         ? globalThis.String(object.reportId)
         : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : '',
+        ? globalThis.String(object.report_id)
+        : "",
       moderatorId: isSet(object.moderatorId)
         ? globalThis.String(object.moderatorId)
         : isSet(object.moderator_id)
-          ? globalThis.String(object.moderator_id)
-          : '',
+        ? globalThis.String(object.moderator_id)
+        : "",
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
   },
 
   toJSON(message: AssignReportRequest): unknown {
     const obj: any = {};
-    if (message.reportId !== '') {
+    if (message.reportId !== "") {
       obj.reportId = message.reportId;
     }
-    if (message.moderatorId !== '') {
+    if (message.moderatorId !== "") {
       obj.moderatorId = message.moderatorId;
     }
     if (message.reason !== undefined) {
@@ -4175,12 +4169,10 @@ export const AssignReportRequest: MessageFns<AssignReportRequest> = {
   create<I extends Exact<DeepPartial<AssignReportRequest>, I>>(base?: I): AssignReportRequest {
     return AssignReportRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AssignReportRequest>, I>>(
-    object: I
-  ): AssignReportRequest {
+  fromPartial<I extends Exact<DeepPartial<AssignReportRequest>, I>>(object: I): AssignReportRequest {
     const message = createBaseAssignReportRequest();
-    message.reportId = object.reportId ?? '';
-    message.moderatorId = object.moderatorId ?? '';
+    message.reportId = object.reportId ?? "";
+    message.moderatorId = object.moderatorId ?? "";
     message.reason = object.reason ?? undefined;
     return message;
   },
@@ -4237,28 +4229,25 @@ export const AssignReportResponse: MessageFns<AssignReportResponse> = {
   create<I extends Exact<DeepPartial<AssignReportResponse>, I>>(base?: I): AssignReportResponse {
     return AssignReportResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AssignReportResponse>, I>>(
-    object: I
-  ): AssignReportResponse {
+  fromPartial<I extends Exact<DeepPartial<AssignReportResponse>, I>>(object: I): AssignReportResponse {
     const message = createBaseAssignReportResponse();
-    message.report =
-      object.report !== undefined && object.report !== null
-        ? Report.fromPartial(object.report)
-        : undefined;
+    message.report = (object.report !== undefined && object.report !== null)
+      ? Report.fromPartial(object.report)
+      : undefined;
     return message;
   },
 };
 
 function createBaseResolveReportRequest(): ResolveReportRequest {
-  return { reportId: '', resolution: '', resolutionNotes: undefined };
+  return { reportId: "", resolution: "", resolutionNotes: undefined };
 }
 
 export const ResolveReportRequest: MessageFns<ResolveReportRequest> = {
   encode(message: ResolveReportRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.reportId !== '') {
+    if (message.reportId !== "") {
       writer.uint32(10).string(message.reportId);
     }
-    if (message.resolution !== '') {
+    if (message.resolution !== "") {
       writer.uint32(18).string(message.resolution);
     }
     if (message.resolutionNotes !== undefined) {
@@ -4312,23 +4301,23 @@ export const ResolveReportRequest: MessageFns<ResolveReportRequest> = {
       reportId: isSet(object.reportId)
         ? globalThis.String(object.reportId)
         : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : '',
-      resolution: isSet(object.resolution) ? globalThis.String(object.resolution) : '',
+        ? globalThis.String(object.report_id)
+        : "",
+      resolution: isSet(object.resolution) ? globalThis.String(object.resolution) : "",
       resolutionNotes: isSet(object.resolutionNotes)
         ? globalThis.String(object.resolutionNotes)
         : isSet(object.resolution_notes)
-          ? globalThis.String(object.resolution_notes)
-          : undefined,
+        ? globalThis.String(object.resolution_notes)
+        : undefined,
     };
   },
 
   toJSON(message: ResolveReportRequest): unknown {
     const obj: any = {};
-    if (message.reportId !== '') {
+    if (message.reportId !== "") {
       obj.reportId = message.reportId;
     }
-    if (message.resolution !== '') {
+    if (message.resolution !== "") {
       obj.resolution = message.resolution;
     }
     if (message.resolutionNotes !== undefined) {
@@ -4340,12 +4329,10 @@ export const ResolveReportRequest: MessageFns<ResolveReportRequest> = {
   create<I extends Exact<DeepPartial<ResolveReportRequest>, I>>(base?: I): ResolveReportRequest {
     return ResolveReportRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ResolveReportRequest>, I>>(
-    object: I
-  ): ResolveReportRequest {
+  fromPartial<I extends Exact<DeepPartial<ResolveReportRequest>, I>>(object: I): ResolveReportRequest {
     const message = createBaseResolveReportRequest();
-    message.reportId = object.reportId ?? '';
-    message.resolution = object.resolution ?? '';
+    message.reportId = object.reportId ?? "";
+    message.resolution = object.resolution ?? "";
     message.resolutionNotes = object.resolutionNotes ?? undefined;
     return message;
   },
@@ -4402,14 +4389,11 @@ export const ResolveReportResponse: MessageFns<ResolveReportResponse> = {
   create<I extends Exact<DeepPartial<ResolveReportResponse>, I>>(base?: I): ResolveReportResponse {
     return ResolveReportResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ResolveReportResponse>, I>>(
-    object: I
-  ): ResolveReportResponse {
+  fromPartial<I extends Exact<DeepPartial<ResolveReportResponse>, I>>(object: I): ResolveReportResponse {
     const message = createBaseResolveReportResponse();
-    message.report =
-      object.report !== undefined && object.report !== null
-        ? Report.fromPartial(object.report)
-        : undefined;
+    message.report = (object.report !== undefined && object.report !== null)
+      ? Report.fromPartial(object.report)
+      : undefined;
     return message;
   },
 };
@@ -4418,11 +4402,11 @@ function createBaseLogModeratorActionRequest(): LogModeratorActionRequest {
   return {
     reportId: undefined,
     targetEntityType: 0,
-    targetEntityId: '',
+    targetEntityId: "",
     targetUserId: undefined,
     actionType: 0,
     severity: 0,
-    reason: '',
+    reason: "",
     description: undefined,
     metadataJson: undefined,
     duration: undefined,
@@ -4430,17 +4414,14 @@ function createBaseLogModeratorActionRequest(): LogModeratorActionRequest {
 }
 
 export const LogModeratorActionRequest: MessageFns<LogModeratorActionRequest> = {
-  encode(
-    message: LogModeratorActionRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: LogModeratorActionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.reportId !== undefined) {
       writer.uint32(10).string(message.reportId);
     }
     if (message.targetEntityType !== 0) {
       writer.uint32(16).int32(message.targetEntityType);
     }
-    if (message.targetEntityId !== '') {
+    if (message.targetEntityId !== "") {
       writer.uint32(26).string(message.targetEntityId);
     }
     if (message.targetUserId !== undefined) {
@@ -4452,7 +4433,7 @@ export const LogModeratorActionRequest: MessageFns<LogModeratorActionRequest> = 
     if (message.severity !== 0) {
       writer.uint32(48).int32(message.severity);
     }
-    if (message.reason !== '') {
+    if (message.reason !== "") {
       writer.uint32(58).string(message.reason);
     }
     if (message.description !== undefined) {
@@ -4568,36 +4549,36 @@ export const LogModeratorActionRequest: MessageFns<LogModeratorActionRequest> = 
       reportId: isSet(object.reportId)
         ? globalThis.String(object.reportId)
         : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : undefined,
+        ? globalThis.String(object.report_id)
+        : undefined,
       targetEntityType: isSet(object.targetEntityType)
         ? reportEntityTypeFromJSON(object.targetEntityType)
         : isSet(object.target_entity_type)
-          ? reportEntityTypeFromJSON(object.target_entity_type)
-          : 0,
+        ? reportEntityTypeFromJSON(object.target_entity_type)
+        : 0,
       targetEntityId: isSet(object.targetEntityId)
         ? globalThis.String(object.targetEntityId)
         : isSet(object.target_entity_id)
-          ? globalThis.String(object.target_entity_id)
-          : '',
+        ? globalThis.String(object.target_entity_id)
+        : "",
       targetUserId: isSet(object.targetUserId)
         ? globalThis.String(object.targetUserId)
         : isSet(object.target_user_id)
-          ? globalThis.String(object.target_user_id)
-          : undefined,
+        ? globalThis.String(object.target_user_id)
+        : undefined,
       actionType: isSet(object.actionType)
         ? moderatorActionTypeFromJSON(object.actionType)
         : isSet(object.action_type)
-          ? moderatorActionTypeFromJSON(object.action_type)
-          : 0,
+        ? moderatorActionTypeFromJSON(object.action_type)
+        : 0,
       severity: isSet(object.severity) ? severityFromJSON(object.severity) : 0,
-      reason: isSet(object.reason) ? globalThis.String(object.reason) : '',
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
       metadataJson: isSet(object.metadataJson)
         ? globalThis.String(object.metadataJson)
         : isSet(object.metadata_json)
-          ? globalThis.String(object.metadata_json)
-          : undefined,
+        ? globalThis.String(object.metadata_json)
+        : undefined,
       duration: isSet(object.duration) ? globalThis.Number(object.duration) : undefined,
     };
   },
@@ -4610,7 +4591,7 @@ export const LogModeratorActionRequest: MessageFns<LogModeratorActionRequest> = 
     if (message.targetEntityType !== 0) {
       obj.targetEntityType = reportEntityTypeToJSON(message.targetEntityType);
     }
-    if (message.targetEntityId !== '') {
+    if (message.targetEntityId !== "") {
       obj.targetEntityId = message.targetEntityId;
     }
     if (message.targetUserId !== undefined) {
@@ -4622,7 +4603,7 @@ export const LogModeratorActionRequest: MessageFns<LogModeratorActionRequest> = 
     if (message.severity !== 0) {
       obj.severity = severityToJSON(message.severity);
     }
-    if (message.reason !== '') {
+    if (message.reason !== "") {
       obj.reason = message.reason;
     }
     if (message.description !== undefined) {
@@ -4637,22 +4618,18 @@ export const LogModeratorActionRequest: MessageFns<LogModeratorActionRequest> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<LogModeratorActionRequest>, I>>(
-    base?: I
-  ): LogModeratorActionRequest {
+  create<I extends Exact<DeepPartial<LogModeratorActionRequest>, I>>(base?: I): LogModeratorActionRequest {
     return LogModeratorActionRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<LogModeratorActionRequest>, I>>(
-    object: I
-  ): LogModeratorActionRequest {
+  fromPartial<I extends Exact<DeepPartial<LogModeratorActionRequest>, I>>(object: I): LogModeratorActionRequest {
     const message = createBaseLogModeratorActionRequest();
     message.reportId = object.reportId ?? undefined;
     message.targetEntityType = object.targetEntityType ?? 0;
-    message.targetEntityId = object.targetEntityId ?? '';
+    message.targetEntityId = object.targetEntityId ?? "";
     message.targetUserId = object.targetUserId ?? undefined;
     message.actionType = object.actionType ?? 0;
     message.severity = object.severity ?? 0;
-    message.reason = object.reason ?? '';
+    message.reason = object.reason ?? "";
     message.description = object.description ?? undefined;
     message.metadataJson = object.metadataJson ?? undefined;
     message.duration = object.duration ?? undefined;
@@ -4665,10 +4642,7 @@ function createBaseLogModeratorActionResponse(): LogModeratorActionResponse {
 }
 
 export const LogModeratorActionResponse: MessageFns<LogModeratorActionResponse> = {
-  encode(
-    message: LogModeratorActionResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: LogModeratorActionResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.action !== undefined) {
       ModeratorAction.encode(message.action, writer.uint32(10).fork()).join();
     }
@@ -4711,38 +4685,24 @@ export const LogModeratorActionResponse: MessageFns<LogModeratorActionResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<LogModeratorActionResponse>, I>>(
-    base?: I
-  ): LogModeratorActionResponse {
+  create<I extends Exact<DeepPartial<LogModeratorActionResponse>, I>>(base?: I): LogModeratorActionResponse {
     return LogModeratorActionResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<LogModeratorActionResponse>, I>>(
-    object: I
-  ): LogModeratorActionResponse {
+  fromPartial<I extends Exact<DeepPartial<LogModeratorActionResponse>, I>>(object: I): LogModeratorActionResponse {
     const message = createBaseLogModeratorActionResponse();
-    message.action =
-      object.action !== undefined && object.action !== null
-        ? ModeratorAction.fromPartial(object.action)
-        : undefined;
+    message.action = (object.action !== undefined && object.action !== null)
+      ? ModeratorAction.fromPartial(object.action)
+      : undefined;
     return message;
   },
 };
 
 function createBaseListModeratorActionsRequest(): ListModeratorActionsRequest {
-  return {
-    cursor: undefined,
-    limit: 0,
-    targetUserId: undefined,
-    reportId: undefined,
-    actionType: undefined,
-  };
+  return { cursor: undefined, limit: 0, targetUserId: undefined, reportId: undefined, actionType: undefined };
 }
 
 export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest> = {
-  encode(
-    message: ListModeratorActionsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListModeratorActionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.cursor !== undefined) {
       writer.uint32(10).string(message.cursor);
     }
@@ -4824,18 +4784,18 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
       targetUserId: isSet(object.targetUserId)
         ? globalThis.String(object.targetUserId)
         : isSet(object.target_user_id)
-          ? globalThis.String(object.target_user_id)
-          : undefined,
+        ? globalThis.String(object.target_user_id)
+        : undefined,
       reportId: isSet(object.reportId)
         ? globalThis.String(object.reportId)
         : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : undefined,
+        ? globalThis.String(object.report_id)
+        : undefined,
       actionType: isSet(object.actionType)
         ? moderatorActionTypeFromJSON(object.actionType)
         : isSet(object.action_type)
-          ? moderatorActionTypeFromJSON(object.action_type)
-          : undefined,
+        ? moderatorActionTypeFromJSON(object.action_type)
+        : undefined,
     };
   },
 
@@ -4859,14 +4819,10 @@ export const ListModeratorActionsRequest: MessageFns<ListModeratorActionsRequest
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListModeratorActionsRequest>, I>>(
-    base?: I
-  ): ListModeratorActionsRequest {
+  create<I extends Exact<DeepPartial<ListModeratorActionsRequest>, I>>(base?: I): ListModeratorActionsRequest {
     return ListModeratorActionsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListModeratorActionsRequest>, I>>(
-    object: I
-  ): ListModeratorActionsRequest {
+  fromPartial<I extends Exact<DeepPartial<ListModeratorActionsRequest>, I>>(object: I): ListModeratorActionsRequest {
     const message = createBaseListModeratorActionsRequest();
     message.cursor = object.cursor ?? undefined;
     message.limit = object.limit ?? 0;
@@ -4882,10 +4838,7 @@ function createBaseListModeratorActionsResponse(): ListModeratorActionsResponse 
 }
 
 export const ListModeratorActionsResponse: MessageFns<ListModeratorActionsResponse> = {
-  encode(
-    message: ListModeratorActionsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListModeratorActionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.actions) {
       ModeratorAction.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -4935,15 +4888,15 @@ export const ListModeratorActionsResponse: MessageFns<ListModeratorActionsRespon
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-          ? globalThis.String(object.next_cursor)
-          : undefined,
+        ? globalThis.String(object.next_cursor)
+        : undefined,
     };
   },
 
   toJSON(message: ListModeratorActionsResponse): unknown {
     const obj: any = {};
     if (message.actions?.length) {
-      obj.actions = message.actions.map(e => ModeratorAction.toJSON(e));
+      obj.actions = message.actions.map((e) => ModeratorAction.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -4951,23 +4904,19 @@ export const ListModeratorActionsResponse: MessageFns<ListModeratorActionsRespon
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListModeratorActionsResponse>, I>>(
-    base?: I
-  ): ListModeratorActionsResponse {
+  create<I extends Exact<DeepPartial<ListModeratorActionsResponse>, I>>(base?: I): ListModeratorActionsResponse {
     return ListModeratorActionsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListModeratorActionsResponse>, I>>(
-    object: I
-  ): ListModeratorActionsResponse {
+  fromPartial<I extends Exact<DeepPartial<ListModeratorActionsResponse>, I>>(object: I): ListModeratorActionsResponse {
     const message = createBaseListModeratorActionsResponse();
-    message.actions = object.actions?.map(e => ModeratorAction.fromPartial(e)) || [];
+    message.actions = object.actions?.map((e) => ModeratorAction.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
 };
 
 function createBaseAddEvidenceRequest(): AddEvidenceRequest {
-  return { parentType: 0, parentId: '', type: 0, content: '', description: undefined };
+  return { parentType: 0, parentId: "", type: 0, content: "", description: undefined };
 }
 
 export const AddEvidenceRequest: MessageFns<AddEvidenceRequest> = {
@@ -4975,13 +4924,13 @@ export const AddEvidenceRequest: MessageFns<AddEvidenceRequest> = {
     if (message.parentType !== 0) {
       writer.uint32(8).int32(message.parentType);
     }
-    if (message.parentId !== '') {
+    if (message.parentId !== "") {
       writer.uint32(18).string(message.parentId);
     }
     if (message.type !== 0) {
       writer.uint32(24).int32(message.type);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       writer.uint32(34).string(message.content);
     }
     if (message.description !== undefined) {
@@ -5051,15 +5000,15 @@ export const AddEvidenceRequest: MessageFns<AddEvidenceRequest> = {
       parentType: isSet(object.parentType)
         ? evidenceParentTypeFromJSON(object.parentType)
         : isSet(object.parent_type)
-          ? evidenceParentTypeFromJSON(object.parent_type)
-          : 0,
+        ? evidenceParentTypeFromJSON(object.parent_type)
+        : 0,
       parentId: isSet(object.parentId)
         ? globalThis.String(object.parentId)
         : isSet(object.parent_id)
-          ? globalThis.String(object.parent_id)
-          : '',
+        ? globalThis.String(object.parent_id)
+        : "",
       type: isSet(object.type) ? evidenceTypeFromJSON(object.type) : 0,
-      content: isSet(object.content) ? globalThis.String(object.content) : '',
+      content: isSet(object.content) ? globalThis.String(object.content) : "",
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
     };
   },
@@ -5069,13 +5018,13 @@ export const AddEvidenceRequest: MessageFns<AddEvidenceRequest> = {
     if (message.parentType !== 0) {
       obj.parentType = evidenceParentTypeToJSON(message.parentType);
     }
-    if (message.parentId !== '') {
+    if (message.parentId !== "") {
       obj.parentId = message.parentId;
     }
     if (message.type !== 0) {
       obj.type = evidenceTypeToJSON(message.type);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       obj.content = message.content;
     }
     if (message.description !== undefined) {
@@ -5090,9 +5039,9 @@ export const AddEvidenceRequest: MessageFns<AddEvidenceRequest> = {
   fromPartial<I extends Exact<DeepPartial<AddEvidenceRequest>, I>>(object: I): AddEvidenceRequest {
     const message = createBaseAddEvidenceRequest();
     message.parentType = object.parentType ?? 0;
-    message.parentId = object.parentId ?? '';
+    message.parentId = object.parentId ?? "";
     message.type = object.type ?? 0;
-    message.content = object.content ?? '';
+    message.content = object.content ?? "";
     message.description = object.description ?? undefined;
     return message;
   },
@@ -5149,24 +5098,21 @@ export const AddEvidenceResponse: MessageFns<AddEvidenceResponse> = {
   create<I extends Exact<DeepPartial<AddEvidenceResponse>, I>>(base?: I): AddEvidenceResponse {
     return AddEvidenceResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AddEvidenceResponse>, I>>(
-    object: I
-  ): AddEvidenceResponse {
+  fromPartial<I extends Exact<DeepPartial<AddEvidenceResponse>, I>>(object: I): AddEvidenceResponse {
     const message = createBaseAddEvidenceResponse();
-    message.evidence =
-      object.evidence !== undefined && object.evidence !== null
-        ? Evidence.fromPartial(object.evidence)
-        : undefined;
+    message.evidence = (object.evidence !== undefined && object.evidence !== null)
+      ? Evidence.fromPartial(object.evidence)
+      : undefined;
     return message;
   },
 };
 
 function createBaseIssueSanctionRequest(): IssueSanctionRequest {
   return {
-    userId: '',
+    userId: "",
     sanctionType: 0,
     reason: 0,
-    description: '',
+    description: "",
     duration: undefined,
     reportId: undefined,
     moderatorActionId: undefined,
@@ -5175,7 +5121,7 @@ function createBaseIssueSanctionRequest(): IssueSanctionRequest {
 
 export const IssueSanctionRequest: MessageFns<IssueSanctionRequest> = {
   encode(message: IssueSanctionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     if (message.sanctionType !== 0) {
@@ -5184,7 +5130,7 @@ export const IssueSanctionRequest: MessageFns<IssueSanctionRequest> = {
     if (message.reason !== 0) {
       writer.uint32(24).int32(message.reason);
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       writer.uint32(34).string(message.description);
     }
     if (message.duration !== undefined) {
@@ -5276,32 +5222,32 @@ export const IssueSanctionRequest: MessageFns<IssueSanctionRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       sanctionType: isSet(object.sanctionType)
         ? sanctionTypeFromJSON(object.sanctionType)
         : isSet(object.sanction_type)
-          ? sanctionTypeFromJSON(object.sanction_type)
-          : 0,
+        ? sanctionTypeFromJSON(object.sanction_type)
+        : 0,
       reason: isSet(object.reason) ? sanctionReasonFromJSON(object.reason) : 0,
-      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : "",
       duration: isSet(object.duration) ? globalThis.Number(object.duration) : undefined,
       reportId: isSet(object.reportId)
         ? globalThis.String(object.reportId)
         : isSet(object.report_id)
-          ? globalThis.String(object.report_id)
-          : undefined,
+        ? globalThis.String(object.report_id)
+        : undefined,
       moderatorActionId: isSet(object.moderatorActionId)
         ? globalThis.String(object.moderatorActionId)
         : isSet(object.moderator_action_id)
-          ? globalThis.String(object.moderator_action_id)
-          : undefined,
+        ? globalThis.String(object.moderator_action_id)
+        : undefined,
     };
   },
 
   toJSON(message: IssueSanctionRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.sanctionType !== 0) {
@@ -5310,7 +5256,7 @@ export const IssueSanctionRequest: MessageFns<IssueSanctionRequest> = {
     if (message.reason !== 0) {
       obj.reason = sanctionReasonToJSON(message.reason);
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       obj.description = message.description;
     }
     if (message.duration !== undefined) {
@@ -5328,14 +5274,12 @@ export const IssueSanctionRequest: MessageFns<IssueSanctionRequest> = {
   create<I extends Exact<DeepPartial<IssueSanctionRequest>, I>>(base?: I): IssueSanctionRequest {
     return IssueSanctionRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<IssueSanctionRequest>, I>>(
-    object: I
-  ): IssueSanctionRequest {
+  fromPartial<I extends Exact<DeepPartial<IssueSanctionRequest>, I>>(object: I): IssueSanctionRequest {
     const message = createBaseIssueSanctionRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     message.sanctionType = object.sanctionType ?? 0;
     message.reason = object.reason ?? 0;
-    message.description = object.description ?? '';
+    message.description = object.description ?? "";
     message.duration = object.duration ?? undefined;
     message.reportId = object.reportId ?? undefined;
     message.moderatorActionId = object.moderatorActionId ?? undefined;
@@ -5380,9 +5324,7 @@ export const IssueSanctionResponse: MessageFns<IssueSanctionResponse> = {
   },
 
   fromJSON(object: any): IssueSanctionResponse {
-    return {
-      sanction: isSet(object.sanction) ? UserSanction.fromJSON(object.sanction) : undefined,
-    };
+    return { sanction: isSet(object.sanction) ? UserSanction.fromJSON(object.sanction) : undefined };
   },
 
   toJSON(message: IssueSanctionResponse): unknown {
@@ -5396,28 +5338,22 @@ export const IssueSanctionResponse: MessageFns<IssueSanctionResponse> = {
   create<I extends Exact<DeepPartial<IssueSanctionResponse>, I>>(base?: I): IssueSanctionResponse {
     return IssueSanctionResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<IssueSanctionResponse>, I>>(
-    object: I
-  ): IssueSanctionResponse {
+  fromPartial<I extends Exact<DeepPartial<IssueSanctionResponse>, I>>(object: I): IssueSanctionResponse {
     const message = createBaseIssueSanctionResponse();
-    message.sanction =
-      object.sanction !== undefined && object.sanction !== null
-        ? UserSanction.fromPartial(object.sanction)
-        : undefined;
+    message.sanction = (object.sanction !== undefined && object.sanction !== null)
+      ? UserSanction.fromPartial(object.sanction)
+      : undefined;
     return message;
   },
 };
 
 function createBaseListUserSanctionsRequest(): ListUserSanctionsRequest {
-  return { userId: '', includeInactive: false };
+  return { userId: "", includeInactive: false };
 }
 
 export const ListUserSanctionsRequest: MessageFns<ListUserSanctionsRequest> = {
-  encode(
-    message: ListUserSanctionsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.userId !== '') {
+  encode(message: ListUserSanctionsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     if (message.includeInactive !== false) {
@@ -5463,19 +5399,19 @@ export const ListUserSanctionsRequest: MessageFns<ListUserSanctionsRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       includeInactive: isSet(object.includeInactive)
         ? globalThis.Boolean(object.includeInactive)
         : isSet(object.include_inactive)
-          ? globalThis.Boolean(object.include_inactive)
-          : false,
+        ? globalThis.Boolean(object.include_inactive)
+        : false,
     };
   },
 
   toJSON(message: ListUserSanctionsRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.includeInactive !== false) {
@@ -5484,16 +5420,12 @@ export const ListUserSanctionsRequest: MessageFns<ListUserSanctionsRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListUserSanctionsRequest>, I>>(
-    base?: I
-  ): ListUserSanctionsRequest {
+  create<I extends Exact<DeepPartial<ListUserSanctionsRequest>, I>>(base?: I): ListUserSanctionsRequest {
     return ListUserSanctionsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListUserSanctionsRequest>, I>>(
-    object: I
-  ): ListUserSanctionsRequest {
+  fromPartial<I extends Exact<DeepPartial<ListUserSanctionsRequest>, I>>(object: I): ListUserSanctionsRequest {
     const message = createBaseListUserSanctionsRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     message.includeInactive = object.includeInactive ?? false;
     return message;
   },
@@ -5504,10 +5436,7 @@ function createBaseListUserSanctionsResponse(): ListUserSanctionsResponse {
 }
 
 export const ListUserSanctionsResponse: MessageFns<ListUserSanctionsResponse> = {
-  encode(
-    message: ListUserSanctionsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListUserSanctionsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.sanctions) {
       UserSanction.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -5549,35 +5478,31 @@ export const ListUserSanctionsResponse: MessageFns<ListUserSanctionsResponse> = 
   toJSON(message: ListUserSanctionsResponse): unknown {
     const obj: any = {};
     if (message.sanctions?.length) {
-      obj.sanctions = message.sanctions.map(e => UserSanction.toJSON(e));
+      obj.sanctions = message.sanctions.map((e) => UserSanction.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListUserSanctionsResponse>, I>>(
-    base?: I
-  ): ListUserSanctionsResponse {
+  create<I extends Exact<DeepPartial<ListUserSanctionsResponse>, I>>(base?: I): ListUserSanctionsResponse {
     return ListUserSanctionsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListUserSanctionsResponse>, I>>(
-    object: I
-  ): ListUserSanctionsResponse {
+  fromPartial<I extends Exact<DeepPartial<ListUserSanctionsResponse>, I>>(object: I): ListUserSanctionsResponse {
     const message = createBaseListUserSanctionsResponse();
-    message.sanctions = object.sanctions?.map(e => UserSanction.fromPartial(e)) || [];
+    message.sanctions = object.sanctions?.map((e) => UserSanction.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseAppealSanctionRequest(): AppealSanctionRequest {
-  return { sanctionId: '', appealReason: '' };
+  return { sanctionId: "", appealReason: "" };
 }
 
 export const AppealSanctionRequest: MessageFns<AppealSanctionRequest> = {
   encode(message: AppealSanctionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sanctionId !== '') {
+    if (message.sanctionId !== "") {
       writer.uint32(10).string(message.sanctionId);
     }
-    if (message.appealReason !== '') {
+    if (message.appealReason !== "") {
       writer.uint32(18).string(message.appealReason);
     }
     return writer;
@@ -5620,22 +5545,22 @@ export const AppealSanctionRequest: MessageFns<AppealSanctionRequest> = {
       sanctionId: isSet(object.sanctionId)
         ? globalThis.String(object.sanctionId)
         : isSet(object.sanction_id)
-          ? globalThis.String(object.sanction_id)
-          : '',
+        ? globalThis.String(object.sanction_id)
+        : "",
       appealReason: isSet(object.appealReason)
         ? globalThis.String(object.appealReason)
         : isSet(object.appeal_reason)
-          ? globalThis.String(object.appeal_reason)
-          : '',
+        ? globalThis.String(object.appeal_reason)
+        : "",
     };
   },
 
   toJSON(message: AppealSanctionRequest): unknown {
     const obj: any = {};
-    if (message.sanctionId !== '') {
+    if (message.sanctionId !== "") {
       obj.sanctionId = message.sanctionId;
     }
-    if (message.appealReason !== '') {
+    if (message.appealReason !== "") {
       obj.appealReason = message.appealReason;
     }
     return obj;
@@ -5644,12 +5569,10 @@ export const AppealSanctionRequest: MessageFns<AppealSanctionRequest> = {
   create<I extends Exact<DeepPartial<AppealSanctionRequest>, I>>(base?: I): AppealSanctionRequest {
     return AppealSanctionRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AppealSanctionRequest>, I>>(
-    object: I
-  ): AppealSanctionRequest {
+  fromPartial<I extends Exact<DeepPartial<AppealSanctionRequest>, I>>(object: I): AppealSanctionRequest {
     const message = createBaseAppealSanctionRequest();
-    message.sanctionId = object.sanctionId ?? '';
-    message.appealReason = object.appealReason ?? '';
+    message.sanctionId = object.sanctionId ?? "";
+    message.appealReason = object.appealReason ?? "";
     return message;
   },
 };
@@ -5691,9 +5614,7 @@ export const AppealSanctionResponse: MessageFns<AppealSanctionResponse> = {
   },
 
   fromJSON(object: any): AppealSanctionResponse {
-    return {
-      sanction: isSet(object.sanction) ? UserSanction.fromJSON(object.sanction) : undefined,
-    };
+    return { sanction: isSet(object.sanction) ? UserSanction.fromJSON(object.sanction) : undefined };
   },
 
   toJSON(message: AppealSanctionResponse): unknown {
@@ -5704,19 +5625,14 @@ export const AppealSanctionResponse: MessageFns<AppealSanctionResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<AppealSanctionResponse>, I>>(
-    base?: I
-  ): AppealSanctionResponse {
+  create<I extends Exact<DeepPartial<AppealSanctionResponse>, I>>(base?: I): AppealSanctionResponse {
     return AppealSanctionResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AppealSanctionResponse>, I>>(
-    object: I
-  ): AppealSanctionResponse {
+  fromPartial<I extends Exact<DeepPartial<AppealSanctionResponse>, I>>(object: I): AppealSanctionResponse {
     const message = createBaseAppealSanctionResponse();
-    message.sanction =
-      object.sanction !== undefined && object.sanction !== null
-        ? UserSanction.fromPartial(object.sanction)
-        : undefined;
+    message.sanction = (object.sanction !== undefined && object.sanction !== null)
+      ? UserSanction.fromPartial(object.sanction)
+      : undefined;
     return message;
   },
 };
@@ -5724,25 +5640,22 @@ export const AppealSanctionResponse: MessageFns<AppealSanctionResponse> = {
 function createBaseOpenSupportTicketRequest(): OpenSupportTicketRequest {
   return {
     userId: undefined,
-    userEmail: '',
+    userEmail: "",
     userName: undefined,
     priority: 0,
     category: 0,
-    subject: '',
-    description: '',
+    subject: "",
+    description: "",
     tags: [],
   };
 }
 
 export const OpenSupportTicketRequest: MessageFns<OpenSupportTicketRequest> = {
-  encode(
-    message: OpenSupportTicketRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: OpenSupportTicketRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.userId !== undefined) {
       writer.uint32(10).string(message.userId);
     }
-    if (message.userEmail !== '') {
+    if (message.userEmail !== "") {
       writer.uint32(18).string(message.userEmail);
     }
     if (message.userName !== undefined) {
@@ -5754,10 +5667,10 @@ export const OpenSupportTicketRequest: MessageFns<OpenSupportTicketRequest> = {
     if (message.category !== 0) {
       writer.uint32(40).int32(message.category);
     }
-    if (message.subject !== '') {
+    if (message.subject !== "") {
       writer.uint32(50).string(message.subject);
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       writer.uint32(58).string(message.description);
     }
     for (const v of message.tags) {
@@ -5851,25 +5764,23 @@ export const OpenSupportTicketRequest: MessageFns<OpenSupportTicketRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
       userEmail: isSet(object.userEmail)
         ? globalThis.String(object.userEmail)
         : isSet(object.user_email)
-          ? globalThis.String(object.user_email)
-          : '',
+        ? globalThis.String(object.user_email)
+        : "",
       userName: isSet(object.userName)
         ? globalThis.String(object.userName)
         : isSet(object.user_name)
-          ? globalThis.String(object.user_name)
-          : undefined,
+        ? globalThis.String(object.user_name)
+        : undefined,
       priority: isSet(object.priority) ? supportTicketPriorityFromJSON(object.priority) : 0,
       category: isSet(object.category) ? supportTicketCategoryFromJSON(object.category) : 0,
-      subject: isSet(object.subject) ? globalThis.String(object.subject) : '',
-      description: isSet(object.description) ? globalThis.String(object.description) : '',
-      tags: globalThis.Array.isArray(object?.tags)
-        ? object.tags.map((e: any) => globalThis.String(e))
-        : [],
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : "",
+      description: isSet(object.description) ? globalThis.String(object.description) : "",
+      tags: globalThis.Array.isArray(object?.tags) ? object.tags.map((e: any) => globalThis.String(e)) : [],
     };
   },
 
@@ -5878,7 +5789,7 @@ export const OpenSupportTicketRequest: MessageFns<OpenSupportTicketRequest> = {
     if (message.userId !== undefined) {
       obj.userId = message.userId;
     }
-    if (message.userEmail !== '') {
+    if (message.userEmail !== "") {
       obj.userEmail = message.userEmail;
     }
     if (message.userName !== undefined) {
@@ -5890,10 +5801,10 @@ export const OpenSupportTicketRequest: MessageFns<OpenSupportTicketRequest> = {
     if (message.category !== 0) {
       obj.category = supportTicketCategoryToJSON(message.category);
     }
-    if (message.subject !== '') {
+    if (message.subject !== "") {
       obj.subject = message.subject;
     }
-    if (message.description !== '') {
+    if (message.description !== "") {
       obj.description = message.description;
     }
     if (message.tags?.length) {
@@ -5902,23 +5813,19 @@ export const OpenSupportTicketRequest: MessageFns<OpenSupportTicketRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<OpenSupportTicketRequest>, I>>(
-    base?: I
-  ): OpenSupportTicketRequest {
+  create<I extends Exact<DeepPartial<OpenSupportTicketRequest>, I>>(base?: I): OpenSupportTicketRequest {
     return OpenSupportTicketRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<OpenSupportTicketRequest>, I>>(
-    object: I
-  ): OpenSupportTicketRequest {
+  fromPartial<I extends Exact<DeepPartial<OpenSupportTicketRequest>, I>>(object: I): OpenSupportTicketRequest {
     const message = createBaseOpenSupportTicketRequest();
     message.userId = object.userId ?? undefined;
-    message.userEmail = object.userEmail ?? '';
+    message.userEmail = object.userEmail ?? "";
     message.userName = object.userName ?? undefined;
     message.priority = object.priority ?? 0;
     message.category = object.category ?? 0;
-    message.subject = object.subject ?? '';
-    message.description = object.description ?? '';
-    message.tags = object.tags?.map(e => e) || [];
+    message.subject = object.subject ?? "";
+    message.description = object.description ?? "";
+    message.tags = object.tags?.map((e) => e) || [];
     return message;
   },
 };
@@ -5928,10 +5835,7 @@ function createBaseOpenSupportTicketResponse(): OpenSupportTicketResponse {
 }
 
 export const OpenSupportTicketResponse: MessageFns<OpenSupportTicketResponse> = {
-  encode(
-    message: OpenSupportTicketResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: OpenSupportTicketResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.ticket !== undefined) {
       SupportTicket.encode(message.ticket, writer.uint32(10).fork()).join();
     }
@@ -5974,33 +5878,25 @@ export const OpenSupportTicketResponse: MessageFns<OpenSupportTicketResponse> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<OpenSupportTicketResponse>, I>>(
-    base?: I
-  ): OpenSupportTicketResponse {
+  create<I extends Exact<DeepPartial<OpenSupportTicketResponse>, I>>(base?: I): OpenSupportTicketResponse {
     return OpenSupportTicketResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<OpenSupportTicketResponse>, I>>(
-    object: I
-  ): OpenSupportTicketResponse {
+  fromPartial<I extends Exact<DeepPartial<OpenSupportTicketResponse>, I>>(object: I): OpenSupportTicketResponse {
     const message = createBaseOpenSupportTicketResponse();
-    message.ticket =
-      object.ticket !== undefined && object.ticket !== null
-        ? SupportTicket.fromPartial(object.ticket)
-        : undefined;
+    message.ticket = (object.ticket !== undefined && object.ticket !== null)
+      ? SupportTicket.fromPartial(object.ticket)
+      : undefined;
     return message;
   },
 };
 
 function createBaseGetSupportTicketRequest(): GetSupportTicketRequest {
-  return { ticketId: '', includeResponses: false };
+  return { ticketId: "", includeResponses: false };
 }
 
 export const GetSupportTicketRequest: MessageFns<GetSupportTicketRequest> = {
-  encode(
-    message: GetSupportTicketRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.ticketId !== '') {
+  encode(message: GetSupportTicketRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ticketId !== "") {
       writer.uint32(10).string(message.ticketId);
     }
     if (message.includeResponses !== false) {
@@ -6046,19 +5942,19 @@ export const GetSupportTicketRequest: MessageFns<GetSupportTicketRequest> = {
       ticketId: isSet(object.ticketId)
         ? globalThis.String(object.ticketId)
         : isSet(object.ticket_id)
-          ? globalThis.String(object.ticket_id)
-          : '',
+        ? globalThis.String(object.ticket_id)
+        : "",
       includeResponses: isSet(object.includeResponses)
         ? globalThis.Boolean(object.includeResponses)
         : isSet(object.include_responses)
-          ? globalThis.Boolean(object.include_responses)
-          : false,
+        ? globalThis.Boolean(object.include_responses)
+        : false,
     };
   },
 
   toJSON(message: GetSupportTicketRequest): unknown {
     const obj: any = {};
-    if (message.ticketId !== '') {
+    if (message.ticketId !== "") {
       obj.ticketId = message.ticketId;
     }
     if (message.includeResponses !== false) {
@@ -6067,16 +5963,12 @@ export const GetSupportTicketRequest: MessageFns<GetSupportTicketRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetSupportTicketRequest>, I>>(
-    base?: I
-  ): GetSupportTicketRequest {
+  create<I extends Exact<DeepPartial<GetSupportTicketRequest>, I>>(base?: I): GetSupportTicketRequest {
     return GetSupportTicketRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetSupportTicketRequest>, I>>(
-    object: I
-  ): GetSupportTicketRequest {
+  fromPartial<I extends Exact<DeepPartial<GetSupportTicketRequest>, I>>(object: I): GetSupportTicketRequest {
     const message = createBaseGetSupportTicketRequest();
-    message.ticketId = object.ticketId ?? '';
+    message.ticketId = object.ticketId ?? "";
     message.includeResponses = object.includeResponses ?? false;
     return message;
   },
@@ -6087,10 +5979,7 @@ function createBaseGetSupportTicketResponse(): GetSupportTicketResponse {
 }
 
 export const GetSupportTicketResponse: MessageFns<GetSupportTicketResponse> = {
-  encode(
-    message: GetSupportTicketResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetSupportTicketResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.ticket !== undefined) {
       SupportTicket.encode(message.ticket, writer.uint32(10).fork()).join();
     }
@@ -6147,25 +6036,20 @@ export const GetSupportTicketResponse: MessageFns<GetSupportTicketResponse> = {
       obj.ticket = SupportTicket.toJSON(message.ticket);
     }
     if (message.responses?.length) {
-      obj.responses = message.responses.map(e => SupportTicketResponse.toJSON(e));
+      obj.responses = message.responses.map((e) => SupportTicketResponse.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetSupportTicketResponse>, I>>(
-    base?: I
-  ): GetSupportTicketResponse {
+  create<I extends Exact<DeepPartial<GetSupportTicketResponse>, I>>(base?: I): GetSupportTicketResponse {
     return GetSupportTicketResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetSupportTicketResponse>, I>>(
-    object: I
-  ): GetSupportTicketResponse {
+  fromPartial<I extends Exact<DeepPartial<GetSupportTicketResponse>, I>>(object: I): GetSupportTicketResponse {
     const message = createBaseGetSupportTicketResponse();
-    message.ticket =
-      object.ticket !== undefined && object.ticket !== null
-        ? SupportTicket.fromPartial(object.ticket)
-        : undefined;
-    message.responses = object.responses?.map(e => SupportTicketResponse.fromPartial(e)) || [];
+    message.ticket = (object.ticket !== undefined && object.ticket !== null)
+      ? SupportTicket.fromPartial(object.ticket)
+      : undefined;
+    message.responses = object.responses?.map((e) => SupportTicketResponse.fromPartial(e)) || [];
     return message;
   },
 };
@@ -6183,10 +6067,7 @@ function createBaseListSupportTicketsRequest(): ListSupportTicketsRequest {
 }
 
 export const ListSupportTicketsRequest: MessageFns<ListSupportTicketsRequest> = {
-  encode(
-    message: ListSupportTicketsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListSupportTicketsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.cursor !== undefined) {
       writer.uint32(10).string(message.cursor);
     }
@@ -6293,13 +6174,13 @@ export const ListSupportTicketsRequest: MessageFns<ListSupportTicketsRequest> = 
       assignedTo: isSet(object.assignedTo)
         ? globalThis.String(object.assignedTo)
         : isSet(object.assigned_to)
-          ? globalThis.String(object.assigned_to)
-          : undefined,
+        ? globalThis.String(object.assigned_to)
+        : undefined,
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
     };
   },
 
@@ -6329,14 +6210,10 @@ export const ListSupportTicketsRequest: MessageFns<ListSupportTicketsRequest> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListSupportTicketsRequest>, I>>(
-    base?: I
-  ): ListSupportTicketsRequest {
+  create<I extends Exact<DeepPartial<ListSupportTicketsRequest>, I>>(base?: I): ListSupportTicketsRequest {
     return ListSupportTicketsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListSupportTicketsRequest>, I>>(
-    object: I
-  ): ListSupportTicketsRequest {
+  fromPartial<I extends Exact<DeepPartial<ListSupportTicketsRequest>, I>>(object: I): ListSupportTicketsRequest {
     const message = createBaseListSupportTicketsRequest();
     message.cursor = object.cursor ?? undefined;
     message.limit = object.limit ?? 0;
@@ -6354,10 +6231,7 @@ function createBaseListSupportTicketsResponse(): ListSupportTicketsResponse {
 }
 
 export const ListSupportTicketsResponse: MessageFns<ListSupportTicketsResponse> = {
-  encode(
-    message: ListSupportTicketsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListSupportTicketsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.tickets) {
       SupportTicket.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -6407,15 +6281,15 @@ export const ListSupportTicketsResponse: MessageFns<ListSupportTicketsResponse> 
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-          ? globalThis.String(object.next_cursor)
-          : undefined,
+        ? globalThis.String(object.next_cursor)
+        : undefined,
     };
   },
 
   toJSON(message: ListSupportTicketsResponse): unknown {
     const obj: any = {};
     if (message.tickets?.length) {
-      obj.tickets = message.tickets.map(e => SupportTicket.toJSON(e));
+      obj.tickets = message.tickets.map((e) => SupportTicket.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -6423,31 +6297,27 @@ export const ListSupportTicketsResponse: MessageFns<ListSupportTicketsResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListSupportTicketsResponse>, I>>(
-    base?: I
-  ): ListSupportTicketsResponse {
+  create<I extends Exact<DeepPartial<ListSupportTicketsResponse>, I>>(base?: I): ListSupportTicketsResponse {
     return ListSupportTicketsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListSupportTicketsResponse>, I>>(
-    object: I
-  ): ListSupportTicketsResponse {
+  fromPartial<I extends Exact<DeepPartial<ListSupportTicketsResponse>, I>>(object: I): ListSupportTicketsResponse {
     const message = createBaseListSupportTicketsResponse();
-    message.tickets = object.tickets?.map(e => SupportTicket.fromPartial(e)) || [];
+    message.tickets = object.tickets?.map((e) => SupportTicket.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
 };
 
 function createBaseRespondToTicketRequest(): RespondToTicketRequest {
-  return { ticketId: '', content: '', isInternal: false };
+  return { ticketId: "", content: "", isInternal: false };
 }
 
 export const RespondToTicketRequest: MessageFns<RespondToTicketRequest> = {
   encode(message: RespondToTicketRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.ticketId !== '') {
+    if (message.ticketId !== "") {
       writer.uint32(10).string(message.ticketId);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       writer.uint32(18).string(message.content);
     }
     if (message.isInternal !== false) {
@@ -6501,23 +6371,23 @@ export const RespondToTicketRequest: MessageFns<RespondToTicketRequest> = {
       ticketId: isSet(object.ticketId)
         ? globalThis.String(object.ticketId)
         : isSet(object.ticket_id)
-          ? globalThis.String(object.ticket_id)
-          : '',
-      content: isSet(object.content) ? globalThis.String(object.content) : '',
+        ? globalThis.String(object.ticket_id)
+        : "",
+      content: isSet(object.content) ? globalThis.String(object.content) : "",
       isInternal: isSet(object.isInternal)
         ? globalThis.Boolean(object.isInternal)
         : isSet(object.is_internal)
-          ? globalThis.Boolean(object.is_internal)
-          : false,
+        ? globalThis.Boolean(object.is_internal)
+        : false,
     };
   },
 
   toJSON(message: RespondToTicketRequest): unknown {
     const obj: any = {};
-    if (message.ticketId !== '') {
+    if (message.ticketId !== "") {
       obj.ticketId = message.ticketId;
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       obj.content = message.content;
     }
     if (message.isInternal !== false) {
@@ -6526,17 +6396,13 @@ export const RespondToTicketRequest: MessageFns<RespondToTicketRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RespondToTicketRequest>, I>>(
-    base?: I
-  ): RespondToTicketRequest {
+  create<I extends Exact<DeepPartial<RespondToTicketRequest>, I>>(base?: I): RespondToTicketRequest {
     return RespondToTicketRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RespondToTicketRequest>, I>>(
-    object: I
-  ): RespondToTicketRequest {
+  fromPartial<I extends Exact<DeepPartial<RespondToTicketRequest>, I>>(object: I): RespondToTicketRequest {
     const message = createBaseRespondToTicketRequest();
-    message.ticketId = object.ticketId ?? '';
-    message.content = object.content ?? '';
+    message.ticketId = object.ticketId ?? "";
+    message.content = object.content ?? "";
     message.isInternal = object.isInternal ?? false;
     return message;
   },
@@ -6547,10 +6413,7 @@ function createBaseRespondToTicketResponse(): RespondToTicketResponse {
 }
 
 export const RespondToTicketResponse: MessageFns<RespondToTicketResponse> = {
-  encode(
-    message: RespondToTicketResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RespondToTicketResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.response !== undefined) {
       SupportTicketResponse.encode(message.response, writer.uint32(10).fork()).join();
     }
@@ -6582,11 +6445,7 @@ export const RespondToTicketResponse: MessageFns<RespondToTicketResponse> = {
   },
 
   fromJSON(object: any): RespondToTicketResponse {
-    return {
-      response: isSet(object.response)
-        ? SupportTicketResponse.fromJSON(object.response)
-        : undefined,
-    };
+    return { response: isSet(object.response) ? SupportTicketResponse.fromJSON(object.response) : undefined };
   },
 
   toJSON(message: RespondToTicketResponse): unknown {
@@ -6597,19 +6456,14 @@ export const RespondToTicketResponse: MessageFns<RespondToTicketResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RespondToTicketResponse>, I>>(
-    base?: I
-  ): RespondToTicketResponse {
+  create<I extends Exact<DeepPartial<RespondToTicketResponse>, I>>(base?: I): RespondToTicketResponse {
     return RespondToTicketResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RespondToTicketResponse>, I>>(
-    object: I
-  ): RespondToTicketResponse {
+  fromPartial<I extends Exact<DeepPartial<RespondToTicketResponse>, I>>(object: I): RespondToTicketResponse {
     const message = createBaseRespondToTicketResponse();
-    message.response =
-      object.response !== undefined && object.response !== null
-        ? SupportTicketResponse.fromPartial(object.response)
-        : undefined;
+    message.response = (object.response !== undefined && object.response !== null)
+      ? SupportTicketResponse.fromPartial(object.response)
+      : undefined;
     return message;
   },
 };
@@ -6640,14 +6494,12 @@ export const ModerationServiceService = {
    * notification fan-out and the audit subscriber both see it.
    */
   fileReport: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/FileReport' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/FileReport" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: FileReportRequest): Buffer =>
-      Buffer.from(FileReportRequest.encode(value).finish()),
+    requestSerialize: (value: FileReportRequest): Buffer => Buffer.from(FileReportRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): FileReportRequest => FileReportRequest.decode(value),
-    responseSerialize: (value: FileReportResponse): Buffer =>
-      Buffer.from(FileReportResponse.encode(value).finish()),
+    responseSerialize: (value: FileReportResponse): Buffer => Buffer.from(FileReportResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): FileReportResponse => FileReportResponse.decode(value),
   },
   /**
@@ -6656,14 +6508,12 @@ export const ModerationServiceService = {
    * moderator, or an admin.
    */
   getReport: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/GetReport' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/GetReport" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetReportRequest): Buffer =>
-      Buffer.from(GetReportRequest.encode(value).finish()),
+    requestSerialize: (value: GetReportRequest): Buffer => Buffer.from(GetReportRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetReportRequest => GetReportRequest.decode(value),
-    responseSerialize: (value: GetReportResponse): Buffer =>
-      Buffer.from(GetReportResponse.encode(value).finish()),
+    responseSerialize: (value: GetReportResponse): Buffer => Buffer.from(GetReportResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetReportResponse => GetReportResponse.decode(value),
   },
   /**
@@ -6672,14 +6522,12 @@ export const ModerationServiceService = {
    * both hit this RPC.
    */
   listReports: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/ListReports' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/ListReports" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ListReportsRequest): Buffer =>
-      Buffer.from(ListReportsRequest.encode(value).finish()),
+    requestSerialize: (value: ListReportsRequest): Buffer => Buffer.from(ListReportsRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListReportsRequest => ListReportsRequest.decode(value),
-    responseSerialize: (value: ListReportsResponse): Buffer =>
-      Buffer.from(ListReportsResponse.encode(value).finish()),
+    responseSerialize: (value: ListReportsResponse): Buffer => Buffer.from(ListReportsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListReportsResponse => ListReportsResponse.decode(value),
   },
   /**
@@ -6688,32 +6536,28 @@ export const ModerationServiceService = {
    * moderation.reportAssigned.
    */
   assignReport: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/AssignReport' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/AssignReport" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: AssignReportRequest): Buffer =>
-      Buffer.from(AssignReportRequest.encode(value).finish()),
+    requestSerialize: (value: AssignReportRequest): Buffer => Buffer.from(AssignReportRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): AssignReportRequest => AssignReportRequest.decode(value),
     responseSerialize: (value: AssignReportResponse): Buffer =>
       Buffer.from(AssignReportResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AssignReportResponse =>
-      AssignReportResponse.decode(value),
+    responseDeserialize: (value: Buffer): AssignReportResponse => AssignReportResponse.decode(value),
   },
   /**
    * Resolve a report. Writes the resolution metadata + status
    * transition (resolved). Publishes moderation.reportResolved.
    */
   resolveReport: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/ResolveReport' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/ResolveReport" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ResolveReportRequest): Buffer =>
-      Buffer.from(ResolveReportRequest.encode(value).finish()),
+    requestSerialize: (value: ResolveReportRequest): Buffer => Buffer.from(ResolveReportRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ResolveReportRequest => ResolveReportRequest.decode(value),
     responseSerialize: (value: ResolveReportResponse): Buffer =>
       Buffer.from(ResolveReportResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ResolveReportResponse =>
-      ResolveReportResponse.decode(value),
+    responseDeserialize: (value: Buffer): ResolveReportResponse => ResolveReportResponse.decode(value),
   },
   /**
    * Log a moderator action (warning issued, content removed, user
@@ -6722,34 +6566,30 @@ export const ModerationServiceService = {
    * forensic record.
    */
   logModeratorAction: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/LogModeratorAction' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/LogModeratorAction" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: LogModeratorActionRequest): Buffer =>
       Buffer.from(LogModeratorActionRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): LogModeratorActionRequest =>
-      LogModeratorActionRequest.decode(value),
+    requestDeserialize: (value: Buffer): LogModeratorActionRequest => LogModeratorActionRequest.decode(value),
     responseSerialize: (value: LogModeratorActionResponse): Buffer =>
       Buffer.from(LogModeratorActionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): LogModeratorActionResponse =>
-      LogModeratorActionResponse.decode(value),
+    responseDeserialize: (value: Buffer): LogModeratorActionResponse => LogModeratorActionResponse.decode(value),
   },
   /**
    * List moderator actions, filterable by target_user / report /
    * action_type. Powers the user-history modal in admin UI.
    */
   listModeratorActions: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/ListModeratorActions' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/ListModeratorActions" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListModeratorActionsRequest): Buffer =>
       Buffer.from(ListModeratorActionsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListModeratorActionsRequest =>
-      ListModeratorActionsRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListModeratorActionsRequest => ListModeratorActionsRequest.decode(value),
     responseSerialize: (value: ListModeratorActionsResponse): Buffer =>
       Buffer.from(ListModeratorActionsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListModeratorActionsResponse =>
-      ListModeratorActionsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListModeratorActionsResponse => ListModeratorActionsResponse.decode(value),
   },
   /**
    * Attach an evidence record to a report or moderator action.
@@ -6757,14 +6597,12 @@ export const ModerationServiceService = {
    * (URL, screenshot S3 key, raw text snippet).
    */
   addEvidence: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/AddEvidence' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/AddEvidence" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: AddEvidenceRequest): Buffer =>
-      Buffer.from(AddEvidenceRequest.encode(value).finish()),
+    requestSerialize: (value: AddEvidenceRequest): Buffer => Buffer.from(AddEvidenceRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): AddEvidenceRequest => AddEvidenceRequest.decode(value),
-    responseSerialize: (value: AddEvidenceResponse): Buffer =>
-      Buffer.from(AddEvidenceResponse.encode(value).finish()),
+    responseSerialize: (value: AddEvidenceResponse): Buffer => Buffer.from(AddEvidenceResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): AddEvidenceResponse => AddEvidenceResponse.decode(value),
   },
   /**
@@ -6773,16 +6611,14 @@ export const ModerationServiceService = {
    * notifications fans to the affected user.
    */
   issueSanction: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/IssueSanction' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/IssueSanction" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: IssueSanctionRequest): Buffer =>
-      Buffer.from(IssueSanctionRequest.encode(value).finish()),
+    requestSerialize: (value: IssueSanctionRequest): Buffer => Buffer.from(IssueSanctionRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): IssueSanctionRequest => IssueSanctionRequest.decode(value),
     responseSerialize: (value: IssueSanctionResponse): Buffer =>
       Buffer.from(IssueSanctionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): IssueSanctionResponse =>
-      IssueSanctionResponse.decode(value),
+    responseDeserialize: (value: Buffer): IssueSanctionResponse => IssueSanctionResponse.decode(value),
   },
   /**
    * List a user's sanctions — the banner query the auth/sanctions
@@ -6791,17 +6627,15 @@ export const ModerationServiceService = {
    * backs this).
    */
   listUserSanctions: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/ListUserSanctions' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/ListUserSanctions" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListUserSanctionsRequest): Buffer =>
       Buffer.from(ListUserSanctionsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListUserSanctionsRequest =>
-      ListUserSanctionsRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListUserSanctionsRequest => ListUserSanctionsRequest.decode(value),
     responseSerialize: (value: ListUserSanctionsResponse): Buffer =>
       Buffer.from(ListUserSanctionsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListUserSanctionsResponse =>
-      ListUserSanctionsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListUserSanctionsResponse => ListUserSanctionsResponse.decode(value),
   },
   /**
    * Submit an appeal against an existing sanction. Records the
@@ -6809,17 +6643,15 @@ export const ModerationServiceService = {
    * moderation.sanctionAppealed.
    */
   appealSanction: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/AppealSanction' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/AppealSanction" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: AppealSanctionRequest): Buffer =>
       Buffer.from(AppealSanctionRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): AppealSanctionRequest =>
-      AppealSanctionRequest.decode(value),
+    requestDeserialize: (value: Buffer): AppealSanctionRequest => AppealSanctionRequest.decode(value),
     responseSerialize: (value: AppealSanctionResponse): Buffer =>
       Buffer.from(AppealSanctionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): AppealSanctionResponse =>
-      AppealSanctionResponse.decode(value),
+    responseDeserialize: (value: Buffer): AppealSanctionResponse => AppealSanctionResponse.decode(value),
   },
   /**
    * Open a new support ticket. user_id is optional — unauthenticated
@@ -6827,65 +6659,57 @@ export const ModerationServiceService = {
    * moderation.ticketOpened.
    */
   openSupportTicket: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/OpenSupportTicket' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/OpenSupportTicket" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: OpenSupportTicketRequest): Buffer =>
       Buffer.from(OpenSupportTicketRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): OpenSupportTicketRequest =>
-      OpenSupportTicketRequest.decode(value),
+    requestDeserialize: (value: Buffer): OpenSupportTicketRequest => OpenSupportTicketRequest.decode(value),
     responseSerialize: (value: OpenSupportTicketResponse): Buffer =>
       Buffer.from(OpenSupportTicketResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): OpenSupportTicketResponse =>
-      OpenSupportTicketResponse.decode(value),
+    responseDeserialize: (value: Buffer): OpenSupportTicketResponse => OpenSupportTicketResponse.decode(value),
   },
   /** Fetch a single support ticket + its response thread. */
   getSupportTicket: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/GetSupportTicket' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/GetSupportTicket" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetSupportTicketRequest): Buffer =>
       Buffer.from(GetSupportTicketRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetSupportTicketRequest =>
-      GetSupportTicketRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetSupportTicketRequest => GetSupportTicketRequest.decode(value),
     responseSerialize: (value: GetSupportTicketResponse): Buffer =>
       Buffer.from(GetSupportTicketResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetSupportTicketResponse =>
-      GetSupportTicketResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetSupportTicketResponse => GetSupportTicketResponse.decode(value),
   },
   /**
    * List support tickets, filterable by status / priority /
    * assigned_to / category.
    */
   listSupportTickets: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/ListSupportTickets' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/ListSupportTickets" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListSupportTicketsRequest): Buffer =>
       Buffer.from(ListSupportTicketsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListSupportTicketsRequest =>
-      ListSupportTicketsRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListSupportTicketsRequest => ListSupportTicketsRequest.decode(value),
     responseSerialize: (value: ListSupportTicketsResponse): Buffer =>
       Buffer.from(ListSupportTicketsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListSupportTicketsResponse =>
-      ListSupportTicketsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListSupportTicketsResponse => ListSupportTicketsResponse.decode(value),
   },
   /**
    * Append a response to a ticket. responder_type indicates whether
    * the response is from staff or the user.
    */
   respondToTicket: {
-    path: '/adopt_dont_shop.moderation.v1.ModerationService/RespondToTicket' as const,
+    path: "/adopt_dont_shop.moderation.v1.ModerationService/RespondToTicket" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: RespondToTicketRequest): Buffer =>
       Buffer.from(RespondToTicketRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): RespondToTicketRequest =>
-      RespondToTicketRequest.decode(value),
+    requestDeserialize: (value: Buffer): RespondToTicketRequest => RespondToTicketRequest.decode(value),
     responseSerialize: (value: RespondToTicketResponse): Buffer =>
       Buffer.from(RespondToTicketResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RespondToTicketResponse =>
-      RespondToTicketResponse.decode(value),
+    responseDeserialize: (value: Buffer): RespondToTicketResponse => RespondToTicketResponse.decode(value),
   },
 } as const;
 
@@ -6986,18 +6810,18 @@ export interface ModerationServiceClient extends Client {
    */
   fileReport(
     request: FileReportRequest,
-    callback: (error: ServiceError | null, response: FileReportResponse) => void
+    callback: (error: ServiceError | null, response: FileReportResponse) => void,
   ): ClientUnaryCall;
   fileReport(
     request: FileReportRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: FileReportResponse) => void
+    callback: (error: ServiceError | null, response: FileReportResponse) => void,
   ): ClientUnaryCall;
   fileReport(
     request: FileReportRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: FileReportResponse) => void
+    callback: (error: ServiceError | null, response: FileReportResponse) => void,
   ): ClientUnaryCall;
   /**
    * Fetch a single report by id. Returns the row + its status
@@ -7006,18 +6830,18 @@ export interface ModerationServiceClient extends Client {
    */
   getReport(
     request: GetReportRequest,
-    callback: (error: ServiceError | null, response: GetReportResponse) => void
+    callback: (error: ServiceError | null, response: GetReportResponse) => void,
   ): ClientUnaryCall;
   getReport(
     request: GetReportRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetReportResponse) => void
+    callback: (error: ServiceError | null, response: GetReportResponse) => void,
   ): ClientUnaryCall;
   getReport(
     request: GetReportRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetReportResponse) => void
+    callback: (error: ServiceError | null, response: GetReportResponse) => void,
   ): ClientUnaryCall;
   /**
    * List reports with keyset pagination. Filters: status / severity /
@@ -7026,18 +6850,18 @@ export interface ModerationServiceClient extends Client {
    */
   listReports(
     request: ListReportsRequest,
-    callback: (error: ServiceError | null, response: ListReportsResponse) => void
+    callback: (error: ServiceError | null, response: ListReportsResponse) => void,
   ): ClientUnaryCall;
   listReports(
     request: ListReportsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListReportsResponse) => void
+    callback: (error: ServiceError | null, response: ListReportsResponse) => void,
   ): ClientUnaryCall;
   listReports(
     request: ListReportsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListReportsResponse) => void
+    callback: (error: ServiceError | null, response: ListReportsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Assign a report to a moderator (or self-assign). Records a
@@ -7046,18 +6870,18 @@ export interface ModerationServiceClient extends Client {
    */
   assignReport(
     request: AssignReportRequest,
-    callback: (error: ServiceError | null, response: AssignReportResponse) => void
+    callback: (error: ServiceError | null, response: AssignReportResponse) => void,
   ): ClientUnaryCall;
   assignReport(
     request: AssignReportRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AssignReportResponse) => void
+    callback: (error: ServiceError | null, response: AssignReportResponse) => void,
   ): ClientUnaryCall;
   assignReport(
     request: AssignReportRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AssignReportResponse) => void
+    callback: (error: ServiceError | null, response: AssignReportResponse) => void,
   ): ClientUnaryCall;
   /**
    * Resolve a report. Writes the resolution metadata + status
@@ -7065,18 +6889,18 @@ export interface ModerationServiceClient extends Client {
    */
   resolveReport(
     request: ResolveReportRequest,
-    callback: (error: ServiceError | null, response: ResolveReportResponse) => void
+    callback: (error: ServiceError | null, response: ResolveReportResponse) => void,
   ): ClientUnaryCall;
   resolveReport(
     request: ResolveReportRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ResolveReportResponse) => void
+    callback: (error: ServiceError | null, response: ResolveReportResponse) => void,
   ): ClientUnaryCall;
   resolveReport(
     request: ResolveReportRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ResolveReportResponse) => void
+    callback: (error: ServiceError | null, response: ResolveReportResponse) => void,
   ): ClientUnaryCall;
   /**
    * Log a moderator action (warning issued, content removed, user
@@ -7086,18 +6910,18 @@ export interface ModerationServiceClient extends Client {
    */
   logModeratorAction(
     request: LogModeratorActionRequest,
-    callback: (error: ServiceError | null, response: LogModeratorActionResponse) => void
+    callback: (error: ServiceError | null, response: LogModeratorActionResponse) => void,
   ): ClientUnaryCall;
   logModeratorAction(
     request: LogModeratorActionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: LogModeratorActionResponse) => void
+    callback: (error: ServiceError | null, response: LogModeratorActionResponse) => void,
   ): ClientUnaryCall;
   logModeratorAction(
     request: LogModeratorActionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: LogModeratorActionResponse) => void
+    callback: (error: ServiceError | null, response: LogModeratorActionResponse) => void,
   ): ClientUnaryCall;
   /**
    * List moderator actions, filterable by target_user / report /
@@ -7105,18 +6929,18 @@ export interface ModerationServiceClient extends Client {
    */
   listModeratorActions(
     request: ListModeratorActionsRequest,
-    callback: (error: ServiceError | null, response: ListModeratorActionsResponse) => void
+    callback: (error: ServiceError | null, response: ListModeratorActionsResponse) => void,
   ): ClientUnaryCall;
   listModeratorActions(
     request: ListModeratorActionsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListModeratorActionsResponse) => void
+    callback: (error: ServiceError | null, response: ListModeratorActionsResponse) => void,
   ): ClientUnaryCall;
   listModeratorActions(
     request: ListModeratorActionsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListModeratorActionsResponse) => void
+    callback: (error: ServiceError | null, response: ListModeratorActionsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Attach an evidence record to a report or moderator action.
@@ -7125,18 +6949,18 @@ export interface ModerationServiceClient extends Client {
    */
   addEvidence(
     request: AddEvidenceRequest,
-    callback: (error: ServiceError | null, response: AddEvidenceResponse) => void
+    callback: (error: ServiceError | null, response: AddEvidenceResponse) => void,
   ): ClientUnaryCall;
   addEvidence(
     request: AddEvidenceRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AddEvidenceResponse) => void
+    callback: (error: ServiceError | null, response: AddEvidenceResponse) => void,
   ): ClientUnaryCall;
   addEvidence(
     request: AddEvidenceRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AddEvidenceResponse) => void
+    callback: (error: ServiceError | null, response: AddEvidenceResponse) => void,
   ): ClientUnaryCall;
   /**
    * Issue a sanction against a user. Tied optionally to a report
@@ -7145,18 +6969,18 @@ export interface ModerationServiceClient extends Client {
    */
   issueSanction(
     request: IssueSanctionRequest,
-    callback: (error: ServiceError | null, response: IssueSanctionResponse) => void
+    callback: (error: ServiceError | null, response: IssueSanctionResponse) => void,
   ): ClientUnaryCall;
   issueSanction(
     request: IssueSanctionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: IssueSanctionResponse) => void
+    callback: (error: ServiceError | null, response: IssueSanctionResponse) => void,
   ): ClientUnaryCall;
   issueSanction(
     request: IssueSanctionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: IssueSanctionResponse) => void
+    callback: (error: ServiceError | null, response: IssueSanctionResponse) => void,
   ): ClientUnaryCall;
   /**
    * List a user's sanctions — the banner query the auth/sanctions
@@ -7166,18 +6990,18 @@ export interface ModerationServiceClient extends Client {
    */
   listUserSanctions(
     request: ListUserSanctionsRequest,
-    callback: (error: ServiceError | null, response: ListUserSanctionsResponse) => void
+    callback: (error: ServiceError | null, response: ListUserSanctionsResponse) => void,
   ): ClientUnaryCall;
   listUserSanctions(
     request: ListUserSanctionsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListUserSanctionsResponse) => void
+    callback: (error: ServiceError | null, response: ListUserSanctionsResponse) => void,
   ): ClientUnaryCall;
   listUserSanctions(
     request: ListUserSanctionsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListUserSanctionsResponse) => void
+    callback: (error: ServiceError | null, response: ListUserSanctionsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Submit an appeal against an existing sanction. Records the
@@ -7186,18 +7010,18 @@ export interface ModerationServiceClient extends Client {
    */
   appealSanction(
     request: AppealSanctionRequest,
-    callback: (error: ServiceError | null, response: AppealSanctionResponse) => void
+    callback: (error: ServiceError | null, response: AppealSanctionResponse) => void,
   ): ClientUnaryCall;
   appealSanction(
     request: AppealSanctionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AppealSanctionResponse) => void
+    callback: (error: ServiceError | null, response: AppealSanctionResponse) => void,
   ): ClientUnaryCall;
   appealSanction(
     request: AppealSanctionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AppealSanctionResponse) => void
+    callback: (error: ServiceError | null, response: AppealSanctionResponse) => void,
   ): ClientUnaryCall;
   /**
    * Open a new support ticket. user_id is optional — unauthenticated
@@ -7206,34 +7030,34 @@ export interface ModerationServiceClient extends Client {
    */
   openSupportTicket(
     request: OpenSupportTicketRequest,
-    callback: (error: ServiceError | null, response: OpenSupportTicketResponse) => void
+    callback: (error: ServiceError | null, response: OpenSupportTicketResponse) => void,
   ): ClientUnaryCall;
   openSupportTicket(
     request: OpenSupportTicketRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: OpenSupportTicketResponse) => void
+    callback: (error: ServiceError | null, response: OpenSupportTicketResponse) => void,
   ): ClientUnaryCall;
   openSupportTicket(
     request: OpenSupportTicketRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: OpenSupportTicketResponse) => void
+    callback: (error: ServiceError | null, response: OpenSupportTicketResponse) => void,
   ): ClientUnaryCall;
   /** Fetch a single support ticket + its response thread. */
   getSupportTicket(
     request: GetSupportTicketRequest,
-    callback: (error: ServiceError | null, response: GetSupportTicketResponse) => void
+    callback: (error: ServiceError | null, response: GetSupportTicketResponse) => void,
   ): ClientUnaryCall;
   getSupportTicket(
     request: GetSupportTicketRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetSupportTicketResponse) => void
+    callback: (error: ServiceError | null, response: GetSupportTicketResponse) => void,
   ): ClientUnaryCall;
   getSupportTicket(
     request: GetSupportTicketRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetSupportTicketResponse) => void
+    callback: (error: ServiceError | null, response: GetSupportTicketResponse) => void,
   ): ClientUnaryCall;
   /**
    * List support tickets, filterable by status / priority /
@@ -7241,18 +7065,18 @@ export interface ModerationServiceClient extends Client {
    */
   listSupportTickets(
     request: ListSupportTicketsRequest,
-    callback: (error: ServiceError | null, response: ListSupportTicketsResponse) => void
+    callback: (error: ServiceError | null, response: ListSupportTicketsResponse) => void,
   ): ClientUnaryCall;
   listSupportTickets(
     request: ListSupportTicketsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListSupportTicketsResponse) => void
+    callback: (error: ServiceError | null, response: ListSupportTicketsResponse) => void,
   ): ClientUnaryCall;
   listSupportTickets(
     request: ListSupportTicketsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListSupportTicketsResponse) => void
+    callback: (error: ServiceError | null, response: ListSupportTicketsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Append a response to a ticket. responder_type indicates whether
@@ -7260,49 +7084,40 @@ export interface ModerationServiceClient extends Client {
    */
   respondToTicket(
     request: RespondToTicketRequest,
-    callback: (error: ServiceError | null, response: RespondToTicketResponse) => void
+    callback: (error: ServiceError | null, response: RespondToTicketResponse) => void,
   ): ClientUnaryCall;
   respondToTicket(
     request: RespondToTicketRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RespondToTicketResponse) => void
+    callback: (error: ServiceError | null, response: RespondToTicketResponse) => void,
   ): ClientUnaryCall;
   respondToTicket(
     request: RespondToTicketRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RespondToTicketResponse) => void
+    callback: (error: ServiceError | null, response: RespondToTicketResponse) => void,
   ): ClientUnaryCall;
 }
 
 export const ModerationServiceClient = makeGenericClientConstructor(
   ModerationServiceService,
-  'adopt_dont_shop.moderation.v1.ModerationService'
+  "adopt_dont_shop.moderation.v1.ModerationService",
 ) as unknown as {
-  new (
-    address: string,
-    credentials: ChannelCredentials,
-    options?: Partial<ClientOptions>
-  ): ModerationServiceClient;
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): ModerationServiceClient;
   service: typeof ModerationServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
+export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {

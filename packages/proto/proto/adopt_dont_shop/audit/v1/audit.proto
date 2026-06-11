@@ -61,6 +61,13 @@ message GdprErasureRequest {
   optional string completed_at = 6;
   string created_at = 7;
   string updated_at = 8;
+  // ADS-830 — set by the sweep when the saga exceeded the deadline and at
+  // least one service never acked. NULL while in-flight or completed/failed
+  // normally.
+  optional string timed_out_at = 9;
+  // ADS-830 — number of times the sweep has re-published
+  // gdpr.erasureRequested for erroring services. 0 = never retried.
+  uint32 retry_count = 10;
 }
 
 message GetGdprErasureRequestRequest {

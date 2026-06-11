@@ -18,8 +18,7 @@
 // metadata; every RescueService RPC requires a principal.
 
 import rateLimit from '@fastify/rate-limit';
-import { status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
 import {
   RescueV1,
@@ -32,20 +31,11 @@ import {
 
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
 
 export type RescueRoutesOptions = {
   client: RescueClient;
-};
-
-// Same gRPC-status → HTTP-status table the other routes use.
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.INTERNAL]: 500,
 };
 
 // Per-route rate limits. Reads are public-ish (adopters browse rescues
@@ -207,16 +197,6 @@ export const registerRescueRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}
 
 // parseStatus accepts the canonical DB string ('verified', 'pending')
 // AND the SCREAMING proto form ('RESCUE_STATUS_VERIFIED'). Unknown

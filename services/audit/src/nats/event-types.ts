@@ -47,6 +47,16 @@ export type AuditEventPayload = {
   occurredAt: string;
   // Full event body — schema-less. The producing service stamps
   // whatever fields make sense for its event type.
+  //
+  // Security contract: the audit consumer applies `redactAuditPayload`
+  // (packages/events) on the write path before persisting to the
+  // `audit_events.payload` JSONB column. That helper strips known
+  // secret-shaped keys (password, token, accessToken, refreshToken,
+  // otp, secret, authorization, cookie, apiKey and substrings thereof)
+  // recursively. Defence-in-depth: producers MUST still NOT include raw
+  // secrets, credentials, or full auth headers in this field — the
+  // consumer-side redaction is a last-resort safety net, not a licence
+  // to send sensitive data.
   payload?: unknown;
   // Optional request context.
   ipAddress?: string;

@@ -11,9 +11,9 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "eslint.workingDirectories": [
-    { "pattern": "app.*" },
-    { "pattern": "lib.*" },
-    { "pattern": "service.backend" }
+    { "pattern": "apps/*" },
+    { "pattern": "packages/*" },
+    { "pattern": "services/*" }
   ],
   "search.exclude": {
     "**/dist": true,

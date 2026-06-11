@@ -23,8 +23,16 @@
 //   - /api/v1/uploads/*       (multipart + signed serve)
 // Anything else under /api/* now returns 404 — there's no fallback.
 
-import { createLogger, registerMetrics, registerRequestId } from '@adopt-dont-shop/observability';
+import {
+  createLogger,
+  getMetricsRegistry,
+  registerMetrics,
+  registerRequestId,
+} from '@adopt-dont-shop/observability';
+import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance } from 'fastify';
+import Redis from 'ioredis';
+import { Counter } from 'prom-client';
 
 import type { GatewayConfig } from './config.js';
 import type { ApplicationsClient } from './grpc-clients/applications-client.js';
@@ -66,6 +74,35 @@ import { registerSessionsRoutes } from './routes/sessions.js';
 import { registerStaffFosterRoutes } from './routes/staff-foster.js';
 import { registerUploadsRoutes } from './routes/uploads.js';
 import { registerUsersRoutes } from './routes/users.js';
+
+// ---------------------------------------------------------------------------
+// Rate-limit Prometheus counter — lazily created and registered into the
+// same local registry that getMetricsRegistry()/registerMetrics() uses.
+//
+// We call getOrCreateRateLimitCounter() once per createServer invocation.
+// It checks whether the registry instance has changed (e.g. after
+// __resetMetricsForTest() in Vitest suites) before creating a new counter,
+// so repeated createServer calls in tests don't throw "metric already
+// registered" errors.
+// ---------------------------------------------------------------------------
+
+// Pair of (registry, counter) so we detect when the registry is replaced.
+let _counterEntry: { registryRef: object; counter: Counter<'route'> } | null = null;
+
+const getOrCreateRateLimitCounter = (): Counter<'route'> => {
+  const reg = getMetricsRegistry();
+  if (_counterEntry && _counterEntry.registryRef === reg) {
+    return _counterEntry.counter;
+  }
+  const counter = new Counter({
+    name: 'gateway_rate_limit_hits_total',
+    help: 'Total number of rate-limited (429) requests, labelled by route.',
+    labelNames: ['route'] as const,
+    registers: [reg],
+  });
+  _counterEntry = { registryRef: reg, counter };
+  return counter;
+};
 
 export type CreateServerOptions = {
   config: GatewayConfig;
@@ -156,6 +193,77 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // Prometheus /metrics + http_request_duration_seconds onResponse
   // hook. Substrate only — no domain-specific instruments here.
   registerMetrics(server);
+
+  // Prometheus counter — rate-limit rejections per route. Incremented
+  // inside the plugin's onExceeded callback so every 429 is visible in
+  // the /metrics surface without a separate middleware.
+  // Registered into the same local registry that registerMetrics() serves
+  // from so it appears at /metrics alongside the standard instruments.
+  // We use getSingleton to avoid double-registration when createServer is
+  // called multiple times in the same process (e.g. in Vitest suites).
+  const rateLimitHitsTotal: Counter<'route'> = getOrCreateRateLimitCounter();
+
+  // Global rate-limit plugin — applies a blanket cap to every route.
+  // Per-route config.rateLimit blocks in auth.ts / uploads.ts override
+  // the global max/timeWindow while inheriting the Redis store.
+  //
+  // Redis store: shared across replicas so the limit is N-replica-safe.
+  // Degraded mode: if Redis is unreachable at boot (or dies later) the
+  // plugin's skipOnError:true passes requests through using the in-memory
+  // fallback. A warning is logged so ops teams can detect the degraded
+  // state via log alerts.
+  {
+    let redisClient: Redis | undefined;
+    if (config.rateLimit.redisUrl) {
+      try {
+        redisClient = new Redis(config.rateLimit.redisUrl, {
+          // Do not block boot if Redis isn't up yet. The plugin's
+          // skipOnError flag handles the in-flight failure case.
+          connectTimeout: 2000,
+          maxRetriesPerRequest: 0,
+          lazyConnect: true,
+          enableOfflineQueue: false,
+        });
+        redisClient.on('error', (err: Error) => {
+          logger.warn('rate-limit Redis error — falling back to in-memory store', {
+            message: err.message,
+          });
+        });
+        // Attempt a connection so we know early whether Redis is reachable.
+        await redisClient.connect().catch((err: Error) => {
+          logger.warn('rate-limit Redis unreachable at boot — using in-memory store', {
+            message: err.message,
+          });
+          redisClient = undefined;
+        });
+      } catch (err) {
+        logger.warn('rate-limit Redis setup failed — using in-memory store', {
+          message: (err as Error).message,
+        });
+        redisClient = undefined;
+      }
+    } else {
+      logger.warn(
+        'REDIS_URL not set — rate limiting uses in-memory store (not safe for multi-replica)'
+      );
+    }
+
+    await server.register(rateLimit, {
+      global: true,
+      max: config.rateLimit.max,
+      timeWindow: config.rateLimit.timeWindow,
+      ...(redisClient ? { redis: redisClient } : {}),
+      skipOnError: true,
+      keyGenerator: req => req.ip,
+      onExceeded: (_req, key) => {
+        // `key` is the generated rate-limit key (ip or composite); the
+        // route is resolved from routeOptions.url at hook time.
+        const route = (_req.routeOptions?.url as string | undefined) ?? 'unknown';
+        rateLimitHitsTotal.inc({ route });
+        logger.warn('rate limit exceeded', { key, route });
+      },
+    });
+  }
 
   // OpenAPI spec generation. Register @fastify/swagger BEFORE any route
   // plugins so it can collect their `schema` blocks as they register —

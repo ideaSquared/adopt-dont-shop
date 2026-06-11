@@ -20,9 +20,7 @@
 // need them (they mint a fresh principal); the middleware passes
 // requests with no Authorization header through to the route.
 
-import rateLimit from '@fastify/rate-limit';
-import { status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
 import {
   AuthV1,
@@ -34,22 +32,10 @@ import {
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 
 export type AuthRoutesOptions = {
   client: AuthClient;
-};
-
-// Same gRPC-status → HTTP-status table the notifications routes use.
-// UNAUTHENTICATED maps to 401 here so a wrong-password login returns
-// 401, not 500.
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.ALREADY_EXISTS]: 409,
-  [status.INTERNAL]: 500,
 };
 
 // Body shapes accepted by the REST surface. Kept narrow + explicit
@@ -103,11 +89,11 @@ export const registerAuthRoutes = async (
 ): Promise<void> => {
   const { client } = opts;
 
-  // Register the rate-limit plugin scoped to THIS plugin's routes
-  // only. Encapsulated registration means the limits don't bleed
-  // into the notifications routes / catch-all proxy / health check.
-  await app.register(rateLimit, { global: false });
-
+  // Per-route rate limits use config.rateLimit to override the global
+  // limit registered in server.ts. No need to re-register the plugin
+  // here — the global registration in createServer() applies the Redis
+  // store to these routes automatically; the per-route config.rateLimit
+  // objects below set tighter caps on the credential-stuffing surface.
   app.post(
     '/api/v1/auth/login',
     {
@@ -402,16 +388,6 @@ export const registerAuthRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}
 
 // Accept the canonical DB role string (`adopter`, `rescue_staff`, …)
 // OR the SCREAMING proto form (`USER_ROLE_ADOPTER`). The handler's

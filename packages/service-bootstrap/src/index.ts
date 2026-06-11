@@ -12,7 +12,8 @@
 //   HandlerError              — typed service error with HandlerErrorCode.
 //   HandlerErrorCode          — canonical union (INVALID_ARGUMENT,
 //                               UNAUTHENTICATED, PERMISSION_DENIED,
-//                               NOT_FOUND, ALREADY_EXISTS, INTERNAL).
+//                               NOT_FOUND, ALREADY_EXISTS,
+//                               FAILED_PRECONDITION, INTERNAL).
 //   HandlerDeps               — base dependency type (pool + nats).
 //   extractPrincipal          — parse x-user-* gRPC metadata headers.
 //   extractPrincipalOptional  — same but returns null on missing headers.

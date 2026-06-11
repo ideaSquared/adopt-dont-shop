@@ -1,4 +1,4 @@
-import { readSecret } from '@adopt-dont-shop/config-secrets';
+import { parsePort, requireSecret } from '@adopt-dont-shop/config-secrets';
 
 export type AuthConfig = {
   // HTTP port for the boot-readiness surface (/health/simple). Distinct
@@ -41,20 +41,9 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuthConfig => 
   const port = parsePort(env.AUTH_PORT, DEFAULT_PORT, 'AUTH_PORT');
   const grpcPort = parsePort(env.AUTH_GRPC_PORT, DEFAULT_GRPC_PORT, 'AUTH_GRPC_PORT');
 
-  const databaseUrl = readSecret('DATABASE_URL', env)?.trim();
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL is required (Postgres connection string)');
-  }
-
-  const jwtSecret = readSecret('JWT_SECRET', env)?.trim();
-  if (!jwtSecret) {
-    throw new Error('JWT_SECRET is required (access-token signing secret)');
-  }
-
-  const jwtRefreshSecret = readSecret('JWT_REFRESH_SECRET', env)?.trim();
-  if (!jwtRefreshSecret) {
-    throw new Error('JWT_REFRESH_SECRET is required (refresh-token signing secret)');
-  }
+  const databaseUrl = requireSecret('DATABASE_URL', env, 'Postgres connection string');
+  const jwtSecret = requireSecret('JWT_SECRET', env, 'access-token signing secret');
+  const jwtRefreshSecret = requireSecret('JWT_REFRESH_SECRET', env, 'refresh-token signing secret');
 
   return {
     port,
@@ -68,12 +57,3 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuthConfig => 
     jwtRefreshSecret,
   };
 };
-
-function parsePort(raw: string | undefined, fallback: number, name: string): number {
-  const trimmed = raw?.trim();
-  const value = trimmed ? Number.parseInt(trimmed, 10) : fallback;
-  if (Number.isNaN(value) || value <= 0) {
-    throw new Error(`${name} must be a positive integer, got "${trimmed}"`);
-  }
-  return value;
-}

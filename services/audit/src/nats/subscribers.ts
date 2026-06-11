@@ -24,7 +24,7 @@ import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import type { Logger } from 'winston';
 
-import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
+import { subscribe, redactAuditPayload, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
 import type { AuditEventPayload } from './event-types.js';
 
@@ -94,7 +94,7 @@ export async function persistAuditEvent(
     payload.action,
     payload.outcome,
     payload.occurredAt,
-    JSON.stringify(payload.payload ?? {}),
+    JSON.stringify(redactAuditPayload(payload.payload) ?? {}),
     payload.ipAddress ?? null,
     payload.userAgent ?? null,
   ]);

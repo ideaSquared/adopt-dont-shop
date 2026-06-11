@@ -32,6 +32,8 @@ import {
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
 
+import { callWithResilience, getOrCreateCircuitBreaker } from './resilience.js';
+
 export type PetsClient = {
   create(req: CreatePetRequest, metadata: Metadata): Promise<CreatePetResponse>;
   get(req: GetPetRequest, metadata: Metadata): Promise<GetPetResponse>;
@@ -52,8 +54,11 @@ export type CreatePetsClientOptions = {
 // and lets the caller fail fast with DEADLINE_EXCEEDED.
 const DEFAULT_DEADLINE_MS = 5_000;
 
+const SERVICE_NAME = 'service.pets';
+
 export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
   const stub = new PetsV1.PetServiceClient(opts.address, credentials.createInsecure());
+  const breaker = getOrCreateCircuitBreaker(SERVICE_NAME);
 
   const callUnary = <Req, Res>(
     fn: (
@@ -63,41 +68,51 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
       cb: (err: unknown, res: Res) => void
     ) => unknown,
     req: Req,
-    metadata: Metadata
+    metadata: Metadata,
+    idempotent: boolean
   ): Promise<Res> =>
-    new Promise<Res>((resolve, reject) => {
-      const options: Partial<CallOptions> = {
-        deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
-      };
-      const method = fn.name || 'unknown';
-      const stop = startGrpcTimer('service.pets', method, 'out');
-      fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
-        const code =
-          err &&
-          typeof err === 'object' &&
-          'code' in err &&
-          typeof (err as { code?: unknown }).code === 'number'
-            ? (err as { code: number }).code
-            : err
-              ? 2 // UNKNOWN
-              : 0;
-        stop(code);
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(res);
-      });
-    });
+    callWithResilience<Res>(
+      deadline =>
+        new Promise<Res>((resolve, reject) => {
+          const options: Partial<CallOptions> = { deadline };
+          const method = fn.name || 'unknown';
+          const stop = startGrpcTimer(SERVICE_NAME, method, 'out');
+          fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
+            const code =
+              err &&
+              typeof err === 'object' &&
+              'code' in err &&
+              typeof (err as { code?: unknown }).code === 'number'
+                ? (err as { code: number }).code
+                : err
+                  ? 2 // UNKNOWN
+                  : 0;
+            stop(code);
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(res);
+          });
+        }),
+      {
+        service: SERVICE_NAME,
+        deadlineMs: DEFAULT_DEADLINE_MS,
+        idempotent,
+        circuitBreaker: breaker,
+      }
+    );
 
   return {
-    create: (req, metadata) => callUnary(stub.create, req, metadata),
-    get: (req, metadata) => callUnary(stub.get, req, metadata),
-    list: (req, metadata) => callUnary(stub.list, req, metadata),
-    update: (req, metadata) => callUnary(stub.update, req, metadata),
-    updateStatus: (req, metadata) => callUnary(stub.updateStatus, req, metadata),
-    delete: (req, metadata) => callUnary(stub.delete, req, metadata),
-    getStats: (req, metadata) => callUnary(stub.getStats, req, metadata),
+    // ── Non-idempotent (writes / mutations) ──────────────────────────
+    create: (req, metadata) => callUnary(stub.create, req, metadata, false),
+    update: (req, metadata) => callUnary(stub.update, req, metadata, false),
+    updateStatus: (req, metadata) => callUnary(stub.updateStatus, req, metadata, false),
+    delete: (req, metadata) => callUnary(stub.delete, req, metadata, false),
+    // ── Idempotent (reads) ───────────────────────────────────────────
+    get: (req, metadata) => callUnary(stub.get, req, metadata, true),
+    list: (req, metadata) => callUnary(stub.list, req, metadata, true),
+    getStats: (req, metadata) => callUnary(stub.getStats, req, metadata, true),
     close: () => stub.close(),
   };
 };

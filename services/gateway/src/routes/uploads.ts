@@ -19,7 +19,6 @@ import crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
 
-import rateLimit from '@fastify/rate-limit';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import {
@@ -74,10 +73,8 @@ export const registerUploadsRoutes = async (
   const provider = createStorageProvider(opts.storage);
   const uploadDir = path.resolve(opts.storage.local.directory);
 
-  // Encapsulated rate-limit registration — limits apply only to the
-  // routes registered in this plugin, not gateway-wide. Same pattern as
-  // the auth routes plugin.
-  await app.register(rateLimit, { global: false });
+  // Per-route rate limits use config.rateLimit to override the global
+  // limit registered in server.ts. No plugin re-registration needed.
 
   // POST /api/v1/uploads/images — multipart, single file under field
   // `image`. Returns the shape lib.api's ImageUploadResponseSchema

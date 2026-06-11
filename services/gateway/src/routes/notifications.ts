@@ -16,8 +16,7 @@
 // REST API the monolith used to serve. Body shape comes from
 // ts-proto's toJSON helper.
 
-import { status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
 import {
   NotificationsV1,
@@ -29,22 +28,11 @@ import {
 
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
 
 export type NotificationsRoutesOptions = {
   client: NotificationsClient;
-};
-
-// Inverse of services/notifications/src/grpc/adapter.ts CODE_TO_GRPC.
-// Anything we don't recognise — including null/undefined — falls
-// through to 500 so an unmapped code never returns 200.
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.INTERNAL]: 500,
 };
 
 export const registerNotificationsRoutes = async (
@@ -312,16 +300,6 @@ function buildPrefsPatch(body: Record<string, unknown>): UpdateNotificationPrefe
 }
 
 // --- Helpers ---------------------------------------------------------
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}
 
 function parseStatus(raw: string | undefined): NotificationsV1.NotificationStatus {
   if (!raw) {

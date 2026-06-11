@@ -52,13 +52,41 @@ export const readSecret = (
 };
 
 /**
- * Same as {@link readSecret} but throws if the secret is missing. Use for
- * credentials whose absence should fail boot immediately.
+ * Same as {@link readSecret} but throws if the secret is missing or blank.
+ * Use for credentials whose absence should fail boot immediately.
+ *
+ * The optional `description` is appended to the error message to match the
+ * per-service phrasing: `"${name} is required (${description})"`.
+ * When omitted the message is `"${name} is required"`.
  */
-export const requireSecret = (name: string, env: NodeJS.ProcessEnv = process.env): string => {
-  const value = readSecret(name, env);
-  if (value === undefined) {
-    throw new Error(`${name} (or ${name}_FILE) is required`);
+export const requireSecret = (
+  name: string,
+  env: NodeJS.ProcessEnv = process.env,
+  description?: string
+): string => {
+  const value = readSecret(name, env)?.trim();
+  if (!value) {
+    const detail = description !== undefined ? ` (${description})` : '';
+    throw new Error(`${name} is required${detail}`);
+  }
+  return value;
+};
+
+/**
+ * Parse a port number from a raw env-var string.
+ *
+ * - When `raw` is absent or blank, returns `fallback`.
+ * - When `raw` is present but not a positive integer, throws naming `name`.
+ *
+ * Error message format: `"${name} must be a positive integer, got \"${trimmed}\""`.
+ * This preserves the exact wording the services produced locally so boot
+ * errors don't change after migration.
+ */
+export const parsePort = (raw: string | undefined, fallback: number, name: string): number => {
+  const trimmed = raw?.trim();
+  const value = trimmed ? Number.parseInt(trimmed, 10) : fallback;
+  if (Number.isNaN(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer, got "${trimmed}"`);
   }
   return value;
 };

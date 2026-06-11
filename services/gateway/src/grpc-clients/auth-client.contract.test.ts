@@ -231,13 +231,16 @@ describe('auth-client — gRPC contract', () => {
   // The gateway clients hardcode DEFAULT_DEADLINE_MS = 5_000. We prove the
   // deadline is actually set by creating a never-responding handler and
   // confirming the call rejects with DEADLINE_EXCEEDED within 7s real time.
+  //
+  // We use `login` (a non-idempotent RPC) so retries are NOT attempted —
+  // this keeps the elapsed time bounded to a single 5s deadline.
 
   it('deadline — a never-responding server produces DEADLINE_EXCEEDED within ~6s', async () => {
     port = await startServer(
       makeHandlers({
-        validateToken: (
-          _call: ServerUnaryCall<ValidateTokenRequest, ValidateTokenResponse>,
-          _cb: sendUnaryData<ValidateTokenResponse>
+        login: (
+          _call: ServerUnaryCall<LoginRequest, LoginResponse>,
+          _cb: sendUnaryData<LoginResponse>
         ) => {
           // Intentionally never respond — simulates a hung downstream.
         },
@@ -247,7 +250,7 @@ describe('auth-client — gRPC contract', () => {
     const client = createAuthClient({ address: `127.0.0.1:${port}` });
     const start = Date.now();
     try {
-      await client.validateToken({ accessToken: 'hung' }, new Metadata());
+      await client.login({ email: 'test@example.com', password: 'secret' }, new Metadata());
       expect.fail('expected rejection');
     } catch (err: unknown) {
       const elapsed = Date.now() - start;

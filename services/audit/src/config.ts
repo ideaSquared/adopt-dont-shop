@@ -1,4 +1,4 @@
-import { readSecret } from '@adopt-dont-shop/config-secrets';
+import { parsePort, requireSecret } from '@adopt-dont-shop/config-secrets';
 
 export type AuditConfig = {
   // HTTP port for the boot-readiness surface (/health/simple). Distinct
@@ -38,10 +38,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuditConfig =>
   const port = parsePort(env.AUDIT_PORT, DEFAULT_PORT, 'AUDIT_PORT');
   const grpcPort = parsePort(env.AUDIT_GRPC_PORT, DEFAULT_GRPC_PORT, 'AUDIT_GRPC_PORT');
 
-  const databaseUrl = readSecret('DATABASE_URL', env)?.trim();
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL is required (Postgres connection string)');
-  }
+  const databaseUrl = requireSecret('DATABASE_URL', env, 'Postgres connection string');
 
   return {
     port,
@@ -53,12 +50,3 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuditConfig =>
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
   };
 };
-
-function parsePort(raw: string | undefined, fallback: number, name: string): number {
-  const trimmed = raw?.trim();
-  const value = trimmed ? Number.parseInt(trimmed, 10) : fallback;
-  if (Number.isNaN(value) || value <= 0) {
-    throw new Error(`${name} must be a positive integer, got "${trimmed}"`);
-  }
-  return value;
-}

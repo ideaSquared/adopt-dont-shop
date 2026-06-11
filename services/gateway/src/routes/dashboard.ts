@@ -17,8 +17,7 @@
 // metadata is set). Admins can pass ?rescueId= explicitly to scope
 // elsewhere. Adopters get 403.
 
-import { status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import {
   ApplicationsV1,
@@ -34,20 +33,12 @@ import type { ApplicationsClient } from '../grpc-clients/applications-client.js'
 import type { PetsClient } from '../grpc-clients/pets-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 
 export type DashboardRoutesOptions = {
   petsClient: PetsClient;
   applicationsClient: ApplicationsClient;
   rescueClient: RescueClient;
-};
-
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.INTERNAL]: 500,
 };
 
 const DEFAULT_ACTIVITY_LIMIT = 10;
@@ -248,14 +239,3 @@ export const registerDashboardRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    success: false,
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}

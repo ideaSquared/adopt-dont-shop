@@ -83,6 +83,8 @@ import {
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
 
+import { callWithResilience, getOrCreateCircuitBreaker } from './resilience.js';
+
 export type AuthClient = {
   login(req: LoginRequest, metadata: Metadata): Promise<LoginResponse>;
   logout(req: LogoutRequest, metadata: Metadata): Promise<LogoutResponse>;
@@ -174,8 +176,11 @@ export type CreateAuthClientOptions = {
 // and lets the caller fail fast with DEADLINE_EXCEEDED.
 const DEFAULT_DEADLINE_MS = 5_000;
 
+const SERVICE_NAME = 'service.auth';
+
 export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
   const stub = new AuthV1.AuthServiceClient(opts.address, credentials.createInsecure());
+  const breaker = getOrCreateCircuitBreaker(SERVICE_NAME);
 
   const callUnary = <Req, Res>(
     fn: (
@@ -185,74 +190,87 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
       cb: (err: unknown, res: Res) => void
     ) => unknown,
     req: Req,
-    metadata: Metadata
+    metadata: Metadata,
+    idempotent: boolean
   ): Promise<Res> =>
-    new Promise<Res>((resolve, reject) => {
-      const options: Partial<CallOptions> = {
-        deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
-      };
-      const method = fn.name || 'unknown';
-      const stop = startGrpcTimer('service.auth', method, 'out');
-      fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
-        const code =
-          err &&
-          typeof err === 'object' &&
-          'code' in err &&
-          typeof (err as { code?: unknown }).code === 'number'
-            ? (err as { code: number }).code
-            : err
-              ? 2 // UNKNOWN
-              : 0;
-        stop(code);
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(res);
-      });
-    });
+    callWithResilience<Res>(
+      deadline =>
+        new Promise<Res>((resolve, reject) => {
+          const options: Partial<CallOptions> = { deadline };
+          const method = fn.name || 'unknown';
+          const stop = startGrpcTimer(SERVICE_NAME, method, 'out');
+          fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
+            const code =
+              err &&
+              typeof err === 'object' &&
+              'code' in err &&
+              typeof (err as { code?: unknown }).code === 'number'
+                ? (err as { code: number }).code
+                : err
+                  ? 2 // UNKNOWN
+                  : 0;
+            stop(code);
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(res);
+          });
+        }),
+      {
+        service: SERVICE_NAME,
+        deadlineMs: DEFAULT_DEADLINE_MS,
+        idempotent,
+        circuitBreaker: breaker,
+      }
+    );
 
   return {
-    login: (req, metadata) => callUnary(stub.login, req, metadata),
-    logout: (req, metadata) => callUnary(stub.logout, req, metadata),
-    refreshToken: (req, metadata) => callUnary(stub.refreshToken, req, metadata),
-    validateToken: (req, metadata) => callUnary(stub.validateToken, req, metadata),
-    getMe: (req, metadata) => callUnary(stub.getMe, req, metadata),
-    assignRole: (req, metadata) => callUnary(stub.assignRole, req, metadata),
-    register: (req, metadata) => callUnary(stub.register, req, metadata),
-    verifyEmail: (req, metadata) => callUnary(stub.verifyEmail, req, metadata),
-    resendVerification: (req, metadata) => callUnary(stub.resendVerification, req, metadata),
-    forgotPassword: (req, metadata) => callUnary(stub.forgotPassword, req, metadata),
-    resetPassword: (req, metadata) => callUnary(stub.resetPassword, req, metadata),
-    changePassword: (req, metadata) => callUnary(stub.changePassword, req, metadata),
-    updateAccount: (req, metadata) => callUnary(stub.updateAccount, req, metadata),
-    listSessions: (req, metadata) => callUnary(stub.listSessions, req, metadata),
-    revokeSession: (req, metadata) => callUnary(stub.revokeSession, req, metadata),
-    getPrivacyPreferences: (req, metadata) => callUnary(stub.getPrivacyPreferences, req, metadata),
+    // ── Non-idempotent (writes / auth mutations) ─────────────────────
+    login: (req, metadata) => callUnary(stub.login, req, metadata, false),
+    logout: (req, metadata) => callUnary(stub.logout, req, metadata, false),
+    refreshToken: (req, metadata) => callUnary(stub.refreshToken, req, metadata, false),
+    register: (req, metadata) => callUnary(stub.register, req, metadata, false),
+    verifyEmail: (req, metadata) => callUnary(stub.verifyEmail, req, metadata, false),
+    resendVerification: (req, metadata) => callUnary(stub.resendVerification, req, metadata, false),
+    forgotPassword: (req, metadata) => callUnary(stub.forgotPassword, req, metadata, false),
+    resetPassword: (req, metadata) => callUnary(stub.resetPassword, req, metadata, false),
+    changePassword: (req, metadata) => callUnary(stub.changePassword, req, metadata, false),
+    updateAccount: (req, metadata) => callUnary(stub.updateAccount, req, metadata, false),
+    revokeSession: (req, metadata) => callUnary(stub.revokeSession, req, metadata, false),
     updatePrivacyPreferences: (req, metadata) =>
-      callUnary(stub.updatePrivacyPreferences, req, metadata),
+      callUnary(stub.updatePrivacyPreferences, req, metadata, false),
     resetPrivacyPreferences: (req, metadata) =>
-      callUnary(stub.resetPrivacyPreferences, req, metadata),
-    searchUsers: (req, metadata) => callUnary(stub.searchUsers, req, metadata),
-    adminGetUser: (req, metadata) => callUnary(stub.adminGetUser, req, metadata),
-    adminUpdateUser: (req, metadata) => callUnary(stub.adminUpdateUser, req, metadata),
-    deactivateUser: (req, metadata) => callUnary(stub.deactivateUser, req, metadata),
-    reactivateUser: (req, metadata) => callUnary(stub.reactivateUser, req, metadata),
-    getUserStatistics: (req, metadata) => callUnary(stub.getUserStatistics, req, metadata),
-    getUserPermissions: (req, metadata) => callUnary(stub.getUserPermissions, req, metadata),
-    bulkUpdateUsers: (req, metadata) => callUnary(stub.bulkUpdateUsers, req, metadata),
-    getFieldPermissionDefaults: (req, metadata) =>
-      callUnary(stub.getFieldPermissionDefaults, req, metadata),
-    getFieldPermissionDefaultsForRole: (req, metadata) =>
-      callUnary(stub.getFieldPermissionDefaultsForRole, req, metadata),
-    listFieldPermissionOverrides: (req, metadata) =>
-      callUnary(stub.listFieldPermissionOverrides, req, metadata),
-    listFieldPermissionOverridesForRole: (req, metadata) =>
-      callUnary(stub.listFieldPermissionOverridesForRole, req, metadata),
-    upsertFieldPermission: (req, metadata) => callUnary(stub.upsertFieldPermission, req, metadata),
+      callUnary(stub.resetPrivacyPreferences, req, metadata, false),
+    assignRole: (req, metadata) => callUnary(stub.assignRole, req, metadata, false),
+    adminUpdateUser: (req, metadata) => callUnary(stub.adminUpdateUser, req, metadata, false),
+    deactivateUser: (req, metadata) => callUnary(stub.deactivateUser, req, metadata, false),
+    reactivateUser: (req, metadata) => callUnary(stub.reactivateUser, req, metadata, false),
+    bulkUpdateUsers: (req, metadata) => callUnary(stub.bulkUpdateUsers, req, metadata, false),
+    upsertFieldPermission: (req, metadata) =>
+      callUnary(stub.upsertFieldPermission, req, metadata, false),
     bulkUpsertFieldPermissions: (req, metadata) =>
-      callUnary(stub.bulkUpsertFieldPermissions, req, metadata),
-    deleteFieldPermission: (req, metadata) => callUnary(stub.deleteFieldPermission, req, metadata),
+      callUnary(stub.bulkUpsertFieldPermissions, req, metadata, false),
+    deleteFieldPermission: (req, metadata) =>
+      callUnary(stub.deleteFieldPermission, req, metadata, false),
+    // ── Idempotent (reads / validation) ─────────────────────────────
+    validateToken: (req, metadata) => callUnary(stub.validateToken, req, metadata, true),
+    getMe: (req, metadata) => callUnary(stub.getMe, req, metadata, true),
+    listSessions: (req, metadata) => callUnary(stub.listSessions, req, metadata, true),
+    getPrivacyPreferences: (req, metadata) =>
+      callUnary(stub.getPrivacyPreferences, req, metadata, true),
+    searchUsers: (req, metadata) => callUnary(stub.searchUsers, req, metadata, true),
+    adminGetUser: (req, metadata) => callUnary(stub.adminGetUser, req, metadata, true),
+    getUserStatistics: (req, metadata) => callUnary(stub.getUserStatistics, req, metadata, true),
+    getUserPermissions: (req, metadata) => callUnary(stub.getUserPermissions, req, metadata, true),
+    getFieldPermissionDefaults: (req, metadata) =>
+      callUnary(stub.getFieldPermissionDefaults, req, metadata, true),
+    getFieldPermissionDefaultsForRole: (req, metadata) =>
+      callUnary(stub.getFieldPermissionDefaultsForRole, req, metadata, true),
+    listFieldPermissionOverrides: (req, metadata) =>
+      callUnary(stub.listFieldPermissionOverrides, req, metadata, true),
+    listFieldPermissionOverridesForRole: (req, metadata) =>
+      callUnary(stub.listFieldPermissionOverridesForRole, req, metadata, true),
     close: () => stub.close(),
   };
 };

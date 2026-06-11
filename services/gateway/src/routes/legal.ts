@@ -48,7 +48,9 @@ const cache = new Map<string, Promise<string>>();
 const readMarkdownCached = (docsDir: string, filename: string): Promise<string> => {
   const key = path.join(docsDir, filename);
   const existing = cache.get(key);
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
   const p = readFile(key, 'utf8');
   cache.set(key, p);
   // Bust the cache on read failure so a transient FS error doesn't

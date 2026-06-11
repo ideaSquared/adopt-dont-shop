@@ -5,7 +5,7 @@
 // source: proto/adopt_dont_shop/v1/ping.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -17,9 +17,9 @@ import {
   type Metadata,
   type ServiceError,
   type UntypedServiceImplementation,
-} from '@grpc/grpc-js';
+} from "@grpc/grpc-js";
 
-export const protobufPackage = 'adopt_dont_shop.v1';
+export const protobufPackage = "adopt_dont_shop.v1";
 
 export interface EchoRequest {
   message: string;
@@ -35,12 +35,12 @@ export interface EchoResponse {
 }
 
 function createBaseEchoRequest(): EchoRequest {
-  return { message: '' };
+  return { message: "" };
 }
 
 export const EchoRequest: MessageFns<EchoRequest> = {
   encode(message: EchoRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.message !== '') {
+    if (message.message !== "") {
       writer.uint32(10).string(message.message);
     }
     return writer;
@@ -71,12 +71,12 @@ export const EchoRequest: MessageFns<EchoRequest> = {
   },
 
   fromJSON(object: any): EchoRequest {
-    return { message: isSet(object.message) ? globalThis.String(object.message) : '' };
+    return { message: isSet(object.message) ? globalThis.String(object.message) : "" };
   },
 
   toJSON(message: EchoRequest): unknown {
     const obj: any = {};
-    if (message.message !== '') {
+    if (message.message !== "") {
       obj.message = message.message;
     }
     return obj;
@@ -87,21 +87,21 @@ export const EchoRequest: MessageFns<EchoRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<EchoRequest>, I>>(object: I): EchoRequest {
     const message = createBaseEchoRequest();
-    message.message = object.message ?? '';
+    message.message = object.message ?? "";
     return message;
   },
 };
 
 function createBaseEchoResponse(): EchoResponse {
-  return { message: '', receivedAt: '' };
+  return { message: "", receivedAt: "" };
 }
 
 export const EchoResponse: MessageFns<EchoResponse> = {
   encode(message: EchoResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.message !== '') {
+    if (message.message !== "") {
       writer.uint32(10).string(message.message);
     }
-    if (message.receivedAt !== '') {
+    if (message.receivedAt !== "") {
       writer.uint32(18).string(message.receivedAt);
     }
     return writer;
@@ -141,21 +141,21 @@ export const EchoResponse: MessageFns<EchoResponse> = {
 
   fromJSON(object: any): EchoResponse {
     return {
-      message: isSet(object.message) ? globalThis.String(object.message) : '',
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
       receivedAt: isSet(object.receivedAt)
         ? globalThis.String(object.receivedAt)
         : isSet(object.received_at)
-          ? globalThis.String(object.received_at)
-          : '',
+        ? globalThis.String(object.received_at)
+        : "",
     };
   },
 
   toJSON(message: EchoResponse): unknown {
     const obj: any = {};
-    if (message.message !== '') {
+    if (message.message !== "") {
       obj.message = message.message;
     }
-    if (message.receivedAt !== '') {
+    if (message.receivedAt !== "") {
       obj.receivedAt = message.receivedAt;
     }
     return obj;
@@ -166,8 +166,8 @@ export const EchoResponse: MessageFns<EchoResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<EchoResponse>, I>>(object: I): EchoResponse {
     const message = createBaseEchoResponse();
-    message.message = object.message ?? '';
-    message.receivedAt = object.receivedAt ?? '';
+    message.message = object.message ?? "";
+    message.receivedAt = object.receivedAt ?? "";
     return message;
   },
 };
@@ -187,14 +187,12 @@ export const PingService = {
    * call this to assert the proto pipeline is wired end-to-end.
    */
   echo: {
-    path: '/adopt_dont_shop.v1.Ping/Echo' as const,
+    path: "/adopt_dont_shop.v1.Ping/Echo" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: EchoRequest): Buffer =>
-      Buffer.from(EchoRequest.encode(value).finish()),
+    requestSerialize: (value: EchoRequest): Buffer => Buffer.from(EchoRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): EchoRequest => EchoRequest.decode(value),
-    responseSerialize: (value: EchoResponse): Buffer =>
-      Buffer.from(EchoResponse.encode(value).finish()),
+    responseSerialize: (value: EchoResponse): Buffer => Buffer.from(EchoResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): EchoResponse => EchoResponse.decode(value),
   },
 } as const;
@@ -214,51 +212,36 @@ export interface PingClient extends Client {
    * /health/proto endpoint and the dependency-light smoke harness both
    * call this to assert the proto pipeline is wired end-to-end.
    */
-  echo(
-    request: EchoRequest,
-    callback: (error: ServiceError | null, response: EchoResponse) => void
-  ): ClientUnaryCall;
+  echo(request: EchoRequest, callback: (error: ServiceError | null, response: EchoResponse) => void): ClientUnaryCall;
   echo(
     request: EchoRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: EchoResponse) => void
+    callback: (error: ServiceError | null, response: EchoResponse) => void,
   ): ClientUnaryCall;
   echo(
     request: EchoRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: EchoResponse) => void
+    callback: (error: ServiceError | null, response: EchoResponse) => void,
   ): ClientUnaryCall;
 }
 
-export const PingClient = makeGenericClientConstructor(
-  PingService,
-  'adopt_dont_shop.v1.Ping'
-) as unknown as {
-  new (
-    address: string,
-    credentials: ChannelCredentials,
-    options?: Partial<ClientOptions>
-  ): PingClient;
+export const PingClient = makeGenericClientConstructor(PingService, "adopt_dont_shop.v1.Ping") as unknown as {
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): PingClient;
   service: typeof PingService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
+export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {

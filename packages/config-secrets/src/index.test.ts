@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { readSecret, requireSecret } from './index.js';
+import { parsePort, readSecret, requireSecret } from './index.js';
 
 describe('readSecret', () => {
   let tmp: string;
@@ -81,9 +81,66 @@ describe('requireSecret', () => {
     expect(requireSecret('JWT_SECRET', { JWT_SECRET_FILE: file })).toBe('file-value');
   });
 
-  it('throws a descriptive error naming both env shapes when missing', () => {
-    expect(() => requireSecret('JWT_SECRET', {})).toThrow(
-      /JWT_SECRET \(or JWT_SECRET_FILE\) is required/
+  it('trims surrounding whitespace from the resolved value', () => {
+    expect(requireSecret('JWT_SECRET', { JWT_SECRET: '  value  ' })).toBe('value');
+  });
+
+  it('throws when the secret is missing — no description', () => {
+    expect(() => requireSecret('JWT_SECRET', {})).toThrow(/JWT_SECRET is required/);
+  });
+
+  it('throws when the secret is missing — with description', () => {
+    expect(() => requireSecret('JWT_SECRET', {}, 'access-token signing secret')).toThrow(
+      'JWT_SECRET is required (access-token signing secret)'
+    );
+  });
+
+  it('throws when the value is blank (whitespace only)', () => {
+    expect(() => requireSecret('JWT_SECRET', { JWT_SECRET: '   ' })).toThrow(
+      /JWT_SECRET is required/
+    );
+  });
+
+  it('refuses to guess when both NAME and NAME_FILE are set (delegates to readSecret)', () => {
+    const file = join(tmp, 'jwt');
+    writeFileSync(file, 'file-value');
+
+    expect(() =>
+      requireSecret('JWT_SECRET', { JWT_SECRET: 'env-value', JWT_SECRET_FILE: file })
+    ).toThrow(/JWT_SECRET and JWT_SECRET_FILE are both set/);
+  });
+});
+
+describe('parsePort', () => {
+  it('returns the fallback when raw is undefined', () => {
+    expect(parsePort(undefined, 5002, 'AUTH_PORT')).toBe(5002);
+  });
+
+  it('returns the fallback when raw is blank / whitespace only', () => {
+    expect(parsePort('   ', 5002, 'AUTH_PORT')).toBe(5002);
+  });
+
+  it('parses a valid port string', () => {
+    expect(parsePort('8080', 5002, 'AUTH_PORT')).toBe(8080);
+  });
+
+  it('trims whitespace before parsing', () => {
+    expect(parsePort('  8080  ', 5002, 'AUTH_PORT')).toBe(8080);
+  });
+
+  it('throws naming the variable when value is non-numeric', () => {
+    expect(() => parsePort('five-thousand', 5002, 'AUTH_PORT')).toThrow(
+      'AUTH_PORT must be a positive integer, got "five-thousand"'
+    );
+  });
+
+  it('throws when value is zero', () => {
+    expect(() => parsePort('0', 5002, 'AUTH_PORT')).toThrow(/AUTH_PORT must be a positive integer/);
+  });
+
+  it('throws when value is negative', () => {
+    expect(() => parsePort('-1', 5002, 'AUTH_PORT')).toThrow(
+      /AUTH_PORT must be a positive integer/
     );
   });
 });

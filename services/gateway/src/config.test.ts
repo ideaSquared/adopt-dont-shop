@@ -77,4 +77,30 @@ describe('loadConfig', () => {
     });
     expect(config.host).toBe('localhost');
   });
+
+  it('rate-limit defaults: 100 req/min, no redisUrl when REDIS_URL unset', () => {
+    const config = loadConfig({});
+    expect(config.rateLimit.max).toBe(100);
+    expect(config.rateLimit.timeWindow).toBe('1 minute');
+    expect(config.rateLimit.redisUrl).toBeUndefined();
+  });
+
+  it('honours GATEWAY_RATE_LIMIT_MAX and GATEWAY_RATE_LIMIT_WINDOW', () => {
+    const config = loadConfig({
+      GATEWAY_RATE_LIMIT_MAX: '200',
+      GATEWAY_RATE_LIMIT_WINDOW: '30 seconds',
+    });
+    expect(config.rateLimit.max).toBe(200);
+    expect(config.rateLimit.timeWindow).toBe('30 seconds');
+  });
+
+  it('reads REDIS_URL for the rate-limit store', () => {
+    const config = loadConfig({ REDIS_URL: 'redis://localhost:6379' });
+    expect(config.rateLimit.redisUrl).toBe('redis://localhost:6379');
+  });
+
+  it('falls back to max=100 for an invalid GATEWAY_RATE_LIMIT_MAX', () => {
+    const config = loadConfig({ GATEWAY_RATE_LIMIT_MAX: 'not-a-number' });
+    expect(config.rateLimit.max).toBe(100);
+  });
 });
