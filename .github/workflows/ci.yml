@@ -551,6 +551,15 @@ jobs:
             echo "No retried tests detected in this run."
           fi
 
+      - name: Dump service logs on failure
+        # Inline (not just the artifact): the artifact requires a download to
+        # inspect, while the job log is immediately searchable. gRPC adapters
+        # mask unexpected handler errors as INTERNAL 'internal error', so the
+        # real exception only exists in the owning service's stdout.
+        if: failure()
+        run: |
+          docker compose -f docker-compose.yml --profile full logs --no-color --tail=150
+
       - name: Capture docker-compose logs on failure
         if: failure()
         # --profile full: without it the dump only contains the default-profile
