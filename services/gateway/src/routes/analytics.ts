@@ -57,7 +57,9 @@ const sessionLengthCap = 256;
 // the winston shipper's per-line buffer. Same defence we apply at every
 // other ingestion seam.
 const cap = (s: string | undefined): string | undefined => {
-  if (!s) return s;
+  if (!s) {
+    return s;
+  }
   return s.length > sessionLengthCap ? s.slice(0, sessionLengthCap) : s;
 };
 

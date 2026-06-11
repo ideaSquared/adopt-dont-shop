@@ -262,7 +262,7 @@ describe('field-permissions gateway routes', () => {
       },
     });
     expect(res.statusCode).toBe(400);
-    expect(res.json()).toMatchObject({ success: false });
+    expect(res.json()).toMatchObject({ error: 'cannot override sensitive fields: users.password' });
   });
 
   it('maps gRPC PERMISSION_DENIED → 403', async () => {

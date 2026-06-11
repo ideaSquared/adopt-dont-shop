@@ -14,8 +14,7 @@
 // (registerDeviceToken / unregisterDeviceToken / listDeviceTokens on
 // NotificationsClient).
 
-import { status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
 import {
   NotificationsV1,
@@ -26,19 +25,10 @@ import {
 
 import type { NotificationsClient } from '../grpc-clients/notifications-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 
 export type DevicesRoutesOptions = {
   client: NotificationsClient;
-};
-
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.ALREADY_EXISTS]: 409,
-  [status.INTERNAL]: 500,
 };
 
 const platformFromString = (raw: string | undefined): NotificationsV1.DevicePlatform => {
@@ -133,13 +123,3 @@ export const registerDevicesRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}

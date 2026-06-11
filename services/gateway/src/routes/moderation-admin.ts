@@ -10,8 +10,7 @@
 // SPA-facing layer.
 
 import rateLimit from '@fastify/rate-limit';
-import { status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
 import {
   ModerationV1,
@@ -37,19 +36,11 @@ import {
   supportTicketToView,
 } from './moderation-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
 
 export type ModerationAdminRoutesOptions = {
   client: ModerationClient;
-};
-
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.INTERNAL]: 500,
 };
 
 const RL_WRITE = { max: 30, timeWindow: '1 minute' } as const;
@@ -518,16 +509,6 @@ export const registerModerationAdminRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}
 
 // Same generic enum parser the existing moderation.ts uses — accepts
 // DB form ('pending') AND the SCREAMING proto form ('REPORT_STATUS_PENDING').

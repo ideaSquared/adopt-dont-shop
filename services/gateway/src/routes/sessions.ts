@@ -11,25 +11,16 @@
 // Mounted under the existing CUTOVER_AUTH flag — sessions are an auth
 // surface, so they cut over together with login/logout/etc.
 
-import { status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
 import { AuthV1, type RevokeSessionRequest } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 
 export type SessionsRoutesOptions = {
   client: AuthClient;
-};
-
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.INTERNAL]: 500,
 };
 
 export const registerSessionsRoutes = async (
@@ -78,16 +69,6 @@ export const registerSessionsRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}
 
 // Re-export AuthV1 so tests can use the proto namespace without
 // pulling it in separately.

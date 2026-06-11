@@ -25,8 +25,7 @@
 // handlers re-check the permission as defence-in-depth.
 
 import rateLimit from '@fastify/rate-limit';
-import { status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import {
   MatchingV1,
@@ -42,6 +41,7 @@ import type { MatchingClient } from '../grpc-clients/matching-client.js';
 
 import { recommendToQueue, searchToView } from './matching-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
 
 export type MatchingRoutesOptions = {
@@ -49,15 +49,6 @@ export type MatchingRoutesOptions = {
 };
 
 // Adds UNIMPLEMENTED → 501 for the Recommend / SearchPets stubs.
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.UNIMPLEMENTED]: 501,
-  [status.INTERNAL]: 500,
-};
 
 // Per-route rate limits. Swipes are the chatty path so they get a
 // higher ceiling; sessions are bookended (~2 per browsing session)
@@ -455,16 +446,6 @@ async function openSession(
 }
 
 // --- Helpers ---------------------------------------------------------
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}
 
 // parseSwipeAction accepts DB form ('like' / 'pass' / 'super_like'
 // / 'info') AND SCREAMING proto form ('SWIPE_ACTION_LIKE'). Unknown

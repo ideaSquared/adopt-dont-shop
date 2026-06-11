@@ -11,8 +11,7 @@
 // storage provider. Wire an AV step in front of `uploadFile` when the
 // scanner is extracted.
 
-import { status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
 import { createStorageProvider, type StorageConfig } from '@adopt-dont-shop/storage';
 
@@ -20,20 +19,11 @@ import type { ApplicationsClient } from '../grpc-clients/applications-client.js'
 
 import { documentToView } from './applications-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 
 export type ApplicationDocumentsRoutesOptions = {
   client: ApplicationsClient;
   storage: StorageConfig;
-};
-
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.UNIMPLEMENTED]: 501,
-  [status.INTERNAL]: 500,
 };
 
 export const registerApplicationDocumentsRoutes = async (
@@ -149,13 +139,3 @@ type MultipartPart = {
   value?: unknown;
   toBuffer: () => Promise<Buffer>;
 };
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}

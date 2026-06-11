@@ -2,8 +2,8 @@
 // service.cms. Returns the monolith's `{ success, ... }` envelopes so
 // the existing lib.api CMS client deserialises unchanged.
 
-import { Metadata, status } from '@grpc/grpc-js';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import { Metadata } from '@grpc/grpc-js';
+import type { FastifyInstance } from 'fastify';
 
 import {
   CmsV1,
@@ -16,20 +16,11 @@ import {
 
 import type { CmsClient } from '../grpc-clients/cms-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
 
 export type CmsRoutesOptions = {
   client: CmsClient;
-};
-
-const GRPC_TO_HTTP: Record<number, number> = {
-  [status.OK]: 200,
-  [status.INVALID_ARGUMENT]: 400,
-  [status.UNAUTHENTICATED]: 401,
-  [status.PERMISSION_DENIED]: 403,
-  [status.NOT_FOUND]: 404,
-  [status.ALREADY_EXISTS]: 409,
-  [status.INTERNAL]: 500,
 };
 
 function contentTypeFromString(raw: string | undefined): CmsV1.ContentType {
@@ -534,14 +525,3 @@ export const registerCmsRoutes = async (
 };
 
 // --- Helpers --------------------------------------------------------
-
-type GrpcError = { code?: number; details?: string; message?: string };
-
-function handleGrpcError(err: unknown, reply: FastifyReply): FastifyReply {
-  const grpcErr = err as GrpcError;
-  const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
-  return reply.code(httpStatus).send({
-    success: false,
-    error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
-  });
-}
