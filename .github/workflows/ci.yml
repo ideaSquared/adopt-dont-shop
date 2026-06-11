@@ -342,16 +342,30 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
       - name: Free up disk space
+        # The 14-image compose build needs ~25GB; the hosted runner has ~14GB
+        # free. Evict the big preinstalled toolchains (Android SDK, .NET, GHC,
+        # Swift, CodeQL, runner docker images) before building. Without this
+        # the build dies with ENOSPC mid-export, or — worse — limps through
+        # and the services then sit "unhealthy" because nothing inside the
+        # containers can write (the failure signature ADS-792 describes).
         run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" "$AGENT_TOOLSDIRECTORY"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc "/usr/local/share/boost" \
+            /usr/local/lib/android /usr/share/swift /opt/hostedtoolcache/CodeQL \
+            "$AGENT_TOOLSDIRECTORY"
+          sudo docker image prune -af
+          df -h /
 
       - uses: ./.github/actions/setup-workspace
 
-      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
-        with:
-          driver-opts: |
-            image=moby/buildkit:v0.23.0
-            network=host
+      # NOTE: deliberately NO docker/setup-buildx-action here. The
+      # docker-container builder it creates stores every image twice — once
+      # in the BuildKit cache, once exported as a tarball and re-imported
+      # into the daemon ("sending tarball" / "importing to docker") — which
+      # doubles peak disk for a 14-image build. The daemon's integrated
+      # BuildKit (DOCKER_BUILDKIT=1 is set job-wide) builds straight into
+      # the image store and still supports the dockerfile:1.4 syntax and
+      # RUN --mount=type=cache used by Dockerfile.service.
 
       - name: Resolve Playwright version
         id: pw
@@ -434,6 +448,7 @@ jobs:
         # graph instead of racing two independent stacks.
         run: |
           docker compose -f docker-compose.yml --profile full up -d --build
+          df -h /
 
       - name: Wait for services
         # The gateway is first in the list and carries the whole budget: it
