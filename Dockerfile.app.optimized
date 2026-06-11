@@ -49,8 +49,10 @@ ARG APP_NAME
 COPY --from=pruner --chown=viteuser:nodejs /app/out/json/ ./
 COPY --from=pruner --chown=viteuser:nodejs /app/out/package-lock.json ./package-lock.json
 
-# Install dependencies with BuildKit cache mount
-RUN --mount=type=cache,target=/root/.npm \
+# Install dependencies with BuildKit cache mount. Keyed per app: concurrent
+# compose builds sharing one npm cache mount race on cacache tmp paths
+# (npm error EEXIST) — see the same pattern in Dockerfile.service.
+RUN --mount=type=cache,id=npm-dev-${APP_NAME},target=/root/.npm \
     npm ci --prefer-offline
 
 # Pruned source — only the lib.* directories the app actually depends on.
@@ -94,7 +96,7 @@ RUN chown -R viteuser:nodejs /app
 
 USER viteuser
 
-RUN --mount=type=cache,target=/home/viteuser/.npm,uid=1001 \
+RUN --mount=type=cache,id=npm-build-${APP_NAME},target=/home/viteuser/.npm,uid=1001 \
     npm ci --prefer-offline
 
 # Pruned source — only the lib.* directories the app actually depends on.
@@ -104,7 +106,7 @@ COPY --from=pruner --chown=viteuser:nodejs /app/out/full/ ./
 # Use cache mount for Turbo cache
 # The '...' prefix builds all dependencies first, then the target app
 # Set NODE_ENV=production to use "import" exports instead of "development" (src/*.ts)
-RUN --mount=type=cache,target=/app/.turbo,uid=1001 \
+RUN --mount=type=cache,id=turbo-${APP_NAME},target=/app/.turbo,uid=1001 \
     NODE_ENV=production npx turbo run build --filter=...@adopt-dont-shop/${APP_NAME}
 
 # Upload sourcemaps to Sentry using a BuildKit secret so the auth token never
