@@ -43,6 +43,8 @@ import {
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
 
+import { callWithResilience, getOrCreateCircuitBreaker } from './resilience.js';
+
 export type RescueClient = {
   create(req: CreateRescueRequest, metadata: Metadata): Promise<CreateRescueResponse>;
   get(req: GetRescueRequest, metadata: Metadata): Promise<GetRescueResponse>;
@@ -90,8 +92,11 @@ export type CreateRescueClientOptions = {
 // and lets the caller fail fast with DEADLINE_EXCEEDED.
 const DEFAULT_DEADLINE_MS = 5_000;
 
+const SERVICE_NAME = 'service.rescue';
+
 export const createRescueClient = (opts: CreateRescueClientOptions): RescueClient => {
   const stub = new RescueV1.RescueServiceClient(opts.address, credentials.createInsecure());
+  const breaker = getOrCreateCircuitBreaker(SERVICE_NAME);
 
   const callUnary = <Req, Res>(
     fn: (
@@ -101,47 +106,61 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
       cb: (err: unknown, res: Res) => void
     ) => unknown,
     req: Req,
-    metadata: Metadata
+    metadata: Metadata,
+    idempotent: boolean
   ): Promise<Res> =>
-    new Promise<Res>((resolve, reject) => {
-      const options: Partial<CallOptions> = {
-        deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
-      };
-      const method = fn.name || 'unknown';
-      const stop = startGrpcTimer('service.rescue', method, 'out');
-      fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
-        const code =
-          err &&
-          typeof err === 'object' &&
-          'code' in err &&
-          typeof (err as { code?: unknown }).code === 'number'
-            ? (err as { code: number }).code
-            : err
-              ? 2 // UNKNOWN
-              : 0;
-        stop(code);
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(res);
-      });
-    });
+    callWithResilience<Res>(
+      deadline =>
+        new Promise<Res>((resolve, reject) => {
+          const options: Partial<CallOptions> = { deadline };
+          const method = fn.name || 'unknown';
+          const stop = startGrpcTimer(SERVICE_NAME, method, 'out');
+          fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
+            const code =
+              err &&
+              typeof err === 'object' &&
+              'code' in err &&
+              typeof (err as { code?: unknown }).code === 'number'
+                ? (err as { code: number }).code
+                : err
+                  ? 2 // UNKNOWN
+                  : 0;
+            stop(code);
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(res);
+          });
+        }),
+      {
+        service: SERVICE_NAME,
+        deadlineMs: DEFAULT_DEADLINE_MS,
+        idempotent,
+        circuitBreaker: breaker,
+      }
+    );
 
   return {
-    create: (req, metadata) => callUnary(stub.create, req, metadata),
-    get: (req, metadata) => callUnary(stub.get, req, metadata),
-    list: (req, metadata) => callUnary(stub.list, req, metadata),
-    update: (req, metadata) => callUnary(stub.update, req, metadata),
-    verify: (req, metadata) => callUnary(stub.verify, req, metadata),
-    inviteStaff: (req, metadata) => callUnary(stub.inviteStaff, req, metadata),
-    getMyStaffMembership: (req, metadata) => callUnary(stub.getMyStaffMembership, req, metadata),
-    listStaffMembers: (req, metadata) => callUnary(stub.listStaffMembers, req, metadata),
-    createFosterPlacement: (req, metadata) => callUnary(stub.createFosterPlacement, req, metadata),
-    listFosterPlacements: (req, metadata) => callUnary(stub.listFosterPlacements, req, metadata),
-    getFosterPlacement: (req, metadata) => callUnary(stub.getFosterPlacement, req, metadata),
-    endFosterPlacement: (req, metadata) => callUnary(stub.endFosterPlacement, req, metadata),
-    getInvitationByToken: (req, metadata) => callUnary(stub.getInvitationByToken, req, metadata),
+    // ── Non-idempotent (writes / mutations) ──────────────────────────
+    create: (req, metadata) => callUnary(stub.create, req, metadata, false),
+    update: (req, metadata) => callUnary(stub.update, req, metadata, false),
+    verify: (req, metadata) => callUnary(stub.verify, req, metadata, false),
+    inviteStaff: (req, metadata) => callUnary(stub.inviteStaff, req, metadata, false),
+    createFosterPlacement: (req, metadata) =>
+      callUnary(stub.createFosterPlacement, req, metadata, false),
+    endFosterPlacement: (req, metadata) => callUnary(stub.endFosterPlacement, req, metadata, false),
+    // ── Idempotent (reads) ───────────────────────────────────────────
+    get: (req, metadata) => callUnary(stub.get, req, metadata, true),
+    list: (req, metadata) => callUnary(stub.list, req, metadata, true),
+    getMyStaffMembership: (req, metadata) =>
+      callUnary(stub.getMyStaffMembership, req, metadata, true),
+    listStaffMembers: (req, metadata) => callUnary(stub.listStaffMembers, req, metadata, true),
+    listFosterPlacements: (req, metadata) =>
+      callUnary(stub.listFosterPlacements, req, metadata, true),
+    getFosterPlacement: (req, metadata) => callUnary(stub.getFosterPlacement, req, metadata, true),
+    getInvitationByToken: (req, metadata) =>
+      callUnary(stub.getInvitationByToken, req, metadata, true),
     close: () => stub.close(),
   };
 };

@@ -58,6 +58,8 @@ import {
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
 
+import { callWithResilience, getOrCreateCircuitBreaker } from './resilience.js';
+
 export type NotificationsClient = {
   create(req: CreateNotificationRequest, metadata: Metadata): Promise<CreateNotificationResponse>;
   list(req: ListNotificationsRequest, metadata: Metadata): Promise<ListNotificationsResponse>;
@@ -147,6 +149,8 @@ export type CreateNotificationsClientOptions = {
 // and lets the caller fail fast with DEADLINE_EXCEEDED.
 const DEFAULT_DEADLINE_MS = 5_000;
 
+const SERVICE_NAME = 'service.notifications';
+
 export const createNotificationsClient = (
   opts: CreateNotificationsClientOptions
 ): NotificationsClient => {
@@ -154,6 +158,7 @@ export const createNotificationsClient = (
     opts.address,
     credentials.createInsecure()
   );
+  const breaker = getOrCreateCircuitBreaker(SERVICE_NAME);
 
   const callUnary = <Req, Res>(
     fn: (
@@ -163,59 +168,75 @@ export const createNotificationsClient = (
       cb: (err: unknown, res: Res) => void
     ) => unknown,
     req: Req,
-    metadata: Metadata
+    metadata: Metadata,
+    idempotent: boolean
   ): Promise<Res> =>
-    new Promise<Res>((resolve, reject) => {
-      const options: Partial<CallOptions> = {
-        deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
-      };
-      const method = fn.name || 'unknown';
-      const stop = startGrpcTimer('service.notifications', method, 'out');
-      fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
-        const code =
-          err &&
-          typeof err === 'object' &&
-          'code' in err &&
-          typeof (err as { code?: unknown }).code === 'number'
-            ? (err as { code: number }).code
-            : err
-              ? 2 // UNKNOWN
-              : 0;
-        stop(code);
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(res);
-      });
-    });
+    callWithResilience<Res>(
+      deadline =>
+        new Promise<Res>((resolve, reject) => {
+          const options: Partial<CallOptions> = { deadline };
+          const method = fn.name || 'unknown';
+          const stop = startGrpcTimer(SERVICE_NAME, method, 'out');
+          fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
+            const code =
+              err &&
+              typeof err === 'object' &&
+              'code' in err &&
+              typeof (err as { code?: unknown }).code === 'number'
+                ? (err as { code: number }).code
+                : err
+                  ? 2 // UNKNOWN
+                  : 0;
+            stop(code);
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(res);
+          });
+        }),
+      {
+        service: SERVICE_NAME,
+        deadlineMs: DEFAULT_DEADLINE_MS,
+        idempotent,
+        circuitBreaker: breaker,
+      }
+    );
 
   return {
-    create: (req, metadata) => callUnary(stub.create, req, metadata),
-    list: (req, metadata) => callUnary(stub.list, req, metadata),
-    dismiss: (req, metadata) => callUnary(stub.dismiss, req, metadata),
-    registerDeviceToken: (req, metadata) => callUnary(stub.registerDeviceToken, req, metadata),
-    unregisterDeviceToken: (req, metadata) => callUnary(stub.unregisterDeviceToken, req, metadata),
-    listDeviceTokens: (req, metadata) => callUnary(stub.listDeviceTokens, req, metadata),
-    getNotification: (req, metadata) => callUnary(stub.getNotification, req, metadata),
-    getUnreadCount: (req, metadata) => callUnary(stub.getUnreadCount, req, metadata),
-    markAllRead: (req, metadata) => callUnary(stub.markAllRead, req, metadata),
-    deleteNotification: (req, metadata) => callUnary(stub.deleteNotification, req, metadata),
-    getNotificationPreferences: (req, metadata) =>
-      callUnary(stub.getNotificationPreferences, req, metadata),
+    // ── Non-idempotent (writes / mutations) ──────────────────────────
+    create: (req, metadata) => callUnary(stub.create, req, metadata, false),
+    dismiss: (req, metadata) => callUnary(stub.dismiss, req, metadata, false),
+    registerDeviceToken: (req, metadata) =>
+      callUnary(stub.registerDeviceToken, req, metadata, false),
+    unregisterDeviceToken: (req, metadata) =>
+      callUnary(stub.unregisterDeviceToken, req, metadata, false),
+    markAllRead: (req, metadata) => callUnary(stub.markAllRead, req, metadata, false),
+    deleteNotification: (req, metadata) => callUnary(stub.deleteNotification, req, metadata, false),
     updateNotificationPreferences: (req, metadata) =>
-      callUnary(stub.updateNotificationPreferences, req, metadata),
+      callUnary(stub.updateNotificationPreferences, req, metadata, false),
     resetNotificationPreferences: (req, metadata) =>
-      callUnary(stub.resetNotificationPreferences, req, metadata),
+      callUnary(stub.resetNotificationPreferences, req, metadata, false),
     cleanupExpiredNotifications: (req, metadata) =>
-      callUnary(stub.cleanupExpiredNotifications, req, metadata),
-    listEmailTemplates: (req, metadata) => callUnary(stub.listEmailTemplates, req, metadata),
-    getEmailTemplate: (req, metadata) => callUnary(stub.getEmailTemplate, req, metadata),
-    createEmailTemplate: (req, metadata) => callUnary(stub.createEmailTemplate, req, metadata),
-    updateEmailTemplate: (req, metadata) => callUnary(stub.updateEmailTemplate, req, metadata),
-    deleteEmailTemplate: (req, metadata) => callUnary(stub.deleteEmailTemplate, req, metadata),
-    previewEmailTemplate: (req, metadata) => callUnary(stub.previewEmailTemplate, req, metadata),
-    broadcast: (req, metadata) => callUnary(stub.broadcast, req, metadata),
+      callUnary(stub.cleanupExpiredNotifications, req, metadata, false),
+    createEmailTemplate: (req, metadata) =>
+      callUnary(stub.createEmailTemplate, req, metadata, false),
+    updateEmailTemplate: (req, metadata) =>
+      callUnary(stub.updateEmailTemplate, req, metadata, false),
+    deleteEmailTemplate: (req, metadata) =>
+      callUnary(stub.deleteEmailTemplate, req, metadata, false),
+    broadcast: (req, metadata) => callUnary(stub.broadcast, req, metadata, false),
+    // ── Idempotent (reads) ───────────────────────────────────────────
+    list: (req, metadata) => callUnary(stub.list, req, metadata, true),
+    listDeviceTokens: (req, metadata) => callUnary(stub.listDeviceTokens, req, metadata, true),
+    getNotification: (req, metadata) => callUnary(stub.getNotification, req, metadata, true),
+    getUnreadCount: (req, metadata) => callUnary(stub.getUnreadCount, req, metadata, true),
+    getNotificationPreferences: (req, metadata) =>
+      callUnary(stub.getNotificationPreferences, req, metadata, true),
+    listEmailTemplates: (req, metadata) => callUnary(stub.listEmailTemplates, req, metadata, true),
+    getEmailTemplate: (req, metadata) => callUnary(stub.getEmailTemplate, req, metadata, true),
+    previewEmailTemplate: (req, metadata) =>
+      callUnary(stub.previewEmailTemplate, req, metadata, true),
     close: () => stub.close(),
   };
 };

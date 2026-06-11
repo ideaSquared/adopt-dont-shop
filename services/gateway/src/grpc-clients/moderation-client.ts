@@ -45,6 +45,8 @@ import {
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
 
+import { callWithResilience, getOrCreateCircuitBreaker } from './resilience.js';
+
 export type ModerationClient = {
   fileReport(req: FileReportRequest, metadata: Metadata): Promise<FileReportResponse>;
   getReport(req: GetReportRequest, metadata: Metadata): Promise<GetReportResponse>;
@@ -94,8 +96,11 @@ export type CreateModerationClientOptions = {
 // and lets the caller fail fast with DEADLINE_EXCEEDED.
 const DEFAULT_DEADLINE_MS = 5_000;
 
+const SERVICE_NAME = 'service.moderation';
+
 export const createModerationClient = (opts: CreateModerationClientOptions): ModerationClient => {
   const stub = new ModerationV1.ModerationServiceClient(opts.address, credentials.createInsecure());
+  const breaker = getOrCreateCircuitBreaker(SERVICE_NAME);
 
   const callUnary = <Req, Res>(
     fn: (
@@ -105,49 +110,60 @@ export const createModerationClient = (opts: CreateModerationClientOptions): Mod
       cb: (err: unknown, res: Res) => void
     ) => unknown,
     req: Req,
-    metadata: Metadata
+    metadata: Metadata,
+    idempotent: boolean
   ): Promise<Res> =>
-    new Promise<Res>((resolve, reject) => {
-      const options: Partial<CallOptions> = {
-        deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
-      };
-      const method = fn.name || 'unknown';
-      const stop = startGrpcTimer('service.moderation', method, 'out');
-      fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
-        const code =
-          err &&
-          typeof err === 'object' &&
-          'code' in err &&
-          typeof (err as { code?: unknown }).code === 'number'
-            ? (err as { code: number }).code
-            : err
-              ? 2 // UNKNOWN
-              : 0;
-        stop(code);
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(res);
-      });
-    });
+    callWithResilience<Res>(
+      deadline =>
+        new Promise<Res>((resolve, reject) => {
+          const options: Partial<CallOptions> = { deadline };
+          const method = fn.name || 'unknown';
+          const stop = startGrpcTimer(SERVICE_NAME, method, 'out');
+          fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
+            const code =
+              err &&
+              typeof err === 'object' &&
+              'code' in err &&
+              typeof (err as { code?: unknown }).code === 'number'
+                ? (err as { code: number }).code
+                : err
+                  ? 2 // UNKNOWN
+                  : 0;
+            stop(code);
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(res);
+          });
+        }),
+      {
+        service: SERVICE_NAME,
+        deadlineMs: DEFAULT_DEADLINE_MS,
+        idempotent,
+        circuitBreaker: breaker,
+      }
+    );
 
   return {
-    fileReport: (req, metadata) => callUnary(stub.fileReport, req, metadata),
-    getReport: (req, metadata) => callUnary(stub.getReport, req, metadata),
-    listReports: (req, metadata) => callUnary(stub.listReports, req, metadata),
-    assignReport: (req, metadata) => callUnary(stub.assignReport, req, metadata),
-    resolveReport: (req, metadata) => callUnary(stub.resolveReport, req, metadata),
-    logModeratorAction: (req, metadata) => callUnary(stub.logModeratorAction, req, metadata),
-    listModeratorActions: (req, metadata) => callUnary(stub.listModeratorActions, req, metadata),
-    addEvidence: (req, metadata) => callUnary(stub.addEvidence, req, metadata),
-    issueSanction: (req, metadata) => callUnary(stub.issueSanction, req, metadata),
-    listUserSanctions: (req, metadata) => callUnary(stub.listUserSanctions, req, metadata),
-    appealSanction: (req, metadata) => callUnary(stub.appealSanction, req, metadata),
-    openSupportTicket: (req, metadata) => callUnary(stub.openSupportTicket, req, metadata),
-    getSupportTicket: (req, metadata) => callUnary(stub.getSupportTicket, req, metadata),
-    listSupportTickets: (req, metadata) => callUnary(stub.listSupportTickets, req, metadata),
-    respondToTicket: (req, metadata) => callUnary(stub.respondToTicket, req, metadata),
+    // ── Non-idempotent (writes / moderation actions) ─────────────────
+    fileReport: (req, metadata) => callUnary(stub.fileReport, req, metadata, false),
+    assignReport: (req, metadata) => callUnary(stub.assignReport, req, metadata, false),
+    resolveReport: (req, metadata) => callUnary(stub.resolveReport, req, metadata, false),
+    logModeratorAction: (req, metadata) => callUnary(stub.logModeratorAction, req, metadata, false),
+    addEvidence: (req, metadata) => callUnary(stub.addEvidence, req, metadata, false),
+    issueSanction: (req, metadata) => callUnary(stub.issueSanction, req, metadata, false),
+    appealSanction: (req, metadata) => callUnary(stub.appealSanction, req, metadata, false),
+    openSupportTicket: (req, metadata) => callUnary(stub.openSupportTicket, req, metadata, false),
+    respondToTicket: (req, metadata) => callUnary(stub.respondToTicket, req, metadata, false),
+    // ── Idempotent (reads) ───────────────────────────────────────────
+    getReport: (req, metadata) => callUnary(stub.getReport, req, metadata, true),
+    listReports: (req, metadata) => callUnary(stub.listReports, req, metadata, true),
+    listModeratorActions: (req, metadata) =>
+      callUnary(stub.listModeratorActions, req, metadata, true),
+    listUserSanctions: (req, metadata) => callUnary(stub.listUserSanctions, req, metadata, true),
+    getSupportTicket: (req, metadata) => callUnary(stub.getSupportTicket, req, metadata, true),
+    listSupportTickets: (req, metadata) => callUnary(stub.listSupportTickets, req, metadata, true),
     close: () => stub.close(),
   };
 };

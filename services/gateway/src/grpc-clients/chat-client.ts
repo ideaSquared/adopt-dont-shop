@@ -34,6 +34,8 @@ import {
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
 
+import { callWithResilience, getOrCreateCircuitBreaker } from './resilience.js';
+
 export type ChatClient = {
   openChat(req: OpenChatRequest, metadata: Metadata): Promise<OpenChatResponse>;
   sendMessage(req: SendMessageRequest, metadata: Metadata): Promise<SendMessageResponse>;
@@ -61,8 +63,11 @@ export type CreateChatClientOptions = {
 // and lets the caller fail fast with DEADLINE_EXCEEDED.
 const DEFAULT_DEADLINE_MS = 5_000;
 
+const SERVICE_NAME = 'service.chat';
+
 export const createChatClient = (opts: CreateChatClientOptions): ChatClient => {
   const stub = new ChatV1.ChatServiceClient(opts.address, credentials.createInsecure());
+  const breaker = getOrCreateCircuitBreaker(SERVICE_NAME);
 
   const callUnary = <Req, Res>(
     fn: (
@@ -72,45 +77,55 @@ export const createChatClient = (opts: CreateChatClientOptions): ChatClient => {
       cb: (err: unknown, res: Res) => void
     ) => unknown,
     req: Req,
-    metadata: Metadata
+    metadata: Metadata,
+    idempotent: boolean
   ): Promise<Res> =>
-    new Promise<Res>((resolve, reject) => {
-      const options: Partial<CallOptions> = {
-        deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
-      };
-      const method = fn.name || 'unknown';
-      const stop = startGrpcTimer('service.chat', method, 'out');
-      fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
-        const code =
-          err &&
-          typeof err === 'object' &&
-          'code' in err &&
-          typeof (err as { code?: unknown }).code === 'number'
-            ? (err as { code: number }).code
-            : err
-              ? 2 // UNKNOWN
-              : 0;
-        stop(code);
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(res);
-      });
-    });
+    callWithResilience<Res>(
+      deadline =>
+        new Promise<Res>((resolve, reject) => {
+          const options: Partial<CallOptions> = { deadline };
+          const method = fn.name || 'unknown';
+          const stop = startGrpcTimer(SERVICE_NAME, method, 'out');
+          fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
+            const code =
+              err &&
+              typeof err === 'object' &&
+              'code' in err &&
+              typeof (err as { code?: unknown }).code === 'number'
+                ? (err as { code: number }).code
+                : err
+                  ? 2 // UNKNOWN
+                  : 0;
+            stop(code);
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(res);
+          });
+        }),
+      {
+        service: SERVICE_NAME,
+        deadlineMs: DEFAULT_DEADLINE_MS,
+        idempotent,
+        circuitBreaker: breaker,
+      }
+    );
 
   return {
-    openChat: (req, metadata) => callUnary(stub.openChat, req, metadata),
-    sendMessage: (req, metadata) => callUnary(stub.sendMessage, req, metadata),
-    listMessages: (req, metadata) => callUnary(stub.listMessages, req, metadata),
-    listChats: (req, metadata) => callUnary(stub.listChats, req, metadata),
-    markRead: (req, metadata) => callUnary(stub.markRead, req, metadata),
-    react: (req, metadata) => callUnary(stub.react, req, metadata),
-    searchChats: (req, metadata) => callUnary(stub.searchChats, req, metadata),
-    getChatUnreadCount: (req, metadata) => callUnary(stub.getChatUnreadCount, req, metadata),
-    deleteMessage: (req, metadata) => callUnary(stub.deleteMessage, req, metadata),
-    getChat: (req, metadata) => callUnary(stub.getChat, req, metadata),
-    deleteChat: (req, metadata) => callUnary(stub.deleteChat, req, metadata),
+    // ── Non-idempotent (writes / mutations) ──────────────────────────
+    openChat: (req, metadata) => callUnary(stub.openChat, req, metadata, false),
+    sendMessage: (req, metadata) => callUnary(stub.sendMessage, req, metadata, false),
+    markRead: (req, metadata) => callUnary(stub.markRead, req, metadata, false),
+    react: (req, metadata) => callUnary(stub.react, req, metadata, false),
+    deleteMessage: (req, metadata) => callUnary(stub.deleteMessage, req, metadata, false),
+    deleteChat: (req, metadata) => callUnary(stub.deleteChat, req, metadata, false),
+    // ── Idempotent (reads) ───────────────────────────────────────────
+    listMessages: (req, metadata) => callUnary(stub.listMessages, req, metadata, true),
+    listChats: (req, metadata) => callUnary(stub.listChats, req, metadata, true),
+    searchChats: (req, metadata) => callUnary(stub.searchChats, req, metadata, true),
+    getChatUnreadCount: (req, metadata) => callUnary(stub.getChatUnreadCount, req, metadata, true),
+    getChat: (req, metadata) => callUnary(stub.getChat, req, metadata, true),
     close: () => stub.close(),
   };
 };

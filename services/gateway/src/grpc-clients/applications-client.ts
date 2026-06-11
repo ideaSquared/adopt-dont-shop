@@ -47,6 +47,8 @@ import {
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
 
+import { callWithResilience, getOrCreateCircuitBreaker } from './resilience.js';
+
 export type ApplicationsClient = {
   startDraft(req: StartDraftRequest, metadata: Metadata): Promise<StartDraftResponse>;
   saveDraftAnswers(
@@ -85,6 +87,8 @@ export type CreateApplicationsClientOptions = {
 // and lets the caller fail fast with DEADLINE_EXCEEDED.
 const DEFAULT_DEADLINE_MS = 5_000;
 
+const SERVICE_NAME = 'service.applications';
+
 export const createApplicationsClient = (
   opts: CreateApplicationsClientOptions
 ): ApplicationsClient => {
@@ -92,6 +96,7 @@ export const createApplicationsClient = (
     opts.address,
     credentials.createInsecure()
   );
+  const breaker = getOrCreateCircuitBreaker(SERVICE_NAME);
 
   const callUnary = <Req, Res>(
     fn: (
@@ -101,50 +106,60 @@ export const createApplicationsClient = (
       cb: (err: unknown, res: Res) => void
     ) => unknown,
     req: Req,
-    metadata: Metadata
+    metadata: Metadata,
+    idempotent: boolean
   ): Promise<Res> =>
-    new Promise<Res>((resolve, reject) => {
-      const options: Partial<CallOptions> = {
-        deadline: new Date(Date.now() + DEFAULT_DEADLINE_MS),
-      };
-      const method = fn.name || 'unknown';
-      const stop = startGrpcTimer('service.applications', method, 'out');
-      fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
-        const code =
-          err &&
-          typeof err === 'object' &&
-          'code' in err &&
-          typeof (err as { code?: unknown }).code === 'number'
-            ? (err as { code: number }).code
-            : err
-              ? 2 // UNKNOWN
-              : 0;
-        stop(code);
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(res);
-      });
-    });
+    callWithResilience<Res>(
+      deadline =>
+        new Promise<Res>((resolve, reject) => {
+          const options: Partial<CallOptions> = { deadline };
+          const method = fn.name || 'unknown';
+          const stop = startGrpcTimer(SERVICE_NAME, method, 'out');
+          fn.call(stub, req, metadata, options, (err: unknown, res: Res) => {
+            const code =
+              err &&
+              typeof err === 'object' &&
+              'code' in err &&
+              typeof (err as { code?: unknown }).code === 'number'
+                ? (err as { code: number }).code
+                : err
+                  ? 2 // UNKNOWN
+                  : 0;
+            stop(code);
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(res);
+          });
+        }),
+      {
+        service: SERVICE_NAME,
+        deadlineMs: DEFAULT_DEADLINE_MS,
+        idempotent,
+        circuitBreaker: breaker,
+      }
+    );
 
   return {
-    startDraft: (req, metadata) => callUnary(stub.startDraft, req, metadata),
-    saveDraftAnswers: (req, metadata) => callUnary(stub.saveDraftAnswers, req, metadata),
-    submitDraft: (req, metadata) => callUnary(stub.submitDraft, req, metadata),
-    startReview: (req, metadata) => callUnary(stub.startReview, req, metadata),
-    scheduleHomeVisit: (req, metadata) => callUnary(stub.scheduleHomeVisit, req, metadata),
-    completeHomeVisit: (req, metadata) => callUnary(stub.completeHomeVisit, req, metadata),
-    approve: (req, metadata) => callUnary(stub.approve, req, metadata),
-    reject: (req, metadata) => callUnary(stub.reject, req, metadata),
-    withdraw: (req, metadata) => callUnary(stub.withdraw, req, metadata),
-    markAdopted: (req, metadata) => callUnary(stub.markAdopted, req, metadata),
-    get: (req, metadata) => callUnary(stub.get, req, metadata),
-    list: (req, metadata) => callUnary(stub.list, req, metadata),
-    getStats: (req, metadata) => callUnary(stub.getStats, req, metadata),
-    addDocument: (req, metadata) => callUnary(stub.addDocument, req, metadata),
-    listDocuments: (req, metadata) => callUnary(stub.listDocuments, req, metadata),
-    removeDocument: (req, metadata) => callUnary(stub.removeDocument, req, metadata),
+    // ── Non-idempotent (writes / state transitions) ──────────────────
+    startDraft: (req, metadata) => callUnary(stub.startDraft, req, metadata, false),
+    saveDraftAnswers: (req, metadata) => callUnary(stub.saveDraftAnswers, req, metadata, false),
+    submitDraft: (req, metadata) => callUnary(stub.submitDraft, req, metadata, false),
+    startReview: (req, metadata) => callUnary(stub.startReview, req, metadata, false),
+    scheduleHomeVisit: (req, metadata) => callUnary(stub.scheduleHomeVisit, req, metadata, false),
+    completeHomeVisit: (req, metadata) => callUnary(stub.completeHomeVisit, req, metadata, false),
+    approve: (req, metadata) => callUnary(stub.approve, req, metadata, false),
+    reject: (req, metadata) => callUnary(stub.reject, req, metadata, false),
+    withdraw: (req, metadata) => callUnary(stub.withdraw, req, metadata, false),
+    markAdopted: (req, metadata) => callUnary(stub.markAdopted, req, metadata, false),
+    addDocument: (req, metadata) => callUnary(stub.addDocument, req, metadata, false),
+    removeDocument: (req, metadata) => callUnary(stub.removeDocument, req, metadata, false),
+    // ── Idempotent (reads) ───────────────────────────────────────────
+    get: (req, metadata) => callUnary(stub.get, req, metadata, true),
+    list: (req, metadata) => callUnary(stub.list, req, metadata, true),
+    getStats: (req, metadata) => callUnary(stub.getStats, req, metadata, true),
+    listDocuments: (req, metadata) => callUnary(stub.listDocuments, req, metadata, true),
     close: () => stub.close(),
   };
 };
