@@ -209,16 +209,29 @@ describe('updateSavedReport', () => {
     expect(sql).toContain('user_id = $');
   });
 
-  it('admin with :any updates any row', async () => {
+  it('admin with reports.update:any updates any row', async () => {
     queryMock.mockResolvedValue({ rows: [makeRow({ name: 'New' })] });
     const res = await updateSavedReport(
       deps,
-      makePrincipal({ permissions: ['reports.update', 'reports.read:any'] }),
+      makePrincipal({ permissions: ['reports.update', 'reports.update:any'] }),
       { savedReportId: 'rep-1', name: 'New' }
     );
     expect(res.report?.name).toBe('New');
     const sql = queryMock.mock.calls[0][0] as string;
     expect(sql).not.toContain('user_id = $');
+  });
+
+  it('reports.read:any alone does NOT broaden write scoping (regression)', async () => {
+    queryMock.mockResolvedValue({ rows: [], rowCount: 0 });
+    await expect(
+      updateSavedReport(
+        deps,
+        makePrincipal({ permissions: ['reports.update', 'reports.read:any'] }),
+        { savedReportId: 'rep-1', name: 'New' }
+      )
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    const sql = queryMock.mock.calls[0][0] as string;
+    expect(sql).toContain('user_id = $');
   });
 
   it('validates JSON config when configJson is sent', async () => {
@@ -257,6 +270,41 @@ describe('deleteSavedReport', () => {
       savedReportId: 'rep-x',
     });
     expect(res.deleted).toBe(false);
+  });
+
+  it('scopes WHERE to user_id when caller has reports.delete but not reports.delete:any', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [], rowCount: 0 });
+    const { deps } = makeDeps(q);
+    await deleteSavedReport(deps, makePrincipal({ permissions: ['reports.delete'] }), {
+      savedReportId: 'rep-1',
+    });
+    const sql = q.mock.calls[0][0] as string;
+    expect(sql).toContain('user_id = $');
+  });
+
+  it('admin with reports.delete:any deletes any row without user_id scope', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [{ saved_report_id: 'rep-1' }], rowCount: 1 });
+    const { deps } = makeDeps(q);
+    const res = await deleteSavedReport(
+      deps,
+      makePrincipal({ permissions: ['reports.delete', 'reports.delete:any'] }),
+      { savedReportId: 'rep-1' }
+    );
+    expect(res.deleted).toBe(true);
+    const sql = q.mock.calls[0][0] as string;
+    expect(sql).not.toContain('user_id = $');
+  });
+
+  it('reports.read:any alone does NOT broaden delete scoping (regression)', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [], rowCount: 0 });
+    const { deps } = makeDeps(q);
+    await deleteSavedReport(
+      deps,
+      makePrincipal({ permissions: ['reports.delete', 'reports.read:any'] }),
+      { savedReportId: 'rep-1' }
+    );
+    const sql = q.mock.calls[0][0] as string;
+    expect(sql).toContain('user_id = $');
   });
 });
 
