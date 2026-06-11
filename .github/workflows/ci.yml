@@ -476,7 +476,28 @@ jobs:
             done
           done
 
-      - name: Warm up Vite bundles
+          # The URL loop only proves the gateway + apps are up. The gateway
+          # answers /health/simple before its sibling gRPC services finish
+          # their own migrate→seed→boot cycle, so a Playwright login probe
+          # fired now hits ECONNREFUSED on service-auth:6002. Every service
+          # binds gRPC before its HTTP health server (see services/*/src/
+          # index.ts), so compose-healthy ⇒ gRPC ready — wait for that.
+          echo "Waiting for service containers to report healthy"
+          for i in $(seq 1 120); do
+            not_healthy=$(docker compose -f docker-compose.yml --profile full ps --format '{{.Service}} {{.Health}}' \
+              | awk '$1 ~ /^service-/ && $2 != "healthy" {print $1}')
+            if [ -z "$not_healthy" ]; then
+              echo "  all service containers healthy"
+              break
+            fi
+            if [ "$i" = "120" ]; then
+              echo "  timeout waiting for: $not_healthy"
+              docker compose -f docker-compose.yml --profile full ps
+              docker compose -f docker-compose.yml --profile full logs --tail=300
+              exit 1
+            fi
+            sleep 2
+          done
         # Vite dev servers compile on first request. Hit /login on each app
         # so the JS is built before Playwright tries to interact with it.
         run: |
