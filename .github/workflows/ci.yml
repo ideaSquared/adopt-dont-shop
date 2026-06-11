@@ -387,7 +387,12 @@ jobs:
           {
             echo "NODE_ENV=development"
             echo "POSTGRES_USER=postgres"
-            echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)"
+            # Hex, not base64, for the same reason as REDIS_PASSWORD below:
+            # compose interpolates this into DATABASE_URL=postgresql://user:
+            # ${POSTGRES_PASSWORD}@database:5432/db and base64's / + = break
+            # `new URL()` in every service's db:migrate — intermittently,
+            # whenever the random draw happens to contain one.
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)"
             echo "POSTGRES_DB=adopt_dont_shop_dev"
             echo "JWT_SECRET=$(openssl rand -base64 32)"
             echo "JWT_REFRESH_SECRET=$(openssl rand -base64 32)"
