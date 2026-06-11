@@ -3,9 +3,9 @@
 # Teams are not yet created on the org. Once the following teams exist,
 # replace @paragonjenko in the matching sections with the team handle:
 #
-#   @adopt-dont-shop/backend   → /service.backend/, backend-facing libs
-#   @adopt-dont-shop/frontend  → /app.*/, /lib.components/
-#   @adopt-dont-shop/libs      → all other /lib.*/
+#   @adopt-dont-shop/backend   → /services/, backend-facing packages
+#   @adopt-dont-shop/frontend  → /apps/, /packages/lib.components/
+#   @adopt-dont-shop/libs      → all other /packages/lib.*/
 #   @adopt-dont-shop/infra     → /.github/, Docker/nginx/CI files
 #
 # See ADS-392: https://linear.app/ideasquared/issue/ADS-392
@@ -22,23 +22,21 @@
 # Frontend apps
 # Future owner: @adopt-dont-shop/frontend
 # ──────────────────────────────────────────────
-/app.admin/                 @paragonjenko
-/app.client/                @paragonjenko
-/app.rescue/                @paragonjenko
+/apps/                      @paragonjenko
 
 # ──────────────────────────────────────────────
-# Backend service
+# Backend services
 # Future owner: @adopt-dont-shop/backend
 # ──────────────────────────────────────────────
-/service.backend/           @paragonjenko
+/services/                  @paragonjenko
 
 # ──────────────────────────────────────────────
-# Shared libraries
-# Future owner: @adopt-dont-shop/frontend (lib.components)
-#               @adopt-dont-shop/backend  (lib.types, lib.validation)
+# Shared packages
+# Future owner: @adopt-dont-shop/frontend (packages/lib.components)
+#               @adopt-dont-shop/backend  (packages/lib.types, packages/lib.validation)
 #               @adopt-dont-shop/libs     (all others)
 # ──────────────────────────────────────────────
-/lib.*/                     @paragonjenko
+/packages/                  @paragonjenko
 
 # ──────────────────────────────────────────────
 # Infrastructure & CI

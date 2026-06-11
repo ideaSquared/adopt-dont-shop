@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import type { Plugin } from 'vite';
 import { defineConfig, mergeConfig } from 'vitest/config';
-import sharedConfig from '../vitest.shared.config';
+import sharedConfig from '../../vitest.shared.config';
 
 // Stubs all Vanilla Extract CSS files with callable proxies. Mirrors the
 // pattern used by app.admin / app.client / app.rescue so the modal under

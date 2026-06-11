@@ -3,23 +3,23 @@
 
 'area: backend':
   - changed-files:
-    - any-glob-to-any-file: 'service.backend/**'
+    - any-glob-to-any-file: 'services/**'
 
 'area: app.client':
   - changed-files:
-    - any-glob-to-any-file: 'app.client/**'
+    - any-glob-to-any-file: 'apps/client/**'
 
 'area: app.admin':
   - changed-files:
-    - any-glob-to-any-file: 'app.admin/**'
+    - any-glob-to-any-file: 'apps/admin/**'
 
 'area: app.rescue':
   - changed-files:
-    - any-glob-to-any-file: 'app.rescue/**'
+    - any-glob-to-any-file: 'apps/rescue/**'
 
 'area: libs':
   - changed-files:
-    - any-glob-to-any-file: 'lib.*/**'
+    - any-glob-to-any-file: 'packages/**'
 
 'area: ci':
   - changed-files:
@@ -31,9 +31,6 @@
     - any-glob-to-any-file: 'package-lock.json'
     - any-glob-to-any-file: 'turbo.json'
     - any-glob-to-any-file: 'tsconfig.json'
-    - any-glob-to-any-file: 'eslint-config-base/**'
-    - any-glob-to-any-file: 'eslint-config-node/**'
-    - any-glob-to-any-file: 'eslint-config-react/**'
     - any-glob-to-any-file: 'vite.shared.config.ts'
     - any-glob-to-any-file: 'docker-compose*.yml'
     - any-glob-to-any-file: 'Dockerfile*'

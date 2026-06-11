@@ -1,5 +1,5 @@
 {
-  "extends": "../tsconfig.cjs.base.json",
+  "extends": "../../tsconfig.cjs.base.json",
   "compilerOptions": {
     "target": "ES2020",
     "rootDir": "./src",

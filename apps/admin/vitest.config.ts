@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vitest/config';
-import { getLibraryAliases, veCssMock } from '../vite.shared.config';
+import { getLibraryAliases, veCssMock } from '../../vite.shared.config';
 
 export default defineConfig({
   plugins: [
@@ -50,7 +50,7 @@ export default defineConfig({
       // alias below so vite resolves it first.
       '@adopt-dont-shop/lib.components/theme': path.resolve(
         __dirname,
-        '../lib.components/src/theme.ts'
+        '../../packages/lib.components/src/theme.ts'
       ),
       // ADS-762: all @adopt-dont-shop/lib.* aliases come from the shared
       // getLibraryAliases() helper — the single source of truth also used

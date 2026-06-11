@@ -16,9 +16,10 @@ concurrency:
 
 jobs:
   # ============================================================================
-  # WORKSPACE DRIFT — verify package.json workspaces matches filesystem lib.*
-  # Catches the case where a lib is added to workspaces but the directory is
-  # missing (or vice-versa), which silently breaks Docker image builds.
+  # WORKSPACE DRIFT — verify the npm workspaces globs still resolve to the
+  # filesystem layout. Catches the case where a package is added to the
+  # workspaces array but the directory is missing (or vice-versa), which
+  # silently breaks Docker image builds.
   # ============================================================================
   workspace-drift:
     name: Verify Workspace ↔ Filesystem Alignment
@@ -28,18 +29,19 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
       - name: Verify workspace ↔ filesystem alignment
         run: |
-          expected=$(node -p "require('./package.json').workspaces.filter(w => w.startsWith('lib.')).sort().join('\n')")
-          actual=$(ls -d lib.* | sort)
-          diff <(echo "$expected") <(echo "$actual") || (echo "Workspace drift!" && exit 1)
+          # Every dir matched by the workspaces globs must have a package.json,
+          # and every package.json under apps/, packages/, services/ must be
+          # picked up by a glob. `npm ls -ws --depth=0 --json` does both.
+          npm ls -ws --depth=0 --json >/dev/null
 
       # ADS-618: Only the root package-lock.json is authoritative in an npm
       # workspaces setup. Per-package lockfiles drift silently and confuse
       # contributors — fail CI if any get committed.
       - name: Verify no per-package lockfiles exist
         run: |
-          if find lib.* app.* services -maxdepth 2 -name package-lock.json | grep -q .; then
+          if find apps packages services -maxdepth 3 -name package-lock.json | grep -q .; then
             echo "Per-package lockfiles found — only the root package-lock.json is authoritative."
-            find lib.* app.* services -maxdepth 2 -name package-lock.json
+            find apps packages services -maxdepth 3 -name package-lock.json
             exit 1
           fi
 
@@ -77,33 +79,24 @@ jobs:
             backend:
               - 'services/**'
               - 'packages/**'
-              - 'lib.types/**'
-              - 'lib.validation/**'
               - 'package.json'
               - 'package-lock.json'
               - 'tsconfig.json'
               - 'turbo.json'
-              - 'eslint-config-base/**'
-              - 'eslint-config-node/**'
             frontend:
-              - 'app.client/**'
-              - 'app.admin/**'
-              - 'app.rescue/**'
-              - 'lib.*/**'
+              - 'apps/**'
+              - 'packages/**'
               - 'package.json'
               - 'package-lock.json'
               - 'tsconfig.json'
               - 'turbo.json'
               - 'vite.shared.config.ts'
-              - 'eslint-config-base/**'
-              - 'eslint-config-react/**'
             libs:
-              - 'lib.*/**'
+              - 'packages/**'
               - 'package.json'
               - 'package-lock.json'
               - 'tsconfig.json'
               - 'turbo.json'
-              - 'eslint-config-base/**'
             # ADS-802: paths that change the e2e stack itself but match no
             # other filter. Without these, a PR that only touches the
             # Playwright specs, the compose file, the service image, or this
@@ -146,8 +139,8 @@ jobs:
         id: cache-lib-dist
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
-          path: lib.*/dist
-          key: lib-dist-${{ runner.os }}-${{ hashFiles('lib.*/src/**', 'lib.*/package.json', 'lib.*/tsconfig*.json', 'package-lock.json') }}
+          path: packages/lib.*/dist
+          key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'package-lock.json') }}
           restore-keys: |
             lib-dist-${{ runner.os }}-
 
@@ -155,15 +148,15 @@ jobs:
         if: steps.cache-lib-dist.outputs.cache-hit != 'true'
         run: npm run build:libs
 
-      # Bundle every lib.*/dist (and matching package.json) into a single artifact
-      # that downstream jobs pick up via download-artifact. Wildcard expansion
-      # is handled by upload-artifact's tar layer.
+      # Bundle every packages/lib.*/dist (and matching package.json) into a
+      # single artifact that downstream jobs pick up via download-artifact.
+      # Wildcard expansion is handled by upload-artifact's tar layer.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: lib-dist
           path: |
-            lib.*/dist/**
-            lib.*/package.json
+            packages/lib.*/dist/**
+            packages/lib.*/package.json
           retention-days: 1
           if-no-files-found: error
 
@@ -183,7 +176,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [app.client, app.admin, app.rescue]
+        app: [client, admin, rescue]
 
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
@@ -196,18 +189,18 @@ jobs:
 
       - name: Lint
         run: npm run lint
-        working-directory: ${{ matrix.app }}
+        working-directory: apps/${{ matrix.app }}
 
       - name: Test (with coverage thresholds)
         run: npm run test:coverage
-        working-directory: ${{ matrix.app }}
+        working-directory: apps/${{ matrix.app }}
 
       - name: Type check
-        run: npx turbo run type-check --filter='@adopt-dont-shop/${{ matrix.app }}'
+        run: npx turbo run type-check --filter='@adopt-dont-shop/app.${{ matrix.app }}'
 
       - name: Build
         run: npm run build
-        working-directory: ${{ matrix.app }}
+        working-directory: apps/${{ matrix.app }}
         env:
           CI: true
 
@@ -276,18 +269,18 @@ jobs:
       # AuthContext or the explicitly dev-only files below.
       #
       # Allowed locations (dev-only by design):
-      #   lib.auth/src/contexts/AuthContext.tsx — DEV-gated
-      #   app.*/src/components/dev/*            — dev panels
-      #   app.*/src/utils/devAuth.ts            — dev utilities
-      #   app.*/src/contexts/base/devUtils.ts   — dev utilities
-      #   **/*.test.* / **/*.spec.*             — test files
+      #   packages/lib.auth/src/contexts/AuthContext.tsx — DEV-gated
+      #   apps/*/src/components/dev/*                    — dev panels
+      #   apps/*/src/utils/devAuth.ts                    — dev utilities
+      #   apps/*/src/contexts/base/devUtils.ts           — dev utilities
+      #   **/*.test.* / **/*.spec.*                      — test files
       - name: Scan source for ungated dev auth bypass patterns
         run: |
           # Find dev_user or dev-token- references in production source
           # (exclude test files, dev-only directories, and the known
           # DEV-gated AuthContext).
           HITS=$(grep -rn 'dev_user\|dev-token-' \
-            app.*/src/ lib.*/src/ \
+            apps/*/src/ packages/lib.*/src/ \
             --include='*.ts' --include='*.tsx' \
             --exclude='*.test.*' --exclude='*.spec.*' \
             | grep -v '/components/dev/' \
@@ -301,9 +294,9 @@ jobs:
             echo "$HITS"
             echo ""
             echo "dev_user / dev-token- must only appear in:"
-            echo "  - lib.auth/src/contexts/AuthContext.tsx (DEV-gated)"
-            echo "  - app.*/src/components/dev/* (dev-only panels)"
-            echo "  - app.*/src/utils/devAuth.ts (dev-only utilities)"
+            echo "  - packages/lib.auth/src/contexts/AuthContext.tsx (DEV-gated)"
+            echo "  - apps/*/src/components/dev/* (dev-only panels)"
+            echo "  - apps/*/src/utils/devAuth.ts (dev-only utilities)"
             echo "  - Test files (*.test.*, *.spec.*)"
             exit 1
           fi

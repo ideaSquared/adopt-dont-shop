@@ -1,5 +1,5 @@
 import path from 'path';
-import { defineLibConfig } from '../vitest.shared.config';
+import { defineLibConfig } from '../../vitest.shared.config';
 
 export default defineLibConfig({
   test: {

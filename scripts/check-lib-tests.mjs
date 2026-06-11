@@ -47,10 +47,11 @@ function findTestFiles(dir) {
 
 function main() {
   const failures = [];
-  for (const entry of readdirSync(ROOT, { withFileTypes: true })) {
+  const packagesRoot = join(ROOT, 'packages');
+  for (const entry of readdirSync(packagesRoot, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     if (!entry.name.startsWith('lib.')) continue;
-    const pkgRoot = join(ROOT, entry.name);
+    const pkgRoot = join(packagesRoot, entry.name);
     const srcDir = join(pkgRoot, 'src');
     try {
       statSync(srcDir);

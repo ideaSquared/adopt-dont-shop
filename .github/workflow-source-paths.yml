@@ -9,10 +9,7 @@
 # resolved list will fail the guard.
 
 paths:
-  - 'app.client/**'
-  - 'app.admin/**'
-  - 'app.rescue/**'
-  - 'lib.*/**'
+  - 'apps/**'
   - 'packages/**'
   - 'services/**'
   - 'package.json'

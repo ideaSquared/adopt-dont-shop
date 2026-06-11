@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { veCssMock } from '../../../vite.shared.config';
+import { veCssMock } from '../../../../vite.shared.config';
 
 // Vite plugin hooks can be either functions or { handler } objects. Normalise
 // to the underlying function so the test invokes it directly.

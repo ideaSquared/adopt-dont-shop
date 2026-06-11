@@ -5,4 +5,4 @@ import { defineWorkspace } from 'vitest/config';
  * libraries are picked up automatically. Each package has its own
  * vitest.config.ts with lib-specific overrides.
  */
-export default defineWorkspace(['lib.*/vitest.config.ts']);
+export default defineWorkspace(['packages/lib.*/vitest.config.ts']);

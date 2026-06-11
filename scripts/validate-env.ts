@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+/* eslint-disable no-console -- CLI tool: stdout is the deliverable. */
 /**
  * Real environment / secret validator (ADS-408, ADS-707).
  *
@@ -16,12 +17,12 @@
  *
  * Run via tsx (`npm run validate:env`). The import below uses a relative
  * source path so the CLI works in CI before `npm run build:libs` has built
- * `lib.validation/dist`.
+ * `packages/lib.validation/dist`.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateEnv } from '../lib.validation/src/schemas/env';
+import { validateEnv } from '../packages/lib.validation/src/schemas/env';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,7 +100,7 @@ function diffAgainstExample(
     return { missing: [], examplePath: null };
   }
   const example = parseDotEnv(fs.readFileSync(examplePath, 'utf8'));
-  const missing = Object.keys(example).filter((key) => !(key in env));
+  const missing = Object.keys(example).filter(key => !(key in env));
   return { missing, examplePath };
 }
 
@@ -181,8 +182,8 @@ function main(): void {
   const result = validateEnv(env);
   // Schema messages already include the variable name (e.g. "JWT_SECRET is
   // required"), so the path prefix would duplicate it in the human output.
-  const errors = result.errors.map((e) => e.message);
-  const warnings = result.warnings.map((w) => w.message);
+  const errors = result.errors.map(e => e.message);
+  const warnings = result.warnings.map(w => w.message);
 
   if (args.stagingEnv) {
     checkStagingReuse(env, path.resolve(args.stagingEnv), errors);

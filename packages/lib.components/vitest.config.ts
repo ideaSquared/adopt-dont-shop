@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import type { Plugin } from 'vite';
 import { defineConfig, mergeConfig } from 'vitest/config';
-import sharedConfig from '../vitest.shared.config';
+import sharedConfig from '../../vitest.shared.config';
 
 /**
  * Vitest-compatible Vanilla Extract CSS stub plugin (mirrors app.admin's veCssMock).

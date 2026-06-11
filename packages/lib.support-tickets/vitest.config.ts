@@ -1,4 +1,4 @@
-import { defineLibConfig } from '../vitest.shared.config';
+import { defineLibConfig } from '../../vitest.shared.config';
 
 export default defineLibConfig({
   test: {
