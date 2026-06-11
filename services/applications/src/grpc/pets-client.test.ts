@@ -21,11 +21,7 @@ import {
   status,
 } from '@grpc/grpc-js';
 
-import {
-  PetsV1,
-  type GetPetRequest,
-  type GetPetResponse,
-} from '@adopt-dont-shop/proto';
+import { PetsV1, type GetPetRequest, type GetPetResponse } from '@adopt-dont-shop/proto';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -79,16 +75,25 @@ describe('createPetsClient (applications) — deadline + retry behaviour', () =>
 
   it('rejects with DEADLINE_EXCEEDED when the server never responds, within the deadline window', async () => {
     server.addService(PetsV1.PetServiceService, {
-      get: (_call: ServerUnaryCall<GetPetRequest, GetPetResponse>, _cb: sendUnaryData<GetPetResponse>) => {
+      get: (
+        _call: ServerUnaryCall<GetPetRequest, GetPetResponse>,
+        _cb: sendUnaryData<GetPetResponse>
+      ) => {
         // Intentionally never call _cb — simulates a hung server.
       },
       // Stub remaining methods to satisfy the service definition.
-      create: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      list: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      update: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      updateStatus: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      delete: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      getStats: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      create: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      list: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      update: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      updateStatus: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      delete: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      getStats: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
     });
 
     port = await startServer();
@@ -117,7 +122,10 @@ describe('createPetsClient (applications) — deadline + retry behaviour', () =>
     const successResponse: GetPetResponse = { pet: undefined };
 
     server.addService(PetsV1.PetServiceService, {
-      get: (_call: ServerUnaryCall<GetPetRequest, GetPetResponse>, cb: sendUnaryData<GetPetResponse>) => {
+      get: (
+        _call: ServerUnaryCall<GetPetRequest, GetPetResponse>,
+        cb: sendUnaryData<GetPetResponse>
+      ) => {
         callCount += 1;
         if (callCount === 1) {
           cb(makeServiceError(status.UNAVAILABLE, 'service unavailable'), null);
@@ -125,12 +133,18 @@ describe('createPetsClient (applications) — deadline + retry behaviour', () =>
           cb(null, successResponse);
         }
       },
-      create: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      list: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      update: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      updateStatus: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      delete: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      getStats: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      create: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      list: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      update: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      updateStatus: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      delete: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      getStats: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
     });
 
     port = await startServer();
@@ -153,16 +167,25 @@ describe('createPetsClient (applications) — deadline + retry behaviour', () =>
     let callCount = 0;
 
     server.addService(PetsV1.PetServiceService, {
-      get: (_call: ServerUnaryCall<GetPetRequest, GetPetResponse>, cb: sendUnaryData<GetPetResponse>) => {
+      get: (
+        _call: ServerUnaryCall<GetPetRequest, GetPetResponse>,
+        cb: sendUnaryData<GetPetResponse>
+      ) => {
         callCount += 1;
         cb(makeServiceError(status.INVALID_ARGUMENT, 'bad request'), null);
       },
-      create: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      list: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      update: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      updateStatus: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      delete: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
-      getStats: (_call: unknown, cb: sendUnaryData<unknown>) => cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      create: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      list: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      update: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      updateStatus: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      delete: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
+      getStats: (_call: unknown, cb: sendUnaryData<unknown>) =>
+        cb(makeServiceError(status.UNIMPLEMENTED, 'not used'), null),
     });
 
     port = await startServer();

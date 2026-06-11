@@ -38,7 +38,9 @@ const DEFAULT_MAX_RETRIES = 2;
 const RETRYABLE_CODES = new Set([status.UNAVAILABLE, status.DEADLINE_EXCEEDED]);
 
 const isRetryableError = (err: unknown): boolean => {
-  if (err === null || typeof err !== 'object') return false;
+  if (err === null || typeof err !== 'object') {
+    return false;
+  }
   const code = (err as { code?: unknown }).code;
   return typeof code === 'number' && RETRYABLE_CODES.has(code);
 };
