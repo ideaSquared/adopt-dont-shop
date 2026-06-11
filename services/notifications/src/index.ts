@@ -6,6 +6,7 @@ import { runServiceShutdown } from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from './config.js';
 import { createAuthCohortClient } from './grpc/auth-client.js';
+import { validateAuthPrincipal } from './grpc/validate-auth-principal.js';
 import { createProvider } from './email/providers/factory.js';
 import { startEmailWorker, type RunningEmailWorker } from './email/worker.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
@@ -50,6 +51,15 @@ const main = async (): Promise<void> => {
     const authClient = config.authGrpcUrl
       ? createAuthCohortClient({ address: config.authGrpcUrl })
       : undefined;
+
+    // Boot validation: probe the auth service with the system principal
+    // so a misconfigured svc-notifications seed is caught at startup
+    // rather than silently failing on the first broadcast. Crashes on
+    // PERMISSION_DENIED / UNAUTHENTICATED; tolerates UNAVAILABLE
+    // (auth may still be starting).
+    if (authClient) {
+      await validateAuthPrincipal(authClient, logger);
+    }
 
     grpc = await startGrpcServer({ config, pool, nats, logger, authClient });
     grpcReady = true;
