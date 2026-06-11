@@ -5,7 +5,7 @@
 // source: proto/adopt_dont_shop/pets/v1/pet.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -17,9 +17,9 @@ import {
   type Metadata,
   type ServiceError,
   type UntypedServiceImplementation,
-} from '@grpc/grpc-js';
+} from "@grpc/grpc-js";
 
-export const protobufPackage = 'adopt_dont_shop.pets.v1';
+export const protobufPackage = "adopt_dont_shop.pets.v1";
 
 export enum PetStatus {
   PET_STATUS_UNSPECIFIED = 0,
@@ -37,34 +37,34 @@ export enum PetStatus {
 export function petStatusFromJSON(object: any): PetStatus {
   switch (object) {
     case 0:
-    case 'PET_STATUS_UNSPECIFIED':
+    case "PET_STATUS_UNSPECIFIED":
       return PetStatus.PET_STATUS_UNSPECIFIED;
     case 1:
-    case 'PET_STATUS_AVAILABLE':
+    case "PET_STATUS_AVAILABLE":
       return PetStatus.PET_STATUS_AVAILABLE;
     case 2:
-    case 'PET_STATUS_PENDING':
+    case "PET_STATUS_PENDING":
       return PetStatus.PET_STATUS_PENDING;
     case 3:
-    case 'PET_STATUS_ADOPTED':
+    case "PET_STATUS_ADOPTED":
       return PetStatus.PET_STATUS_ADOPTED;
     case 4:
-    case 'PET_STATUS_FOSTER':
+    case "PET_STATUS_FOSTER":
       return PetStatus.PET_STATUS_FOSTER;
     case 5:
-    case 'PET_STATUS_MEDICAL_HOLD':
+    case "PET_STATUS_MEDICAL_HOLD":
       return PetStatus.PET_STATUS_MEDICAL_HOLD;
     case 6:
-    case 'PET_STATUS_BEHAVIORAL_HOLD':
+    case "PET_STATUS_BEHAVIORAL_HOLD":
       return PetStatus.PET_STATUS_BEHAVIORAL_HOLD;
     case 7:
-    case 'PET_STATUS_NOT_AVAILABLE':
+    case "PET_STATUS_NOT_AVAILABLE":
       return PetStatus.PET_STATUS_NOT_AVAILABLE;
     case 8:
-    case 'PET_STATUS_DECEASED':
+    case "PET_STATUS_DECEASED":
       return PetStatus.PET_STATUS_DECEASED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return PetStatus.UNRECOGNIZED;
   }
@@ -73,26 +73,26 @@ export function petStatusFromJSON(object: any): PetStatus {
 export function petStatusToJSON(object: PetStatus): string {
   switch (object) {
     case PetStatus.PET_STATUS_UNSPECIFIED:
-      return 'PET_STATUS_UNSPECIFIED';
+      return "PET_STATUS_UNSPECIFIED";
     case PetStatus.PET_STATUS_AVAILABLE:
-      return 'PET_STATUS_AVAILABLE';
+      return "PET_STATUS_AVAILABLE";
     case PetStatus.PET_STATUS_PENDING:
-      return 'PET_STATUS_PENDING';
+      return "PET_STATUS_PENDING";
     case PetStatus.PET_STATUS_ADOPTED:
-      return 'PET_STATUS_ADOPTED';
+      return "PET_STATUS_ADOPTED";
     case PetStatus.PET_STATUS_FOSTER:
-      return 'PET_STATUS_FOSTER';
+      return "PET_STATUS_FOSTER";
     case PetStatus.PET_STATUS_MEDICAL_HOLD:
-      return 'PET_STATUS_MEDICAL_HOLD';
+      return "PET_STATUS_MEDICAL_HOLD";
     case PetStatus.PET_STATUS_BEHAVIORAL_HOLD:
-      return 'PET_STATUS_BEHAVIORAL_HOLD';
+      return "PET_STATUS_BEHAVIORAL_HOLD";
     case PetStatus.PET_STATUS_NOT_AVAILABLE:
-      return 'PET_STATUS_NOT_AVAILABLE';
+      return "PET_STATUS_NOT_AVAILABLE";
     case PetStatus.PET_STATUS_DECEASED:
-      return 'PET_STATUS_DECEASED';
+      return "PET_STATUS_DECEASED";
     case PetStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -112,34 +112,34 @@ export enum PetType {
 export function petTypeFromJSON(object: any): PetType {
   switch (object) {
     case 0:
-    case 'PET_TYPE_UNSPECIFIED':
+    case "PET_TYPE_UNSPECIFIED":
       return PetType.PET_TYPE_UNSPECIFIED;
     case 1:
-    case 'PET_TYPE_DOG':
+    case "PET_TYPE_DOG":
       return PetType.PET_TYPE_DOG;
     case 2:
-    case 'PET_TYPE_CAT':
+    case "PET_TYPE_CAT":
       return PetType.PET_TYPE_CAT;
     case 3:
-    case 'PET_TYPE_RABBIT':
+    case "PET_TYPE_RABBIT":
       return PetType.PET_TYPE_RABBIT;
     case 4:
-    case 'PET_TYPE_BIRD':
+    case "PET_TYPE_BIRD":
       return PetType.PET_TYPE_BIRD;
     case 5:
-    case 'PET_TYPE_REPTILE':
+    case "PET_TYPE_REPTILE":
       return PetType.PET_TYPE_REPTILE;
     case 6:
-    case 'PET_TYPE_SMALL_MAMMAL':
+    case "PET_TYPE_SMALL_MAMMAL":
       return PetType.PET_TYPE_SMALL_MAMMAL;
     case 7:
-    case 'PET_TYPE_FISH':
+    case "PET_TYPE_FISH":
       return PetType.PET_TYPE_FISH;
     case 8:
-    case 'PET_TYPE_OTHER':
+    case "PET_TYPE_OTHER":
       return PetType.PET_TYPE_OTHER;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return PetType.UNRECOGNIZED;
   }
@@ -148,26 +148,26 @@ export function petTypeFromJSON(object: any): PetType {
 export function petTypeToJSON(object: PetType): string {
   switch (object) {
     case PetType.PET_TYPE_UNSPECIFIED:
-      return 'PET_TYPE_UNSPECIFIED';
+      return "PET_TYPE_UNSPECIFIED";
     case PetType.PET_TYPE_DOG:
-      return 'PET_TYPE_DOG';
+      return "PET_TYPE_DOG";
     case PetType.PET_TYPE_CAT:
-      return 'PET_TYPE_CAT';
+      return "PET_TYPE_CAT";
     case PetType.PET_TYPE_RABBIT:
-      return 'PET_TYPE_RABBIT';
+      return "PET_TYPE_RABBIT";
     case PetType.PET_TYPE_BIRD:
-      return 'PET_TYPE_BIRD';
+      return "PET_TYPE_BIRD";
     case PetType.PET_TYPE_REPTILE:
-      return 'PET_TYPE_REPTILE';
+      return "PET_TYPE_REPTILE";
     case PetType.PET_TYPE_SMALL_MAMMAL:
-      return 'PET_TYPE_SMALL_MAMMAL';
+      return "PET_TYPE_SMALL_MAMMAL";
     case PetType.PET_TYPE_FISH:
-      return 'PET_TYPE_FISH';
+      return "PET_TYPE_FISH";
     case PetType.PET_TYPE_OTHER:
-      return 'PET_TYPE_OTHER';
+      return "PET_TYPE_OTHER";
     case PetType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -182,19 +182,19 @@ export enum PetGender {
 export function petGenderFromJSON(object: any): PetGender {
   switch (object) {
     case 0:
-    case 'PET_GENDER_UNSPECIFIED':
+    case "PET_GENDER_UNSPECIFIED":
       return PetGender.PET_GENDER_UNSPECIFIED;
     case 1:
-    case 'PET_GENDER_MALE':
+    case "PET_GENDER_MALE":
       return PetGender.PET_GENDER_MALE;
     case 2:
-    case 'PET_GENDER_FEMALE':
+    case "PET_GENDER_FEMALE":
       return PetGender.PET_GENDER_FEMALE;
     case 3:
-    case 'PET_GENDER_UNKNOWN':
+    case "PET_GENDER_UNKNOWN":
       return PetGender.PET_GENDER_UNKNOWN;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return PetGender.UNRECOGNIZED;
   }
@@ -203,16 +203,16 @@ export function petGenderFromJSON(object: any): PetGender {
 export function petGenderToJSON(object: PetGender): string {
   switch (object) {
     case PetGender.PET_GENDER_UNSPECIFIED:
-      return 'PET_GENDER_UNSPECIFIED';
+      return "PET_GENDER_UNSPECIFIED";
     case PetGender.PET_GENDER_MALE:
-      return 'PET_GENDER_MALE';
+      return "PET_GENDER_MALE";
     case PetGender.PET_GENDER_FEMALE:
-      return 'PET_GENDER_FEMALE';
+      return "PET_GENDER_FEMALE";
     case PetGender.PET_GENDER_UNKNOWN:
-      return 'PET_GENDER_UNKNOWN';
+      return "PET_GENDER_UNKNOWN";
     case PetGender.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -229,25 +229,25 @@ export enum PetSize {
 export function petSizeFromJSON(object: any): PetSize {
   switch (object) {
     case 0:
-    case 'PET_SIZE_UNSPECIFIED':
+    case "PET_SIZE_UNSPECIFIED":
       return PetSize.PET_SIZE_UNSPECIFIED;
     case 1:
-    case 'PET_SIZE_EXTRA_SMALL':
+    case "PET_SIZE_EXTRA_SMALL":
       return PetSize.PET_SIZE_EXTRA_SMALL;
     case 2:
-    case 'PET_SIZE_SMALL':
+    case "PET_SIZE_SMALL":
       return PetSize.PET_SIZE_SMALL;
     case 3:
-    case 'PET_SIZE_MEDIUM':
+    case "PET_SIZE_MEDIUM":
       return PetSize.PET_SIZE_MEDIUM;
     case 4:
-    case 'PET_SIZE_LARGE':
+    case "PET_SIZE_LARGE":
       return PetSize.PET_SIZE_LARGE;
     case 5:
-    case 'PET_SIZE_EXTRA_LARGE':
+    case "PET_SIZE_EXTRA_LARGE":
       return PetSize.PET_SIZE_EXTRA_LARGE;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return PetSize.UNRECOGNIZED;
   }
@@ -256,20 +256,20 @@ export function petSizeFromJSON(object: any): PetSize {
 export function petSizeToJSON(object: PetSize): string {
   switch (object) {
     case PetSize.PET_SIZE_UNSPECIFIED:
-      return 'PET_SIZE_UNSPECIFIED';
+      return "PET_SIZE_UNSPECIFIED";
     case PetSize.PET_SIZE_EXTRA_SMALL:
-      return 'PET_SIZE_EXTRA_SMALL';
+      return "PET_SIZE_EXTRA_SMALL";
     case PetSize.PET_SIZE_SMALL:
-      return 'PET_SIZE_SMALL';
+      return "PET_SIZE_SMALL";
     case PetSize.PET_SIZE_MEDIUM:
-      return 'PET_SIZE_MEDIUM';
+      return "PET_SIZE_MEDIUM";
     case PetSize.PET_SIZE_LARGE:
-      return 'PET_SIZE_LARGE';
+      return "PET_SIZE_LARGE";
     case PetSize.PET_SIZE_EXTRA_LARGE:
-      return 'PET_SIZE_EXTRA_LARGE';
+      return "PET_SIZE_EXTRA_LARGE";
     case PetSize.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -285,22 +285,22 @@ export enum PetAgeGroup {
 export function petAgeGroupFromJSON(object: any): PetAgeGroup {
   switch (object) {
     case 0:
-    case 'PET_AGE_GROUP_UNSPECIFIED':
+    case "PET_AGE_GROUP_UNSPECIFIED":
       return PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED;
     case 1:
-    case 'PET_AGE_GROUP_BABY':
+    case "PET_AGE_GROUP_BABY":
       return PetAgeGroup.PET_AGE_GROUP_BABY;
     case 2:
-    case 'PET_AGE_GROUP_YOUNG':
+    case "PET_AGE_GROUP_YOUNG":
       return PetAgeGroup.PET_AGE_GROUP_YOUNG;
     case 3:
-    case 'PET_AGE_GROUP_ADULT':
+    case "PET_AGE_GROUP_ADULT":
       return PetAgeGroup.PET_AGE_GROUP_ADULT;
     case 4:
-    case 'PET_AGE_GROUP_SENIOR':
+    case "PET_AGE_GROUP_SENIOR":
       return PetAgeGroup.PET_AGE_GROUP_SENIOR;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return PetAgeGroup.UNRECOGNIZED;
   }
@@ -309,18 +309,18 @@ export function petAgeGroupFromJSON(object: any): PetAgeGroup {
 export function petAgeGroupToJSON(object: PetAgeGroup): string {
   switch (object) {
     case PetAgeGroup.PET_AGE_GROUP_UNSPECIFIED:
-      return 'PET_AGE_GROUP_UNSPECIFIED';
+      return "PET_AGE_GROUP_UNSPECIFIED";
     case PetAgeGroup.PET_AGE_GROUP_BABY:
-      return 'PET_AGE_GROUP_BABY';
+      return "PET_AGE_GROUP_BABY";
     case PetAgeGroup.PET_AGE_GROUP_YOUNG:
-      return 'PET_AGE_GROUP_YOUNG';
+      return "PET_AGE_GROUP_YOUNG";
     case PetAgeGroup.PET_AGE_GROUP_ADULT:
-      return 'PET_AGE_GROUP_ADULT';
+      return "PET_AGE_GROUP_ADULT";
     case PetAgeGroup.PET_AGE_GROUP_SENIOR:
-      return 'PET_AGE_GROUP_SENIOR';
+      return "PET_AGE_GROUP_SENIOR";
     case PetAgeGroup.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -424,7 +424,9 @@ export interface GetPetResponse {
 
 export interface ListPetsRequest {
   /** Opaque base64-JSON keyset cursor — same shape as NotificationsV1. */
-  cursor?: string | undefined;
+  cursor?:
+    | string
+    | undefined;
   /** Defaults to 20, max 100 — server enforces the bound. */
   limit: number;
   /** Optional filters. UNSPECIFIED in each enum = "no filter". */
@@ -480,7 +482,9 @@ export interface UpdatePetStatusRequest {
 }
 
 export interface UpdatePetStatusResponse {
-  pet?: Pet | undefined;
+  pet?:
+    | Pet
+    | undefined;
   /** The transition row appended by this command. */
   transition?: PetStatusTransition | undefined;
 }
@@ -526,8 +530,8 @@ export interface GetPetStatsResponse {
 
 function createBasePet(): Pet {
   return {
-    petId: '',
-    name: '',
+    petId: "",
+    name: "",
     rescueId: undefined,
     type: 0,
     status: 0,
@@ -548,25 +552,25 @@ function createBasePet(): Pet {
     adoptionFeeCurrency: undefined,
     specialNeeds: false,
     houseTrained: false,
-    temperamentJson: '',
-    tagsJson: '',
-    extraJson: '',
+    temperamentJson: "",
+    tagsJson: "",
+    extraJson: "",
     viewCount: 0,
     favoriteCount: 0,
     applicationCount: 0,
     availableSince: undefined,
     adoptedDate: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const Pet: MessageFns<Pet> = {
   encode(message: Pet, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       writer.uint32(10).string(message.petId);
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       writer.uint32(18).string(message.name);
     }
     if (message.rescueId !== undefined) {
@@ -629,13 +633,13 @@ export const Pet: MessageFns<Pet> = {
     if (message.houseTrained !== false) {
       writer.uint32(176).bool(message.houseTrained);
     }
-    if (message.temperamentJson !== '') {
+    if (message.temperamentJson !== "") {
       writer.uint32(186).string(message.temperamentJson);
     }
-    if (message.tagsJson !== '') {
+    if (message.tagsJson !== "") {
       writer.uint32(194).string(message.tagsJson);
     }
-    if (message.extraJson !== '') {
+    if (message.extraJson !== "") {
       writer.uint32(202).string(message.extraJson);
     }
     if (message.viewCount !== 0) {
@@ -653,10 +657,10 @@ export const Pet: MessageFns<Pet> = {
     if (message.adoptedDate !== undefined) {
       writer.uint32(242).string(message.adoptedDate);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(250).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(258).string(message.updatedAt);
     }
     return writer;
@@ -939,14 +943,14 @@ export const Pet: MessageFns<Pet> = {
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-          ? globalThis.String(object.pet_id)
-          : '',
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
+        ? globalThis.String(object.pet_id)
+        : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : undefined,
+        ? globalThis.String(object.rescue_id)
+        : undefined,
       type: isSet(object.type) ? petTypeFromJSON(object.type) : 0,
       status: isSet(object.status) ? petStatusFromJSON(object.status) : 0,
       gender: isSet(object.gender) ? petGenderFromJSON(object.gender) : 0,
@@ -954,125 +958,125 @@ export const Pet: MessageFns<Pet> = {
       ageGroup: isSet(object.ageGroup)
         ? petAgeGroupFromJSON(object.ageGroup)
         : isSet(object.age_group)
-          ? petAgeGroupFromJSON(object.age_group)
-          : 0,
+        ? petAgeGroupFromJSON(object.age_group)
+        : 0,
       breedId: isSet(object.breedId)
         ? globalThis.String(object.breedId)
         : isSet(object.breed_id)
-          ? globalThis.String(object.breed_id)
-          : undefined,
+        ? globalThis.String(object.breed_id)
+        : undefined,
       secondaryBreedId: isSet(object.secondaryBreedId)
         ? globalThis.String(object.secondaryBreedId)
         : isSet(object.secondary_breed_id)
-          ? globalThis.String(object.secondary_breed_id)
-          : undefined,
+        ? globalThis.String(object.secondary_breed_id)
+        : undefined,
       shortDescription: isSet(object.shortDescription)
         ? globalThis.String(object.shortDescription)
         : isSet(object.short_description)
-          ? globalThis.String(object.short_description)
-          : undefined,
+        ? globalThis.String(object.short_description)
+        : undefined,
       longDescription: isSet(object.longDescription)
         ? globalThis.String(object.longDescription)
         : isSet(object.long_description)
-          ? globalThis.String(object.long_description)
-          : undefined,
+        ? globalThis.String(object.long_description)
+        : undefined,
       ageYears: isSet(object.ageYears)
         ? globalThis.Number(object.ageYears)
         : isSet(object.age_years)
-          ? globalThis.Number(object.age_years)
-          : undefined,
+        ? globalThis.Number(object.age_years)
+        : undefined,
       ageMonths: isSet(object.ageMonths)
         ? globalThis.Number(object.ageMonths)
         : isSet(object.age_months)
-          ? globalThis.Number(object.age_months)
-          : undefined,
+        ? globalThis.Number(object.age_months)
+        : undefined,
       color: isSet(object.color) ? globalThis.String(object.color) : undefined,
       archived: isSet(object.archived) ? globalThis.Boolean(object.archived) : false,
       featured: isSet(object.featured) ? globalThis.Boolean(object.featured) : false,
       priorityListing: isSet(object.priorityListing)
         ? globalThis.Boolean(object.priorityListing)
         : isSet(object.priority_listing)
-          ? globalThis.Boolean(object.priority_listing)
-          : false,
+        ? globalThis.Boolean(object.priority_listing)
+        : false,
       adoptionFeeMinor: isSet(object.adoptionFeeMinor)
         ? globalThis.Number(object.adoptionFeeMinor)
         : isSet(object.adoption_fee_minor)
-          ? globalThis.Number(object.adoption_fee_minor)
-          : undefined,
+        ? globalThis.Number(object.adoption_fee_minor)
+        : undefined,
       adoptionFeeCurrency: isSet(object.adoptionFeeCurrency)
         ? globalThis.String(object.adoptionFeeCurrency)
         : isSet(object.adoption_fee_currency)
-          ? globalThis.String(object.adoption_fee_currency)
-          : undefined,
+        ? globalThis.String(object.adoption_fee_currency)
+        : undefined,
       specialNeeds: isSet(object.specialNeeds)
         ? globalThis.Boolean(object.specialNeeds)
         : isSet(object.special_needs)
-          ? globalThis.Boolean(object.special_needs)
-          : false,
+        ? globalThis.Boolean(object.special_needs)
+        : false,
       houseTrained: isSet(object.houseTrained)
         ? globalThis.Boolean(object.houseTrained)
         : isSet(object.house_trained)
-          ? globalThis.Boolean(object.house_trained)
-          : false,
+        ? globalThis.Boolean(object.house_trained)
+        : false,
       temperamentJson: isSet(object.temperamentJson)
         ? globalThis.String(object.temperamentJson)
         : isSet(object.temperament_json)
-          ? globalThis.String(object.temperament_json)
-          : '',
+        ? globalThis.String(object.temperament_json)
+        : "",
       tagsJson: isSet(object.tagsJson)
         ? globalThis.String(object.tagsJson)
         : isSet(object.tags_json)
-          ? globalThis.String(object.tags_json)
-          : '',
+        ? globalThis.String(object.tags_json)
+        : "",
       extraJson: isSet(object.extraJson)
         ? globalThis.String(object.extraJson)
         : isSet(object.extra_json)
-          ? globalThis.String(object.extra_json)
-          : '',
+        ? globalThis.String(object.extra_json)
+        : "",
       viewCount: isSet(object.viewCount)
         ? globalThis.Number(object.viewCount)
         : isSet(object.view_count)
-          ? globalThis.Number(object.view_count)
-          : 0,
+        ? globalThis.Number(object.view_count)
+        : 0,
       favoriteCount: isSet(object.favoriteCount)
         ? globalThis.Number(object.favoriteCount)
         : isSet(object.favorite_count)
-          ? globalThis.Number(object.favorite_count)
-          : 0,
+        ? globalThis.Number(object.favorite_count)
+        : 0,
       applicationCount: isSet(object.applicationCount)
         ? globalThis.Number(object.applicationCount)
         : isSet(object.application_count)
-          ? globalThis.Number(object.application_count)
-          : 0,
+        ? globalThis.Number(object.application_count)
+        : 0,
       availableSince: isSet(object.availableSince)
         ? globalThis.String(object.availableSince)
         : isSet(object.available_since)
-          ? globalThis.String(object.available_since)
-          : undefined,
+        ? globalThis.String(object.available_since)
+        : undefined,
       adoptedDate: isSet(object.adoptedDate)
         ? globalThis.String(object.adoptedDate)
         : isSet(object.adopted_date)
-          ? globalThis.String(object.adopted_date)
-          : undefined,
+        ? globalThis.String(object.adopted_date)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: Pet): unknown {
     const obj: any = {};
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       obj.petId = message.petId;
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       obj.name = message.name;
     }
     if (message.rescueId !== undefined) {
@@ -1135,13 +1139,13 @@ export const Pet: MessageFns<Pet> = {
     if (message.houseTrained !== false) {
       obj.houseTrained = message.houseTrained;
     }
-    if (message.temperamentJson !== '') {
+    if (message.temperamentJson !== "") {
       obj.temperamentJson = message.temperamentJson;
     }
-    if (message.tagsJson !== '') {
+    if (message.tagsJson !== "") {
       obj.tagsJson = message.tagsJson;
     }
-    if (message.extraJson !== '') {
+    if (message.extraJson !== "") {
       obj.extraJson = message.extraJson;
     }
     if (message.viewCount !== 0) {
@@ -1159,10 +1163,10 @@ export const Pet: MessageFns<Pet> = {
     if (message.adoptedDate !== undefined) {
       obj.adoptedDate = message.adoptedDate;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -1173,8 +1177,8 @@ export const Pet: MessageFns<Pet> = {
   },
   fromPartial<I extends Exact<DeepPartial<Pet>, I>>(object: I): Pet {
     const message = createBasePet();
-    message.petId = object.petId ?? '';
-    message.name = object.name ?? '';
+    message.petId = object.petId ?? "";
+    message.name = object.name ?? "";
     message.rescueId = object.rescueId ?? undefined;
     message.type = object.type ?? 0;
     message.status = object.status ?? 0;
@@ -1195,27 +1199,27 @@ export const Pet: MessageFns<Pet> = {
     message.adoptionFeeCurrency = object.adoptionFeeCurrency ?? undefined;
     message.specialNeeds = object.specialNeeds ?? false;
     message.houseTrained = object.houseTrained ?? false;
-    message.temperamentJson = object.temperamentJson ?? '';
-    message.tagsJson = object.tagsJson ?? '';
-    message.extraJson = object.extraJson ?? '';
+    message.temperamentJson = object.temperamentJson ?? "";
+    message.tagsJson = object.tagsJson ?? "";
+    message.extraJson = object.extraJson ?? "";
     message.viewCount = object.viewCount ?? 0;
     message.favoriteCount = object.favoriteCount ?? 0;
     message.applicationCount = object.applicationCount ?? 0;
     message.availableSince = object.availableSince ?? undefined;
     message.adoptedDate = object.adoptedDate ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBasePetStatusTransition(): PetStatusTransition {
   return {
-    transitionId: '',
-    petId: '',
+    transitionId: "",
+    petId: "",
     fromStatus: undefined,
     toStatus: 0,
-    transitionedAt: '',
+    transitionedAt: "",
     transitionedBy: undefined,
     reason: undefined,
   };
@@ -1223,10 +1227,10 @@ function createBasePetStatusTransition(): PetStatusTransition {
 
 export const PetStatusTransition: MessageFns<PetStatusTransition> = {
   encode(message: PetStatusTransition, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.transitionId !== '') {
+    if (message.transitionId !== "") {
       writer.uint32(10).string(message.transitionId);
     }
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       writer.uint32(18).string(message.petId);
     }
     if (message.fromStatus !== undefined) {
@@ -1235,7 +1239,7 @@ export const PetStatusTransition: MessageFns<PetStatusTransition> = {
     if (message.toStatus !== 0) {
       writer.uint32(32).int32(message.toStatus);
     }
-    if (message.transitionedAt !== '') {
+    if (message.transitionedAt !== "") {
       writer.uint32(42).string(message.transitionedAt);
     }
     if (message.transitionedBy !== undefined) {
@@ -1324,43 +1328,43 @@ export const PetStatusTransition: MessageFns<PetStatusTransition> = {
       transitionId: isSet(object.transitionId)
         ? globalThis.String(object.transitionId)
         : isSet(object.transition_id)
-          ? globalThis.String(object.transition_id)
-          : '',
+        ? globalThis.String(object.transition_id)
+        : "",
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-          ? globalThis.String(object.pet_id)
-          : '',
+        ? globalThis.String(object.pet_id)
+        : "",
       fromStatus: isSet(object.fromStatus)
         ? petStatusFromJSON(object.fromStatus)
         : isSet(object.from_status)
-          ? petStatusFromJSON(object.from_status)
-          : undefined,
+        ? petStatusFromJSON(object.from_status)
+        : undefined,
       toStatus: isSet(object.toStatus)
         ? petStatusFromJSON(object.toStatus)
         : isSet(object.to_status)
-          ? petStatusFromJSON(object.to_status)
-          : 0,
+        ? petStatusFromJSON(object.to_status)
+        : 0,
       transitionedAt: isSet(object.transitionedAt)
         ? globalThis.String(object.transitionedAt)
         : isSet(object.transitioned_at)
-          ? globalThis.String(object.transitioned_at)
-          : '',
+        ? globalThis.String(object.transitioned_at)
+        : "",
       transitionedBy: isSet(object.transitionedBy)
         ? globalThis.String(object.transitionedBy)
         : isSet(object.transitioned_by)
-          ? globalThis.String(object.transitioned_by)
-          : undefined,
+        ? globalThis.String(object.transitioned_by)
+        : undefined,
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
   },
 
   toJSON(message: PetStatusTransition): unknown {
     const obj: any = {};
-    if (message.transitionId !== '') {
+    if (message.transitionId !== "") {
       obj.transitionId = message.transitionId;
     }
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       obj.petId = message.petId;
     }
     if (message.fromStatus !== undefined) {
@@ -1369,7 +1373,7 @@ export const PetStatusTransition: MessageFns<PetStatusTransition> = {
     if (message.toStatus !== 0) {
       obj.toStatus = petStatusToJSON(message.toStatus);
     }
-    if (message.transitionedAt !== '') {
+    if (message.transitionedAt !== "") {
       obj.transitionedAt = message.transitionedAt;
     }
     if (message.transitionedBy !== undefined) {
@@ -1384,15 +1388,13 @@ export const PetStatusTransition: MessageFns<PetStatusTransition> = {
   create<I extends Exact<DeepPartial<PetStatusTransition>, I>>(base?: I): PetStatusTransition {
     return PetStatusTransition.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PetStatusTransition>, I>>(
-    object: I
-  ): PetStatusTransition {
+  fromPartial<I extends Exact<DeepPartial<PetStatusTransition>, I>>(object: I): PetStatusTransition {
     const message = createBasePetStatusTransition();
-    message.transitionId = object.transitionId ?? '';
-    message.petId = object.petId ?? '';
+    message.transitionId = object.transitionId ?? "";
+    message.petId = object.petId ?? "";
     message.fromStatus = object.fromStatus ?? undefined;
     message.toStatus = object.toStatus ?? 0;
-    message.transitionedAt = object.transitionedAt ?? '';
+    message.transitionedAt = object.transitionedAt ?? "";
     message.transitionedBy = object.transitionedBy ?? undefined;
     message.reason = object.reason ?? undefined;
     return message;
@@ -1401,8 +1403,8 @@ export const PetStatusTransition: MessageFns<PetStatusTransition> = {
 
 function createBaseCreatePetRequest(): CreatePetRequest {
   return {
-    name: '',
-    rescueId: '',
+    name: "",
+    rescueId: "",
     type: 0,
     gender: 0,
     size: 0,
@@ -1417,18 +1419,18 @@ function createBaseCreatePetRequest(): CreatePetRequest {
     adoptionFeeCurrency: undefined,
     specialNeeds: false,
     houseTrained: false,
-    temperamentJson: '',
-    tagsJson: '',
-    extraJson: '',
+    temperamentJson: "",
+    tagsJson: "",
+    extraJson: "",
   };
 }
 
 export const CreatePetRequest: MessageFns<CreatePetRequest> = {
   encode(message: CreatePetRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.name !== '') {
+    if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       writer.uint32(18).string(message.rescueId);
     }
     if (message.type !== 0) {
@@ -1473,13 +1475,13 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
     if (message.houseTrained !== false) {
       writer.uint32(128).bool(message.houseTrained);
     }
-    if (message.temperamentJson !== '') {
+    if (message.temperamentJson !== "") {
       writer.uint32(138).string(message.temperamentJson);
     }
-    if (message.tagsJson !== '') {
+    if (message.tagsJson !== "") {
       writer.uint32(146).string(message.tagsJson);
     }
-    if (message.extraJson !== '') {
+    if (message.extraJson !== "") {
       writer.uint32(154).string(message.extraJson);
     }
     return writer;
@@ -1655,94 +1657,94 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
 
   fromJSON(object: any): CreatePetRequest {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : '',
+        ? globalThis.String(object.rescue_id)
+        : "",
       type: isSet(object.type) ? petTypeFromJSON(object.type) : 0,
       gender: isSet(object.gender) ? petGenderFromJSON(object.gender) : 0,
       size: isSet(object.size) ? petSizeFromJSON(object.size) : 0,
       ageGroup: isSet(object.ageGroup)
         ? petAgeGroupFromJSON(object.ageGroup)
         : isSet(object.age_group)
-          ? petAgeGroupFromJSON(object.age_group)
-          : 0,
+        ? petAgeGroupFromJSON(object.age_group)
+        : 0,
       breedId: isSet(object.breedId)
         ? globalThis.String(object.breedId)
         : isSet(object.breed_id)
-          ? globalThis.String(object.breed_id)
-          : undefined,
+        ? globalThis.String(object.breed_id)
+        : undefined,
       secondaryBreedId: isSet(object.secondaryBreedId)
         ? globalThis.String(object.secondaryBreedId)
         : isSet(object.secondary_breed_id)
-          ? globalThis.String(object.secondary_breed_id)
-          : undefined,
+        ? globalThis.String(object.secondary_breed_id)
+        : undefined,
       shortDescription: isSet(object.shortDescription)
         ? globalThis.String(object.shortDescription)
         : isSet(object.short_description)
-          ? globalThis.String(object.short_description)
-          : undefined,
+        ? globalThis.String(object.short_description)
+        : undefined,
       longDescription: isSet(object.longDescription)
         ? globalThis.String(object.longDescription)
         : isSet(object.long_description)
-          ? globalThis.String(object.long_description)
-          : undefined,
+        ? globalThis.String(object.long_description)
+        : undefined,
       ageYears: isSet(object.ageYears)
         ? globalThis.Number(object.ageYears)
         : isSet(object.age_years)
-          ? globalThis.Number(object.age_years)
-          : undefined,
+        ? globalThis.Number(object.age_years)
+        : undefined,
       ageMonths: isSet(object.ageMonths)
         ? globalThis.Number(object.ageMonths)
         : isSet(object.age_months)
-          ? globalThis.Number(object.age_months)
-          : undefined,
+        ? globalThis.Number(object.age_months)
+        : undefined,
       adoptionFeeMinor: isSet(object.adoptionFeeMinor)
         ? globalThis.Number(object.adoptionFeeMinor)
         : isSet(object.adoption_fee_minor)
-          ? globalThis.Number(object.adoption_fee_minor)
-          : undefined,
+        ? globalThis.Number(object.adoption_fee_minor)
+        : undefined,
       adoptionFeeCurrency: isSet(object.adoptionFeeCurrency)
         ? globalThis.String(object.adoptionFeeCurrency)
         : isSet(object.adoption_fee_currency)
-          ? globalThis.String(object.adoption_fee_currency)
-          : undefined,
+        ? globalThis.String(object.adoption_fee_currency)
+        : undefined,
       specialNeeds: isSet(object.specialNeeds)
         ? globalThis.Boolean(object.specialNeeds)
         : isSet(object.special_needs)
-          ? globalThis.Boolean(object.special_needs)
-          : false,
+        ? globalThis.Boolean(object.special_needs)
+        : false,
       houseTrained: isSet(object.houseTrained)
         ? globalThis.Boolean(object.houseTrained)
         : isSet(object.house_trained)
-          ? globalThis.Boolean(object.house_trained)
-          : false,
+        ? globalThis.Boolean(object.house_trained)
+        : false,
       temperamentJson: isSet(object.temperamentJson)
         ? globalThis.String(object.temperamentJson)
         : isSet(object.temperament_json)
-          ? globalThis.String(object.temperament_json)
-          : '',
+        ? globalThis.String(object.temperament_json)
+        : "",
       tagsJson: isSet(object.tagsJson)
         ? globalThis.String(object.tagsJson)
         : isSet(object.tags_json)
-          ? globalThis.String(object.tags_json)
-          : '',
+        ? globalThis.String(object.tags_json)
+        : "",
       extraJson: isSet(object.extraJson)
         ? globalThis.String(object.extraJson)
         : isSet(object.extra_json)
-          ? globalThis.String(object.extra_json)
-          : '',
+        ? globalThis.String(object.extra_json)
+        : "",
     };
   },
 
   toJSON(message: CreatePetRequest): unknown {
     const obj: any = {};
-    if (message.name !== '') {
+    if (message.name !== "") {
       obj.name = message.name;
     }
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       obj.rescueId = message.rescueId;
     }
     if (message.type !== 0) {
@@ -1787,13 +1789,13 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
     if (message.houseTrained !== false) {
       obj.houseTrained = message.houseTrained;
     }
-    if (message.temperamentJson !== '') {
+    if (message.temperamentJson !== "") {
       obj.temperamentJson = message.temperamentJson;
     }
-    if (message.tagsJson !== '') {
+    if (message.tagsJson !== "") {
       obj.tagsJson = message.tagsJson;
     }
-    if (message.extraJson !== '') {
+    if (message.extraJson !== "") {
       obj.extraJson = message.extraJson;
     }
     return obj;
@@ -1804,8 +1806,8 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<CreatePetRequest>, I>>(object: I): CreatePetRequest {
     const message = createBaseCreatePetRequest();
-    message.name = object.name ?? '';
-    message.rescueId = object.rescueId ?? '';
+    message.name = object.name ?? "";
+    message.rescueId = object.rescueId ?? "";
     message.type = object.type ?? 0;
     message.gender = object.gender ?? 0;
     message.size = object.size ?? 0;
@@ -1820,9 +1822,9 @@ export const CreatePetRequest: MessageFns<CreatePetRequest> = {
     message.adoptionFeeCurrency = object.adoptionFeeCurrency ?? undefined;
     message.specialNeeds = object.specialNeeds ?? false;
     message.houseTrained = object.houseTrained ?? false;
-    message.temperamentJson = object.temperamentJson ?? '';
-    message.tagsJson = object.tagsJson ?? '';
-    message.extraJson = object.extraJson ?? '';
+    message.temperamentJson = object.temperamentJson ?? "";
+    message.tagsJson = object.tagsJson ?? "";
+    message.extraJson = object.extraJson ?? "";
     return message;
   },
 };
@@ -1880,19 +1882,18 @@ export const CreatePetResponse: MessageFns<CreatePetResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<CreatePetResponse>, I>>(object: I): CreatePetResponse {
     const message = createBaseCreatePetResponse();
-    message.pet =
-      object.pet !== undefined && object.pet !== null ? Pet.fromPartial(object.pet) : undefined;
+    message.pet = (object.pet !== undefined && object.pet !== null) ? Pet.fromPartial(object.pet) : undefined;
     return message;
   },
 };
 
 function createBaseGetPetRequest(): GetPetRequest {
-  return { petId: '' };
+  return { petId: "" };
 }
 
 export const GetPetRequest: MessageFns<GetPetRequest> = {
   encode(message: GetPetRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       writer.uint32(10).string(message.petId);
     }
     return writer;
@@ -1927,14 +1928,14 @@ export const GetPetRequest: MessageFns<GetPetRequest> = {
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-          ? globalThis.String(object.pet_id)
-          : '',
+        ? globalThis.String(object.pet_id)
+        : "",
     };
   },
 
   toJSON(message: GetPetRequest): unknown {
     const obj: any = {};
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       obj.petId = message.petId;
     }
     return obj;
@@ -1945,7 +1946,7 @@ export const GetPetRequest: MessageFns<GetPetRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetPetRequest>, I>>(object: I): GetPetRequest {
     const message = createBaseGetPetRequest();
-    message.petId = object.petId ?? '';
+    message.petId = object.petId ?? "";
     return message;
   },
 };
@@ -2003,21 +2004,13 @@ export const GetPetResponse: MessageFns<GetPetResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetPetResponse>, I>>(object: I): GetPetResponse {
     const message = createBaseGetPetResponse();
-    message.pet =
-      object.pet !== undefined && object.pet !== null ? Pet.fromPartial(object.pet) : undefined;
+    message.pet = (object.pet !== undefined && object.pet !== null) ? Pet.fromPartial(object.pet) : undefined;
     return message;
   },
 };
 
 function createBaseListPetsRequest(): ListPetsRequest {
-  return {
-    cursor: undefined,
-    limit: 0,
-    statusFilter: 0,
-    typeFilter: 0,
-    sizeFilter: 0,
-    rescueIdFilter: undefined,
-  };
+  return { cursor: undefined, limit: 0, statusFilter: 0, typeFilter: 0, sizeFilter: 0, rescueIdFilter: undefined };
 }
 
 export const ListPetsRequest: MessageFns<ListPetsRequest> = {
@@ -2114,23 +2107,23 @@ export const ListPetsRequest: MessageFns<ListPetsRequest> = {
       statusFilter: isSet(object.statusFilter)
         ? petStatusFromJSON(object.statusFilter)
         : isSet(object.status_filter)
-          ? petStatusFromJSON(object.status_filter)
-          : 0,
+        ? petStatusFromJSON(object.status_filter)
+        : 0,
       typeFilter: isSet(object.typeFilter)
         ? petTypeFromJSON(object.typeFilter)
         : isSet(object.type_filter)
-          ? petTypeFromJSON(object.type_filter)
-          : 0,
+        ? petTypeFromJSON(object.type_filter)
+        : 0,
       sizeFilter: isSet(object.sizeFilter)
         ? petSizeFromJSON(object.sizeFilter)
         : isSet(object.size_filter)
-          ? petSizeFromJSON(object.size_filter)
-          : 0,
+        ? petSizeFromJSON(object.size_filter)
+        : 0,
       rescueIdFilter: isSet(object.rescueIdFilter)
         ? globalThis.String(object.rescueIdFilter)
         : isSet(object.rescue_id_filter)
-          ? globalThis.String(object.rescue_id_filter)
-          : undefined,
+        ? globalThis.String(object.rescue_id_filter)
+        : undefined,
     };
   },
 
@@ -2221,21 +2214,19 @@ export const ListPetsResponse: MessageFns<ListPetsResponse> = {
 
   fromJSON(object: any): ListPetsResponse {
     return {
-      pets: globalThis.Array.isArray(object?.pets)
-        ? object.pets.map((e: any) => Pet.fromJSON(e))
-        : [],
+      pets: globalThis.Array.isArray(object?.pets) ? object.pets.map((e: any) => Pet.fromJSON(e)) : [],
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-          ? globalThis.String(object.next_cursor)
-          : undefined,
+        ? globalThis.String(object.next_cursor)
+        : undefined,
     };
   },
 
   toJSON(message: ListPetsResponse): unknown {
     const obj: any = {};
     if (message.pets?.length) {
-      obj.pets = message.pets.map(e => Pet.toJSON(e));
+      obj.pets = message.pets.map((e) => Pet.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -2248,7 +2239,7 @@ export const ListPetsResponse: MessageFns<ListPetsResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<ListPetsResponse>, I>>(object: I): ListPetsResponse {
     const message = createBaseListPetsResponse();
-    message.pets = object.pets?.map(e => Pet.fromPartial(e)) || [];
+    message.pets = object.pets?.map((e) => Pet.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
@@ -2256,7 +2247,7 @@ export const ListPetsResponse: MessageFns<ListPetsResponse> = {
 
 function createBaseUpdatePetRequest(): UpdatePetRequest {
   return {
-    petId: '',
+    petId: "",
     name: undefined,
     shortDescription: undefined,
     longDescription: undefined,
@@ -2279,7 +2270,7 @@ function createBaseUpdatePetRequest(): UpdatePetRequest {
 
 export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
   encode(message: UpdatePetRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       writer.uint32(10).string(message.petId);
     }
     if (message.name !== undefined) {
@@ -2501,83 +2492,83 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-          ? globalThis.String(object.pet_id)
-          : '',
+        ? globalThis.String(object.pet_id)
+        : "",
       name: isSet(object.name) ? globalThis.String(object.name) : undefined,
       shortDescription: isSet(object.shortDescription)
         ? globalThis.String(object.shortDescription)
         : isSet(object.short_description)
-          ? globalThis.String(object.short_description)
-          : undefined,
+        ? globalThis.String(object.short_description)
+        : undefined,
       longDescription: isSet(object.longDescription)
         ? globalThis.String(object.longDescription)
         : isSet(object.long_description)
-          ? globalThis.String(object.long_description)
-          : undefined,
+        ? globalThis.String(object.long_description)
+        : undefined,
       gender: isSet(object.gender) ? petGenderFromJSON(object.gender) : undefined,
       size: isSet(object.size) ? petSizeFromJSON(object.size) : undefined,
       ageGroup: isSet(object.ageGroup)
         ? petAgeGroupFromJSON(object.ageGroup)
         : isSet(object.age_group)
-          ? petAgeGroupFromJSON(object.age_group)
-          : undefined,
+        ? petAgeGroupFromJSON(object.age_group)
+        : undefined,
       breedId: isSet(object.breedId)
         ? globalThis.String(object.breedId)
         : isSet(object.breed_id)
-          ? globalThis.String(object.breed_id)
-          : undefined,
+        ? globalThis.String(object.breed_id)
+        : undefined,
       secondaryBreedId: isSet(object.secondaryBreedId)
         ? globalThis.String(object.secondaryBreedId)
         : isSet(object.secondary_breed_id)
-          ? globalThis.String(object.secondary_breed_id)
-          : undefined,
+        ? globalThis.String(object.secondary_breed_id)
+        : undefined,
       adoptionFeeMinor: isSet(object.adoptionFeeMinor)
         ? globalThis.Number(object.adoptionFeeMinor)
         : isSet(object.adoption_fee_minor)
-          ? globalThis.Number(object.adoption_fee_minor)
-          : undefined,
+        ? globalThis.Number(object.adoption_fee_minor)
+        : undefined,
       adoptionFeeCurrency: isSet(object.adoptionFeeCurrency)
         ? globalThis.String(object.adoptionFeeCurrency)
         : isSet(object.adoption_fee_currency)
-          ? globalThis.String(object.adoption_fee_currency)
-          : undefined,
+        ? globalThis.String(object.adoption_fee_currency)
+        : undefined,
       specialNeeds: isSet(object.specialNeeds)
         ? globalThis.Boolean(object.specialNeeds)
         : isSet(object.special_needs)
-          ? globalThis.Boolean(object.special_needs)
-          : undefined,
+        ? globalThis.Boolean(object.special_needs)
+        : undefined,
       houseTrained: isSet(object.houseTrained)
         ? globalThis.Boolean(object.houseTrained)
         : isSet(object.house_trained)
-          ? globalThis.Boolean(object.house_trained)
-          : undefined,
+        ? globalThis.Boolean(object.house_trained)
+        : undefined,
       featured: isSet(object.featured) ? globalThis.Boolean(object.featured) : undefined,
       priorityListing: isSet(object.priorityListing)
         ? globalThis.Boolean(object.priorityListing)
         : isSet(object.priority_listing)
-          ? globalThis.Boolean(object.priority_listing)
-          : undefined,
+        ? globalThis.Boolean(object.priority_listing)
+        : undefined,
       temperamentJson: isSet(object.temperamentJson)
         ? globalThis.String(object.temperamentJson)
         : isSet(object.temperament_json)
-          ? globalThis.String(object.temperament_json)
-          : undefined,
+        ? globalThis.String(object.temperament_json)
+        : undefined,
       tagsJson: isSet(object.tagsJson)
         ? globalThis.String(object.tagsJson)
         : isSet(object.tags_json)
-          ? globalThis.String(object.tags_json)
-          : undefined,
+        ? globalThis.String(object.tags_json)
+        : undefined,
       extraJson: isSet(object.extraJson)
         ? globalThis.String(object.extraJson)
         : isSet(object.extra_json)
-          ? globalThis.String(object.extra_json)
-          : undefined,
+        ? globalThis.String(object.extra_json)
+        : undefined,
     };
   },
 
   toJSON(message: UpdatePetRequest): unknown {
     const obj: any = {};
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       obj.petId = message.petId;
     }
     if (message.name !== undefined) {
@@ -2639,7 +2630,7 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<UpdatePetRequest>, I>>(object: I): UpdatePetRequest {
     const message = createBaseUpdatePetRequest();
-    message.petId = object.petId ?? '';
+    message.petId = object.petId ?? "";
     message.name = object.name ?? undefined;
     message.shortDescription = object.shortDescription ?? undefined;
     message.longDescription = object.longDescription ?? undefined;
@@ -2714,19 +2705,18 @@ export const UpdatePetResponse: MessageFns<UpdatePetResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<UpdatePetResponse>, I>>(object: I): UpdatePetResponse {
     const message = createBaseUpdatePetResponse();
-    message.pet =
-      object.pet !== undefined && object.pet !== null ? Pet.fromPartial(object.pet) : undefined;
+    message.pet = (object.pet !== undefined && object.pet !== null) ? Pet.fromPartial(object.pet) : undefined;
     return message;
   },
 };
 
 function createBaseUpdatePetStatusRequest(): UpdatePetStatusRequest {
-  return { petId: '', toStatus: 0, reason: undefined };
+  return { petId: "", toStatus: 0, reason: undefined };
 }
 
 export const UpdatePetStatusRequest: MessageFns<UpdatePetStatusRequest> = {
   encode(message: UpdatePetStatusRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       writer.uint32(10).string(message.petId);
     }
     if (message.toStatus !== 0) {
@@ -2783,20 +2773,20 @@ export const UpdatePetStatusRequest: MessageFns<UpdatePetStatusRequest> = {
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-          ? globalThis.String(object.pet_id)
-          : '',
+        ? globalThis.String(object.pet_id)
+        : "",
       toStatus: isSet(object.toStatus)
         ? petStatusFromJSON(object.toStatus)
         : isSet(object.to_status)
-          ? petStatusFromJSON(object.to_status)
-          : 0,
+        ? petStatusFromJSON(object.to_status)
+        : 0,
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
   },
 
   toJSON(message: UpdatePetStatusRequest): unknown {
     const obj: any = {};
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       obj.petId = message.petId;
     }
     if (message.toStatus !== 0) {
@@ -2808,16 +2798,12 @@ export const UpdatePetStatusRequest: MessageFns<UpdatePetStatusRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpdatePetStatusRequest>, I>>(
-    base?: I
-  ): UpdatePetStatusRequest {
+  create<I extends Exact<DeepPartial<UpdatePetStatusRequest>, I>>(base?: I): UpdatePetStatusRequest {
     return UpdatePetStatusRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdatePetStatusRequest>, I>>(
-    object: I
-  ): UpdatePetStatusRequest {
+  fromPartial<I extends Exact<DeepPartial<UpdatePetStatusRequest>, I>>(object: I): UpdatePetStatusRequest {
     const message = createBaseUpdatePetStatusRequest();
-    message.petId = object.petId ?? '';
+    message.petId = object.petId ?? "";
     message.toStatus = object.toStatus ?? 0;
     message.reason = object.reason ?? undefined;
     return message;
@@ -2829,10 +2815,7 @@ function createBaseUpdatePetStatusResponse(): UpdatePetStatusResponse {
 }
 
 export const UpdatePetStatusResponse: MessageFns<UpdatePetStatusResponse> = {
-  encode(
-    message: UpdatePetStatusResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UpdatePetStatusResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.pet !== undefined) {
       Pet.encode(message.pet, writer.uint32(10).fork()).join();
     }
@@ -2877,9 +2860,7 @@ export const UpdatePetStatusResponse: MessageFns<UpdatePetStatusResponse> = {
   fromJSON(object: any): UpdatePetStatusResponse {
     return {
       pet: isSet(object.pet) ? Pet.fromJSON(object.pet) : undefined,
-      transition: isSet(object.transition)
-        ? PetStatusTransition.fromJSON(object.transition)
-        : undefined,
+      transition: isSet(object.transition) ? PetStatusTransition.fromJSON(object.transition) : undefined,
     };
   },
 
@@ -2894,32 +2875,26 @@ export const UpdatePetStatusResponse: MessageFns<UpdatePetStatusResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpdatePetStatusResponse>, I>>(
-    base?: I
-  ): UpdatePetStatusResponse {
+  create<I extends Exact<DeepPartial<UpdatePetStatusResponse>, I>>(base?: I): UpdatePetStatusResponse {
     return UpdatePetStatusResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdatePetStatusResponse>, I>>(
-    object: I
-  ): UpdatePetStatusResponse {
+  fromPartial<I extends Exact<DeepPartial<UpdatePetStatusResponse>, I>>(object: I): UpdatePetStatusResponse {
     const message = createBaseUpdatePetStatusResponse();
-    message.pet =
-      object.pet !== undefined && object.pet !== null ? Pet.fromPartial(object.pet) : undefined;
-    message.transition =
-      object.transition !== undefined && object.transition !== null
-        ? PetStatusTransition.fromPartial(object.transition)
-        : undefined;
+    message.pet = (object.pet !== undefined && object.pet !== null) ? Pet.fromPartial(object.pet) : undefined;
+    message.transition = (object.transition !== undefined && object.transition !== null)
+      ? PetStatusTransition.fromPartial(object.transition)
+      : undefined;
     return message;
   },
 };
 
 function createBaseDeletePetRequest(): DeletePetRequest {
-  return { petId: '' };
+  return { petId: "" };
 }
 
 export const DeletePetRequest: MessageFns<DeletePetRequest> = {
   encode(message: DeletePetRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       writer.uint32(10).string(message.petId);
     }
     return writer;
@@ -2954,14 +2929,14 @@ export const DeletePetRequest: MessageFns<DeletePetRequest> = {
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-          ? globalThis.String(object.pet_id)
-          : '',
+        ? globalThis.String(object.pet_id)
+        : "",
     };
   },
 
   toJSON(message: DeletePetRequest): unknown {
     const obj: any = {};
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       obj.petId = message.petId;
     }
     return obj;
@@ -2972,7 +2947,7 @@ export const DeletePetRequest: MessageFns<DeletePetRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<DeletePetRequest>, I>>(object: I): DeletePetRequest {
     const message = createBaseDeletePetRequest();
-    message.petId = object.petId ?? '';
+    message.petId = object.petId ?? "";
     return message;
   },
 };
@@ -3076,8 +3051,8 @@ export const GetPetStatsRequest: MessageFns<GetPetStatsRequest> = {
       rescueIdFilter: isSet(object.rescueIdFilter)
         ? globalThis.String(object.rescueIdFilter)
         : isSet(object.rescue_id_filter)
-          ? globalThis.String(object.rescue_id_filter)
-          : undefined,
+        ? globalThis.String(object.rescue_id_filter)
+        : undefined,
     };
   },
 
@@ -3267,29 +3242,29 @@ export const GetPetStatsResponse: MessageFns<GetPetStatsResponse> = {
       medicalHold: isSet(object.medicalHold)
         ? globalThis.Number(object.medicalHold)
         : isSet(object.medical_hold)
-          ? globalThis.Number(object.medical_hold)
-          : 0,
+        ? globalThis.Number(object.medical_hold)
+        : 0,
       behavioralHold: isSet(object.behavioralHold)
         ? globalThis.Number(object.behavioralHold)
         : isSet(object.behavioral_hold)
-          ? globalThis.Number(object.behavioral_hold)
-          : 0,
+        ? globalThis.Number(object.behavioral_hold)
+        : 0,
       notAvailable: isSet(object.notAvailable)
         ? globalThis.Number(object.notAvailable)
         : isSet(object.not_available)
-          ? globalThis.Number(object.not_available)
-          : 0,
+        ? globalThis.Number(object.not_available)
+        : 0,
       deceased: isSet(object.deceased) ? globalThis.Number(object.deceased) : 0,
       monthlyAdoptions: isSet(object.monthlyAdoptions)
         ? globalThis.Number(object.monthlyAdoptions)
         : isSet(object.monthly_adoptions)
-          ? globalThis.Number(object.monthly_adoptions)
-          : 0,
+        ? globalThis.Number(object.monthly_adoptions)
+        : 0,
       averageDaysToAdoption: isSet(object.averageDaysToAdoption)
         ? globalThis.Number(object.averageDaysToAdoption)
         : isSet(object.average_days_to_adoption)
-          ? globalThis.Number(object.average_days_to_adoption)
-          : 0,
+        ? globalThis.Number(object.average_days_to_adoption)
+        : 0,
     };
   },
 
@@ -3334,9 +3309,7 @@ export const GetPetStatsResponse: MessageFns<GetPetStatsResponse> = {
   create<I extends Exact<DeepPartial<GetPetStatsResponse>, I>>(base?: I): GetPetStatsResponse {
     return GetPetStatsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetPetStatsResponse>, I>>(
-    object: I
-  ): GetPetStatsResponse {
+  fromPartial<I extends Exact<DeepPartial<GetPetStatsResponse>, I>>(object: I): GetPetStatsResponse {
     const message = createBaseGetPetStatsResponse();
     message.total = object.total ?? 0;
     message.available = object.available ?? 0;
@@ -3377,26 +3350,22 @@ export const PetServiceService = {
    * the target rescue. Publishes `pets.created` on NATS after commit.
    */
   create: {
-    path: '/adopt_dont_shop.pets.v1.PetService/Create' as const,
+    path: "/adopt_dont_shop.pets.v1.PetService/Create" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: CreatePetRequest): Buffer =>
-      Buffer.from(CreatePetRequest.encode(value).finish()),
+    requestSerialize: (value: CreatePetRequest): Buffer => Buffer.from(CreatePetRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): CreatePetRequest => CreatePetRequest.decode(value),
-    responseSerialize: (value: CreatePetResponse): Buffer =>
-      Buffer.from(CreatePetResponse.encode(value).finish()),
+    responseSerialize: (value: CreatePetResponse): Buffer => Buffer.from(CreatePetResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): CreatePetResponse => CreatePetResponse.decode(value),
   },
   /** Fetch a single pet by id. NOT_FOUND when missing or soft-deleted. */
   get: {
-    path: '/adopt_dont_shop.pets.v1.PetService/Get' as const,
+    path: "/adopt_dont_shop.pets.v1.PetService/Get" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetPetRequest): Buffer =>
-      Buffer.from(GetPetRequest.encode(value).finish()),
+    requestSerialize: (value: GetPetRequest): Buffer => Buffer.from(GetPetRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetPetRequest => GetPetRequest.decode(value),
-    responseSerialize: (value: GetPetResponse): Buffer =>
-      Buffer.from(GetPetResponse.encode(value).finish()),
+    responseSerialize: (value: GetPetResponse): Buffer => Buffer.from(GetPetResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetPetResponse => GetPetResponse.decode(value),
   },
   /**
@@ -3405,14 +3374,12 @@ export const PetServiceService = {
    * their own rescue via the rescue_id filter.
    */
   list: {
-    path: '/adopt_dont_shop.pets.v1.PetService/List' as const,
+    path: "/adopt_dont_shop.pets.v1.PetService/List" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ListPetsRequest): Buffer =>
-      Buffer.from(ListPetsRequest.encode(value).finish()),
+    requestSerialize: (value: ListPetsRequest): Buffer => Buffer.from(ListPetsRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListPetsRequest => ListPetsRequest.decode(value),
-    responseSerialize: (value: ListPetsResponse): Buffer =>
-      Buffer.from(ListPetsResponse.encode(value).finish()),
+    responseSerialize: (value: ListPetsResponse): Buffer => Buffer.from(ListPetsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListPetsResponse => ListPetsResponse.decode(value),
   },
   /**
@@ -3421,14 +3388,12 @@ export const PetServiceService = {
    * `pets.update` scoped to the pet's rescue. Publishes `pets.updated`.
    */
   update: {
-    path: '/adopt_dont_shop.pets.v1.PetService/Update' as const,
+    path: "/adopt_dont_shop.pets.v1.PetService/Update" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: UpdatePetRequest): Buffer =>
-      Buffer.from(UpdatePetRequest.encode(value).finish()),
+    requestSerialize: (value: UpdatePetRequest): Buffer => Buffer.from(UpdatePetRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): UpdatePetRequest => UpdatePetRequest.decode(value),
-    responseSerialize: (value: UpdatePetResponse): Buffer =>
-      Buffer.from(UpdatePetResponse.encode(value).finish()),
+    responseSerialize: (value: UpdatePetResponse): Buffer => Buffer.from(UpdatePetResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): UpdatePetResponse => UpdatePetResponse.decode(value),
   },
   /**
@@ -3440,31 +3405,27 @@ export const PetServiceService = {
    * the handler). Caller MUST have `pets.update` scoped to the rescue.
    */
   updateStatus: {
-    path: '/adopt_dont_shop.pets.v1.PetService/UpdateStatus' as const,
+    path: "/adopt_dont_shop.pets.v1.PetService/UpdateStatus" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: UpdatePetStatusRequest): Buffer =>
       Buffer.from(UpdatePetStatusRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UpdatePetStatusRequest =>
-      UpdatePetStatusRequest.decode(value),
+    requestDeserialize: (value: Buffer): UpdatePetStatusRequest => UpdatePetStatusRequest.decode(value),
     responseSerialize: (value: UpdatePetStatusResponse): Buffer =>
       Buffer.from(UpdatePetStatusResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpdatePetStatusResponse =>
-      UpdatePetStatusResponse.decode(value),
+    responseDeserialize: (value: Buffer): UpdatePetStatusResponse => UpdatePetStatusResponse.decode(value),
   },
   /**
    * Soft-delete a pet (sets deleted_at). Caller MUST have `pets.delete`
    * scoped to the rescue. Publishes `pets.deleted` after commit.
    */
   delete: {
-    path: '/adopt_dont_shop.pets.v1.PetService/Delete' as const,
+    path: "/adopt_dont_shop.pets.v1.PetService/Delete" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: DeletePetRequest): Buffer =>
-      Buffer.from(DeletePetRequest.encode(value).finish()),
+    requestSerialize: (value: DeletePetRequest): Buffer => Buffer.from(DeletePetRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): DeletePetRequest => DeletePetRequest.decode(value),
-    responseSerialize: (value: DeletePetResponse): Buffer =>
-      Buffer.from(DeletePetResponse.encode(value).finish()),
+    responseSerialize: (value: DeletePetResponse): Buffer => Buffer.from(DeletePetResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeletePetResponse => DeletePetResponse.decode(value),
   },
   /**
@@ -3474,14 +3435,12 @@ export const PetServiceService = {
    * Self-scoped to the caller's rescue unless they hold pets.read:any.
    */
   getStats: {
-    path: '/adopt_dont_shop.pets.v1.PetService/GetStats' as const,
+    path: "/adopt_dont_shop.pets.v1.PetService/GetStats" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetPetStatsRequest): Buffer =>
-      Buffer.from(GetPetStatsRequest.encode(value).finish()),
+    requestSerialize: (value: GetPetStatsRequest): Buffer => Buffer.from(GetPetStatsRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetPetStatsRequest => GetPetStatsRequest.decode(value),
-    responseSerialize: (value: GetPetStatsResponse): Buffer =>
-      Buffer.from(GetPetStatsResponse.encode(value).finish()),
+    responseSerialize: (value: GetPetStatsResponse): Buffer => Buffer.from(GetPetStatsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetPetStatsResponse => GetPetStatsResponse.decode(value),
   },
 } as const;
@@ -3536,34 +3495,34 @@ export interface PetServiceClient extends Client {
    */
   create(
     request: CreatePetRequest,
-    callback: (error: ServiceError | null, response: CreatePetResponse) => void
+    callback: (error: ServiceError | null, response: CreatePetResponse) => void,
   ): ClientUnaryCall;
   create(
     request: CreatePetRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreatePetResponse) => void
+    callback: (error: ServiceError | null, response: CreatePetResponse) => void,
   ): ClientUnaryCall;
   create(
     request: CreatePetRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreatePetResponse) => void
+    callback: (error: ServiceError | null, response: CreatePetResponse) => void,
   ): ClientUnaryCall;
   /** Fetch a single pet by id. NOT_FOUND when missing or soft-deleted. */
   get(
     request: GetPetRequest,
-    callback: (error: ServiceError | null, response: GetPetResponse) => void
+    callback: (error: ServiceError | null, response: GetPetResponse) => void,
   ): ClientUnaryCall;
   get(
     request: GetPetRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetPetResponse) => void
+    callback: (error: ServiceError | null, response: GetPetResponse) => void,
   ): ClientUnaryCall;
   get(
     request: GetPetRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetPetResponse) => void
+    callback: (error: ServiceError | null, response: GetPetResponse) => void,
   ): ClientUnaryCall;
   /**
    * List pets with keyset pagination + optional filters. Public-ish
@@ -3572,18 +3531,18 @@ export interface PetServiceClient extends Client {
    */
   list(
     request: ListPetsRequest,
-    callback: (error: ServiceError | null, response: ListPetsResponse) => void
+    callback: (error: ServiceError | null, response: ListPetsResponse) => void,
   ): ClientUnaryCall;
   list(
     request: ListPetsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListPetsResponse) => void
+    callback: (error: ServiceError | null, response: ListPetsResponse) => void,
   ): ClientUnaryCall;
   list(
     request: ListPetsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListPetsResponse) => void
+    callback: (error: ServiceError | null, response: ListPetsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Update mutable listing fields (descriptions, flags, fee, …). Does
@@ -3592,18 +3551,18 @@ export interface PetServiceClient extends Client {
    */
   update(
     request: UpdatePetRequest,
-    callback: (error: ServiceError | null, response: UpdatePetResponse) => void
+    callback: (error: ServiceError | null, response: UpdatePetResponse) => void,
   ): ClientUnaryCall;
   update(
     request: UpdatePetRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdatePetResponse) => void
+    callback: (error: ServiceError | null, response: UpdatePetResponse) => void,
   ): ClientUnaryCall;
   update(
     request: UpdatePetRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdatePetResponse) => void
+    callback: (error: ServiceError | null, response: UpdatePetResponse) => void,
   ): ClientUnaryCall;
   /**
    * Drive the status state machine
@@ -3615,18 +3574,18 @@ export interface PetServiceClient extends Client {
    */
   updateStatus(
     request: UpdatePetStatusRequest,
-    callback: (error: ServiceError | null, response: UpdatePetStatusResponse) => void
+    callback: (error: ServiceError | null, response: UpdatePetStatusResponse) => void,
   ): ClientUnaryCall;
   updateStatus(
     request: UpdatePetStatusRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdatePetStatusResponse) => void
+    callback: (error: ServiceError | null, response: UpdatePetStatusResponse) => void,
   ): ClientUnaryCall;
   updateStatus(
     request: UpdatePetStatusRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdatePetStatusResponse) => void
+    callback: (error: ServiceError | null, response: UpdatePetStatusResponse) => void,
   ): ClientUnaryCall;
   /**
    * Soft-delete a pet (sets deleted_at). Caller MUST have `pets.delete`
@@ -3634,18 +3593,18 @@ export interface PetServiceClient extends Client {
    */
   delete(
     request: DeletePetRequest,
-    callback: (error: ServiceError | null, response: DeletePetResponse) => void
+    callback: (error: ServiceError | null, response: DeletePetResponse) => void,
   ): ClientUnaryCall;
   delete(
     request: DeletePetRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DeletePetResponse) => void
+    callback: (error: ServiceError | null, response: DeletePetResponse) => void,
   ): ClientUnaryCall;
   delete(
     request: DeletePetRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DeletePetResponse) => void
+    callback: (error: ServiceError | null, response: DeletePetResponse) => void,
   ): ClientUnaryCall;
   /**
    * Per-rescue (or platform-wide for admin) counts: total + per-status
@@ -3655,49 +3614,40 @@ export interface PetServiceClient extends Client {
    */
   getStats(
     request: GetPetStatsRequest,
-    callback: (error: ServiceError | null, response: GetPetStatsResponse) => void
+    callback: (error: ServiceError | null, response: GetPetStatsResponse) => void,
   ): ClientUnaryCall;
   getStats(
     request: GetPetStatsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetPetStatsResponse) => void
+    callback: (error: ServiceError | null, response: GetPetStatsResponse) => void,
   ): ClientUnaryCall;
   getStats(
     request: GetPetStatsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetPetStatsResponse) => void
+    callback: (error: ServiceError | null, response: GetPetStatsResponse) => void,
   ): ClientUnaryCall;
 }
 
 export const PetServiceClient = makeGenericClientConstructor(
   PetServiceService,
-  'adopt_dont_shop.pets.v1.PetService'
+  "adopt_dont_shop.pets.v1.PetService",
 ) as unknown as {
-  new (
-    address: string,
-    credentials: ChannelCredentials,
-    options?: Partial<ClientOptions>
-  ): PetServiceClient;
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): PetServiceClient;
   service: typeof PetServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
+export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {

@@ -213,6 +213,8 @@ type GdprRow = {
   requested_at: Date;
   completions: unknown;
   completed_at: Date | null;
+  timed_out_at: Date | null;
+  retry_count: number;
   created_at: Date;
   updated_at: Date;
 };
@@ -231,7 +233,8 @@ export async function getGdprErasureRequest(
 
   const result = await deps.pool.query<GdprRow>(
     `SELECT correlation_id, user_id, reason, requested_at,
-            completions, completed_at, created_at, updated_at
+            completions, completed_at, timed_out_at, retry_count,
+            created_at, updated_at
        FROM gdpr_erasure_requests
        WHERE correlation_id = $1`,
     [correlationId]
@@ -256,6 +259,8 @@ export async function getGdprErasureRequest(
       requestedAt: row.requested_at.toISOString(),
       completionsJson: JSON.stringify(row.completions ?? {}),
       completedAt: row.completed_at?.toISOString(),
+      timedOutAt: row.timed_out_at?.toISOString(),
+      retryCount: row.retry_count ?? 0,
       createdAt: row.created_at.toISOString(),
       updatedAt: row.updated_at.toISOString(),
     },

@@ -5,7 +5,7 @@
 // source: proto/adopt_dont_shop/cms/v1/cms.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -17,9 +17,9 @@ import {
   type Metadata,
   type ServiceError,
   type UntypedServiceImplementation,
-} from '@grpc/grpc-js';
+} from "@grpc/grpc-js";
 
-export const protobufPackage = 'adopt_dont_shop.cms.v1';
+export const protobufPackage = "adopt_dont_shop.cms.v1";
 
 export enum ContentType {
   CONTENT_TYPE_UNSPECIFIED = 0,
@@ -32,19 +32,19 @@ export enum ContentType {
 export function contentTypeFromJSON(object: any): ContentType {
   switch (object) {
     case 0:
-    case 'CONTENT_TYPE_UNSPECIFIED':
+    case "CONTENT_TYPE_UNSPECIFIED":
       return ContentType.CONTENT_TYPE_UNSPECIFIED;
     case 1:
-    case 'CONTENT_TYPE_PAGE':
+    case "CONTENT_TYPE_PAGE":
       return ContentType.CONTENT_TYPE_PAGE;
     case 2:
-    case 'CONTENT_TYPE_BLOG_POST':
+    case "CONTENT_TYPE_BLOG_POST":
       return ContentType.CONTENT_TYPE_BLOG_POST;
     case 3:
-    case 'CONTENT_TYPE_HELP_ARTICLE':
+    case "CONTENT_TYPE_HELP_ARTICLE":
       return ContentType.CONTENT_TYPE_HELP_ARTICLE;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return ContentType.UNRECOGNIZED;
   }
@@ -53,16 +53,16 @@ export function contentTypeFromJSON(object: any): ContentType {
 export function contentTypeToJSON(object: ContentType): string {
   switch (object) {
     case ContentType.CONTENT_TYPE_UNSPECIFIED:
-      return 'CONTENT_TYPE_UNSPECIFIED';
+      return "CONTENT_TYPE_UNSPECIFIED";
     case ContentType.CONTENT_TYPE_PAGE:
-      return 'CONTENT_TYPE_PAGE';
+      return "CONTENT_TYPE_PAGE";
     case ContentType.CONTENT_TYPE_BLOG_POST:
-      return 'CONTENT_TYPE_BLOG_POST';
+      return "CONTENT_TYPE_BLOG_POST";
     case ContentType.CONTENT_TYPE_HELP_ARTICLE:
-      return 'CONTENT_TYPE_HELP_ARTICLE';
+      return "CONTENT_TYPE_HELP_ARTICLE";
     case ContentType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -78,22 +78,22 @@ export enum ContentStatus {
 export function contentStatusFromJSON(object: any): ContentStatus {
   switch (object) {
     case 0:
-    case 'CONTENT_STATUS_UNSPECIFIED':
+    case "CONTENT_STATUS_UNSPECIFIED":
       return ContentStatus.CONTENT_STATUS_UNSPECIFIED;
     case 1:
-    case 'CONTENT_STATUS_DRAFT':
+    case "CONTENT_STATUS_DRAFT":
       return ContentStatus.CONTENT_STATUS_DRAFT;
     case 2:
-    case 'CONTENT_STATUS_PUBLISHED':
+    case "CONTENT_STATUS_PUBLISHED":
       return ContentStatus.CONTENT_STATUS_PUBLISHED;
     case 3:
-    case 'CONTENT_STATUS_ARCHIVED':
+    case "CONTENT_STATUS_ARCHIVED":
       return ContentStatus.CONTENT_STATUS_ARCHIVED;
     case 4:
-    case 'CONTENT_STATUS_SCHEDULED':
+    case "CONTENT_STATUS_SCHEDULED":
       return ContentStatus.CONTENT_STATUS_SCHEDULED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return ContentStatus.UNRECOGNIZED;
   }
@@ -102,18 +102,18 @@ export function contentStatusFromJSON(object: any): ContentStatus {
 export function contentStatusToJSON(object: ContentStatus): string {
   switch (object) {
     case ContentStatus.CONTENT_STATUS_UNSPECIFIED:
-      return 'CONTENT_STATUS_UNSPECIFIED';
+      return "CONTENT_STATUS_UNSPECIFIED";
     case ContentStatus.CONTENT_STATUS_DRAFT:
-      return 'CONTENT_STATUS_DRAFT';
+      return "CONTENT_STATUS_DRAFT";
     case ContentStatus.CONTENT_STATUS_PUBLISHED:
-      return 'CONTENT_STATUS_PUBLISHED';
+      return "CONTENT_STATUS_PUBLISHED";
     case ContentStatus.CONTENT_STATUS_ARCHIVED:
-      return 'CONTENT_STATUS_ARCHIVED';
+      return "CONTENT_STATUS_ARCHIVED";
     case ContentStatus.CONTENT_STATUS_SCHEDULED:
-      return 'CONTENT_STATUS_SCHEDULED';
+      return "CONTENT_STATUS_SCHEDULED";
     case ContentStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -135,7 +135,9 @@ export interface Content {
   featuredImageUrl?: string | undefined;
   publishedAt?: string | undefined;
   scheduledPublishAt?: string | undefined;
-  scheduledUnpublishAt?: string | undefined;
+  scheduledUnpublishAt?:
+    | string
+    | undefined;
   /**
    * Version history snapshots. `versions_json` carries the full
    * serialised array so the proto stays cheap to evolve — same
@@ -226,7 +228,9 @@ export interface UpdateContentRequest {
   content?: string | undefined;
   excerpt?: string | undefined;
   metaTitle?: string | undefined;
-  metaDescription?: string | undefined;
+  metaDescription?:
+    | string
+    | undefined;
   /**
    * set_meta_keywords toggles whether meta_keywords is written
    * (partial-update presence flag, same convention as the rest of
@@ -370,12 +374,12 @@ export interface DeleteMenuResponse {
 
 function createBaseContent(): Content {
   return {
-    contentId: '',
-    title: '',
-    slug: '',
+    contentId: "",
+    title: "",
+    slug: "",
     contentType: 0,
     status: 0,
-    content: '',
+    content: "",
     excerpt: undefined,
     metaTitle: undefined,
     metaDescription: undefined,
@@ -384,24 +388,24 @@ function createBaseContent(): Content {
     publishedAt: undefined,
     scheduledPublishAt: undefined,
     scheduledUnpublishAt: undefined,
-    versionsJson: '',
+    versionsJson: "",
     currentVersion: 0,
-    authorId: '',
+    authorId: "",
     lastModifiedBy: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const Content: MessageFns<Content> = {
   encode(message: Content, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       writer.uint32(10).string(message.contentId);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       writer.uint32(18).string(message.title);
     }
-    if (message.slug !== '') {
+    if (message.slug !== "") {
       writer.uint32(26).string(message.slug);
     }
     if (message.contentType !== 0) {
@@ -410,7 +414,7 @@ export const Content: MessageFns<Content> = {
     if (message.status !== 0) {
       writer.uint32(40).int32(message.status);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       writer.uint32(50).string(message.content);
     }
     if (message.excerpt !== undefined) {
@@ -437,22 +441,22 @@ export const Content: MessageFns<Content> = {
     if (message.scheduledUnpublishAt !== undefined) {
       writer.uint32(114).string(message.scheduledUnpublishAt);
     }
-    if (message.versionsJson !== '') {
+    if (message.versionsJson !== "") {
       writer.uint32(122).string(message.versionsJson);
     }
     if (message.currentVersion !== 0) {
       writer.uint32(128).uint32(message.currentVersion);
     }
-    if (message.authorId !== '') {
+    if (message.authorId !== "") {
       writer.uint32(138).string(message.authorId);
     }
     if (message.lastModifiedBy !== undefined) {
       writer.uint32(146).string(message.lastModifiedBy);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(154).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(162).string(message.updatedAt);
     }
     return writer;
@@ -639,95 +643,95 @@ export const Content: MessageFns<Content> = {
       contentId: isSet(object.contentId)
         ? globalThis.String(object.contentId)
         : isSet(object.content_id)
-          ? globalThis.String(object.content_id)
-          : '',
-      title: isSet(object.title) ? globalThis.String(object.title) : '',
-      slug: isSet(object.slug) ? globalThis.String(object.slug) : '',
+        ? globalThis.String(object.content_id)
+        : "",
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      slug: isSet(object.slug) ? globalThis.String(object.slug) : "",
       contentType: isSet(object.contentType)
         ? contentTypeFromJSON(object.contentType)
         : isSet(object.content_type)
-          ? contentTypeFromJSON(object.content_type)
-          : 0,
+        ? contentTypeFromJSON(object.content_type)
+        : 0,
       status: isSet(object.status) ? contentStatusFromJSON(object.status) : 0,
-      content: isSet(object.content) ? globalThis.String(object.content) : '',
+      content: isSet(object.content) ? globalThis.String(object.content) : "",
       excerpt: isSet(object.excerpt) ? globalThis.String(object.excerpt) : undefined,
       metaTitle: isSet(object.metaTitle)
         ? globalThis.String(object.metaTitle)
         : isSet(object.meta_title)
-          ? globalThis.String(object.meta_title)
-          : undefined,
+        ? globalThis.String(object.meta_title)
+        : undefined,
       metaDescription: isSet(object.metaDescription)
         ? globalThis.String(object.metaDescription)
         : isSet(object.meta_description)
-          ? globalThis.String(object.meta_description)
-          : undefined,
+        ? globalThis.String(object.meta_description)
+        : undefined,
       metaKeywords: globalThis.Array.isArray(object?.metaKeywords)
         ? object.metaKeywords.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.meta_keywords)
-          ? object.meta_keywords.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.meta_keywords.map((e: any) => globalThis.String(e))
+        : [],
       featuredImageUrl: isSet(object.featuredImageUrl)
         ? globalThis.String(object.featuredImageUrl)
         : isSet(object.featured_image_url)
-          ? globalThis.String(object.featured_image_url)
-          : undefined,
+        ? globalThis.String(object.featured_image_url)
+        : undefined,
       publishedAt: isSet(object.publishedAt)
         ? globalThis.String(object.publishedAt)
         : isSet(object.published_at)
-          ? globalThis.String(object.published_at)
-          : undefined,
+        ? globalThis.String(object.published_at)
+        : undefined,
       scheduledPublishAt: isSet(object.scheduledPublishAt)
         ? globalThis.String(object.scheduledPublishAt)
         : isSet(object.scheduled_publish_at)
-          ? globalThis.String(object.scheduled_publish_at)
-          : undefined,
+        ? globalThis.String(object.scheduled_publish_at)
+        : undefined,
       scheduledUnpublishAt: isSet(object.scheduledUnpublishAt)
         ? globalThis.String(object.scheduledUnpublishAt)
         : isSet(object.scheduled_unpublish_at)
-          ? globalThis.String(object.scheduled_unpublish_at)
-          : undefined,
+        ? globalThis.String(object.scheduled_unpublish_at)
+        : undefined,
       versionsJson: isSet(object.versionsJson)
         ? globalThis.String(object.versionsJson)
         : isSet(object.versions_json)
-          ? globalThis.String(object.versions_json)
-          : '',
+        ? globalThis.String(object.versions_json)
+        : "",
       currentVersion: isSet(object.currentVersion)
         ? globalThis.Number(object.currentVersion)
         : isSet(object.current_version)
-          ? globalThis.Number(object.current_version)
-          : 0,
+        ? globalThis.Number(object.current_version)
+        : 0,
       authorId: isSet(object.authorId)
         ? globalThis.String(object.authorId)
         : isSet(object.author_id)
-          ? globalThis.String(object.author_id)
-          : '',
+        ? globalThis.String(object.author_id)
+        : "",
       lastModifiedBy: isSet(object.lastModifiedBy)
         ? globalThis.String(object.lastModifiedBy)
         : isSet(object.last_modified_by)
-          ? globalThis.String(object.last_modified_by)
-          : undefined,
+        ? globalThis.String(object.last_modified_by)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: Content): unknown {
     const obj: any = {};
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       obj.contentId = message.contentId;
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       obj.title = message.title;
     }
-    if (message.slug !== '') {
+    if (message.slug !== "") {
       obj.slug = message.slug;
     }
     if (message.contentType !== 0) {
@@ -736,7 +740,7 @@ export const Content: MessageFns<Content> = {
     if (message.status !== 0) {
       obj.status = contentStatusToJSON(message.status);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       obj.content = message.content;
     }
     if (message.excerpt !== undefined) {
@@ -763,22 +767,22 @@ export const Content: MessageFns<Content> = {
     if (message.scheduledUnpublishAt !== undefined) {
       obj.scheduledUnpublishAt = message.scheduledUnpublishAt;
     }
-    if (message.versionsJson !== '') {
+    if (message.versionsJson !== "") {
       obj.versionsJson = message.versionsJson;
     }
     if (message.currentVersion !== 0) {
       obj.currentVersion = Math.round(message.currentVersion);
     }
-    if (message.authorId !== '') {
+    if (message.authorId !== "") {
       obj.authorId = message.authorId;
     }
     if (message.lastModifiedBy !== undefined) {
       obj.lastModifiedBy = message.lastModifiedBy;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -789,26 +793,26 @@ export const Content: MessageFns<Content> = {
   },
   fromPartial<I extends Exact<DeepPartial<Content>, I>>(object: I): Content {
     const message = createBaseContent();
-    message.contentId = object.contentId ?? '';
-    message.title = object.title ?? '';
-    message.slug = object.slug ?? '';
+    message.contentId = object.contentId ?? "";
+    message.title = object.title ?? "";
+    message.slug = object.slug ?? "";
     message.contentType = object.contentType ?? 0;
     message.status = object.status ?? 0;
-    message.content = object.content ?? '';
+    message.content = object.content ?? "";
     message.excerpt = object.excerpt ?? undefined;
     message.metaTitle = object.metaTitle ?? undefined;
     message.metaDescription = object.metaDescription ?? undefined;
-    message.metaKeywords = object.metaKeywords?.map(e => e) || [];
+    message.metaKeywords = object.metaKeywords?.map((e) => e) || [];
     message.featuredImageUrl = object.featuredImageUrl ?? undefined;
     message.publishedAt = object.publishedAt ?? undefined;
     message.scheduledPublishAt = object.scheduledPublishAt ?? undefined;
     message.scheduledUnpublishAt = object.scheduledUnpublishAt ?? undefined;
-    message.versionsJson = object.versionsJson ?? '';
+    message.versionsJson = object.versionsJson ?? "";
     message.currentVersion = object.currentVersion ?? 0;
-    message.authorId = object.authorId ?? '';
+    message.authorId = object.authorId ?? "";
     message.lastModifiedBy = object.lastModifiedBy ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
@@ -818,10 +822,7 @@ function createBaseListPublicContentRequest(): ListPublicContentRequest {
 }
 
 export const ListPublicContentRequest: MessageFns<ListPublicContentRequest> = {
-  encode(
-    message: ListPublicContentRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListPublicContentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.contentType !== undefined) {
       writer.uint32(8).int32(message.contentType);
     }
@@ -879,8 +880,8 @@ export const ListPublicContentRequest: MessageFns<ListPublicContentRequest> = {
       contentType: isSet(object.contentType)
         ? contentTypeFromJSON(object.contentType)
         : isSet(object.content_type)
-          ? contentTypeFromJSON(object.content_type)
-          : undefined,
+        ? contentTypeFromJSON(object.content_type)
+        : undefined,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
     };
@@ -900,14 +901,10 @@ export const ListPublicContentRequest: MessageFns<ListPublicContentRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListPublicContentRequest>, I>>(
-    base?: I
-  ): ListPublicContentRequest {
+  create<I extends Exact<DeepPartial<ListPublicContentRequest>, I>>(base?: I): ListPublicContentRequest {
     return ListPublicContentRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListPublicContentRequest>, I>>(
-    object: I
-  ): ListPublicContentRequest {
+  fromPartial<I extends Exact<DeepPartial<ListPublicContentRequest>, I>>(object: I): ListPublicContentRequest {
     const message = createBaseListPublicContentRequest();
     message.contentType = object.contentType ?? undefined;
     message.page = object.page ?? 0;
@@ -921,10 +918,7 @@ function createBaseListPublicContentResponse(): ListPublicContentResponse {
 }
 
 export const ListPublicContentResponse: MessageFns<ListPublicContentResponse> = {
-  encode(
-    message: ListPublicContentResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListPublicContentResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.items) {
       Content.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -990,23 +984,21 @@ export const ListPublicContentResponse: MessageFns<ListPublicContentResponse> = 
 
   fromJSON(object: any): ListPublicContentResponse {
     return {
-      items: globalThis.Array.isArray(object?.items)
-        ? object.items.map((e: any) => Content.fromJSON(e))
-        : [],
+      items: globalThis.Array.isArray(object?.items) ? object.items.map((e: any) => Content.fromJSON(e)) : [],
       total: isSet(object.total) ? globalThis.Number(object.total) : 0,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       totalPages: isSet(object.totalPages)
         ? globalThis.Number(object.totalPages)
         : isSet(object.total_pages)
-          ? globalThis.Number(object.total_pages)
-          : 0,
+        ? globalThis.Number(object.total_pages)
+        : 0,
     };
   },
 
   toJSON(message: ListPublicContentResponse): unknown {
     const obj: any = {};
     if (message.items?.length) {
-      obj.items = message.items.map(e => Content.toJSON(e));
+      obj.items = message.items.map((e) => Content.toJSON(e));
     }
     if (message.total !== 0) {
       obj.total = Math.round(message.total);
@@ -1020,16 +1012,12 @@ export const ListPublicContentResponse: MessageFns<ListPublicContentResponse> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListPublicContentResponse>, I>>(
-    base?: I
-  ): ListPublicContentResponse {
+  create<I extends Exact<DeepPartial<ListPublicContentResponse>, I>>(base?: I): ListPublicContentResponse {
     return ListPublicContentResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListPublicContentResponse>, I>>(
-    object: I
-  ): ListPublicContentResponse {
+  fromPartial<I extends Exact<DeepPartial<ListPublicContentResponse>, I>>(object: I): ListPublicContentResponse {
     const message = createBaseListPublicContentResponse();
-    message.items = object.items?.map(e => Content.fromPartial(e)) || [];
+    message.items = object.items?.map((e) => Content.fromPartial(e)) || [];
     message.total = object.total ?? 0;
     message.page = object.page ?? 0;
     message.totalPages = object.totalPages ?? 0;
@@ -1038,15 +1026,12 @@ export const ListPublicContentResponse: MessageFns<ListPublicContentResponse> = 
 };
 
 function createBaseGetPublicContentBySlugRequest(): GetPublicContentBySlugRequest {
-  return { slug: '' };
+  return { slug: "" };
 }
 
 export const GetPublicContentBySlugRequest: MessageFns<GetPublicContentBySlugRequest> = {
-  encode(
-    message: GetPublicContentBySlugRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.slug !== '') {
+  encode(message: GetPublicContentBySlugRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.slug !== "") {
       writer.uint32(10).string(message.slug);
     }
     return writer;
@@ -1077,27 +1062,25 @@ export const GetPublicContentBySlugRequest: MessageFns<GetPublicContentBySlugReq
   },
 
   fromJSON(object: any): GetPublicContentBySlugRequest {
-    return { slug: isSet(object.slug) ? globalThis.String(object.slug) : '' };
+    return { slug: isSet(object.slug) ? globalThis.String(object.slug) : "" };
   },
 
   toJSON(message: GetPublicContentBySlugRequest): unknown {
     const obj: any = {};
-    if (message.slug !== '') {
+    if (message.slug !== "") {
       obj.slug = message.slug;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetPublicContentBySlugRequest>, I>>(
-    base?: I
-  ): GetPublicContentBySlugRequest {
+  create<I extends Exact<DeepPartial<GetPublicContentBySlugRequest>, I>>(base?: I): GetPublicContentBySlugRequest {
     return GetPublicContentBySlugRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetPublicContentBySlugRequest>, I>>(
-    object: I
+    object: I,
   ): GetPublicContentBySlugRequest {
     const message = createBaseGetPublicContentBySlugRequest();
-    message.slug = object.slug ?? '';
+    message.slug = object.slug ?? "";
     return message;
   },
 };
@@ -1107,10 +1090,7 @@ function createBaseGetPublicContentBySlugResponse(): GetPublicContentBySlugRespo
 }
 
 export const GetPublicContentBySlugResponse: MessageFns<GetPublicContentBySlugResponse> = {
-  encode(
-    message: GetPublicContentBySlugResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetPublicContentBySlugResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.content !== undefined) {
       Content.encode(message.content, writer.uint32(10).fork()).join();
     }
@@ -1153,19 +1133,16 @@ export const GetPublicContentBySlugResponse: MessageFns<GetPublicContentBySlugRe
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetPublicContentBySlugResponse>, I>>(
-    base?: I
-  ): GetPublicContentBySlugResponse {
+  create<I extends Exact<DeepPartial<GetPublicContentBySlugResponse>, I>>(base?: I): GetPublicContentBySlugResponse {
     return GetPublicContentBySlugResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetPublicContentBySlugResponse>, I>>(
-    object: I
+    object: I,
   ): GetPublicContentBySlugResponse {
     const message = createBaseGetPublicContentBySlugResponse();
-    message.content =
-      object.content !== undefined && object.content !== null
-        ? Content.fromPartial(object.content)
-        : undefined;
+    message.content = (object.content !== undefined && object.content !== null)
+      ? Content.fromPartial(object.content)
+      : undefined;
     return message;
   },
 };
@@ -1255,8 +1232,8 @@ export const ListContentRequest: MessageFns<ListContentRequest> = {
       contentType: isSet(object.contentType)
         ? contentTypeFromJSON(object.contentType)
         : isSet(object.content_type)
-          ? contentTypeFromJSON(object.content_type)
-          : undefined,
+        ? contentTypeFromJSON(object.content_type)
+        : undefined,
       status: isSet(object.status) ? contentStatusFromJSON(object.status) : undefined,
       search: isSet(object.search) ? globalThis.String(object.search) : undefined,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
@@ -1369,23 +1346,21 @@ export const ListContentResponse: MessageFns<ListContentResponse> = {
 
   fromJSON(object: any): ListContentResponse {
     return {
-      items: globalThis.Array.isArray(object?.items)
-        ? object.items.map((e: any) => Content.fromJSON(e))
-        : [],
+      items: globalThis.Array.isArray(object?.items) ? object.items.map((e: any) => Content.fromJSON(e)) : [],
       total: isSet(object.total) ? globalThis.Number(object.total) : 0,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       totalPages: isSet(object.totalPages)
         ? globalThis.Number(object.totalPages)
         : isSet(object.total_pages)
-          ? globalThis.Number(object.total_pages)
-          : 0,
+        ? globalThis.Number(object.total_pages)
+        : 0,
     };
   },
 
   toJSON(message: ListContentResponse): unknown {
     const obj: any = {};
     if (message.items?.length) {
-      obj.items = message.items.map(e => Content.toJSON(e));
+      obj.items = message.items.map((e) => Content.toJSON(e));
     }
     if (message.total !== 0) {
       obj.total = Math.round(message.total);
@@ -1402,11 +1377,9 @@ export const ListContentResponse: MessageFns<ListContentResponse> = {
   create<I extends Exact<DeepPartial<ListContentResponse>, I>>(base?: I): ListContentResponse {
     return ListContentResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListContentResponse>, I>>(
-    object: I
-  ): ListContentResponse {
+  fromPartial<I extends Exact<DeepPartial<ListContentResponse>, I>>(object: I): ListContentResponse {
     const message = createBaseListContentResponse();
-    message.items = object.items?.map(e => Content.fromPartial(e)) || [];
+    message.items = object.items?.map((e) => Content.fromPartial(e)) || [];
     message.total = object.total ?? 0;
     message.page = object.page ?? 0;
     message.totalPages = object.totalPages ?? 0;
@@ -1415,12 +1388,12 @@ export const ListContentResponse: MessageFns<ListContentResponse> = {
 };
 
 function createBaseGetContentRequest(): GetContentRequest {
-  return { contentId: '' };
+  return { contentId: "" };
 }
 
 export const GetContentRequest: MessageFns<GetContentRequest> = {
   encode(message: GetContentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       writer.uint32(10).string(message.contentId);
     }
     return writer;
@@ -1455,14 +1428,14 @@ export const GetContentRequest: MessageFns<GetContentRequest> = {
       contentId: isSet(object.contentId)
         ? globalThis.String(object.contentId)
         : isSet(object.content_id)
-          ? globalThis.String(object.content_id)
-          : '',
+        ? globalThis.String(object.content_id)
+        : "",
     };
   },
 
   toJSON(message: GetContentRequest): unknown {
     const obj: any = {};
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       obj.contentId = message.contentId;
     }
     return obj;
@@ -1473,7 +1446,7 @@ export const GetContentRequest: MessageFns<GetContentRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetContentRequest>, I>>(object: I): GetContentRequest {
     const message = createBaseGetContentRequest();
-    message.contentId = object.contentId ?? '';
+    message.contentId = object.contentId ?? "";
     return message;
   },
 };
@@ -1531,24 +1504,20 @@ export const GetContentResponse: MessageFns<GetContentResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetContentResponse>, I>>(object: I): GetContentResponse {
     const message = createBaseGetContentResponse();
-    message.content =
-      object.content !== undefined && object.content !== null
-        ? Content.fromPartial(object.content)
-        : undefined;
+    message.content = (object.content !== undefined && object.content !== null)
+      ? Content.fromPartial(object.content)
+      : undefined;
     return message;
   },
 };
 
 function createBaseGetContentBySlugRequest(): GetContentBySlugRequest {
-  return { slug: '' };
+  return { slug: "" };
 }
 
 export const GetContentBySlugRequest: MessageFns<GetContentBySlugRequest> = {
-  encode(
-    message: GetContentBySlugRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.slug !== '') {
+  encode(message: GetContentBySlugRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.slug !== "") {
       writer.uint32(10).string(message.slug);
     }
     return writer;
@@ -1579,27 +1548,23 @@ export const GetContentBySlugRequest: MessageFns<GetContentBySlugRequest> = {
   },
 
   fromJSON(object: any): GetContentBySlugRequest {
-    return { slug: isSet(object.slug) ? globalThis.String(object.slug) : '' };
+    return { slug: isSet(object.slug) ? globalThis.String(object.slug) : "" };
   },
 
   toJSON(message: GetContentBySlugRequest): unknown {
     const obj: any = {};
-    if (message.slug !== '') {
+    if (message.slug !== "") {
       obj.slug = message.slug;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContentBySlugRequest>, I>>(
-    base?: I
-  ): GetContentBySlugRequest {
+  create<I extends Exact<DeepPartial<GetContentBySlugRequest>, I>>(base?: I): GetContentBySlugRequest {
     return GetContentBySlugRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContentBySlugRequest>, I>>(
-    object: I
-  ): GetContentBySlugRequest {
+  fromPartial<I extends Exact<DeepPartial<GetContentBySlugRequest>, I>>(object: I): GetContentBySlugRequest {
     const message = createBaseGetContentBySlugRequest();
-    message.slug = object.slug ?? '';
+    message.slug = object.slug ?? "";
     return message;
   },
 };
@@ -1609,10 +1574,7 @@ function createBaseGetContentBySlugResponse(): GetContentBySlugResponse {
 }
 
 export const GetContentBySlugResponse: MessageFns<GetContentBySlugResponse> = {
-  encode(
-    message: GetContentBySlugResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetContentBySlugResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.content !== undefined) {
       Content.encode(message.content, writer.uint32(10).fork()).join();
     }
@@ -1655,29 +1617,24 @@ export const GetContentBySlugResponse: MessageFns<GetContentBySlugResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetContentBySlugResponse>, I>>(
-    base?: I
-  ): GetContentBySlugResponse {
+  create<I extends Exact<DeepPartial<GetContentBySlugResponse>, I>>(base?: I): GetContentBySlugResponse {
     return GetContentBySlugResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetContentBySlugResponse>, I>>(
-    object: I
-  ): GetContentBySlugResponse {
+  fromPartial<I extends Exact<DeepPartial<GetContentBySlugResponse>, I>>(object: I): GetContentBySlugResponse {
     const message = createBaseGetContentBySlugResponse();
-    message.content =
-      object.content !== undefined && object.content !== null
-        ? Content.fromPartial(object.content)
-        : undefined;
+    message.content = (object.content !== undefined && object.content !== null)
+      ? Content.fromPartial(object.content)
+      : undefined;
     return message;
   },
 };
 
 function createBaseCreateContentRequest(): CreateContentRequest {
   return {
-    title: '',
-    slug: '',
+    title: "",
+    slug: "",
     contentType: 0,
-    content: '',
+    content: "",
     excerpt: undefined,
     metaTitle: undefined,
     metaDescription: undefined,
@@ -1690,16 +1647,16 @@ function createBaseCreateContentRequest(): CreateContentRequest {
 
 export const CreateContentRequest: MessageFns<CreateContentRequest> = {
   encode(message: CreateContentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.title !== '') {
+    if (message.title !== "") {
       writer.uint32(10).string(message.title);
     }
-    if (message.slug !== '') {
+    if (message.slug !== "") {
       writer.uint32(18).string(message.slug);
     }
     if (message.contentType !== 0) {
       writer.uint32(24).int32(message.contentType);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       writer.uint32(34).string(message.content);
     }
     if (message.excerpt !== undefined) {
@@ -1832,60 +1789,60 @@ export const CreateContentRequest: MessageFns<CreateContentRequest> = {
 
   fromJSON(object: any): CreateContentRequest {
     return {
-      title: isSet(object.title) ? globalThis.String(object.title) : '',
-      slug: isSet(object.slug) ? globalThis.String(object.slug) : '',
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      slug: isSet(object.slug) ? globalThis.String(object.slug) : "",
       contentType: isSet(object.contentType)
         ? contentTypeFromJSON(object.contentType)
         : isSet(object.content_type)
-          ? contentTypeFromJSON(object.content_type)
-          : 0,
-      content: isSet(object.content) ? globalThis.String(object.content) : '',
+        ? contentTypeFromJSON(object.content_type)
+        : 0,
+      content: isSet(object.content) ? globalThis.String(object.content) : "",
       excerpt: isSet(object.excerpt) ? globalThis.String(object.excerpt) : undefined,
       metaTitle: isSet(object.metaTitle)
         ? globalThis.String(object.metaTitle)
         : isSet(object.meta_title)
-          ? globalThis.String(object.meta_title)
-          : undefined,
+        ? globalThis.String(object.meta_title)
+        : undefined,
       metaDescription: isSet(object.metaDescription)
         ? globalThis.String(object.metaDescription)
         : isSet(object.meta_description)
-          ? globalThis.String(object.meta_description)
-          : undefined,
+        ? globalThis.String(object.meta_description)
+        : undefined,
       metaKeywords: globalThis.Array.isArray(object?.metaKeywords)
         ? object.metaKeywords.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.meta_keywords)
-          ? object.meta_keywords.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.meta_keywords.map((e: any) => globalThis.String(e))
+        : [],
       featuredImageUrl: isSet(object.featuredImageUrl)
         ? globalThis.String(object.featuredImageUrl)
         : isSet(object.featured_image_url)
-          ? globalThis.String(object.featured_image_url)
-          : undefined,
+        ? globalThis.String(object.featured_image_url)
+        : undefined,
       scheduledPublishAt: isSet(object.scheduledPublishAt)
         ? globalThis.String(object.scheduledPublishAt)
         : isSet(object.scheduled_publish_at)
-          ? globalThis.String(object.scheduled_publish_at)
-          : undefined,
+        ? globalThis.String(object.scheduled_publish_at)
+        : undefined,
       scheduledUnpublishAt: isSet(object.scheduledUnpublishAt)
         ? globalThis.String(object.scheduledUnpublishAt)
         : isSet(object.scheduled_unpublish_at)
-          ? globalThis.String(object.scheduled_unpublish_at)
-          : undefined,
+        ? globalThis.String(object.scheduled_unpublish_at)
+        : undefined,
     };
   },
 
   toJSON(message: CreateContentRequest): unknown {
     const obj: any = {};
-    if (message.title !== '') {
+    if (message.title !== "") {
       obj.title = message.title;
     }
-    if (message.slug !== '') {
+    if (message.slug !== "") {
       obj.slug = message.slug;
     }
     if (message.contentType !== 0) {
       obj.contentType = contentTypeToJSON(message.contentType);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       obj.content = message.content;
     }
     if (message.excerpt !== undefined) {
@@ -1915,18 +1872,16 @@ export const CreateContentRequest: MessageFns<CreateContentRequest> = {
   create<I extends Exact<DeepPartial<CreateContentRequest>, I>>(base?: I): CreateContentRequest {
     return CreateContentRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateContentRequest>, I>>(
-    object: I
-  ): CreateContentRequest {
+  fromPartial<I extends Exact<DeepPartial<CreateContentRequest>, I>>(object: I): CreateContentRequest {
     const message = createBaseCreateContentRequest();
-    message.title = object.title ?? '';
-    message.slug = object.slug ?? '';
+    message.title = object.title ?? "";
+    message.slug = object.slug ?? "";
     message.contentType = object.contentType ?? 0;
-    message.content = object.content ?? '';
+    message.content = object.content ?? "";
     message.excerpt = object.excerpt ?? undefined;
     message.metaTitle = object.metaTitle ?? undefined;
     message.metaDescription = object.metaDescription ?? undefined;
-    message.metaKeywords = object.metaKeywords?.map(e => e) || [];
+    message.metaKeywords = object.metaKeywords?.map((e) => e) || [];
     message.featuredImageUrl = object.featuredImageUrl ?? undefined;
     message.scheduledPublishAt = object.scheduledPublishAt ?? undefined;
     message.scheduledUnpublishAt = object.scheduledUnpublishAt ?? undefined;
@@ -1985,21 +1940,18 @@ export const CreateContentResponse: MessageFns<CreateContentResponse> = {
   create<I extends Exact<DeepPartial<CreateContentResponse>, I>>(base?: I): CreateContentResponse {
     return CreateContentResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateContentResponse>, I>>(
-    object: I
-  ): CreateContentResponse {
+  fromPartial<I extends Exact<DeepPartial<CreateContentResponse>, I>>(object: I): CreateContentResponse {
     const message = createBaseCreateContentResponse();
-    message.content =
-      object.content !== undefined && object.content !== null
-        ? Content.fromPartial(object.content)
-        : undefined;
+    message.content = (object.content !== undefined && object.content !== null)
+      ? Content.fromPartial(object.content)
+      : undefined;
     return message;
   },
 };
 
 function createBaseUpdateContentRequest(): UpdateContentRequest {
   return {
-    contentId: '',
+    contentId: "",
     title: undefined,
     slug: undefined,
     content: undefined,
@@ -2015,7 +1967,7 @@ function createBaseUpdateContentRequest(): UpdateContentRequest {
 
 export const UpdateContentRequest: MessageFns<UpdateContentRequest> = {
   encode(message: UpdateContentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       writer.uint32(10).string(message.contentId);
     }
     if (message.title !== undefined) {
@@ -2160,8 +2112,8 @@ export const UpdateContentRequest: MessageFns<UpdateContentRequest> = {
       contentId: isSet(object.contentId)
         ? globalThis.String(object.contentId)
         : isSet(object.content_id)
-          ? globalThis.String(object.content_id)
-          : '',
+        ? globalThis.String(object.content_id)
+        : "",
       title: isSet(object.title) ? globalThis.String(object.title) : undefined,
       slug: isSet(object.slug) ? globalThis.String(object.slug) : undefined,
       content: isSet(object.content) ? globalThis.String(object.content) : undefined,
@@ -2169,39 +2121,39 @@ export const UpdateContentRequest: MessageFns<UpdateContentRequest> = {
       metaTitle: isSet(object.metaTitle)
         ? globalThis.String(object.metaTitle)
         : isSet(object.meta_title)
-          ? globalThis.String(object.meta_title)
-          : undefined,
+        ? globalThis.String(object.meta_title)
+        : undefined,
       metaDescription: isSet(object.metaDescription)
         ? globalThis.String(object.metaDescription)
         : isSet(object.meta_description)
-          ? globalThis.String(object.meta_description)
-          : undefined,
+        ? globalThis.String(object.meta_description)
+        : undefined,
       setMetaKeywords: isSet(object.setMetaKeywords)
         ? globalThis.Boolean(object.setMetaKeywords)
         : isSet(object.set_meta_keywords)
-          ? globalThis.Boolean(object.set_meta_keywords)
-          : false,
+        ? globalThis.Boolean(object.set_meta_keywords)
+        : false,
       metaKeywords: globalThis.Array.isArray(object?.metaKeywords)
         ? object.metaKeywords.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.meta_keywords)
-          ? object.meta_keywords.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.meta_keywords.map((e: any) => globalThis.String(e))
+        : [],
       featuredImageUrl: isSet(object.featuredImageUrl)
         ? globalThis.String(object.featuredImageUrl)
         : isSet(object.featured_image_url)
-          ? globalThis.String(object.featured_image_url)
-          : undefined,
+        ? globalThis.String(object.featured_image_url)
+        : undefined,
       changeNote: isSet(object.changeNote)
         ? globalThis.String(object.changeNote)
         : isSet(object.change_note)
-          ? globalThis.String(object.change_note)
-          : undefined,
+        ? globalThis.String(object.change_note)
+        : undefined,
     };
   },
 
   toJSON(message: UpdateContentRequest): unknown {
     const obj: any = {};
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       obj.contentId = message.contentId;
     }
     if (message.title !== undefined) {
@@ -2240,11 +2192,9 @@ export const UpdateContentRequest: MessageFns<UpdateContentRequest> = {
   create<I extends Exact<DeepPartial<UpdateContentRequest>, I>>(base?: I): UpdateContentRequest {
     return UpdateContentRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdateContentRequest>, I>>(
-    object: I
-  ): UpdateContentRequest {
+  fromPartial<I extends Exact<DeepPartial<UpdateContentRequest>, I>>(object: I): UpdateContentRequest {
     const message = createBaseUpdateContentRequest();
-    message.contentId = object.contentId ?? '';
+    message.contentId = object.contentId ?? "";
     message.title = object.title ?? undefined;
     message.slug = object.slug ?? undefined;
     message.content = object.content ?? undefined;
@@ -2252,7 +2202,7 @@ export const UpdateContentRequest: MessageFns<UpdateContentRequest> = {
     message.metaTitle = object.metaTitle ?? undefined;
     message.metaDescription = object.metaDescription ?? undefined;
     message.setMetaKeywords = object.setMetaKeywords ?? false;
-    message.metaKeywords = object.metaKeywords?.map(e => e) || [];
+    message.metaKeywords = object.metaKeywords?.map((e) => e) || [];
     message.featuredImageUrl = object.featuredImageUrl ?? undefined;
     message.changeNote = object.changeNote ?? undefined;
     return message;
@@ -2310,25 +2260,22 @@ export const UpdateContentResponse: MessageFns<UpdateContentResponse> = {
   create<I extends Exact<DeepPartial<UpdateContentResponse>, I>>(base?: I): UpdateContentResponse {
     return UpdateContentResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdateContentResponse>, I>>(
-    object: I
-  ): UpdateContentResponse {
+  fromPartial<I extends Exact<DeepPartial<UpdateContentResponse>, I>>(object: I): UpdateContentResponse {
     const message = createBaseUpdateContentResponse();
-    message.content =
-      object.content !== undefined && object.content !== null
-        ? Content.fromPartial(object.content)
-        : undefined;
+    message.content = (object.content !== undefined && object.content !== null)
+      ? Content.fromPartial(object.content)
+      : undefined;
     return message;
   },
 };
 
 function createBaseDeleteContentRequest(): DeleteContentRequest {
-  return { contentId: '' };
+  return { contentId: "" };
 }
 
 export const DeleteContentRequest: MessageFns<DeleteContentRequest> = {
   encode(message: DeleteContentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       writer.uint32(10).string(message.contentId);
     }
     return writer;
@@ -2363,14 +2310,14 @@ export const DeleteContentRequest: MessageFns<DeleteContentRequest> = {
       contentId: isSet(object.contentId)
         ? globalThis.String(object.contentId)
         : isSet(object.content_id)
-          ? globalThis.String(object.content_id)
-          : '',
+        ? globalThis.String(object.content_id)
+        : "",
     };
   },
 
   toJSON(message: DeleteContentRequest): unknown {
     const obj: any = {};
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       obj.contentId = message.contentId;
     }
     return obj;
@@ -2379,11 +2326,9 @@ export const DeleteContentRequest: MessageFns<DeleteContentRequest> = {
   create<I extends Exact<DeepPartial<DeleteContentRequest>, I>>(base?: I): DeleteContentRequest {
     return DeleteContentRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteContentRequest>, I>>(
-    object: I
-  ): DeleteContentRequest {
+  fromPartial<I extends Exact<DeepPartial<DeleteContentRequest>, I>>(object: I): DeleteContentRequest {
     const message = createBaseDeleteContentRequest();
-    message.contentId = object.contentId ?? '';
+    message.contentId = object.contentId ?? "";
     return message;
   },
 };
@@ -2439,9 +2384,7 @@ export const DeleteContentResponse: MessageFns<DeleteContentResponse> = {
   create<I extends Exact<DeepPartial<DeleteContentResponse>, I>>(base?: I): DeleteContentResponse {
     return DeleteContentResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteContentResponse>, I>>(
-    object: I
-  ): DeleteContentResponse {
+  fromPartial<I extends Exact<DeepPartial<DeleteContentResponse>, I>>(object: I): DeleteContentResponse {
     const message = createBaseDeleteContentResponse();
     message.deleted = object.deleted ?? false;
     return message;
@@ -2449,12 +2392,12 @@ export const DeleteContentResponse: MessageFns<DeleteContentResponse> = {
 };
 
 function createBasePublishContentRequest(): PublishContentRequest {
-  return { contentId: '' };
+  return { contentId: "" };
 }
 
 export const PublishContentRequest: MessageFns<PublishContentRequest> = {
   encode(message: PublishContentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       writer.uint32(10).string(message.contentId);
     }
     return writer;
@@ -2489,14 +2432,14 @@ export const PublishContentRequest: MessageFns<PublishContentRequest> = {
       contentId: isSet(object.contentId)
         ? globalThis.String(object.contentId)
         : isSet(object.content_id)
-          ? globalThis.String(object.content_id)
-          : '',
+        ? globalThis.String(object.content_id)
+        : "",
     };
   },
 
   toJSON(message: PublishContentRequest): unknown {
     const obj: any = {};
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       obj.contentId = message.contentId;
     }
     return obj;
@@ -2505,11 +2448,9 @@ export const PublishContentRequest: MessageFns<PublishContentRequest> = {
   create<I extends Exact<DeepPartial<PublishContentRequest>, I>>(base?: I): PublishContentRequest {
     return PublishContentRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PublishContentRequest>, I>>(
-    object: I
-  ): PublishContentRequest {
+  fromPartial<I extends Exact<DeepPartial<PublishContentRequest>, I>>(object: I): PublishContentRequest {
     const message = createBasePublishContentRequest();
-    message.contentId = object.contentId ?? '';
+    message.contentId = object.contentId ?? "";
     return message;
   },
 };
@@ -2562,33 +2503,25 @@ export const PublishContentResponse: MessageFns<PublishContentResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PublishContentResponse>, I>>(
-    base?: I
-  ): PublishContentResponse {
+  create<I extends Exact<DeepPartial<PublishContentResponse>, I>>(base?: I): PublishContentResponse {
     return PublishContentResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PublishContentResponse>, I>>(
-    object: I
-  ): PublishContentResponse {
+  fromPartial<I extends Exact<DeepPartial<PublishContentResponse>, I>>(object: I): PublishContentResponse {
     const message = createBasePublishContentResponse();
-    message.content =
-      object.content !== undefined && object.content !== null
-        ? Content.fromPartial(object.content)
-        : undefined;
+    message.content = (object.content !== undefined && object.content !== null)
+      ? Content.fromPartial(object.content)
+      : undefined;
     return message;
   },
 };
 
 function createBaseUnpublishContentRequest(): UnpublishContentRequest {
-  return { contentId: '' };
+  return { contentId: "" };
 }
 
 export const UnpublishContentRequest: MessageFns<UnpublishContentRequest> = {
-  encode(
-    message: UnpublishContentRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.contentId !== '') {
+  encode(message: UnpublishContentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.contentId !== "") {
       writer.uint32(10).string(message.contentId);
     }
     return writer;
@@ -2623,29 +2556,25 @@ export const UnpublishContentRequest: MessageFns<UnpublishContentRequest> = {
       contentId: isSet(object.contentId)
         ? globalThis.String(object.contentId)
         : isSet(object.content_id)
-          ? globalThis.String(object.content_id)
-          : '',
+        ? globalThis.String(object.content_id)
+        : "",
     };
   },
 
   toJSON(message: UnpublishContentRequest): unknown {
     const obj: any = {};
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       obj.contentId = message.contentId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UnpublishContentRequest>, I>>(
-    base?: I
-  ): UnpublishContentRequest {
+  create<I extends Exact<DeepPartial<UnpublishContentRequest>, I>>(base?: I): UnpublishContentRequest {
     return UnpublishContentRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UnpublishContentRequest>, I>>(
-    object: I
-  ): UnpublishContentRequest {
+  fromPartial<I extends Exact<DeepPartial<UnpublishContentRequest>, I>>(object: I): UnpublishContentRequest {
     const message = createBaseUnpublishContentRequest();
-    message.contentId = object.contentId ?? '';
+    message.contentId = object.contentId ?? "";
     return message;
   },
 };
@@ -2655,10 +2584,7 @@ function createBaseUnpublishContentResponse(): UnpublishContentResponse {
 }
 
 export const UnpublishContentResponse: MessageFns<UnpublishContentResponse> = {
-  encode(
-    message: UnpublishContentResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UnpublishContentResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.content !== undefined) {
       Content.encode(message.content, writer.uint32(10).fork()).join();
     }
@@ -2701,30 +2627,25 @@ export const UnpublishContentResponse: MessageFns<UnpublishContentResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UnpublishContentResponse>, I>>(
-    base?: I
-  ): UnpublishContentResponse {
+  create<I extends Exact<DeepPartial<UnpublishContentResponse>, I>>(base?: I): UnpublishContentResponse {
     return UnpublishContentResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UnpublishContentResponse>, I>>(
-    object: I
-  ): UnpublishContentResponse {
+  fromPartial<I extends Exact<DeepPartial<UnpublishContentResponse>, I>>(object: I): UnpublishContentResponse {
     const message = createBaseUnpublishContentResponse();
-    message.content =
-      object.content !== undefined && object.content !== null
-        ? Content.fromPartial(object.content)
-        : undefined;
+    message.content = (object.content !== undefined && object.content !== null)
+      ? Content.fromPartial(object.content)
+      : undefined;
     return message;
   },
 };
 
 function createBaseArchiveContentRequest(): ArchiveContentRequest {
-  return { contentId: '' };
+  return { contentId: "" };
 }
 
 export const ArchiveContentRequest: MessageFns<ArchiveContentRequest> = {
   encode(message: ArchiveContentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       writer.uint32(10).string(message.contentId);
     }
     return writer;
@@ -2759,14 +2680,14 @@ export const ArchiveContentRequest: MessageFns<ArchiveContentRequest> = {
       contentId: isSet(object.contentId)
         ? globalThis.String(object.contentId)
         : isSet(object.content_id)
-          ? globalThis.String(object.content_id)
-          : '',
+        ? globalThis.String(object.content_id)
+        : "",
     };
   },
 
   toJSON(message: ArchiveContentRequest): unknown {
     const obj: any = {};
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       obj.contentId = message.contentId;
     }
     return obj;
@@ -2775,11 +2696,9 @@ export const ArchiveContentRequest: MessageFns<ArchiveContentRequest> = {
   create<I extends Exact<DeepPartial<ArchiveContentRequest>, I>>(base?: I): ArchiveContentRequest {
     return ArchiveContentRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ArchiveContentRequest>, I>>(
-    object: I
-  ): ArchiveContentRequest {
+  fromPartial<I extends Exact<DeepPartial<ArchiveContentRequest>, I>>(object: I): ArchiveContentRequest {
     const message = createBaseArchiveContentRequest();
-    message.contentId = object.contentId ?? '';
+    message.contentId = object.contentId ?? "";
     return message;
   },
 };
@@ -2832,19 +2751,14 @@ export const ArchiveContentResponse: MessageFns<ArchiveContentResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ArchiveContentResponse>, I>>(
-    base?: I
-  ): ArchiveContentResponse {
+  create<I extends Exact<DeepPartial<ArchiveContentResponse>, I>>(base?: I): ArchiveContentResponse {
     return ArchiveContentResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ArchiveContentResponse>, I>>(
-    object: I
-  ): ArchiveContentResponse {
+  fromPartial<I extends Exact<DeepPartial<ArchiveContentResponse>, I>>(object: I): ArchiveContentResponse {
     const message = createBaseArchiveContentResponse();
-    message.content =
-      object.content !== undefined && object.content !== null
-        ? Content.fromPartial(object.content)
-        : undefined;
+    message.content = (object.content !== undefined && object.content !== null)
+      ? Content.fromPartial(object.content)
+      : undefined;
     return message;
   },
 };
@@ -2852,12 +2766,12 @@ export const ArchiveContentResponse: MessageFns<ArchiveContentResponse> = {
 function createBaseContentVersion(): ContentVersion {
   return {
     version: 0,
-    title: '',
-    content: '',
+    title: "",
+    content: "",
     excerpt: undefined,
-    changedBy: '',
+    changedBy: "",
     changeNote: undefined,
-    createdAt: '',
+    createdAt: "",
   };
 }
 
@@ -2866,22 +2780,22 @@ export const ContentVersion: MessageFns<ContentVersion> = {
     if (message.version !== 0) {
       writer.uint32(8).uint32(message.version);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       writer.uint32(18).string(message.title);
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       writer.uint32(26).string(message.content);
     }
     if (message.excerpt !== undefined) {
       writer.uint32(34).string(message.excerpt);
     }
-    if (message.changedBy !== '') {
+    if (message.changedBy !== "") {
       writer.uint32(42).string(message.changedBy);
     }
     if (message.changeNote !== undefined) {
       writer.uint32(50).string(message.changeNote);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(58).string(message.createdAt);
     }
     return writer;
@@ -2962,24 +2876,24 @@ export const ContentVersion: MessageFns<ContentVersion> = {
   fromJSON(object: any): ContentVersion {
     return {
       version: isSet(object.version) ? globalThis.Number(object.version) : 0,
-      title: isSet(object.title) ? globalThis.String(object.title) : '',
-      content: isSet(object.content) ? globalThis.String(object.content) : '',
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      content: isSet(object.content) ? globalThis.String(object.content) : "",
       excerpt: isSet(object.excerpt) ? globalThis.String(object.excerpt) : undefined,
       changedBy: isSet(object.changedBy)
         ? globalThis.String(object.changedBy)
         : isSet(object.changed_by)
-          ? globalThis.String(object.changed_by)
-          : '',
+        ? globalThis.String(object.changed_by)
+        : "",
       changeNote: isSet(object.changeNote)
         ? globalThis.String(object.changeNote)
         : isSet(object.change_note)
-          ? globalThis.String(object.change_note)
-          : undefined,
+        ? globalThis.String(object.change_note)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
     };
   },
 
@@ -2988,22 +2902,22 @@ export const ContentVersion: MessageFns<ContentVersion> = {
     if (message.version !== 0) {
       obj.version = Math.round(message.version);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       obj.title = message.title;
     }
-    if (message.content !== '') {
+    if (message.content !== "") {
       obj.content = message.content;
     }
     if (message.excerpt !== undefined) {
       obj.excerpt = message.excerpt;
     }
-    if (message.changedBy !== '') {
+    if (message.changedBy !== "") {
       obj.changedBy = message.changedBy;
     }
     if (message.changeNote !== undefined) {
       obj.changeNote = message.changeNote;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
     return obj;
@@ -3015,26 +2929,23 @@ export const ContentVersion: MessageFns<ContentVersion> = {
   fromPartial<I extends Exact<DeepPartial<ContentVersion>, I>>(object: I): ContentVersion {
     const message = createBaseContentVersion();
     message.version = object.version ?? 0;
-    message.title = object.title ?? '';
-    message.content = object.content ?? '';
+    message.title = object.title ?? "";
+    message.content = object.content ?? "";
     message.excerpt = object.excerpt ?? undefined;
-    message.changedBy = object.changedBy ?? '';
+    message.changedBy = object.changedBy ?? "";
     message.changeNote = object.changeNote ?? undefined;
-    message.createdAt = object.createdAt ?? '';
+    message.createdAt = object.createdAt ?? "";
     return message;
   },
 };
 
 function createBaseGetVersionHistoryRequest(): GetVersionHistoryRequest {
-  return { contentId: '' };
+  return { contentId: "" };
 }
 
 export const GetVersionHistoryRequest: MessageFns<GetVersionHistoryRequest> = {
-  encode(
-    message: GetVersionHistoryRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.contentId !== '') {
+  encode(message: GetVersionHistoryRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.contentId !== "") {
       writer.uint32(10).string(message.contentId);
     }
     return writer;
@@ -3069,29 +2980,25 @@ export const GetVersionHistoryRequest: MessageFns<GetVersionHistoryRequest> = {
       contentId: isSet(object.contentId)
         ? globalThis.String(object.contentId)
         : isSet(object.content_id)
-          ? globalThis.String(object.content_id)
-          : '',
+        ? globalThis.String(object.content_id)
+        : "",
     };
   },
 
   toJSON(message: GetVersionHistoryRequest): unknown {
     const obj: any = {};
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       obj.contentId = message.contentId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetVersionHistoryRequest>, I>>(
-    base?: I
-  ): GetVersionHistoryRequest {
+  create<I extends Exact<DeepPartial<GetVersionHistoryRequest>, I>>(base?: I): GetVersionHistoryRequest {
     return GetVersionHistoryRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetVersionHistoryRequest>, I>>(
-    object: I
-  ): GetVersionHistoryRequest {
+  fromPartial<I extends Exact<DeepPartial<GetVersionHistoryRequest>, I>>(object: I): GetVersionHistoryRequest {
     const message = createBaseGetVersionHistoryRequest();
-    message.contentId = object.contentId ?? '';
+    message.contentId = object.contentId ?? "";
     return message;
   },
 };
@@ -3101,10 +3008,7 @@ function createBaseGetVersionHistoryResponse(): GetVersionHistoryResponse {
 }
 
 export const GetVersionHistoryResponse: MessageFns<GetVersionHistoryResponse> = {
-  encode(
-    message: GetVersionHistoryResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetVersionHistoryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.versions) {
       ContentVersion.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -3154,15 +3058,15 @@ export const GetVersionHistoryResponse: MessageFns<GetVersionHistoryResponse> = 
       currentVersion: isSet(object.currentVersion)
         ? globalThis.Number(object.currentVersion)
         : isSet(object.current_version)
-          ? globalThis.Number(object.current_version)
-          : 0,
+        ? globalThis.Number(object.current_version)
+        : 0,
     };
   },
 
   toJSON(message: GetVersionHistoryResponse): unknown {
     const obj: any = {};
     if (message.versions?.length) {
-      obj.versions = message.versions.map(e => ContentVersion.toJSON(e));
+      obj.versions = message.versions.map((e) => ContentVersion.toJSON(e));
     }
     if (message.currentVersion !== 0) {
       obj.currentVersion = Math.round(message.currentVersion);
@@ -3170,28 +3074,24 @@ export const GetVersionHistoryResponse: MessageFns<GetVersionHistoryResponse> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetVersionHistoryResponse>, I>>(
-    base?: I
-  ): GetVersionHistoryResponse {
+  create<I extends Exact<DeepPartial<GetVersionHistoryResponse>, I>>(base?: I): GetVersionHistoryResponse {
     return GetVersionHistoryResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetVersionHistoryResponse>, I>>(
-    object: I
-  ): GetVersionHistoryResponse {
+  fromPartial<I extends Exact<DeepPartial<GetVersionHistoryResponse>, I>>(object: I): GetVersionHistoryResponse {
     const message = createBaseGetVersionHistoryResponse();
-    message.versions = object.versions?.map(e => ContentVersion.fromPartial(e)) || [];
+    message.versions = object.versions?.map((e) => ContentVersion.fromPartial(e)) || [];
     message.currentVersion = object.currentVersion ?? 0;
     return message;
   },
 };
 
 function createBaseRestoreVersionRequest(): RestoreVersionRequest {
-  return { contentId: '', version: 0 };
+  return { contentId: "", version: 0 };
 }
 
 export const RestoreVersionRequest: MessageFns<RestoreVersionRequest> = {
   encode(message: RestoreVersionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       writer.uint32(10).string(message.contentId);
     }
     if (message.version !== 0) {
@@ -3237,15 +3137,15 @@ export const RestoreVersionRequest: MessageFns<RestoreVersionRequest> = {
       contentId: isSet(object.contentId)
         ? globalThis.String(object.contentId)
         : isSet(object.content_id)
-          ? globalThis.String(object.content_id)
-          : '',
+        ? globalThis.String(object.content_id)
+        : "",
       version: isSet(object.version) ? globalThis.Number(object.version) : 0,
     };
   },
 
   toJSON(message: RestoreVersionRequest): unknown {
     const obj: any = {};
-    if (message.contentId !== '') {
+    if (message.contentId !== "") {
       obj.contentId = message.contentId;
     }
     if (message.version !== 0) {
@@ -3257,11 +3157,9 @@ export const RestoreVersionRequest: MessageFns<RestoreVersionRequest> = {
   create<I extends Exact<DeepPartial<RestoreVersionRequest>, I>>(base?: I): RestoreVersionRequest {
     return RestoreVersionRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RestoreVersionRequest>, I>>(
-    object: I
-  ): RestoreVersionRequest {
+  fromPartial<I extends Exact<DeepPartial<RestoreVersionRequest>, I>>(object: I): RestoreVersionRequest {
     const message = createBaseRestoreVersionRequest();
-    message.contentId = object.contentId ?? '';
+    message.contentId = object.contentId ?? "";
     message.version = object.version ?? 0;
     return message;
   },
@@ -3315,56 +3213,43 @@ export const RestoreVersionResponse: MessageFns<RestoreVersionResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RestoreVersionResponse>, I>>(
-    base?: I
-  ): RestoreVersionResponse {
+  create<I extends Exact<DeepPartial<RestoreVersionResponse>, I>>(base?: I): RestoreVersionResponse {
     return RestoreVersionResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RestoreVersionResponse>, I>>(
-    object: I
-  ): RestoreVersionResponse {
+  fromPartial<I extends Exact<DeepPartial<RestoreVersionResponse>, I>>(object: I): RestoreVersionResponse {
     const message = createBaseRestoreVersionResponse();
-    message.content =
-      object.content !== undefined && object.content !== null
-        ? Content.fromPartial(object.content)
-        : undefined;
+    message.content = (object.content !== undefined && object.content !== null)
+      ? Content.fromPartial(object.content)
+      : undefined;
     return message;
   },
 };
 
 function createBaseMenu(): Menu {
-  return {
-    menuId: '',
-    name: '',
-    location: '',
-    itemsJson: '',
-    isActive: false,
-    createdAt: '',
-    updatedAt: '',
-  };
+  return { menuId: "", name: "", location: "", itemsJson: "", isActive: false, createdAt: "", updatedAt: "" };
 }
 
 export const Menu: MessageFns<Menu> = {
   encode(message: Menu, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.menuId !== '') {
+    if (message.menuId !== "") {
       writer.uint32(10).string(message.menuId);
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       writer.uint32(18).string(message.name);
     }
-    if (message.location !== '') {
+    if (message.location !== "") {
       writer.uint32(26).string(message.location);
     }
-    if (message.itemsJson !== '') {
+    if (message.itemsJson !== "") {
       writer.uint32(34).string(message.itemsJson);
     }
     if (message.isActive !== false) {
       writer.uint32(40).bool(message.isActive);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(50).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(58).string(message.updatedAt);
     }
     return writer;
@@ -3447,54 +3332,54 @@ export const Menu: MessageFns<Menu> = {
       menuId: isSet(object.menuId)
         ? globalThis.String(object.menuId)
         : isSet(object.menu_id)
-          ? globalThis.String(object.menu_id)
-          : '',
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
-      location: isSet(object.location) ? globalThis.String(object.location) : '',
+        ? globalThis.String(object.menu_id)
+        : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      location: isSet(object.location) ? globalThis.String(object.location) : "",
       itemsJson: isSet(object.itemsJson)
         ? globalThis.String(object.itemsJson)
         : isSet(object.items_json)
-          ? globalThis.String(object.items_json)
-          : '',
+        ? globalThis.String(object.items_json)
+        : "",
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-          ? globalThis.Boolean(object.is_active)
-          : false,
+        ? globalThis.Boolean(object.is_active)
+        : false,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: Menu): unknown {
     const obj: any = {};
-    if (message.menuId !== '') {
+    if (message.menuId !== "") {
       obj.menuId = message.menuId;
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       obj.name = message.name;
     }
-    if (message.location !== '') {
+    if (message.location !== "") {
       obj.location = message.location;
     }
-    if (message.itemsJson !== '') {
+    if (message.itemsJson !== "") {
       obj.itemsJson = message.itemsJson;
     }
     if (message.isActive !== false) {
       obj.isActive = message.isActive;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -3505,13 +3390,13 @@ export const Menu: MessageFns<Menu> = {
   },
   fromPartial<I extends Exact<DeepPartial<Menu>, I>>(object: I): Menu {
     const message = createBaseMenu();
-    message.menuId = object.menuId ?? '';
-    message.name = object.name ?? '';
-    message.location = object.location ?? '';
-    message.itemsJson = object.itemsJson ?? '';
+    message.menuId = object.menuId ?? "";
+    message.name = object.name ?? "";
+    message.location = object.location ?? "";
+    message.itemsJson = object.itemsJson ?? "";
     message.isActive = object.isActive ?? false;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
@@ -3569,8 +3454,8 @@ export const ListMenusRequest: MessageFns<ListMenusRequest> = {
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-          ? globalThis.Boolean(object.is_active)
-          : undefined,
+        ? globalThis.Boolean(object.is_active)
+        : undefined,
     };
   },
 
@@ -3633,17 +3518,13 @@ export const ListMenusResponse: MessageFns<ListMenusResponse> = {
   },
 
   fromJSON(object: any): ListMenusResponse {
-    return {
-      menus: globalThis.Array.isArray(object?.menus)
-        ? object.menus.map((e: any) => Menu.fromJSON(e))
-        : [],
-    };
+    return { menus: globalThis.Array.isArray(object?.menus) ? object.menus.map((e: any) => Menu.fromJSON(e)) : [] };
   },
 
   toJSON(message: ListMenusResponse): unknown {
     const obj: any = {};
     if (message.menus?.length) {
-      obj.menus = message.menus.map(e => Menu.toJSON(e));
+      obj.menus = message.menus.map((e) => Menu.toJSON(e));
     }
     return obj;
   },
@@ -3653,18 +3534,18 @@ export const ListMenusResponse: MessageFns<ListMenusResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<ListMenusResponse>, I>>(object: I): ListMenusResponse {
     const message = createBaseListMenusResponse();
-    message.menus = object.menus?.map(e => Menu.fromPartial(e)) || [];
+    message.menus = object.menus?.map((e) => Menu.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseGetMenuRequest(): GetMenuRequest {
-  return { menuId: '' };
+  return { menuId: "" };
 }
 
 export const GetMenuRequest: MessageFns<GetMenuRequest> = {
   encode(message: GetMenuRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.menuId !== '') {
+    if (message.menuId !== "") {
       writer.uint32(10).string(message.menuId);
     }
     return writer;
@@ -3699,14 +3580,14 @@ export const GetMenuRequest: MessageFns<GetMenuRequest> = {
       menuId: isSet(object.menuId)
         ? globalThis.String(object.menuId)
         : isSet(object.menu_id)
-          ? globalThis.String(object.menu_id)
-          : '',
+        ? globalThis.String(object.menu_id)
+        : "",
     };
   },
 
   toJSON(message: GetMenuRequest): unknown {
     const obj: any = {};
-    if (message.menuId !== '') {
+    if (message.menuId !== "") {
       obj.menuId = message.menuId;
     }
     return obj;
@@ -3717,7 +3598,7 @@ export const GetMenuRequest: MessageFns<GetMenuRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetMenuRequest>, I>>(object: I): GetMenuRequest {
     const message = createBaseGetMenuRequest();
-    message.menuId = object.menuId ?? '';
+    message.menuId = object.menuId ?? "";
     return message;
   },
 };
@@ -3775,25 +3656,24 @@ export const GetMenuResponse: MessageFns<GetMenuResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetMenuResponse>, I>>(object: I): GetMenuResponse {
     const message = createBaseGetMenuResponse();
-    message.menu =
-      object.menu !== undefined && object.menu !== null ? Menu.fromPartial(object.menu) : undefined;
+    message.menu = (object.menu !== undefined && object.menu !== null) ? Menu.fromPartial(object.menu) : undefined;
     return message;
   },
 };
 
 function createBaseCreateMenuRequest(): CreateMenuRequest {
-  return { name: '', location: '', itemsJson: '', isActive: undefined };
+  return { name: "", location: "", itemsJson: "", isActive: undefined };
 }
 
 export const CreateMenuRequest: MessageFns<CreateMenuRequest> = {
   encode(message: CreateMenuRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.name !== '') {
+    if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
-    if (message.location !== '') {
+    if (message.location !== "") {
       writer.uint32(18).string(message.location);
     }
-    if (message.itemsJson !== '') {
+    if (message.itemsJson !== "") {
       writer.uint32(26).string(message.itemsJson);
     }
     if (message.isActive !== undefined) {
@@ -3852,30 +3732,30 @@ export const CreateMenuRequest: MessageFns<CreateMenuRequest> = {
 
   fromJSON(object: any): CreateMenuRequest {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
-      location: isSet(object.location) ? globalThis.String(object.location) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      location: isSet(object.location) ? globalThis.String(object.location) : "",
       itemsJson: isSet(object.itemsJson)
         ? globalThis.String(object.itemsJson)
         : isSet(object.items_json)
-          ? globalThis.String(object.items_json)
-          : '',
+        ? globalThis.String(object.items_json)
+        : "",
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-          ? globalThis.Boolean(object.is_active)
-          : undefined,
+        ? globalThis.Boolean(object.is_active)
+        : undefined,
     };
   },
 
   toJSON(message: CreateMenuRequest): unknown {
     const obj: any = {};
-    if (message.name !== '') {
+    if (message.name !== "") {
       obj.name = message.name;
     }
-    if (message.location !== '') {
+    if (message.location !== "") {
       obj.location = message.location;
     }
-    if (message.itemsJson !== '') {
+    if (message.itemsJson !== "") {
       obj.itemsJson = message.itemsJson;
     }
     if (message.isActive !== undefined) {
@@ -3889,9 +3769,9 @@ export const CreateMenuRequest: MessageFns<CreateMenuRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<CreateMenuRequest>, I>>(object: I): CreateMenuRequest {
     const message = createBaseCreateMenuRequest();
-    message.name = object.name ?? '';
-    message.location = object.location ?? '';
-    message.itemsJson = object.itemsJson ?? '';
+    message.name = object.name ?? "";
+    message.location = object.location ?? "";
+    message.itemsJson = object.itemsJson ?? "";
     message.isActive = object.isActive ?? undefined;
     return message;
   },
@@ -3950,25 +3830,18 @@ export const CreateMenuResponse: MessageFns<CreateMenuResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<CreateMenuResponse>, I>>(object: I): CreateMenuResponse {
     const message = createBaseCreateMenuResponse();
-    message.menu =
-      object.menu !== undefined && object.menu !== null ? Menu.fromPartial(object.menu) : undefined;
+    message.menu = (object.menu !== undefined && object.menu !== null) ? Menu.fromPartial(object.menu) : undefined;
     return message;
   },
 };
 
 function createBaseUpdateMenuRequest(): UpdateMenuRequest {
-  return {
-    menuId: '',
-    name: undefined,
-    location: undefined,
-    itemsJson: undefined,
-    isActive: undefined,
-  };
+  return { menuId: "", name: undefined, location: undefined, itemsJson: undefined, isActive: undefined };
 }
 
 export const UpdateMenuRequest: MessageFns<UpdateMenuRequest> = {
   encode(message: UpdateMenuRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.menuId !== '') {
+    if (message.menuId !== "") {
       writer.uint32(10).string(message.menuId);
     }
     if (message.name !== undefined) {
@@ -4047,26 +3920,26 @@ export const UpdateMenuRequest: MessageFns<UpdateMenuRequest> = {
       menuId: isSet(object.menuId)
         ? globalThis.String(object.menuId)
         : isSet(object.menu_id)
-          ? globalThis.String(object.menu_id)
-          : '',
+        ? globalThis.String(object.menu_id)
+        : "",
       name: isSet(object.name) ? globalThis.String(object.name) : undefined,
       location: isSet(object.location) ? globalThis.String(object.location) : undefined,
       itemsJson: isSet(object.itemsJson)
         ? globalThis.String(object.itemsJson)
         : isSet(object.items_json)
-          ? globalThis.String(object.items_json)
-          : undefined,
+        ? globalThis.String(object.items_json)
+        : undefined,
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-          ? globalThis.Boolean(object.is_active)
-          : undefined,
+        ? globalThis.Boolean(object.is_active)
+        : undefined,
     };
   },
 
   toJSON(message: UpdateMenuRequest): unknown {
     const obj: any = {};
-    if (message.menuId !== '') {
+    if (message.menuId !== "") {
       obj.menuId = message.menuId;
     }
     if (message.name !== undefined) {
@@ -4089,7 +3962,7 @@ export const UpdateMenuRequest: MessageFns<UpdateMenuRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<UpdateMenuRequest>, I>>(object: I): UpdateMenuRequest {
     const message = createBaseUpdateMenuRequest();
-    message.menuId = object.menuId ?? '';
+    message.menuId = object.menuId ?? "";
     message.name = object.name ?? undefined;
     message.location = object.location ?? undefined;
     message.itemsJson = object.itemsJson ?? undefined;
@@ -4151,19 +4024,18 @@ export const UpdateMenuResponse: MessageFns<UpdateMenuResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<UpdateMenuResponse>, I>>(object: I): UpdateMenuResponse {
     const message = createBaseUpdateMenuResponse();
-    message.menu =
-      object.menu !== undefined && object.menu !== null ? Menu.fromPartial(object.menu) : undefined;
+    message.menu = (object.menu !== undefined && object.menu !== null) ? Menu.fromPartial(object.menu) : undefined;
     return message;
   },
 };
 
 function createBaseDeleteMenuRequest(): DeleteMenuRequest {
-  return { menuId: '' };
+  return { menuId: "" };
 }
 
 export const DeleteMenuRequest: MessageFns<DeleteMenuRequest> = {
   encode(message: DeleteMenuRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.menuId !== '') {
+    if (message.menuId !== "") {
       writer.uint32(10).string(message.menuId);
     }
     return writer;
@@ -4198,14 +4070,14 @@ export const DeleteMenuRequest: MessageFns<DeleteMenuRequest> = {
       menuId: isSet(object.menuId)
         ? globalThis.String(object.menuId)
         : isSet(object.menu_id)
-          ? globalThis.String(object.menu_id)
-          : '',
+        ? globalThis.String(object.menu_id)
+        : "",
     };
   },
 
   toJSON(message: DeleteMenuRequest): unknown {
     const obj: any = {};
-    if (message.menuId !== '') {
+    if (message.menuId !== "") {
       obj.menuId = message.menuId;
     }
     return obj;
@@ -4216,7 +4088,7 @@ export const DeleteMenuRequest: MessageFns<DeleteMenuRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<DeleteMenuRequest>, I>>(object: I): DeleteMenuRequest {
     const message = createBaseDeleteMenuRequest();
-    message.menuId = object.menuId ?? '';
+    message.menuId = object.menuId ?? "";
     return message;
   },
 };
@@ -4294,26 +4166,23 @@ export type CmsServiceService = typeof CmsServiceService;
 export const CmsServiceService = {
   /** --- Public reads (no auth) -------------------------------------- */
   listPublicContent: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/ListPublicContent' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/ListPublicContent" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListPublicContentRequest): Buffer =>
       Buffer.from(ListPublicContentRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListPublicContentRequest =>
-      ListPublicContentRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListPublicContentRequest => ListPublicContentRequest.decode(value),
     responseSerialize: (value: ListPublicContentResponse): Buffer =>
       Buffer.from(ListPublicContentResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListPublicContentResponse =>
-      ListPublicContentResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListPublicContentResponse => ListPublicContentResponse.decode(value),
   },
   getPublicContentBySlug: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/GetPublicContentBySlug' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/GetPublicContentBySlug" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetPublicContentBySlugRequest): Buffer =>
       Buffer.from(GetPublicContentBySlugRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetPublicContentBySlugRequest =>
-      GetPublicContentBySlugRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetPublicContentBySlugRequest => GetPublicContentBySlugRequest.decode(value),
     responseSerialize: (value: GetPublicContentBySlugResponse): Buffer =>
       Buffer.from(GetPublicContentBySlugResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetPublicContentBySlugResponse =>
@@ -4321,197 +4190,165 @@ export const CmsServiceService = {
   },
   /** --- Admin content CRUD ------------------------------------------ */
   listContent: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/ListContent' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/ListContent" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ListContentRequest): Buffer =>
-      Buffer.from(ListContentRequest.encode(value).finish()),
+    requestSerialize: (value: ListContentRequest): Buffer => Buffer.from(ListContentRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListContentRequest => ListContentRequest.decode(value),
-    responseSerialize: (value: ListContentResponse): Buffer =>
-      Buffer.from(ListContentResponse.encode(value).finish()),
+    responseSerialize: (value: ListContentResponse): Buffer => Buffer.from(ListContentResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListContentResponse => ListContentResponse.decode(value),
   },
   getContent: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/GetContent' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/GetContent" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetContentRequest): Buffer =>
-      Buffer.from(GetContentRequest.encode(value).finish()),
+    requestSerialize: (value: GetContentRequest): Buffer => Buffer.from(GetContentRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetContentRequest => GetContentRequest.decode(value),
-    responseSerialize: (value: GetContentResponse): Buffer =>
-      Buffer.from(GetContentResponse.encode(value).finish()),
+    responseSerialize: (value: GetContentResponse): Buffer => Buffer.from(GetContentResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetContentResponse => GetContentResponse.decode(value),
   },
   getContentBySlug: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/GetContentBySlug' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/GetContentBySlug" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetContentBySlugRequest): Buffer =>
       Buffer.from(GetContentBySlugRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetContentBySlugRequest =>
-      GetContentBySlugRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetContentBySlugRequest => GetContentBySlugRequest.decode(value),
     responseSerialize: (value: GetContentBySlugResponse): Buffer =>
       Buffer.from(GetContentBySlugResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetContentBySlugResponse =>
-      GetContentBySlugResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetContentBySlugResponse => GetContentBySlugResponse.decode(value),
   },
   createContent: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/CreateContent' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/CreateContent" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: CreateContentRequest): Buffer =>
-      Buffer.from(CreateContentRequest.encode(value).finish()),
+    requestSerialize: (value: CreateContentRequest): Buffer => Buffer.from(CreateContentRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): CreateContentRequest => CreateContentRequest.decode(value),
     responseSerialize: (value: CreateContentResponse): Buffer =>
       Buffer.from(CreateContentResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateContentResponse =>
-      CreateContentResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateContentResponse => CreateContentResponse.decode(value),
   },
   updateContent: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/UpdateContent' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/UpdateContent" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: UpdateContentRequest): Buffer =>
-      Buffer.from(UpdateContentRequest.encode(value).finish()),
+    requestSerialize: (value: UpdateContentRequest): Buffer => Buffer.from(UpdateContentRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): UpdateContentRequest => UpdateContentRequest.decode(value),
     responseSerialize: (value: UpdateContentResponse): Buffer =>
       Buffer.from(UpdateContentResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpdateContentResponse =>
-      UpdateContentResponse.decode(value),
+    responseDeserialize: (value: Buffer): UpdateContentResponse => UpdateContentResponse.decode(value),
   },
   deleteContent: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/DeleteContent' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/DeleteContent" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: DeleteContentRequest): Buffer =>
-      Buffer.from(DeleteContentRequest.encode(value).finish()),
+    requestSerialize: (value: DeleteContentRequest): Buffer => Buffer.from(DeleteContentRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): DeleteContentRequest => DeleteContentRequest.decode(value),
     responseSerialize: (value: DeleteContentResponse): Buffer =>
       Buffer.from(DeleteContentResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DeleteContentResponse =>
-      DeleteContentResponse.decode(value),
+    responseDeserialize: (value: Buffer): DeleteContentResponse => DeleteContentResponse.decode(value),
   },
   /** --- Workflow actions -------------------------------------------- */
   publishContent: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/PublishContent' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/PublishContent" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: PublishContentRequest): Buffer =>
       Buffer.from(PublishContentRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): PublishContentRequest =>
-      PublishContentRequest.decode(value),
+    requestDeserialize: (value: Buffer): PublishContentRequest => PublishContentRequest.decode(value),
     responseSerialize: (value: PublishContentResponse): Buffer =>
       Buffer.from(PublishContentResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): PublishContentResponse =>
-      PublishContentResponse.decode(value),
+    responseDeserialize: (value: Buffer): PublishContentResponse => PublishContentResponse.decode(value),
   },
   unpublishContent: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/UnpublishContent' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/UnpublishContent" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: UnpublishContentRequest): Buffer =>
       Buffer.from(UnpublishContentRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UnpublishContentRequest =>
-      UnpublishContentRequest.decode(value),
+    requestDeserialize: (value: Buffer): UnpublishContentRequest => UnpublishContentRequest.decode(value),
     responseSerialize: (value: UnpublishContentResponse): Buffer =>
       Buffer.from(UnpublishContentResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UnpublishContentResponse =>
-      UnpublishContentResponse.decode(value),
+    responseDeserialize: (value: Buffer): UnpublishContentResponse => UnpublishContentResponse.decode(value),
   },
   archiveContent: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/ArchiveContent' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/ArchiveContent" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ArchiveContentRequest): Buffer =>
       Buffer.from(ArchiveContentRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ArchiveContentRequest =>
-      ArchiveContentRequest.decode(value),
+    requestDeserialize: (value: Buffer): ArchiveContentRequest => ArchiveContentRequest.decode(value),
     responseSerialize: (value: ArchiveContentResponse): Buffer =>
       Buffer.from(ArchiveContentResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ArchiveContentResponse =>
-      ArchiveContentResponse.decode(value),
+    responseDeserialize: (value: Buffer): ArchiveContentResponse => ArchiveContentResponse.decode(value),
   },
   /** --- Version history --------------------------------------------- */
   getVersionHistory: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/GetVersionHistory' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/GetVersionHistory" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetVersionHistoryRequest): Buffer =>
       Buffer.from(GetVersionHistoryRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetVersionHistoryRequest =>
-      GetVersionHistoryRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetVersionHistoryRequest => GetVersionHistoryRequest.decode(value),
     responseSerialize: (value: GetVersionHistoryResponse): Buffer =>
       Buffer.from(GetVersionHistoryResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetVersionHistoryResponse =>
-      GetVersionHistoryResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetVersionHistoryResponse => GetVersionHistoryResponse.decode(value),
   },
   restoreVersion: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/RestoreVersion' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/RestoreVersion" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: RestoreVersionRequest): Buffer =>
       Buffer.from(RestoreVersionRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): RestoreVersionRequest =>
-      RestoreVersionRequest.decode(value),
+    requestDeserialize: (value: Buffer): RestoreVersionRequest => RestoreVersionRequest.decode(value),
     responseSerialize: (value: RestoreVersionResponse): Buffer =>
       Buffer.from(RestoreVersionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RestoreVersionResponse =>
-      RestoreVersionResponse.decode(value),
+    responseDeserialize: (value: Buffer): RestoreVersionResponse => RestoreVersionResponse.decode(value),
   },
   /** --- Navigation menus -------------------------------------------- */
   listMenus: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/ListMenus' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/ListMenus" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ListMenusRequest): Buffer =>
-      Buffer.from(ListMenusRequest.encode(value).finish()),
+    requestSerialize: (value: ListMenusRequest): Buffer => Buffer.from(ListMenusRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListMenusRequest => ListMenusRequest.decode(value),
-    responseSerialize: (value: ListMenusResponse): Buffer =>
-      Buffer.from(ListMenusResponse.encode(value).finish()),
+    responseSerialize: (value: ListMenusResponse): Buffer => Buffer.from(ListMenusResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListMenusResponse => ListMenusResponse.decode(value),
   },
   getMenu: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/GetMenu' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/GetMenu" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetMenuRequest): Buffer =>
-      Buffer.from(GetMenuRequest.encode(value).finish()),
+    requestSerialize: (value: GetMenuRequest): Buffer => Buffer.from(GetMenuRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetMenuRequest => GetMenuRequest.decode(value),
-    responseSerialize: (value: GetMenuResponse): Buffer =>
-      Buffer.from(GetMenuResponse.encode(value).finish()),
+    responseSerialize: (value: GetMenuResponse): Buffer => Buffer.from(GetMenuResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetMenuResponse => GetMenuResponse.decode(value),
   },
   createMenu: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/CreateMenu' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/CreateMenu" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: CreateMenuRequest): Buffer =>
-      Buffer.from(CreateMenuRequest.encode(value).finish()),
+    requestSerialize: (value: CreateMenuRequest): Buffer => Buffer.from(CreateMenuRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): CreateMenuRequest => CreateMenuRequest.decode(value),
-    responseSerialize: (value: CreateMenuResponse): Buffer =>
-      Buffer.from(CreateMenuResponse.encode(value).finish()),
+    responseSerialize: (value: CreateMenuResponse): Buffer => Buffer.from(CreateMenuResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): CreateMenuResponse => CreateMenuResponse.decode(value),
   },
   updateMenu: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/UpdateMenu' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/UpdateMenu" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: UpdateMenuRequest): Buffer =>
-      Buffer.from(UpdateMenuRequest.encode(value).finish()),
+    requestSerialize: (value: UpdateMenuRequest): Buffer => Buffer.from(UpdateMenuRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): UpdateMenuRequest => UpdateMenuRequest.decode(value),
-    responseSerialize: (value: UpdateMenuResponse): Buffer =>
-      Buffer.from(UpdateMenuResponse.encode(value).finish()),
+    responseSerialize: (value: UpdateMenuResponse): Buffer => Buffer.from(UpdateMenuResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): UpdateMenuResponse => UpdateMenuResponse.decode(value),
   },
   deleteMenu: {
-    path: '/adopt_dont_shop.cms.v1.CmsService/DeleteMenu' as const,
+    path: "/adopt_dont_shop.cms.v1.CmsService/DeleteMenu" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: DeleteMenuRequest): Buffer =>
-      Buffer.from(DeleteMenuRequest.encode(value).finish()),
+    requestSerialize: (value: DeleteMenuRequest): Buffer => Buffer.from(DeleteMenuRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): DeleteMenuRequest => DeleteMenuRequest.decode(value),
-    responseSerialize: (value: DeleteMenuResponse): Buffer =>
-      Buffer.from(DeleteMenuResponse.encode(value).finish()),
+    responseSerialize: (value: DeleteMenuResponse): Buffer => Buffer.from(DeleteMenuResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): DeleteMenuResponse => DeleteMenuResponse.decode(value),
   },
 } as const;
@@ -4519,10 +4356,7 @@ export const CmsServiceService = {
 export interface CmsServiceServer extends UntypedServiceImplementation {
   /** --- Public reads (no auth) -------------------------------------- */
   listPublicContent: handleUnaryCall<ListPublicContentRequest, ListPublicContentResponse>;
-  getPublicContentBySlug: handleUnaryCall<
-    GetPublicContentBySlugRequest,
-    GetPublicContentBySlugResponse
-  >;
+  getPublicContentBySlug: handleUnaryCall<GetPublicContentBySlugRequest, GetPublicContentBySlugResponse>;
   /** --- Admin content CRUD ------------------------------------------ */
   listContent: handleUnaryCall<ListContentRequest, ListContentResponse>;
   getContent: handleUnaryCall<GetContentRequest, GetContentResponse>;
@@ -4549,308 +4383,299 @@ export interface CmsServiceClient extends Client {
   /** --- Public reads (no auth) -------------------------------------- */
   listPublicContent(
     request: ListPublicContentRequest,
-    callback: (error: ServiceError | null, response: ListPublicContentResponse) => void
+    callback: (error: ServiceError | null, response: ListPublicContentResponse) => void,
   ): ClientUnaryCall;
   listPublicContent(
     request: ListPublicContentRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListPublicContentResponse) => void
+    callback: (error: ServiceError | null, response: ListPublicContentResponse) => void,
   ): ClientUnaryCall;
   listPublicContent(
     request: ListPublicContentRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListPublicContentResponse) => void
+    callback: (error: ServiceError | null, response: ListPublicContentResponse) => void,
   ): ClientUnaryCall;
   getPublicContentBySlug(
     request: GetPublicContentBySlugRequest,
-    callback: (error: ServiceError | null, response: GetPublicContentBySlugResponse) => void
+    callback: (error: ServiceError | null, response: GetPublicContentBySlugResponse) => void,
   ): ClientUnaryCall;
   getPublicContentBySlug(
     request: GetPublicContentBySlugRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetPublicContentBySlugResponse) => void
+    callback: (error: ServiceError | null, response: GetPublicContentBySlugResponse) => void,
   ): ClientUnaryCall;
   getPublicContentBySlug(
     request: GetPublicContentBySlugRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetPublicContentBySlugResponse) => void
+    callback: (error: ServiceError | null, response: GetPublicContentBySlugResponse) => void,
   ): ClientUnaryCall;
   /** --- Admin content CRUD ------------------------------------------ */
   listContent(
     request: ListContentRequest,
-    callback: (error: ServiceError | null, response: ListContentResponse) => void
+    callback: (error: ServiceError | null, response: ListContentResponse) => void,
   ): ClientUnaryCall;
   listContent(
     request: ListContentRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListContentResponse) => void
+    callback: (error: ServiceError | null, response: ListContentResponse) => void,
   ): ClientUnaryCall;
   listContent(
     request: ListContentRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListContentResponse) => void
+    callback: (error: ServiceError | null, response: ListContentResponse) => void,
   ): ClientUnaryCall;
   getContent(
     request: GetContentRequest,
-    callback: (error: ServiceError | null, response: GetContentResponse) => void
-  ): ClientUnaryCall;
-  getContent(
-    request: GetContentRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetContentResponse) => void
+    callback: (error: ServiceError | null, response: GetContentResponse) => void,
   ): ClientUnaryCall;
   getContent(
     request: GetContentRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetContentResponse) => void,
+  ): ClientUnaryCall;
+  getContent(
+    request: GetContentRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetContentResponse) => void
+    callback: (error: ServiceError | null, response: GetContentResponse) => void,
   ): ClientUnaryCall;
   getContentBySlug(
     request: GetContentBySlugRequest,
-    callback: (error: ServiceError | null, response: GetContentBySlugResponse) => void
+    callback: (error: ServiceError | null, response: GetContentBySlugResponse) => void,
   ): ClientUnaryCall;
   getContentBySlug(
     request: GetContentBySlugRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetContentBySlugResponse) => void
+    callback: (error: ServiceError | null, response: GetContentBySlugResponse) => void,
   ): ClientUnaryCall;
   getContentBySlug(
     request: GetContentBySlugRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetContentBySlugResponse) => void
+    callback: (error: ServiceError | null, response: GetContentBySlugResponse) => void,
   ): ClientUnaryCall;
   createContent(
     request: CreateContentRequest,
-    callback: (error: ServiceError | null, response: CreateContentResponse) => void
+    callback: (error: ServiceError | null, response: CreateContentResponse) => void,
   ): ClientUnaryCall;
   createContent(
     request: CreateContentRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateContentResponse) => void
+    callback: (error: ServiceError | null, response: CreateContentResponse) => void,
   ): ClientUnaryCall;
   createContent(
     request: CreateContentRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateContentResponse) => void
+    callback: (error: ServiceError | null, response: CreateContentResponse) => void,
   ): ClientUnaryCall;
   updateContent(
     request: UpdateContentRequest,
-    callback: (error: ServiceError | null, response: UpdateContentResponse) => void
+    callback: (error: ServiceError | null, response: UpdateContentResponse) => void,
   ): ClientUnaryCall;
   updateContent(
     request: UpdateContentRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdateContentResponse) => void
+    callback: (error: ServiceError | null, response: UpdateContentResponse) => void,
   ): ClientUnaryCall;
   updateContent(
     request: UpdateContentRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdateContentResponse) => void
+    callback: (error: ServiceError | null, response: UpdateContentResponse) => void,
   ): ClientUnaryCall;
   deleteContent(
     request: DeleteContentRequest,
-    callback: (error: ServiceError | null, response: DeleteContentResponse) => void
+    callback: (error: ServiceError | null, response: DeleteContentResponse) => void,
   ): ClientUnaryCall;
   deleteContent(
     request: DeleteContentRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DeleteContentResponse) => void
+    callback: (error: ServiceError | null, response: DeleteContentResponse) => void,
   ): ClientUnaryCall;
   deleteContent(
     request: DeleteContentRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DeleteContentResponse) => void
+    callback: (error: ServiceError | null, response: DeleteContentResponse) => void,
   ): ClientUnaryCall;
   /** --- Workflow actions -------------------------------------------- */
   publishContent(
     request: PublishContentRequest,
-    callback: (error: ServiceError | null, response: PublishContentResponse) => void
+    callback: (error: ServiceError | null, response: PublishContentResponse) => void,
   ): ClientUnaryCall;
   publishContent(
     request: PublishContentRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: PublishContentResponse) => void
+    callback: (error: ServiceError | null, response: PublishContentResponse) => void,
   ): ClientUnaryCall;
   publishContent(
     request: PublishContentRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: PublishContentResponse) => void
+    callback: (error: ServiceError | null, response: PublishContentResponse) => void,
   ): ClientUnaryCall;
   unpublishContent(
     request: UnpublishContentRequest,
-    callback: (error: ServiceError | null, response: UnpublishContentResponse) => void
+    callback: (error: ServiceError | null, response: UnpublishContentResponse) => void,
   ): ClientUnaryCall;
   unpublishContent(
     request: UnpublishContentRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UnpublishContentResponse) => void
+    callback: (error: ServiceError | null, response: UnpublishContentResponse) => void,
   ): ClientUnaryCall;
   unpublishContent(
     request: UnpublishContentRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UnpublishContentResponse) => void
+    callback: (error: ServiceError | null, response: UnpublishContentResponse) => void,
   ): ClientUnaryCall;
   archiveContent(
     request: ArchiveContentRequest,
-    callback: (error: ServiceError | null, response: ArchiveContentResponse) => void
+    callback: (error: ServiceError | null, response: ArchiveContentResponse) => void,
   ): ClientUnaryCall;
   archiveContent(
     request: ArchiveContentRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ArchiveContentResponse) => void
+    callback: (error: ServiceError | null, response: ArchiveContentResponse) => void,
   ): ClientUnaryCall;
   archiveContent(
     request: ArchiveContentRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ArchiveContentResponse) => void
+    callback: (error: ServiceError | null, response: ArchiveContentResponse) => void,
   ): ClientUnaryCall;
   /** --- Version history --------------------------------------------- */
   getVersionHistory(
     request: GetVersionHistoryRequest,
-    callback: (error: ServiceError | null, response: GetVersionHistoryResponse) => void
+    callback: (error: ServiceError | null, response: GetVersionHistoryResponse) => void,
   ): ClientUnaryCall;
   getVersionHistory(
     request: GetVersionHistoryRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetVersionHistoryResponse) => void
+    callback: (error: ServiceError | null, response: GetVersionHistoryResponse) => void,
   ): ClientUnaryCall;
   getVersionHistory(
     request: GetVersionHistoryRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetVersionHistoryResponse) => void
+    callback: (error: ServiceError | null, response: GetVersionHistoryResponse) => void,
   ): ClientUnaryCall;
   restoreVersion(
     request: RestoreVersionRequest,
-    callback: (error: ServiceError | null, response: RestoreVersionResponse) => void
+    callback: (error: ServiceError | null, response: RestoreVersionResponse) => void,
   ): ClientUnaryCall;
   restoreVersion(
     request: RestoreVersionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RestoreVersionResponse) => void
+    callback: (error: ServiceError | null, response: RestoreVersionResponse) => void,
   ): ClientUnaryCall;
   restoreVersion(
     request: RestoreVersionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RestoreVersionResponse) => void
+    callback: (error: ServiceError | null, response: RestoreVersionResponse) => void,
   ): ClientUnaryCall;
   /** --- Navigation menus -------------------------------------------- */
   listMenus(
     request: ListMenusRequest,
-    callback: (error: ServiceError | null, response: ListMenusResponse) => void
+    callback: (error: ServiceError | null, response: ListMenusResponse) => void,
   ): ClientUnaryCall;
   listMenus(
     request: ListMenusRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListMenusResponse) => void
+    callback: (error: ServiceError | null, response: ListMenusResponse) => void,
   ): ClientUnaryCall;
   listMenus(
     request: ListMenusRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListMenusResponse) => void
+    callback: (error: ServiceError | null, response: ListMenusResponse) => void,
   ): ClientUnaryCall;
   getMenu(
     request: GetMenuRequest,
-    callback: (error: ServiceError | null, response: GetMenuResponse) => void
-  ): ClientUnaryCall;
-  getMenu(
-    request: GetMenuRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetMenuResponse) => void
+    callback: (error: ServiceError | null, response: GetMenuResponse) => void,
   ): ClientUnaryCall;
   getMenu(
     request: GetMenuRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetMenuResponse) => void,
+  ): ClientUnaryCall;
+  getMenu(
+    request: GetMenuRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetMenuResponse) => void
+    callback: (error: ServiceError | null, response: GetMenuResponse) => void,
   ): ClientUnaryCall;
   createMenu(
     request: CreateMenuRequest,
-    callback: (error: ServiceError | null, response: CreateMenuResponse) => void
+    callback: (error: ServiceError | null, response: CreateMenuResponse) => void,
   ): ClientUnaryCall;
   createMenu(
     request: CreateMenuRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateMenuResponse) => void
+    callback: (error: ServiceError | null, response: CreateMenuResponse) => void,
   ): ClientUnaryCall;
   createMenu(
     request: CreateMenuRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateMenuResponse) => void
+    callback: (error: ServiceError | null, response: CreateMenuResponse) => void,
   ): ClientUnaryCall;
   updateMenu(
     request: UpdateMenuRequest,
-    callback: (error: ServiceError | null, response: UpdateMenuResponse) => void
+    callback: (error: ServiceError | null, response: UpdateMenuResponse) => void,
   ): ClientUnaryCall;
   updateMenu(
     request: UpdateMenuRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdateMenuResponse) => void
+    callback: (error: ServiceError | null, response: UpdateMenuResponse) => void,
   ): ClientUnaryCall;
   updateMenu(
     request: UpdateMenuRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdateMenuResponse) => void
+    callback: (error: ServiceError | null, response: UpdateMenuResponse) => void,
   ): ClientUnaryCall;
   deleteMenu(
     request: DeleteMenuRequest,
-    callback: (error: ServiceError | null, response: DeleteMenuResponse) => void
+    callback: (error: ServiceError | null, response: DeleteMenuResponse) => void,
   ): ClientUnaryCall;
   deleteMenu(
     request: DeleteMenuRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DeleteMenuResponse) => void
+    callback: (error: ServiceError | null, response: DeleteMenuResponse) => void,
   ): ClientUnaryCall;
   deleteMenu(
     request: DeleteMenuRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DeleteMenuResponse) => void
+    callback: (error: ServiceError | null, response: DeleteMenuResponse) => void,
   ): ClientUnaryCall;
 }
 
 export const CmsServiceClient = makeGenericClientConstructor(
   CmsServiceService,
-  'adopt_dont_shop.cms.v1.CmsService'
+  "adopt_dont_shop.cms.v1.CmsService",
 ) as unknown as {
-  new (
-    address: string,
-    credentials: ChannelCredentials,
-    options?: Partial<ClientOptions>
-  ): CmsServiceClient;
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): CmsServiceClient;
   service: typeof CmsServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
+export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {

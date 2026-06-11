@@ -8,8 +8,13 @@ import { runServiceShutdown } from '@adopt-dont-shop/service-bootstrap';
 import { loadConfig } from './config.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
 import { registerGdprSubscribers } from './nats/gdpr-subscribers.js';
+import { createGdprSagaMetrics, recordGdprSagaStates } from './nats/gdpr-metrics.js';
+import { runGdprSweep, GDPR_SAGA_DEADLINE_MS, GDPR_SAGA_MAX_RETRIES } from './nats/gdpr-sweep.js';
 import { registerSubscribers } from './nats/subscribers.js';
+import { startScheduler, type RunningScheduler } from './scheduler/scheduler.js';
 import { createServer } from './server.js';
+
+const GDPR_SWEEP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 const main = async (): Promise<void> => {
   const logger = createLogger({ serviceName: 'service.audit' });
@@ -18,6 +23,7 @@ const main = async (): Promise<void> => {
   let pool: ReturnType<typeof createDbClient> | undefined;
   let grpc: RunningGrpcServer | undefined;
   let subscriptions: SubscriptionHandle[] = [];
+  let scheduler: RunningScheduler | undefined;
   let grpcReady = false;
 
   try {
@@ -50,6 +56,42 @@ const main = async (): Promise<void> => {
       ...registerGdprSubscribers({ nats, pool, logger }),
     ];
 
+    // ADS-830 — GDPR saga sweep scheduler.
+    // Two jobs per tick:
+    //   1. gdpr-sweep: marks overdue sagas timed_out, retries errored ones.
+    //   2. gdpr-metrics: refreshes the gdpr_sagas gauge.
+    const gdprMetrics = createGdprSagaMetrics();
+    const deadlineMs =
+      process.env.GDPR_SAGA_DEADLINE_MS !== undefined
+        ? Number(process.env.GDPR_SAGA_DEADLINE_MS)
+        : GDPR_SAGA_DEADLINE_MS;
+    const maxRetries =
+      process.env.GDPR_SAGA_MAX_RETRIES !== undefined
+        ? Number(process.env.GDPR_SAGA_MAX_RETRIES)
+        : GDPR_SAGA_MAX_RETRIES;
+
+    scheduler = startScheduler(
+      [
+        {
+          name: 'gdpr-sweep',
+          intervalMs: GDPR_SWEEP_INTERVAL_MS,
+          runOnStart: true,
+          run: async () => {
+            await runGdprSweep({ pool: pool!, nats: nats!, logger, deadlineMs, maxRetries });
+          },
+        },
+        {
+          name: 'gdpr-metrics',
+          intervalMs: GDPR_SWEEP_INTERVAL_MS,
+          runOnStart: true,
+          run: async () => {
+            await recordGdprSagaStates({ pool: pool!, metrics: gdprMetrics });
+          },
+        },
+      ],
+      { logger }
+    );
+
     const httpServer = createServer({ config, logger, isReady: () => grpcReady });
     await httpServer.listen({ port: config.port, host: config.host });
 
@@ -64,6 +106,11 @@ const main = async (): Promise<void> => {
 
     const shutdown = async (signal: string): Promise<void> => {
       logger.info('service.audit shutting down', { signal });
+      try {
+        await scheduler?.stop();
+      } catch (err) {
+        logger.error('scheduler stop error', { err });
+      }
       await runServiceShutdown({ httpServer, grpc, nats, pool, logger });
       process.exit(0);
     };

@@ -5,7 +5,7 @@
 // source: proto/adopt_dont_shop/rescue/v1/rescue.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -17,9 +17,9 @@ import {
   type Metadata,
   type ServiceError,
   type UntypedServiceImplementation,
-} from '@grpc/grpc-js';
+} from "@grpc/grpc-js";
 
-export const protobufPackage = 'adopt_dont_shop.rescue.v1';
+export const protobufPackage = "adopt_dont_shop.rescue.v1";
 
 export enum RescueStatus {
   RESCUE_STATUS_UNSPECIFIED = 0,
@@ -34,25 +34,25 @@ export enum RescueStatus {
 export function rescueStatusFromJSON(object: any): RescueStatus {
   switch (object) {
     case 0:
-    case 'RESCUE_STATUS_UNSPECIFIED':
+    case "RESCUE_STATUS_UNSPECIFIED":
       return RescueStatus.RESCUE_STATUS_UNSPECIFIED;
     case 1:
-    case 'RESCUE_STATUS_PENDING':
+    case "RESCUE_STATUS_PENDING":
       return RescueStatus.RESCUE_STATUS_PENDING;
     case 2:
-    case 'RESCUE_STATUS_VERIFIED':
+    case "RESCUE_STATUS_VERIFIED":
       return RescueStatus.RESCUE_STATUS_VERIFIED;
     case 3:
-    case 'RESCUE_STATUS_SUSPENDED':
+    case "RESCUE_STATUS_SUSPENDED":
       return RescueStatus.RESCUE_STATUS_SUSPENDED;
     case 4:
-    case 'RESCUE_STATUS_INACTIVE':
+    case "RESCUE_STATUS_INACTIVE":
       return RescueStatus.RESCUE_STATUS_INACTIVE;
     case 5:
-    case 'RESCUE_STATUS_REJECTED':
+    case "RESCUE_STATUS_REJECTED":
       return RescueStatus.RESCUE_STATUS_REJECTED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return RescueStatus.UNRECOGNIZED;
   }
@@ -61,20 +61,20 @@ export function rescueStatusFromJSON(object: any): RescueStatus {
 export function rescueStatusToJSON(object: RescueStatus): string {
   switch (object) {
     case RescueStatus.RESCUE_STATUS_UNSPECIFIED:
-      return 'RESCUE_STATUS_UNSPECIFIED';
+      return "RESCUE_STATUS_UNSPECIFIED";
     case RescueStatus.RESCUE_STATUS_PENDING:
-      return 'RESCUE_STATUS_PENDING';
+      return "RESCUE_STATUS_PENDING";
     case RescueStatus.RESCUE_STATUS_VERIFIED:
-      return 'RESCUE_STATUS_VERIFIED';
+      return "RESCUE_STATUS_VERIFIED";
     case RescueStatus.RESCUE_STATUS_SUSPENDED:
-      return 'RESCUE_STATUS_SUSPENDED';
+      return "RESCUE_STATUS_SUSPENDED";
     case RescueStatus.RESCUE_STATUS_INACTIVE:
-      return 'RESCUE_STATUS_INACTIVE';
+      return "RESCUE_STATUS_INACTIVE";
     case RescueStatus.RESCUE_STATUS_REJECTED:
-      return 'RESCUE_STATUS_REJECTED';
+      return "RESCUE_STATUS_REJECTED";
     case RescueStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -89,19 +89,19 @@ export enum RescueVerificationSource {
 export function rescueVerificationSourceFromJSON(object: any): RescueVerificationSource {
   switch (object) {
     case 0:
-    case 'RESCUE_VERIFICATION_SOURCE_UNSPECIFIED':
+    case "RESCUE_VERIFICATION_SOURCE_UNSPECIFIED":
       return RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_UNSPECIFIED;
     case 1:
-    case 'RESCUE_VERIFICATION_SOURCE_COMPANIES_HOUSE':
+    case "RESCUE_VERIFICATION_SOURCE_COMPANIES_HOUSE":
       return RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_COMPANIES_HOUSE;
     case 2:
-    case 'RESCUE_VERIFICATION_SOURCE_CHARITY_COMMISSION':
+    case "RESCUE_VERIFICATION_SOURCE_CHARITY_COMMISSION":
       return RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_CHARITY_COMMISSION;
     case 3:
-    case 'RESCUE_VERIFICATION_SOURCE_MANUAL':
+    case "RESCUE_VERIFICATION_SOURCE_MANUAL":
       return RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_MANUAL;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return RescueVerificationSource.UNRECOGNIZED;
   }
@@ -110,16 +110,16 @@ export function rescueVerificationSourceFromJSON(object: any): RescueVerificatio
 export function rescueVerificationSourceToJSON(object: RescueVerificationSource): string {
   switch (object) {
     case RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_UNSPECIFIED:
-      return 'RESCUE_VERIFICATION_SOURCE_UNSPECIFIED';
+      return "RESCUE_VERIFICATION_SOURCE_UNSPECIFIED";
     case RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_COMPANIES_HOUSE:
-      return 'RESCUE_VERIFICATION_SOURCE_COMPANIES_HOUSE';
+      return "RESCUE_VERIFICATION_SOURCE_COMPANIES_HOUSE";
     case RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_CHARITY_COMMISSION:
-      return 'RESCUE_VERIFICATION_SOURCE_CHARITY_COMMISSION';
+      return "RESCUE_VERIFICATION_SOURCE_CHARITY_COMMISSION";
     case RescueVerificationSource.RESCUE_VERIFICATION_SOURCE_MANUAL:
-      return 'RESCUE_VERIFICATION_SOURCE_MANUAL';
+      return "RESCUE_VERIFICATION_SOURCE_MANUAL";
     case RescueVerificationSource.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -134,19 +134,19 @@ export enum FosterPlacementStatus {
 export function fosterPlacementStatusFromJSON(object: any): FosterPlacementStatus {
   switch (object) {
     case 0:
-    case 'FOSTER_PLACEMENT_STATUS_UNSPECIFIED':
+    case "FOSTER_PLACEMENT_STATUS_UNSPECIFIED":
       return FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_UNSPECIFIED;
     case 1:
-    case 'FOSTER_PLACEMENT_STATUS_ACTIVE':
+    case "FOSTER_PLACEMENT_STATUS_ACTIVE":
       return FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_ACTIVE;
     case 2:
-    case 'FOSTER_PLACEMENT_STATUS_COMPLETED':
+    case "FOSTER_PLACEMENT_STATUS_COMPLETED":
       return FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_COMPLETED;
     case 3:
-    case 'FOSTER_PLACEMENT_STATUS_CANCELLED':
+    case "FOSTER_PLACEMENT_STATUS_CANCELLED":
       return FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_CANCELLED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return FosterPlacementStatus.UNRECOGNIZED;
   }
@@ -155,16 +155,16 @@ export function fosterPlacementStatusFromJSON(object: any): FosterPlacementStatu
 export function fosterPlacementStatusToJSON(object: FosterPlacementStatus): string {
   switch (object) {
     case FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_UNSPECIFIED:
-      return 'FOSTER_PLACEMENT_STATUS_UNSPECIFIED';
+      return "FOSTER_PLACEMENT_STATUS_UNSPECIFIED";
     case FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_ACTIVE:
-      return 'FOSTER_PLACEMENT_STATUS_ACTIVE';
+      return "FOSTER_PLACEMENT_STATUS_ACTIVE";
     case FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_COMPLETED:
-      return 'FOSTER_PLACEMENT_STATUS_COMPLETED';
+      return "FOSTER_PLACEMENT_STATUS_COMPLETED";
     case FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_CANCELLED:
-      return 'FOSTER_PLACEMENT_STATUS_CANCELLED';
+      return "FOSTER_PLACEMENT_STATUS_CANCELLED";
     case FosterPlacementStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -184,19 +184,19 @@ export enum FosterEndOutcome {
 export function fosterEndOutcomeFromJSON(object: any): FosterEndOutcome {
   switch (object) {
     case 0:
-    case 'FOSTER_END_OUTCOME_UNSPECIFIED':
+    case "FOSTER_END_OUTCOME_UNSPECIFIED":
       return FosterEndOutcome.FOSTER_END_OUTCOME_UNSPECIFIED;
     case 1:
-    case 'FOSTER_END_OUTCOME_RETURN_TO_RESCUE':
+    case "FOSTER_END_OUTCOME_RETURN_TO_RESCUE":
       return FosterEndOutcome.FOSTER_END_OUTCOME_RETURN_TO_RESCUE;
     case 2:
-    case 'FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER':
+    case "FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER":
       return FosterEndOutcome.FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER;
     case 3:
-    case 'FOSTER_END_OUTCOME_CANCELLED':
+    case "FOSTER_END_OUTCOME_CANCELLED":
       return FosterEndOutcome.FOSTER_END_OUTCOME_CANCELLED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return FosterEndOutcome.UNRECOGNIZED;
   }
@@ -205,16 +205,16 @@ export function fosterEndOutcomeFromJSON(object: any): FosterEndOutcome {
 export function fosterEndOutcomeToJSON(object: FosterEndOutcome): string {
   switch (object) {
     case FosterEndOutcome.FOSTER_END_OUTCOME_UNSPECIFIED:
-      return 'FOSTER_END_OUTCOME_UNSPECIFIED';
+      return "FOSTER_END_OUTCOME_UNSPECIFIED";
     case FosterEndOutcome.FOSTER_END_OUTCOME_RETURN_TO_RESCUE:
-      return 'FOSTER_END_OUTCOME_RETURN_TO_RESCUE';
+      return "FOSTER_END_OUTCOME_RETURN_TO_RESCUE";
     case FosterEndOutcome.FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER:
-      return 'FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER';
+      return "FOSTER_END_OUTCOME_ADOPTED_BY_FOSTER";
     case FosterEndOutcome.FOSTER_END_OUTCOME_CANCELLED:
-      return 'FOSTER_END_OUTCOME_CANCELLED';
+      return "FOSTER_END_OUTCOME_CANCELLED";
     case FosterEndOutcome.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -253,7 +253,9 @@ export interface Rescue {
   verifiedAt?: string | undefined;
   verifiedBy?: string | undefined;
   verificationSource?: RescueVerificationSource | undefined;
-  verificationFailureReason?: string | undefined;
+  verificationFailureReason?:
+    | string
+    | undefined;
   /**
    * JSON-stringified blob (the rescue_settings 1:1 row merged in OR the
    * free-form jsonb settings on the row — depends on whether the
@@ -314,7 +316,9 @@ export interface GetRescueResponse {
 }
 
 export interface ListRescuesRequest {
-  cursor?: string | undefined;
+  cursor?:
+    | string
+    | undefined;
   /** Defaults to 20, max 100. */
   limit: number;
   /**
@@ -323,12 +327,16 @@ export interface ListRescuesRequest {
    */
   statusFilter: RescueStatus;
   /** Free-text search on rescue name (ILIKE). Empty/unset = no filter. */
-  nameSearch?: string | undefined;
+  nameSearch?:
+    | string
+    | undefined;
   /**
    * When set, results are ordered randomly instead of by created_at DESC.
    * Powers the "featured rescues" surface.
    */
-  randomize?: boolean | undefined;
+  randomize?:
+    | boolean
+    | undefined;
   /**
    * Geo filters — when all three are set we approximate "nearby" using
    * the legacy location columns. Distance math is best-effort (no PostGIS
@@ -360,7 +368,9 @@ export interface UpdateRescueRequest {
   contactPerson?: string | undefined;
   contactTitle?: string | undefined;
   contactEmail?: string | undefined;
-  contactPhone?: string | undefined;
+  contactPhone?:
+    | string
+    | undefined;
   /** Replaces the settings JSON blob wholesale when present. */
   settingsJson?: string | undefined;
 }
@@ -378,7 +388,9 @@ export interface VerifyRescueRequest {
    */
   toStatus: RescueStatus;
   /** For VERIFIED transitions: how the rescue was verified. */
-  verificationSource?: RescueVerificationSource | undefined;
+  verificationSource?:
+    | RescueVerificationSource
+    | undefined;
   /** For REJECTED: optional rejection reason persisted to the row. */
   failureReason?: string | undefined;
 }
@@ -390,13 +402,17 @@ export interface VerifyRescueResponse {
 export interface InviteStaffRequest {
   rescueId: string;
   email: string;
-  title?: string | undefined;
+  title?:
+    | string
+    | undefined;
   /** Optional TTL override; defaults to 7 days when omitted. */
   expiresInSeconds?: number | undefined;
 }
 
 export interface InviteStaffResponse {
-  invitation?: Invitation | undefined;
+  invitation?:
+    | Invitation
+    | undefined;
   /**
    * Plain-text invitation token returned ONCE at creation time so the
    * caller can dispatch the email. NOT readable through Get/List
@@ -426,7 +442,8 @@ export interface StaffMember {
   updatedAt: string;
 }
 
-export interface GetMyStaffMembershipRequest {}
+export interface GetMyStaffMembershipRequest {
+}
 
 export interface GetMyStaffMembershipResponse {
   staffMember?: StaffMember | undefined;
@@ -472,7 +489,9 @@ export interface CreateFosterPlacementResponse {
 
 export interface ListFosterPlacementsRequest {
   rescueId?: string | undefined;
-  fosterUserId?: string | undefined;
+  fosterUserId?:
+    | string
+    | undefined;
   /** UNSPECIFIED = no status filter. */
   statusFilter: FosterPlacementStatus;
 }
@@ -510,21 +529,21 @@ export interface GetInvitationByTokenResponse {
 
 function createBaseRescue(): Rescue {
   return {
-    rescueId: '',
-    name: '',
-    email: '',
+    rescueId: "",
+    name: "",
+    email: "",
     phone: undefined,
-    address: '',
-    city: '',
+    address: "",
+    city: "",
     county: undefined,
-    postcode: '',
-    country: '',
+    postcode: "",
+    country: "",
     website: undefined,
     description: undefined,
     mission: undefined,
     companiesHouseNumber: undefined,
     charityRegistrationNumber: undefined,
-    contactPerson: '',
+    contactPerson: "",
     contactTitle: undefined,
     contactEmail: undefined,
     contactPhone: undefined,
@@ -533,39 +552,39 @@ function createBaseRescue(): Rescue {
     verifiedBy: undefined,
     verificationSource: undefined,
     verificationFailureReason: undefined,
-    settingsJson: '',
-    createdAt: '',
-    updatedAt: '',
+    settingsJson: "",
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const Rescue: MessageFns<Rescue> = {
   encode(message: Rescue, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       writer.uint32(10).string(message.rescueId);
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       writer.uint32(18).string(message.name);
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       writer.uint32(26).string(message.email);
     }
     if (message.phone !== undefined) {
       writer.uint32(34).string(message.phone);
     }
-    if (message.address !== '') {
+    if (message.address !== "") {
       writer.uint32(42).string(message.address);
     }
-    if (message.city !== '') {
+    if (message.city !== "") {
       writer.uint32(50).string(message.city);
     }
     if (message.county !== undefined) {
       writer.uint32(58).string(message.county);
     }
-    if (message.postcode !== '') {
+    if (message.postcode !== "") {
       writer.uint32(66).string(message.postcode);
     }
-    if (message.country !== '') {
+    if (message.country !== "") {
       writer.uint32(74).string(message.country);
     }
     if (message.website !== undefined) {
@@ -583,7 +602,7 @@ export const Rescue: MessageFns<Rescue> = {
     if (message.charityRegistrationNumber !== undefined) {
       writer.uint32(114).string(message.charityRegistrationNumber);
     }
-    if (message.contactPerson !== '') {
+    if (message.contactPerson !== "") {
       writer.uint32(122).string(message.contactPerson);
     }
     if (message.contactTitle !== undefined) {
@@ -610,13 +629,13 @@ export const Rescue: MessageFns<Rescue> = {
     if (message.verificationFailureReason !== undefined) {
       writer.uint32(186).string(message.verificationFailureReason);
     }
-    if (message.settingsJson !== '') {
+    if (message.settingsJson !== "") {
       writer.uint32(194).string(message.settingsJson);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(202).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(210).string(message.updatedAt);
     }
     return writer;
@@ -851,115 +870,115 @@ export const Rescue: MessageFns<Rescue> = {
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : '',
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
-      email: isSet(object.email) ? globalThis.String(object.email) : '',
+        ? globalThis.String(object.rescue_id)
+        : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
       phone: isSet(object.phone) ? globalThis.String(object.phone) : undefined,
-      address: isSet(object.address) ? globalThis.String(object.address) : '',
-      city: isSet(object.city) ? globalThis.String(object.city) : '',
+      address: isSet(object.address) ? globalThis.String(object.address) : "",
+      city: isSet(object.city) ? globalThis.String(object.city) : "",
       county: isSet(object.county) ? globalThis.String(object.county) : undefined,
-      postcode: isSet(object.postcode) ? globalThis.String(object.postcode) : '',
-      country: isSet(object.country) ? globalThis.String(object.country) : '',
+      postcode: isSet(object.postcode) ? globalThis.String(object.postcode) : "",
+      country: isSet(object.country) ? globalThis.String(object.country) : "",
       website: isSet(object.website) ? globalThis.String(object.website) : undefined,
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
       mission: isSet(object.mission) ? globalThis.String(object.mission) : undefined,
       companiesHouseNumber: isSet(object.companiesHouseNumber)
         ? globalThis.String(object.companiesHouseNumber)
         : isSet(object.companies_house_number)
-          ? globalThis.String(object.companies_house_number)
-          : undefined,
+        ? globalThis.String(object.companies_house_number)
+        : undefined,
       charityRegistrationNumber: isSet(object.charityRegistrationNumber)
         ? globalThis.String(object.charityRegistrationNumber)
         : isSet(object.charity_registration_number)
-          ? globalThis.String(object.charity_registration_number)
-          : undefined,
+        ? globalThis.String(object.charity_registration_number)
+        : undefined,
       contactPerson: isSet(object.contactPerson)
         ? globalThis.String(object.contactPerson)
         : isSet(object.contact_person)
-          ? globalThis.String(object.contact_person)
-          : '',
+        ? globalThis.String(object.contact_person)
+        : "",
       contactTitle: isSet(object.contactTitle)
         ? globalThis.String(object.contactTitle)
         : isSet(object.contact_title)
-          ? globalThis.String(object.contact_title)
-          : undefined,
+        ? globalThis.String(object.contact_title)
+        : undefined,
       contactEmail: isSet(object.contactEmail)
         ? globalThis.String(object.contactEmail)
         : isSet(object.contact_email)
-          ? globalThis.String(object.contact_email)
-          : undefined,
+        ? globalThis.String(object.contact_email)
+        : undefined,
       contactPhone: isSet(object.contactPhone)
         ? globalThis.String(object.contactPhone)
         : isSet(object.contact_phone)
-          ? globalThis.String(object.contact_phone)
-          : undefined,
+        ? globalThis.String(object.contact_phone)
+        : undefined,
       status: isSet(object.status) ? rescueStatusFromJSON(object.status) : 0,
       verifiedAt: isSet(object.verifiedAt)
         ? globalThis.String(object.verifiedAt)
         : isSet(object.verified_at)
-          ? globalThis.String(object.verified_at)
-          : undefined,
+        ? globalThis.String(object.verified_at)
+        : undefined,
       verifiedBy: isSet(object.verifiedBy)
         ? globalThis.String(object.verifiedBy)
         : isSet(object.verified_by)
-          ? globalThis.String(object.verified_by)
-          : undefined,
+        ? globalThis.String(object.verified_by)
+        : undefined,
       verificationSource: isSet(object.verificationSource)
         ? rescueVerificationSourceFromJSON(object.verificationSource)
         : isSet(object.verification_source)
-          ? rescueVerificationSourceFromJSON(object.verification_source)
-          : undefined,
+        ? rescueVerificationSourceFromJSON(object.verification_source)
+        : undefined,
       verificationFailureReason: isSet(object.verificationFailureReason)
         ? globalThis.String(object.verificationFailureReason)
         : isSet(object.verification_failure_reason)
-          ? globalThis.String(object.verification_failure_reason)
-          : undefined,
+        ? globalThis.String(object.verification_failure_reason)
+        : undefined,
       settingsJson: isSet(object.settingsJson)
         ? globalThis.String(object.settingsJson)
         : isSet(object.settings_json)
-          ? globalThis.String(object.settings_json)
-          : '',
+        ? globalThis.String(object.settings_json)
+        : "",
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: Rescue): unknown {
     const obj: any = {};
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       obj.rescueId = message.rescueId;
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       obj.name = message.name;
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
     if (message.phone !== undefined) {
       obj.phone = message.phone;
     }
-    if (message.address !== '') {
+    if (message.address !== "") {
       obj.address = message.address;
     }
-    if (message.city !== '') {
+    if (message.city !== "") {
       obj.city = message.city;
     }
     if (message.county !== undefined) {
       obj.county = message.county;
     }
-    if (message.postcode !== '') {
+    if (message.postcode !== "") {
       obj.postcode = message.postcode;
     }
-    if (message.country !== '') {
+    if (message.country !== "") {
       obj.country = message.country;
     }
     if (message.website !== undefined) {
@@ -977,7 +996,7 @@ export const Rescue: MessageFns<Rescue> = {
     if (message.charityRegistrationNumber !== undefined) {
       obj.charityRegistrationNumber = message.charityRegistrationNumber;
     }
-    if (message.contactPerson !== '') {
+    if (message.contactPerson !== "") {
       obj.contactPerson = message.contactPerson;
     }
     if (message.contactTitle !== undefined) {
@@ -1004,13 +1023,13 @@ export const Rescue: MessageFns<Rescue> = {
     if (message.verificationFailureReason !== undefined) {
       obj.verificationFailureReason = message.verificationFailureReason;
     }
-    if (message.settingsJson !== '') {
+    if (message.settingsJson !== "") {
       obj.settingsJson = message.settingsJson;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -1021,21 +1040,21 @@ export const Rescue: MessageFns<Rescue> = {
   },
   fromPartial<I extends Exact<DeepPartial<Rescue>, I>>(object: I): Rescue {
     const message = createBaseRescue();
-    message.rescueId = object.rescueId ?? '';
-    message.name = object.name ?? '';
-    message.email = object.email ?? '';
+    message.rescueId = object.rescueId ?? "";
+    message.name = object.name ?? "";
+    message.email = object.email ?? "";
     message.phone = object.phone ?? undefined;
-    message.address = object.address ?? '';
-    message.city = object.city ?? '';
+    message.address = object.address ?? "";
+    message.city = object.city ?? "";
     message.county = object.county ?? undefined;
-    message.postcode = object.postcode ?? '';
-    message.country = object.country ?? '';
+    message.postcode = object.postcode ?? "";
+    message.country = object.country ?? "";
     message.website = object.website ?? undefined;
     message.description = object.description ?? undefined;
     message.mission = object.mission ?? undefined;
     message.companiesHouseNumber = object.companiesHouseNumber ?? undefined;
     message.charityRegistrationNumber = object.charityRegistrationNumber ?? undefined;
-    message.contactPerson = object.contactPerson ?? '';
+    message.contactPerson = object.contactPerson ?? "";
     message.contactTitle = object.contactTitle ?? undefined;
     message.contactEmail = object.contactEmail ?? undefined;
     message.contactPhone = object.contactPhone ?? undefined;
@@ -1044,36 +1063,36 @@ export const Rescue: MessageFns<Rescue> = {
     message.verifiedBy = object.verifiedBy ?? undefined;
     message.verificationSource = object.verificationSource ?? undefined;
     message.verificationFailureReason = object.verificationFailureReason ?? undefined;
-    message.settingsJson = object.settingsJson ?? '';
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.settingsJson = object.settingsJson ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseInvitation(): Invitation {
   return {
-    invitationId: '',
-    email: '',
-    rescueId: '',
+    invitationId: "",
+    email: "",
+    rescueId: "",
     userId: undefined,
     title: undefined,
     invitedBy: undefined,
-    expiration: '',
+    expiration: "",
     used: false,
-    createdAt: '',
+    createdAt: "",
   };
 }
 
 export const Invitation: MessageFns<Invitation> = {
   encode(message: Invitation, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.invitationId !== '') {
+    if (message.invitationId !== "") {
       writer.uint32(10).string(message.invitationId);
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       writer.uint32(18).string(message.email);
     }
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       writer.uint32(26).string(message.rescueId);
     }
     if (message.userId !== undefined) {
@@ -1085,13 +1104,13 @@ export const Invitation: MessageFns<Invitation> = {
     if (message.invitedBy !== undefined) {
       writer.uint32(50).string(message.invitedBy);
     }
-    if (message.expiration !== '') {
+    if (message.expiration !== "") {
       writer.uint32(58).string(message.expiration);
     }
     if (message.used !== false) {
       writer.uint32(64).bool(message.used);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(74).string(message.createdAt);
     }
     return writer;
@@ -1190,44 +1209,44 @@ export const Invitation: MessageFns<Invitation> = {
       invitationId: isSet(object.invitationId)
         ? globalThis.String(object.invitationId)
         : isSet(object.invitation_id)
-          ? globalThis.String(object.invitation_id)
-          : '',
-      email: isSet(object.email) ? globalThis.String(object.email) : '',
+        ? globalThis.String(object.invitation_id)
+        : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : '',
+        ? globalThis.String(object.rescue_id)
+        : "",
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
       title: isSet(object.title) ? globalThis.String(object.title) : undefined,
       invitedBy: isSet(object.invitedBy)
         ? globalThis.String(object.invitedBy)
         : isSet(object.invited_by)
-          ? globalThis.String(object.invited_by)
-          : undefined,
-      expiration: isSet(object.expiration) ? globalThis.String(object.expiration) : '',
+        ? globalThis.String(object.invited_by)
+        : undefined,
+      expiration: isSet(object.expiration) ? globalThis.String(object.expiration) : "",
       used: isSet(object.used) ? globalThis.Boolean(object.used) : false,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
     };
   },
 
   toJSON(message: Invitation): unknown {
     const obj: any = {};
-    if (message.invitationId !== '') {
+    if (message.invitationId !== "") {
       obj.invitationId = message.invitationId;
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       obj.rescueId = message.rescueId;
     }
     if (message.userId !== undefined) {
@@ -1239,13 +1258,13 @@ export const Invitation: MessageFns<Invitation> = {
     if (message.invitedBy !== undefined) {
       obj.invitedBy = message.invitedBy;
     }
-    if (message.expiration !== '') {
+    if (message.expiration !== "") {
       obj.expiration = message.expiration;
     }
     if (message.used !== false) {
       obj.used = message.used;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
     return obj;
@@ -1256,35 +1275,35 @@ export const Invitation: MessageFns<Invitation> = {
   },
   fromPartial<I extends Exact<DeepPartial<Invitation>, I>>(object: I): Invitation {
     const message = createBaseInvitation();
-    message.invitationId = object.invitationId ?? '';
-    message.email = object.email ?? '';
-    message.rescueId = object.rescueId ?? '';
+    message.invitationId = object.invitationId ?? "";
+    message.email = object.email ?? "";
+    message.rescueId = object.rescueId ?? "";
     message.userId = object.userId ?? undefined;
     message.title = object.title ?? undefined;
     message.invitedBy = object.invitedBy ?? undefined;
-    message.expiration = object.expiration ?? '';
+    message.expiration = object.expiration ?? "";
     message.used = object.used ?? false;
-    message.createdAt = object.createdAt ?? '';
+    message.createdAt = object.createdAt ?? "";
     return message;
   },
 };
 
 function createBaseCreateRescueRequest(): CreateRescueRequest {
   return {
-    name: '',
-    email: '',
+    name: "",
+    email: "",
     phone: undefined,
-    address: '',
-    city: '',
+    address: "",
+    city: "",
     county: undefined,
-    postcode: '',
+    postcode: "",
     country: undefined,
     website: undefined,
     description: undefined,
     mission: undefined,
     companiesHouseNumber: undefined,
     charityRegistrationNumber: undefined,
-    contactPerson: '',
+    contactPerson: "",
     contactTitle: undefined,
     contactEmail: undefined,
     contactPhone: undefined,
@@ -1293,25 +1312,25 @@ function createBaseCreateRescueRequest(): CreateRescueRequest {
 
 export const CreateRescueRequest: MessageFns<CreateRescueRequest> = {
   encode(message: CreateRescueRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.name !== '') {
+    if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       writer.uint32(18).string(message.email);
     }
     if (message.phone !== undefined) {
       writer.uint32(26).string(message.phone);
     }
-    if (message.address !== '') {
+    if (message.address !== "") {
       writer.uint32(34).string(message.address);
     }
-    if (message.city !== '') {
+    if (message.city !== "") {
       writer.uint32(42).string(message.city);
     }
     if (message.county !== undefined) {
       writer.uint32(50).string(message.county);
     }
-    if (message.postcode !== '') {
+    if (message.postcode !== "") {
       writer.uint32(58).string(message.postcode);
     }
     if (message.country !== undefined) {
@@ -1332,7 +1351,7 @@ export const CreateRescueRequest: MessageFns<CreateRescueRequest> = {
     if (message.charityRegistrationNumber !== undefined) {
       writer.uint32(106).string(message.charityRegistrationNumber);
     }
-    if (message.contactPerson !== '') {
+    if (message.contactPerson !== "") {
       writer.uint32(114).string(message.contactPerson);
     }
     if (message.contactTitle !== undefined) {
@@ -1501,13 +1520,13 @@ export const CreateRescueRequest: MessageFns<CreateRescueRequest> = {
 
   fromJSON(object: any): CreateRescueRequest {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
-      email: isSet(object.email) ? globalThis.String(object.email) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
       phone: isSet(object.phone) ? globalThis.String(object.phone) : undefined,
-      address: isSet(object.address) ? globalThis.String(object.address) : '',
-      city: isSet(object.city) ? globalThis.String(object.city) : '',
+      address: isSet(object.address) ? globalThis.String(object.address) : "",
+      city: isSet(object.city) ? globalThis.String(object.city) : "",
       county: isSet(object.county) ? globalThis.String(object.county) : undefined,
-      postcode: isSet(object.postcode) ? globalThis.String(object.postcode) : '',
+      postcode: isSet(object.postcode) ? globalThis.String(object.postcode) : "",
       country: isSet(object.country) ? globalThis.String(object.country) : undefined,
       website: isSet(object.website) ? globalThis.String(object.website) : undefined,
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
@@ -1515,57 +1534,57 @@ export const CreateRescueRequest: MessageFns<CreateRescueRequest> = {
       companiesHouseNumber: isSet(object.companiesHouseNumber)
         ? globalThis.String(object.companiesHouseNumber)
         : isSet(object.companies_house_number)
-          ? globalThis.String(object.companies_house_number)
-          : undefined,
+        ? globalThis.String(object.companies_house_number)
+        : undefined,
       charityRegistrationNumber: isSet(object.charityRegistrationNumber)
         ? globalThis.String(object.charityRegistrationNumber)
         : isSet(object.charity_registration_number)
-          ? globalThis.String(object.charity_registration_number)
-          : undefined,
+        ? globalThis.String(object.charity_registration_number)
+        : undefined,
       contactPerson: isSet(object.contactPerson)
         ? globalThis.String(object.contactPerson)
         : isSet(object.contact_person)
-          ? globalThis.String(object.contact_person)
-          : '',
+        ? globalThis.String(object.contact_person)
+        : "",
       contactTitle: isSet(object.contactTitle)
         ? globalThis.String(object.contactTitle)
         : isSet(object.contact_title)
-          ? globalThis.String(object.contact_title)
-          : undefined,
+        ? globalThis.String(object.contact_title)
+        : undefined,
       contactEmail: isSet(object.contactEmail)
         ? globalThis.String(object.contactEmail)
         : isSet(object.contact_email)
-          ? globalThis.String(object.contact_email)
-          : undefined,
+        ? globalThis.String(object.contact_email)
+        : undefined,
       contactPhone: isSet(object.contactPhone)
         ? globalThis.String(object.contactPhone)
         : isSet(object.contact_phone)
-          ? globalThis.String(object.contact_phone)
-          : undefined,
+        ? globalThis.String(object.contact_phone)
+        : undefined,
     };
   },
 
   toJSON(message: CreateRescueRequest): unknown {
     const obj: any = {};
-    if (message.name !== '') {
+    if (message.name !== "") {
       obj.name = message.name;
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
     if (message.phone !== undefined) {
       obj.phone = message.phone;
     }
-    if (message.address !== '') {
+    if (message.address !== "") {
       obj.address = message.address;
     }
-    if (message.city !== '') {
+    if (message.city !== "") {
       obj.city = message.city;
     }
     if (message.county !== undefined) {
       obj.county = message.county;
     }
-    if (message.postcode !== '') {
+    if (message.postcode !== "") {
       obj.postcode = message.postcode;
     }
     if (message.country !== undefined) {
@@ -1586,7 +1605,7 @@ export const CreateRescueRequest: MessageFns<CreateRescueRequest> = {
     if (message.charityRegistrationNumber !== undefined) {
       obj.charityRegistrationNumber = message.charityRegistrationNumber;
     }
-    if (message.contactPerson !== '') {
+    if (message.contactPerson !== "") {
       obj.contactPerson = message.contactPerson;
     }
     if (message.contactTitle !== undefined) {
@@ -1604,24 +1623,22 @@ export const CreateRescueRequest: MessageFns<CreateRescueRequest> = {
   create<I extends Exact<DeepPartial<CreateRescueRequest>, I>>(base?: I): CreateRescueRequest {
     return CreateRescueRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateRescueRequest>, I>>(
-    object: I
-  ): CreateRescueRequest {
+  fromPartial<I extends Exact<DeepPartial<CreateRescueRequest>, I>>(object: I): CreateRescueRequest {
     const message = createBaseCreateRescueRequest();
-    message.name = object.name ?? '';
-    message.email = object.email ?? '';
+    message.name = object.name ?? "";
+    message.email = object.email ?? "";
     message.phone = object.phone ?? undefined;
-    message.address = object.address ?? '';
-    message.city = object.city ?? '';
+    message.address = object.address ?? "";
+    message.city = object.city ?? "";
     message.county = object.county ?? undefined;
-    message.postcode = object.postcode ?? '';
+    message.postcode = object.postcode ?? "";
     message.country = object.country ?? undefined;
     message.website = object.website ?? undefined;
     message.description = object.description ?? undefined;
     message.mission = object.mission ?? undefined;
     message.companiesHouseNumber = object.companiesHouseNumber ?? undefined;
     message.charityRegistrationNumber = object.charityRegistrationNumber ?? undefined;
-    message.contactPerson = object.contactPerson ?? '';
+    message.contactPerson = object.contactPerson ?? "";
     message.contactTitle = object.contactTitle ?? undefined;
     message.contactEmail = object.contactEmail ?? undefined;
     message.contactPhone = object.contactPhone ?? undefined;
@@ -1680,25 +1697,22 @@ export const CreateRescueResponse: MessageFns<CreateRescueResponse> = {
   create<I extends Exact<DeepPartial<CreateRescueResponse>, I>>(base?: I): CreateRescueResponse {
     return CreateRescueResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateRescueResponse>, I>>(
-    object: I
-  ): CreateRescueResponse {
+  fromPartial<I extends Exact<DeepPartial<CreateRescueResponse>, I>>(object: I): CreateRescueResponse {
     const message = createBaseCreateRescueResponse();
-    message.rescue =
-      object.rescue !== undefined && object.rescue !== null
-        ? Rescue.fromPartial(object.rescue)
-        : undefined;
+    message.rescue = (object.rescue !== undefined && object.rescue !== null)
+      ? Rescue.fromPartial(object.rescue)
+      : undefined;
     return message;
   },
 };
 
 function createBaseGetRescueRequest(): GetRescueRequest {
-  return { rescueId: '' };
+  return { rescueId: "" };
 }
 
 export const GetRescueRequest: MessageFns<GetRescueRequest> = {
   encode(message: GetRescueRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       writer.uint32(10).string(message.rescueId);
     }
     return writer;
@@ -1733,14 +1747,14 @@ export const GetRescueRequest: MessageFns<GetRescueRequest> = {
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : '',
+        ? globalThis.String(object.rescue_id)
+        : "",
     };
   },
 
   toJSON(message: GetRescueRequest): unknown {
     const obj: any = {};
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       obj.rescueId = message.rescueId;
     }
     return obj;
@@ -1751,7 +1765,7 @@ export const GetRescueRequest: MessageFns<GetRescueRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetRescueRequest>, I>>(object: I): GetRescueRequest {
     const message = createBaseGetRescueRequest();
-    message.rescueId = object.rescueId ?? '';
+    message.rescueId = object.rescueId ?? "";
     return message;
   },
 };
@@ -1809,10 +1823,9 @@ export const GetRescueResponse: MessageFns<GetRescueResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<GetRescueResponse>, I>>(object: I): GetRescueResponse {
     const message = createBaseGetRescueResponse();
-    message.rescue =
-      object.rescue !== undefined && object.rescue !== null
-        ? Rescue.fromPartial(object.rescue)
-        : undefined;
+    message.rescue = (object.rescue !== undefined && object.rescue !== null)
+      ? Rescue.fromPartial(object.rescue)
+      : undefined;
     return message;
   },
 };
@@ -1946,21 +1959,21 @@ export const ListRescuesRequest: MessageFns<ListRescuesRequest> = {
       statusFilter: isSet(object.statusFilter)
         ? rescueStatusFromJSON(object.statusFilter)
         : isSet(object.status_filter)
-          ? rescueStatusFromJSON(object.status_filter)
-          : 0,
+        ? rescueStatusFromJSON(object.status_filter)
+        : 0,
       nameSearch: isSet(object.nameSearch)
         ? globalThis.String(object.nameSearch)
         : isSet(object.name_search)
-          ? globalThis.String(object.name_search)
-          : undefined,
+        ? globalThis.String(object.name_search)
+        : undefined,
       randomize: isSet(object.randomize) ? globalThis.Boolean(object.randomize) : undefined,
       latitude: isSet(object.latitude) ? globalThis.Number(object.latitude) : undefined,
       longitude: isSet(object.longitude) ? globalThis.Number(object.longitude) : undefined,
       radiusKm: isSet(object.radiusKm)
         ? globalThis.Number(object.radiusKm)
         : isSet(object.radius_km)
-          ? globalThis.Number(object.radius_km)
-          : undefined,
+        ? globalThis.Number(object.radius_km)
+        : undefined,
     };
   },
 
@@ -2059,21 +2072,19 @@ export const ListRescuesResponse: MessageFns<ListRescuesResponse> = {
 
   fromJSON(object: any): ListRescuesResponse {
     return {
-      rescues: globalThis.Array.isArray(object?.rescues)
-        ? object.rescues.map((e: any) => Rescue.fromJSON(e))
-        : [],
+      rescues: globalThis.Array.isArray(object?.rescues) ? object.rescues.map((e: any) => Rescue.fromJSON(e)) : [],
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-          ? globalThis.String(object.next_cursor)
-          : undefined,
+        ? globalThis.String(object.next_cursor)
+        : undefined,
     };
   },
 
   toJSON(message: ListRescuesResponse): unknown {
     const obj: any = {};
     if (message.rescues?.length) {
-      obj.rescues = message.rescues.map(e => Rescue.toJSON(e));
+      obj.rescues = message.rescues.map((e) => Rescue.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -2084,11 +2095,9 @@ export const ListRescuesResponse: MessageFns<ListRescuesResponse> = {
   create<I extends Exact<DeepPartial<ListRescuesResponse>, I>>(base?: I): ListRescuesResponse {
     return ListRescuesResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListRescuesResponse>, I>>(
-    object: I
-  ): ListRescuesResponse {
+  fromPartial<I extends Exact<DeepPartial<ListRescuesResponse>, I>>(object: I): ListRescuesResponse {
     const message = createBaseListRescuesResponse();
-    message.rescues = object.rescues?.map(e => Rescue.fromPartial(e)) || [];
+    message.rescues = object.rescues?.map((e) => Rescue.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
@@ -2096,7 +2105,7 @@ export const ListRescuesResponse: MessageFns<ListRescuesResponse> = {
 
 function createBaseUpdateRescueRequest(): UpdateRescueRequest {
   return {
-    rescueId: '',
+    rescueId: "",
     name: undefined,
     phone: undefined,
     address: undefined,
@@ -2117,7 +2126,7 @@ function createBaseUpdateRescueRequest(): UpdateRescueRequest {
 
 export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
   encode(message: UpdateRescueRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       writer.uint32(10).string(message.rescueId);
     }
     if (message.name !== undefined) {
@@ -2317,8 +2326,8 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : '',
+        ? globalThis.String(object.rescue_id)
+        : "",
       name: isSet(object.name) ? globalThis.String(object.name) : undefined,
       phone: isSet(object.phone) ? globalThis.String(object.phone) : undefined,
       address: isSet(object.address) ? globalThis.String(object.address) : undefined,
@@ -2332,34 +2341,34 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
       contactPerson: isSet(object.contactPerson)
         ? globalThis.String(object.contactPerson)
         : isSet(object.contact_person)
-          ? globalThis.String(object.contact_person)
-          : undefined,
+        ? globalThis.String(object.contact_person)
+        : undefined,
       contactTitle: isSet(object.contactTitle)
         ? globalThis.String(object.contactTitle)
         : isSet(object.contact_title)
-          ? globalThis.String(object.contact_title)
-          : undefined,
+        ? globalThis.String(object.contact_title)
+        : undefined,
       contactEmail: isSet(object.contactEmail)
         ? globalThis.String(object.contactEmail)
         : isSet(object.contact_email)
-          ? globalThis.String(object.contact_email)
-          : undefined,
+        ? globalThis.String(object.contact_email)
+        : undefined,
       contactPhone: isSet(object.contactPhone)
         ? globalThis.String(object.contactPhone)
         : isSet(object.contact_phone)
-          ? globalThis.String(object.contact_phone)
-          : undefined,
+        ? globalThis.String(object.contact_phone)
+        : undefined,
       settingsJson: isSet(object.settingsJson)
         ? globalThis.String(object.settingsJson)
         : isSet(object.settings_json)
-          ? globalThis.String(object.settings_json)
-          : undefined,
+        ? globalThis.String(object.settings_json)
+        : undefined,
     };
   },
 
   toJSON(message: UpdateRescueRequest): unknown {
     const obj: any = {};
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       obj.rescueId = message.rescueId;
     }
     if (message.name !== undefined) {
@@ -2413,11 +2422,9 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
   create<I extends Exact<DeepPartial<UpdateRescueRequest>, I>>(base?: I): UpdateRescueRequest {
     return UpdateRescueRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdateRescueRequest>, I>>(
-    object: I
-  ): UpdateRescueRequest {
+  fromPartial<I extends Exact<DeepPartial<UpdateRescueRequest>, I>>(object: I): UpdateRescueRequest {
     const message = createBaseUpdateRescueRequest();
-    message.rescueId = object.rescueId ?? '';
+    message.rescueId = object.rescueId ?? "";
     message.name = object.name ?? undefined;
     message.phone = object.phone ?? undefined;
     message.address = object.address ?? undefined;
@@ -2488,25 +2495,22 @@ export const UpdateRescueResponse: MessageFns<UpdateRescueResponse> = {
   create<I extends Exact<DeepPartial<UpdateRescueResponse>, I>>(base?: I): UpdateRescueResponse {
     return UpdateRescueResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdateRescueResponse>, I>>(
-    object: I
-  ): UpdateRescueResponse {
+  fromPartial<I extends Exact<DeepPartial<UpdateRescueResponse>, I>>(object: I): UpdateRescueResponse {
     const message = createBaseUpdateRescueResponse();
-    message.rescue =
-      object.rescue !== undefined && object.rescue !== null
-        ? Rescue.fromPartial(object.rescue)
-        : undefined;
+    message.rescue = (object.rescue !== undefined && object.rescue !== null)
+      ? Rescue.fromPartial(object.rescue)
+      : undefined;
     return message;
   },
 };
 
 function createBaseVerifyRescueRequest(): VerifyRescueRequest {
-  return { rescueId: '', toStatus: 0, verificationSource: undefined, failureReason: undefined };
+  return { rescueId: "", toStatus: 0, verificationSource: undefined, failureReason: undefined };
 }
 
 export const VerifyRescueRequest: MessageFns<VerifyRescueRequest> = {
   encode(message: VerifyRescueRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       writer.uint32(10).string(message.rescueId);
     }
     if (message.toStatus !== 0) {
@@ -2574,29 +2578,29 @@ export const VerifyRescueRequest: MessageFns<VerifyRescueRequest> = {
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : '',
+        ? globalThis.String(object.rescue_id)
+        : "",
       toStatus: isSet(object.toStatus)
         ? rescueStatusFromJSON(object.toStatus)
         : isSet(object.to_status)
-          ? rescueStatusFromJSON(object.to_status)
-          : 0,
+        ? rescueStatusFromJSON(object.to_status)
+        : 0,
       verificationSource: isSet(object.verificationSource)
         ? rescueVerificationSourceFromJSON(object.verificationSource)
         : isSet(object.verification_source)
-          ? rescueVerificationSourceFromJSON(object.verification_source)
-          : undefined,
+        ? rescueVerificationSourceFromJSON(object.verification_source)
+        : undefined,
       failureReason: isSet(object.failureReason)
         ? globalThis.String(object.failureReason)
         : isSet(object.failure_reason)
-          ? globalThis.String(object.failure_reason)
-          : undefined,
+        ? globalThis.String(object.failure_reason)
+        : undefined,
     };
   },
 
   toJSON(message: VerifyRescueRequest): unknown {
     const obj: any = {};
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       obj.rescueId = message.rescueId;
     }
     if (message.toStatus !== 0) {
@@ -2614,11 +2618,9 @@ export const VerifyRescueRequest: MessageFns<VerifyRescueRequest> = {
   create<I extends Exact<DeepPartial<VerifyRescueRequest>, I>>(base?: I): VerifyRescueRequest {
     return VerifyRescueRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<VerifyRescueRequest>, I>>(
-    object: I
-  ): VerifyRescueRequest {
+  fromPartial<I extends Exact<DeepPartial<VerifyRescueRequest>, I>>(object: I): VerifyRescueRequest {
     const message = createBaseVerifyRescueRequest();
-    message.rescueId = object.rescueId ?? '';
+    message.rescueId = object.rescueId ?? "";
     message.toStatus = object.toStatus ?? 0;
     message.verificationSource = object.verificationSource ?? undefined;
     message.failureReason = object.failureReason ?? undefined;
@@ -2677,28 +2679,25 @@ export const VerifyRescueResponse: MessageFns<VerifyRescueResponse> = {
   create<I extends Exact<DeepPartial<VerifyRescueResponse>, I>>(base?: I): VerifyRescueResponse {
     return VerifyRescueResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<VerifyRescueResponse>, I>>(
-    object: I
-  ): VerifyRescueResponse {
+  fromPartial<I extends Exact<DeepPartial<VerifyRescueResponse>, I>>(object: I): VerifyRescueResponse {
     const message = createBaseVerifyRescueResponse();
-    message.rescue =
-      object.rescue !== undefined && object.rescue !== null
-        ? Rescue.fromPartial(object.rescue)
-        : undefined;
+    message.rescue = (object.rescue !== undefined && object.rescue !== null)
+      ? Rescue.fromPartial(object.rescue)
+      : undefined;
     return message;
   },
 };
 
 function createBaseInviteStaffRequest(): InviteStaffRequest {
-  return { rescueId: '', email: '', title: undefined, expiresInSeconds: undefined };
+  return { rescueId: "", email: "", title: undefined, expiresInSeconds: undefined };
 }
 
 export const InviteStaffRequest: MessageFns<InviteStaffRequest> = {
   encode(message: InviteStaffRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       writer.uint32(10).string(message.rescueId);
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       writer.uint32(18).string(message.email);
     }
     if (message.title !== undefined) {
@@ -2763,24 +2762,24 @@ export const InviteStaffRequest: MessageFns<InviteStaffRequest> = {
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : '',
-      email: isSet(object.email) ? globalThis.String(object.email) : '',
+        ? globalThis.String(object.rescue_id)
+        : "",
+      email: isSet(object.email) ? globalThis.String(object.email) : "",
       title: isSet(object.title) ? globalThis.String(object.title) : undefined,
       expiresInSeconds: isSet(object.expiresInSeconds)
         ? globalThis.Number(object.expiresInSeconds)
         : isSet(object.expires_in_seconds)
-          ? globalThis.Number(object.expires_in_seconds)
-          : undefined,
+        ? globalThis.Number(object.expires_in_seconds)
+        : undefined,
     };
   },
 
   toJSON(message: InviteStaffRequest): unknown {
     const obj: any = {};
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       obj.rescueId = message.rescueId;
     }
-    if (message.email !== '') {
+    if (message.email !== "") {
       obj.email = message.email;
     }
     if (message.title !== undefined) {
@@ -2797,8 +2796,8 @@ export const InviteStaffRequest: MessageFns<InviteStaffRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<InviteStaffRequest>, I>>(object: I): InviteStaffRequest {
     const message = createBaseInviteStaffRequest();
-    message.rescueId = object.rescueId ?? '';
-    message.email = object.email ?? '';
+    message.rescueId = object.rescueId ?? "";
+    message.email = object.email ?? "";
     message.title = object.title ?? undefined;
     message.expiresInSeconds = object.expiresInSeconds ?? undefined;
     return message;
@@ -2806,7 +2805,7 @@ export const InviteStaffRequest: MessageFns<InviteStaffRequest> = {
 };
 
 function createBaseInviteStaffResponse(): InviteStaffResponse {
-  return { invitation: undefined, token: '' };
+  return { invitation: undefined, token: "" };
 }
 
 export const InviteStaffResponse: MessageFns<InviteStaffResponse> = {
@@ -2814,7 +2813,7 @@ export const InviteStaffResponse: MessageFns<InviteStaffResponse> = {
     if (message.invitation !== undefined) {
       Invitation.encode(message.invitation, writer.uint32(10).fork()).join();
     }
-    if (message.token !== '') {
+    if (message.token !== "") {
       writer.uint32(18).string(message.token);
     }
     return writer;
@@ -2855,7 +2854,7 @@ export const InviteStaffResponse: MessageFns<InviteStaffResponse> = {
   fromJSON(object: any): InviteStaffResponse {
     return {
       invitation: isSet(object.invitation) ? Invitation.fromJSON(object.invitation) : undefined,
-      token: isSet(object.token) ? globalThis.String(object.token) : '',
+      token: isSet(object.token) ? globalThis.String(object.token) : "",
     };
   },
 
@@ -2864,7 +2863,7 @@ export const InviteStaffResponse: MessageFns<InviteStaffResponse> = {
     if (message.invitation !== undefined) {
       obj.invitation = Invitation.toJSON(message.invitation);
     }
-    if (message.token !== '') {
+    if (message.token !== "") {
       obj.token = message.token;
     }
     return obj;
@@ -2873,44 +2872,41 @@ export const InviteStaffResponse: MessageFns<InviteStaffResponse> = {
   create<I extends Exact<DeepPartial<InviteStaffResponse>, I>>(base?: I): InviteStaffResponse {
     return InviteStaffResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<InviteStaffResponse>, I>>(
-    object: I
-  ): InviteStaffResponse {
+  fromPartial<I extends Exact<DeepPartial<InviteStaffResponse>, I>>(object: I): InviteStaffResponse {
     const message = createBaseInviteStaffResponse();
-    message.invitation =
-      object.invitation !== undefined && object.invitation !== null
-        ? Invitation.fromPartial(object.invitation)
-        : undefined;
-    message.token = object.token ?? '';
+    message.invitation = (object.invitation !== undefined && object.invitation !== null)
+      ? Invitation.fromPartial(object.invitation)
+      : undefined;
+    message.token = object.token ?? "";
     return message;
   },
 };
 
 function createBaseStaffMember(): StaffMember {
   return {
-    staffMemberId: '',
-    userId: '',
-    rescueId: '',
+    staffMemberId: "",
+    userId: "",
+    rescueId: "",
     title: undefined,
     isVerified: false,
     verifiedBy: undefined,
     verifiedAt: undefined,
-    addedBy: '',
-    addedAt: '',
-    createdAt: '',
-    updatedAt: '',
+    addedBy: "",
+    addedAt: "",
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const StaffMember: MessageFns<StaffMember> = {
   encode(message: StaffMember, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.staffMemberId !== '') {
+    if (message.staffMemberId !== "") {
       writer.uint32(10).string(message.staffMemberId);
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(18).string(message.userId);
     }
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       writer.uint32(26).string(message.rescueId);
     }
     if (message.title !== undefined) {
@@ -2925,16 +2921,16 @@ export const StaffMember: MessageFns<StaffMember> = {
     if (message.verifiedAt !== undefined) {
       writer.uint32(58).string(message.verifiedAt);
     }
-    if (message.addedBy !== '') {
+    if (message.addedBy !== "") {
       writer.uint32(66).string(message.addedBy);
     }
-    if (message.addedAt !== '') {
+    if (message.addedAt !== "") {
       writer.uint32(74).string(message.addedAt);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(82).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(90).string(message.updatedAt);
     }
     return writer;
@@ -3049,66 +3045,66 @@ export const StaffMember: MessageFns<StaffMember> = {
       staffMemberId: isSet(object.staffMemberId)
         ? globalThis.String(object.staffMemberId)
         : isSet(object.staff_member_id)
-          ? globalThis.String(object.staff_member_id)
-          : '',
+        ? globalThis.String(object.staff_member_id)
+        : "",
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : '',
+        ? globalThis.String(object.rescue_id)
+        : "",
       title: isSet(object.title) ? globalThis.String(object.title) : undefined,
       isVerified: isSet(object.isVerified)
         ? globalThis.Boolean(object.isVerified)
         : isSet(object.is_verified)
-          ? globalThis.Boolean(object.is_verified)
-          : false,
+        ? globalThis.Boolean(object.is_verified)
+        : false,
       verifiedBy: isSet(object.verifiedBy)
         ? globalThis.String(object.verifiedBy)
         : isSet(object.verified_by)
-          ? globalThis.String(object.verified_by)
-          : undefined,
+        ? globalThis.String(object.verified_by)
+        : undefined,
       verifiedAt: isSet(object.verifiedAt)
         ? globalThis.String(object.verifiedAt)
         : isSet(object.verified_at)
-          ? globalThis.String(object.verified_at)
-          : undefined,
+        ? globalThis.String(object.verified_at)
+        : undefined,
       addedBy: isSet(object.addedBy)
         ? globalThis.String(object.addedBy)
         : isSet(object.added_by)
-          ? globalThis.String(object.added_by)
-          : '',
+        ? globalThis.String(object.added_by)
+        : "",
       addedAt: isSet(object.addedAt)
         ? globalThis.String(object.addedAt)
         : isSet(object.added_at)
-          ? globalThis.String(object.added_at)
-          : '',
+        ? globalThis.String(object.added_at)
+        : "",
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: StaffMember): unknown {
     const obj: any = {};
-    if (message.staffMemberId !== '') {
+    if (message.staffMemberId !== "") {
       obj.staffMemberId = message.staffMemberId;
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       obj.rescueId = message.rescueId;
     }
     if (message.title !== undefined) {
@@ -3123,16 +3119,16 @@ export const StaffMember: MessageFns<StaffMember> = {
     if (message.verifiedAt !== undefined) {
       obj.verifiedAt = message.verifiedAt;
     }
-    if (message.addedBy !== '') {
+    if (message.addedBy !== "") {
       obj.addedBy = message.addedBy;
     }
-    if (message.addedAt !== '') {
+    if (message.addedAt !== "") {
       obj.addedAt = message.addedAt;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -3143,17 +3139,17 @@ export const StaffMember: MessageFns<StaffMember> = {
   },
   fromPartial<I extends Exact<DeepPartial<StaffMember>, I>>(object: I): StaffMember {
     const message = createBaseStaffMember();
-    message.staffMemberId = object.staffMemberId ?? '';
-    message.userId = object.userId ?? '';
-    message.rescueId = object.rescueId ?? '';
+    message.staffMemberId = object.staffMemberId ?? "";
+    message.userId = object.userId ?? "";
+    message.rescueId = object.rescueId ?? "";
     message.title = object.title ?? undefined;
     message.isVerified = object.isVerified ?? false;
     message.verifiedBy = object.verifiedBy ?? undefined;
     message.verifiedAt = object.verifiedAt ?? undefined;
-    message.addedBy = object.addedBy ?? '';
-    message.addedAt = object.addedAt ?? '';
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.addedBy = object.addedBy ?? "";
+    message.addedAt = object.addedAt ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
@@ -3192,14 +3188,10 @@ export const GetMyStaffMembershipRequest: MessageFns<GetMyStaffMembershipRequest
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetMyStaffMembershipRequest>, I>>(
-    base?: I
-  ): GetMyStaffMembershipRequest {
+  create<I extends Exact<DeepPartial<GetMyStaffMembershipRequest>, I>>(base?: I): GetMyStaffMembershipRequest {
     return GetMyStaffMembershipRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetMyStaffMembershipRequest>, I>>(
-    _: I
-  ): GetMyStaffMembershipRequest {
+  fromPartial<I extends Exact<DeepPartial<GetMyStaffMembershipRequest>, I>>(_: I): GetMyStaffMembershipRequest {
     const message = createBaseGetMyStaffMembershipRequest();
     return message;
   },
@@ -3210,10 +3202,7 @@ function createBaseGetMyStaffMembershipResponse(): GetMyStaffMembershipResponse 
 }
 
 export const GetMyStaffMembershipResponse: MessageFns<GetMyStaffMembershipResponse> = {
-  encode(
-    message: GetMyStaffMembershipResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetMyStaffMembershipResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.staffMember !== undefined) {
       StaffMember.encode(message.staffMember, writer.uint32(10).fork()).join();
     }
@@ -3249,8 +3238,8 @@ export const GetMyStaffMembershipResponse: MessageFns<GetMyStaffMembershipRespon
       staffMember: isSet(object.staffMember)
         ? StaffMember.fromJSON(object.staffMember)
         : isSet(object.staff_member)
-          ? StaffMember.fromJSON(object.staff_member)
-          : undefined,
+        ? StaffMember.fromJSON(object.staff_member)
+        : undefined,
     };
   },
 
@@ -3262,19 +3251,14 @@ export const GetMyStaffMembershipResponse: MessageFns<GetMyStaffMembershipRespon
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetMyStaffMembershipResponse>, I>>(
-    base?: I
-  ): GetMyStaffMembershipResponse {
+  create<I extends Exact<DeepPartial<GetMyStaffMembershipResponse>, I>>(base?: I): GetMyStaffMembershipResponse {
     return GetMyStaffMembershipResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetMyStaffMembershipResponse>, I>>(
-    object: I
-  ): GetMyStaffMembershipResponse {
+  fromPartial<I extends Exact<DeepPartial<GetMyStaffMembershipResponse>, I>>(object: I): GetMyStaffMembershipResponse {
     const message = createBaseGetMyStaffMembershipResponse();
-    message.staffMember =
-      object.staffMember !== undefined && object.staffMember !== null
-        ? StaffMember.fromPartial(object.staffMember)
-        : undefined;
+    message.staffMember = (object.staffMember !== undefined && object.staffMember !== null)
+      ? StaffMember.fromPartial(object.staffMember)
+      : undefined;
     return message;
   },
 };
@@ -3284,10 +3268,7 @@ function createBaseListStaffMembersRequest(): ListStaffMembersRequest {
 }
 
 export const ListStaffMembersRequest: MessageFns<ListStaffMembersRequest> = {
-  encode(
-    message: ListStaffMembersRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListStaffMembersRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.rescueId !== undefined) {
       writer.uint32(10).string(message.rescueId);
     }
@@ -3323,8 +3304,8 @@ export const ListStaffMembersRequest: MessageFns<ListStaffMembersRequest> = {
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : undefined,
+        ? globalThis.String(object.rescue_id)
+        : undefined,
     };
   },
 
@@ -3336,14 +3317,10 @@ export const ListStaffMembersRequest: MessageFns<ListStaffMembersRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListStaffMembersRequest>, I>>(
-    base?: I
-  ): ListStaffMembersRequest {
+  create<I extends Exact<DeepPartial<ListStaffMembersRequest>, I>>(base?: I): ListStaffMembersRequest {
     return ListStaffMembersRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListStaffMembersRequest>, I>>(
-    object: I
-  ): ListStaffMembersRequest {
+  fromPartial<I extends Exact<DeepPartial<ListStaffMembersRequest>, I>>(object: I): ListStaffMembersRequest {
     const message = createBaseListStaffMembersRequest();
     message.rescueId = object.rescueId ?? undefined;
     return message;
@@ -3355,10 +3332,7 @@ function createBaseListStaffMembersResponse(): ListStaffMembersResponse {
 }
 
 export const ListStaffMembersResponse: MessageFns<ListStaffMembersResponse> = {
-  encode(
-    message: ListStaffMembersResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListStaffMembersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.staffMembers) {
       StaffMember.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -3394,63 +3368,59 @@ export const ListStaffMembersResponse: MessageFns<ListStaffMembersResponse> = {
       staffMembers: globalThis.Array.isArray(object?.staffMembers)
         ? object.staffMembers.map((e: any) => StaffMember.fromJSON(e))
         : globalThis.Array.isArray(object?.staff_members)
-          ? object.staff_members.map((e: any) => StaffMember.fromJSON(e))
-          : [],
+        ? object.staff_members.map((e: any) => StaffMember.fromJSON(e))
+        : [],
     };
   },
 
   toJSON(message: ListStaffMembersResponse): unknown {
     const obj: any = {};
     if (message.staffMembers?.length) {
-      obj.staffMembers = message.staffMembers.map(e => StaffMember.toJSON(e));
+      obj.staffMembers = message.staffMembers.map((e) => StaffMember.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListStaffMembersResponse>, I>>(
-    base?: I
-  ): ListStaffMembersResponse {
+  create<I extends Exact<DeepPartial<ListStaffMembersResponse>, I>>(base?: I): ListStaffMembersResponse {
     return ListStaffMembersResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListStaffMembersResponse>, I>>(
-    object: I
-  ): ListStaffMembersResponse {
+  fromPartial<I extends Exact<DeepPartial<ListStaffMembersResponse>, I>>(object: I): ListStaffMembersResponse {
     const message = createBaseListStaffMembersResponse();
-    message.staffMembers = object.staffMembers?.map(e => StaffMember.fromPartial(e)) || [];
+    message.staffMembers = object.staffMembers?.map((e) => StaffMember.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseFosterPlacement(): FosterPlacement {
   return {
-    placementId: '',
-    rescueId: '',
-    petId: '',
-    fosterUserId: '',
-    startDate: '',
+    placementId: "",
+    rescueId: "",
+    petId: "",
+    fosterUserId: "",
+    startDate: "",
     endDate: undefined,
     status: 0,
     notes: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const FosterPlacement: MessageFns<FosterPlacement> = {
   encode(message: FosterPlacement, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.placementId !== '') {
+    if (message.placementId !== "") {
       writer.uint32(10).string(message.placementId);
     }
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       writer.uint32(18).string(message.rescueId);
     }
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       writer.uint32(26).string(message.petId);
     }
-    if (message.fosterUserId !== '') {
+    if (message.fosterUserId !== "") {
       writer.uint32(34).string(message.fosterUserId);
     }
-    if (message.startDate !== '') {
+    if (message.startDate !== "") {
       writer.uint32(42).string(message.startDate);
     }
     if (message.endDate !== undefined) {
@@ -3462,10 +3432,10 @@ export const FosterPlacement: MessageFns<FosterPlacement> = {
     if (message.notes !== undefined) {
       writer.uint32(66).string(message.notes);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(74).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(82).string(message.updatedAt);
     }
     return writer;
@@ -3572,63 +3542,63 @@ export const FosterPlacement: MessageFns<FosterPlacement> = {
       placementId: isSet(object.placementId)
         ? globalThis.String(object.placementId)
         : isSet(object.placement_id)
-          ? globalThis.String(object.placement_id)
-          : '',
+        ? globalThis.String(object.placement_id)
+        : "",
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : '',
+        ? globalThis.String(object.rescue_id)
+        : "",
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-          ? globalThis.String(object.pet_id)
-          : '',
+        ? globalThis.String(object.pet_id)
+        : "",
       fosterUserId: isSet(object.fosterUserId)
         ? globalThis.String(object.fosterUserId)
         : isSet(object.foster_user_id)
-          ? globalThis.String(object.foster_user_id)
-          : '',
+        ? globalThis.String(object.foster_user_id)
+        : "",
       startDate: isSet(object.startDate)
         ? globalThis.String(object.startDate)
         : isSet(object.start_date)
-          ? globalThis.String(object.start_date)
-          : '',
+        ? globalThis.String(object.start_date)
+        : "",
       endDate: isSet(object.endDate)
         ? globalThis.String(object.endDate)
         : isSet(object.end_date)
-          ? globalThis.String(object.end_date)
-          : undefined,
+        ? globalThis.String(object.end_date)
+        : undefined,
       status: isSet(object.status) ? fosterPlacementStatusFromJSON(object.status) : 0,
       notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: FosterPlacement): unknown {
     const obj: any = {};
-    if (message.placementId !== '') {
+    if (message.placementId !== "") {
       obj.placementId = message.placementId;
     }
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       obj.rescueId = message.rescueId;
     }
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       obj.petId = message.petId;
     }
-    if (message.fosterUserId !== '') {
+    if (message.fosterUserId !== "") {
       obj.fosterUserId = message.fosterUserId;
     }
-    if (message.startDate !== '') {
+    if (message.startDate !== "") {
       obj.startDate = message.startDate;
     }
     if (message.endDate !== undefined) {
@@ -3640,10 +3610,10 @@ export const FosterPlacement: MessageFns<FosterPlacement> = {
     if (message.notes !== undefined) {
       obj.notes = message.notes;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -3654,39 +3624,36 @@ export const FosterPlacement: MessageFns<FosterPlacement> = {
   },
   fromPartial<I extends Exact<DeepPartial<FosterPlacement>, I>>(object: I): FosterPlacement {
     const message = createBaseFosterPlacement();
-    message.placementId = object.placementId ?? '';
-    message.rescueId = object.rescueId ?? '';
-    message.petId = object.petId ?? '';
-    message.fosterUserId = object.fosterUserId ?? '';
-    message.startDate = object.startDate ?? '';
+    message.placementId = object.placementId ?? "";
+    message.rescueId = object.rescueId ?? "";
+    message.petId = object.petId ?? "";
+    message.fosterUserId = object.fosterUserId ?? "";
+    message.startDate = object.startDate ?? "";
     message.endDate = object.endDate ?? undefined;
     message.status = object.status ?? 0;
     message.notes = object.notes ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseCreateFosterPlacementRequest(): CreateFosterPlacementRequest {
-  return { rescueId: '', petId: '', fosterUserId: '', startDate: '', notes: undefined };
+  return { rescueId: "", petId: "", fosterUserId: "", startDate: "", notes: undefined };
 }
 
 export const CreateFosterPlacementRequest: MessageFns<CreateFosterPlacementRequest> = {
-  encode(
-    message: CreateFosterPlacementRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.rescueId !== '') {
+  encode(message: CreateFosterPlacementRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== "") {
       writer.uint32(10).string(message.rescueId);
     }
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       writer.uint32(18).string(message.petId);
     }
-    if (message.fosterUserId !== '') {
+    if (message.fosterUserId !== "") {
       writer.uint32(26).string(message.fosterUserId);
     }
-    if (message.startDate !== '') {
+    if (message.startDate !== "") {
       writer.uint32(34).string(message.startDate);
     }
     if (message.notes !== undefined) {
@@ -3756,39 +3723,39 @@ export const CreateFosterPlacementRequest: MessageFns<CreateFosterPlacementReque
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : '',
+        ? globalThis.String(object.rescue_id)
+        : "",
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-          ? globalThis.String(object.pet_id)
-          : '',
+        ? globalThis.String(object.pet_id)
+        : "",
       fosterUserId: isSet(object.fosterUserId)
         ? globalThis.String(object.fosterUserId)
         : isSet(object.foster_user_id)
-          ? globalThis.String(object.foster_user_id)
-          : '',
+        ? globalThis.String(object.foster_user_id)
+        : "",
       startDate: isSet(object.startDate)
         ? globalThis.String(object.startDate)
         : isSet(object.start_date)
-          ? globalThis.String(object.start_date)
-          : '',
+        ? globalThis.String(object.start_date)
+        : "",
       notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
     };
   },
 
   toJSON(message: CreateFosterPlacementRequest): unknown {
     const obj: any = {};
-    if (message.rescueId !== '') {
+    if (message.rescueId !== "") {
       obj.rescueId = message.rescueId;
     }
-    if (message.petId !== '') {
+    if (message.petId !== "") {
       obj.petId = message.petId;
     }
-    if (message.fosterUserId !== '') {
+    if (message.fosterUserId !== "") {
       obj.fosterUserId = message.fosterUserId;
     }
-    if (message.startDate !== '') {
+    if (message.startDate !== "") {
       obj.startDate = message.startDate;
     }
     if (message.notes !== undefined) {
@@ -3797,19 +3764,15 @@ export const CreateFosterPlacementRequest: MessageFns<CreateFosterPlacementReque
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateFosterPlacementRequest>, I>>(
-    base?: I
-  ): CreateFosterPlacementRequest {
+  create<I extends Exact<DeepPartial<CreateFosterPlacementRequest>, I>>(base?: I): CreateFosterPlacementRequest {
     return CreateFosterPlacementRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateFosterPlacementRequest>, I>>(
-    object: I
-  ): CreateFosterPlacementRequest {
+  fromPartial<I extends Exact<DeepPartial<CreateFosterPlacementRequest>, I>>(object: I): CreateFosterPlacementRequest {
     const message = createBaseCreateFosterPlacementRequest();
-    message.rescueId = object.rescueId ?? '';
-    message.petId = object.petId ?? '';
-    message.fosterUserId = object.fosterUserId ?? '';
-    message.startDate = object.startDate ?? '';
+    message.rescueId = object.rescueId ?? "";
+    message.petId = object.petId ?? "";
+    message.fosterUserId = object.fosterUserId ?? "";
+    message.startDate = object.startDate ?? "";
     message.notes = object.notes ?? undefined;
     return message;
   },
@@ -3820,10 +3783,7 @@ function createBaseCreateFosterPlacementResponse(): CreateFosterPlacementRespons
 }
 
 export const CreateFosterPlacementResponse: MessageFns<CreateFosterPlacementResponse> = {
-  encode(
-    message: CreateFosterPlacementResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: CreateFosterPlacementResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.placement !== undefined) {
       FosterPlacement.encode(message.placement, writer.uint32(10).fork()).join();
     }
@@ -3855,9 +3815,7 @@ export const CreateFosterPlacementResponse: MessageFns<CreateFosterPlacementResp
   },
 
   fromJSON(object: any): CreateFosterPlacementResponse {
-    return {
-      placement: isSet(object.placement) ? FosterPlacement.fromJSON(object.placement) : undefined,
-    };
+    return { placement: isSet(object.placement) ? FosterPlacement.fromJSON(object.placement) : undefined };
   },
 
   toJSON(message: CreateFosterPlacementResponse): unknown {
@@ -3868,19 +3826,16 @@ export const CreateFosterPlacementResponse: MessageFns<CreateFosterPlacementResp
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateFosterPlacementResponse>, I>>(
-    base?: I
-  ): CreateFosterPlacementResponse {
+  create<I extends Exact<DeepPartial<CreateFosterPlacementResponse>, I>>(base?: I): CreateFosterPlacementResponse {
     return CreateFosterPlacementResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<CreateFosterPlacementResponse>, I>>(
-    object: I
+    object: I,
   ): CreateFosterPlacementResponse {
     const message = createBaseCreateFosterPlacementResponse();
-    message.placement =
-      object.placement !== undefined && object.placement !== null
-        ? FosterPlacement.fromPartial(object.placement)
-        : undefined;
+    message.placement = (object.placement !== undefined && object.placement !== null)
+      ? FosterPlacement.fromPartial(object.placement)
+      : undefined;
     return message;
   },
 };
@@ -3890,10 +3845,7 @@ function createBaseListFosterPlacementsRequest(): ListFosterPlacementsRequest {
 }
 
 export const ListFosterPlacementsRequest: MessageFns<ListFosterPlacementsRequest> = {
-  encode(
-    message: ListFosterPlacementsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListFosterPlacementsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.rescueId !== undefined) {
       writer.uint32(10).string(message.rescueId);
     }
@@ -3951,18 +3903,18 @@ export const ListFosterPlacementsRequest: MessageFns<ListFosterPlacementsRequest
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-          ? globalThis.String(object.rescue_id)
-          : undefined,
+        ? globalThis.String(object.rescue_id)
+        : undefined,
       fosterUserId: isSet(object.fosterUserId)
         ? globalThis.String(object.fosterUserId)
         : isSet(object.foster_user_id)
-          ? globalThis.String(object.foster_user_id)
-          : undefined,
+        ? globalThis.String(object.foster_user_id)
+        : undefined,
       statusFilter: isSet(object.statusFilter)
         ? fosterPlacementStatusFromJSON(object.statusFilter)
         : isSet(object.status_filter)
-          ? fosterPlacementStatusFromJSON(object.status_filter)
-          : 0,
+        ? fosterPlacementStatusFromJSON(object.status_filter)
+        : 0,
     };
   },
 
@@ -3980,14 +3932,10 @@ export const ListFosterPlacementsRequest: MessageFns<ListFosterPlacementsRequest
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListFosterPlacementsRequest>, I>>(
-    base?: I
-  ): ListFosterPlacementsRequest {
+  create<I extends Exact<DeepPartial<ListFosterPlacementsRequest>, I>>(base?: I): ListFosterPlacementsRequest {
     return ListFosterPlacementsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListFosterPlacementsRequest>, I>>(
-    object: I
-  ): ListFosterPlacementsRequest {
+  fromPartial<I extends Exact<DeepPartial<ListFosterPlacementsRequest>, I>>(object: I): ListFosterPlacementsRequest {
     const message = createBaseListFosterPlacementsRequest();
     message.rescueId = object.rescueId ?? undefined;
     message.fosterUserId = object.fosterUserId ?? undefined;
@@ -4001,10 +3949,7 @@ function createBaseListFosterPlacementsResponse(): ListFosterPlacementsResponse 
 }
 
 export const ListFosterPlacementsResponse: MessageFns<ListFosterPlacementsResponse> = {
-  encode(
-    message: ListFosterPlacementsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListFosterPlacementsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.placements) {
       FosterPlacement.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -4046,35 +3991,28 @@ export const ListFosterPlacementsResponse: MessageFns<ListFosterPlacementsRespon
   toJSON(message: ListFosterPlacementsResponse): unknown {
     const obj: any = {};
     if (message.placements?.length) {
-      obj.placements = message.placements.map(e => FosterPlacement.toJSON(e));
+      obj.placements = message.placements.map((e) => FosterPlacement.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListFosterPlacementsResponse>, I>>(
-    base?: I
-  ): ListFosterPlacementsResponse {
+  create<I extends Exact<DeepPartial<ListFosterPlacementsResponse>, I>>(base?: I): ListFosterPlacementsResponse {
     return ListFosterPlacementsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListFosterPlacementsResponse>, I>>(
-    object: I
-  ): ListFosterPlacementsResponse {
+  fromPartial<I extends Exact<DeepPartial<ListFosterPlacementsResponse>, I>>(object: I): ListFosterPlacementsResponse {
     const message = createBaseListFosterPlacementsResponse();
-    message.placements = object.placements?.map(e => FosterPlacement.fromPartial(e)) || [];
+    message.placements = object.placements?.map((e) => FosterPlacement.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseGetFosterPlacementRequest(): GetFosterPlacementRequest {
-  return { placementId: '' };
+  return { placementId: "" };
 }
 
 export const GetFosterPlacementRequest: MessageFns<GetFosterPlacementRequest> = {
-  encode(
-    message: GetFosterPlacementRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.placementId !== '') {
+  encode(message: GetFosterPlacementRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.placementId !== "") {
       writer.uint32(10).string(message.placementId);
     }
     return writer;
@@ -4109,29 +4047,25 @@ export const GetFosterPlacementRequest: MessageFns<GetFosterPlacementRequest> = 
       placementId: isSet(object.placementId)
         ? globalThis.String(object.placementId)
         : isSet(object.placement_id)
-          ? globalThis.String(object.placement_id)
-          : '',
+        ? globalThis.String(object.placement_id)
+        : "",
     };
   },
 
   toJSON(message: GetFosterPlacementRequest): unknown {
     const obj: any = {};
-    if (message.placementId !== '') {
+    if (message.placementId !== "") {
       obj.placementId = message.placementId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetFosterPlacementRequest>, I>>(
-    base?: I
-  ): GetFosterPlacementRequest {
+  create<I extends Exact<DeepPartial<GetFosterPlacementRequest>, I>>(base?: I): GetFosterPlacementRequest {
     return GetFosterPlacementRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetFosterPlacementRequest>, I>>(
-    object: I
-  ): GetFosterPlacementRequest {
+  fromPartial<I extends Exact<DeepPartial<GetFosterPlacementRequest>, I>>(object: I): GetFosterPlacementRequest {
     const message = createBaseGetFosterPlacementRequest();
-    message.placementId = object.placementId ?? '';
+    message.placementId = object.placementId ?? "";
     return message;
   },
 };
@@ -4141,10 +4075,7 @@ function createBaseGetFosterPlacementResponse(): GetFosterPlacementResponse {
 }
 
 export const GetFosterPlacementResponse: MessageFns<GetFosterPlacementResponse> = {
-  encode(
-    message: GetFosterPlacementResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetFosterPlacementResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.placement !== undefined) {
       FosterPlacement.encode(message.placement, writer.uint32(10).fork()).join();
     }
@@ -4176,9 +4107,7 @@ export const GetFosterPlacementResponse: MessageFns<GetFosterPlacementResponse> 
   },
 
   fromJSON(object: any): GetFosterPlacementResponse {
-    return {
-      placement: isSet(object.placement) ? FosterPlacement.fromJSON(object.placement) : undefined,
-    };
+    return { placement: isSet(object.placement) ? FosterPlacement.fromJSON(object.placement) : undefined };
   },
 
   toJSON(message: GetFosterPlacementResponse): unknown {
@@ -4189,33 +4118,25 @@ export const GetFosterPlacementResponse: MessageFns<GetFosterPlacementResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetFosterPlacementResponse>, I>>(
-    base?: I
-  ): GetFosterPlacementResponse {
+  create<I extends Exact<DeepPartial<GetFosterPlacementResponse>, I>>(base?: I): GetFosterPlacementResponse {
     return GetFosterPlacementResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetFosterPlacementResponse>, I>>(
-    object: I
-  ): GetFosterPlacementResponse {
+  fromPartial<I extends Exact<DeepPartial<GetFosterPlacementResponse>, I>>(object: I): GetFosterPlacementResponse {
     const message = createBaseGetFosterPlacementResponse();
-    message.placement =
-      object.placement !== undefined && object.placement !== null
-        ? FosterPlacement.fromPartial(object.placement)
-        : undefined;
+    message.placement = (object.placement !== undefined && object.placement !== null)
+      ? FosterPlacement.fromPartial(object.placement)
+      : undefined;
     return message;
   },
 };
 
 function createBaseEndFosterPlacementRequest(): EndFosterPlacementRequest {
-  return { placementId: '', outcome: 0, endDate: undefined, notes: undefined };
+  return { placementId: "", outcome: 0, endDate: undefined, notes: undefined };
 }
 
 export const EndFosterPlacementRequest: MessageFns<EndFosterPlacementRequest> = {
-  encode(
-    message: EndFosterPlacementRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.placementId !== '') {
+  encode(message: EndFosterPlacementRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.placementId !== "") {
       writer.uint32(10).string(message.placementId);
     }
     if (message.outcome !== 0) {
@@ -4283,21 +4204,21 @@ export const EndFosterPlacementRequest: MessageFns<EndFosterPlacementRequest> = 
       placementId: isSet(object.placementId)
         ? globalThis.String(object.placementId)
         : isSet(object.placement_id)
-          ? globalThis.String(object.placement_id)
-          : '',
+        ? globalThis.String(object.placement_id)
+        : "",
       outcome: isSet(object.outcome) ? fosterEndOutcomeFromJSON(object.outcome) : 0,
       endDate: isSet(object.endDate)
         ? globalThis.String(object.endDate)
         : isSet(object.end_date)
-          ? globalThis.String(object.end_date)
-          : undefined,
+        ? globalThis.String(object.end_date)
+        : undefined,
       notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
     };
   },
 
   toJSON(message: EndFosterPlacementRequest): unknown {
     const obj: any = {};
-    if (message.placementId !== '') {
+    if (message.placementId !== "") {
       obj.placementId = message.placementId;
     }
     if (message.outcome !== 0) {
@@ -4312,16 +4233,12 @@ export const EndFosterPlacementRequest: MessageFns<EndFosterPlacementRequest> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<EndFosterPlacementRequest>, I>>(
-    base?: I
-  ): EndFosterPlacementRequest {
+  create<I extends Exact<DeepPartial<EndFosterPlacementRequest>, I>>(base?: I): EndFosterPlacementRequest {
     return EndFosterPlacementRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<EndFosterPlacementRequest>, I>>(
-    object: I
-  ): EndFosterPlacementRequest {
+  fromPartial<I extends Exact<DeepPartial<EndFosterPlacementRequest>, I>>(object: I): EndFosterPlacementRequest {
     const message = createBaseEndFosterPlacementRequest();
-    message.placementId = object.placementId ?? '';
+    message.placementId = object.placementId ?? "";
     message.outcome = object.outcome ?? 0;
     message.endDate = object.endDate ?? undefined;
     message.notes = object.notes ?? undefined;
@@ -4334,10 +4251,7 @@ function createBaseEndFosterPlacementResponse(): EndFosterPlacementResponse {
 }
 
 export const EndFosterPlacementResponse: MessageFns<EndFosterPlacementResponse> = {
-  encode(
-    message: EndFosterPlacementResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: EndFosterPlacementResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.placement !== undefined) {
       FosterPlacement.encode(message.placement, writer.uint32(10).fork()).join();
     }
@@ -4369,9 +4283,7 @@ export const EndFosterPlacementResponse: MessageFns<EndFosterPlacementResponse> 
   },
 
   fromJSON(object: any): EndFosterPlacementResponse {
-    return {
-      placement: isSet(object.placement) ? FosterPlacement.fromJSON(object.placement) : undefined,
-    };
+    return { placement: isSet(object.placement) ? FosterPlacement.fromJSON(object.placement) : undefined };
   },
 
   toJSON(message: EndFosterPlacementResponse): unknown {
@@ -4382,33 +4294,25 @@ export const EndFosterPlacementResponse: MessageFns<EndFosterPlacementResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<EndFosterPlacementResponse>, I>>(
-    base?: I
-  ): EndFosterPlacementResponse {
+  create<I extends Exact<DeepPartial<EndFosterPlacementResponse>, I>>(base?: I): EndFosterPlacementResponse {
     return EndFosterPlacementResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<EndFosterPlacementResponse>, I>>(
-    object: I
-  ): EndFosterPlacementResponse {
+  fromPartial<I extends Exact<DeepPartial<EndFosterPlacementResponse>, I>>(object: I): EndFosterPlacementResponse {
     const message = createBaseEndFosterPlacementResponse();
-    message.placement =
-      object.placement !== undefined && object.placement !== null
-        ? FosterPlacement.fromPartial(object.placement)
-        : undefined;
+    message.placement = (object.placement !== undefined && object.placement !== null)
+      ? FosterPlacement.fromPartial(object.placement)
+      : undefined;
     return message;
   },
 };
 
 function createBaseGetInvitationByTokenRequest(): GetInvitationByTokenRequest {
-  return { token: '' };
+  return { token: "" };
 }
 
 export const GetInvitationByTokenRequest: MessageFns<GetInvitationByTokenRequest> = {
-  encode(
-    message: GetInvitationByTokenRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.token !== '') {
+  encode(message: GetInvitationByTokenRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.token !== "") {
       writer.uint32(10).string(message.token);
     }
     return writer;
@@ -4439,27 +4343,23 @@ export const GetInvitationByTokenRequest: MessageFns<GetInvitationByTokenRequest
   },
 
   fromJSON(object: any): GetInvitationByTokenRequest {
-    return { token: isSet(object.token) ? globalThis.String(object.token) : '' };
+    return { token: isSet(object.token) ? globalThis.String(object.token) : "" };
   },
 
   toJSON(message: GetInvitationByTokenRequest): unknown {
     const obj: any = {};
-    if (message.token !== '') {
+    if (message.token !== "") {
       obj.token = message.token;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetInvitationByTokenRequest>, I>>(
-    base?: I
-  ): GetInvitationByTokenRequest {
+  create<I extends Exact<DeepPartial<GetInvitationByTokenRequest>, I>>(base?: I): GetInvitationByTokenRequest {
     return GetInvitationByTokenRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetInvitationByTokenRequest>, I>>(
-    object: I
-  ): GetInvitationByTokenRequest {
+  fromPartial<I extends Exact<DeepPartial<GetInvitationByTokenRequest>, I>>(object: I): GetInvitationByTokenRequest {
     const message = createBaseGetInvitationByTokenRequest();
-    message.token = object.token ?? '';
+    message.token = object.token ?? "";
     return message;
   },
 };
@@ -4469,10 +4369,7 @@ function createBaseGetInvitationByTokenResponse(): GetInvitationByTokenResponse 
 }
 
 export const GetInvitationByTokenResponse: MessageFns<GetInvitationByTokenResponse> = {
-  encode(
-    message: GetInvitationByTokenResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetInvitationByTokenResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.invitation !== undefined) {
       Invitation.encode(message.invitation, writer.uint32(10).fork()).join();
     }
@@ -4504,9 +4401,7 @@ export const GetInvitationByTokenResponse: MessageFns<GetInvitationByTokenRespon
   },
 
   fromJSON(object: any): GetInvitationByTokenResponse {
-    return {
-      invitation: isSet(object.invitation) ? Invitation.fromJSON(object.invitation) : undefined,
-    };
+    return { invitation: isSet(object.invitation) ? Invitation.fromJSON(object.invitation) : undefined };
   },
 
   toJSON(message: GetInvitationByTokenResponse): unknown {
@@ -4517,19 +4412,14 @@ export const GetInvitationByTokenResponse: MessageFns<GetInvitationByTokenRespon
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetInvitationByTokenResponse>, I>>(
-    base?: I
-  ): GetInvitationByTokenResponse {
+  create<I extends Exact<DeepPartial<GetInvitationByTokenResponse>, I>>(base?: I): GetInvitationByTokenResponse {
     return GetInvitationByTokenResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetInvitationByTokenResponse>, I>>(
-    object: I
-  ): GetInvitationByTokenResponse {
+  fromPartial<I extends Exact<DeepPartial<GetInvitationByTokenResponse>, I>>(object: I): GetInvitationByTokenResponse {
     const message = createBaseGetInvitationByTokenResponse();
-    message.invitation =
-      object.invitation !== undefined && object.invitation !== null
-        ? Invitation.fromPartial(object.invitation)
-        : undefined;
+    message.invitation = (object.invitation !== undefined && object.invitation !== null)
+      ? Invitation.fromPartial(object.invitation)
+      : undefined;
     return message;
   },
 };
@@ -4558,16 +4448,14 @@ export const RescueServiceService = {
    * Publishes `rescue.created` on NATS after commit.
    */
   create: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/Create' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/Create" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: CreateRescueRequest): Buffer =>
-      Buffer.from(CreateRescueRequest.encode(value).finish()),
+    requestSerialize: (value: CreateRescueRequest): Buffer => Buffer.from(CreateRescueRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): CreateRescueRequest => CreateRescueRequest.decode(value),
     responseSerialize: (value: CreateRescueResponse): Buffer =>
       Buffer.from(CreateRescueResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateRescueResponse =>
-      CreateRescueResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateRescueResponse => CreateRescueResponse.decode(value),
   },
   /**
    * Fetch a single rescue by id. NOT_FOUND when missing or
@@ -4575,14 +4463,12 @@ export const RescueServiceService = {
    * on a pet's listing page.
    */
   get: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/Get' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/Get" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetRescueRequest): Buffer =>
-      Buffer.from(GetRescueRequest.encode(value).finish()),
+    requestSerialize: (value: GetRescueRequest): Buffer => Buffer.from(GetRescueRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetRescueRequest => GetRescueRequest.decode(value),
-    responseSerialize: (value: GetRescueResponse): Buffer =>
-      Buffer.from(GetRescueResponse.encode(value).finish()),
+    responseSerialize: (value: GetRescueResponse): Buffer => Buffer.from(GetRescueResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetRescueResponse => GetRescueResponse.decode(value),
   },
   /**
@@ -4591,14 +4477,12 @@ export const RescueServiceService = {
    * by default; admins can filter on the other statuses.
    */
   list: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/List' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/List" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ListRescuesRequest): Buffer =>
-      Buffer.from(ListRescuesRequest.encode(value).finish()),
+    requestSerialize: (value: ListRescuesRequest): Buffer => Buffer.from(ListRescuesRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListRescuesRequest => ListRescuesRequest.decode(value),
-    responseSerialize: (value: ListRescuesResponse): Buffer =>
-      Buffer.from(ListRescuesResponse.encode(value).finish()),
+    responseSerialize: (value: ListRescuesResponse): Buffer => Buffer.from(ListRescuesResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ListRescuesResponse => ListRescuesResponse.decode(value),
   },
   /**
@@ -4607,16 +4491,14 @@ export const RescueServiceService = {
    * the rescue. Publishes `rescue.updated` on NATS after commit.
    */
   update: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/Update' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/Update" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: UpdateRescueRequest): Buffer =>
-      Buffer.from(UpdateRescueRequest.encode(value).finish()),
+    requestSerialize: (value: UpdateRescueRequest): Buffer => Buffer.from(UpdateRescueRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): UpdateRescueRequest => UpdateRescueRequest.decode(value),
     responseSerialize: (value: UpdateRescueResponse): Buffer =>
       Buffer.from(UpdateRescueResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpdateRescueResponse =>
-      UpdateRescueResponse.decode(value),
+    responseDeserialize: (value: Buffer): UpdateRescueResponse => UpdateRescueResponse.decode(value),
   },
   /**
    * Mark a rescue as verified (or transition to rejected/suspended).
@@ -4625,16 +4507,14 @@ export const RescueServiceService = {
    * after commit.
    */
   verify: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/Verify' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/Verify" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: VerifyRescueRequest): Buffer =>
-      Buffer.from(VerifyRescueRequest.encode(value).finish()),
+    requestSerialize: (value: VerifyRescueRequest): Buffer => Buffer.from(VerifyRescueRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): VerifyRescueRequest => VerifyRescueRequest.decode(value),
     responseSerialize: (value: VerifyRescueResponse): Buffer =>
       Buffer.from(VerifyRescueResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): VerifyRescueResponse =>
-      VerifyRescueResponse.decode(value),
+    responseDeserialize: (value: Buffer): VerifyRescueResponse => VerifyRescueResponse.decode(value),
   },
   /**
    * Mint a staff-invitation token + persist the row. Caller MUST have
@@ -4643,14 +4523,12 @@ export const RescueServiceService = {
    * the invitee.
    */
   inviteStaff: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/InviteStaff' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/InviteStaff" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: InviteStaffRequest): Buffer =>
-      Buffer.from(InviteStaffRequest.encode(value).finish()),
+    requestSerialize: (value: InviteStaffRequest): Buffer => Buffer.from(InviteStaffRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): InviteStaffRequest => InviteStaffRequest.decode(value),
-    responseSerialize: (value: InviteStaffResponse): Buffer =>
-      Buffer.from(InviteStaffResponse.encode(value).finish()),
+    responseSerialize: (value: InviteStaffResponse): Buffer => Buffer.from(InviteStaffResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): InviteStaffResponse => InviteStaffResponse.decode(value),
   },
   /**
@@ -4659,17 +4537,15 @@ export const RescueServiceService = {
    * Self-scoped — no user_id field.
    */
   getMyStaffMembership: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/GetMyStaffMembership' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/GetMyStaffMembership" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetMyStaffMembershipRequest): Buffer =>
       Buffer.from(GetMyStaffMembershipRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetMyStaffMembershipRequest =>
-      GetMyStaffMembershipRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetMyStaffMembershipRequest => GetMyStaffMembershipRequest.decode(value),
     responseSerialize: (value: GetMyStaffMembershipResponse): Buffer =>
       Buffer.from(GetMyStaffMembershipResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetMyStaffMembershipResponse =>
-      GetMyStaffMembershipResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetMyStaffMembershipResponse => GetMyStaffMembershipResponse.decode(value),
   },
   /**
    * List all staff members at a rescue. Caller MUST be a verified staff
@@ -4677,65 +4553,57 @@ export const RescueServiceService = {
    * view.
    */
   listStaffMembers: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/ListStaffMembers' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/ListStaffMembers" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListStaffMembersRequest): Buffer =>
       Buffer.from(ListStaffMembersRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListStaffMembersRequest =>
-      ListStaffMembersRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListStaffMembersRequest => ListStaffMembersRequest.decode(value),
     responseSerialize: (value: ListStaffMembersResponse): Buffer =>
       Buffer.from(ListStaffMembersResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListStaffMembersResponse =>
-      ListStaffMembersResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListStaffMembersResponse => ListStaffMembersResponse.decode(value),
   },
   /**
    * Create a foster placement. Caller MUST have `foster.create` scoped
    * to the rescue. Publishes `rescue.fosterPlacementCreated`.
    */
   createFosterPlacement: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/CreateFosterPlacement' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/CreateFosterPlacement" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: CreateFosterPlacementRequest): Buffer =>
       Buffer.from(CreateFosterPlacementRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateFosterPlacementRequest =>
-      CreateFosterPlacementRequest.decode(value),
+    requestDeserialize: (value: Buffer): CreateFosterPlacementRequest => CreateFosterPlacementRequest.decode(value),
     responseSerialize: (value: CreateFosterPlacementResponse): Buffer =>
       Buffer.from(CreateFosterPlacementResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateFosterPlacementResponse =>
-      CreateFosterPlacementResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateFosterPlacementResponse => CreateFosterPlacementResponse.decode(value),
   },
   /**
    * List foster placements with optional filters (rescue, foster user,
    * status). Caller MUST have `foster.read` for the rescue.
    */
   listFosterPlacements: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/ListFosterPlacements' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/ListFosterPlacements" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListFosterPlacementsRequest): Buffer =>
       Buffer.from(ListFosterPlacementsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListFosterPlacementsRequest =>
-      ListFosterPlacementsRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListFosterPlacementsRequest => ListFosterPlacementsRequest.decode(value),
     responseSerialize: (value: ListFosterPlacementsResponse): Buffer =>
       Buffer.from(ListFosterPlacementsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListFosterPlacementsResponse =>
-      ListFosterPlacementsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListFosterPlacementsResponse => ListFosterPlacementsResponse.decode(value),
   },
   /** Fetch a single foster placement by id. */
   getFosterPlacement: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/GetFosterPlacement' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/GetFosterPlacement" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetFosterPlacementRequest): Buffer =>
       Buffer.from(GetFosterPlacementRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetFosterPlacementRequest =>
-      GetFosterPlacementRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetFosterPlacementRequest => GetFosterPlacementRequest.decode(value),
     responseSerialize: (value: GetFosterPlacementResponse): Buffer =>
       Buffer.from(GetFosterPlacementResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetFosterPlacementResponse =>
-      GetFosterPlacementResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetFosterPlacementResponse => GetFosterPlacementResponse.decode(value),
   },
   /**
    * End an active placement (return-to-rescue / adopted-by-foster /
@@ -4743,17 +4611,15 @@ export const RescueServiceService = {
    * `rescue.fosterPlacementEnded`.
    */
   endFosterPlacement: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/EndFosterPlacement' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/EndFosterPlacement" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: EndFosterPlacementRequest): Buffer =>
       Buffer.from(EndFosterPlacementRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): EndFosterPlacementRequest =>
-      EndFosterPlacementRequest.decode(value),
+    requestDeserialize: (value: Buffer): EndFosterPlacementRequest => EndFosterPlacementRequest.decode(value),
     responseSerialize: (value: EndFosterPlacementResponse): Buffer =>
       Buffer.from(EndFosterPlacementResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): EndFosterPlacementResponse =>
-      EndFosterPlacementResponse.decode(value),
+    responseDeserialize: (value: Buffer): EndFosterPlacementResponse => EndFosterPlacementResponse.decode(value),
   },
   /**
    * Read an invitation's public details by token (for the accept page).
@@ -4762,17 +4628,15 @@ export const RescueServiceService = {
    * Public — no principal required (the token IS the credential).
    */
   getInvitationByToken: {
-    path: '/adopt_dont_shop.rescue.v1.RescueService/GetInvitationByToken' as const,
+    path: "/adopt_dont_shop.rescue.v1.RescueService/GetInvitationByToken" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetInvitationByTokenRequest): Buffer =>
       Buffer.from(GetInvitationByTokenRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetInvitationByTokenRequest =>
-      GetInvitationByTokenRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetInvitationByTokenRequest => GetInvitationByTokenRequest.decode(value),
     responseSerialize: (value: GetInvitationByTokenResponse): Buffer =>
       Buffer.from(GetInvitationByTokenResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetInvitationByTokenResponse =>
-      GetInvitationByTokenResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetInvitationByTokenResponse => GetInvitationByTokenResponse.decode(value),
   },
 } as const;
 
@@ -4831,10 +4695,7 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
    * Create a foster placement. Caller MUST have `foster.create` scoped
    * to the rescue. Publishes `rescue.fosterPlacementCreated`.
    */
-  createFosterPlacement: handleUnaryCall<
-    CreateFosterPlacementRequest,
-    CreateFosterPlacementResponse
-  >;
+  createFosterPlacement: handleUnaryCall<CreateFosterPlacementRequest, CreateFosterPlacementResponse>;
   /**
    * List foster placements with optional filters (rescue, foster user,
    * status). Caller MUST have `foster.read` for the rescue.
@@ -4865,18 +4726,18 @@ export interface RescueServiceClient extends Client {
    */
   create(
     request: CreateRescueRequest,
-    callback: (error: ServiceError | null, response: CreateRescueResponse) => void
+    callback: (error: ServiceError | null, response: CreateRescueResponse) => void,
   ): ClientUnaryCall;
   create(
     request: CreateRescueRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateRescueResponse) => void
+    callback: (error: ServiceError | null, response: CreateRescueResponse) => void,
   ): ClientUnaryCall;
   create(
     request: CreateRescueRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateRescueResponse) => void
+    callback: (error: ServiceError | null, response: CreateRescueResponse) => void,
   ): ClientUnaryCall;
   /**
    * Fetch a single rescue by id. NOT_FOUND when missing or
@@ -4885,18 +4746,18 @@ export interface RescueServiceClient extends Client {
    */
   get(
     request: GetRescueRequest,
-    callback: (error: ServiceError | null, response: GetRescueResponse) => void
+    callback: (error: ServiceError | null, response: GetRescueResponse) => void,
   ): ClientUnaryCall;
   get(
     request: GetRescueRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetRescueResponse) => void
+    callback: (error: ServiceError | null, response: GetRescueResponse) => void,
   ): ClientUnaryCall;
   get(
     request: GetRescueRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetRescueResponse) => void
+    callback: (error: ServiceError | null, response: GetRescueResponse) => void,
   ): ClientUnaryCall;
   /**
    * List rescues with keyset pagination + optional status filter.
@@ -4905,18 +4766,18 @@ export interface RescueServiceClient extends Client {
    */
   list(
     request: ListRescuesRequest,
-    callback: (error: ServiceError | null, response: ListRescuesResponse) => void
+    callback: (error: ServiceError | null, response: ListRescuesResponse) => void,
   ): ClientUnaryCall;
   list(
     request: ListRescuesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListRescuesResponse) => void
+    callback: (error: ServiceError | null, response: ListRescuesResponse) => void,
   ): ClientUnaryCall;
   list(
     request: ListRescuesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListRescuesResponse) => void
+    callback: (error: ServiceError | null, response: ListRescuesResponse) => void,
   ): ClientUnaryCall;
   /**
    * Update mutable rescue fields. Does NOT change verification status
@@ -4925,18 +4786,18 @@ export interface RescueServiceClient extends Client {
    */
   update(
     request: UpdateRescueRequest,
-    callback: (error: ServiceError | null, response: UpdateRescueResponse) => void
+    callback: (error: ServiceError | null, response: UpdateRescueResponse) => void,
   ): ClientUnaryCall;
   update(
     request: UpdateRescueRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdateRescueResponse) => void
+    callback: (error: ServiceError | null, response: UpdateRescueResponse) => void,
   ): ClientUnaryCall;
   update(
     request: UpdateRescueRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdateRescueResponse) => void
+    callback: (error: ServiceError | null, response: UpdateRescueResponse) => void,
   ): ClientUnaryCall;
   /**
    * Mark a rescue as verified (or transition to rejected/suspended).
@@ -4946,18 +4807,18 @@ export interface RescueServiceClient extends Client {
    */
   verify(
     request: VerifyRescueRequest,
-    callback: (error: ServiceError | null, response: VerifyRescueResponse) => void
+    callback: (error: ServiceError | null, response: VerifyRescueResponse) => void,
   ): ClientUnaryCall;
   verify(
     request: VerifyRescueRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: VerifyRescueResponse) => void
+    callback: (error: ServiceError | null, response: VerifyRescueResponse) => void,
   ): ClientUnaryCall;
   verify(
     request: VerifyRescueRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: VerifyRescueResponse) => void
+    callback: (error: ServiceError | null, response: VerifyRescueResponse) => void,
   ): ClientUnaryCall;
   /**
    * Mint a staff-invitation token + persist the row. Caller MUST have
@@ -4967,18 +4828,18 @@ export interface RescueServiceClient extends Client {
    */
   inviteStaff(
     request: InviteStaffRequest,
-    callback: (error: ServiceError | null, response: InviteStaffResponse) => void
+    callback: (error: ServiceError | null, response: InviteStaffResponse) => void,
   ): ClientUnaryCall;
   inviteStaff(
     request: InviteStaffRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: InviteStaffResponse) => void
+    callback: (error: ServiceError | null, response: InviteStaffResponse) => void,
   ): ClientUnaryCall;
   inviteStaff(
     request: InviteStaffRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: InviteStaffResponse) => void
+    callback: (error: ServiceError | null, response: InviteStaffResponse) => void,
   ): ClientUnaryCall;
   /**
    * Return the calling principal's staff-member record (their rescue
@@ -4987,18 +4848,18 @@ export interface RescueServiceClient extends Client {
    */
   getMyStaffMembership(
     request: GetMyStaffMembershipRequest,
-    callback: (error: ServiceError | null, response: GetMyStaffMembershipResponse) => void
+    callback: (error: ServiceError | null, response: GetMyStaffMembershipResponse) => void,
   ): ClientUnaryCall;
   getMyStaffMembership(
     request: GetMyStaffMembershipRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetMyStaffMembershipResponse) => void
+    callback: (error: ServiceError | null, response: GetMyStaffMembershipResponse) => void,
   ): ClientUnaryCall;
   getMyStaffMembership(
     request: GetMyStaffMembershipRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetMyStaffMembershipResponse) => void
+    callback: (error: ServiceError | null, response: GetMyStaffMembershipResponse) => void,
   ): ClientUnaryCall;
   /**
    * List all staff members at a rescue. Caller MUST be a verified staff
@@ -5007,18 +4868,18 @@ export interface RescueServiceClient extends Client {
    */
   listStaffMembers(
     request: ListStaffMembersRequest,
-    callback: (error: ServiceError | null, response: ListStaffMembersResponse) => void
+    callback: (error: ServiceError | null, response: ListStaffMembersResponse) => void,
   ): ClientUnaryCall;
   listStaffMembers(
     request: ListStaffMembersRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListStaffMembersResponse) => void
+    callback: (error: ServiceError | null, response: ListStaffMembersResponse) => void,
   ): ClientUnaryCall;
   listStaffMembers(
     request: ListStaffMembersRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListStaffMembersResponse) => void
+    callback: (error: ServiceError | null, response: ListStaffMembersResponse) => void,
   ): ClientUnaryCall;
   /**
    * Create a foster placement. Caller MUST have `foster.create` scoped
@@ -5026,18 +4887,18 @@ export interface RescueServiceClient extends Client {
    */
   createFosterPlacement(
     request: CreateFosterPlacementRequest,
-    callback: (error: ServiceError | null, response: CreateFosterPlacementResponse) => void
+    callback: (error: ServiceError | null, response: CreateFosterPlacementResponse) => void,
   ): ClientUnaryCall;
   createFosterPlacement(
     request: CreateFosterPlacementRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateFosterPlacementResponse) => void
+    callback: (error: ServiceError | null, response: CreateFosterPlacementResponse) => void,
   ): ClientUnaryCall;
   createFosterPlacement(
     request: CreateFosterPlacementRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateFosterPlacementResponse) => void
+    callback: (error: ServiceError | null, response: CreateFosterPlacementResponse) => void,
   ): ClientUnaryCall;
   /**
    * List foster placements with optional filters (rescue, foster user,
@@ -5045,34 +4906,34 @@ export interface RescueServiceClient extends Client {
    */
   listFosterPlacements(
     request: ListFosterPlacementsRequest,
-    callback: (error: ServiceError | null, response: ListFosterPlacementsResponse) => void
+    callback: (error: ServiceError | null, response: ListFosterPlacementsResponse) => void,
   ): ClientUnaryCall;
   listFosterPlacements(
     request: ListFosterPlacementsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListFosterPlacementsResponse) => void
+    callback: (error: ServiceError | null, response: ListFosterPlacementsResponse) => void,
   ): ClientUnaryCall;
   listFosterPlacements(
     request: ListFosterPlacementsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListFosterPlacementsResponse) => void
+    callback: (error: ServiceError | null, response: ListFosterPlacementsResponse) => void,
   ): ClientUnaryCall;
   /** Fetch a single foster placement by id. */
   getFosterPlacement(
     request: GetFosterPlacementRequest,
-    callback: (error: ServiceError | null, response: GetFosterPlacementResponse) => void
+    callback: (error: ServiceError | null, response: GetFosterPlacementResponse) => void,
   ): ClientUnaryCall;
   getFosterPlacement(
     request: GetFosterPlacementRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetFosterPlacementResponse) => void
+    callback: (error: ServiceError | null, response: GetFosterPlacementResponse) => void,
   ): ClientUnaryCall;
   getFosterPlacement(
     request: GetFosterPlacementRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetFosterPlacementResponse) => void
+    callback: (error: ServiceError | null, response: GetFosterPlacementResponse) => void,
   ): ClientUnaryCall;
   /**
    * End an active placement (return-to-rescue / adopted-by-foster /
@@ -5081,18 +4942,18 @@ export interface RescueServiceClient extends Client {
    */
   endFosterPlacement(
     request: EndFosterPlacementRequest,
-    callback: (error: ServiceError | null, response: EndFosterPlacementResponse) => void
+    callback: (error: ServiceError | null, response: EndFosterPlacementResponse) => void,
   ): ClientUnaryCall;
   endFosterPlacement(
     request: EndFosterPlacementRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: EndFosterPlacementResponse) => void
+    callback: (error: ServiceError | null, response: EndFosterPlacementResponse) => void,
   ): ClientUnaryCall;
   endFosterPlacement(
     request: EndFosterPlacementRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: EndFosterPlacementResponse) => void
+    callback: (error: ServiceError | null, response: EndFosterPlacementResponse) => void,
   ): ClientUnaryCall;
   /**
    * Read an invitation's public details by token (for the accept page).
@@ -5102,49 +4963,40 @@ export interface RescueServiceClient extends Client {
    */
   getInvitationByToken(
     request: GetInvitationByTokenRequest,
-    callback: (error: ServiceError | null, response: GetInvitationByTokenResponse) => void
+    callback: (error: ServiceError | null, response: GetInvitationByTokenResponse) => void,
   ): ClientUnaryCall;
   getInvitationByToken(
     request: GetInvitationByTokenRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetInvitationByTokenResponse) => void
+    callback: (error: ServiceError | null, response: GetInvitationByTokenResponse) => void,
   ): ClientUnaryCall;
   getInvitationByToken(
     request: GetInvitationByTokenRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetInvitationByTokenResponse) => void
+    callback: (error: ServiceError | null, response: GetInvitationByTokenResponse) => void,
   ): ClientUnaryCall;
 }
 
 export const RescueServiceClient = makeGenericClientConstructor(
   RescueServiceService,
-  'adopt_dont_shop.rescue.v1.RescueService'
+  "adopt_dont_shop.rescue.v1.RescueService",
 ) as unknown as {
-  new (
-    address: string,
-    credentials: ChannelCredentials,
-    options?: Partial<ClientOptions>
-  ): RescueServiceClient;
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): RescueServiceClient;
   service: typeof RescueServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
+export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {

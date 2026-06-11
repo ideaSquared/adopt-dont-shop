@@ -217,6 +217,8 @@ function makeGdprRow(overrides: Record<string, unknown> = {}) {
     requested_at: new Date('2026-06-09T12:00:00Z'),
     completions: { auth: { recordsErased: 7, completedAt: '2026-06-09T12:01:00Z' } },
     completed_at: null,
+    timed_out_at: null,
+    retry_count: 0,
     created_at: new Date('2026-06-09T12:00:00Z'),
     updated_at: new Date('2026-06-09T12:01:00Z'),
     ...overrides,
@@ -286,5 +288,60 @@ describe('getGdprErasureRequest', () => {
     await expect(
       getGdprErasureRequest(deps, makePrincipal(), { correlationId: '   ' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('exposes timed_out_at and retry_count from the DB row (ADS-830)', async () => {
+    const queryMock = vi.fn(() =>
+      Promise.resolve({
+        rows: [
+          makeGdprRow({
+            timed_out_at: new Date('2026-06-09T12:31:00Z'),
+            retry_count: 2,
+          }),
+        ],
+      })
+    );
+    const deps = {
+      pool: { query: queryMock },
+      nats: {},
+    } as unknown as HandlerDeps;
+    const res = await getGdprErasureRequest(
+      deps,
+      makePrincipal({ permissions: ['admin.gdpr.read'] }),
+      { correlationId: 'corr-1' }
+    );
+    expect(res.request?.timedOutAt).toBe('2026-06-09T12:31:00.000Z');
+    expect(res.request?.retryCount).toBe(2);
+  });
+
+  it('returns timedOutAt as undefined and retryCount as 0 when row has no timeout/retries', async () => {
+    const queryMock = vi.fn(() =>
+      Promise.resolve({ rows: [makeGdprRow({ timed_out_at: null, retry_count: 0 })] })
+    );
+    const deps = {
+      pool: { query: queryMock },
+      nats: {},
+    } as unknown as HandlerDeps;
+    const res = await getGdprErasureRequest(
+      deps,
+      makePrincipal({ permissions: ['admin.gdpr.read'] }),
+      { correlationId: 'corr-1' }
+    );
+    expect(res.request?.timedOutAt).toBeUndefined();
+    expect(res.request?.retryCount).toBe(0);
+  });
+
+  it('includes timed_out_at and retry_count in the SELECT query (ADS-830)', async () => {
+    const queryMock = vi.fn(() => Promise.resolve({ rows: [makeGdprRow()] }));
+    const deps = {
+      pool: { query: queryMock },
+      nats: {},
+    } as unknown as HandlerDeps;
+    await getGdprErasureRequest(deps, makePrincipal({ permissions: ['admin.gdpr.read'] }), {
+      correlationId: 'corr-1',
+    });
+    const sql = queryMock.mock.calls[0][0] as string;
+    expect(sql).toContain('timed_out_at');
+    expect(sql).toContain('retry_count');
   });
 });

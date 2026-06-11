@@ -38,15 +38,16 @@ describe('audit migrations', () => {
     }
   });
 
-  it.each(['001_create_audit_events.ts', '004_add_gdpr_failed_at.ts'])(
-    '%s exports `up` and `down` functions',
-    async filename => {
-      const mod = (await import(`./${filename}`)) as {
-        up: unknown;
-        down: unknown;
-      };
-      expect(typeof mod.up).toBe('function');
-      expect(typeof mod.down).toBe('function');
-    }
-  );
+  it.each([
+    '001_create_audit_events.ts',
+    '004_add_gdpr_failed_at.ts',
+    '005_add_gdpr_saga_deadline.ts',
+  ])('%s exports `up` and `down` functions', async filename => {
+    const mod = (await import(`./${filename}`)) as {
+      up: unknown;
+      down: unknown;
+    };
+    expect(typeof mod.up).toBe('function');
+    expect(typeof mod.down).toBe('function');
+  });
 });
