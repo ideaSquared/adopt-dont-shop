@@ -421,7 +421,7 @@ User.init(
 
 ### Database Migrations
 
-- Migrations in `service.backend/src/migrations/`
+- Migrations in `services/<name>/src/migrations/` (each service owns and runs its own via node-pg-migrate)
 - Use sequential numbering: `01-create-users.ts`, `02-add-user-fields.ts`
 - NEVER modify existing migrations - create new ones
 - Test migrations up AND down
@@ -467,7 +467,7 @@ The backend separates **operational logs** (Layer 1) from **audit events** (Laye
 
 **For UPDATE operations on sensitive entities**, capture before/after deltas. Two options:
 1. Read the previous row inside the same transaction, then include `{ before, after }` in `details` (see `field-permission.service.ts upsert()`).
-2. For Sequelize models you mutate with `instance.set()` before `instance.save()`, use `diffSequelize(instance, allowlist)` from `service.backend/src/utils/audit-diff.ts`.
+2. (Legacy — the deleted monolith used `diffSequelize` from `service.backend` for this; the microservices read the previous row inside the transaction per option 1.)
 
 **Never** log secrets or PII to Layer 1 without going through `loggerHelpers` — the redaction format only protects known fields. Audit-row metadata is also redacted by Winston, but treat it as durable storage.
 
@@ -802,7 +802,7 @@ Role.belongsToMany(User, { through: 'user_roles' });
 
 ### Seeders
 
-- Seeders in `service.backend/src/seeders/`
+- Seed/dev data lives with each service (see `services/*/src` and the e2e seed flow) — the monolith's `seeders/` directory no longer exists
 - Use for development and test data
 - Should be idempotent (safe to run multiple times)
 - Sequential numbering: `01-users.ts`, `02-pets.ts`

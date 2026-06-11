@@ -38,7 +38,7 @@ Both Dockerfiles use multi-stage builds for optimal image size and cache reuse:
 | `build` | Compile TypeScript / bundle assets |
 | `production` | Minimal runtime image (Node for backend, nginx for frontend) |
 
-Backend uses [service.backend/Dockerfile](../service.backend/Dockerfile). All three frontend apps share [Dockerfile.app.optimized](../Dockerfile.app.optimized) and select their app via the `APP_NAME` build arg.
+Each microservice under `services/` has its own `Dockerfile.service` (shared build template). All three frontend apps share [Dockerfile.app.optimized](../Dockerfile.app.optimized) and select their app via the `APP_NAME` build arg.
 
 ### Services
 
@@ -48,7 +48,7 @@ Backend uses [service.backend/Dockerfile](../service.backend/Dockerfile). All th
 - `nginx` — Reverse proxy with subdomain routing (api, admin, rescue)
 
 **Application**
-- `service-backend` — Express API on port 5000 (health: `/health`)
+- `service-gateway` — Fastify API gateway on port 4000 (health: `/health`)
 - `app-client` — Public portal on 3000
 - `app-admin` — Admin dashboard on 3001
 - `app-rescue` — Rescue portal on 3002
@@ -71,7 +71,7 @@ Result: 40-60% faster builds on warm cache, smaller layer graph.
 
 ### Security
 
-- Non-root users in all containers (`backend` for service-backend, `viteuser` for frontend apps).
+- Non-root users in all containers (`viteuser` for frontend apps, `appuser` for microservice containers).
 - Nginx adds OWASP headers (X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy).
 - Health checks on every service so orchestrators can detect bad state.
 - Production overlay (`docker-compose.prod.yml`) requires every secret as `${VAR:?error}` — no defaults, fails fast.
@@ -100,7 +100,7 @@ The dev stack is configured for HMR on Windows/macOS/Linux. Since [ADS-766](http
 | --- | --- | --- |
 | Frontend apps (`app.*/src/**`) | Vite HMR — native inotify on Linux, polling on macOS/Windows (`CHOKIDAR_USEPOLLING`, `CHOKIDAR_INTERVAL`, `CHOKIDAR_AWAITWRITEFINISH`) | ~<500ms (Linux) / ~1-2s (macOS, Windows) |
 | Frontend libs (`lib.*/src/**` except `lib.types`) | Vite aliases point at lib `src/` — HMR picks them up | ~1-2s |
-| Backend (`service.backend/src/**`) | `tsx watch` (native fs events) | ~1s |
+| Backend services (`services/*/src/**`) | `tsx watch` (native fs events) | ~1s |
 | `lib.types/src/**` | `lib-types-watcher` sidecar runs `tsc --watch`; backend picks up dist changes via workspace symlink | ~2-5s |
 
 `npm run setup` auto-detects the host OS and appends the polling vars to `.env` on macOS/Windows. To verify per-container:
@@ -114,9 +114,9 @@ If you need to force polling (e.g. testing a Linux VM that uses a shared filesys
 ### Targeting Specific Services
 
 ```bash
-docker compose up service-backend database redis    # backend stack only
-docker compose up app-admin                         # one frontend
-docker compose up --build service-backend           # force rebuild a service
+docker compose --profile services up service-gateway database redis nats    # gateway stack only
+docker compose up app-admin                                                 # one frontend
+docker compose --profile services up --build service-gateway               # force rebuild a service
 ```
 
 ### Custom Local Configuration
@@ -132,9 +132,9 @@ Common overrides: increase memory limits, expose debug ports, mount extra volume
 ### Database Operations
 
 ```bash
-npm run db:migrate               # sequelize migrations
-npm run db:seed                  # seed dev data
-npm run db:reset                 # migrate + seed
+# Each service auto-migrates on start via its entrypoint.
+# To migrate a single service by hand (containers must be running):
+docker compose exec service-auth npm run db:migrate
 npm run docker:shell:db          # open psql
 ```
 
@@ -148,11 +148,11 @@ npm run db:reset
 
 ### Debugging
 
-**Backend** — add to `docker-compose.override.yml` (the repo doesn't ship a dedicated `dev:debug` script, so override the command to enable Node's `--inspect`):
+**Backend** — add to `docker-compose.override.yml` (override the target service's command to enable Node's `--inspect`):
 
 ```yaml
 services:
-  service-backend:
+  service-gateway:
     ports:
       - "9229:9229"
     command: >
@@ -182,8 +182,9 @@ npm run secrets:generate >> .env.production
 ### Building Individual Images
 
 ```bash
-# Backend
-docker build --target production -t adopt-dont-shop/backend:latest ./service.backend
+# Gateway (example — each service under services/ uses Dockerfile.service)
+docker build --build-arg SERVICE=@adopt-dont-shop/service.gateway --build-arg SERVICE_DIR=services/gateway \
+  --target production -f Dockerfile.service -t adopt-dont-shop/service-gateway:latest .
 
 # Frontend (any app)
 docker build \
@@ -211,7 +212,7 @@ VITE_WS_BASE_URL=wss://api.your-domain.com
 
 ### Health Checks
 
-- Backend: `GET http://localhost:5000/health` → 200
+- Gateway: `GET http://localhost:4000/health` → 200
 - Frontend (nginx): `GET http://localhost/health` → 200
 - Database: `pg_isready` (Docker healthcheck)
 
@@ -247,10 +248,10 @@ The dev stack in `docker-compose.yml` is optimised for inner-loop development: i
 
 ### What it changes
 
-For the `service-backend` service:
+For each microservice (e.g. `service-gateway`):
 
 - `volumes: !reset []` — the `!reset` tag *replaces* the base volume list rather than appending to it (the default Compose merge for sequences). This is what removes the dev bind mounts, including the `./uploads` mount that breaks permissions.
-- `entrypoint: ["/usr/bin/dumb-init", "--"]` — restores the Dockerfile ENTRYPOINT. The compose override entrypoint uses relative paths (`./service.backend/…`) that only resolve under bind mounts.
+- `entrypoint: ["/usr/bin/dumb-init", "--"]` — restores the Dockerfile ENTRYPOINT. The compose override entrypoint uses relative paths that only resolve under bind mounts.
 - `command: ["npm", "run", "dev"]` — restores the Dockerfile CMD. The compose command override creates a runtime symlink for bind-mounted `lib.types`, which is irrelevant when the image already contains a copy of the built library in `node_modules`.
 
 ### Reproducing a CI E2E run locally
@@ -261,7 +262,7 @@ docker compose -f docker-compose.yml -f docker-compose.ci.yml build
 docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
 
 # Tail logs / run the same smoke checks CI runs
-docker compose -f docker-compose.yml -f docker-compose.ci.yml logs -f service-backend
+docker compose -f docker-compose.yml -f docker-compose.ci.yml logs -f service-gateway
 
 # Tear down (always include both files so the project name matches)
 docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
@@ -305,9 +306,9 @@ If HMR misfires on **Linux**, the cause is almost certainly not polling — chec
 lsof -i :5000
 # Or remap in docker-compose.override.yml
 services:
-  service-backend:
+  service-gateway:
     ports:
-      - "5001:5000"
+      - "4001:4000"
 ```
 
 ### Stale Build Cache
@@ -315,7 +316,7 @@ services:
 ```bash
 docker compose build --no-cache
 # Or rebuild a single service
-docker compose build --no-cache service-backend
+docker compose build --no-cache service-gateway
 ```
 
 ### Database Connection Issues
@@ -349,7 +350,7 @@ docker images "adopt-dont-shop/*" -q | xargs docker rmi -f   # remove project im
 ```bash
 docker stats                     # real-time CPU/memory
 npm run docker:ps                # service status + ports
-docker compose logs -f service-backend   # service-specific logs
+docker compose logs -f service-gateway   # service-specific logs
 ```
 
 ## Additional Resources

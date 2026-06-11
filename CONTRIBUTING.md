@@ -89,8 +89,8 @@ npm run format:check
 These checks are enforced by CI but are **not** covered by the fast tier above:
 
 ```bash
-# Backend coverage thresholds (vitest.config.ts blocks below them; `npm test` alone does NOT)
-npm run test:coverage --workspace=@adopt-dont-shop/service-backend
+# Service tests (lint + test + type-check across all services/*)
+npx turbo run lint test type-check --filter='@adopt-dont-shop/service.*'
 
 # Catches new lib.* packages without tests
 node scripts/check-lib-tests.mjs
@@ -103,26 +103,29 @@ npm audit --workspaces --include-workspace-root --audit-level=high
 npm run test:e2e
 ```
 
-> Backend coverage thresholds are enforced **separately** from `npm test`. Only `test:coverage` inside `service.backend` (or CI) will fail when coverage regresses.
+> Service coverage thresholds are enforced inside each `services/*` package's `vitest.config.ts`. The `test-services` CI job runs lint, test, and type-check for every `service.*` package.
 
 ### Full CI matrix (for reference)
 
-The ten required-to-pass checks CI runs on every PR:
+The required checks that gate merge (all feed into the `ci-required` aggregator job in `ci.yml`):
 
 1. **Verify Workspace ↔ Filesystem Alignment** (`ci.yml` → `workspace-drift`) — catches a `lib.*` added to `package.json` workspaces with no matching directory (or vice-versa).
-2. **Backend Tests** (`ci.yml` → `test-backend`) — lint + `test:coverage` (with thresholds) + build.
+2. **Build Libraries** (`ci.yml` → `build-libs`) — compiles every `lib.*` package; downstream jobs depend on the artifact.
 3. **Frontend Tests (app.client / app.admin / app.rescue)** (`ci.yml` → `test-frontend` matrix, ×3) — lint + test + type-check + build per app.
 4. **Library Tests** (`ci.yml` → `test-libs`) — lint, test and type-check across every `lib.*`.
-5. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. Blocking since ADS-419.
-6. **Verify every lib.\* package has tests** (`lib-test-guard.yml`) — runs `scripts/check-lib-tests.mjs`.
-7. **Dependency Audit** (`security.yml`) — `npm audit --workspaces --audit-level=high`.
-8. **Dependency Check** (`quality.yml`) — `npm ls --workspaces --depth=0` for duplicates.
-9. **Build** (per app, per lib) — covered by the build steps inside the backend, frontend and lib jobs above.
-10. **Per-package Lint, Test, Type check** — each app/lib runs its own lint, test and type-check step inside the matching matrix job.
+5. **Service Tests** (`ci.yml` → `test-services`) — lint + test + type-check across every `services/*` package. Added in ADS-822 so zero-test services no longer merge green.
+6. **Dev-Auth Guard** (`ci.yml` → `dev-auth-guard`) — production bundle scan ensuring dev-auth bypass code is properly gated (ADS-676).
+7. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. Re-added as blocking in ADS-792 after the suite was reworked for the post-monolith gateway stack.
+
+Additional checks that run but are not part of `ci-required`:
+
+- **Verify every lib.\* package has tests** (`lib-test-guard.yml`) — runs `scripts/check-lib-tests.mjs`.
+- **Dependency Audit** (`security.yml`) — `npm audit --workspaces --audit-level=high`.
+- **Dependency Check** (`quality.yml`) — `npm ls --workspaces --depth=0` for duplicates.
 
 The Quality workflow's `npm outdated` step is informational (`continue-on-error: true`) and does not block merge.
 
-If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the ten checks above will not be merged.
+If you skip the slow tier locally, expect CI feedback within ~10 minutes — just be ready to fix and push again. PRs that fail any of the seven `ci-required` checks above will not be merged.
 
 ## Code style
 
@@ -154,7 +157,7 @@ Tests must cover **behaviour**, not implementation. 100% coverage is expected bu
 Pick the layout that matches the package, and keep new tests inside `src/`:
 
 - **React libs / apps** (`app.*`, `lib.components`, anything exporting `.tsx`): co-locate next to the source — `Button.tsx` + `Button.test.tsx`.
-- **Backend and non-UI libs** (`service.backend`, `lib.api`, `lib.utils`, …): tests in `src/__tests__/` mirroring the source structure (e.g. `src/services/foo.ts` → `src/__tests__/services/foo.test.ts`).
+- **Services and non-UI libs** (`services/*`, `lib.api`, `lib.utils`, …): tests co-located next to the source in `src/` (e.g. `src/grpc/handlers.ts` → `src/grpc/handlers.test.ts`).
 - **Top-level `__tests__/` outside `src/` is disallowed** — the shared Vitest `include` glob only picks up files under `src/`, so anything else is silently skipped. `scripts/check-workspace-consistency.mjs` enforces this.
 
 This is a forward-looking rule (ADS-737); we are not bulk-moving existing tests. If you touch a file that lives in an old location, move it as part of that change.
@@ -230,7 +233,7 @@ npm run test:e2e:report
 
 - Playwright runs with `retries: 2` in CI. A test must fail 3 times in a row before it counts as a failure.
 - Flaky retry counts are printed in the "Report E2E retry counts" CI step.
-- The `test-e2e` job is a blocking signal — a failure fails the PR check (see ADS-419 and the comment block at `.github/workflows/ci.yml:398`).
+- The `test-e2e` job is a blocking signal — a failure fails the PR check. The suite was reworked for the post-monolith gateway stack and re-added as a required check in ADS-792 (see the `ci-required` aggregator in `.github/workflows/ci.yml`).
 
 ### Selector guidelines
 
