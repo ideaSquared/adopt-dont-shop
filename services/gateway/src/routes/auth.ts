@@ -20,7 +20,6 @@
 // need them (they mint a fresh principal); the middleware passes
 // requests with no Authorization header through to the route.
 
-import rateLimit from '@fastify/rate-limit';
 import { status } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 
@@ -103,11 +102,11 @@ export const registerAuthRoutes = async (
 ): Promise<void> => {
   const { client } = opts;
 
-  // Register the rate-limit plugin scoped to THIS plugin's routes
-  // only. Encapsulated registration means the limits don't bleed
-  // into the notifications routes / catch-all proxy / health check.
-  await app.register(rateLimit, { global: false });
-
+  // Per-route rate limits use config.rateLimit to override the global
+  // limit registered in server.ts. No need to re-register the plugin
+  // here — the global registration in createServer() applies the Redis
+  // store to these routes automatically; the per-route config.rateLimit
+  // objects below set tighter caps on the credential-stuffing surface.
   app.post(
     '/api/v1/auth/login',
     {

@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from 'fastify';
+import { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { GatewayConfig } from './config.js';
@@ -30,6 +30,8 @@ const baseConfig: GatewayConfig = {
   // suites that exercise them flip the flag (and pass docsDir) inline.
   legal: { enabled: false, docsDir: 'docs/legal' },
   config: { publicEnabled: false },
+  // Rate-limit: no Redis in tests, low cap so we can hit 429 quickly.
+  rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
 } as GatewayConfig;
 
 describe('createServer — health endpoint', () => {
@@ -130,6 +132,238 @@ describe('createServer — x-request-id', () => {
       headers: { 'x-request-id': 'gw-test-id-1234' },
     });
     expect(res.headers['x-request-id']).toBe('gw-test-id-1234');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Rate-limit behaviour
+// ---------------------------------------------------------------------------
+//
+// Global blanket limit: a client hitting any route beyond the cap gets 429
+// with the standard rate-limit headers.
+//
+// Per-route override: auth login is capped at 10/min (tighter than 100/min),
+// so it should 429 after 10 requests.
+//
+// Redis-down degraded mode: createServer must succeed and serve requests
+// when the Redis URL is unreachable; the in-memory fallback keeps the gateway
+// alive (skipOnError behaviour).
+//
+// Note: these tests use the in-memory store (no Redis dependency) by leaving
+// redisUrl undefined. The Redis-path is covered by the "unreachable Redis"
+// test which supplies an invalid URL and verifies the gateway still starts.
+
+describe('createServer — global rate limit', () => {
+  let server: FastifyInstance;
+
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('returns 429 when a client exceeds the global cap', async () => {
+    // Use a very tight cap (max: 2) so we can test quickly without many requests.
+    server = await createServer({
+      config: { ...baseConfig, rateLimit: { redisUrl: undefined, max: 2, timeWindow: '1 minute' } },
+      logger: quietLogger,
+    });
+
+    const hit = async () => server.inject({ method: 'GET', url: '/health/simple' });
+    const r1 = await hit();
+    const r2 = await hit();
+    const r3 = await hit();
+
+    expect(r1.statusCode).toBe(200);
+    expect(r2.statusCode).toBe(200);
+    expect(r3.statusCode).toBe(429);
+  });
+
+  it('includes x-ratelimit-* headers on a non-limited response', async () => {
+    server = await createServer({
+      config: {
+        ...baseConfig,
+        rateLimit: { redisUrl: undefined, max: 10, timeWindow: '1 minute' },
+      },
+      logger: quietLogger,
+    });
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers).toHaveProperty('x-ratelimit-limit');
+    expect(res.headers).toHaveProperty('x-ratelimit-remaining');
+  });
+
+  it('includes retry-after header in the 429 response', async () => {
+    server = await createServer({
+      config: { ...baseConfig, rateLimit: { redisUrl: undefined, max: 1, timeWindow: '1 minute' } },
+      logger: quietLogger,
+    });
+    await server.inject({ method: 'GET', url: '/health/simple' });
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+    expect(res.statusCode).toBe(429);
+    expect(res.headers).toHaveProperty('retry-after');
+  });
+});
+
+describe('createServer — per-route rate limit override (auth login)', () => {
+  let server: FastifyInstance;
+
+  const authClient = {
+    login: () =>
+      Promise.resolve({
+        user: {
+          userId: 'u1',
+          email: 'a@b.com',
+          userType: 0,
+          status: 0,
+          emailVerified: false,
+          phoneVerified: false,
+          twoFactorEnabled: false,
+          createdAt: '',
+          updatedAt: '',
+        },
+        tokens: {
+          accessToken: 'at',
+          refreshToken: 'rt',
+          accessExpiresAt: '',
+          refreshExpiresAt: '',
+        },
+        permissions: [],
+      }),
+    logout: () => Promise.resolve({ success: true }),
+    refreshToken: () =>
+      Promise.resolve({
+        tokens: { accessToken: '', refreshToken: '', accessExpiresAt: '', refreshExpiresAt: '' },
+      }),
+    validateToken: () => Promise.resolve({ userId: 'u1', role: 0, permissions: [] }),
+    getMe: () =>
+      Promise.resolve({
+        user: {
+          userId: 'u1',
+          email: 'a@b.com',
+          userType: 0,
+          status: 0,
+          emailVerified: false,
+          phoneVerified: false,
+          twoFactorEnabled: false,
+          createdAt: '',
+          updatedAt: '',
+        },
+        permissions: [],
+      }),
+    assignRole: () => Promise.resolve({ success: true }),
+    register: () => Promise.resolve({ userId: 'u1', message: 'ok' }),
+    verifyEmail: () => Promise.resolve({ success: true }),
+    resendVerification: () => Promise.resolve({ success: true }),
+    forgotPassword: () => Promise.resolve({ success: true, message: '' }),
+    resetPassword: () => Promise.resolve({ success: true, message: '' }),
+    changePassword: () => Promise.resolve({ success: true, message: '' }),
+    updateAccount: () =>
+      Promise.resolve({
+        user: {
+          userId: 'u1',
+          email: 'a@b.com',
+          userType: 0,
+          status: 0,
+          emailVerified: false,
+          phoneVerified: false,
+          twoFactorEnabled: false,
+          createdAt: '',
+          updatedAt: '',
+        },
+      }),
+    close: () => undefined,
+  } as unknown as Parameters<typeof createServer>[0]['authClient'];
+
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('per-route override (login max=10) is tighter than global max=100', async () => {
+    // The global limit is set to 100; login's per-route override is 10.
+    // We send 11 requests and expect the 11th to be 429.
+    server = await createServer({
+      config: {
+        ...baseConfig,
+        cutover: {
+          auth: true,
+          notifications: false,
+          pets: false,
+          rescue: false,
+          applications: false,
+          moderation: false,
+          matching: false,
+          audit: false,
+          chat: false,
+          cms: false,
+        },
+        rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+      },
+      logger: quietLogger,
+      authClient,
+    });
+
+    const postLogin = () =>
+      server.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { email: 'a@b.com', password: 'pw' },
+      });
+
+    let lastStatus = 0;
+    for (let i = 0; i < 11; i++) {
+      const r = await postLogin();
+      lastStatus = r.statusCode;
+    }
+    // The 11th request must have been rate-limited (login cap is 10/min).
+    expect(lastStatus).toBe(429);
+  });
+});
+
+describe('createServer — Redis-down degraded mode', () => {
+  let server: FastifyInstance;
+
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('starts successfully and serves requests when Redis is unreachable', async () => {
+    // Supply an unreachable Redis URL. The gateway must still boot and
+    // handle requests (skipOnError fallback to in-memory store).
+    server = await createServer({
+      config: {
+        ...baseConfig,
+        rateLimit: {
+          redisUrl: 'redis://127.0.0.1:19999', // nothing listening here
+          max: 100,
+          timeWindow: '1 minute',
+        },
+      },
+      logger: quietLogger,
+    });
+
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+    expect(res.statusCode).toBe(200);
+  });
+});
+
+describe('createServer — Prometheus rate-limit counter', () => {
+  it('exposes gateway_rate_limit_hits_total metric after a rejection', async () => {
+    // Tight limit so we can trigger the counter without many requests.
+    const server = await createServer({
+      config: { ...baseConfig, rateLimit: { redisUrl: undefined, max: 1, timeWindow: '1 minute' } },
+      logger: quietLogger,
+    });
+    try {
+      // Use up the 1-request limit.
+      await server.inject({ method: 'GET', url: '/health/simple' });
+      // This should 429 and increment the counter.
+      const limited = await server.inject({ method: 'GET', url: '/health/simple' });
+      expect(limited.statusCode).toBe(429);
+
+      const metrics = await server.inject({ method: 'GET', url: '/metrics' });
+      expect(metrics.body).toContain('gateway_rate_limit_hits_total');
+    } finally {
+      await server.close();
+    }
   });
 });
 

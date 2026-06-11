@@ -101,6 +101,21 @@ export type GatewayConfig = {
   config: {
     publicEnabled: boolean;
   };
+  // Rate limiting — applied at the gateway edge for every route.
+  // Backed by a shared Redis store in production/staging so per-replica
+  // limits don't multiply by N replicas. Falls back to an in-memory
+  // store (with a logged warning) if Redis is unreachable.
+  rateLimit: {
+    // Redis URL for the shared rate-limit store. When unset the gateway
+    // runs with an in-memory store only (single-replica / dev use).
+    redisUrl: string | undefined;
+    // Maximum requests per IP per window (global blanket limit).
+    // Override with GATEWAY_RATE_LIMIT_MAX env var.
+    max: number;
+    // Time window in ms or @lukeed/ms string, e.g. "1 minute".
+    // Override with GATEWAY_RATE_LIMIT_WINDOW env var.
+    timeWindow: string;
+  };
 };
 
 const DEFAULT_PORT = 4000;
@@ -159,8 +174,20 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     config: {
       publicEnabled: env.GATEWAY_CONFIG_ENABLED?.trim().toLowerCase() !== 'false',
     },
+    rateLimit: buildRateLimitConfig(env),
   };
 };
+
+// Build the rate-limit config block.
+function buildRateLimitConfig(env: NodeJS.ProcessEnv): GatewayConfig['rateLimit'] {
+  const maxRaw = env.GATEWAY_RATE_LIMIT_MAX?.trim();
+  const max = maxRaw ? Number.parseInt(maxRaw, 10) : 100;
+  return {
+    redisUrl: readSecret('REDIS_URL', env)?.trim() || undefined,
+    max: Number.isNaN(max) || max <= 0 ? 100 : max,
+    timeWindow: env.GATEWAY_RATE_LIMIT_WINDOW?.trim() || '1 minute',
+  };
+}
 
 // A cutover flag is on only for the exact string "true" (case-insensitive).
 // Anything else — unset, "false", "0", "" — leaves the domain proxied to

@@ -324,6 +324,10 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       NATS_URL: nats://nats:4222
+      # Shared Redis store for cross-replica rate limiting (ADS-805).
+      # Same Redis the other microservices use; the gateway gets its own
+      # key namespace via the plugin's default nameSpace.
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       # Phase 11: the monolith is deleted, so there is no proxy fall-through —
       # a domain whose flag is off just 404s at the gateway. Dev and e2e want
       # every extracted domain live, so default each flag on (overridable via
@@ -342,6 +346,8 @@ services:
       - '127.0.0.1:4000:4000'
     depends_on:
       nats:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
