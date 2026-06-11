@@ -109,6 +109,147 @@ describe('persistAuditEvent', () => {
     expect(params[10]).toBe('{"nested":{"array":[1,2,3]}}');
   });
 
+  describe('payload redaction', () => {
+    it('redacts a top-level password key before persisting', async () => {
+      const { pool, query } = makePool();
+      await persistAuditEvent(
+        pool,
+        basePayload({ payload: { userId: 'u-1', password: 'hunter2' } }),
+        'auth.actionTaken'
+      );
+
+      const [, params] = query.mock.calls[0] as [string, unknown[]];
+      const persisted = JSON.parse(params[10] as string) as Record<string, unknown>;
+      expect(persisted['password']).toBe('[REDACTED]');
+      expect(persisted['userId']).toBe('u-1');
+    });
+
+    it('redacts accessToken and refreshToken at the top level', async () => {
+      const { pool, query } = makePool();
+      await persistAuditEvent(
+        pool,
+        basePayload({ payload: { accessToken: 'eyJ...', refreshToken: 'rt_xyz' } }),
+        'auth.actionTaken'
+      );
+
+      const [, params] = query.mock.calls[0] as [string, unknown[]];
+      const persisted = JSON.parse(params[10] as string) as Record<string, unknown>;
+      expect(persisted['accessToken']).toBe('[REDACTED]');
+      expect(persisted['refreshToken']).toBe('[REDACTED]');
+    });
+
+    it('redacts otp and secret keys', async () => {
+      const { pool, query } = makePool();
+      await persistAuditEvent(
+        pool,
+        basePayload({ payload: { otp: '123456', secret: 'mysecret' } }),
+        'auth.actionTaken'
+      );
+
+      const [, params] = query.mock.calls[0] as [string, unknown[]];
+      const persisted = JSON.parse(params[10] as string) as Record<string, unknown>;
+      expect(persisted['otp']).toBe('[REDACTED]');
+      expect(persisted['secret']).toBe('[REDACTED]');
+    });
+
+    it('redacts sensitive keys nested at depth 2', async () => {
+      const { pool, query } = makePool();
+      await persistAuditEvent(
+        pool,
+        basePayload({
+          payload: {
+            request: {
+              userId: 'u-1',
+              password: 'pw',
+              authorization: 'Bearer eyJ...',
+            },
+          },
+        }),
+        'auth.actionTaken'
+      );
+
+      const [, params] = query.mock.calls[0] as [string, unknown[]];
+      const persisted = JSON.parse(params[10] as string) as {
+        request: Record<string, unknown>;
+      };
+      expect(persisted.request['password']).toBe('[REDACTED]');
+      expect(persisted.request['authorization']).toBe('[REDACTED]');
+      expect(persisted.request['userId']).toBe('u-1');
+    });
+
+    it('redacts sensitive keys nested at depth 3', async () => {
+      const { pool, query } = makePool();
+      await persistAuditEvent(
+        pool,
+        basePayload({
+          payload: {
+            a: { b: { c: { accessToken: 'deep_token' } } },
+          },
+        }),
+        'auth.actionTaken'
+      );
+
+      const [, params] = query.mock.calls[0] as [string, unknown[]];
+      const persisted = JSON.parse(params[10] as string) as {
+        a: { b: { c: Record<string, unknown> } };
+      };
+      expect(persisted.a.b.c['accessToken']).toBe('[REDACTED]');
+    });
+
+    it('redacts sensitive keys inside arrays within the payload', async () => {
+      const { pool, query } = makePool();
+      await persistAuditEvent(
+        pool,
+        basePayload({
+          payload: {
+            items: [
+              { name: 'alice', password: 'pw1' },
+              { name: 'bob', refreshToken: 'rt_2' },
+            ],
+          },
+        }),
+        'auth.actionTaken'
+      );
+
+      const [, params] = query.mock.calls[0] as [string, unknown[]];
+      const persisted = JSON.parse(params[10] as string) as {
+        items: Array<Record<string, unknown>>;
+      };
+      expect(persisted.items[0]['password']).toBe('[REDACTED]');
+      expect(persisted.items[1]['refreshToken']).toBe('[REDACTED]');
+      expect(persisted.items[0]['name']).toBe('alice');
+    });
+
+    it('does not alter non-sensitive fields in a mixed payload', async () => {
+      const { pool, query } = makePool();
+      await persistAuditEvent(
+        pool,
+        basePayload({
+          payload: {
+            source: 'web',
+            ip: '1.2.3.4',
+            password: 'bad_idea',
+          },
+        }),
+        'auth.actionTaken'
+      );
+
+      const [, params] = query.mock.calls[0] as [string, unknown[]];
+      const persisted = JSON.parse(params[10] as string) as Record<string, unknown>;
+      expect(persisted['source']).toBe('web');
+      expect(persisted['ip']).toBe('1.2.3.4');
+      expect(persisted['password']).toBe('[REDACTED]');
+    });
+
+    it('persists an absent payload as "{}" after redaction', async () => {
+      const { pool, query } = makePool();
+      await persistAuditEvent(pool, basePayload({ payload: undefined }), 'auth.actionTaken');
+
+      const [, params] = query.mock.calls[0] as [string, unknown[]];
+      expect(params[10]).toBe('{}');
+    });
+  });
+
   it('treats a redelivered event as idempotent (ON CONFLICT DO NOTHING)', async () => {
     // The mock doesn't actually enforce the constraint, but the SQL
     // clause is what guarantees idempotency in production. This test

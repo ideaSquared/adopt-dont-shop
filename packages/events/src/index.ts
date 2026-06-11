@@ -11,3 +11,4 @@ export {
 } from './gdpr.js';
 export { registerGdprSubscriber } from './gdpr-saga.js';
 export type { GdprEraseFn, RegisterGdprSubscriberOptions } from './gdpr-saga.js';
+export { redactAuditPayload } from './redact-audit-payload.js';
