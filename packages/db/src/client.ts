@@ -9,9 +9,18 @@ export type DbClientOptions = PoolConfig & {
   schema: string;
 };
 
+// Unresponsive Postgres must fail fast — these defaults apply unless the
+// caller explicitly overrides them.
+const TIMEOUT_DEFAULTS = {
+  connectionTimeoutMillis: 10_000,
+  idleTimeoutMillis: 30_000,
+  statement_timeout: 30_000,
+  query_timeout: 30_000,
+} satisfies PoolConfig;
+
 export function createDbClient(opts: DbClientOptions): Pool {
   const { schema, ...config } = opts;
-  const pool = new Pool(config);
+  const pool = new Pool({ ...TIMEOUT_DEFAULTS, ...config });
 
   pool.on('connect', client => {
     void client.query(`SET search_path TO "${schema}", public`);

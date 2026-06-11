@@ -10,6 +10,8 @@
 //   reports.read[:any] for reads — without :any, only the principal's
 //     own user_id is returned
 //   reports.create / reports.update / reports.delete for writes
+//   reports.update:any to update any user's saved report (not gated on read:any)
+//   reports.delete:any to delete any user's saved report (not gated on read:any)
 //   reports.read for ListReportTemplates (no separate template perm —
 //     templates aren't sensitive)
 
@@ -35,11 +37,13 @@ import type { Principal } from '@adopt-dont-shop/authz';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
 
-const REPORTS_READ: Permission = 'reports.read' as Permission;
-const REPORTS_READ_ANY: Permission = 'reports.read:any' as Permission;
-const REPORTS_CREATE: Permission = 'reports.create' as Permission;
-const REPORTS_UPDATE: Permission = 'reports.update' as Permission;
-const REPORTS_DELETE: Permission = 'reports.delete' as Permission;
+const REPORTS_READ: Permission = 'reports.read';
+const REPORTS_READ_ANY: Permission = 'reports.read:any';
+const REPORTS_CREATE: Permission = 'reports.create';
+const REPORTS_UPDATE: Permission = 'reports.update';
+const REPORTS_UPDATE_ANY: Permission = 'reports.update:any';
+const REPORTS_DELETE: Permission = 'reports.delete';
+const REPORTS_DELETE_ANY: Permission = 'reports.delete:any';
 
 const SAVED_REPORT_COLUMNS = `saved_report_id, user_id, rescue_id, template_id, name,
   description, config, is_archived, created_at, updated_at`;
@@ -327,7 +331,7 @@ export async function updateSavedReport(
 
   // Self-ownership filter on the UPDATE for users without :any.
   let whereClause = `saved_report_id = $${params.length} AND deleted_at IS NULL`;
-  if (!hasPerm(principal, REPORTS_READ_ANY)) {
+  if (!hasPerm(principal, REPORTS_UPDATE_ANY)) {
     params.push(principal.userId);
     whereClause += ` AND user_id = $${params.length}`;
   }
@@ -361,7 +365,7 @@ export async function deleteSavedReport(
 
   const params: unknown[] = [id];
   let whereClause = `saved_report_id = $1 AND deleted_at IS NULL`;
-  if (!hasPerm(principal, REPORTS_READ_ANY)) {
+  if (!hasPerm(principal, REPORTS_DELETE_ANY)) {
     params.push(principal.userId);
     whereClause += ` AND user_id = $2`;
   }

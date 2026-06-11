@@ -108,7 +108,14 @@ export type Permission =
   | 'emails.templates.delete'
   | 'emails.send'
   | 'emails.queue.manage'
-  | 'users.profile.update';
+  | 'users.profile.update'
+  | 'reports.read'
+  | 'reports.read:any'
+  | 'reports.create'
+  | 'reports.update'
+  | 'reports.update:any'
+  | 'reports.delete'
+  | 'reports.delete:any';
 
 /**
  * User with permissions

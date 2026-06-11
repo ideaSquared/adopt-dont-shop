@@ -402,6 +402,21 @@ jobs:
               sleep 2
             done
 
+            # ADS-813: smoke-check that the cutover-gated /api/v1/* routes are
+            # actually registered. /api/v1/auth/login only exists when
+            # CUTOVER_AUTH is on: an empty POST returns 400 when registered,
+            # 404 when the flags never reached the gateway.
+            echo "Smoke-checking POST /api/v1/auth/login (verifies CUTOVER flags are set)..."
+            STATUS=$(docker compose -f $COMPOSE_FILE exec -T service-gateway \
+              curl -o /dev/null -w '%{http_code}' -s -X POST \
+              -H 'content-type: application/json' -d '{}' \
+              http://localhost:4000/api/v1/auth/login 2>/dev/null || echo "000")
+            if [ "$STATUS" = "404" ] || [ "$STATUS" = "000" ]; then
+              echo "ERROR: POST /api/v1/auth/login returned $STATUS — CUTOVER_* flags may be missing or gateway routes not registered."
+              exit 1
+            fi
+            echo "Smoke check passed (HTTP $STATUS)."
+
             # Remove secret files now that containers have started (they hold
             # in-memory copies; the files on disk are no longer needed). [ADS-675]
             if [ "$ENV" = "production" ]; then

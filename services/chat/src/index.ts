@@ -14,6 +14,7 @@ const main = async (): Promise<void> => {
   let pool: Awaited<ReturnType<typeof createDbClient>> | undefined;
   let grpc: RunningGrpcServer | undefined;
   let httpClosed = false;
+  let grpcReady = false;
 
   try {
     const config = loadConfig();
@@ -31,6 +32,7 @@ const main = async (): Promise<void> => {
     }
 
     grpc = await startGrpcServer({ config, pool, nats, logger });
+    grpcReady = true;
     // GDPR erasure subscriber — drops the user's data in this schema.
     // Reports back via gdpr.erasureCompleted with service='chat'.
     const { registerGdprSubscriber } = await import('@adopt-dont-shop/events');
@@ -43,7 +45,7 @@ const main = async (): Promise<void> => {
       onError: (err, subject) => logger.error('gdpr erasure subscriber error', { subject, err }),
     });
 
-    const httpServer = createServer({ config, logger });
+    const httpServer = createServer({ config, logger, isReady: () => grpcReady });
     await httpServer.listen({ port: config.port, host: config.host });
 
     logger.info('service.chat running', {
