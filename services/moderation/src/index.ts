@@ -15,6 +15,7 @@ const main = async (): Promise<void> => {
   let pool: ReturnType<typeof createDbClient> | undefined;
   let grpc: RunningGrpcServer | undefined;
   let httpClosed = false;
+  let grpcReady = false;
 
   try {
     const config = loadConfig();
@@ -35,6 +36,7 @@ const main = async (): Promise<void> => {
     }
 
     grpc = await startGrpcServer({ config, pool, nats, logger });
+    grpcReady = true;
     // GDPR erasure subscriber — drops the user's data in this schema.
     // Reports back via gdpr.erasureCompleted with service='moderation'.
     const { registerGdprSubscriber } = await import('@adopt-dont-shop/events');
@@ -53,7 +55,7 @@ const main = async (): Promise<void> => {
     // connection on shutdown.
     registerSubscribers({ nats, deps: { pool, nats }, logger });
 
-    const httpServer = createServer({ config, logger });
+    const httpServer = createServer({ config, logger, isReady: () => grpcReady });
     await httpServer.listen({ port: config.port, host: config.host });
 
     logger.info('service.moderation running', {

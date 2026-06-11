@@ -25,6 +25,7 @@ const main = async (): Promise<void> => {
   let pushWorker: RunningPushWorker | undefined;
   let scheduler: RunningScheduler | undefined;
   let httpClosed = false;
+  let grpcReady = false;
 
   try {
     const config = loadConfig();
@@ -51,6 +52,7 @@ const main = async (): Promise<void> => {
       : undefined;
 
     grpc = await startGrpcServer({ config, pool, nats, logger, authClient });
+    grpcReady = true;
     // NATS subscribers register AFTER gRPC so a fast event arriving on
     // applications.submitted before we're ready to handle gRPC calls
     // can't race against partially-constructed deps. Shutdown drains the
@@ -127,7 +129,7 @@ const main = async (): Promise<void> => {
         { logger }
       );
     }
-    const httpServer = createServer({ config, logger });
+    const httpServer = createServer({ config, logger, isReady: () => grpcReady });
     await httpServer.listen({ port: config.port, host: config.host });
 
     logger.info('service.notifications running', {

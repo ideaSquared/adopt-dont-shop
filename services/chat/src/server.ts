@@ -23,11 +23,16 @@ export type CreateServerOptions = {
   // service emits structured lines through the same pipeline as the
   // rest of the stack.
   logger?: ReturnType<typeof createLogger>;
+  // Readiness probe — /health/simple returns 503 until this returns
+  // true. Defaults to () => true so existing call-sites compile
+  // unchanged. index.ts flips a local boolean after gRPC binds.
+  isReady?: () => boolean;
 };
 
 export const createServer = (opts: CreateServerOptions): FastifyInstance => {
   const { config } = opts;
   const logger = opts.logger ?? createLogger({ serviceName: 'service.chat' });
+  const isReady = opts.isReady ?? (() => true);
 
   // Disable Fastify's built-in pino — winston handles service-level
   // lines (boot, shutdown, error handler), and OTel's HTTP
@@ -57,12 +62,14 @@ export const createServer = (opts: CreateServerOptions): FastifyInstance => {
 
   // Health endpoint — matches the rest of the stack's
   // `/health/simple` path so the existing Docker compose healthcheck
-  // pattern picks this service up unchanged.
-  server.get('/health/simple', async () => ({
-    status: 'ok',
-    service: 'service.chat',
-    environment: config.environment,
-  }));
+  // pattern picks this service up unchanged. Returns 503 until the
+  // gRPC server has bound (isReady probe), then the normal 200 payload.
+  server.get('/health/simple', async (_req, reply) => {
+    if (!isReady()) {
+      return reply.status(503).send({ status: 'starting' });
+    }
+    return { status: 'ok', service: 'service.chat', environment: config.environment };
+  });
 
   return server;
 };

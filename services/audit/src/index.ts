@@ -18,6 +18,7 @@ const main = async (): Promise<void> => {
   let grpc: RunningGrpcServer | undefined;
   let subscriptions: SubscriptionHandle[] = [];
   let httpClosed = false;
+  let grpcReady = false;
 
   try {
     const config = loadConfig();
@@ -38,6 +39,7 @@ const main = async (): Promise<void> => {
     }
 
     grpc = await startGrpcServer({ config, pool, nats, logger });
+    grpcReady = true;
 
     // NATS subscribers register AFTER the gRPC server is up so the
     // service is never in a state where it's accepting NATS messages
@@ -48,7 +50,7 @@ const main = async (): Promise<void> => {
       ...registerGdprSubscribers({ nats, pool, logger }),
     ];
 
-    const httpServer = createServer({ config, logger });
+    const httpServer = createServer({ config, logger, isReady: () => grpcReady });
     await httpServer.listen({ port: config.port, host: config.host });
 
     logger.info('service.audit running', {

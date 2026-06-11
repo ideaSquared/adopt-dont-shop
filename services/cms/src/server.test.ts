@@ -1,7 +1,7 @@
 import { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { ApplicationsConfig } from './config.js';
+import type { CmsConfig } from './config.js';
 import { createServer } from './server.js';
 
 const quietLogger = {
@@ -12,13 +12,13 @@ const quietLogger = {
   silly: () => undefined,
 } as unknown as ReturnType<typeof import('@adopt-dont-shop/observability').createLogger>;
 
-const baseConfig: ApplicationsConfig = {
+const baseConfig: CmsConfig = {
   port: 0,
   grpcPort: 0,
   host: '127.0.0.1',
   environment: 'test',
   databaseUrl: 'postgres://test',
-  schema: 'applications',
+  schema: 'cms',
   natsUrl: 'nats://localhost:4222',
 };
 
@@ -38,7 +38,7 @@ describe('createServer — health endpoint', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({
       status: 'ok',
-      service: 'service.applications',
+      service: 'service.cms',
       environment: 'test',
     });
   });
