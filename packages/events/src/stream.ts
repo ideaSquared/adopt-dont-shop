@@ -42,6 +42,10 @@ export const DOMAIN_SUBJECTS = [
   'gdpr.>',
 ] as const;
 
+// Union type of every valid DOMAIN_SUBJECTS entry. Used by the consumer
+// registry to ensure each entry maps to a real declared subject.
+export type DomainSubject = (typeof DOMAIN_SUBJECTS)[number];
+
 // ensureStream creates-or-updates the DOMAIN_EVENTS stream. Idempotent:
 // safe to call on every service boot. The first service to boot creates
 // it; subsequent boots (and other services) reconcile it to the same

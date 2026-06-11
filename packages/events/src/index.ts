@@ -3,6 +3,7 @@ export type { DomainEvent, TransactionalScope, WithTransactionDeps } from './pub
 export { subscribe } from './subscribe.js';
 export type { MessageHandler, SubscribeOptions, SubscriptionHandle } from './subscribe.js';
 export { ensureStream, DOMAIN_STREAM, DOMAIN_SUBJECTS } from './stream.js';
+export type { DomainSubject } from './stream.js';
 export {
   GDPR_ERASURE_REQUESTED,
   GDPR_ERASURE_COMPLETED,
@@ -12,3 +13,5 @@ export {
 export { registerGdprSubscriber } from './gdpr-saga.js';
 export type { GdprEraseFn, RegisterGdprSubscriberOptions } from './gdpr-saga.js';
 export { redactAuditPayload } from './redact-audit-payload.js';
+export { CONSUMER_REGISTRY } from './consumer-registry.js';
+export type { ConsumerEntry, RegistryEntry, ZeroConsumerEntry } from './consumer-registry.js';
