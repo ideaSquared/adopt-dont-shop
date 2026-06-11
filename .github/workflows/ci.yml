@@ -389,16 +389,14 @@ jobs:
 
       - uses: ./.github/actions/setup-workspace
 
-      # ADS-792: enable buildx so GHA layer cache is available for the
-      # docker compose build below. Using the same setup (BuildKit v0.23.0,
-      # network=host) as docker.yml to keep cache keys compatible across
-      # workflows.
-      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
-        with:
-          driver-opts: |
-            image=moby/buildkit:v0.23.0
-            network=host
-          install: true
+      # NOTE: deliberately NO docker/setup-buildx-action here. The
+      # docker-container builder it creates stores every image twice — once
+      # in the BuildKit cache, once exported as a tarball and re-imported
+      # into the daemon ("sending tarball" / "importing to docker") — which
+      # doubles peak disk for a 14-image build. The daemon's integrated
+      # BuildKit (DOCKER_BUILDKIT=1 is set job-wide) builds straight into
+      # the image store and still supports the dockerfile:1.4 syntax and
+      # RUN --mount=type=cache used by Dockerfile.service.
 
       - name: Resolve Playwright version
         id: pw
@@ -474,22 +472,19 @@ jobs:
           docker compose -f docker-compose.yml up -d database redis
           timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U postgres; do sleep 2; done'
 
-      - name: Pre-build images with GHA layer cache
-        # ADS-792: bake all compose services that have a build stanza in one
-        # pass so GHA layer cache is populated (or consumed on cache hit)
-        # before containers start. `--load` writes images straight into the
-        # daemon via the buildx docker driver (install: true above makes
-        # `docker build` use buildx system-wide). Services that use
-        # pre-built images (postgres, redis, nats, nginx) carry no `build`
-        # block and are silently skipped by bake. `ignore-error=true` means
-        # a GHA quota exhaustion never blocks the pipeline — it degrades
-        # gracefully to a cold rebuild on the next run.
+      - name: Build images
+        # ADS-792: build with the daemon's integrated BuildKit
+        # (DOCKER_BUILDKIT=1 is set job-wide) — NOT a buildx container
+        # builder, which stores every image twice (BuildKit cache +
+        # tarball re-import) and doubles peak disk for a 14-image build.
+        # type=gha layer caching needs that container driver plus the
+        # Actions runtime token, so proper caching is deferred to the
+        # build-push-action→GHCR design on the ticket. The npm-registry
+        # congestion (ECONNRESET) that motivated caching is mitigated by
+        # capping build concurrency instead of all images running npm ci
+        # simultaneously.
         run: |
-          docker buildx bake \
-            --file docker-compose.yml \
-            --set '*.cache-from=type=gha' \
-            --set '*.cache-to=type=gha,mode=max,ignore-error=true' \
-            --load
+          COMPOSE_PARALLEL_LIMIT=4 docker compose -f docker-compose.yml --profile full build
 
       - name: Start the full stack (images already built)
         # Phase 11 follow-up: bring the apps + gateway + services + nginx up
@@ -501,7 +496,7 @@ jobs:
         # now in the `full`/`proxy` profiles so it starts only alongside the
         # apps it proxies, and a single `up` honours the compose dependency
         # graph instead of racing two independent stacks.
-        # ADS-792: --no-build because images were pre-built by the bake step.
+        # ADS-792: --no-build because images were pre-built above.
         run: |
           docker compose -f docker-compose.yml --profile full up -d --no-build
           df -h /
