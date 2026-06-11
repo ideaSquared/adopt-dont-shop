@@ -169,7 +169,12 @@ const main = async (): Promise<void> => {
     process.once('SIGTERM', () => void shutdown('SIGTERM'));
     process.once('SIGINT', () => void shutdown('SIGINT'));
   } catch (err) {
-    logger.error('service.gateway failed to start', { err });
+    // Error's message/stack are non-enumerable — logging { err } serializes
+    // to {} and hides the cause.
+    logger.error('service.gateway failed to start', {
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
     try {
       await nats?.drain();
     } catch {

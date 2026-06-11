@@ -16,7 +16,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Registry } from 'prom-client';
 
-import { createCircuitBreaker, callWithResilience, type ResilienceOptions } from './resilience.js';
+import {
+  createCircuitBreaker,
+  callWithResilience,
+  type CircuitBreaker,
+  type ResilienceOptions,
+} from './resilience.js';
 
 // ── helpers ──────────────────────────────────────────────────────────
 
@@ -326,6 +331,36 @@ describe('callWithResilience', () => {
       gauge as { values: Array<{ value: number; labels: Record<string, string> }> }
     ).values.find(v => v.labels.service === 'service.test')?.value;
     expect(value).toBe(0);
+  });
+
+  // ── circuit breaker: shared registry ──────────────────────────────
+
+  it('multiple breakers on the same registry share one gauge (production boot path)', () => {
+    // index.ts constructs all 10 clients against the same (default)
+    // registry — creating a second breaker must reuse the existing
+    // grpc_circuit_state gauge, not throw "already registered".
+    const sharedRegistry = new Registry();
+
+    const make = (service: string): CircuitBreaker =>
+      createCircuitBreaker({ service, registry: sharedRegistry });
+
+    expect(() => {
+      make('service.a');
+      make('service.b');
+      make('service.c');
+    }).not.toThrow();
+  });
+
+  it('a breaker created after the shared registry is cleared re-registers the gauge', async () => {
+    // Vitest suites clear registries between tests; a stale cached gauge
+    // would silently vanish from /metrics.
+    const sharedRegistry = new Registry();
+    createCircuitBreaker({ service: 'service.a', registry: sharedRegistry });
+    sharedRegistry.clear();
+
+    createCircuitBreaker({ service: 'service.b', registry: sharedRegistry });
+    const metrics = await sharedRegistry.metrics();
+    expect(metrics).toContain('grpc_circuit_state');
   });
 
   // ── circuit breaker: isolation ───────────────────────────────────

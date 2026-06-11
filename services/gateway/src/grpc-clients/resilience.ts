@@ -63,6 +63,28 @@ export type CircuitBreaker = {
   isOpen(): boolean;
 };
 
+// One grpc_circuit_state gauge per registry, shared by every breaker —
+// prom-client throws on a second registration of the same metric name, so
+// the 10 production clients (all on the default registry) must reuse it.
+// The identity check against getSingleMetric handles registries that were
+// cleared between tests: a stale cached gauge is re-created, not reused.
+const gaugesByRegistry = new WeakMap<Registry, Gauge<'service'>>();
+
+const getOrCreateStateGauge = (reg: Registry): Gauge<'service'> => {
+  const cached = gaugesByRegistry.get(reg);
+  if (cached && reg.getSingleMetric('grpc_circuit_state') === cached) {
+    return cached;
+  }
+  const gauge = new Gauge({
+    name: 'grpc_circuit_state',
+    help: 'gRPC circuit breaker state per downstream service (0=closed, 1=half-open, 2=open).',
+    labelNames: ['service'],
+    registers: [reg],
+  });
+  gaugesByRegistry.set(reg, gauge);
+  return gauge;
+};
+
 export const createCircuitBreaker = (createOpts: CircuitBreakerCreateOptions): CircuitBreaker => {
   const failureThreshold = createOpts.failureThreshold ?? DEFAULT_FAILURE_THRESHOLD;
   const windowMs = createOpts.windowMs ?? DEFAULT_WINDOW_MS;
@@ -70,12 +92,7 @@ export const createCircuitBreaker = (createOpts: CircuitBreakerCreateOptions): C
   const reg = createOpts.registry ?? defaultRegistry;
 
   // Gauge — 0 closed / 1 half-open / 2 open
-  const gauge = new Gauge({
-    name: 'grpc_circuit_state',
-    help: 'gRPC circuit breaker state per downstream service (0=closed, 1=half-open, 2=open).',
-    labelNames: ['service'],
-    registers: [reg],
-  });
+  const gauge = getOrCreateStateGauge(reg);
   gauge.set({ service: createOpts.service }, 0);
 
   let state: CircuitState = 'closed';
