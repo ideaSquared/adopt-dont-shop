@@ -498,6 +498,8 @@ jobs:
             fi
             sleep 2
           done
+
+      - name: Warm up Vite bundles
         # Vite dev servers compile on first request. Hit /login on each app
         # so the JS is built before Playwright tries to interact with it.
         run: |
