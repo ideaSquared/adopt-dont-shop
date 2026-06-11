@@ -23,6 +23,15 @@ on:
         required: false
         type: boolean
         default: false
+      # ADS-824: per-service tag overrides. Newline- or comma-separated
+      # KEY=VALUE pairs where KEY must match ^(SERVICE|APP)_[A-Z_]+_TAG$.
+      # Example: SERVICE_AUTH_TAG=abc1234,SERVICE_PETS_TAG=def5678
+      # Omit entirely for a full-stack deploy at DEPLOY_SHA.
+      tag_overrides:
+        description: 'Per-service image tag overrides (KEY=VALUE, comma- or newline-separated). Keys must match (SERVICE|APP)_[A-Z_]+_TAG.'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -307,6 +316,31 @@ jobs:
     timeout-minutes: 15
     environment: ${{ github.event.inputs.environment }}
     steps:
+      # ADS-824: validate tag_overrides before touching the host.
+      # Keys must match ^(SERVICE|APP)_[A-Z_]+_TAG$; values must be
+      # alphanumeric with dots, dashes, and underscores — no shell-injection
+      # characters. This runs on the Actions runner, not the deploy host.
+      - name: Validate tag_overrides input
+        if: ${{ github.event.inputs.tag_overrides != '' }}
+        run: |
+          set -euo pipefail
+          overrides='${{ github.event.inputs.tag_overrides }}'
+          echo "$overrides" | tr ',' '\n' | while IFS= read -r pair; do
+            pair="$(echo "$pair" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+            [ -z "$pair" ] && continue
+            KEY="${pair%%=*}"
+            VALUE="${pair#*=}"
+            if ! echo "$KEY" | grep -qE '^(SERVICE|APP)_[A-Z_]+_TAG$'; then
+              echo "ERROR: invalid tag override key '$KEY'. Keys must match ^(SERVICE|APP)_[A-Z_]+_TAG\$"
+              exit 1
+            fi
+            if ! echo "$VALUE" | grep -qE '^[A-Za-z0-9._-]+$'; then
+              echo "ERROR: invalid tag override value '$VALUE' for key '$KEY'. Values must match ^[A-Za-z0-9._-]+\$"
+              exit 1
+            fi
+            echo "OK: $KEY=$VALUE"
+          done
+
       # ADS-670: SSH host fingerprint pinned to prevent MitM during deploy.
       # Compute on the host and store as HETZNER_HOST_FINGERPRINT secret:
       #   ssh-keyscan -t ed25519,rsa $HOST | ssh-keygen -lf - | awk '{print $2}'
@@ -358,6 +392,35 @@ jobs:
             # Persist SHA in .env so restarts use correct version
             sed -i "s/^DEPLOY_SHA=.*/DEPLOY_SHA=$SHA/" .env || echo "DEPLOY_SHA=$SHA" >> .env
 
+            # ADS-824: inject per-service tag overrides into .env.
+            # TAG_OVERRIDES is passed from the workflow input (comma- or
+            # newline-separated KEY=VALUE pairs). Validation is done in the
+            # runner step above; here we only write the already-validated pairs.
+            TAG_OVERRIDES='${{ github.event.inputs.tag_overrides }}'
+            if [ -n "$TAG_OVERRIDES" ]; then
+              # Normalise commas to newlines, strip blank lines
+              echo "$TAG_OVERRIDES" | tr ',' '\n' | while IFS= read -r pair; do
+                pair="$(echo "$pair" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+                [ -z "$pair" ] && continue
+                KEY="${pair%%=*}"
+                VALUE="${pair#*=}"
+                # Validate key pattern
+                if ! echo "$KEY" | grep -qE '^(SERVICE|APP)_[A-Z_]+_TAG$'; then
+                  echo "ERROR: invalid tag override key: $KEY (must match ^(SERVICE|APP)_[A-Z_]+_TAG\$)"
+                  exit 1
+                fi
+                # Validate value pattern (alphanumeric, dots, dashes, underscores only)
+                if ! echo "$VALUE" | grep -qE '^[A-Za-z0-9._-]+$'; then
+                  echo "ERROR: invalid tag override value for $KEY: '$VALUE' (must match ^[A-Za-z0-9._-]+\$)"
+                  exit 1
+                fi
+                # Remove any existing line for this key, then append
+                sed -i "/^${KEY}=/d" .env
+                echo "${KEY}=${VALUE}" >> .env
+                echo "Tag override applied: ${KEY}=${VALUE}"
+              done
+            fi
+
             # Determine compose file
             if [ "$ENV" = "production" ]; then
               COMPOSE_FILE="docker-compose.prod.yml"
@@ -388,18 +451,43 @@ jobs:
             # migrate sidecar to wait on. [post-monolith; was ADS-393]
             docker compose -f $COMPOSE_FILE --env-file .env up -d
 
-            # Wait for the gateway (the REST/WS edge) to report healthy.
-            echo "Waiting for gateway health check..."
-            for i in $(seq 1 30); do
-              if docker compose -f $COMPOSE_FILE exec -T service-gateway curl -fsS http://localhost:4000/health/simple > /dev/null 2>&1; then
-                echo "Gateway healthy."
-                break
-              fi
-              if [ $i -eq 30 ]; then
-                echo "ERROR: Gateway failed health check after 60s"
+            # ADS-824: wait for every service to report healthy, not just the
+            # gateway. Ordered so infrastructure-layer services are checked
+            # before the gateway, which depends on them.
+            # service-gateway: port 4000; all other services: 500x as mapped below.
+            declare -A SERVICE_PORTS=(
+              [service-notifications]=5001
+              [service-auth]=5002
+              [service-pets]=5003
+              [service-rescue]=5004
+              [service-applications]=5005
+              [service-chat]=5006
+              [service-moderation]=5007
+              [service-matching]=5008
+              [service-audit]=5009
+              [service-cms]=5010
+              [service-gateway]=4000
+            )
+            for svc in \
+              service-notifications service-auth service-pets service-rescue \
+              service-applications service-chat service-moderation service-matching \
+              service-audit service-cms service-gateway; do
+              port="${SERVICE_PORTS[$svc]}"
+              echo "Waiting for $svc (:$port/health/simple)..."
+              healthy=false
+              for i in $(seq 1 30); do
+                if docker compose -f $COMPOSE_FILE exec -T "$svc" \
+                     curl -fsS "http://localhost:${port}/health/simple" > /dev/null 2>&1; then
+                  echo "$svc healthy."
+                  healthy=true
+                  break
+                fi
+                sleep 2
+              done
+              if [ "$healthy" = "false" ]; then
+                echo "ERROR: $svc failed health check after 60s"
                 exit 1
               fi
-              sleep 2
             done
 
             # ADS-813: smoke-check that the cutover-gated /api/v1/* routes are

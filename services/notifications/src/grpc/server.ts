@@ -1,18 +1,16 @@
-// gRPC server boot — binds NotificationServiceService to the three
-// adapter-wrapped handlers and starts listening on GRPC_PORT.
-//
-// The server uses grpc-js's insecure credentials in dev. Production
-// terminates TLS at nginx (already in front), so the gRPC port stays
-// HTTP/2 cleartext on the cluster network. When a future deploy wants
-// mTLS between services, swap to ServerCredentials.createSsl() here.
+// gRPC server boot — registers NotificationServiceService on a grpc.Server
+// and delegates bind/shutdown to @adopt-dont-shop/service-bootstrap.
 
-import { promisify } from 'node:util';
-
-import { Server, ServerCredentials } from '@grpc/grpc-js';
+import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import type { Logger } from 'winston';
+
+import {
+  startGrpcServer as startGrpcServerShared,
+  type RunningGrpcServer,
+} from '@adopt-dont-shop/service-bootstrap';
 
 import { NotificationsV1 } from '@adopt-dont-shop/proto';
 
@@ -58,15 +56,7 @@ export type CreateGrpcServerOptions = {
   authClient?: import('./handlers.js').AuthCohortClient;
 };
 
-export type RunningGrpcServer = {
-  server: Server;
-  port: number;
-  // Calls `server.tryShutdown()` to drain in-flight calls cleanly.
-  // grpc-js takes a node-style callback for shutdown; promisify so the
-  // boot script can `await` it in a single shutdown sequence with
-  // Fastify.
-  shutdown: () => Promise<void>;
-};
+export type { RunningGrpcServer };
 
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger, authClient } = opts;
@@ -145,34 +135,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   return server;
 };
 
-// Start the server listening on the configured port. Separated from
-// createGrpcServer so tests can inspect the Server without binding a
-// real port.
 export const startGrpcServer = async (
   opts: CreateGrpcServerOptions
 ): Promise<RunningGrpcServer> => {
   const { config, logger } = opts;
   const server = createGrpcServer(opts);
-
-  const bindAsync = promisify<string, ServerCredentials, number>(server.bindAsync.bind(server));
-  const port = await bindAsync(
-    `${opts.config.host}:${config.grpcPort}`,
-    ServerCredentials.createInsecure()
-  );
-
-  logger.info('gRPC server listening', { port, host: opts.config.host });
-
-  return {
-    server,
-    port,
-    shutdown: () =>
-      new Promise<void>(resolve => {
-        server.tryShutdown(err => {
-          if (err) {
-            logger.error('gRPC server shutdown error', { err });
-          }
-          resolve();
-        });
-      }),
-  };
+  return startGrpcServerShared(server, config, logger);
 };

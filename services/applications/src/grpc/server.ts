@@ -1,33 +1,16 @@
-// gRPC server boot — binds ApplicationServiceService to the
-// adapter-wrapped handlers and starts listening on
-// APPLICATIONS_GRPC_PORT.
-//
-// Same shape as services/moderation, services/matching,
-// services/audit. The handlers live across three files by concern:
-//   - handlers.ts        — draft lifecycle (SaveDraftAnswers, SubmitDraft)
-//   - review-handlers.ts — review/visit/decision (StartReview …
-//                          MarkAdopted)
-//   - read-handlers.ts   — query side (Get, List)
-// all sharing the (deps, principal, request) → Promise<response> shape
-// so the adapter wraps them uniformly.
-//
-// StartDraft is now live: it resolves pet → rescue via a service.pets
-// gRPC client (the pure domain requires the rescueId, which
-// StartDraftRequest doesn't carry) before commanding the domain. The
-// client is injected so tests can stub it; real boot builds one from
-// config.petsGrpcUrl.
-//
-// Dev uses insecure credentials (TLS terminates at nginx in front);
-// production keeps gRPC HTTP/2 cleartext on the cluster network until a
-// future deploy wants mTLS.
+// gRPC server boot — registers ApplicationServiceService on a grpc.Server
+// and delegates bind/shutdown to @adopt-dont-shop/service-bootstrap.
 
-import { promisify } from 'node:util';
-
-import { Server, ServerCredentials } from '@grpc/grpc-js';
+import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import type { Logger } from 'winston';
+
+import {
+  startGrpcServer as startGrpcServerShared,
+  type RunningGrpcServer,
+} from '@adopt-dont-shop/service-bootstrap';
 
 import { ApplicationsV1 } from '@adopt-dont-shop/proto';
 
@@ -61,11 +44,7 @@ export type CreateGrpcServerOptions = {
   petsClient?: PetsClient;
 };
 
-export type RunningGrpcServer = {
-  server: Server;
-  port: number;
-  shutdown: () => Promise<void>;
-};
+export type { RunningGrpcServer };
 
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger } = opts;
@@ -129,18 +108,10 @@ export const startGrpcServer = async (
   // Build + own the pets client here so it's closed on shutdown.
   const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
   const server = createGrpcServer({ ...opts, petsClient });
-
-  const bindAsync = promisify<string, ServerCredentials, number>(server.bindAsync.bind(server));
-  const port = await bindAsync(
-    `${opts.config.host}:${config.grpcPort}`,
-    ServerCredentials.createInsecure()
-  );
-
-  logger.info('gRPC server listening', { port, host: opts.config.host });
+  const running = await startGrpcServerShared(server, config, logger);
 
   return {
-    server,
-    port,
+    ...running,
     shutdown: () =>
       new Promise<void>(resolve => {
         server.tryShutdown(err => {

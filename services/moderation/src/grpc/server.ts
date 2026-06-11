@@ -1,26 +1,16 @@
-// gRPC server boot — binds ModerationServiceService to all 15
-// adapter-wrapped handlers and starts listening on
-// MODERATION_GRPC_PORT.
-//
-// Same shape as services/audit/src/grpc/server.ts /
-// services/matching/src/grpc/server.ts. Handlers live across 4 files
-// (report lifecycle in handlers.ts, moderator actions + evidence in
-// action-handlers.ts, sanctions in sanction-handlers.ts, support
-// tickets in ticket-handlers.ts); they all share the
-// (deps, principal, request) → Promise<response> shape so the adapter
-// wraps them uniformly.
-//
-// Dev uses insecure credentials (TLS terminates at nginx in front);
-// production keeps gRPC HTTP/2 cleartext on the cluster network until
-// a future deploy wants mTLS.
+// gRPC server boot — registers ModerationServiceService on a grpc.Server
+// and delegates bind/shutdown to @adopt-dont-shop/service-bootstrap.
 
-import { promisify } from 'node:util';
-
-import { Server, ServerCredentials } from '@grpc/grpc-js';
+import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import type { Logger } from 'winston';
+
+import {
+  startGrpcServer as startGrpcServerShared,
+  type RunningGrpcServer,
+} from '@adopt-dont-shop/service-bootstrap';
 
 import { ModerationV1 } from '@adopt-dont-shop/proto';
 
@@ -44,11 +34,7 @@ export type CreateGrpcServerOptions = {
   logger: Logger;
 };
 
-export type RunningGrpcServer = {
-  server: Server;
-  port: number;
-  shutdown: () => Promise<void>;
-};
+export type { RunningGrpcServer };
 
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger } = opts;
@@ -81,11 +67,6 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     methodCount: 15,
     grpcPort: config.grpcPort,
   });
-  // Note: 15 methods registered above — FileReport, GetReport,
-  // ListReports, AssignReport, ResolveReport, LogModeratorAction,
-  // ListModeratorActions, AddEvidence, IssueSanction,
-  // ListUserSanctions, AppealSanction, OpenSupportTicket,
-  // GetSupportTicket, ListSupportTickets, RespondToTicket.
 
   return server;
 };
@@ -95,26 +76,5 @@ export const startGrpcServer = async (
 ): Promise<RunningGrpcServer> => {
   const { config, logger } = opts;
   const server = createGrpcServer(opts);
-
-  const bindAsync = promisify<string, ServerCredentials, number>(server.bindAsync.bind(server));
-  const port = await bindAsync(
-    `${opts.config.host}:${config.grpcPort}`,
-    ServerCredentials.createInsecure()
-  );
-
-  logger.info('gRPC server listening', { port, host: opts.config.host });
-
-  return {
-    server,
-    port,
-    shutdown: () =>
-      new Promise<void>(resolve => {
-        server.tryShutdown(err => {
-          if (err) {
-            logger.error('gRPC server shutdown error', { err });
-          }
-          resolve();
-        });
-      }),
-  };
+  return startGrpcServerShared(server, config, logger);
 };

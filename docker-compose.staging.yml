@@ -172,7 +172,7 @@ services:
 
   service-gateway:
     <<: *service-common
-    image: ghcr.io/ideasquared/adopt-dont-shop/service-gateway:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-gateway:${SERVICE_GATEWAY_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_gateway
     environment:
       NODE_ENV: production
@@ -215,7 +215,7 @@ services:
 
   service-auth:
     <<: *service-common
-    image: ghcr.io/ideasquared/adopt-dont-shop/service-auth:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-auth:${SERVICE_AUTH_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_auth
     environment:
       <<: *service-env
@@ -238,7 +238,7 @@ services:
 
   service-notifications:
     <<: *service-common
-    image: ghcr.io/ideasquared/adopt-dont-shop/service-notifications:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-notifications:${SERVICE_NOTIFICATIONS_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_notifications
     environment:
       <<: *service-env
@@ -253,7 +253,7 @@ services:
 
   service-pets:
     <<: *service-common
-    image: ghcr.io/ideasquared/adopt-dont-shop/service-pets:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-pets:${SERVICE_PETS_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_pets
     environment:
       <<: *service-env
@@ -268,7 +268,7 @@ services:
 
   service-rescue:
     <<: *service-common
-    image: ghcr.io/ideasquared/adopt-dont-shop/service-rescue:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-rescue:${SERVICE_RESCUE_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_rescue_svc
     environment:
       <<: *service-env
@@ -283,7 +283,7 @@ services:
 
   service-applications:
     <<: *service-common
-    image: ghcr.io/ideasquared/adopt-dont-shop/service-applications:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-applications:${SERVICE_APPLICATIONS_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_applications
     environment:
       <<: *service-env
@@ -299,7 +299,7 @@ services:
 
   service-chat:
     <<: *service-common
-    image: ghcr.io/ideasquared/adopt-dont-shop/service-chat:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-chat:${SERVICE_CHAT_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_chat
     environment:
       <<: *service-env
@@ -314,7 +314,7 @@ services:
 
   service-moderation:
     <<: *service-common
-    image: ghcr.io/ideasquared/adopt-dont-shop/service-moderation:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-moderation:${SERVICE_MODERATION_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_moderation
     environment:
       <<: *service-env
@@ -329,7 +329,7 @@ services:
 
   service-matching:
     <<: *service-common
-    image: ghcr.io/ideasquared/adopt-dont-shop/service-matching:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-matching:${SERVICE_MATCHING_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_matching
     environment:
       <<: *service-env
@@ -345,7 +345,7 @@ services:
 
   service-audit:
     <<: *service-common
-    image: ghcr.io/ideasquared/adopt-dont-shop/service-audit:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-audit:${SERVICE_AUDIT_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_audit
     environment:
       <<: *service-env
@@ -360,7 +360,7 @@ services:
 
   service-cms:
     <<: *service-common
-    image: ghcr.io/ideasquared/adopt-dont-shop/service-cms:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/service-cms:${SERVICE_CMS_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_cms
     environment:
       <<: *service-env
@@ -374,7 +374,7 @@ services:
       start_period: 60s
 
   app-client:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-client:${APP_CLIENT_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_client
     restart: always
     # ADS-701: nginx runs unprivileged and listens on 8080.
@@ -401,7 +401,7 @@ services:
           memory: 32m
 
   app-admin:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-admin:${APP_ADMIN_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_admin
     restart: always
     # ADS-701: nginx runs unprivileged and listens on 8080.
@@ -428,7 +428,7 @@ services:
           memory: 32m
 
   app-rescue:
-    image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}
+    image: ghcr.io/ideasquared/adopt-dont-shop/app-rescue:${APP_RESCUE_TAG:-${DEPLOY_SHA:?DEPLOY_SHA must be set to a specific git SHA}}
     container_name: ads_staging_rescue
     restart: always
     # ADS-701: nginx runs unprivileged and listens on 8080.

@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@adopt-dont-shop/authz": "*",
+    "@adopt-dont-shop/service-bootstrap": "*",
     "@adopt-dont-shop/config-secrets": "*",
     "@adopt-dont-shop/db": "*",
     "@adopt-dont-shop/events": "*",

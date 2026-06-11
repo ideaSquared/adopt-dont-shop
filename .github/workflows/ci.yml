@@ -248,6 +248,43 @@ jobs:
           retention-days: 7
 
   # ============================================================================
+  # SERVICE TESTS — lint/test/type-check all service.* packages (ADS-822).
+  # Mirrors test-libs in structure. Services use `test` (not `test:coverage`)
+  # — that is the vitest run script every service package.json defines.
+  # Gated on the `backend` path filter so a frontend-only PR skips this job
+  # (ci-required treats skipped as pass — see aggregator comment below).
+  # ============================================================================
+  test-services:
+    name: Service Tests
+    needs: [changes, build-libs]
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+      - uses: ./.github/actions/setup-workspace
+
+      - name: Download pre-built libraries
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: lib-dist
+
+      - name: Lint, test and type-check all services
+        run: npx turbo run lint test type-check --filter='@adopt-dont-shop/service.*'
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        if: always()
+        with:
+          name: test-results-services
+          path: '**/test-results/junit.xml'
+          retention-days: 7
+
+  # ============================================================================
   # DEV-AUTH GUARD — ensure production frontend bundles never ship dev-auth
   # bypass code (ADS-676). Builds all three apps in production mode and scans
   # the output for patterns like DevLoginPanel, dev_user, dev-token-*, etc.
@@ -310,7 +347,7 @@ jobs:
   # ============================================================================
   test-e2e:
     name: E2E Tests (Playwright)
-    needs: [changes, test-frontend]
+    needs: [changes, test-frontend, test-services]
     # ADS-419: e2e is now a blocking signal. The previous continue-on-error
     # escape hatch was removed because broken integration tests must fail PRs
     # — a green CI badge that ignores e2e failures gives a false sense of
@@ -319,7 +356,8 @@ jobs:
     if: |
       always() &&
       (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.e2e == 'true') &&
-      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
+      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') &&
+      (needs.test-services.result == 'success' || needs.test-services.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -434,7 +472,21 @@ jobs:
           docker compose -f docker-compose.yml up -d database redis
           timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U postgres; do sleep 2; done'
 
-      - name: Build and start the full stack
+      - name: Build images
+        # ADS-792: build with the daemon's integrated BuildKit
+        # (DOCKER_BUILDKIT=1 is set job-wide) — NOT a buildx container
+        # builder, which stores every image twice (BuildKit cache +
+        # tarball re-import) and doubles peak disk for a 14-image build.
+        # type=gha layer caching needs that container driver plus the
+        # Actions runtime token, so proper caching is deferred to the
+        # build-push-action→GHCR design on the ticket. The npm-registry
+        # congestion (ECONNRESET) that motivated caching is mitigated by
+        # capping build concurrency instead of all images running npm ci
+        # simultaneously.
+        run: |
+          COMPOSE_PARALLEL_LIMIT=4 docker compose -f docker-compose.yml --profile full build
+
+      - name: Start the full stack (images already built)
         # Phase 11 follow-up: bring the apps + gateway + services + nginx up
         # in ONE compose invocation under the `full` profile. The previous
         # two-step `--profile services up` + `up app-client app-admin
@@ -444,8 +496,9 @@ jobs:
         # now in the `full`/`proxy` profiles so it starts only alongside the
         # apps it proxies, and a single `up` honours the compose dependency
         # graph instead of racing two independent stacks.
+        # ADS-792: --no-build because images were pre-built above.
         run: |
-          docker compose -f docker-compose.yml --profile full up -d --build
+          docker compose -f docker-compose.yml --profile full up -d --no-build
           df -h /
 
       - name: Wait for services
@@ -596,13 +649,12 @@ jobs:
       - build-libs
       - test-frontend
       - test-libs
+      - test-services
       - dev-auth-guard
-    # Phase 11 follow-up: test-e2e was removed from required gating. The
-    # job currently brings up 10 microservice docker builds in parallel
-    # which hits npm registry congestion (ECONNRESET) and the e2e
-    # fixtures/seed assume the deleted monolith. Re-add as required
-    # after the e2e suite is reworked against the gateway + service.auth
-    # login flow.
+      - test-e2e
+    # ADS-792 + ADS-822: test-e2e re-added (suite reworked for post-monolith
+    # gateway stack in bd64b1b/#1004); test-services added so zero-test
+    # services no longer merge green.
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

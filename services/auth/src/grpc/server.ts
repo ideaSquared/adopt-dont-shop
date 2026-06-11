@@ -1,18 +1,16 @@
-// gRPC server boot — binds AuthServiceService to the six adapter-
-// wrapped handlers and starts listening on AUTH_GRPC_PORT.
-//
-// Same shape as services/notifications/src/grpc/server.ts. Dev uses
-// insecure credentials (TLS terminates at nginx in front); production
-// keeps gRPC HTTP/2 cleartext on the cluster network until a future
-// deploy wants mTLS.
+// gRPC server boot — registers AuthServiceService on a grpc.Server and
+// delegates bind/shutdown to @adopt-dont-shop/service-bootstrap.
 
-import { promisify } from 'node:util';
-
-import { Server, ServerCredentials } from '@grpc/grpc-js';
+import { Server } from '@grpc/grpc-js';
 
 import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import type { Logger } from 'winston';
+
+import {
+  startGrpcServer as startGrpcServerShared,
+  type RunningGrpcServer,
+} from '@adopt-dont-shop/service-bootstrap';
 
 import { AuthV1 } from '@adopt-dont-shop/proto';
 
@@ -73,11 +71,7 @@ export type CreateGrpcServerOptions = {
   logger: Logger;
 };
 
-export type RunningGrpcServer = {
-  server: Server;
-  port: number;
-  shutdown: () => Promise<void>;
-};
+export type { RunningGrpcServer };
 
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, passwordHasher, tokenIssuer, logger } = opts;
@@ -181,26 +175,5 @@ export const startGrpcServer = async (
 ): Promise<RunningGrpcServer> => {
   const { config, logger } = opts;
   const server = createGrpcServer(opts);
-
-  const bindAsync = promisify<string, ServerCredentials, number>(server.bindAsync.bind(server));
-  const port = await bindAsync(
-    `${opts.config.host}:${config.grpcPort}`,
-    ServerCredentials.createInsecure()
-  );
-
-  logger.info('gRPC server listening', { port, host: opts.config.host });
-
-  return {
-    server,
-    port,
-    shutdown: () =>
-      new Promise<void>(resolve => {
-        server.tryShutdown(err => {
-          if (err) {
-            logger.error('gRPC server shutdown error', { err });
-          }
-          resolve();
-        });
-      }),
-  };
+  return startGrpcServerShared(server, config, logger);
 };
