@@ -6,12 +6,12 @@
 
 ```bash
 # From the workspace root
-npm install @adopt-dont-shop/lib.{{LIB_NAME}}
+pnpm add @adopt-dont-shop/lib.{{LIB_NAME}}
 
 # Or add to your package.json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib.{{LIB_NAME}}": "*"
+    "@adopt-dont-shop/lib.{{LIB_NAME}}": "workspace:*"
   }
 }
 ```
@@ -131,7 +131,7 @@ const isHealthy = await service.healthCheck();
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib.{{LIB_NAME}}": "*"
+    "@adopt-dont-shop/lib.{{LIB_NAME}}": "workspace:*"
   }
 }
 ```
@@ -172,7 +172,7 @@ function MyComponent() {
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib.{{LIB_NAME}}": "*"
+    "@adopt-dont-shop/lib.{{LIB_NAME}}": "workspace:*"
   }
 }
 ```
@@ -202,7 +202,7 @@ app.get('/api/{{LIB_NAME}}/example', async (req, res) => {
 
 ## 🐳 Docker Integration
 
-Libraries are automatically available to apps through the optimized workspace pattern in `Dockerfile.app.optimized`. No additional configuration needed — just add the dependency to your app's `package.json` and run `npm install` at the repo root.
+Libraries are automatically available to apps through the optimized workspace pattern in `Dockerfile.app.optimized`. No additional configuration needed — just add the dependency to your app's `package.json` and run `pnpm install` at the repo root.
 
 ## 🧪 Testing
 
@@ -210,13 +210,13 @@ Libraries are automatically available to apps through the optimized workspace pa
 
 ```bash
 # Unit tests
-npm test
+pnpm test
 
 # Watch mode
-npm run test:watch
+pnpm test:watch
 
 # Coverage
-npm run test:coverage
+pnpm test:coverage
 ```
 
 ### Test Structure
@@ -237,26 +237,26 @@ src/
 
 ```bash
 # Development build with watch
-npm run dev
+pnpm dev
 
 # Production build
-npm run build
+pnpm build
 
 # Clean build artifacts
-npm run clean
+pnpm clean
 ```
 
 ### Code Quality
 
 ```bash
 # Lint
-npm run lint
+pnpm lint
 
 # Fix linting issues
-npm run lint:fix
+pnpm lint:fix
 
 # Type checking
-npm run type-check
+pnpm type-check
 ```
 
 ## 📁 Project Structure
@@ -320,8 +320,8 @@ try {
 
 ```bash
 # Build and test
-npm run build
-npm run test
+pnpm build
+pnpm test
 
 # Publish
 npm publish
@@ -334,7 +334,7 @@ The library is already integrated into the workspace. Apps can import it using:
 ```json
 {
   "dependencies": {
-    "@adopt-dont-shop/lib.{{LIB_NAME}}": "*"
+    "@adopt-dont-shop/lib.{{LIB_NAME}}": "workspace:*"
   }
 }
 ```
@@ -343,8 +343,8 @@ The library is already integrated into the workspace. Apps can import it using:
 
 1. Make changes to the library
 2. Add/update tests
-3. Run `npm run build` to ensure it builds correctly
-4. Run `npm test` to ensure tests pass
+3. Run `pnpm build` to ensure it builds correctly
+4. Run `pnpm test` to ensure tests pass
 5. Update documentation as needed
 
 ## 📄 License
@@ -356,15 +356,15 @@ MIT License - see the LICENSE file for details.
 ### Common Issues
 
 1. **Module not found**
-   - Ensure the library is built: `npm run build`
-   - Check workspace dependencies are installed: `npm install`
+   - Ensure the library is built: `pnpm build`
+   - Check workspace dependencies are installed: `pnpm install`
 
 2. **Type errors**
-   - Run type checking: `npm run type-check`
+   - Run type checking: `pnpm type-check`
    - Ensure TypeScript version compatibility
 
 3. **Build failures**
-   - Clean and rebuild: `npm run clean && npm run build`
+   - Clean and rebuild: `pnpm clean && pnpm build`
    - Check for circular dependencies
 
 ### Debug Mode

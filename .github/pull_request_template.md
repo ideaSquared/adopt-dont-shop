@@ -16,7 +16,7 @@
 
 <!-- Quick PR-readiness signal — see CONTRIBUTING.md for context. -->
 
-- [ ] Ran `npm run ci:local:quick` locally (or installed the pre-push hook — see CONTRIBUTING.md)
+- [ ] Ran `pnpm ci:local:quick` locally (or installed the pre-push hook — see CONTRIBUTING.md)
 - [ ] Tests for new behaviour added (TDD)
 - [ ] If touching `.env` requirements, updated `.env.example`'s REQUIRED block
 - [ ] If touching a `lib.*`, considered consumer impact across `app.*` and `service.backend`
@@ -25,11 +25,11 @@
 
 <!-- How did you verify this works? Check off items as you go. -->
 
-- [ ] Existing tests pass (`npm test`)
+- [ ] Existing tests pass (`pnpm test`)
 - [ ] New behaviour is covered by tests
 - [ ] Tested manually (describe how)
-- [ ] No TypeScript errors (`npm run type-check`)
-- [ ] Lint passes (`npm run lint`)
+- [ ] No TypeScript errors (`pnpm type-check`)
+- [ ] Lint passes (`pnpm lint`)
 
 ## Screenshots / recordings
 

@@ -28,7 +28,7 @@ x-logging: &default-logging
 # monolith, deleted in phase 11). Mirrors the dev docker-compose.yml `*-env` /
 # `*-deps` anchors but for the prebuilt-image production stack. Every service
 # shares one Postgres (schema-per-service) + NATS + Redis and migrates its own
-# schema on start (entrypoint runs `npm run db:migrate --if-present`).
+# schema on start (entrypoint runs `pnpm run --if-present db:migrate`).
 #
 # Credentials flow through file-mounted Docker secrets via the shared
 # @adopt-dont-shop/config-secrets loader — each service reads e.g.

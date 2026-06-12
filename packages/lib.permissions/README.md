@@ -377,27 +377,27 @@ lib.permissions/
 
 ```bash
 # From lib.permissions directory
-npm test                                                            # vitest run
+pnpm test                                                            # vitest run
 
 # Run a specific test file
-npx vitest run src/config/__tests__/field-permission-defaults.test.ts
+pnpm exec vitest run src/config/__tests__/field-permission-defaults.test.ts
 
 # With coverage
-npm run test:coverage                                               # vitest run --coverage
+pnpm test:coverage                                               # vitest run --coverage
 ```
 
 ## Development
 
 ```bash
 # Build
-npm run build
+pnpm build
 
 # Watch mode
-npm run dev
+pnpm dev
 
 # Type check
-npm run type-check
+pnpm type-check
 
 # Lint
-npm run lint
+pnpm lint
 ```

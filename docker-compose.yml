@@ -1,5 +1,5 @@
 # 🚀 OPTIMIZED Docker Compose - Industry Standard Monorepo Pattern
-# Eliminates unnecessary library services and uses npm workspace
+# Eliminates unnecessary library services and uses pnpm workspace
 # Performance: 5-8 minutes instead of 60+ minutes
 
 # ----------------------------------------------------------------------------
@@ -89,7 +89,7 @@ services:
       - '127.0.0.1:6379:6379'
     volumes:
       - redis_data:/data
-    command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required (run `npm run secrets:generate` or copy .env.example)}"
+    command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required (run `pnpm secrets:generate` or copy .env.example)}"
     # REDIS_PASSWORD must be in the container env (not just interpolated into
     # `command`) so the healthcheck's `redis-cli -a "$$REDIS_PASSWORD"` can
     # authenticate — otherwise it gets NOAUTH, never reports healthy, and
@@ -111,11 +111,16 @@ services:
   lib-types-watcher:
     image: node:22.15.1-alpine
     working_dir: /app
+    environment:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
     volumes:
       - .:/app
       - /app/node_modules
       - lib_types_node_modules:/app/packages/lib.types/node_modules
-    command: sh -c "npm install --workspace=@adopt-dont-shop/lib.types --include-workspace-root --prefer-offline && npm run -w @adopt-dont-shop/lib.types dev"
+    # Corepack provides pnpm (version pinned by package.json "packageManager").
+    # A full workspace install ensures the root toolchain (typescript) is present
+    # for lib.types' tsc --watch; --prefer-offline keeps restarts fast.
+    command: sh -c "corepack enable && pnpm install --prefer-offline && pnpm --filter @adopt-dont-shop/lib.types dev"
     restart: unless-stopped
 
   # ============================================================================
@@ -134,7 +139,7 @@ services:
     ports:
       - '127.0.0.1:3001:3000'
     volumes:
-      # Single workspace mount - npm workspace handles library resolution
+      # Single workspace mount - pnpm workspace handles library resolution
       - .:/app
       - /app/node_modules
       - /app/apps/admin/node_modules
@@ -169,7 +174,7 @@ services:
     ports:
       - '127.0.0.1:3000:3000'
     volumes:
-      # Single workspace mount - npm workspace handles library resolution
+      # Single workspace mount - pnpm workspace handles library resolution
       - .:/app
       - /app/node_modules
       - /app/apps/client/node_modules
@@ -204,7 +209,7 @@ services:
     ports:
       - '127.0.0.1:3002:3000'
     volumes:
-      # Single workspace mount - npm workspace handles library resolution
+      # Single workspace mount - pnpm workspace handles library resolution
       - .:/app
       - /app/node_modules
       - /app/apps/rescue/node_modules

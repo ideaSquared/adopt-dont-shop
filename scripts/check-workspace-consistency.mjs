@@ -18,7 +18,7 @@
  *      `dependencies` — type packages belong in devDependencies (ADS-765).
  *  3d. No workspace package.json declares `happy-dom` — jsdom is the
  *      canonical test-DOM environment (ADS-764).
- *  4. No nested package-lock.json outside the repo root.
+ *  4. No nested lockfiles (pnpm-lock.yaml / package-lock.json) outside the repo root.
  *  5. No stale Jest references in source (excluding docs/ and *.md changelog files).
  *  6. No *.test.ts(x) / *.spec.ts(x) files outside src/ (ADS-737). The shared
  *     Vitest `include` glob only picks up tests under src/, so files elsewhere
@@ -218,7 +218,7 @@ function findNestedLockfiles() {
         walk(full);
         continue;
       }
-      if (entry.name === 'package-lock.json' && dir !== ROOT) {
+      if ((entry.name === 'pnpm-lock.yaml' || entry.name === 'package-lock.json') && dir !== ROOT) {
         found.push(relative(ROOT, full));
       }
     }
@@ -268,7 +268,7 @@ function findJestReferences() {
     if (name === 'node_modules' || name === '.git' || name === 'dist') return true;
     if (name === 'docs') return true;
     if (name.endsWith('.md')) return true;
-    if (name === 'package-lock.json') return true;
+    if (name === 'package-lock.json' || name === 'pnpm-lock.yaml') return true;
     if (name === 'CHANGELOG' || name.startsWith('CHANGELOG')) return true;
     return false;
   }
@@ -399,7 +399,7 @@ function main() {
   // 4. Nested lockfiles
   const nested = findNestedLockfiles();
   for (const file of nested) {
-    failures.push(`[lockfiles] unexpected nested package-lock.json: ${file}`);
+    failures.push(`[lockfiles] unexpected nested lockfile: ${file}`);
   }
 
   // 5. Stale Jest references

@@ -2,6 +2,13 @@
 # CAD lesson: keep the discipline tight from day one — proto drift is the
 # most common source of incident-debugging time later.
 version: v1
+build:
+  excludes:
+    # pnpm symlinks runtime deps (e.g. @grpc/grpc-js, which ships its own
+    # .proto tree) into this package's node_modules. Keep buf's module walk
+    # to our own proto/ sources only — under npm's hoisted layout these
+    # files lived at the repo root and were never picked up here.
+    - node_modules
 breaking:
   use:
     - FILE

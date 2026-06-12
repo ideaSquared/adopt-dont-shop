@@ -65,7 +65,7 @@ Key properties:
 
 ```bash
 # 1. Start the gateway with upload streaming enabled (default)
-SERVE_LOCAL_UPLOADS=true npx turbo dev --filter=@adopt-dont-shop/service.gateway
+SERVE_LOCAL_UPLOADS=true pnpm exec turbo dev --filter=@adopt-dont-shop/service.gateway
 
 # 2. Hit the authorize endpoint directly to verify auth (gateway on :4000)
 curl -v -b "accessToken=<your-jwt>" \

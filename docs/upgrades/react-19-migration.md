@@ -146,7 +146,7 @@ team preference):**
    broadened to `>=18.0.0` (no change needed) **or** tightened to `>=19.0.0`
    if we don't want to support both — recommend keeping permissive.
 5. Bump `@types/react` and `@types/react-dom` to `^19.x`.
-6. `npm install` to resolve. Run the type-checker — fix any type drift
+6. `pnpm install` to resolve. Run the type-checker — fix any type drift
    (mostly `ReactNode` and `JSX.Element` namespace tweaks).
 7. Run all three apps' Vitest suites.
 8. Run all three apps in dev mode locally; smoke-test each route group.
@@ -172,8 +172,8 @@ team preference):**
 
 **Tests:**
 
-- Full Vitest suite for each app (`npx turbo test --filter=@adopt-dont-shop/app.admin` etc.).
-- Storybook build for `lib.components` (`npx turbo storybook:build`).
+- Full Vitest suite for each app (`pnpm exec turbo test --filter=@adopt-dont-shop/app.admin` etc.).
+- Storybook build for `lib.components` (`pnpm exec turbo storybook:build`).
 - Manual smoke of every app:
   - `app.client`: home, sign-in, sign-up, verify-email, browse pets,
     application form.

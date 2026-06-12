@@ -58,11 +58,11 @@ End-to-end tests need the full Docker stack (backend + three React apps + Postgr
 
 ```bash
 # 1. One-time setup
-npm install
-npm run test:e2e:install                              # downloads chromium
+pnpm install
+pnpm test:e2e:install                              # downloads chromium
 
 # 2. Bring up the stack (detached so the terminal stays free)
-npm run docker:dev:detach
+pnpm docker:dev:detach
 
 # 3. Wait until every service is healthy
 #    Poll the four endpoints the suite depends on. The CI workflow does the
@@ -81,18 +81,18 @@ done
 #    the dev/e2e fixtures (idempotent — safe to re-run). See "Seeding the
 #    stack" below. The dev Docker image also runs this automatically on
 #    container start, so step 4 is only needed if you bypass that.
-npm run db:seed
+pnpm db:seed
 
 # 5. Run the suite
-npm run test:e2e                                      # full suite
-npm run test:e2e:smoke                                # @smoke subset only
-npm run test:e2e -- --project=client                  # one Playwright project
-npm run test:e2e:single -- tests/client/adoption-application.spec.ts
-npm run test:e2e:single -- tests/auth.spec.ts --headed
+pnpm test:e2e                                      # full suite
+pnpm test:e2e:smoke                                # @smoke subset only
+pnpm test:e2e -- --project=client                  # one Playwright project
+pnpm test:e2e:single -- tests/client/adoption-application.spec.ts
+pnpm test:e2e:single -- tests/auth.spec.ts --headed
 
 # Skip global health-check / auth setup when the stack is already up and
 # `.auth/*.json` exists from a previous run.
-E2E_SKIP_HEALTH=1 E2E_SKIP_AUTH=1 npm run test:e2e
+E2E_SKIP_HEALTH=1 E2E_SKIP_AUTH=1 pnpm test:e2e
 ```
 
 The `test:e2e:single` script forwards all arguments straight through to Playwright in the `e2e` workspace, so any Playwright flag works (`--headed`, `--debug`, `--repeat-each=3`, `--grep "approves"`, etc.).
@@ -101,15 +101,15 @@ The `test:e2e:single` script forwards all arguments straight through to Playwrig
 
 The microservice stack ships no data on a fresh boot. The dev/e2e seed recreates the canonical personas (so the suite can log in) plus enough reference data to exercise the golden path (browse a pet, view a rescue).
 
-**How it runs:** each schema-owning service exposes a `db:seed` script (`tsx ./src/db/seed.ts`) that inserts directly into its own Postgres schema with idempotent `ON CONFLICT DO UPDATE` upserts. The dev Docker image runs `db:migrate` then `db:seed` on container start, so `npm run docker:dev:detach` already produces a seeded stack. To (re-)seed an already-running stack by hand:
+**How it runs:** each schema-owning service exposes a `db:seed` script (`tsx ./src/db/seed.ts`) that inserts directly into its own Postgres schema with idempotent `ON CONFLICT DO UPDATE` upserts. The dev Docker image runs `db:migrate` then `db:seed` on container start, so `pnpm docker:dev:detach` already produces a seeded stack. To (re-)seed an already-running stack by hand:
 
 ```bash
-npm run db:seed        # root orchestrator: docker compose exec into
+pnpm db:seed        # root orchestrator: docker compose exec into
                        # service-auth → service-rescue → service-pets,
                        # running each service's db:seed in dependency order
 ```
 
-`npm run db:seed` is safe to re-run at any time. Per-service overrides are available too (`docker compose exec service-auth npm run db:seed`).
+`pnpm db:seed` is safe to re-run at any time. Per-service overrides are available too (`docker compose exec service-auth pnpm db:seed`).
 
 **Seeded personas** (all share the password `DevPassword123!`, override with `SEED_PASSWORD`):
 
@@ -153,19 +153,19 @@ Recommended workflow when something fails:
 ```bash
 # Interactive runner — best for iterating on a single failing spec.
 # Pick the spec from the left pane, watch it run, edit, hit re-run.
-npm run test:e2e:ui
+pnpm test:e2e:ui
 
 # Step through with the Playwright Inspector (pauses at each action).
-npm run test:e2e:debug
+pnpm test:e2e:debug
 
 # Re-open the last HTML report (failures, retries, attached traces/videos).
-npm run test:e2e:report
+pnpm test:e2e:report
 
 # Open a single trace.zip in the trace viewer.
-npx playwright show-trace e2e/test-results/<spec-folder>/trace.zip
+pnpm exec playwright show-trace e2e/test-results/<spec-folder>/trace.zip
 ```
 
-In CI the entire `e2e/playwright-report/` and `e2e/test-results/` directories — including traces, screenshots, and videos for any failed test — are uploaded as the `e2e-playwright-report` artefact (retained 7 days). Download it from the failing run's "Artifacts" section to debug CI-only failures locally with `npx playwright show-report e2e/playwright-report` and `npx playwright show-trace`.
+In CI the entire `e2e/playwright-report/` and `e2e/test-results/` directories — including traces, screenshots, and videos for any failed test — are uploaded as the `e2e-playwright-report` artefact (retained 7 days). Download it from the failing run's "Artifacts" section to debug CI-only failures locally with `pnpm exec playwright show-report e2e/playwright-report` and `pnpm exec playwright show-trace`.
 
 The CI job also emits a workflow warning listing how many tests needed retries (`retries: 2` on CI, `0` locally), so flaky tests surface without having to open the report.
 
@@ -173,8 +173,8 @@ The CI job also emits a workflow warning listing how many tests needed retries (
 
 CI splits the suite to keep PR feedback fast while still gating `main` on the full integration set. See `.github/workflows/ci.yml` (the "Run Playwright suite" step in the `test-e2e` job):
 
-- **Pull requests** run `npm run test:e2e:smoke` — Playwright is invoked with `--grep @smoke`, executing only tests whose title contains `@smoke`. This is the critical-journey subset and currently completes in roughly 3–5 minutes.
-- **Push to `main` / `develop`** runs the full `npm run test:e2e`. This is the integration gate before deploy.
+- **Pull requests** run `pnpm test:e2e:smoke` — Playwright is invoked with `--grep @smoke`, executing only tests whose title contains `@smoke`. This is the critical-journey subset and currently completes in roughly 3–5 minutes.
+- **Push to `main` / `develop`** runs the full `pnpm test:e2e`. This is the integration gate before deploy.
 
 Existing `@smoke` tests:
 
@@ -200,7 +200,7 @@ Guidance on what to tag:
 - **Don't tag** edge cases, validation-error paths, or per-field UI behaviour — those belong in the full suite that runs on `main`.
 - **Don't tag** long-running specs (multi-minute waits, large fixtures) — the smoke suite's value is its sub-5-minute turnaround on PRs.
 
-Aim to keep the smoke suite under ~5 minutes total. If you tag a new spec, run `npm run test:e2e:smoke` locally and confirm it still fits the budget.
+Aim to keep the smoke suite under ~5 minutes total. If you tag a new spec, run `pnpm test:e2e:smoke` locally and confirm it still fits the budget.
 
 ## Environment overrides
 
@@ -231,5 +231,5 @@ The `test-e2e` job in `.github/workflows/ci.yml` runs after `test-backend` and `
 1. Boots the stack with `docker-compose.yml` + `docker-compose.ci.yml`.
 2. Waits for `:4000/health/simple`, `:3000`, `:3001`, `:3002`.
 3. Runs migrations and seeds inside the backend container.
-4. Executes `npm run test:e2e`.
+4. Executes `pnpm test:e2e`.
 5. Uploads `e2e/playwright-report/`, `e2e/test-results/`, and `docker-compose.log` as artifacts.

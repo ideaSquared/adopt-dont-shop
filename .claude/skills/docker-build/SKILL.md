@@ -155,7 +155,7 @@ docker exec adopt-dont-shop-database-1 \
 If a migration hasn't run (table missing, column missing):
 ```bash
 docker exec adopt-dont-shop-service-backend-1 \
-  npm run db:migrate
+  pnpm db:migrate
 ```
 
 ---

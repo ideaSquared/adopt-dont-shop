@@ -11,7 +11,7 @@ covered by automated tests in this repository.
 | Playwright | `e2e/`                                          | Cross-app integration journeys against the docker-compose stack |
 
 `service.backend` test config lives in `service.backend/vitest.config.ts`
-and enforces coverage thresholds (see ADS-418). `npm run test:coverage`
+and enforces coverage thresholds (see ADS-418). `pnpm test:coverage`
 in that workspace fails the build below the thresholds.
 
 ## E2E gating

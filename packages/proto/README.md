@@ -10,7 +10,7 @@ CAD lesson, ported verbatim:
 > `api.buf.build`. The dev environment couldn't reach `buf.build` (403
 > from a non-browser client). Decision: local `protoc-gen-ts_proto`
 > invoked via `node_modules/.bin`, so codegen runs anywhere
-> `npm install` runs.
+> `pnpm install` runs.
 
 The plugin path lives in `buf.gen.yaml`:
 
@@ -21,8 +21,8 @@ plugins:
 ```
 
 No remote dependency, no buf.build account, no auth tokens. Every CI
-runner and every developer machine that runs `npm install` can run
-`npm run generate`.
+runner and every developer machine that runs `pnpm install` can run
+`pnpm generate`.
 
 ## Generated output IS committed
 
@@ -35,7 +35,7 @@ runner and every developer machine that runs `npm install` can run
 
 A `check:fresh` CI guard runs `buf generate` into a tmpdir and diffs
 against `src/generated/` — if the committed output is stale, the build
-fails with a "run `npm run generate` and commit" message.
+fails with a "run `pnpm generate` and commit" message.
 
 ## Dual binding (CAD lesson #7)
 
@@ -89,8 +89,8 @@ transitively.
 ## Commands
 
 ```bash
-npm run generate     # regenerate src/generated from proto/
-npm run check:fresh  # CI guard — generated output must match .proto sources
-npm run test         # smoke test: encode/decode round-trip, dual-binding shape
-npm run type-check   # tsc --noEmit over src/
+pnpm generate     # regenerate src/generated from proto/
+pnpm check:fresh  # CI guard — generated output must match .proto sources
+pnpm test         # smoke test: encode/decode round-trip, dual-binding shape
+pnpm type-check   # tsc --noEmit over src/
 ```

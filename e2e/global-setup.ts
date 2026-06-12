@@ -29,7 +29,7 @@ async function waitForUrl(url: string, label: string): Promise<void> {
   throw new Error(
     `Timed out after ${HEALTH_BUDGET_MS}ms waiting for ${label} (${url}). ` +
       `Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}. ` +
-      `Hint: ensure 'npm run docker:dev:detach' is running and ports 3000/3001/3002/4000 are free.`
+      `Hint: ensure 'pnpm docker:dev:detach' is running and ports 3000/3001/3002/4000 are free.`
   );
 }
 

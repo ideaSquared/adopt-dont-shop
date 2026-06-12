@@ -169,7 +169,7 @@ release.
 
 **Tests:**
 
-- Full backend Vitest suite (`npx turbo test --filter=@adopt-dont-shop/service-backend`).
+- Full backend Vitest suite (`pnpm exec turbo test --filter=@adopt-dont-shop/service-backend`).
 - Manual smoke against staging: at minimum one happy-path call per route
   group. The seed script provides enough data for this.
 - Specific assertions: malformed JSON body → 400; missing CSRF token → 403;

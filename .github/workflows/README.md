@@ -73,7 +73,7 @@ Tag a test with `@smoke` in its title to add it to the PR set. Keep the smoke se
 
 **Triggers**:
 
-- **Pull request**: only on changes to Dockerfiles, `docker-compose*.yml`, or `.dockerignore`. Source-only PRs are validated by `ci.yml` (`test-frontend`/`test-backend` run native `npm run build`, and `test-e2e` brings the dev stack up via `docker compose up --build`).
+- **Pull request**: only on changes to Dockerfiles, `docker-compose*.yml`, or `.dockerignore`. Source-only PRs are validated by `ci.yml` (`test-frontend`/`test-backend` run native `pnpm build`, and `test-e2e` brings the dev stack up via `docker compose up --build`).
 - **Push to main/develop**: triggers on the broader source path set so a regression that only manifests inside a container is caught before deploy. Production images and the Trivy scan run only on this branch — `deploy.yml` is the consumer.
 
 **Note**: the previous `test-compose` job (a container `/health` probe) was removed; `ci.yml`'s `test-e2e` brings up the full stack and is a strict superset of that signal.
@@ -119,7 +119,7 @@ GitHub Releases themselves are produced by `release-please.yml` from conventiona
 - **Concurrency Control**: Cancels old runs when new commits are pushed
 - **Matrix Builds**: Parallel execution for multiple projects
 - **Lib dist caching (ADS-390)**: The `build-libs` job caches compiled `lib.*/dist` artifacts across runs via `actions/cache@v4`. On a cache hit the build step is skipped entirely; on a miss the libs are compiled and the cache is saved for the next run. Within a single run, the compiled artifacts are shared to consumer jobs (`test-backend`, `test-frontend`, `test-libs`, `test-e2e`) via `upload-artifact`/`download-artifact`, eliminating redundant builds across the matrix.
-- **npm dependency caching**: `actions/setup-node` with `cache: 'npm'` restores `~/.npm` between runs
+- **pnpm store caching**: the `setup-workspace` composite action installs pnpm via Corepack and caches the pnpm store (keyed on `pnpm-lock.yaml`) between runs
 - **Docker layer caching**: BuildKit layer cache in `docker.yml` for image rebuilds
 - **Path Filters**: Only runs when relevant files change
 
@@ -222,13 +222,13 @@ job lives in a *separate* workflow file (as `lib-test-guard` and
 
 ```bash
 # Everything (Turbo-filtered)
-npm run test
-npm run lint
-npm run type-check
+pnpm test
+pnpm lint
+pnpm type-check
 
 # One package only
-npx turbo test --filter=@adopt-dont-shop/service.gateway
-npx turbo test --filter=@adopt-dont-shop/app.admin
+pnpm exec turbo test --filter=@adopt-dont-shop/service.gateway
+pnpm exec turbo test --filter=@adopt-dont-shop/app.admin
 ```
 
 ### Manual Deployment

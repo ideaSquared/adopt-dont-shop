@@ -4,7 +4,7 @@
  * glob whenever a new file shape arrives).
  *
  * Runs `buf generate` into a tmpdir, diffs against `src/generated/`, and
- * fails CI if they disagree. Caller fix: run `npm run generate` and
+ * fails CI if they disagree. Caller fix: run `pnpm generate` and
  * commit the result. Identical pattern to CAD's
  * `tools/scripts/check-proto-fresh.mjs`.
  */
@@ -42,7 +42,7 @@ plugins:
 `;
   writeFileSync(join(tmp, 'buf.gen.yaml'), genYaml);
 
-  // Invoke buf via absolute path — `npx buf` from inside the tmpdir
+  // Invoke buf via absolute path — `pnpm exec buf` from inside the tmpdir
   // would fail npx's node_modules walk-up (the tmpdir has no
   // package.json ancestor).
   execSync(`${BUF_BIN} generate`, { cwd: tmp, stdio: 'inherit' });
@@ -55,7 +55,7 @@ plugins:
     console.log('OK — generated proto output is in sync with the .proto sources.');
   } catch (err) {
     console.error(
-      'Generated proto output is STALE — re-run `npm run generate` and commit the result.',
+      'Generated proto output is STALE — re-run `pnpm generate` and commit the result.',
     );
     console.error('Diff vs committed src/generated/:');
     console.error(err.stdout?.toString() ?? '');

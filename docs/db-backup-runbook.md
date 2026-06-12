@@ -88,7 +88,7 @@ Before running any production migration:
 3. Confirm the new file exists and is non-zero in size.
 4. Copy the file off-site.
 5. Note the backup filename in the migration change ticket.
-6. Only then run `npm run db:migrate`.
+6. Only then run `pnpm db:migrate`.
 
 If the migration fails or produces unexpected results, restore from the
 ad-hoc backup using the procedure below before any further writes occur.

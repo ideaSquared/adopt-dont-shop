@@ -87,7 +87,7 @@ We follow Test-Driven Development (TDD) with a strong emphasis on behaviour-driv
 
 ## Monorepo Architecture
 
-This project is a **Turborepo monorepo** with npm workspaces containing multiple applications and shared libraries.
+This project is a **Turborepo monorepo** with pnpm workspaces containing multiple applications and shared libraries.
 
 ### Project Structure
 
@@ -120,53 +120,56 @@ adopt-dont-shop/
 
 **Key Scripts:**
 
+> pnpm is the package manager (version pinned by `package.json` "packageManager").
+> Enable it once with `corepack enable` — Corepack then runs the pinned pnpm.
+
 ```bash
 # Docker dev (primary workflow — full stack with HMR)
-npm run docker:dev             # Start all containers in foreground
-npm run docker:dev:build       # Rebuild images then start
-npm run docker:dev:detach      # Start in background
-npm run docker:down            # Stop containers
-npm run docker:reset           # Stop and wipe volumes (incl. DB)
-npm run docker:logs            # Follow logs
-npm run docker:shell:db        # Open psql in database container
+pnpm docker:dev             # Start all containers in foreground
+pnpm docker:dev:build       # Rebuild images then start
+pnpm docker:dev:detach      # Start in background
+pnpm docker:down            # Stop containers
+pnpm docker:reset           # Stop and wipe volumes (incl. DB)
+pnpm docker:logs            # Follow logs
+pnpm docker:shell:db        # Open psql in database container
 
 # Native dev (no Docker — fastest HMR but you must run Postgres yourself)
-npm run dev                    # Run everything via Turbo (apps + gateway + services)
-npm run dev:apps               # Frontend apps only
-npm run dev:services           # Start Postgres + Redis in Docker (detached)
+pnpm dev                    # Run everything via Turbo (apps + gateway + services)
+pnpm dev:apps               # Frontend apps only
+pnpm dev:services           # Start Postgres + Redis in Docker (detached)
 
 # Build / test / quality
-npm run build                  # Build everything (Turbo handles ordering)
-npm run build:libs             # Libraries only
-npm run build:apps             # Apps only
-npm run test                   # Test everything
-npm run lint / lint:fix        # Lint
-npm run type-check             # TypeScript type-check
-npm run format / format:check  # Prettier
+pnpm build                  # Build everything (Turbo handles ordering)
+pnpm build:libs             # Libraries only
+pnpm build:apps             # Apps only
+pnpm test                   # Test everything
+pnpm lint / lint:fix        # Lint
+pnpm type-check             # TypeScript type-check
+pnpm format / format:check  # Prettier
 
 # Database — each service migrates its own schema automatically when its
-# container starts (entrypoint runs `npm run db:migrate --if-present`). To
+# container starts (entrypoint runs `pnpm run --if-present db:migrate`). To
 # migrate one service by hand (containers must be running):
-docker compose exec service-auth npm run db:migrate
+docker compose exec service-auth pnpm db:migrate
 
 # Production / staging (Docker — pulls pre-built GHCR images, requires DEPLOY_SHA)
 docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.staging.yml up -d
 
 # Utilities
-npm run validate:env           # Validate .env against required vars
+pnpm validate:env           # Validate .env against required vars
 
 # Per-package commands — use Turbo's --filter flag directly:
-npx turbo dev --filter=@adopt-dont-shop/lib.api
-npx turbo build --filter=@adopt-dont-shop/app.admin
-npx turbo test --filter=@adopt-dont-shop/service.gateway
+pnpm exec turbo dev --filter=@adopt-dont-shop/lib.api
+pnpm exec turbo build --filter=@adopt-dont-shop/app.admin
+pnpm exec turbo test --filter=@adopt-dont-shop/service.gateway
 ```
 
 **Important Monorepo Rules:**
 
-1. **Turbo handles build ordering automatically** via `dependsOn: ["^build"]` — `npm run build` builds libs before apps. No need to manually sequence.
+1. **Turbo handles build ordering automatically** via `dependsOn: ["^build"]` — `pnpm build` builds libs before apps. No need to manually sequence.
 2. **Libraries hot-reload automatically** in dev — Vite aliases point at their src/ directories for the React apps, and a lib-types-watcher sidecar runs tsc --watch for lib.types so the backend container picks up type changes within seconds.
-3. Reference workspace packages with `*` version (e.g., `"@adopt-dont-shop/lib.api": "*"`)
+3. Reference workspace packages with the `workspace:*` protocol (e.g., `"@adopt-dont-shop/lib.api": "workspace:*"`)
 4. Changes to shared libraries affect multiple consumers — test thoroughly
 5. Each package has its own `package.json`, `tsconfig.json`, and tests
 
@@ -185,7 +188,7 @@ npx turbo test --filter=@adopt-dont-shop/service.gateway
 
 #### Testing Tools
 
-- **Vitest** — used by every workspace package: the React apps (`app.admin`, `app.client`, `app.rescue`), every `services/*` and `packages/*`, and every `lib.*` (each ships a `vitest.config.ts` and an `npm test` script that runs `vitest run`)
+- **Vitest** — used by every workspace package: the React apps (`app.admin`, `app.client`, `app.rescue`), every `services/*` and `packages/*`, and every `lib.*` (each ships a `vitest.config.ts` and a `test` script that runs `vitest run`)
 - **React Testing Library** for React components
 - **MSW (Mock Service Worker)** for API mocking when needed
 - All test code must follow the same TypeScript strict mode rules as production code

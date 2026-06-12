@@ -132,11 +132,11 @@ In degraded mode the limit reverts to per-replica behaviour. The gateway never c
 
 ```bash
 # Dev — hot reload, OTel SDK loaded via --import
-npm run dev
+pnpm dev
 
 # Production build
-npm run build
-npm run start
+pnpm build
+pnpm start
 ```
 
 ## Routing model

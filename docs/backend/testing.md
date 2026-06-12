@@ -16,23 +16,23 @@ Tests live under `service.backend/src/__tests__/` organised by layer (`services/
 
 ### Running Tests
 
-From `service.backend/` (or via `npx turbo test --filter=@adopt-dont-shop/service-backend` at the repo root):
+From `service.backend/` (or via `pnpm exec turbo test --filter=@adopt-dont-shop/service-backend` at the repo root):
 
 ```bash
 # All tests
-npm test
+pnpm test
 
 # Watch mode
-npm run test:watch
+pnpm test:watch
 
 # Vitest UI
-npm run test:ui
+pnpm test:ui
 
 # Coverage report
-npm run test:coverage
+pnpm test:coverage
 
 # Specific test file — Vitest takes a substring filter
-npm test user.service.test.ts
+pnpm test user.service.test.ts
 ```
 
 There are no separate `test:integration` / `test:e2e` scripts; integration and route tests run in the same Vitest invocation. Target them via substring or file path.
@@ -326,10 +326,10 @@ export const mockStorageService = {
 
 ```bash
 # Single test file (substring match)
-npm test user.service.test.ts
+pnpm test user.service.test.ts
 
 # Single test case
-npm test -- -t "should create user"
+pnpm test -- -t "should create user"
 
 # With Node debugger (Vitest)
 node --inspect-brk node_modules/.bin/vitest run --no-threads
@@ -343,9 +343,9 @@ Vitest uses the database configured via `DB_*` / `TEST_DB_NAME` env vars (see `.
 
 ```bash
 docker compose ps database      # must be "healthy"
-npm run docker:reset            # last resort — wipes the volume
-npm run docker:dev:detach
-npm run db:reset
+pnpm docker:reset            # last resort — wipes the volume
+pnpm docker:dev:detach
+pnpm db:reset
 ```
 
 **Timeout Errors**
@@ -371,7 +371,7 @@ it('slow operation', async () => {
 ```yaml
 - name: Run Tests
   run: |
-    npm run test:coverage
+    pnpm test:coverage
 
 - name: Upload Coverage
   uses: codecov/codecov-action@v3
@@ -383,23 +383,23 @@ it('slow operation', async () => {
 
 ```bash
 # Run tests before commit
-npm test
+pnpm test
 
 # Run only changed files
-npm test --findRelatedTests $(git diff --cached --name-only)
+pnpm test --findRelatedTests $(git diff --cached --name-only)
 ```
 
 ## Coverage Reports
 
 ```bash
 # Generate HTML coverage report
-npm run test:coverage
+pnpm test:coverage
 
 # View report
 open coverage/index.html
 
 # Check coverage threshold
-npm run test:coverage -- --coverageThreshold='{"global":{"lines":80}}'
+pnpm test:coverage -- --coverageThreshold='{"global":{"lines":80}}'
 ```
 
 ## Additional Resources

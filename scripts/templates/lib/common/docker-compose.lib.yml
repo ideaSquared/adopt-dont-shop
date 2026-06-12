@@ -11,7 +11,7 @@ services:
       - lib_{{LIB_NAME_UNDERSCORE}}_dist:/app/dist
     environment:
       NODE_ENV: development
-    command: npm run dev
+    command: pnpm run dev
 
   # Test service for the library
   lib-{{LIB_NAME}}-test:
@@ -22,7 +22,9 @@ services:
       - /app/node_modules
     environment:
       NODE_ENV: test
-    command: npm test
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+    # Corepack provides pnpm (version pinned by package.json "packageManager").
+    command: sh -c "corepack enable && pnpm install && pnpm test"
     depends_on:
       - lib-{{LIB_NAME}}
 

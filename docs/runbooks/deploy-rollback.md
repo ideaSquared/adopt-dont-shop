@@ -74,7 +74,7 @@ constraint it doesn't populate):
 ```bash
 # 1. Roll the migration back FIRST.
 docker compose -f docker-compose.prod.yml run --rm service-backend-migrate \
-  npm run db:migrate:undo
+  pnpm db:migrate:undo
 
 # 2. Then roll the image back per the procedure above.
 ```

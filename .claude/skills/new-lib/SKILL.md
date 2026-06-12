@@ -14,7 +14,7 @@ disable-model-invocation: true
 ## Step 1 — Run the generator
 
 ```bash
-npm run new-lib
+pnpm new-lib
 ```
 
 The script is interactive. It will prompt for:
@@ -78,8 +78,8 @@ the app will require a full lib build before changes appear in the dev server.
 
 ```bash
 # From the monorepo root
-npm install
-npm run build:libs
+pnpm install
+pnpm build:libs
 ```
 
 `build:libs` uses Turbo and builds all libraries in dependency order. Run this before
@@ -91,11 +91,11 @@ In the app's or other lib's `package.json`:
 
 ```json
 "dependencies": {
-  "@adopt-dont-shop/lib.<name>": "*"
+  "@adopt-dont-shop/lib.<name>": "workspace:*"
 }
 ```
 
-Always use `"*"` as the version — npm workspaces resolves it to the local package.
+Always use the `workspace:*` protocol as the version — pnpm workspaces resolves it to the local package.
 
 ## Step 7 — Write tests first (TDD)
 
@@ -115,5 +115,5 @@ Tests verify behaviour through public API only. No testing internals.
 
 - Forgetting to add the vite alias → stale lib in dev server
 - Using `||` instead of `??` for empty string defaults (empty string is valid config)
-- Not running `npm install` after adding the workspace → unresolved module errors
+- Not running `pnpm install` after adding the workspace → unresolved module errors
 - Writing tests that check implementation details rather than behaviour

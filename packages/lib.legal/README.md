@@ -56,12 +56,12 @@ Workspace packages: `lib.api`, `lib.auth`, `lib.components`, `lib.observability`
 ## Development
 
 ```bash
-npx turbo build --filter=@adopt-dont-shop/lib.legal
-npx turbo test  --filter=@adopt-dont-shop/lib.legal
-npx turbo lint  --filter=@adopt-dont-shop/lib.legal
+pnpm exec turbo build --filter=@adopt-dont-shop/lib.legal
+pnpm exec turbo test  --filter=@adopt-dont-shop/lib.legal
+pnpm exec turbo lint  --filter=@adopt-dont-shop/lib.legal
 ```
 
-Or from `lib.legal/`: `npm run build`, `npm test`, `npm run lint`.
+Or from `lib.legal/`: `pnpm build`, `pnpm test`, `pnpm lint`.
 
 ## See also
 

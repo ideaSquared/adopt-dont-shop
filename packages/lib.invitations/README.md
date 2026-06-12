@@ -45,13 +45,13 @@ await invitations.sendInvitation({
 ## Scripts (from `lib.invitations/`)
 
 ```bash
-npm run build           # tsc
-npm run dev             # tsc --watch
-npm test                # vitest run
-npm run test:watch
-npm run test:coverage
-npm run lint
-npm run type-check
+pnpm build           # tsc
+pnpm dev             # tsc --watch
+pnpm test                # vitest run
+pnpm test:watch
+pnpm test:coverage
+pnpm lint
+pnpm type-check
 ```
 
 ## Resources

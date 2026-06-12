@@ -19,8 +19,8 @@
  * Idempotent: every per-service seed uses ON CONFLICT DO UPDATE, so this is
  * safe to re-run. Run it after the stack is up:
  *
- *   npm run docker:dev:detach   # or docker:dev in another terminal
- *   npm run db:seed
+ *   pnpm docker:dev:detach   # or docker:dev in another terminal
+ *   pnpm db:seed
  *
  * Override the compose service names or the docker binary via env if your
  * topology differs (SEED_DOCKER, SEED_COMPOSE_FILE).
@@ -38,13 +38,13 @@ const SEED_TARGETS = [
 
 function runSeed(service, label) {
   process.stdout.write(`\n→ seeding ${label} (${service})...\n`);
-  const result = spawnSync(DOCKER, ['compose', 'exec', '-T', service, 'npm', 'run', 'db:seed'], {
+  const result = spawnSync(DOCKER, ['compose', 'exec', '-T', service, 'pnpm', 'run', 'db:seed'], {
     stdio: 'inherit',
   });
   if (result.error) {
     throw new Error(
       `failed to exec into ${service}: ${result.error.message}. ` +
-        `Is the stack running? Try 'npm run docker:dev:detach' first.`
+        `Is the stack running? Try 'pnpm docker:dev:detach' first.`
     );
   }
   if (result.status !== 0) {

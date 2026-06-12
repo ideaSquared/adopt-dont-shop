@@ -14,7 +14,7 @@ disable-model-invocation: true
 ## Step 1 — Run the generator
 
 ```bash
-npm run new-app <app-name> [--template <template>]
+pnpm new-app <app-name> [--template <template>]
 ```
 
 **App name** must start with `app.` (e.g. `app.dashboard`, `app.staff`).
@@ -32,8 +32,8 @@ stack. Use `minimal` for simple internal tools.
 
 Examples:
 ```bash
-npm run new-app app.dashboard
-npm run new-app app.staff --template enterprise
+pnpm new-app app.dashboard
+pnpm new-app app.staff --template enterprise
 ```
 
 ## Step 2 — Verify the generated structure
@@ -177,13 +177,13 @@ Add convenient dev/build/test scripts to the root `package.json` following exist
 ## Step 8 — Install and start
 
 ```bash
-npm install
+pnpm install
 docker compose up -d --force-recreate app-<name>
 ```
 
 Or for local dev without Docker:
 ```bash
-npm run dev:<shortname>
+pnpm dev:<shortname>
 ```
 
 ## Common mistakes
@@ -192,4 +192,4 @@ npm run dev:<shortname>
 - Vite proxy disabled in Docker (`!isDocker ? proxy : undefined`) → ECONNREFUSED errors
 - Missing `DOCKER_ENV: 'true'` in docker-compose → proxy targets wrong host
 - Using `||` instead of `??` in libraryServices.ts → empty string ignored, absolute URL used
-- Forgetting `npm install` after adding the workspace
+- Forgetting `pnpm install` after adding the workspace

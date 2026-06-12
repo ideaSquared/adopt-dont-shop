@@ -109,7 +109,7 @@ so `DEPLOY_SHA` takes effect.
 
 ## Schema migration caveat
 
-Each service runs `npm run db:migrate --if-present` on container boot
+Each service runs `pnpm db:migrate --if-present` on container boot
 (see the `Dockerfile.service` entrypoint). This means:
 
 - When you **hotfix-deploy** a new image, the new image's pending migrations run
@@ -128,7 +128,7 @@ incompatible, you must revert the migration first:
 ```bash
 # On the deploy host:
 docker compose -f docker-compose.prod.yml exec service-auth \
-  npm run db:migrate:undo
+  pnpm db:migrate:undo
 ```
 
 Then re-dispatch the rollback deploy. See

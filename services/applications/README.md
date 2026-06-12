@@ -95,9 +95,9 @@ Plus the standard observability env vars consumed by
 
 ```bash
 # Dev — hot reload, OTel SDK loaded via --import
-npm run dev
+pnpm dev
 
 # Production build
-npm run build
-npm run start
+pnpm build
+pnpm start
 ```

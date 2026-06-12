@@ -1,4 +1,4 @@
-import { render, type RenderOptions } from '@testing-library/react';
+import { render, type RenderOptions, type RenderResult } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { ChatContext } from './context/chat-context';
 import type { ChatContextValue } from './context/chat-context-types';
@@ -47,7 +47,7 @@ export const buildChatContextValue = (
 export const renderWithChatContext = (
   ui: ReactElement,
   { value, ...options }: { value: ChatContextValue } & Omit<RenderOptions, 'wrapper'>
-) => {
+): RenderResult => {
   const Wrapper = ({ children }: { children: ReactNode }) => (
     <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
   );

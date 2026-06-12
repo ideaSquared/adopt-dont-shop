@@ -27,7 +27,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css.ts}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css.ts}\"",
     "type-check": "tsc --noEmit",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "pnpm clean && pnpm build"
   },
   "keywords": [
     "pet-adoption",
@@ -38,11 +38,11 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@adopt-dont-shop/lib.api": "*",
-    "@adopt-dont-shop/lib.types": "*"
+    "@adopt-dont-shop/lib.api": "workspace:*",
+    "@adopt-dont-shop/lib.types": "workspace:*"
   },
   "devDependencies": {
-    "@adopt-dont-shop/eslint-config-base": "*",
+    "@adopt-dont-shop/eslint-config-base": "workspace:*",
     "@types/node": "^25.9.1"
   },
   "peerDependencies": {

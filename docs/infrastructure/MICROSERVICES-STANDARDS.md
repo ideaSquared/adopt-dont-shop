@@ -10,7 +10,7 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│              Shared Libraries (npm workspace)        │
+│              Shared Libraries (pnpm workspace)        │
 │  @adopt-dont-shop/lib.api, lib.auth, lib.chat...   │
 └─────────────────────────────────────────────────────┘
                            │
@@ -38,7 +38,7 @@ The Adopt Don't Shop platform uses a hybrid microservices architecture combining
 
 - 24 libraries with consistent ESM architecture
 - TypeScript-first with full type safety
-- Linked as npm workspace dependencies (`"*"` version)
+- Linked as pnpm workspace dependencies (`"*"` version)
 - Tested independently
 
 **✅ Single Database**
@@ -63,7 +63,7 @@ All libraries follow these standards:
 
 - **Module System**: ES Modules first; a few libraries (`lib.api`, `lib.permissions`, `lib.types`, `lib.validation`) also emit a CJS bundle for backend consumers
 - **Build Tool**: TypeScript Compiler (`tsc`) for most libs; `lib.components` uses Vite to bundle assets and styles
-- **Testing**: Vitest in every package (`lib.*`, `service.backend`, and the React apps). Each library ships its own `vitest.config.ts` and an `npm test` script that runs `vitest run`.
+- **Testing**: Vitest in every package (`lib.*`, `service.backend`, and the React apps). Each library ships its own `vitest.config.ts` and an `pnpm test` script that runs `vitest run`.
 - **Code Quality**: ESLint + Prettier
 - **Documentation**: Each library has its own README next to the source
 
@@ -154,16 +154,16 @@ If needed in future:
 
 ```bash
 # Build all libraries
-npm run build:libs
+pnpm build:libs
 
 # Build specific library
-cd lib.api && npm run build
+cd lib.api && pnpm build
 
 # Test library
-cd lib.api && npm test
+cd lib.api && pnpm test
 
 # Watch mode
-cd lib.api && npm run dev
+cd lib.api && pnpm dev
 ```
 
 ### Adding New Library
@@ -174,13 +174,13 @@ mkdir -p lib.{name}/src/{services,types}
 cd lib.{name}
 
 # Initialize package.json
-npm init -y
+pnpm init
 
 # Configure as ESM
 # Update package.json: "type": "module"
 
 # Add TypeScript
-npm install -D typescript @types/node
+pnpm add -D typescript @types/node
 
 # Create tsconfig.json
 # Add src/index.ts
@@ -242,16 +242,16 @@ const user = authService.getCurrentUser();
 FROM node:22-alpine AS base
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Build libraries
 COPY lib.* ./
-RUN npm run build:libs
+RUN pnpm build:libs
 
 # Build app
 FROM base AS build
 COPY app.{name} ./app.{name}
-RUN cd app.{name} && npm run build
+RUN cd app.{name} && pnpm build
 
 # Production
 FROM nginx:alpine
@@ -286,16 +286,16 @@ COPY --from=build /app/app.{name}/dist /usr/share/nginx/html
 
 ```bash
 # All tests
-npm test
+pnpm test
 
 # Specific library
-cd lib.api && npm test
+cd lib.api && pnpm test
 
 # With coverage
-npm run test:coverage
+pnpm test:coverage
 
 # Watch mode
-npm run test:watch
+pnpm test:watch
 ```
 
 ## Performance Optimization

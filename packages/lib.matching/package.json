@@ -27,7 +27,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css.ts}\"",
     "type-check": "tsc --noEmit",
     "test:coverage": "vitest run --coverage",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "pnpm clean && pnpm build"
   },
   "keywords": [
     "pet-adoption",
@@ -39,7 +39,7 @@
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {
-    "@adopt-dont-shop/eslint-config-base": "*",
+    "@adopt-dont-shop/eslint-config-base": "workspace:*",
     "@types/node": "^25.9.1"
   },
   "peerDependencies": {

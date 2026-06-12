@@ -294,7 +294,7 @@ For processors not listed here: if you add a new integration that receives any o
 ### Export flow
 
 1. User emails admin with subject access request. Admin verifies identity against `users.email`.
-2. Admin runs: `npx ts-node scripts/export-user-data.ts --userId <uuid>`
+2. Admin runs: `pnpm exec ts-node scripts/export-user-data.ts --userId <uuid>`
 3. Script collects all rows referencing that `userId` across: `users`, `addresses`, `applications`, `application_answers`, `application_references`, `messages`, `notifications`, `swipe_actions`, `audit_logs` (where `user = userId`), `device_tokens`, `refresh_tokens`, `email_queue`.
 4. Output: a JSON archive delivered to the user's verified email address.
 
@@ -303,7 +303,7 @@ For processors not listed here: if you add a new integration that receives any o
 ### Deletion flow
 
 1. User submits deletion request. Admin verifies identity.
-2. Admin runs: `npx ts-node scripts/anonymize-user.ts --userId <uuid>`
+2. Admin runs: `pnpm exec ts-node scripts/anonymize-user.ts --userId <uuid>`
 3. Script: anonymises PII fields on `users`, revokes all `refresh_tokens` and `device_tokens` for the user, cancels pending `notifications` and `email_queue` entries. Does not delete `audit_logs` (legal retention). Does not delete `application` rows (rescue needs them for their own retention obligations). Does not delete `messages` (chat participant; the other party's data is also in that thread — separate policy decision needed).
 4. Admin confirms operation completed and notifies user within 30 days of request.
 

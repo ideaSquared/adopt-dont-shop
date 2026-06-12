@@ -166,7 +166,7 @@ the bump or as cleanup.
    `from 'sequelize'` → `from '@sequelize/core'`. Use a codemod or scripted
    `sed` (verify each diff).
 8. Run the test suite. Fix typing drift.
-9. Run all migrations against a fresh DB (`npm run db:reset`); verify
+9. Run all migrations against a fresh DB (`pnpm db:reset`); verify
    migration UP succeeds.
 10. Run a sample of seeders; verify they still produce the expected rows.
 
@@ -191,7 +191,7 @@ migration in the same window.**
 
 - Full backend Vitest suite + integration tests against a real Postgres
   (Docker compose).
-- `npm run db:reset` end-to-end.
+- `pnpm db:reset` end-to-end.
 - Manual exercise of every model area against the staging DB.
 
 **Rollback:**

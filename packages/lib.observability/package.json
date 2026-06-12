@@ -29,7 +29,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css.ts}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css.ts}\"",
     "type-check": "tsc --noEmit",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "pnpm clean && pnpm build"
   },
   "keywords": [
     "observability",
@@ -44,7 +44,7 @@
     "web-vitals": "^5.3.0"
   },
   "devDependencies": {
-    "@adopt-dont-shop/eslint-config-base": "*",
+    "@adopt-dont-shop/eslint-config-base": "workspace:*",
     "@types/react": "^19.2.15",
     "react": "^19.0.0"
   },

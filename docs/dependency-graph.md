@@ -5,11 +5,11 @@ This monorepo is wired together by Turborepo. The dependency graph captures ever
 ## Generate the graph
 
 ```bash
-npm run graph         # renders docs/dependency-graph.html (open in a browser)
-npm run graph:tasks   # prints the task graph to stdout (no file written)
+pnpm graph         # renders docs/dependency-graph.html (open in a browser)
+pnpm graph:tasks   # prints the task graph to stdout (no file written)
 ```
 
-`npm run graph` shells out to `turbo run build --graph=docs/dependency-graph.html`. The generated HTML is git-ignored — regenerate it locally whenever you need an up-to-date picture.
+`pnpm graph` shells out to `turbo run build --graph=docs/dependency-graph.html`. The generated HTML is git-ignored — regenerate it locally whenever you need an up-to-date picture.
 
 ## Layered architecture
 
@@ -31,7 +31,7 @@ apps (app.admin, app.client, app.rescue) + service.backend
 
 ### Why changing lib.types cascades
 
-Because `lib.types` sits at the bottom, every other workspace transitively depends on it. A change to `lib.types` invalidates the Turbo cache for every downstream library, which in turn invalidates every app and `service.backend`. Expect `npm run build` after a `lib.types` edit to rebuild essentially the whole graph. Conversely, editing an isolated leaf like `app.admin` only rebuilds that one package.
+Because `lib.types` sits at the bottom, every other workspace transitively depends on it. A change to `lib.types` invalidates the Turbo cache for every downstream library, which in turn invalidates every app and `service.backend`. Expect `pnpm build` after a `lib.types` edit to rebuild essentially the whole graph. Conversely, editing an isolated leaf like `app.admin` only rebuilds that one package.
 
 If you want to see this in action, generate the graph and trace the inbound edges into `lib.types` — that fan-out is the cascade.
 

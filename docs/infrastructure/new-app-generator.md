@@ -2,14 +2,14 @@
 
 ## Overview
 
-The `npm run new-app` command scaffolds new applications in the workspace with all established patterns and shared libraries pre-configured.
+The `pnpm new-app` command scaffolds new applications in the workspace with all established patterns and shared libraries pre-configured.
 
 ## Usage
 
 ```bash
-npm run new-app <app-name> [template] [--overwrite]
+pnpm new-app <app-name> [template] [--overwrite]
 # or:
-npm run new-app <app-name> --template <template>
+pnpm new-app <app-name> --template <template>
 ```
 
 ### Parameters
@@ -32,14 +32,14 @@ The generator only scaffolds React apps under `app.*`. Backend services are not 
 
 ```bash
 # Mobile adoption app (standard template)
-npm run new-app app.mobile
+pnpm new-app app.mobile
 
 # Pick a template explicitly
-npm run new-app app.veterinary minimal
-npm run new-app app.superadmin enterprise
+pnpm new-app app.veterinary minimal
+pnpm new-app app.superadmin enterprise
 
 # Replace an existing scaffold
-npm run new-app app.mobile standard --overwrite
+pnpm new-app app.mobile standard --overwrite
 ```
 
 ## What Gets Created
@@ -137,16 +137,16 @@ WORKDIR /app
 
 # Copy workspace and install
 COPY package*.json ./
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Build libraries
 COPY lib.* ./
-RUN npm run build:libs
+RUN pnpm build:libs
 
 # Build app
 FROM base AS build
 COPY app.{name} ./app.{name}
-RUN cd app.{name} && npm run build
+RUN cd app.{name} && pnpm build
 
 # Production
 FROM nginx:alpine
@@ -166,7 +166,7 @@ cp .env.example .env
 ### 2. Install Dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 3. Update docker-compose.yml
@@ -210,7 +210,7 @@ docker compose up app.{name}
 
 # Or locally
 cd app.{name}
-npm run dev
+pnpm dev
 ```
 
 ## Customization
@@ -277,10 +277,10 @@ taskkill /PID <pid> /F
 
 ```bash
 # Rebuild libraries
-npm run build:libs
+pnpm build:libs
 
 # Reinstall dependencies
-rm -rf node_modules && npm install
+rm -rf node_modules && pnpm install
 ```
 
 ### Docker Build Fails

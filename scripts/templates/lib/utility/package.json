@@ -27,7 +27,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css.ts}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css.ts}\"",
     "type-check": "tsc --noEmit",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "pnpm clean && pnpm build"
   },
   "keywords": [
     "pet-adoption",
@@ -43,7 +43,7 @@
     "styled-components": "^6.1.8"
   },
   "devDependencies": {
-    "@adopt-dont-shop/eslint-config-base": "*",
+    "@adopt-dont-shop/eslint-config-base": "workspace:*",
     "@types/node": "^22.10.5",
     "@typescript-eslint/eslint-plugin": "^8.59.1",
     "@typescript-eslint/parser": "^8.59.1",

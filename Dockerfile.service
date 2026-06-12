@@ -23,13 +23,16 @@ RUN apk update && apk upgrade && apk add --no-cache \
     curl \
     dumb-init \
     && rm -rf /var/cache/apk/*
-# Create non-root user for security [ADS-771]. Build stages stay root (npm
+# Create non-root user for security [ADS-771]. Build stages stay root (pnpm
 # install / turbo build); the production stage drops to svcuser below.
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S svcuser -u 1001 -G nodejs
 WORKDIR /app
 # Husky is a dev-only git hook tool; not available (or wanted) in containers.
 ENV HUSKY=0
+# pnpm via Corepack — version is pinned by package.json "packageManager".
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
 
 # ---------------------------------------------------------------------------
 # pruner — produce the pruned subgraph for ${SERVICE}
@@ -39,7 +42,7 @@ ARG SERVICE
 # Full monorepo source is needed so turbo can read every workspace package.json.
 # node_modules / dist are excluded via .dockerignore.
 COPY . .
-RUN npx -y turbo@2.9.16 prune ${SERVICE} --docker
+RUN pnpm dlx turbo@2.9.16 prune ${SERVICE} --docker
 
 # ---------------------------------------------------------------------------
 # build — install the pruned deps + turbo build the service (+ its deps)
@@ -47,14 +50,15 @@ RUN npx -y turbo@2.9.16 prune ${SERVICE} --docker
 FROM base AS build
 ARG SERVICE
 # Workspace metadata + pruned lockfile first (cache-friendly install layer).
+# turbo prune emits pnpm-lock.yaml, pnpm-workspace.yaml and .npmrc inside
+# out/json/, so this single COPY carries everything pnpm install needs.
 COPY --from=pruner /app/out/json/ ./
-COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 # Cache mounts are keyed per service: the e2e stack builds all 14 images
-# concurrently, and a shared /root/.npm mount makes parallel npm processes
-# race on the same cacache tmp paths (npm error EEXIST, exit 239). Runners
-# are fresh VMs, so per-image caches cost nothing cross-build.
-RUN --mount=type=cache,id=npm-${SERVICE},target=/root/.npm \
-    npm ci --prefer-offline
+# concurrently, so each gets its own pnpm store mount rather than contending
+# on a shared one. Runners are fresh VMs, so per-image caches cost nothing
+# cross-build.
+RUN --mount=type=cache,id=pnpm-${SERVICE},target=/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline --store-dir=/pnpm/store
 # Pruned source — only the workspaces this service depends on.
 COPY --from=pruner /app/out/full/ ./
 # turbo prune --docker doesn't copy root-level config files into out/full/.
@@ -64,7 +68,7 @@ COPY tsconfig.base.json tsconfig.cjs.base.json ./
 # `^build` ordering means turbo builds the workspace deps (proto, events, …)
 # before the service itself.
 RUN --mount=type=cache,id=turbo-${SERVICE},target=/app/.turbo \
-    npx turbo build --filter=${SERVICE}
+    pnpm exec turbo build --filter=${SERVICE}
 
 # ---------------------------------------------------------------------------
 # development — HMR via tsx watch (docker-compose.yml dev stack)
@@ -79,7 +83,7 @@ ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 # canonical dev/e2e fixtures (auth/rescue/pets define db:seed; idempotent
 # ON CONFLICT upserts make re-runs safe), then start with watch-reload.
 # Seeding is dev-only — the production CMD below deliberately omits it.
-CMD ["sh", "-c", "npm run db:migrate --if-present && npm run db:seed --if-present && npm run dev"]
+CMD ["sh", "-c", "pnpm run --if-present db:migrate && pnpm run --if-present db:seed && pnpm run dev"]
 
 # ---------------------------------------------------------------------------
 # production — compiled dist run with node
@@ -106,4 +110,4 @@ WORKDIR /app/${SERVICE_DIR}
 # [ADS-771]
 USER svcuser
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["sh", "-c", "npm run db:migrate --if-present && npm run start"]
+CMD ["sh", "-c", "pnpm run --if-present db:migrate && pnpm run start"]

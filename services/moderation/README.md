@@ -34,7 +34,7 @@ gRPC; consumes events (`chat.messageCreated`, `pets.created`,
 - `008_create_support_ticket_responses.ts` — paranoid with
   `deleted_at` idx, intra-schema FK to support_tickets with
   CASCADE.
-- Run via `npm run db:migrate` (uses `@adopt-dont-shop/db` —
+- Run via `pnpm db:migrate` (uses `@adopt-dont-shop/db` —
   inherits all four CAD-lesson fixes).
 
 ## What's NOT here yet

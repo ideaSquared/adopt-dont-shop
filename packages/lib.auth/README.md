@@ -4,7 +4,7 @@ Authentication and authorization for the Adopt Don't Shop monorepo. Wraps `lib.a
 
 ## Installation
 
-Workspace package — add to a consumer's `package.json` and `npm install` at the repo root:
+Workspace package — add to a consumer's `package.json` and `pnpm install` at the repo root:
 
 ```json
 {
@@ -140,9 +140,9 @@ lib.auth/
 From the repo root:
 
 ```bash
-npx turbo build --filter=@adopt-dont-shop/lib.auth
-npx turbo test  --filter=@adopt-dont-shop/lib.auth
-npx turbo lint  --filter=@adopt-dont-shop/lib.auth
+pnpm exec turbo build --filter=@adopt-dont-shop/lib.auth
+pnpm exec turbo test  --filter=@adopt-dont-shop/lib.auth
+pnpm exec turbo lint  --filter=@adopt-dont-shop/lib.auth
 ```
 
 ## Related

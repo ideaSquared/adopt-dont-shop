@@ -38,7 +38,7 @@ on NATS for fan-out via the existing Phase 1.5 WS subscriber.
   `(message_id, user_id, emoji)` UNIQUE.
 - `006_create_message_reads.ts` — message_reads with
   `(message_id, user_id)` UNIQUE.
-- Run via `npm run db:migrate` (uses `@adopt-dont-shop/db` —
+- Run via `pnpm db:migrate` (uses `@adopt-dont-shop/db` —
   inherits all four CAD-lesson fixes).
 
 ## What's NOT here yet
@@ -75,9 +75,9 @@ Plus the standard observability env vars consumed by
 
 ```bash
 # Dev — hot reload, OTel SDK loaded via --import
-npm run dev
+pnpm dev
 
 # Production build
-npm run build
-npm run start
+pnpm build
+pnpm start
 ```

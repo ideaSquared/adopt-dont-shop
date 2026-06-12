@@ -58,11 +58,11 @@ lib.components/src/
 ## Scripts
 
 ```bash
-npm run dev               # vite build --watch
-npm run build             # vite build (lib + theme bundle)
-npm run test              # vitest run
-npm run storybook         # storybook dev server on :6006
-npm run build-storybook   # static storybook build
+pnpm dev               # vite build --watch
+pnpm build             # vite build (lib + theme bundle)
+pnpm test              # vitest run
+pnpm storybook         # storybook dev server on :6006
+pnpm build-storybook   # static storybook build
 ```
 
 ## Conventions

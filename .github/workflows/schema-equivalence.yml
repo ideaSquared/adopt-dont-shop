@@ -60,16 +60,16 @@ jobs:
       - uses: ./.github/actions/setup-workspace
 
       - name: Build shared libraries
-        run: npm run build:libs
+        run: pnpm build:libs
 
       # Each service's migrate.ts imports @adopt-dont-shop/db (which
       # node-pg-migrate-wraps the runner) + @adopt-dont-shop/observability.
       # Build those packages so the tsx-runtime import resolves.
       - name: Build packages/db + observability + events
         run: |
-          (cd packages/observability && npm run build)
-          (cd packages/db && npm run build)
-          (cd packages/events && npm run build)
+          (cd packages/observability && pnpm build)
+          (cd packages/db && pnpm build)
+          (cd packages/events && pnpm build)
 
       - name: Run each service's migrations against a fresh schema
         run: |
@@ -77,7 +77,7 @@ jobs:
           failed=()
           for svc in auth notifications pets rescue applications chat moderation matching cms audit; do
             echo "::group::services/${svc} db:migrate"
-            if (cd "services/${svc}" && npm run db:migrate); then
+            if (cd "services/${svc}" && pnpm db:migrate); then
               echo "  ✓ ${svc} migrations applied"
             else
               echo "::error::services/${svc} migrations failed"

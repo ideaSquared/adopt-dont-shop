@@ -53,11 +53,15 @@ uploads
 .turbo
 
 ### Per-package lockfiles ###
-# Per-package lockfiles aren't authoritative in npm workspaces; only the
-# root package-lock.json is. Delete any that get accidentally created.
+# Per-package lockfiles aren't authoritative in pnpm workspaces; only the
+# root pnpm-lock.yaml is. Delete any that get accidentally created (including
+# stray npm/yarn lockfiles from running the wrong package manager).
 /apps/*/package-lock.json
 /packages/*/package-lock.json
 /services/*/package-lock.json
+/apps/*/pnpm-lock.yaml
+/packages/*/pnpm-lock.yaml
+/services/*/pnpm-lock.yaml
 
 ### Docker ###
 docker-compose.override.yml

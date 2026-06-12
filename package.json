@@ -3,13 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "packageManager": "npm@10.8.1",
-  "workspaces": [
-    "apps/*",
-    "packages/*",
-    "services/*",
-    "e2e"
-  ],
+  "packageManager": "pnpm@10.34.3",
   "scripts": {
     "setup": "node scripts/bootstrap.mjs",
     "prepare": "husky || true",
@@ -32,21 +26,21 @@
     "build:libs": "turbo run build --filter='@adopt-dont-shop/lib.*'",
     "build:apps": "turbo run build --filter='@adopt-dont-shop/app.*'",
     "test": "turbo run test",
-    "test:e2e": "npm run -w @adopt-dont-shop/e2e test",
-    "test:e2e:single": "npm run -w @adopt-dont-shop/e2e test --",
-    "test:e2e:smoke": "npm run -w @adopt-dont-shop/e2e test:smoke",
-    "test:e2e:ui": "npm run -w @adopt-dont-shop/e2e test:ui",
-    "test:e2e:debug": "npm run -w @adopt-dont-shop/e2e test:debug",
-    "test:e2e:headed": "npm run -w @adopt-dont-shop/e2e test:headed",
-    "test:e2e:report": "npm run -w @adopt-dont-shop/e2e report",
-    "test:e2e:install": "npm run -w @adopt-dont-shop/e2e install:browsers",
+    "test:e2e": "pnpm --filter @adopt-dont-shop/e2e test",
+    "test:e2e:single": "pnpm --filter @adopt-dont-shop/e2e test",
+    "test:e2e:smoke": "pnpm --filter @adopt-dont-shop/e2e test:smoke",
+    "test:e2e:ui": "pnpm --filter @adopt-dont-shop/e2e test:ui",
+    "test:e2e:debug": "pnpm --filter @adopt-dont-shop/e2e test:debug",
+    "test:e2e:headed": "pnpm --filter @adopt-dont-shop/e2e test:headed",
+    "test:e2e:report": "pnpm --filter @adopt-dont-shop/e2e report",
+    "test:e2e:install": "pnpm --filter @adopt-dont-shop/e2e install:browsers",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint -- --fix",
     "type-check": "turbo run type-check",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\" --ignore-path .prettierignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\" --ignore-path .prettierignore",
-    "ci:local": "npm run format:check && turbo run lint type-check test && npm run check:lib-tests && npm run check:workspaces && npm run check:env-example && npm run check:workflow-paths",
-    "ci:local:quick": "npm run format:check && turbo run lint type-check",
+    "ci:local": "pnpm format:check && turbo run lint type-check test && pnpm check:lib-tests && pnpm check:workspaces && pnpm check:env-example && pnpm check:workflow-paths",
+    "ci:local:quick": "pnpm format:check && turbo run lint type-check",
     "clean": "turbo run clean && rm -rf node_modules",
     "prod:build": "docker compose -f docker-compose.yml -f docker-compose.prod.yml build",
     "prod:up": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d",
@@ -66,6 +60,7 @@
     "generate:attachments": "node scripts/generate-test-attachments.js"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-base": "workspace:*",
     "@commitlint/cli": "^21.0.2",
     "@commitlint/config-conventional": "^21.0.2",
     "@typescript-eslint/eslint-plugin": "^8.60.1",
@@ -81,6 +76,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "husky": "^9.1.0",
     "jsdom": "^29.1.1",
+    "lint-staged": "^17.0.7",
     "prettier": "^3.2.5",
     "tsx": "^4.19.2",
     "turbo": "^2.9.16",
@@ -96,25 +92,32 @@
     "@types/react": "Pinned to an exact version (not a `^19` range) so npm collapses the type package to a single copy. With a range, transitive consumers (e.g. @types/react-dom) can resolve a different 19.x patch, leaving two physically separate @types/react copies — which makes tsc treat React's `Ref`/element types as unrelated and fails the lib.components build (TS2322). Bump this exact version when intentionally updating React types.",
     "react": "react and react-dom are pinned to the same exact version (not a `^19.2.x` range) because npm's deduper can otherwise hoist a different react-dom patch to the root than react (e.g. react 19.2.7 / react-dom 19.2.6), which trips react-dom's `react`/`react-dom` exact-version-match guard and crashes every React test. The `react-zdog` nested override keeps that subtree on react 18, which it requires. Bump react and react-dom together when updating React."
   },
-  "overrides": {
-    "lodash": "^4.18.1",
-    "react": "19.2.7",
-    "react-dom": "19.2.7",
-    "@types/react": "19.2.16",
-    "@types/react-dom": "^19.0.0",
-    "@types/express": "^5.0.0",
-    "@types/express-serve-static-core": "^5.0.0",
-    "eslint-plugin-react": {
-      "eslint": "$eslint"
-    },
-    "react-zdog": {
-      "react": "18.3.1",
-      "react-dom": "18.3.1"
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@bufbuild/buf",
+      "@sentry-internal/node-cpu-profiler",
+      "core-js",
+      "esbuild",
+      "msw",
+      "protobufjs",
+      "sharp"
+    ],
+    "overrides": {
+      "lodash": "^4.18.1",
+      "react": "19.2.7",
+      "react-dom": "19.2.7",
+      "@types/react": "19.2.16",
+      "@types/react-dom": "^19.0.0",
+      "@types/express": "^5.0.0",
+      "@types/express-serve-static-core": "^5.0.0",
+      "eslint-plugin-react>eslint": "$eslint",
+      "react-zdog>react": "18.3.1",
+      "react-zdog>react-dom": "18.3.1"
     }
   },
   "engines": {
     "node": ">=22.0.0 <23.0.0",
-    "npm": ">=9.0.0"
+    "pnpm": ">=10.0.0"
   },
   "lint-staged": {
     "**/*.{ts,tsx}": [

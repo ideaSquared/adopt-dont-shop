@@ -83,7 +83,7 @@ import {
 ## Building
 
 ```bash
-npm run build        # ESM + CJS dual build
-npm run type-check   # Type check only
-npm run clean        # Remove dist/
+pnpm build        # ESM + CJS dual build
+pnpm type-check   # Type check only
+pnpm clean        # Remove dist/
 ```

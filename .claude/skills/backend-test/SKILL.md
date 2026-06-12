@@ -25,12 +25,12 @@ service.backend/src/__tests__/
 
 Run all backend tests:
 ```bash
-cd service.backend && npm test
+cd service.backend && pnpm test
 ```
 
 Run a single file (fast feedback loop):
 ```bash
-cd service.backend && npm test -- src/__tests__/services/thing.service.test.ts
+cd service.backend && pnpm test -- src/__tests__/services/thing.service.test.ts
 ```
 
 ## TDD loop (per CLAUDE.md)

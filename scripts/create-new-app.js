@@ -66,7 +66,7 @@ function showHelp() {
   log('🚀 @adopt-dont-shop App Generator', 'bright');
   log('', 'reset');
   log('Usage:', 'cyan');
-  log('  npm run new-app <app-name> [--template <template>]', 'yellow');
+  log('  pnpm new-app <app-name> [--template <template>]', 'yellow');
   log('', 'reset');
   log('Templates:', 'cyan');
   for (const key of Object.keys(TEMPLATES)) {
@@ -74,9 +74,9 @@ function showHelp() {
   }
   log('', 'reset');
   log('Examples:', 'cyan');
-  log('  npm run new-app app.dashboard', 'yellow');
-  log('  npm run new-app app.admin --template enterprise', 'yellow');
-  log('  npm run new-app app.simple --template minimal', 'yellow');
+  log('  pnpm new-app app.dashboard', 'yellow');
+  log('  pnpm new-app app.admin --template enterprise', 'yellow');
+  log('  pnpm new-app app.simple --template minimal', 'yellow');
   log('', 'reset');
   log('Features by template:', 'cyan');
   for (const key of Object.keys(TEMPLATES)) {
@@ -184,8 +184,8 @@ function printSuccess(appName, templateConfig) {
   log('', 'reset');
   log('📋 Next steps:', 'cyan');
   log(`   cd ${appName}`, 'reset');
-  log(`   npm install`, 'reset');
-  log(`   npm run dev`, 'reset');
+  log(`   pnpm install`, 'reset');
+  log(`   pnpm dev`, 'reset');
   log('', 'reset');
 }
 

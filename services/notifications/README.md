@@ -27,7 +27,7 @@ spine online, restated for adopt-dont-shop's domain.
 - `src/migrations/003_create_user_notification_prefs.ts` mirrors
   `user_notification_prefs`.
 - `src/db/migrate.ts` runs them via `@adopt-dont-shop/db.runMigrations`.
-- Run with `npm run db:migrate`.
+- Run with `pnpm db:migrate`.
 
 **Phase 1.3** — gRPC `NotificationService`:
 - Proto + grpc-js stubs in `@adopt-dont-shop/proto` (Phase 1.3a, on main).
@@ -83,12 +83,12 @@ that package's README.
 ```bash
 # Run migrations against DATABASE_URL (creates the `notifications` schema
 # on first run, applies any pending migrations after)
-npm run db:migrate
+pnpm db:migrate
 
 # Dev — hot reload, OTel SDK loaded via --import
-npm run dev
+pnpm dev
 
 # Production build
-npm run build
-npm run start
+pnpm build
+pnpm start
 ```

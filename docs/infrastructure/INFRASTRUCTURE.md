@@ -157,16 +157,16 @@ docker compose up --build
 
 ### Production
 
-Production uses the prod overlay on top of the base compose file — both `-f` flags are required, or use the root `prod:*` npm scripts.
+Production uses the prod overlay on top of the base compose file — both `-f` flags are required, or use the root `prod:*` pnpm scripts.
 
 ```bash
 # Build optimized images
 docker compose -f docker-compose.yml -f docker-compose.prod.yml build
-# or: npm run prod:build
+# or: pnpm prod:build
 
 # Deploy
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-# or: npm run prod:up
+# or: pnpm prod:up
 ```
 
 ### Subdomain Routing
@@ -189,9 +189,11 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 ### Initial Setup
 
+> pnpm is provided via Corepack — run `corepack enable` once. Its version is pinned by the `"packageManager"` field in the root `package.json`.
+
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Setup environment
 cp .env.example .env
@@ -200,25 +202,25 @@ cp .env.example .env
 docker compose up
 
 # Or start subsets via Turbo filters
-npm run dev:apps           # all React apps in parallel
-npm run dev:backend        # backend only
-npx turbo dev --filter=@adopt-dont-shop/app.admin   # one app
+pnpm dev:apps           # all React apps in parallel
+pnpm dev:backend        # backend only
+pnpm exec turbo dev --filter=@adopt-dont-shop/app.admin   # one app
 ```
 
 ### Working with Libraries
 
 ```bash
 # Build all libraries
-npm run build:libs
+pnpm build:libs
 
 # Build specific library
-cd lib.api && npm run build
+cd lib.api && pnpm build
 
 # Run library tests
-cd lib.api && npm test
+cd lib.api && pnpm test
 
 # Watch mode
-cd lib.api && npm run dev
+cd lib.api && pnpm dev
 ```
 
 ### Database Migrations
@@ -227,15 +229,15 @@ The backend uses a custom Umzug runner (`service.backend/src/migrations/runner.t
 
 ```bash
 # From the repo root (containers must be running):
-npm run db:migrate                                              # ts-node src/migrations/runner.ts up
-docker compose exec service-backend npm run db:migrate:undo     # rollback
-docker compose exec service-backend npm run db:migrate:status   # show applied / pending
+pnpm db:migrate                                              # ts-node src/migrations/runner.ts up
+docker compose exec service-backend pnpm db:migrate:undo     # rollback
+docker compose exec service-backend pnpm db:migrate:status   # show applied / pending
 
 # Seeders are split by safety profile — no "do everything" alias:
-docker compose exec service-backend npm run db:seed:reference   # idempotent reference data
-docker compose exec service-backend npm run db:seed:demo        # Faker (dev/staging; ALLOW_DEMO_SEED=true)
-docker compose exec service-backend npm run db:seed:fixtures    # deterministic e2e fixtures
-docker compose exec service-backend npm run db:seed:reset       # truncate demo+fixture tables
+docker compose exec service-backend pnpm db:seed:reference   # idempotent reference data
+docker compose exec service-backend pnpm db:seed:demo        # Faker (dev/staging; ALLOW_DEMO_SEED=true)
+docker compose exec service-backend pnpm db:seed:fixtures    # deterministic e2e fixtures
+docker compose exec service-backend pnpm db:seed:reset       # truncate demo+fixture tables
 
 # Authoring a new migration: copy the latest file in
 # service.backend/src/migrations/ and follow the numbered naming pattern.
@@ -245,7 +247,7 @@ docker compose exec service-backend npm run db:seed:reset       # truncate demo+
 
 ### Build Process
 
-1. **Install Dependencies** - npm install across workspace
+1. **Install Dependencies** - pnpm install across workspace
 2. **Lint & Type Check** - ESLint + TypeScript compilation
 3. **Test** - Unit and integration tests
 4. **Build Libraries** - Compile all shared libraries
@@ -386,7 +388,7 @@ docker compose logs database
 
 ```bash
 # Clear node_modules and rebuild
-rm -rf node_modules && npm install
+rm -rf node_modules && pnpm install
 
 # Clear Docker cache
 docker compose down -v

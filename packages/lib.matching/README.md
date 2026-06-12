@@ -31,9 +31,9 @@ const handlePick = (pick: MatchTopPick) => {
 ## Scripts
 
 ```bash
-npm run build       # tsc → dist/
-npm test            # vitest run
-npm run type-check  # tsc --noEmit
+pnpm build       # tsc → dist/
+pnpm test            # vitest run
+pnpm type-check  # tsc --noEmit
 ```
 
 ## See also

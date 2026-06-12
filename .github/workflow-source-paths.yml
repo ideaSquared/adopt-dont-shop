@@ -13,7 +13,7 @@ paths:
   - 'packages/**'
   - 'services/**'
   - 'package.json'
-  - 'package-lock.json'
+  - 'pnpm-lock.yaml'
 
 consumers:
   # quality.yml + security.yml use the canonical list verbatim on both

@@ -70,7 +70,7 @@ Native dependencies that re-build per Node major (must rebuild in CI):
 
 - `bcrypt` (transitively used in auth)
 - `pg` (pure JS — should be safe but verify)
-- Any optional native deps surfaced by `npm rebuild`
+- Any optional native deps surfaced by `pnpm rebuild`
 
 ## 4. Migration path
 
@@ -89,7 +89,7 @@ Native dependencies that re-build per Node major (must rebuild in CI):
 5. Bump `engines.node` in root `package.json` to `>=22.11.0`.
 6. Bump `ARG NODE_VERSION=22.11.0` in `service.backend/Dockerfile` (two
    FROM stages) and `Dockerfile.app.optimized`.
-7. `npm ci` regenerates the lockfile if any optional native binaries change;
+7. `pnpm install --frozen-lockfile` regenerates the lockfile if any optional native binaries change;
    commit the regeneration.
 
 **Stage 3 — Production rollout:**

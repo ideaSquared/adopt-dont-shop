@@ -16,7 +16,7 @@ The script honours the same env-var conventions as the rest of `service.backend`
 
 ```bash
 cd service.backend
-NODE_ENV=development npx ts-node scripts/schema-audit.ts > /tmp/audit-dev.json
+NODE_ENV=development pnpm exec ts-node scripts/schema-audit.ts > /tmp/audit-dev.json
 ```
 
 ### Against staging or production
@@ -28,7 +28,7 @@ Run from a host that already has read access to the target DB (e.g. a bastion, C
 NODE_ENV=production node dist/scripts/schema-audit.js > /tmp/audit-prod.json
 # (Or via ts-node from a dev checkout, if the bastion has it:)
 NODE_ENV=production DATABASE_URL='postgres://user:pass@host:5432/db' \
-  npx ts-node scripts/schema-audit.ts > /tmp/audit-prod.json
+  pnpm exec ts-node scripts/schema-audit.ts > /tmp/audit-prod.json
 ```
 
 ### Via Docker (operator without Node/workspace deps)
