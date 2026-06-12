@@ -14,6 +14,11 @@ x-service-env: &ms-env
   DATABASE_URL: postgresql://${POSTGRES_USER:-adopt_user}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-adopt_dont_shop_dev}
   NATS_URL: nats://nats:4222
   REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+  # ADS-800: shared HMAC key for signed principal tokens. When set, the
+  # gateway stamps x-principal-token on every downstream gRPC call and the
+  # services REQUIRE it (forged x-user-* headers lose). Optional — unset
+  # keeps the legacy header-trust behaviour for phased rollout.
+  PRINCIPAL_SIGNING_KEY: ${PRINCIPAL_SIGNING_KEY:-}
 
 x-service-deps: &ms-deps
   database:
@@ -347,6 +352,9 @@ services:
       CUTOVER_AUDIT: ${CUTOVER_AUDIT:-true}
       CUTOVER_CHAT: ${CUTOVER_CHAT:-true}
       CUTOVER_CMS: ${CUTOVER_CMS:-true}
+      # ADS-800: same shared key as the *ms-env services — the gateway is
+      # the signer, the services are the verifiers.
+      PRINCIPAL_SIGNING_KEY: ${PRINCIPAL_SIGNING_KEY:-}
     ports:
       - '127.0.0.1:4000:4000'
     depends_on:

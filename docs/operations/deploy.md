@@ -109,6 +109,50 @@ host. See [`docs/security/image-signing.md`](../security/image-signing.md)
 for the trust model, the manual verification command, and the documented
 emergency-bypass procedure.
 
+## Production approval gate
+
+All `production` runs of `.github/workflows/deploy.yml` pause for reviewer
+approval before the `deploy` job touches the host (the build/verify jobs run
+first, so reviewers approve a fully built and signature-verified release).
+Staging deploys stay automatic. [ADS-826]
+
+The deploy job's `environment:` is resolved by the workflow's `preflight` job:
+
+| Dispatch | Approval environment |
+|---|---|
+| `environment=staging` (with or without skip flags) | `staging` — no approval |
+| `environment=production`, no skip flags | `production` |
+| `environment=production` + `skip_ci_check` and/or `skip_cosign_verify` | `production-bypass` |
+
+Bypass runs route to the dedicated `production-bypass` environment so the
+reviewer list sees at a glance that safety checks are being skipped. Any run
+with a skip flag set must also provide the `bypass_reason` dispatch input —
+the preflight job fails the run if it is empty — and every bypass (staging
+included) is recorded in the run summary and as a GitHub issue labelled
+`deploy-bypass-audit`.
+
+### One-time admin setup
+
+Configure required reviewers once per repository (repo admin):
+
+1. Go to **Settings → Environments**.
+2. Click **New environment** (or open it if it already exists from a past
+   run), name it exactly `production`, and click **Configure environment**.
+3. Tick **Required reviewers** and add the people/teams allowed to approve
+   production deploys (up to six entries).
+4. Tick **Prevent self-review** so the person who dispatched the deploy
+   cannot approve their own run.
+5. Click **Save protection rules**.
+6. Repeat steps 2-5 for a second environment named exactly
+   `production-bypass`. Keep its reviewer list to the small set of people
+   allowed to sign off on safety-check bypasses.
+
+Note: environments that have not been configured do not block anything —
+GitHub auto-creates an unprotected environment the first time a workflow
+references it, and an unprotected environment deploys without approval. The
+workflow change therefore merges safely before this setup is done; the gate
+only takes effect once required reviewers are saved.
+
 ## Release deploy
 
 The `service-backend-migrate` init container runs `pnpm db:migrate`

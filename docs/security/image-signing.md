@@ -100,6 +100,13 @@ Every use of `skip_cosign_verify=true` emits a `::warning::` annotation
 in the workflow run and prints a `WARNING: cosign verification SKIPPED`
 line in the job log, so the bypass is searchable in deploy history.
 
+Since ADS-826 the flag also requires the `bypass_reason` dispatch input
+(the run fails fast without it), records the bypass in the run summary
+and in a `deploy-bypass-audit` issue, and — for production targets —
+routes the deploy job to the `production-bypass` environment for
+reviewer approval. See
+[`docs/operations/deploy.md`](../operations/deploy.md#production-approval-gate).
+
 ## Known gaps
 
 - `.github/workflows/rollback.yml` pulls and runs previously-built images

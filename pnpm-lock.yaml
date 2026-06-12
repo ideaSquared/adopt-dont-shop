@@ -1649,6 +1649,9 @@ importers:
       '@adopt-dont-shop/authz':
         specifier: workspace:*
         version: link:../authz
+      '@adopt-dont-shop/config-secrets':
+        specifier: workspace:*
+        version: link:../config-secrets
       '@adopt-dont-shop/lib.types':
         specifier: workspace:*
         version: link:../lib.types
@@ -1670,6 +1673,9 @@ importers:
       winston:
         specifier: ^3.19.0
         version: 3.19.0
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@types/pg':
         specifier: ^8.15.5
@@ -1965,6 +1971,9 @@ importers:
       '@adopt-dont-shop/proto':
         specifier: workspace:*
         version: link:../../packages/proto
+      '@adopt-dont-shop/service-bootstrap':
+        specifier: workspace:*
+        version: link:../../packages/service-bootstrap
       '@adopt-dont-shop/storage':
         specifier: workspace:*
         version: link:../../packages/storage

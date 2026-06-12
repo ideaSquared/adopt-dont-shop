@@ -36,6 +36,7 @@
     "@adopt-dont-shop/events": "workspace:*",
     "@adopt-dont-shop/observability": "workspace:*",
     "@adopt-dont-shop/proto": "workspace:*",
+    "@adopt-dont-shop/service-bootstrap": "workspace:*",
     "@adopt-dont-shop/storage": "workspace:*",
     "@fastify/multipart": "^9.0.3",
     "@fastify/rate-limit": "^10.3.0",
