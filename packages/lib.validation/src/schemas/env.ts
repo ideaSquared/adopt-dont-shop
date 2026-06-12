@@ -177,7 +177,7 @@ const distinctSecretsCheck = (env: EnvMap): ValidationIssue[] => {
         path: `${a}/${b}`,
         message:
           `${a} and ${b} must be distinct. Reusing secrets increases compromise blast radius. ` +
-          'Generate new secrets with: npm run secrets:generate',
+          'Generate new secrets with: pnpm secrets:generate',
         level: 'error',
       });
     }
@@ -262,7 +262,7 @@ const productionOnlyCheck = (env: EnvMap): ValidationIssue[] => {
     issues.push({
       path: 'UPLOAD_SIGNING_SECRET',
       message:
-        'UPLOAD_SIGNING_SECRET is required in production. Generate with: npm run secrets:generate',
+        'UPLOAD_SIGNING_SECRET is required in production. Generate with: pnpm secrets:generate',
       level: 'error',
     });
   }

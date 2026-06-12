@@ -15,8 +15,8 @@
  *     share a value with the staging env (prevents staging→prod secret reuse,
  *     ADS-659).
  *
- * Run via tsx (`npm run validate:env`). The import below uses a relative
- * source path so the CLI works in CI before `npm run build:libs` has built
+ * Run via tsx (`pnpm validate:env`). The import below uses a relative
+ * source path so the CLI works in CI before `pnpm build:libs` has built
  * `packages/lib.validation/dist`.
  */
 import fs from 'node:fs';
@@ -171,7 +171,7 @@ function main(): void {
 
   const fileEnv = loadEnvFile(envFile);
   // Merge file env on top of process.env so `STATSIG_SERVER_SECRET_KEY=foo
-  // npm run validate:env` works for CI. process.env wins for already-set
+  // pnpm validate:env` works for CI. process.env wins for already-set
   // overrides (CI typically injects secrets that way).
   const env: EnvMap = { ...(fileEnv ?? {}), ...process.env };
 

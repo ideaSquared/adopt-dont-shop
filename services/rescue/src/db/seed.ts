@@ -2,7 +2,7 @@
 // dev/e2e rescue organisations + their staff_member links (see
 // seed-data.ts).
 //
-// Mirrors migrate.ts: invoked by `npm run db:seed`, reuses loadConfig()
+// Mirrors migrate.ts: invoked by `pnpm db:seed`, reuses loadConfig()
 // + createDbClient. Depends on the auth seed having run first (the
 // staff_member.user_id pointers reference auth.users), but the rows
 // carry no cross-schema FK so the insert succeeds regardless of order —

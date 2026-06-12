@@ -3,7 +3,7 @@
 // CAD-lesson fixes: createSchema, ignorePattern, search_path,
 // advisory-lock retry).
 //
-// Invoked by `npm run db:migrate`. Production deploys run a compiled
+// Invoked by `pnpm db:migrate`. Production deploys run a compiled
 // version against dist/migrations/.
 
 import { dirname, join } from 'node:path';

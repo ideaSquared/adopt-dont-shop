@@ -1,7 +1,7 @@
 // Seed entry point — populates the auth.* schema with the canonical
 // dev/e2e personas (see seed-data.ts).
 //
-// Mirrors migrate.ts: invoked by `npm run db:seed`, reuses loadConfig()
+// Mirrors migrate.ts: invoked by `pnpm db:seed`, reuses loadConfig()
 // + createDbClient from @adopt-dont-shop/db. Runs AFTER migrations.
 //
 // Idempotent: every INSERT is `ON CONFLICT (user_id) DO UPDATE` so a

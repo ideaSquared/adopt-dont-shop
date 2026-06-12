@@ -1,7 +1,7 @@
 // Seed entry point — populates the pets.* schema with the canonical
 // dev/e2e pet catalogue (see seed-data.ts).
 //
-// Mirrors migrate.ts: invoked by `npm run db:seed`, reuses loadConfig()
+// Mirrors migrate.ts: invoked by `pnpm db:seed`, reuses loadConfig()
 // + createDbClient. Depends on the rescue seed having run first (pets
 // reference rescue_id), but rows carry no cross-schema FK so the insert
 // succeeds regardless of order — the root orchestrator runs pets last.
