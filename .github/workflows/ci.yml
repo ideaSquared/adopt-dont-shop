@@ -389,14 +389,34 @@ jobs:
 
       - uses: ./.github/actions/setup-workspace
 
-      # NOTE: deliberately NO docker/setup-buildx-action here. The
-      # docker-container builder it creates stores every image twice — once
-      # in the BuildKit cache, once exported as a tarball and re-imported
-      # into the daemon ("sending tarball" / "importing to docker") — which
-      # doubles peak disk for a 14-image build. The daemon's integrated
-      # BuildKit (DOCKER_BUILDKIT=1 is set job-wide) builds straight into
-      # the image store and still supports the dockerfile:1.4 syntax and
-      # RUN --mount=type=cache used by Dockerfile.service.
+      # ADS-792: expose ACTIONS_RUNTIME_TOKEN + cache-service URLs to plain
+      # `run:` steps so the raw `docker buildx bake` call below can use
+      # cache-from/cache-to type=gha. JS actions (docker/build-push-action)
+      # receive these implicitly; shell steps do not.
+      - uses: crazy-max/ghaction-github-runtime@04d248b84655b509d8c44dc1d6f990c879747487  # v4.0.0
+
+      # ADS-792: type=gha cache import/export requires a docker-container
+      # builder — the daemon's integrated BuildKit does not support it.
+      # Known tradeoff (this previously kept buildx out of this job): the
+      # container builder stores layers twice at peak — BuildKit cache plus
+      # the tarball re-import into the daemon ("sending tarball"). Two
+      # things keep that inside the runner's disk budget now:
+      #   - warm GHA cache hits skip re-executing (and re-storing
+      #     intermediates for) the expensive npm-ci/turbo layers;
+      #   - the build step prunes the BuildKit cache immediately after
+      #     --load, before the stack boots.
+      # ENOSPC under a fully cold cache is the residual risk — see the
+      # build step below. max-parallelism=4 replaces the old
+      # COMPOSE_PARALLEL_LIMIT=4: 12 concurrent `npm ci` runs against the
+      # registry was the ECONNRESET source ADS-792 describes.
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.23.0
+            network=host
+          buildkitd-config-inline: |
+            [worker.oci]
+              max-parallelism = 4
 
       - name: Resolve Playwright version
         id: pw
@@ -430,6 +450,10 @@ jobs:
             echo "SESSION_SECRET=$(openssl rand -base64 32)"
             echo "CSRF_SECRET=$(openssl rand -base64 32)"
             echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
+            # HMAC key for the service-to-service principal tokens minted
+            # and verified by packages/service-bootstrap (read via
+            # config-secrets as PRINCIPAL_SIGNING_KEY).
+            echo "PRINCIPAL_SIGNING_KEY=$(openssl rand -hex 32)"
             # ADS-600 made REDIS_PASSWORD a required secret in
             # docker-compose.yml; the CI stack-up step refuses to
             # start without it. Generate it here so every E2E run
@@ -473,18 +497,75 @@ jobs:
           timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U postgres; do sleep 2; done'
 
       - name: Build images
-        # ADS-792: build with the daemon's integrated BuildKit
-        # (DOCKER_BUILDKIT=1 is set job-wide) — NOT a buildx container
-        # builder, which stores every image twice (BuildKit cache +
-        # tarball re-import) and doubles peak disk for a 14-image build.
-        # type=gha layer caching needs that container driver plus the
-        # Actions runtime token, so proper caching is deferred to the
-        # build-push-action→GHCR design on the ticket. The npm-registry
-        # congestion (ECONNRESET) that motivated caching is mitigated by
-        # capping build concurrency instead of all images running npm ci
-        # simultaneously.
+        # ADS-792: `buildx bake` against docker-compose.yml with BuildKit GHA
+        # layer caching. Design notes:
+        #
+        # PER-TARGET scopes (scope=e2e-<service>): GHA cache writes are
+        # last-write-wins per scope, so a single shared scope with 12 targets
+        # exporting concurrently thrashes — each save evicts the previous
+        # target's layers and the hit rate collapses.
+        #
+        # mode=min, not mode=max, against the repo's 10GB Actions cache
+        # budget (shared with the npm/turbo/lib-dist/Playwright caches and
+        # docker.yml's type=gha caches):
+        #   - the `development` targets inherit FROM the build stage, so the
+        #     expensive npm-ci + turbo-build layers ARE final-image layers
+        #     and mode=min still caches them;
+        #   - mode=max would additionally export intermediates like the
+        #     `pruner` stage, whose COPY-the-whole-repo layer changes every
+        #     commit — pure churn, several GB per scope, guaranteed eviction
+        #     pressure across 12 scopes;
+        #   - estimated mode=min footprint: ~0.3-0.6GB x 12 scopes. Layers
+        #     shared between images are still stored once per scope — the
+        #     price of not thrashing;
+        #   - ignore-error=true: a cache-backend outage degrades to an
+        #     uncached build instead of failing CI.
+        #
+        # Targets are discovered from the compose file via `bake --print`
+        # (buildx parses compose profiles as "all", so every buildable
+        # service is included) — compose-stack changes need no edits here.
+        # Bake assigns NO tags when compose services have no `image:` field,
+        # so each target's tag is set explicitly to the <project>-<service>
+        # name that `docker compose up --no-build` later resolves (project =
+        # lowercased checkout directory name, the same default compose uses).
+        # If bake ever fails to resolve targets (e.g. a compose-file feature
+        # it can't parse), fall back to the previous uncached compose build
+        # rather than breaking the job.
         run: |
-          COMPOSE_PARALLEL_LIMIT=4 docker compose -f docker-compose.yml --profile full build
+          set -euo pipefail
+          # bake interpolates the compose file itself, so the ${VAR:?} guards
+          # (REDIS_PASSWORD, JWT_SECRET, ...) need the generated .env values
+          # in the process env.
+          set -a; source ./.env; set +a
+
+          project="$(basename "$PWD" | tr '[:upper:]' '[:lower:]')"
+          mapfile -t targets < <(docker buildx bake -f docker-compose.yml --print 2>/dev/null | jq -r '.group.default.targets[]' || true)
+
+          if [ "${#targets[@]}" -eq 0 ]; then
+            echo "::warning title=bake fallback::buildx bake resolved no targets from docker-compose.yml — falling back to uncached docker compose build"
+            COMPOSE_PARALLEL_LIMIT=4 docker compose -f docker-compose.yml --profile full build
+            exit 0
+          fi
+
+          echo "Building ${#targets[@]} targets: ${targets[*]}"
+          set_args=()
+          for t in "${targets[@]}"; do
+            set_args+=(
+              --set "${t}.tags=${project}-${t}"
+              --set "${t}.cache-from=type=gha,scope=e2e-${t}"
+              --set "${t}.cache-to=type=gha,mode=min,scope=e2e-${t},ignore-error=true"
+            )
+          done
+
+          # --load = output=type=docker: images land in the daemon store
+          # under the tags set above, where `up --no-build` expects them.
+          docker buildx bake -f docker-compose.yml --load "${set_args[@]}"
+
+          # The BuildKit cache is dead weight once the images are in the
+          # daemon store — reclaim the disk before the stack boots.
+          docker buildx prune -af > /dev/null
+          docker image ls --format '{{.Repository}}:{{.Tag}}  {{.Size}}' | grep "^${project}-" || true
+          df -h /
 
       - name: Start the full stack (images already built)
         # Phase 11 follow-up: bring the apps + gateway + services + nginx up
