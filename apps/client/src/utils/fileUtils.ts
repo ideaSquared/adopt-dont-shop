@@ -12,9 +12,16 @@ export const resolveFileUrl = (url: string | undefined): string | undefined => {
     return undefined;
   }
 
-  // If it's a placeholder URL, return undefined to use fallback
-  if (url.includes('via.placeholder.com') || url.includes('placeholder')) {
-    return undefined;
+  // If it's a via.placeholder.com URL, return undefined to use fallback.
+  // Parse the hostname rather than substring-matching to avoid false positives
+  // on paths like `example.com/placeholder-products/foo.png`.
+  try {
+    const { hostname } = new URL(url);
+    if (hostname === 'via.placeholder.com') {
+      return undefined;
+    }
+  } catch {
+    // Not a parseable absolute URL — skip placeholder check
   }
 
   // Reject any URL whose scheme isn't http/https. This blocks

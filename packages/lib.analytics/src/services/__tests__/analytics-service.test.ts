@@ -565,7 +565,7 @@ describe('AnalyticsService', () => {
       const newSessionId = service.getSessionId();
 
       expect(newSessionId).not.toBe(originalSessionId);
-      expect(newSessionId).toMatch(/^session_\d+_[a-z0-9]+$/);
+      expect(newSessionId).toMatch(/^session_[0-9a-f-]{36}$/);
     });
 
     it('destroy() restores original history methods and removes the popstate listener', () => {

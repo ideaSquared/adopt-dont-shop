@@ -305,10 +305,20 @@ describe('UtilsService', () => {
         expect(result.normalizedValue).toBe('test@example.com');
       });
 
+      it('should validate subdomain emails', () => {
+        const result = service.isValidEmail('user@mail.example.co.uk');
+        expect(result.isValid).toBe(true);
+      });
+
       it('should reject invalid emails', () => {
         const result = service.isValidEmail('invalid-email');
         expect(result.isValid).toBe(false);
         expect(result.error).toContain('Invalid email format');
+      });
+
+      it('should reject emails missing a TLD (no dot in domain)', () => {
+        const result = service.isValidEmail('user@nodomain');
+        expect(result.isValid).toBe(false);
       });
     });
 

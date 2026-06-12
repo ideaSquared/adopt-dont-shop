@@ -448,7 +448,7 @@ export class UtilsService {
    * Validate email address
    */
   public isValidEmail(email: string): ValidationResult {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@.]+\.[^\s@]+$/;
     const isValid = emailRegex.test(email);
 
     return {

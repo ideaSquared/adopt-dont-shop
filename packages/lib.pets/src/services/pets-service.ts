@@ -277,7 +277,7 @@ export class PetsService {
       };
     } catch (error) {
       if (this.config.debug) {
-        console.error(`Failed to fetch pets for rescue ${rescueId}:`, error);
+        console.error('Failed to fetch pets for rescue', rescueId, error);
       }
       throw error;
     }

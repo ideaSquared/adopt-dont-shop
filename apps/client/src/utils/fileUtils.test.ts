@@ -57,9 +57,18 @@ describe('resolveFileUrl', () => {
       expect(resolveFileUrl('')).toBeUndefined();
     });
 
-    it('returns undefined for placeholder URLs', () => {
+    it('returns undefined for via.placeholder.com URLs', () => {
       expect(resolveFileUrl('https://via.placeholder.com/150')).toBeUndefined();
-      expect(resolveFileUrl('/some/placeholder/path.png')).toBeUndefined();
+    });
+
+    it('does not reject paths that merely contain the word "placeholder"', () => {
+      expect(resolveFileUrl('/some/placeholder/path.png')).toBe('/some/placeholder/path.png');
+    });
+
+    it('does not reject a different host that has via.placeholder.com as a path segment', () => {
+      expect(resolveFileUrl('https://evil.com/via.placeholder.com/150')).toBe(
+        'https://evil.com/via.placeholder.com/150'
+      );
     });
   });
 
