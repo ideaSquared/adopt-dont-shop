@@ -58,7 +58,7 @@
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "*",
-    "@types/node": "^25.9.1"
+    "@types/node": "^25.9.3"
   },
   "repository": {
     "type": "git",
