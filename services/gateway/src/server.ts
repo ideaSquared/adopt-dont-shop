@@ -330,7 +330,11 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // request that ends up at the catch-all proxy can't carry forged
   // x-user-* headers to the monolith.
   if (opts.authClient) {
-    await registerAuthenticate(server, { authClient: opts.authClient, logger });
+    await registerAuthenticate(server, {
+      authClient: opts.authClient,
+      logger,
+      principalSigningKey: config.principalSigningKey,
+    });
   }
 
   // Service-specific routes register at /api/v1/<domain> BEFORE the

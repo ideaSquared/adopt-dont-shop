@@ -36,6 +36,7 @@
     "@adopt-dont-shop/events": "*",
     "@adopt-dont-shop/observability": "*",
     "@adopt-dont-shop/proto": "*",
+    "@adopt-dont-shop/service-bootstrap": "*",
     "@adopt-dont-shop/storage": "*",
     "@fastify/multipart": "^9.0.3",
     "@fastify/rate-limit": "^10.3.0",

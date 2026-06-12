@@ -28,6 +28,11 @@ import {
   type ListUserIdsByCohortRequest,
   type ListUserIdsByCohortResponse,
 } from '@adopt-dont-shop/proto';
+import {
+  PRINCIPAL_TOKEN_HEADER,
+  resetDefaultPrincipalSigningKeyForTests,
+  verifyPrincipalToken,
+} from '@adopt-dont-shop/service-bootstrap';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -173,6 +178,85 @@ describe('createAuthCohortClient (notifications) — deadline + retry behaviour'
     } catch (err: unknown) {
       expect((err as { code?: number }).code).toBe(status.INVALID_ARGUMENT);
       expect(callCount).toBe(1);
+    } finally {
+      client.close();
+    }
+  });
+});
+
+describe('createAuthCohortClient — signed system principal (ADS-800)', () => {
+  const SIGNING_KEY = 'notifications-test-signing-key';
+  let server: Server;
+
+  beforeEach(() => {
+    server = new Server();
+  });
+
+  afterEach(async () => {
+    delete process.env.PRINCIPAL_SIGNING_KEY;
+    resetDefaultPrincipalSigningKeyForTests();
+    await new Promise<void>(resolve => server.tryShutdown(() => resolve()));
+  });
+
+  const emptyResponse: ListUserIdsByCohortResponse = {
+    userIds: [],
+    total: 0,
+    page: 1,
+    totalPages: 0,
+  };
+
+  const startCapturingServer = async (): Promise<{ port: number; captured: Metadata[] }> => {
+    const captured: Metadata[] = [];
+    server.addService(AuthV1.AuthServiceService, {
+      listUserIdsByCohort: (
+        call: ServerUnaryCall<ListUserIdsByCohortRequest, ListUserIdsByCohortResponse>,
+        cb: sendUnaryData<ListUserIdsByCohortResponse>
+      ) => {
+        captured.push(call.metadata);
+        cb(null, emptyResponse);
+      },
+    });
+    const port = await new Promise<number>((resolve, reject) => {
+      server.bindAsync('127.0.0.1:0', ServerCredentials.createInsecure(), (err, boundPort) =>
+        err ? reject(err) : resolve(boundPort)
+      );
+    });
+    return { port, captured };
+  };
+
+  it('stamps a verifiable x-principal-token over the system principal when PRINCIPAL_SIGNING_KEY is set', async () => {
+    process.env.PRINCIPAL_SIGNING_KEY = SIGNING_KEY;
+    resetDefaultPrincipalSigningKeyForTests();
+
+    const { port, captured } = await startCapturingServer();
+    const client = createAuthCohortClient({ address: `127.0.0.1:${port}` });
+    try {
+      await client.listUserIdsByCohort(emptyListRequest);
+      expect(captured).toHaveLength(1);
+      const meta = captured[0];
+      // Legacy headers still present for services running without the key.
+      expect(meta.get('x-user-id')).toEqual(['svc-notifications']);
+      expect(meta.get('x-user-roles')).toEqual(['admin']);
+      expect(meta.get('x-user-permissions')).toEqual(['admin.users.broadcast']);
+      // And the signed token carries the same principal.
+      const token = String(meta.get(PRINCIPAL_TOKEN_HEADER)[0]);
+      const principal = verifyPrincipalToken(token, SIGNING_KEY);
+      expect(principal.userId).toBe('svc-notifications');
+      expect(principal.roles).toEqual(['admin']);
+      expect(principal.permissions).toEqual(['admin.users.broadcast']);
+    } finally {
+      client.close();
+    }
+  });
+
+  it('does not stamp x-principal-token when no signing key is configured', async () => {
+    const { port, captured } = await startCapturingServer();
+    const client = createAuthCohortClient({ address: `127.0.0.1:${port}` });
+    try {
+      await client.listUserIdsByCohort(emptyListRequest);
+      expect(captured).toHaveLength(1);
+      expect(captured[0].get(PRINCIPAL_TOKEN_HEADER)).toHaveLength(0);
+      expect(captured[0].get('x-user-id')).toEqual(['svc-notifications']);
     } finally {
       client.close();
     }

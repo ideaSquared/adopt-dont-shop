@@ -34,7 +34,13 @@ import {
 } from '@adopt-dont-shop/observability';
 import type { Logger } from 'winston';
 
-import { extractPrincipal, extractPrincipalOptional, MissingPrincipalError } from './principal.js';
+import { getDefaultPrincipalSigningKey, PrincipalTokenError } from './principal-token.js';
+import {
+  extractPrincipal,
+  extractPrincipalOptional,
+  MissingPrincipalError,
+  type PrincipalVerification,
+} from './principal.js';
 
 // Canonical error code set. Services declare HandlerErrorCode as a
 // subset of this union; the shared CODE_TO_GRPC table covers all codes.
@@ -89,21 +95,36 @@ export type UnaryHandlerUnauth<Deps, Req, Res> = (
 export type AdaptOptions<Deps> = {
   deps: Deps;
   logger: Logger;
+  // Signed-principal verification (ADS-800). When set — or when the
+  // service has PRINCIPAL_SIGNING_KEY configured (resolved via
+  // config-secrets, so the _FILE variant works) — extractPrincipal
+  // requires a valid x-principal-token and takes the principal from the
+  // token payload instead of the x-user-* headers. Unset and no env key
+  // → legacy header-trust behaviour, unchanged.
+  principalVerification?: PrincipalVerification;
 };
+
+// Resolve the default verification config from PRINCIPAL_SIGNING_KEY.
+// Returns undefined when no key is configured (legacy header trust).
+function defaultPrincipalVerification(): PrincipalVerification | undefined {
+  const signingKey = getDefaultPrincipalSigningKey();
+  return signingKey ? { signingKey } : undefined;
+}
 
 export function adapt<Deps, Req, Res>(
   serviceName: string,
   handler: UnaryHandler<Deps, Req, Res>,
-  { deps, logger }: AdaptOptions<Deps>
+  { deps, logger, principalVerification }: AdaptOptions<Deps>
 ): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
   return (call, callback) => {
+    const verification = principalVerification ?? defaultPrincipalVerification();
     const method = handler.name || 'unknown';
     const stop = startGrpcTimer(serviceName, method);
     const requestId = extractRequestIdFromMetadata(call.metadata);
     echoRequestId(call, requestId);
     void runWithRequestId(requestId, async () => {
       try {
-        const principal = extractPrincipal(call.metadata);
+        const principal = extractPrincipal(call.metadata, verification);
         const response = await handler(deps, principal, call.request);
         stop(status.OK);
         callback(null, response);
@@ -122,16 +143,17 @@ export function adapt<Deps, Req, Res>(
 export function adaptUnauth<Deps, Req, Res>(
   serviceName: string,
   handler: UnaryHandlerUnauth<Deps, Req, Res>,
-  { deps, logger }: AdaptOptions<Deps>
+  { deps, logger, principalVerification }: AdaptOptions<Deps>
 ): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
   return (call, callback) => {
+    const verification = principalVerification ?? defaultPrincipalVerification();
     const method = handler.name || 'unknown';
     const stop = startGrpcTimer(serviceName, method);
     const requestId = extractRequestIdFromMetadata(call.metadata);
     echoRequestId(call, requestId);
     void runWithRequestId(requestId, async () => {
       try {
-        const principal = extractPrincipalOptional(call.metadata);
+        const principal = extractPrincipalOptional(call.metadata, verification);
         const response = await handler(deps, principal, call.request);
         stop(status.OK);
         callback(null, response);
@@ -162,6 +184,11 @@ function toServiceError(err: unknown, metadata: Metadata, logger: Logger): Servi
   if (isMissingPrincipalError(err)) {
     return makeServiceError(status.UNAUTHENTICATED, (err as Error).message, metadata);
   }
+  // PrincipalTokenError (ADS-800) — invalid / expired / malformed signed
+  // principal token. Same UNAUTHENTICATED path as a missing principal.
+  if (isPrincipalTokenError(err)) {
+    return makeServiceError(status.UNAUTHENTICATED, (err as Error).message, metadata);
+  }
   // HandlerError — duck-type on name + code rather than instanceof so that
   // service-local HandlerError subclasses (defined before handlers.ts was
   // migrated) are still detected correctly across module boundaries.
@@ -178,6 +205,13 @@ function isMissingPrincipalError(err: unknown): boolean {
   return (
     err instanceof MissingPrincipalError ||
     (err instanceof Error && err.name === 'MissingPrincipalError')
+  );
+}
+
+function isPrincipalTokenError(err: unknown): boolean {
+  return (
+    err instanceof PrincipalTokenError ||
+    (err instanceof Error && err.name === 'PrincipalTokenError')
   );
 }
 
