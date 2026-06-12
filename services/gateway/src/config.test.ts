@@ -104,3 +104,20 @@ describe('loadConfig', () => {
     expect(config.rateLimit.max).toBe(100);
   });
 });
+
+describe('loadConfig — principal signing key (ADS-800)', () => {
+  it('is undefined when PRINCIPAL_SIGNING_KEY is unset', () => {
+    const config = loadConfig({});
+    expect(config.principalSigningKey).toBeUndefined();
+  });
+
+  it('reads PRINCIPAL_SIGNING_KEY from the environment', () => {
+    const config = loadConfig({ PRINCIPAL_SIGNING_KEY: 'dev-signing-key' });
+    expect(config.principalSigningKey).toBe('dev-signing-key');
+  });
+
+  it('treats a blank PRINCIPAL_SIGNING_KEY as unset', () => {
+    const config = loadConfig({ PRINCIPAL_SIGNING_KEY: '   ' });
+    expect(config.principalSigningKey).toBeUndefined();
+  });
+});

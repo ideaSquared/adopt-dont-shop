@@ -32,20 +32,31 @@ import { status as grpcStatus, Metadata } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Logger } from 'winston';
 
+import { signPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
+
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 
 export type AuthMiddlewareOptions = {
   authClient: AuthClient;
   logger: Logger;
+  // ADS-800: when set, a signed x-principal-token is stamped alongside
+  // the x-user-* headers after ValidateToken succeeds, signed over the
+  // same principal. buildMetadata forwards it so downstream services
+  // running with the same PRINCIPAL_SIGNING_KEY verify the principal
+  // cryptographically instead of trusting the bare headers.
+  principalSigningKey?: string;
 };
 
 // Headers we strip on every request — anything else the client sends
-// is forwarded as-is.
+// is forwarded as-is. x-principal-token is in the list because the
+// gateway mints it itself (ADS-800); a client-supplied one must never
+// survive.
 const SPOOFABLE_HEADERS = [
   'x-user-id',
   'x-user-roles',
   'x-user-permissions',
   'x-rescue-id',
+  'x-principal-token',
 ] as const;
 
 // Paths the gateway lets through WITHOUT requiring (or rejecting on
@@ -69,7 +80,7 @@ export const registerAuthenticate = async (
   app: FastifyInstance,
   opts: AuthMiddlewareOptions
 ): Promise<void> => {
-  const { authClient, logger } = opts;
+  const { authClient, logger, principalSigningKey } = opts;
 
   app.addHook('onRequest', async (req, reply) => {
     // Step 1: strip spoofable headers. ALWAYS.
@@ -114,11 +125,26 @@ export const registerAuthenticate = async (
       // forwarding) picks it up via the same paths that previously
       // trusted client-supplied versions.
       const headers = req.headers as Record<string, string>;
+      const roles = principal.roles.map(stringifyRole);
       headers['x-user-id'] = principal.userId;
-      headers['x-user-roles'] = principal.roles.map(stringifyRole).join(',');
+      headers['x-user-roles'] = roles.join(',');
       headers['x-user-permissions'] = principal.permissions.join(',');
       if (principal.rescueId) {
         headers['x-rescue-id'] = principal.rescueId;
+      }
+      // ADS-800: sign the same principal so downstream services can
+      // verify it instead of trusting the headers. Minted per request —
+      // well inside the token TTL for any gRPC call this request makes.
+      if (principalSigningKey) {
+        headers['x-principal-token'] = signPrincipalToken(
+          {
+            userId: principal.userId,
+            roles,
+            permissions: [...principal.permissions],
+            ...(principal.rescueId ? { rescueId: principal.rescueId } : {}),
+          },
+          principalSigningKey
+        );
       }
     } catch (err) {
       // Invalid / expired / revoked token. On public paths, drop the

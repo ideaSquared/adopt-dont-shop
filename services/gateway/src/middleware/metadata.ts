@@ -5,6 +5,9 @@
 // Forwards:
 //   - x-user-id / x-user-roles / x-user-permissions / x-rescue-id
 //     (stamped by the authenticate middleware after ValidateToken)
+//   - x-principal-token (ADS-800 — signed principal, stamped by the
+//     authenticate middleware when PRINCIPAL_SIGNING_KEY is configured;
+//     the middleware strips any client-supplied value first)
 //   - x-request-id (stamped by the request-id middleware; either
 //     mirrored from the inbound header or minted as a UUID)
 //
@@ -20,6 +23,7 @@ const FORWARDED_HEADERS = [
   'x-user-roles',
   'x-user-permissions',
   'x-rescue-id',
+  'x-principal-token',
   'x-request-id',
 ] as const;
 

@@ -1,9 +1,14 @@
 import { Metadata, status, type ServerUnaryCall, type sendUnaryData } from '@grpc/grpc-js';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from 'winston';
 
 import { adapt, adaptUnauth, HandlerError, type HandlerDeps } from './adapter.js';
+import {
+  PRINCIPAL_TOKEN_HEADER,
+  resetDefaultPrincipalSigningKeyForTests,
+  signPrincipalToken,
+} from './principal-token.js';
 
 function makeLogger() {
   const calls: Array<{ level: string; msg: string; meta?: unknown }> = [];
@@ -126,6 +131,132 @@ describe('adapt — error code mapping (canonical CODE_TO_GRPC table)', () => {
     expect(err).toMatchObject({ code: status.INTERNAL, details: 'internal error' });
     expect((err as Error).message).toBe('internal error');
     expect(calls.find(c => c.level === 'error')?.msg).toContain('unhandled');
+  });
+});
+
+describe('adapt — signed principal verification (ADS-800)', () => {
+  const SIGNING_KEY = 'adapter-test-key';
+  const TOKEN_PRINCIPAL = {
+    userId: 'usr-signed',
+    roles: ['admin'],
+    permissions: ['pets.read'],
+  };
+
+  afterEach(() => {
+    delete process.env.PRINCIPAL_SIGNING_KEY;
+    resetDefaultPrincipalSigningKeyForTests();
+  });
+
+  it('takes the principal from a valid token, ignoring forged headers', async () => {
+    const handler = vi.fn(async (_d, principal) => ({ userId: principal.userId }));
+    const { logger } = makeLogger();
+    const wrapped = adapt('service.test', handler, {
+      deps,
+      logger,
+      principalVerification: { signingKey: SIGNING_KEY },
+    });
+
+    const callback = vi.fn() as unknown as sendUnaryData<unknown>;
+    const metadata = buildMetadata({
+      ...VALID_HEADERS, // forged / informational headers say usr-1
+      [PRINCIPAL_TOKEN_HEADER]: signPrincipalToken(TOKEN_PRINCIPAL, SIGNING_KEY),
+    });
+    wrapped(makeCall({}, metadata), callback);
+    await new Promise(r => setImmediate(r));
+
+    const [err, res] = vi.mocked(callback).mock.calls[0];
+    expect(err).toBeNull();
+    expect(res).toEqual({ userId: 'usr-signed' });
+  });
+
+  it('UNAUTHENTICATED when verification is configured and the token is missing', async () => {
+    const handler = vi.fn();
+    const { logger } = makeLogger();
+    const wrapped = adapt('service.test', handler, {
+      deps,
+      logger,
+      principalVerification: { signingKey: SIGNING_KEY },
+    });
+
+    const callback = vi.fn() as unknown as sendUnaryData<unknown>;
+    wrapped(makeCall({}, buildMetadata(VALID_HEADERS)), callback);
+    await new Promise(r => setImmediate(r));
+
+    expect(handler).not.toHaveBeenCalled();
+    const [err] = vi.mocked(callback).mock.calls[0];
+    expect(err).toMatchObject({ code: status.UNAUTHENTICATED });
+  });
+
+  it('UNAUTHENTICATED when the token is signed with the wrong key', async () => {
+    const handler = vi.fn();
+    const { logger } = makeLogger();
+    const wrapped = adapt('service.test', handler, {
+      deps,
+      logger,
+      principalVerification: { signingKey: SIGNING_KEY },
+    });
+
+    const callback = vi.fn() as unknown as sendUnaryData<unknown>;
+    const metadata = buildMetadata({
+      [PRINCIPAL_TOKEN_HEADER]: signPrincipalToken(TOKEN_PRINCIPAL, 'wrong-key'),
+    });
+    wrapped(makeCall({}, metadata), callback);
+    await new Promise(r => setImmediate(r));
+
+    expect(handler).not.toHaveBeenCalled();
+    const [err] = vi.mocked(callback).mock.calls[0];
+    expect(err).toMatchObject({ code: status.UNAUTHENTICATED });
+  });
+
+  it('picks up PRINCIPAL_SIGNING_KEY from the environment when no explicit config is passed', async () => {
+    process.env.PRINCIPAL_SIGNING_KEY = SIGNING_KEY;
+    resetDefaultPrincipalSigningKeyForTests();
+
+    const handler = vi.fn(async (_d, principal) => ({ userId: principal.userId }));
+    const { logger } = makeLogger();
+    const wrapped = adapt('service.test', handler, { deps, logger });
+
+    // Headers alone are no longer enough…
+    const rejected = vi.fn() as unknown as sendUnaryData<unknown>;
+    wrapped(makeCall({}, buildMetadata(VALID_HEADERS)), rejected);
+    await new Promise(r => setImmediate(r));
+    expect(vi.mocked(rejected).mock.calls[0][0]).toMatchObject({
+      code: status.UNAUTHENTICATED,
+    });
+
+    // …but a signed token is.
+    const accepted = vi.fn() as unknown as sendUnaryData<unknown>;
+    wrapped(
+      makeCall(
+        {},
+        buildMetadata({
+          [PRINCIPAL_TOKEN_HEADER]: signPrincipalToken(TOKEN_PRINCIPAL, SIGNING_KEY),
+        })
+      ),
+      accepted
+    );
+    await new Promise(r => setImmediate(r));
+    const [err, res] = vi.mocked(accepted).mock.calls[0];
+    expect(err).toBeNull();
+    expect(res).toEqual({ userId: 'usr-signed' });
+  });
+
+  it('adaptUnauth with verification: forged headers without a token → null principal', async () => {
+    const handler = vi.fn(async (_d, principal) => ({ principal }));
+    const { logger } = makeLogger();
+    const wrapped = adaptUnauth('service.test', handler, {
+      deps,
+      logger,
+      principalVerification: { signingKey: SIGNING_KEY },
+    });
+
+    const callback = vi.fn() as unknown as sendUnaryData<unknown>;
+    wrapped(makeCall({}, buildMetadata(VALID_HEADERS)), callback);
+    await new Promise(r => setImmediate(r));
+
+    const [err, res] = vi.mocked(callback).mock.calls[0];
+    expect(err).toBeNull();
+    expect((res as { principal: null }).principal).toBeNull();
   });
 });
 

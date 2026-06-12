@@ -101,6 +101,13 @@ export type GatewayConfig = {
   config: {
     publicEnabled: boolean;
   };
+  // HMAC key for signed principal tokens (ADS-800). When set, the
+  // authenticate middleware stamps a signed x-principal-token alongside
+  // the x-user-* headers so downstream gRPC services running with the
+  // same key can verify the principal instead of trusting bare headers.
+  // Optional: unset → legacy header-only propagation (phased rollout).
+  // Read via config-secrets so PRINCIPAL_SIGNING_KEY_FILE works.
+  principalSigningKey: string | undefined;
   // Rate limiting — applied at the gateway edge for every route.
   // Backed by a shared Redis store in production/staging so per-replica
   // limits don't multiply by N replicas. Falls back to an in-memory
@@ -174,6 +181,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     config: {
       publicEnabled: env.GATEWAY_CONFIG_ENABLED?.trim().toLowerCase() !== 'false',
     },
+    principalSigningKey: readSecret('PRINCIPAL_SIGNING_KEY', env)?.trim() || undefined,
     rateLimit: buildRateLimitConfig(env),
   };
 };

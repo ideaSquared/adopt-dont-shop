@@ -43,6 +43,7 @@ x-service-common: &service-common
   secrets:
     - database_url
     - redis_url
+    - principal_signing_key
   # staging mirrors prod limits so performance regressions surface pre-prod (ADS-836)
   deploy:
     resources:
@@ -62,6 +63,10 @@ x-service-env: &service-env
   DATABASE_URL_FILE: /run/secrets/database_url
   NATS_URL: "nats://nats:4222"
   REDIS_URL_FILE: /run/secrets/redis_url
+  # ADS-800: shared HMAC key for signed principal tokens. Present → each
+  # service REQUIRES a valid x-principal-token (forged x-user-* headers
+  # lose); the gateway signs with the same key.
+  PRINCIPAL_SIGNING_KEY_FILE: /run/secrets/principal_signing_key
 
 services:
   database:
@@ -182,6 +187,9 @@ services:
       # Staging has no per-stack nginx; the gateway serves /uploads itself.
       SERVE_LOCAL_UPLOADS: "true"
       UPLOAD_SIGNING_SECRET_FILE: /run/secrets/upload_signing_secret
+      # ADS-800: the gateway signs the x-principal-token it forwards on
+      # every downstream gRPC call.
+      PRINCIPAL_SIGNING_KEY_FILE: /run/secrets/principal_signing_key
       # ADS-813: forward CUTOVER_* flags so the gateway registers /api/v1/*
       # routes. Without these the gateway boots healthy but 404s every API
       # route (compose does not pass host env implicitly). Default true — all
@@ -196,9 +204,11 @@ services:
       CUTOVER_AUDIT: '${CUTOVER_AUDIT:-true}'
       CUTOVER_CHAT: '${CUTOVER_CHAT:-true}'
       CUTOVER_CMS: '${CUTOVER_CMS:-true}'
-    # Gateway has no DB; it only needs the upload-signing secret.
+    # Gateway has no DB; it needs the upload-signing secret plus the
+    # principal-signing key (ADS-800 — it is the token signer).
     secrets:
       - upload_signing_secret
+      - principal_signing_key
     volumes:
       - uploads:/app/uploads
     expose:
@@ -228,6 +238,7 @@ services:
       - redis_url
       - jwt_secret
       - jwt_refresh_secret
+      - principal_signing_key
     expose:
       - "5002"
     healthcheck:
@@ -488,3 +499,5 @@ secrets:
     file: ./secrets/jwt_refresh_secret
   upload_signing_secret:
     file: ./secrets/upload_signing_secret
+  principal_signing_key:
+    file: ./secrets/principal_signing_key

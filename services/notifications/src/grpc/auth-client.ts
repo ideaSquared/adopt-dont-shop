@@ -10,6 +10,11 @@ import {
   type ListUserIdsByCohortRequest,
   type ListUserIdsByCohortResponse,
 } from '@adopt-dont-shop/proto';
+import {
+  getDefaultPrincipalSigningKey,
+  PRINCIPAL_TOKEN_HEADER,
+  signPrincipalToken,
+} from '@adopt-dont-shop/service-bootstrap';
 
 import type { AuthCohortClient } from './handlers.js';
 
@@ -49,6 +54,12 @@ const isRetryableError = (err: unknown): boolean => {
 
 const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
+const splitList = (raw: string): string[] =>
+  raw
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
 const jitteredBackoff = (attempt: number, baseMs: number): number => {
   // Exponential backoff with ±25% jitter: 100ms, 200ms (base defaults).
   const base = baseMs * Math.pow(2, attempt - 1);
@@ -62,10 +73,29 @@ export function createAuthCohortClient(opts: CreateAuthCohortClientOptions): Aut
   const deadlineMs = opts.deadlineMs ?? DEFAULT_DEADLINE_MS;
   const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
 
-  const systemMeta = new Metadata();
-  systemMeta.set('x-user-id', opts.systemUserId ?? 'svc-notifications');
-  systemMeta.set('x-user-roles', opts.systemRoles ?? 'admin');
-  systemMeta.set('x-user-permissions', opts.systemPermissions ?? 'admin.users.broadcast');
+  const systemPrincipal = {
+    userId: opts.systemUserId ?? 'svc-notifications',
+    roles: splitList(opts.systemRoles ?? 'admin'),
+    permissions: splitList(opts.systemPermissions ?? 'admin.users.broadcast'),
+  };
+
+  // Built per attempt, not once at client creation: the signed
+  // x-principal-token (ADS-800) carries a short TTL, so a metadata
+  // object minted at boot would expire. When PRINCIPAL_SIGNING_KEY is
+  // configured (read via config-secrets, _FILE variant supported) the
+  // system principal is signed with the shared helper; the x-user-*
+  // headers stay for services still running without the key.
+  const buildSystemMetadata = (): Metadata => {
+    const meta = new Metadata();
+    meta.set('x-user-id', systemPrincipal.userId);
+    meta.set('x-user-roles', systemPrincipal.roles.join(','));
+    meta.set('x-user-permissions', systemPrincipal.permissions.join(','));
+    const signingKey = getDefaultPrincipalSigningKey();
+    if (signingKey) {
+      meta.set(PRINCIPAL_TOKEN_HEADER, signPrincipalToken(systemPrincipal, signingKey));
+    }
+    return meta;
+  };
 
   const callWithRetry = <Req, Res>(
     fn: (
@@ -81,7 +111,7 @@ export function createAuthCohortClient(opts: CreateAuthCohortClientOptions): Aut
         const options: Partial<CallOptions> = {
           deadline: new Date(Date.now() + deadlineMs),
         };
-        fn.call(stub, req, systemMeta, options, (err: unknown, res: Res) => {
+        fn.call(stub, req, buildSystemMetadata(), options, (err: unknown, res: Res) => {
           if (err) {
             if (remaining > 0 && isRetryableError(err)) {
               const retryIndex = maxRetries - remaining + 1;

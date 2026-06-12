@@ -31,13 +31,15 @@
   },
   "dependencies": {
     "@adopt-dont-shop/authz": "*",
+    "@adopt-dont-shop/config-secrets": "*",
     "@adopt-dont-shop/lib.types": "*",
     "@adopt-dont-shop/observability": "*",
     "@grpc/grpc-js": "^1.14.4",
     "fastify": "^5.8.5",
     "nats": "^2.29.3",
     "pg": "^8.21.0",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "nats": "^2.29.3",
