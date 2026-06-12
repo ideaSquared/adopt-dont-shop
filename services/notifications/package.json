@@ -33,22 +33,25 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@adopt-dont-shop/authz": "*",
-    "@adopt-dont-shop/service-bootstrap": "*",
-    "@adopt-dont-shop/config-secrets": "*",
-    "@adopt-dont-shop/db": "*",
-    "@adopt-dont-shop/events": "*",
-    "@adopt-dont-shop/lib.types": "*",
-    "@adopt-dont-shop/observability": "*",
-    "@adopt-dont-shop/proto": "*",
+    "@adopt-dont-shop/authz": "workspace:*",
+    "@adopt-dont-shop/config-secrets": "workspace:*",
+    "@adopt-dont-shop/db": "workspace:*",
+    "@adopt-dont-shop/events": "workspace:*",
+    "@adopt-dont-shop/lib.types": "workspace:*",
+    "@adopt-dont-shop/observability": "workspace:*",
+    "@adopt-dont-shop/proto": "workspace:*",
+    "@adopt-dont-shop/service-bootstrap": "workspace:*",
     "@grpc/grpc-js": "^1.14.4",
     "fastify": "^5.8.5",
+    "nats": "^2.29.3",
     "node-pg-migrate": "^8.0.4",
     "nodemailer": "^8.0.8",
     "pg": "^8.21.0",
-    "resend": "^6.12.4"
+    "resend": "^6.12.4",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
-    "@types/nodemailer": "^8.0.0"
+    "@types/nodemailer": "^8.0.0",
+    "@types/pg": "^8.15.5"
   }
 }

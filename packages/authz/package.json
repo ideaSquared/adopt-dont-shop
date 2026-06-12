@@ -31,9 +31,9 @@
     "type-check": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@adopt-dont-shop/lib.types": "*"
+    "@adopt-dont-shop/lib.types": "workspace:*"
   },
   "devDependencies": {
-    "@adopt-dont-shop/lib.types": "*"
+    "@adopt-dont-shop/lib.types": "workspace:*"
   }
 }

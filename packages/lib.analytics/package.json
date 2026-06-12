@@ -38,8 +38,8 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@adopt-dont-shop/lib.api": "*",
-    "@adopt-dont-shop/lib.types": "*",
+    "@adopt-dont-shop/lib.api": "workspace:*",
+    "@adopt-dont-shop/lib.types": "workspace:*",
     "socket.io-client": "^4.8.3",
     "zod": "^4.4.3"
   },
@@ -57,8 +57,10 @@
     }
   },
   "devDependencies": {
-    "@adopt-dont-shop/eslint-config-base": "*",
-    "@types/node": "^25.9.1"
+    "@adopt-dont-shop/eslint-config-base": "workspace:*",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "react": "^19.2.7"
   },
   "repository": {
     "type": "git",

@@ -39,11 +39,11 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@adopt-dont-shop/lib.types": "*",
+    "@adopt-dont-shop/lib.types": "workspace:*",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@adopt-dont-shop/eslint-config-base": "*",
+    "@adopt-dont-shop/eslint-config-base": "workspace:*",
     "@types/node": "^25.9.1"
   },
   "peerDependencies": {

@@ -11,7 +11,7 @@
     "react"
   ],
   "dependencies": {
-    "@adopt-dont-shop/eslint-config-base": "*"
+    "@adopt-dont-shop/eslint-config-base": "workspace:*"
   },
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0",

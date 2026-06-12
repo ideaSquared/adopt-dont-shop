@@ -30,9 +30,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@adopt-dont-shop/authz": "*",
-    "@adopt-dont-shop/lib.types": "*",
-    "@adopt-dont-shop/observability": "*",
+    "@adopt-dont-shop/authz": "workspace:*",
+    "@adopt-dont-shop/lib.types": "workspace:*",
+    "@adopt-dont-shop/observability": "workspace:*",
     "@grpc/grpc-js": "^1.14.4",
     "fastify": "^5.8.5",
     "nats": "^2.29.3",

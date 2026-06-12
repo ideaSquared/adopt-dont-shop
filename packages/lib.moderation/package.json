@@ -40,12 +40,12 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@adopt-dont-shop/lib.api": "*",
+    "@adopt-dont-shop/lib.api": "workspace:*",
     "react": "^19.2.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@adopt-dont-shop/eslint-config-base": "*",
+    "@adopt-dont-shop/eslint-config-base": "workspace:*",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.15"

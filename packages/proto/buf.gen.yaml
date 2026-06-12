@@ -1,12 +1,14 @@
 # Hermetic codegen — the ts-proto plugin runs from node_modules/.bin, no
 # buf.build remote. CAD lesson: the dev environment couldn't reach
 # buf.build (403 from a non-browser client), and CI is even more
-# locked-down. Local plugin = `npm install && buf generate` works
+# locked-down. Local plugin = `pnpm install && buf generate` works
 # anywhere.
 version: v1
 plugins:
   - plugin: ts_proto
-    path: ../../node_modules/.bin/protoc-gen-ts_proto
+    # pnpm's strict layout installs this package's own bins under its local
+    # node_modules/.bin (buf generate runs with cwd = packages/proto).
+    path: node_modules/.bin/protoc-gen-ts_proto
     out: src/generated
     opt:
       # ES module interop so consumers can `import { ... }` cleanly.

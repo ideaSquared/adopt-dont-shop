@@ -41,8 +41,10 @@
     "@statsig/react-bindings": "^3.33.1"
   },
   "devDependencies": {
-    "@adopt-dont-shop/eslint-config-base": "*",
-    "@types/node": "^25.9.1"
+    "@adopt-dont-shop/eslint-config-base": "workspace:*",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "react": "^19.2.7"
   },
   "peerDependencies": {
     "react": "^19.2.7",
