@@ -6,7 +6,10 @@
 // GET /api/v1/users/me/erasure-request/:correlationId — read saga
 // status from service.audit (which aggregates request + completions).
 //
-// The gateway holds no state for the saga.
+// The gateway holds no persistent state for the saga. Redis is used
+// for a short-lived (24 h) idempotency key so repeat POSTs from the
+// same user return the original correlationId rather than triggering
+// a duplicate saga across all 9 consumer services.
 
 import { randomUUID } from 'node:crypto';
 
@@ -18,58 +21,123 @@ import type { AuditClient } from '../grpc-clients/audit-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 
+// Minimal Redis interface — only the operations the route needs.
+// Satisfied by ioredis.Redis and the test doubles alike.
+export type ErasureStore = {
+  get: (key: string) => Promise<string | null>;
+  set: (key: string, value: string, mode: 'EX', ttl: number) => Promise<unknown>;
+};
+
 export type GdprRoutesOptions = {
   nats: NatsConnection;
   // Optional — when wired, the GET status endpoint is registered.
   auditClient?: AuditClient;
+  // When wired, used for per-user idempotency: a second POST within
+  // ERASURE_IDEMPOTENCY_TTL_SECONDS returns the original correlationId.
+  redis?: ErasureStore;
+};
+
+const ERASURE_IDEMPOTENCY_KEY = (userId: string) => `gdpr:erasure:${userId}`;
+const ERASURE_IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
+
+// Per-route rate-limit: 5 requests per hour per authenticated user.
+// Keyed on userId (not IP) so corporate NAT doesn't penalise shared
+// addresses. Falls back to req.ip for unauthenticated callers (who
+// receive 401 from the handler anyway).
+const ERASURE_RATE_LIMIT = {
+  max: 5,
+  timeWindow: '1 hour',
+  keyGenerator: (req: FastifyRequest) => {
+    const headers = req.headers as Record<string, string | string[] | undefined>;
+    const userId = headers['x-user-id'];
+    return typeof userId === 'string' && userId.length > 0 ? `gdpr-erasure:${userId}` : req.ip;
+  },
 };
 
 export const registerGdprRoutes = async (
   app: FastifyInstance,
   opts: GdprRoutesOptions
 ): Promise<void> => {
-  const { nats, auditClient } = opts;
+  const { nats, auditClient, redis } = opts;
 
-  app.post('/api/v1/users/me/erasure-request', async (req, reply) => {
-    const userId = principalUserId(req);
-    if (!userId) {
-      return reply.code(401).send({ success: false, error: 'unauthenticated' });
-    }
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const reason = typeof body.reason === 'string' ? body.reason : undefined;
+  app.post(
+    '/api/v1/users/me/erasure-request',
+    { config: { rateLimit: ERASURE_RATE_LIMIT } },
+    async (req, reply) => {
+      const userId = principalUserId(req);
+      if (!userId) {
+        return reply.code(401).send({ success: false, error: 'unauthenticated' });
+      }
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const reason = typeof body.reason === 'string' ? body.reason : undefined;
 
-    const correlationId = randomUUID();
-    const payload: GdprErasureRequestedPayload = {
-      userId,
-      correlationId,
-      requestedAt: new Date().toISOString(),
-      reason,
-    };
-    const envelope = {
-      id: correlationId,
-      occurredAt: new Date().toISOString(),
-      payload,
-    };
-    // Publish through JetStream so the erasure request is durably stored in
-    // the stream BEFORE we 202. Any service that owns user data — even one
-    // mid-deploy right now — receives it on reconnect via its durable
-    // consumer. This is the compliance-critical guarantee: the request can't
-    // be lost to a subscriber being briefly down.
-    await nats
-      .jetstream()
-      .publish(GDPR_ERASURE_REQUESTED, new TextEncoder().encode(JSON.stringify(envelope)), {
-        msgID: correlationId,
+      // Idempotency: if an open erasure saga exists for this user, return
+      // the original correlationId so the client can poll status without
+      // triggering a duplicate saga across all consumer services.
+      if (redis) {
+        const cached = await redis.get(ERASURE_IDEMPOTENCY_KEY(userId));
+        if (cached) {
+          try {
+            const stored = JSON.parse(cached) as { correlationId: string; requestedAt: string };
+            return reply.code(202).send({
+              success: true,
+              correlationId: stored.correlationId,
+              requestedAt: stored.requestedAt,
+            });
+          } catch {
+            // Corrupt cache entry — fall through and mint a fresh one.
+          }
+        }
+      }
+
+      const correlationId = randomUUID();
+      const requestedAt = new Date().toISOString();
+      const payload: GdprErasureRequestedPayload = {
+        userId,
+        correlationId,
+        requestedAt,
+        reason,
+      };
+      const envelope = {
+        id: correlationId,
+        occurredAt: requestedAt,
+        payload,
+      };
+
+      // Publish through JetStream so the erasure request is durably stored in
+      // the stream BEFORE we 202. Any service that owns user data — even one
+      // mid-deploy right now — receives it on reconnect via its durable
+      // consumer. This is the compliance-critical guarantee: the request can't
+      // be lost to a subscriber being briefly down.
+      try {
+        await nats
+          .jetstream()
+          .publish(GDPR_ERASURE_REQUESTED, new TextEncoder().encode(JSON.stringify(envelope)), {
+            msgID: correlationId,
+          });
+      } catch {
+        return reply.code(503).send({ success: false, error: 'service_unavailable' });
+      }
+
+      if (redis) {
+        await redis.set(
+          ERASURE_IDEMPOTENCY_KEY(userId),
+          JSON.stringify({ correlationId, requestedAt }),
+          'EX',
+          ERASURE_IDEMPOTENCY_TTL_SECONDS
+        );
+      }
+
+      // 202 — the request is accepted, but actual erasure happens
+      // asynchronously across the services. The client polls the status
+      // endpoint to confirm.
+      return reply.code(202).send({
+        success: true,
+        correlationId,
+        requestedAt,
       });
-
-    // 202 — the request is accepted, but actual erasure happens
-    // asynchronously across the services. The client polls the status
-    // endpoint to confirm.
-    return reply.code(202).send({
-      success: true,
-      correlationId,
-      requestedAt: payload.requestedAt,
-    });
-  });
+    }
+  );
 
   // GET /api/v1/users/me/erasure-request/:correlationId — read saga
   // status. The audit handler gates on self-ownership OR admin.gdpr.read,

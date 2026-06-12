@@ -212,11 +212,12 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // plugin's skipOnError:true passes requests through using the in-memory
   // fallback. A warning is logged so ops teams can detect the degraded
   // state via log alerts.
+  // Hoisted so the GDPR route can reuse the same client for idempotency keys.
+  let rateLimitRedis: Redis | undefined;
   {
-    let redisClient: Redis | undefined;
     if (config.rateLimit.redisUrl) {
       try {
-        redisClient = new Redis(config.rateLimit.redisUrl, {
+        rateLimitRedis = new Redis(config.rateLimit.redisUrl, {
           // Do not block boot if Redis isn't up yet. The plugin's
           // skipOnError flag handles the in-flight failure case.
           connectTimeout: 2000,
@@ -224,23 +225,23 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
           lazyConnect: true,
           enableOfflineQueue: false,
         });
-        redisClient.on('error', (err: Error) => {
+        rateLimitRedis.on('error', (err: Error) => {
           logger.warn('rate-limit Redis error — falling back to in-memory store', {
             message: err.message,
           });
         });
         // Attempt a connection so we know early whether Redis is reachable.
-        await redisClient.connect().catch((err: Error) => {
+        await rateLimitRedis.connect().catch((err: Error) => {
           logger.warn('rate-limit Redis unreachable at boot — using in-memory store', {
             message: err.message,
           });
-          redisClient = undefined;
+          rateLimitRedis = undefined;
         });
       } catch (err) {
         logger.warn('rate-limit Redis setup failed — using in-memory store', {
           message: (err as Error).message,
         });
-        redisClient = undefined;
+        rateLimitRedis = undefined;
       }
     } else {
       logger.warn(
@@ -252,7 +253,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       global: true,
       max: config.rateLimit.max,
       timeWindow: config.rateLimit.timeWindow,
-      ...(redisClient ? { redis: redisClient } : {}),
+      ...(rateLimitRedis ? { redis: rateLimitRedis } : {}),
       skipOnError: true,
       keyGenerator: req => req.ip,
       onExceeded: (_req, key) => {
@@ -494,6 +495,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     await registerGdprRoutes(server, {
       nats: opts.nats,
       auditClient: opts.auditClient,
+      redis: rateLimitRedis,
     });
   }
 
