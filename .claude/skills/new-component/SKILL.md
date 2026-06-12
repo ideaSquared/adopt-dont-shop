@@ -211,10 +211,10 @@ own wrappers.
 
 ```bash
 # Build lib.components
-npm run build:components
+pnpm build:components
 
 # Run the tests
-npm run test:components
+pnpm test:components
 ```
 
 If the app uses Vite aliases (it should — see new-app skill), changes to the source file

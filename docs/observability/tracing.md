@@ -36,7 +36,7 @@ docker run --rm --name jaeger \
 Then point the backend at it:
 
 ```bash
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run dev:backend
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 pnpm dev:backend
 ```
 
 Open <http://localhost:16686> and select the
@@ -114,7 +114,7 @@ Background workers (`reports.worker`, `retention.job`,
 `legal-reminder.worker`, etc.) run in the same Node process as the
 HTTP server, so the single SDK boot inside `src/index.ts` covers
 them. The standalone `legal-reminder.cli.ts` CLI inherits the same
-import-time boot when run via `npm run legal-reminder:run` because
+import-time boot when run via `pnpm legal-reminder:run` because
 it imports from `src/workers/legal-reminder.worker` which transitively
 loads `src/instrumentation.ts` via the project boot path — for that
 CLI, traces require `OTEL_EXPORTER_OTLP_ENDPOINT` to be set in the

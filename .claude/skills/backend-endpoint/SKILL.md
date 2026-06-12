@@ -36,7 +36,7 @@ export type CreateThingRequest = z.infer<typeof CreateThingRequestSchema>;
 ```
 
 Re-export from `lib.validation/src/index.ts`. Rebuild lib.validation
-(`cd lib.validation && npm run build`) so service.backend resolves the new export.
+(`cd lib.validation && pnpm build`) so service.backend resolves the new export.
 
 ## Step 2 — Add validation in the controller
 

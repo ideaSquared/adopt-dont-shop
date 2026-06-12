@@ -33,7 +33,7 @@ have been compromised.
 ### 1. Generate fresh production secrets
 
 ```bash
-npm run secrets:generate
+pnpm secrets:generate
 ```
 
 Copy the output into your production `.env` (or secrets manager). Each run produces
@@ -61,10 +61,10 @@ your production env file before deploying:
 
 ```bash
 # Validate a named file
-NODE_ENV=production npm run validate:env -- --env-file=.env.prod
+NODE_ENV=production pnpm validate:env -- --env-file=.env.prod
 
 # Or with secrets already in the environment (CI)
-NODE_ENV=production npm run validate:env
+NODE_ENV=production pnpm validate:env
 ```
 
 A non-zero exit means at least one secret is missing, too short, uses a placeholder
@@ -111,7 +111,7 @@ emergency-bypass procedure.
 
 ## Release deploy
 
-The `service-backend-migrate` init container runs `npm run db:migrate`
+The `service-backend-migrate` init container runs `pnpm db:migrate`
 (custom Umzug runner) once before `service-backend` starts. Compose's
 `service_completed_successfully` dependency gates the backend on a clean
 migration. [ADS-393]
@@ -191,7 +191,7 @@ migration before rolling back the application image:
 
 ```bash
 docker compose -f docker-compose.prod.yml run --rm service-backend-migrate \
-  npm run db:migrate:undo
+  pnpm db:migrate:undo
 ```
 
 ## Database TLS (ADS-540)

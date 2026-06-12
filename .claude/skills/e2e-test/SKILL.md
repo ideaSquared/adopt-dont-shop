@@ -37,12 +37,12 @@ e2e/
 ```bash
 # From repo root (all three apps + backend must be running)
 cd e2e
-npm test                          # full suite
-npm test -- admin/                # one app
-npm test -- 2fa-enrollment        # one spec
-npm run test:headed               # see the browser
-npm run test:debug                # pause on failure
-npm run report                    # open HTML report
+pnpm test                          # full suite
+pnpm test -- admin/                # one app
+pnpm test -- 2fa-enrollment        # one spec
+pnpm test:headed               # see the browser
+pnpm test:debug                # pause on failure
+pnpm report                    # open HTML report
 ```
 
 The suite expects the full stack to be running. `docker compose up -d` first.
@@ -159,7 +159,7 @@ await expect(page.getByText(/loaded/i)).toBeVisible();
 
 When a CI failure is unclear, download the artefact and open the trace viewer:
 ```bash
-npx playwright show-trace path/to/trace.zip
+pnpm exec playwright show-trace path/to/trace.zip
 ```
 
 ## Best-effort assertions

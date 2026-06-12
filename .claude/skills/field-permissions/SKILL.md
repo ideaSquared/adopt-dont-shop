@@ -169,7 +169,7 @@ When adding a new attribute to a Sequelize model:
    - If the request body uses different casing, also add an alias (see `userRequestAliases` / `petRequestAliases` patterns)
    - Set appropriate access: `WRITE` for owner-editable, `READ` for visible, `NONE` for restricted
 
-2. **Rebuild lib.types**: `cd lib.types && npm run build`
+2. **Rebuild lib.types**: `cd lib.types && pnpm build`
 
 3. **No backend changes needed** unless you want a different default than the resource's existing pattern
 
@@ -240,16 +240,16 @@ volumes:
   - lib_types_node_modules:/app/lib.types/node_modules   # preserves TypeScript compiler
 
 command: >
-  sh -c "cd /app/lib.types && npm run build &&
+  sh -c "cd /app/lib.types && pnpm build &&
          cd /app/service.backend &&
          mkdir -p node_modules/@adopt-dont-shop &&
          rm -rf node_modules/@adopt-dont-shop/lib.types &&
          ln -s /app/lib.types node_modules/@adopt-dont-shop/lib.types &&
-         npm run dev"
+         pnpm dev"
 ```
 
 After changing lib.types defaults: restart the backend container or rebuild on the host
-(`cd lib.types && npm run build`) -- ts-node-dev will pick up the change via the symlink.
+(`cd lib.types && pnpm build`) -- ts-node-dev will pick up the change via the symlink.
 
 ## Common Pitfalls
 

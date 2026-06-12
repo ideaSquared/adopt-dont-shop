@@ -114,7 +114,7 @@ is ahead of binary" failure mode.
 # 1. Decide: forward-fix (deploy a new image that handles the new
 #    schema) or back out (run the migration's down()).
 docker compose -f docker-compose.prod.yml run --rm service-backend-migrate \
-  npm run db:migrate:undo
+  pnpm db:migrate:undo
 ```
 
 If `down()` is a no-op or destructive, **stop and call the DBA**.

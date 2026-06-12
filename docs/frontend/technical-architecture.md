@@ -364,16 +364,16 @@ const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 ### Development Build
 
 ```bash
-npm run dev              # Start dev server
-npm run test            # Run tests
-npm run lint            # Check code quality
+pnpm dev              # Start dev server
+pnpm test            # Run tests
+pnpm lint            # Check code quality
 ```
 
 ### Production Build
 
 ```bash
-npm run build           # Optimized production build
-npm run preview         # Preview production build
+pnpm build           # Optimized production build
+pnpm preview         # Preview production build
 ```
 
 ### Environment Configuration

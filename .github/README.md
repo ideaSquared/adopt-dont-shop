@@ -8,7 +8,7 @@ See [workflows/README.md](./workflows/README.md) for the full reference. The hig
 |---|---|
 | `ci.yml` | Main CI: workspace drift, change detection, backend / frontend / library tests, Playwright E2E |
 | `quality.yml` | Dependency freshness check across all workspaces |
-| `security.yml` | `npm audit` vulnerability scan across all workspaces |
+| `security.yml` | `pnpm audit` vulnerability scan across all workspaces |
 | `codeql.yml` | CodeQL static analysis for JavaScript / TypeScript |
 | `docker.yml` | Build validation for backend and per-app Docker images |
 | `lib-test-guard.yml` | Fails when any `lib.*` package has zero test files |
@@ -25,9 +25,9 @@ See [workflows/README.md](./workflows/README.md) for the full reference. The hig
 
 `ci.yml` uses a dedicated `build-libs` job that compiles all `lib.*/dist` outputs once, then uploads them as a single `lib-dist` artifact via `actions/upload-artifact@v7`. Downstream jobs (`test-backend`, `test-frontend`, `test-libs`) use `actions/download-artifact@v8` to retrieve the pre-built artifacts instead of rebuilding.
 
-This eliminates the ~4x redundant `npm run build:libs` calls that previously occurred across parallel jobs (~10 minutes of duplicated work per run).
+This eliminates the ~4x redundant `pnpm build:libs` calls that previously occurred across parallel jobs (~10 minutes of duplicated work per run).
 
-**Turbo remote cache** is also wired via `TURBO_TOKEN` / `TURBO_TEAM` secrets. Run `npx turbo run build:libs --summarize` locally or inspect the "Show Turbo build summary" CI step to verify cache hits.
+**Turbo remote cache** is also wired via `TURBO_TOKEN` / `TURBO_TEAM` secrets. Run `pnpm exec turbo run build:libs --summarize` locally or inspect the "Show Turbo build summary" CI step to verify cache hits.
 
 Cold-cache behaviour: if the `build-libs` job fails or is skipped, downstream jobs that need artifacts will also fail — this is intentional, as it prevents false-green test runs against stale dist files.
 
@@ -36,10 +36,10 @@ Cold-cache behaviour: if the `build-libs` job fails or is skipped, downstream jo
 `security.yml` and `quality.yml` previously used a hardcoded 5-package matrix. They now run a single workspace-level command at the repo root:
 
 ```
-npm audit --workspaces --include-workspace-root --audit-level=high
+pnpm audit --audit-level high
 ```
 
-This covers all workspace packages via the deduplicated `package-lock.json`.
+This covers all workspace packages via the deduplicated `pnpm-lock.yaml`.
 
 ## E2E Gate (ADS-386 / ADS-419)
 

@@ -21,7 +21,7 @@ Workspace package — add to a consumer's `package.json`:
 }
 ```
 
-Then run `npm install` at the repo root to link.
+Then run `pnpm install` at the repo root to link.
 
 ## Usage
 
@@ -78,16 +78,16 @@ function ModerationDashboard() {
 
 ```bash
 # Run tests
-npm test
+pnpm test
 
 # Watch mode
-npm run test:watch
+pnpm test:watch
 
 # Build
-npm run build
+pnpm build
 
 # Type check
-npm run type-check
+pnpm type-check
 ```
 
 ## License

@@ -31,10 +31,10 @@ cp .env.example .env
 
 ```bash
 # Generate all required secrets (cross-platform — uses Node's crypto module)
-npm run secrets:generate
+pnpm secrets:generate
 
 # Append directly to your .env:
-npm run secrets:generate >> .env
+pnpm secrets:generate >> .env
 
 # If you need ad-hoc generation, Node works on any platform:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"   # base64
@@ -302,7 +302,7 @@ Before deploying to production:
 - [ ] Generated strong, unique secrets for all required variables
 - [ ] No default/example values remain in `.env`
 - [ ] Secrets are different from development environment
-- [ ] All required secrets are set (check with `npm run validate:env`)
+- [ ] All required secrets are set (check with `pnpm validate:env`)
 - [ ] Secrets are stored in secure location (secrets manager)
 - [ ] Access to secrets is logged and audited
 - [ ] Team members understand secrets management procedures
@@ -311,7 +311,7 @@ Before deploying to production:
 
 ```bash
 # Validate all required secrets are set
-npm run validate:env
+pnpm validate:env
 ```
 
 ### CI/CD Integration

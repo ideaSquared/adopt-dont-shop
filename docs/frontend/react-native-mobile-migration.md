@@ -4,20 +4,20 @@
 
 ## TL;DR
 
-If we build a native mobile app, **React Native + Expo** aligns with this repo far better than the alternatives (Flutter, native Swift/Kotlin). It is the same insight that already drives our three web apps: share framework-agnostic TypeScript from `lib.*`, write per-surface UI on top. A React Native `app.mobile` would import `lib.types`, `lib.api`, `lib.validation`, `lib.utils`, and `lib.matching` straight from the npm workspace, be orchestrated by Turborepo, and be written by the same engineers in the same language.
+If we build a native mobile app, **React Native + Expo** aligns with this repo far better than the alternatives (Flutter, native Swift/Kotlin). It is the same insight that already drives our three web apps: share framework-agnostic TypeScript from `lib.*`, write per-surface UI on top. A React Native `app.mobile` would import `lib.types`, `lib.api`, `lib.validation`, `lib.utils`, and `lib.matching` straight from the pnpm workspace, be orchestrated by Turborepo, and be written by the same engineers in the same language.
 
 The one thing it does **not** reuse is the view layer: React Native renders to `<View>`/`<Text>`, not the DOM, so `lib.components` (React DOM + Radix + Recharts + vanilla-extract) does not port.
 
 ## Why not Flutter (or native)?
 
-The repo is a TypeScript/React monorepo on npm workspaces + Turborepo. Alignment was the deciding factor.
+The repo is a TypeScript/React monorepo on pnpm workspaces + Turborepo. Alignment was the deciding factor.
 
 | Criterion | React Native + Expo | Flutter | Native (Swift + Kotlin) |
 | --- | --- | --- | --- |
 | Language | TypeScript (same as repo) | Dart (new) | Swift + Kotlin (two new) |
 | Reuse `lib.types/api/validation/utils/matching` | ✅ directly via workspace | ❌ none | ❌ none |
 | Reuse `lib.components` UI | ❌ (RN ≠ DOM) | ❌ | ❌ |
-| Fits npm workspaces + Turborepo | ✅ native fit | ❌ tooling island | ❌ |
+| Fits pnpm workspaces + Turborepo | ✅ native fit | ❌ tooling island | ❌ |
 | Team skill match | ✅ React/TS already | ❌ retrain | ❌ retrain ×2 |
 | Native UX / performance | ✅ very good | ✅ best-in-class | ✅ best-in-class |
 | One codebase → iOS + Android | ✅ | ✅ | ❌ two codebases |
@@ -71,7 +71,7 @@ adopt-dont-shop/
 
 Integration points:
 
-- **npm workspace:** add `"app.mobile"` to the root `package.json` `workspaces` array. It then resolves `@adopt-dont-shop/lib.*` like every other package.
+- **pnpm workspace:** add `"app.mobile"` to the root `package.json` `workspaces` array. It then resolves `@adopt-dont-shop/lib.*` like every other package.
 - **Turborepo:** `build`, `lint`, `type-check`, and `test` tasks work out of the box once `app.mobile/package.json` defines those scripts. Mobile-specific tasks (`expo start`, EAS builds) live as additional scripts and run outside the normal web pipeline.
 - **TypeScript:** extend `tsconfig.base.json` as the other packages do.
 - **Testing:** the repo standard is Vitest; React Native's ecosystem standard is Jest + `@testing-library/react-native`. This is a real divergence — see Open Questions.
@@ -81,8 +81,8 @@ Integration points:
 
 Each phase should leave the repo in a working, shippable state (per our TDD / small-increments workflow).
 
-1. **Scaffold** → verify: `npx create-expo-app app.mobile` (TypeScript template), add to workspaces, `npm install` resolves, `expo start` boots the blank app on a simulator.
-2. **Wire shared libs** → verify: import a type from `lib.types` and a schema from `lib.validation` in a screen; `npm run type-check` passes for `app.mobile`.
+1. **Scaffold** → verify: `pnpm dlx create-expo-app app.mobile` (TypeScript template), add to workspaces, `pnpm install` resolves, `expo start` boots the blank app on a simulator.
+2. **Wire shared libs** → verify: import a type from `lib.types` and a schema from `lib.validation` in a screen; `pnpm type-check` passes for `app.mobile`.
 3. **Auth + API client** → verify: log in against `service.backend` (or staging) using `lib.api` contracts; token persisted; an authenticated request succeeds.
 4. **Core adopter flows** → verify: browse pets, view pet detail, submit/track an application — driven by tests against the real API contract.
 5. **Native capabilities** → verify: push notifications, image upload from camera/gallery, offline-friendly caching (React Query) behave on device.

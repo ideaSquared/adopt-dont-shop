@@ -57,12 +57,12 @@ The cookie banner in [`lib.legal`](../lib.legal/README.md) calls `setAnalyticsCo
 ## Development
 
 ```bash
-npx turbo build --filter=@adopt-dont-shop/lib.observability
-npx turbo test  --filter=@adopt-dont-shop/lib.observability
-npx turbo lint  --filter=@adopt-dont-shop/lib.observability
+pnpm exec turbo build --filter=@adopt-dont-shop/lib.observability
+pnpm exec turbo test  --filter=@adopt-dont-shop/lib.observability
+pnpm exec turbo lint  --filter=@adopt-dont-shop/lib.observability
 ```
 
-Or from `lib.observability/`: `npm run build`, `npm test`, `npm run lint`.
+Or from `lib.observability/`: `pnpm build`, `pnpm test`, `pnpm lint`.
 
 ## See also
 

@@ -34,7 +34,7 @@ for adopt-dont-shop's domain.
   WITHIN the `auth` schema so the no-cross-schema-joins rule doesn't
   apply.
 - `src/db/migrate.ts` runs them via `@adopt-dont-shop/db.runMigrations`.
-- Run with `npm run db:migrate`.
+- Run with `pnpm db:migrate`.
 
 **Phase 2.3a** — proto + grpc-js stubs:
 - `proto/adopt_dont_shop/auth/v1/auth.proto` in `@adopt-dont-shop/proto`
@@ -174,9 +174,9 @@ Plus the standard observability env vars consumed by
 
 ```bash
 # Dev — hot reload, OTel SDK loaded via --import
-npm run dev
+pnpm dev
 
 # Production build
-npm run build
-npm run start
+pnpm build
+pnpm start
 ```

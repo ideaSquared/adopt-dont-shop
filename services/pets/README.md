@@ -43,7 +43,7 @@ domain + publish-after-commit on `pets.statusChanged`.
 - `006_create_user_favorites.ts` — adopter↔pet join; partial-unique
   one-active-favourite-per-user+pet.
 - `src/db/migrate.ts` runs them via `@adopt-dont-shop/db.runMigrations`.
-  Run with `npm run db:migrate`.
+  Run with `pnpm db:migrate`.
 
 **Phase 3.3a** — proto + grpc-js stubs:
 - `proto/adopt_dont_shop/pets/v1/pet.proto` in `@adopt-dont-shop/proto`
@@ -128,9 +128,9 @@ Plus the standard observability env vars consumed by
 
 ```bash
 # Dev — hot reload, OTel SDK loaded via --import
-npm run dev
+pnpm dev
 
 # Production build
-npm run build
-npm run start
+pnpm build
+pnpm start
 ```

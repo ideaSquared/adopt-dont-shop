@@ -28,7 +28,7 @@ pattern). Owns the `audit.*` schema. Replaces the monolith's
 - Indexes for forensic query patterns: `(aggregate_type,
   aggregate_id)`, `actor_user_id` (partial, NOT NULL),
   `occurred_at`, `service`, `subject`, `outcome`.
-- Run via `npm run db:migrate` (uses `@adopt-dont-shop/db` —
+- Run via `pnpm db:migrate` (uses `@adopt-dont-shop/db` —
   inherits all four CAD-lesson fixes: `createSchema`,
   `ignorePattern`, `search_path`, advisory-lock retry).
 

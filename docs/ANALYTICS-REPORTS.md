@@ -178,9 +178,9 @@ sets `last_status='failed'`, persists `last_error`, and emits
 ### Verification
 
 ```bash
-npm run docker:dev:build          # now starts redis
-npm run db:migrate
-npm run db:seed:reference         # seeds permissions + role-permissions
+pnpm docker:dev:build          # now starts redis
+pnpm db:migrate
+pnpm db:seed:reference         # seeds permissions + role-permissions
 ```
 
 Then in app.admin:

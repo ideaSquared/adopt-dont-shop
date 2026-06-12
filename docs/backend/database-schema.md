@@ -365,12 +365,12 @@ Migrations live in `service.backend/src/migrations/` as numbered TypeScript file
 
 ```bash
 # From the repo root, while the dev stack is running:
-npm run db:migrate
+pnpm db:migrate
 
 # Rollback / status (run inside the backend container):
-npm run docker:shell:backend
-npm run db:migrate:undo      # ts-node src/migrations/runner.ts down
-npm run db:migrate:status    # ts-node src/migrations/runner.ts status
+pnpm docker:shell:backend
+pnpm db:migrate:undo      # ts-node src/migrations/runner.ts down
+pnpm db:migrate:status    # ts-node src/migrations/runner.ts status
 ```
 
 The backend exposes three migration scripts in `service.backend/package.json`: `db:migrate`, `db:migrate:undo`, `db:migrate:status`.

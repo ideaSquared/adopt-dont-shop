@@ -23,7 +23,7 @@ do not exist in `node_modules/sequelize`. No model files were modified.
 
 ## How this was verified
 
-1. **Inspected the installed package.** After `npm install`, the on-disk
+1. **Inspected the installed package.** After `pnpm install`, the on-disk
    layout of `node_modules/sequelize@7.0.0-alpha.9` has no decorator
    modules:
 

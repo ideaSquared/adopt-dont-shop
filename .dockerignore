@@ -123,10 +123,10 @@ uploads
 public/uploads
 
 # ============================================================================
-# Package manager lock files (keep package-lock.json, ignore others)
+# Package manager lock files (keep pnpm-lock.yaml, ignore others)
 # ============================================================================
 yarn.lock
-pnpm-lock.yaml
+package-lock.json
 
 # ============================================================================
 # Monorepo specific

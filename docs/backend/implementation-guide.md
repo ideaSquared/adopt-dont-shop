@@ -8,6 +8,8 @@
 - PostgreSQL 16 with PostGIS (provided by the Docker stack)
 - Docker and Docker Compose (recommended)
 
+> pnpm is provided via Corepack — run `corepack enable` once. Its version is pinned by the `"packageManager"` field in the root `package.json`, so you do not install pnpm globally.
+
 ### Development Setup
 
 From the repository root the typical workflow uses Docker — the container boots the database, Redis, and the backend in one command. See the [root README](../../README.md) for the full quick start.
@@ -15,22 +17,22 @@ From the repository root the typical workflow uses Docker — the container boot
 1. **Install workspace dependencies (from repo root)**
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 2. **Environment Configuration**
 
    ```bash
    cp .env.example .env
-   npm run secrets:generate >> .env
+   pnpm secrets:generate >> .env
    # Edit .env to set POSTGRES_PASSWORD and any third-party keys
    ```
 
 3. **Start the stack**
 
    ```bash
-   npm run docker:dev          # foreground
-   npm run docker:dev:detach   # or background
+   pnpm docker:dev          # foreground
+   pnpm docker:dev:detach   # or background
    ```
 
 4. **Initialize the database (first run, or after `docker:reset`)**
@@ -39,10 +41,10 @@ From the repository root the typical workflow uses Docker — the container boot
 
    ```bash
    # From the repo root — wrappers shell into the service-backend container
-   npm run db:migrate                                       # runs `ts-node src/migrations/runner.ts up`
-   docker compose exec service-backend npm run db:seed:reference  # idempotent reference data
-   docker compose exec service-backend npm run db:seed:demo       # Faker-generated demo data (dev/staging only)
-   docker compose exec service-backend npm run db:seed:fixtures   # deterministic e2e fixtures
+   pnpm db:migrate                                       # runs `ts-node src/migrations/runner.ts up`
+   docker compose exec service-backend pnpm db:seed:reference  # idempotent reference data
+   docker compose exec service-backend pnpm db:seed:demo       # Faker-generated demo data (dev/staging only)
+   docker compose exec service-backend pnpm db:seed:fixtures   # deterministic e2e fixtures
    ```
 
 5. **Backend is reachable at**
@@ -58,7 +60,7 @@ If you prefer to run the backend on the host (you must provide Postgres and Redi
 
 ```bash
 cd service.backend
-npm run dev                  # tsx watch --clear-screen=false src/index.ts
+pnpm dev                  # tsx watch --clear-screen=false src/index.ts
 ```
 
 ## Environment Configuration
@@ -192,11 +194,11 @@ The project uses a custom [Umzug](https://github.com/sequelize/umzug) runner (`s
 
 ```bash
 # Run pending migrations (from repo root)
-npm run db:migrate
+pnpm db:migrate
 
 # Status / rollback — exec inside the backend container
-docker compose exec service-backend npm run db:migrate:status
-docker compose exec service-backend npm run db:migrate:undo
+docker compose exec service-backend pnpm db:migrate:status
+docker compose exec service-backend pnpm db:migrate:undo
 
 # Authoring a new migration: copy an existing file in
 # service.backend/src/migrations/ and follow the numbered naming pattern
@@ -208,11 +210,11 @@ docker compose exec service-backend npm run db:migrate:undo
 Seeds are deliberately not fungible — each type has a different safety profile:
 
 ```bash
-docker compose exec service-backend npm run db:seed:reference   # idempotent, safe anywhere
-docker compose exec service-backend npm run db:seed:demo        # Faker (dev/staging) — ALLOW_DEMO_SEED required
-docker compose exec service-backend npm run db:seed:fixtures    # deterministic e2e fixtures
-docker compose exec service-backend npm run db:seed:reset       # truncate demo+fixture tables
-docker compose exec service-backend npm run db:bootstrap        # first-run admin in production
+docker compose exec service-backend pnpm db:seed:reference   # idempotent, safe anywhere
+docker compose exec service-backend pnpm db:seed:demo        # Faker (dev/staging) — ALLOW_DEMO_SEED required
+docker compose exec service-backend pnpm db:seed:fixtures    # deterministic e2e fixtures
+docker compose exec service-backend pnpm db:seed:reset       # truncate demo+fixture tables
+docker compose exec service-backend pnpm db:bootstrap        # first-run admin in production
 ```
 
 See `service.backend/src/seeders/README.md` for the full split.
@@ -221,23 +223,23 @@ See `service.backend/src/seeders/README.md` for the full split.
 
 ### Run Tests
 
-The backend uses **Vitest**. Run from `service.backend/` (or via `npx turbo test --filter=@adopt-dont-shop/service-backend` at the root).
+The backend uses **Vitest**. Run from `service.backend/` (or via `pnpm exec turbo test --filter=@adopt-dont-shop/service-backend` at the root).
 
 ```bash
 # All tests
-npm test
+pnpm test
 
 # Watch mode
-npm run test:watch
+pnpm test:watch
 
 # Vitest UI
-npm run test:ui
+pnpm test:ui
 
 # Coverage report
-npm run test:coverage
+pnpm test:coverage
 
 # Specific test file
-npm test -- src/__tests__/services/user.service.test.ts
+pnpm test -- src/__tests__/services/user.service.test.ts
 ```
 
 Load-testing and performance-profiling scripts are not yet set up.
@@ -324,7 +326,7 @@ The root `docker-compose.prod.yml` overlay exercises this path end-to-end — se
 1. **Create migration** by copying the latest file in `service.backend/src/migrations/` and renaming it (the runner is a custom Umzug script — no generator). Follow the existing numbered naming pattern (`NN-create-my-table.ts`).
 2. **Define schema** in the migration file under `src/migrations/`
 3. **Create model** `src/models/MyModel.ts`
-4. **Run migration** `npm run db:migrate` (from the repo root)
+4. **Run migration** `pnpm db:migrate` (from the repo root)
 5. **Add associations** in the model file
 6. **Create seeder** (optional) under `src/seeders/{reference,demo,fixtures}/` depending on whether it's idempotent reference data, Faker-generated demo data, or a deterministic e2e fixture.
 
@@ -346,11 +348,11 @@ The root `docker-compose.prod.yml` overlay exercises this path end-to-end — se
 docker compose ps database
 
 # Nuclear reset (wipes the volume, then re-initializes)
-npm run docker:reset
-npm run docker:dev:detach
-npm run db:migrate
-docker compose exec service-backend npm run db:seed:reference
-docker compose exec service-backend npm run db:seed:fixtures
+pnpm docker:reset
+pnpm docker:dev:detach
+pnpm db:migrate
+docker compose exec service-backend pnpm db:seed:reference
+docker compose exec service-backend pnpm db:seed:fixtures
 ```
 
 ### Email Not Sending
@@ -372,7 +374,7 @@ ls -la uploads/
 
 # Recreate upload directories
 rm -rf uploads
-npm run dev  # Will recreate automatically
+pnpm dev  # Will recreate automatically
 ```
 
 ### Performance Issues

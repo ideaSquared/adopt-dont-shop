@@ -61,7 +61,7 @@ When adding a new gate or config:
 1. Define it in Statsig first
 2. Add it to `KNOWN_GATES` / `KNOWN_CONFIGS` in
    `lib.feature-flags/src/types/index.ts`
-3. Rebuild: `cd lib.feature-flags && npm run build` (or rely on the Vite alias
+3. Rebuild: `cd lib.feature-flags && pnpm build` (or rely on the Vite alias
    in dev — see the `new-lib` skill)
 
 ## Flag patterns

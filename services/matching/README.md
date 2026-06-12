@@ -22,7 +22,7 @@ discovery + search + swipe modules.
   `swipe_action_type` enum (like/pass/super_like/info);
   `session_id` FK intra-schema CASCADE; `pet_id` / `user_id` soft
   pointers; recommender hot-path idx `(user_id, action)`.
-- Run via `npm run db:migrate` (uses `@adopt-dont-shop/db`).
+- Run via `pnpm db:migrate` (uses `@adopt-dont-shop/db`).
 
 ## What's NOT here yet
 

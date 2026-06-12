@@ -78,7 +78,7 @@ POSTGRES_DB=adopt_dont_shop_dev
 REDIS_HOST=redis
 REDIS_PORT=6379
 
-# Secrets — generate fresh values via `npm run secrets:generate`
+# Secrets — generate fresh values via `pnpm secrets:generate`
 JWT_SECRET=...
 JWT_REFRESH_SECRET=...
 SESSION_SECRET=...
@@ -95,7 +95,7 @@ VITE_WS_BASE_URL=ws://localhost:5000
 CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost,http://admin.localhost,http://rescue.localhost,http://api.localhost,http://localhost:5000
 ```
 
-Generate strong secrets and append them to your `.env` with `npm run secrets:generate >> .env`.
+Generate strong secrets and append them to your `.env` with `pnpm secrets:generate >> .env`.
 
 ## Common Issues & Solutions
 
@@ -167,8 +167,8 @@ chmod -R 755 ./uploads
 # of the base compose file — both flags are required).
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
-# Or via npm script
-npm run prod:up
+# Or via pnpm script
+pnpm prod:up
 
 # Check service status
 docker compose ps

@@ -47,7 +47,7 @@ This is a workspace package — add to a consumer's `package.json`:
 }
 ```
 
-Then run `npm install` at the repo root to link.
+Then run `pnpm install` at the repo root to link.
 
 ## Quick Start
 
@@ -186,15 +186,15 @@ The `createHttpError(status, ...)` factory in `src/errors/index.ts` chooses the 
 From the repo root:
 
 ```bash
-npx turbo build --filter=@adopt-dont-shop/lib.api
-npx turbo test  --filter=@adopt-dont-shop/lib.api
-npx turbo lint  --filter=@adopt-dont-shop/lib.api
+pnpm exec turbo build --filter=@adopt-dont-shop/lib.api
+pnpm exec turbo test  --filter=@adopt-dont-shop/lib.api
+pnpm exec turbo lint  --filter=@adopt-dont-shop/lib.api
 ```
 
 Or from `lib.api/`:
 
 ```bash
-npm run build
-npm test
-npm run lint
+pnpm build
+pnpm test
+pnpm lint
 ```

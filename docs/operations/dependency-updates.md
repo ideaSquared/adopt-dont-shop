@@ -21,7 +21,7 @@ single PRs:
 Minor/patch updates to `devDependencies` automerge (squash) once CI is green;
 all other updates require manual review. Renovate is capped at **5 concurrent
 PRs** and **2 PRs per hour** to keep CI load predictable. `lockFileMaintenance`
-runs weekly (before 6am Monday) to refresh `package-lock.json`. GitHub Actions
+runs weekly (before 6am Monday) to refresh `pnpm-lock.yaml`. GitHub Actions
 are pinned to commit SHAs (`pinDigests`), and vulnerability alerts are labelled
 `security` + `DevEx` with elevated priority and never automerge.
 

@@ -58,7 +58,7 @@ Workspace package — add to a consumer's `package.json`:
 }
 ```
 
-Then `npm install` at the repo root.
+Then `pnpm install` at the repo root.
 
 ## Usage
 
@@ -160,12 +160,12 @@ const config = utils.getConfig();
 From the repo root:
 
 ```bash
-npx turbo test  --filter=@adopt-dont-shop/lib.utils
-npx turbo lint  --filter=@adopt-dont-shop/lib.utils
-npx turbo build --filter=@adopt-dont-shop/lib.utils
+pnpm exec turbo test  --filter=@adopt-dont-shop/lib.utils
+pnpm exec turbo lint  --filter=@adopt-dont-shop/lib.utils
+pnpm exec turbo build --filter=@adopt-dont-shop/lib.utils
 ```
 
-Or from `lib.utils/`: `npm test`, `npm run lint`, `npm run build`.
+Or from `lib.utils/`: `pnpm test`, `pnpm lint`, `pnpm build`.
 
 ## TypeScript Support
 

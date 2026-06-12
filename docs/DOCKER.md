@@ -15,12 +15,12 @@ Comprehensive guide to the Docker setup for this monorepo. Pairs with [the root 
 ## Quick Start
 
 ```bash
-npm run docker:dev               # start full stack (foreground)
-npm run docker:dev:detach        # start in background
-npm run docker:dev:build         # rebuild images then start
-npm run docker:logs              # follow logs
-npm run docker:down              # stop containers
-npm run docker:reset             # stop AND wipe volumes (destroys DB)
+pnpm docker:dev               # start full stack (foreground)
+pnpm docker:dev:detach        # start in background
+pnpm docker:dev:build         # rebuild images then start
+pnpm docker:logs              # follow logs
+pnpm docker:down              # stop containers
+pnpm docker:reset             # stop AND wipe volumes (destroys DB)
 ```
 
 See [package.json](../package.json) for the full script list.
@@ -34,7 +34,7 @@ Both Dockerfiles use multi-stage builds for optimal image size and cache reuse:
 | Stage | Purpose |
 | --- | --- |
 | `base` | Foundation layer (Node, system tools, non-root user) |
-| `development` | Dev runtime with hot-reload (`npm run dev`) |
+| `development` | Dev runtime with hot-reload (`pnpm dev`) |
 | `build` | Compile TypeScript / bundle assets |
 | `production` | Minimal runtime image (Node for backend, nginx for frontend) |
 
@@ -60,11 +60,11 @@ Each microservice under `services/` has its own `Dockerfile.service` (shared bui
 All Dockerfiles enable BuildKit (`# syntax=docker/dockerfile:1.4`) and use cache mounts:
 
 ```dockerfile
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm install --frozen-lockfile --store-dir=/pnpm/store
 
 RUN --mount=type=cache,target=/app/.turbo \
-    npx turbo run build --filter=...@adopt-dont-shop/${APP_NAME}
+    pnpm exec turbo run build --filter=...@adopt-dont-shop/${APP_NAME}
 ```
 
 Result: 40-60% faster builds on warm cache, smaller layer graph.
@@ -79,17 +79,17 @@ Result: 40-60% faster builds on warm cache, smaller layer graph.
 ### Image Optimization
 
 - [.dockerignore](../.dockerignore) excludes `node_modules`, build outputs, docs, and IDE files. Build context is ~50MB instead of ~500MB.
-- Layer ordering: package.json → `npm ci` → source code, so dependency installs cache cleanly.
+- Layer ordering: package.json → `pnpm install --frozen-lockfile` → source code, so dependency installs cache cleanly.
 
 ## Development Workflow
 
 ### Standard Loop
 
 ```bash
-npm run docker:dev               # start the stack
+pnpm docker:dev               # start the stack
 # edit code in your editor — HMR handles the rest
-npm run docker:logs              # tail logs when debugging
-npm run docker:down              # stop when done
+pnpm docker:logs              # tail logs when debugging
+pnpm docker:down              # stop when done
 ```
 
 ### Hot Reload Details
@@ -103,7 +103,7 @@ The dev stack is configured for HMR on Windows/macOS/Linux. Since [ADS-766](http
 | Backend services (`services/*/src/**`) | `tsx watch` (native fs events) | ~1s |
 | `lib.types/src/**` | `lib-types-watcher` sidecar runs `tsc --watch`; backend picks up dist changes via workspace symlink | ~2-5s |
 
-`npm run setup` auto-detects the host OS and appends the polling vars to `.env` on macOS/Windows. To verify per-container:
+`pnpm setup` auto-detects the host OS and appends the polling vars to `.env` on macOS/Windows. To verify per-container:
 
 ```bash
 docker compose exec app-client env | grep CHOKIDAR    # Linux: empty. macOS/Windows: USEPOLLING=true ...
@@ -134,16 +134,16 @@ Common overrides: increase memory limits, expose debug ports, mount extra volume
 ```bash
 # Each service auto-migrates on start via its entrypoint.
 # To migrate a single service by hand (containers must be running):
-docker compose exec service-auth npm run db:migrate
-npm run docker:shell:db          # open psql
+docker compose exec service-auth pnpm db:migrate
+pnpm docker:shell:db          # open psql
 ```
 
 For a destructive reset (drop DB + re-init):
 
 ```bash
-npm run docker:reset             # WIPES VOLUMES
-npm run docker:dev:detach
-npm run db:reset
+pnpm docker:reset             # WIPES VOLUMES
+pnpm docker:dev:detach
+pnpm db:reset
 ```
 
 ### Debugging
@@ -168,15 +168,15 @@ Attach your IDE debugger to `localhost:9229`.
 ### Smoke Test Locally
 
 ```bash
-npm run prod:build               # build production images
-npm run prod:up                  # start production stack
-npm run prod:down                # stop
+pnpm prod:build               # build production images
+pnpm prod:up                  # start production stack
+pnpm prod:down                # stop
 ```
 
 The production overlay (`docker-compose.prod.yml`) requires all secrets to be set explicitly — no defaults. Generate fresh secrets first:
 
 ```bash
-npm run secrets:generate >> .env.production
+pnpm secrets:generate >> .env.production
 ```
 
 ### Building Individual Images
@@ -290,10 +290,10 @@ Fixes:
 
 ### Slow / No File Watching (Windows/macOS)
 
-Since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) polling is opt-in per host: `npm run setup` writes `CHOKIDAR_USEPOLLING=true` to `.env` on macOS/Windows; Linux leaves it unset on purpose. If HMR misfires on macOS or Windows:
+Since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) polling is opt-in per host: `pnpm setup` writes `CHOKIDAR_USEPOLLING=true` to `.env` on macOS/Windows; Linux leaves it unset on purpose. If HMR misfires on macOS or Windows:
 
 - Confirm the env var is set inside the container: `docker compose exec app-client env | grep CHOKIDAR`
-- If empty, re-run `npm run setup` or copy the polling snippet from `docker-compose.override.yml.example` into a real `docker-compose.override.yml`
+- If empty, re-run `pnpm setup` or copy the polling snippet from `docker-compose.override.yml.example` into a real `docker-compose.override.yml`
 - Reduce watch scope in the relevant `vite.config.ts`
 
 If HMR misfires on **Linux**, the cause is almost certainly not polling — check that the file system has inotify watches available (`cat /proc/sys/fs/inotify/max_user_watches`).
@@ -322,18 +322,18 @@ docker compose build --no-cache service-gateway
 ### Database Connection Issues
 
 ```bash
-npm run docker:ps                # is database "healthy"?
+pnpm docker:ps                # is database "healthy"?
 docker compose logs database     # check init logs
-npm run docker:reset             # last resort — WIPES DATA
-npm run docker:dev:detach
-npm run db:reset
+pnpm docker:reset             # last resort — WIPES DATA
+pnpm docker:dev:detach
+pnpm db:reset
 ```
 
 ### Cleanup
 
 ```bash
-npm run docker:down              # stop containers, keep volumes
-npm run docker:reset             # stop + remove volumes (destroys DB)
+pnpm docker:down              # stop containers, keep volumes
+pnpm docker:reset             # stop + remove volumes (destroys DB)
 docker system prune              # full system prune (be careful)
 docker images "adopt-dont-shop/*" -q | xargs docker rmi -f   # remove project images
 ```
@@ -349,7 +349,7 @@ docker images "adopt-dont-shop/*" -q | xargs docker rmi -f   # remove project im
 
 ```bash
 docker stats                     # real-time CPU/memory
-npm run docker:ps                # service status + ports
+pnpm docker:ps                # service status + ports
 docker compose logs -f service-gateway   # service-specific logs
 ```
 
@@ -363,6 +363,6 @@ docker compose logs -f service-gateway   # service-specific logs
 ## Support
 
 1. Check this guide and the [root README](../README.md)
-2. Tail logs: `npm run docker:logs`
-3. Try `npm run docker:reset && npm run docker:dev:build` (wipes data)
+2. Tail logs: `pnpm docker:logs`
+3. Try `pnpm docker:reset && pnpm docker:dev:build` (wipes data)
 4. Open an issue on GitHub

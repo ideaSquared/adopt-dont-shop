@@ -142,7 +142,7 @@ documented env var.
 
 ```bash
 # Inside the backend container
-docker exec adopt-dont-shop-service-backend-1 npm run db:migrate
+docker exec adopt-dont-shop-service-backend-1 pnpm db:migrate
 
 # Inspect the result
 docker exec adopt-dont-shop-database-1 \
@@ -150,10 +150,10 @@ docker exec adopt-dont-shop-database-1 \
   -c "\d+ pets"
 
 # Roll back to verify down
-docker exec adopt-dont-shop-service-backend-1 npm run db:migrate:undo
+docker exec adopt-dont-shop-service-backend-1 pnpm db:migrate:undo
 ```
 
-For the local (non-Docker) path: `npm run db:migrate` from `service.backend/`.
+For the local (non-Docker) path: `pnpm db:migrate` from `service.backend/`.
 
 ## Step 7 — Add a migration test
 

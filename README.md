@@ -8,13 +8,14 @@ A monorepo containing three React frontends, a Fastify API gateway fronting a fl
 
 ### Devcontainer / Codespaces (zero local setup)
 
-Click the badge above to open the repo in a GitHub Codespace, or in VS Code locally choose **Reopen in Container**. The devcontainer (`.devcontainer/devcontainer.json`) pins Node 22, runs `npm run setup -- --skip-playwright` on first launch, and ships docker-in-docker so `npm run docker:dev` works inside the container. See [ADS-760](https://linear.app/ideasquared/issue/ADS-760) for the rationale and [`.devcontainer/devcontainer.json`](./.devcontainer/devcontainer.json) for the full config.
+Click the badge above to open the repo in a GitHub Codespace, or in VS Code locally choose **Reopen in Container**. The devcontainer (`.devcontainer/devcontainer.json`) pins Node 22, runs `pnpm setup -- --skip-playwright` on first launch, and ships docker-in-docker so `pnpm docker:dev` works inside the container. See [ADS-760](https://linear.app/ideasquared/issue/ADS-760) for the rationale and [`.devcontainer/devcontainer.json`](./.devcontainer/devcontainer.json) for the full config.
 
 For full local control (faster HMR, native Docker performance) follow the prerequisites below.
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) v22 — the exact version is pinned in [`.nvmrc`](./.nvmrc) (install via `nvm use`); `package.json` `engines` requires `>=22 <23`
+- [pnpm](https://pnpm.io/) — provided via Corepack: run `corepack enable` and the pinned version (`package.json` `"packageManager"`) is used automatically
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose v2)
 - [Git](https://git-scm.com/)
 
@@ -23,30 +24,30 @@ For full local control (faster HMR, native Docker performance) follow the prereq
 ```bash
 git clone https://github.com/ideaSquared/adopt-dont-shop.git
 cd adopt-dont-shop
-npm run setup
+pnpm setup
 ```
 
-That's it. `npm run setup` is the one-shot bootstrap and it will:
+That's it. `pnpm setup` is the one-shot bootstrap and it will:
 1. Verify Node.js v22
 2. Create `.env` from `.env.example` (if missing)
 3. **Generate fresh JWT / session / CSRF / encryption secrets straight into `.env`** (won't overwrite existing values)
-4. Install all dependencies (`npm ci`)
+4. Install all dependencies (`pnpm install --frozen-lockfile`)
 5. Build shared libraries (required by apps)
-6. Run `npm run validate:env` to surface any remaining required values
-7. Install Playwright browsers so `npm run test:e2e` works out of the box (~200 MB download)
+6. Run `pnpm validate:env` to surface any remaining required values
+7. Install Playwright browsers so `pnpm test:e2e` works out of the box (~200 MB download)
 8. Offer to start the docker dev stack and wait until the nginx edge `http://localhost/health` returns 200
 
-Skip the Playwright step with `npm run setup -- --skip-playwright` if you don't plan to run E2E tests locally; install them later with `npm run test:e2e:install`.
+Skip the Playwright step with `pnpm setup -- --skip-playwright` if you don't plan to run E2E tests locally; install them later with `pnpm test:e2e:install`.
 
 Pass `--no-start` to skip the stack-start prompt (default when stdin is not a TTY, e.g. CI sandboxes), or `--start` to force it without prompting. After setup, set `POSTGRES_PASSWORD` and any third-party API keys in `.env` — if you accepted the prompt, the stack is already running on the URLs printed above.
 
 ### Run (Docker — recommended)
 
 ```bash
-npm run docker:dev          # start full stack in foreground
-npm run docker:dev:detach   # or in background
-npm run docker:logs         # follow logs
-npm run docker:down         # stop
+pnpm docker:dev          # start full stack in foreground
+pnpm docker:dev:detach   # or in background
+pnpm docker:logs         # follow logs
+pnpm docker:down         # stop
 ```
 
 ### Run (native — no Docker)
@@ -54,9 +55,9 @@ npm run docker:down         # stop
 You'll need Postgres + Redis running locally. The quickest option is to let Docker run just those two services while the rest of the stack runs natively:
 
 ```bash
-npm run dev:services        # start Postgres + Redis in Docker (detached)
-npm run dev                 # all packages via Turbo (apps + gateway + services)
-npm run dev:apps            # frontend apps only
+pnpm dev:services        # start Postgres + Redis in Docker (detached)
+pnpm dev                 # all packages via Turbo (apps + gateway + services)
+pnpm dev:apps            # frontend apps only
 ```
 
 ### Access
@@ -99,34 +100,34 @@ adopt-dont-shop/
 
 ```bash
 # Dev (Docker)
-npm run docker:dev               # start full stack (gateway + services + apps)
-npm run docker:logs              # follow logs
-npm run docker:shell:db          # psql into database
-npm run docker:reset             # nuke containers + volumes (DESTROYS data)
+pnpm docker:dev               # start full stack (gateway + services + apps)
+pnpm docker:logs              # follow logs
+pnpm docker:shell:db          # psql into database
+pnpm docker:reset             # nuke containers + volumes (DESTROYS data)
 
 # Build / test / quality
-npm run build                    # build everything (Turbo handles ordering)
-npm run build:libs               # libraries only
-npm run build:apps               # apps only
-npm run test                     # all tests
-npm run lint / lint:fix
-npm run type-check
-npm run format / format:check
+pnpm build                    # build everything (Turbo handles ordering)
+pnpm build:libs               # libraries only
+pnpm build:apps               # apps only
+pnpm test                     # all tests
+pnpm lint / lint:fix
+pnpm type-check
+pnpm format / format:check
 
 # Pre-push preflight (run CI-equivalent checks locally)
-npm run ci:local:quick           # fast preflight (~30s): format + lint + type-check
-npm run ci:local                 # full preflight (~3-5min): everything CI runs
+pnpm ci:local:quick           # fast preflight (~30s): format + lint + type-check
+pnpm ci:local                 # full preflight (~3-5min): everything CI runs
 
 # Database — each service migrates its own schema automatically on container
-# start (the entrypoint runs `npm run db:migrate --if-present`). To migrate a
+# start (the entrypoint runs `pnpm db:migrate --if-present`). To migrate a
 # single service by hand, exec into its container, e.g.:
-npm run docker:shell:db          # psql into the shared database
-docker compose exec service-auth npm run db:migrate
+pnpm docker:shell:db          # psql into the shared database
+docker compose exec service-auth pnpm db:migrate
 
 # Per-package — use Turbo's --filter directly
-npx turbo dev --filter=@adopt-dont-shop/lib.api
-npx turbo build --filter=@adopt-dont-shop/app.admin
-npx turbo test --filter=@adopt-dont-shop/service.gateway
+pnpm exec turbo dev --filter=@adopt-dont-shop/lib.api
+pnpm exec turbo build --filter=@adopt-dont-shop/app.admin
+pnpm exec turbo test --filter=@adopt-dont-shop/service.gateway
 ```
 
 ## Hot Reload
@@ -153,10 +154,10 @@ POSTGRES_USER=adopt_user
 POSTGRES_PASSWORD=<strong password>
 POSTGRES_DB=adopt_dont_shop_dev
 
-JWT_SECRET=<auto-generated by npm run setup>
-JWT_REFRESH_SECRET=<auto-generated by npm run setup>
-SESSION_SECRET=<auto-generated by npm run setup>
-CSRF_SECRET=<auto-generated by npm run setup>
+JWT_SECRET=<auto-generated by pnpm setup>
+JWT_REFRESH_SECRET=<auto-generated by pnpm setup>
+SESSION_SECRET=<auto-generated by pnpm setup>
+CSRF_SECRET=<auto-generated by pnpm setup>
 
 VITE_API_BASE_URL=        # empty in Docker (uses Vite proxy → nginx → gateway)
 VITE_WS_BASE_URL=ws://localhost:4000
@@ -164,7 +165,7 @@ VITE_WS_BASE_URL=ws://localhost:4000
 
 ### Rotating secrets
 
-To replace all JWT / session / CSRF / encryption secrets (e.g. after a suspected compromise), run `npm run secrets:generate` and append the output to your `.env`.
+To replace all JWT / session / CSRF / encryption secrets (e.g. after a suspected compromise), run `pnpm secrets:generate` and append the output to your `.env`.
 
 CORS origins are defined once in the root `.env` (`CORS_ORIGIN`), covering both direct container access and nginx-proxied subdomains. After changing CORS, restart the gateway: `docker compose restart service-gateway`.
 
@@ -181,7 +182,7 @@ make rollback env=production sha=abc1234   # roll the named environment back to 
 make history               # list recent commits to pick a rollback target
 ```
 
-> `make prod` triggers a real production deployment via the `deploy.yml` workflow. Do not confuse it with `npm run prod:up`, which only spins up the production Docker stack locally for a smoke test and does not deploy anywhere.
+> `make prod` triggers a real production deployment via the `deploy.yml` workflow. Do not confuse it with `pnpm prod:up`, which only spins up the production Docker stack locally for a smoke test and does not deploy anywhere.
 
 ## Documentation
 
@@ -195,10 +196,10 @@ make history               # list recent commits to pick a rollback target
 ## Troubleshooting
 
 ```bash
-npm run docker:logs              # check what's failing
-npm run docker:ps                # service status
-npm run docker:reset             # nuclear option (wipes DB)
-npm run docker:dev:build         # rebuild images from scratch
+pnpm docker:logs              # check what's failing
+pnpm docker:ps                # service status
+pnpm docker:reset             # nuclear option (wipes DB)
+pnpm docker:dev:build         # rebuild images from scratch
 ```
 
 Common issues:

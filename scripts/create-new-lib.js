@@ -76,7 +76,7 @@ function patchPackageJsonForApi(libDir) {
   const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
   pkg.dependencies = {
     ...pkg.dependencies,
-    '@adopt-dont-shop/lib.api': 'file:../lib.api',
+    '@adopt-dont-shop/lib.api': 'workspace:*',
   };
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
 }

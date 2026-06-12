@@ -23,7 +23,7 @@ Two new RBAC permissions gate the Security Center:
 
 Both are granted to `super_admin` and `admin` roles by the role-permissions
 reference seeder (`service.backend/src/seeders/reference/role-permissions.ts`,
-exported as `seedRolePermissions`). Re-run `npm run db:seed:reference`
+exported as `seedRolePermissions`). Re-run `pnpm db:seed:reference`
 on existing environments to pick them up.
 
 ## Best practices

@@ -20,7 +20,7 @@ The backend ships as a Docker image alongside three frontend images. Production 
 
 ## Environment Configuration
 
-The authoritative env reference is the root [`.env.example`](../../.env.example). It documents every variable, including ones omitted here. `npm run validate:env` checks a populated `.env` against the required-variable list.
+The authoritative env reference is the root [`.env.example`](../../.env.example). It documents every variable, including ones omitted here. `pnpm validate:env` checks a populated `.env` against the required-variable list.
 
 The backend selects one of `DEV_DB_NAME` / `TEST_DB_NAME` / `PROD_DB_NAME` based on `NODE_ENV` — there is no generic `DB_NAME` (ADS-409/452/465).
 
@@ -47,7 +47,7 @@ REDIS_HOST=...
 REDIS_PORT=6379
 REDIS_PASSWORD=...
 
-# Auth secrets — generate with `npm run secrets:generate`
+# Auth secrets — generate with `pnpm secrets:generate`
 JWT_SECRET=...
 JWT_REFRESH_SECRET=...
 SESSION_SECRET=...
@@ -86,19 +86,19 @@ Behind the scenes:
 - `deploy.yml` SSHes into the Hetzner host using `HETZNER_HOST` / `HETZNER_SSH_KEY` / `HETZNER_HOST_FINGERPRINT` secrets, pulls the backend image from GHCR (`GHCR_TOKEN`), and starts `docker-compose.prod.yml`.
 - `rollback.yml` uses the same flow but pins to a previously published image SHA.
 
-> `npm run prod:up` spins the production Docker stack up locally for a smoke test. It does **not** deploy anywhere — use `make prod` for that.
+> `pnpm prod:up` spins the production Docker stack up locally for a smoke test. It does **not** deploy anywhere — use `make prod` for that.
 
 ## Database migrations
 
 Migrations are managed by an Umzug runner (`service.backend/src/migrations/`). No `sequelize-cli`.
 
 ```bash
-npm run migrate              # apply pending migrations
-npm run db:migrate:undo      # roll back the most recent migration
-npm run db:migrate:status    # list applied / pending migrations
+pnpm migrate              # apply pending migrations
+pnpm db:migrate:undo      # roll back the most recent migration
+pnpm db:migrate:status    # list applied / pending migrations
 ```
 
-On a production deploy, run `npm run migrate` inside the running backend container before traffic is shifted (the runbook covers the exact sequence). For destructive or long migrations see [`docs/migrations/schema-equivalence-runbook.md`](../migrations/schema-equivalence-runbook.md).
+On a production deploy, run `pnpm migrate` inside the running backend container before traffic is shifted (the runbook covers the exact sequence). For destructive or long migrations see [`docs/migrations/schema-equivalence-runbook.md`](../migrations/schema-equivalence-runbook.md).
 
 ## Health and observability
 

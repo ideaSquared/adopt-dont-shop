@@ -107,13 +107,13 @@ const settings: ApplicationSettingsConfig = {
 
 ```bash
 # Build
-npm run build
+pnpm build
 
 # Type check
-npm run type-check
+pnpm type-check
 
 # Run tests
-npm test
+pnpm test
 ```
 
 ## License

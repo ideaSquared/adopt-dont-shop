@@ -14,7 +14,7 @@ Workspace package — add to a consumer's `package.json`:
 }
 ```
 
-Then run `npm install` at the repo root to link.
+Then run `pnpm install` at the repo root to link.
 
 ## Usage
 
@@ -116,12 +116,12 @@ enum AuditLogStatus {
 ## Testing
 
 ```bash
-npm run test
+pnpm test
 ```
 
 ## Development
 
 ```bash
-npm run dev  # Watch mode
-npm run build
+pnpm dev  # Watch mode
+pnpm build
 ```

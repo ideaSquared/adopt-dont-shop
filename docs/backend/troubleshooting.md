@@ -10,13 +10,13 @@ This guide provides solutions to common issues encountered when developing, depl
 
 ```bash
 # Enable all debug logs
-DEBUG=* npm run dev
+DEBUG=* pnpm dev
 
 # Enable specific module debug logs
-DEBUG=auth:*,database:* npm run dev
+DEBUG=auth:*,database:* pnpm dev
 
 # Set log level
-LOG_LEVEL=debug npm run dev
+LOG_LEVEL=debug pnpm dev
 ```
 
 ### Health Check Diagnostics
@@ -120,7 +120,7 @@ echo $DB_HOST $DB_PORT $DB_NAME $DB_USER
 
 ```bash
 # Check migration status (via custom Umzug runner)
-npm run db:migrate:status
+pnpm db:migrate:status
 
 # View migration history
 SELECT * FROM "SequelizeMeta";
@@ -136,19 +136,19 @@ SELECT * FROM "SequelizeMeta";
 
    ```bash
    # Rollback last migration
-   npm run db:migrate:undo
+   pnpm db:migrate:undo
 
    # Fix migration file and re-run
-   npm run db:migrate
+   pnpm db:migrate
    ```
 
 2. **Out of sync migrations:**
 
    ```bash
    # Reset database (development only — run inside backend container)
-   npm run docker:reset
-   npm run docker:dev:detach
-   npm run db:migrate
+   pnpm docker:reset
+   pnpm docker:dev:detach
+   pnpm db:migrate
    ```
 
 3. **Manual migration fix:**
@@ -703,7 +703,7 @@ netstat -tulpn | grep :5000
    FROM node:22-alpine
    WORKDIR /app
    COPY package*.json ./
-   RUN npm ci --only=production
+   RUN pnpm install --frozen-lockfile
    COPY . .
    EXPOSE 5000
    CMD ["npm", "start"]
@@ -823,7 +823,7 @@ When reporting issues, include:
 
    ```bash
    node --version
-   npm --version
+   pnpm --version
    cat package.json | grep version
    echo $NODE_ENV
    ```
@@ -853,15 +853,15 @@ When reporting issues, include:
 
 ```bash
 # Application management
-npm start                    # Start application
-npm run dev                  # Start in development mode
-npm test                     # Run tests
-npm run build               # Build for production
+pnpm start                    # Start application
+pnpm dev                  # Start in development mode
+pnpm test                     # Run tests
+pnpm build               # Build for production
 
 # Database management
-npm run db:migrate          # Run migrations
-npm run db:seed            # Seed database
-npm run db:reset           # Reset database
+pnpm db:migrate          # Run migrations
+pnpm db:seed            # Seed database
+pnpm db:reset           # Reset database
 
 # Docker management
 docker compose up -d        # Start services

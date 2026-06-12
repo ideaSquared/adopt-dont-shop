@@ -206,8 +206,8 @@ Auto-renewal handled by certbot container in gateway stack (renews every 12h via
 ### Migrations
 
 - Migrations use a custom Umzug runner (`service.backend/src/migrations/runner.ts`)
-- `sequelize-cli` is **not** installed — use `npm run db:migrate` / `npm run db:migrate:undo`
-- Deploy workflow runs `npm run db:migrate` after health check passes
+- `sequelize-cli` is **not** installed — use `pnpm db:migrate` / `pnpm db:migrate:undo`
+- Deploy workflow runs `pnpm db:migrate` after health check passes
 
 ### First deploy — baseline
 
@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS "SequelizeMeta" (name VARCHAR(255) PRIMARY KEY);
 INSERT INTO "SequelizeMeta" VALUES ('00-baseline.js');
 ```
 
-Then `npm run migrate` will only run migrations 01+.
+Then `pnpm migrate` will only run migrations 01+.
 
 ### Backups
 
@@ -253,7 +253,7 @@ echo "0 2 * * * deploy /opt/ads/backup.sh" >> /etc/crontab
 - [ ] Start gateway: `cd /opt/ads/gateway && docker compose up -d`
 - [ ] Start prod stack: `cd /opt/ads/production && docker compose up -d` (uses `:latest` tag initially)
 - [ ] Seed SequelizeMeta with baseline migration
-- [ ] Run remaining migrations: `docker compose exec -T service-backend npm run migrate`
+- [ ] Run remaining migrations: `docker compose exec -T service-backend pnpm migrate`
 - [ ] First deploy via workflow: `make staging`
 - [ ] Verify staging works end-to-end
 - [ ] `make prod`

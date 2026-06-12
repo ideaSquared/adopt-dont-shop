@@ -7,8 +7,8 @@ The monorepo ships **24 workspace libraries** under `@adopt-dont-shop/lib.*`. Ea
 - ESM by default; `lib.api`, `lib.permissions`, `lib.types`, and `lib.validation` additionally emit a CJS bundle via a second `tsc -p tsconfig.cjs.json` pass for backend consumers
 - TypeScript strict mode
 - Built with `tsc` (`lib.components` uses Vite to bundle styles/assets), orchestrated by Turborepo (`dependsOn: ["^build"]`)
-- Tested with Vitest — every library ships a `vitest.config.ts` and an `npm test` script that runs `vitest run`
-- Workspace-linked: depend on each other with `"*"` and rely on `npm install` at the repo root
+- Tested with Vitest — every library ships a `vitest.config.ts` and an `pnpm test` script that runs `vitest run`
+- Workspace-linked: depend on each other with `"*"` and rely on `pnpm install` at the repo root
 
 ## Index
 
@@ -50,12 +50,12 @@ The monorepo ships **24 workspace libraries** under `@adopt-dont-shop/lib.*`. Ea
 
 ```bash
 # Build / test / lint a single library
-npx turbo build --filter=@adopt-dont-shop/lib.api
-npx turbo test  --filter=@adopt-dont-shop/lib.auth
-npx turbo lint  --filter=@adopt-dont-shop/lib.permissions
+pnpm exec turbo build --filter=@adopt-dont-shop/lib.api
+pnpm exec turbo test  --filter=@adopt-dont-shop/lib.auth
+pnpm exec turbo lint  --filter=@adopt-dont-shop/lib.permissions
 
 # All libraries
-npm run build:libs
+pnpm build:libs
 
 ```
 
