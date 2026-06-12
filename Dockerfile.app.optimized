@@ -27,6 +27,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd -g 1001 nodejs && \
     useradd -m -u 1001 -g nodejs viteuser
 
+# pnpm via Corepack — version is pinned by package.json "packageManager".
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
+
 # ----------------------------------------------------------------------------
 # Pruner stage — produces a pruned subgraph for ${APP_NAME}.
 # Runs `turbo prune` against a full copy of the monorepo; the output is used
@@ -39,21 +43,22 @@ ARG APP_NAME
 # package.json. node_modules / dist are excluded via .dockerignore.
 COPY . .
 
-RUN npx -y turbo@2.9.14 prune @adopt-dont-shop/app.${APP_NAME} --docker
+RUN pnpm dlx turbo@2.9.14 prune @adopt-dont-shop/app.${APP_NAME} --docker
 
 # Development stage
 FROM base AS development
 ARG APP_NAME
 
 # Workspace metadata + pruned lockfile (cache-friendly install layer).
+# turbo prune emits pnpm-lock.yaml, pnpm-workspace.yaml and .npmrc inside
+# out/json/, so this single COPY carries everything pnpm install needs.
 COPY --from=pruner --chown=viteuser:nodejs /app/out/json/ ./
-COPY --from=pruner --chown=viteuser:nodejs /app/out/package-lock.json ./package-lock.json
 
-# Install dependencies with BuildKit cache mount. Keyed per app: concurrent
-# compose builds sharing one npm cache mount race on cacache tmp paths
-# (npm error EEXIST) — see the same pattern in Dockerfile.service.
-RUN --mount=type=cache,id=npm-dev-${APP_NAME},target=/root/.npm \
-    npm ci --prefer-offline
+# Install dependencies with a BuildKit cache mount. Keyed per app so concurrent
+# compose builds get their own pnpm store rather than contending on a shared
+# one — see the same pattern in Dockerfile.service.
+RUN --mount=type=cache,id=pnpm-dev-${APP_NAME},target=/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline --store-dir=/pnpm/store
 
 # Pruned source — only the lib.* directories the app actually depends on.
 COPY --from=pruner --chown=viteuser:nodejs /app/out/full/ ./
@@ -65,7 +70,7 @@ EXPOSE 3000
 WORKDIR /app/apps/${APP_NAME}
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["npm", "run", "dev"]
+CMD ["pnpm", "run", "dev"]
 
 # ----------------------------------------------------------------------------
 # Build stage (production image source)
@@ -87,8 +92,9 @@ ARG SENTRY_PROJECT=""
 ARG DEPLOY_SHA=""
 
 # Workspace metadata + pruned lockfile (cache-friendly install layer).
+# turbo prune emits the pnpm-lock.yaml / pnpm-workspace.yaml / .npmrc into
+# out/json/, so this single COPY carries everything pnpm install needs.
 COPY --from=pruner /app/out/json/ ./
-COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
 # Transfer ownership of the build workspace to viteuser so the non-root
 # install and Turbo build can write node_modules and .turbo cache.
@@ -96,8 +102,8 @@ RUN chown -R viteuser:nodejs /app
 
 USER viteuser
 
-RUN --mount=type=cache,id=npm-build-${APP_NAME},target=/home/viteuser/.npm,uid=1001 \
-    npm ci --prefer-offline
+RUN --mount=type=cache,id=pnpm-build-${APP_NAME},target=/home/viteuser/.pnpm-store,uid=1001 \
+    pnpm install --frozen-lockfile --prefer-offline --store-dir=/home/viteuser/.pnpm-store
 
 # Pruned source — only the lib.* directories the app actually depends on.
 COPY --from=pruner --chown=viteuser:nodejs /app/out/full/ ./
@@ -107,7 +113,7 @@ COPY --from=pruner --chown=viteuser:nodejs /app/out/full/ ./
 # The '...' prefix builds all dependencies first, then the target app
 # Set NODE_ENV=production to use "import" exports instead of "development" (src/*.ts)
 RUN --mount=type=cache,id=turbo-${APP_NAME},target=/app/.turbo,uid=1001 \
-    NODE_ENV=production npx turbo run build --filter=...@adopt-dont-shop/app.${APP_NAME}
+    NODE_ENV=production pnpm exec turbo run build --filter=...@adopt-dont-shop/app.${APP_NAME}
 
 # Upload sourcemaps to Sentry using a BuildKit secret so the auth token never
 # lands in an image layer. Gracefully skips when the secret is absent so local
@@ -115,8 +121,8 @@ RUN --mount=type=cache,id=turbo-${APP_NAME},target=/app/.turbo,uid=1001 \
 RUN --mount=type=secret,id=sentry_auth \
     if [ -s /run/secrets/sentry_auth ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT" ]; then \
       export SENTRY_AUTH_TOKEN=$(cat /run/secrets/sentry_auth); \
-      npx @sentry/cli sourcemaps inject /app/apps/${APP_NAME}/dist && \
-      npx @sentry/cli sourcemaps upload \
+      pnpm dlx @sentry/cli sourcemaps inject /app/apps/${APP_NAME}/dist && \
+      pnpm dlx @sentry/cli sourcemaps upload \
         --org "$SENTRY_ORG" \
         --project "$SENTRY_PROJECT" \
         --release "$DEPLOY_SHA" \

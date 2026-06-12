@@ -15,5 +15,5 @@ if [ -z "$ADS_PREPUSH" ] && [ ! -f ".husky/.prepush-enabled" ]; then
   exit 0
 fi
 
-echo "pre-push: running npm run ci:local:quick (set ADS_PREPUSH=0 to skip, or use git push --no-verify)"
-npm run ci:local:quick
+echo "pre-push: running pnpm ci:local:quick (set ADS_PREPUSH=0 to skip, or use git push --no-verify)"
+pnpm ci:local:quick

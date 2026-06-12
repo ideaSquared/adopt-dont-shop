@@ -1,26 +1,29 @@
 name: 'Setup Workspace'
-description: 'Checkout, install Node, cache and install workspace dependencies'
+description: 'Install Node + pnpm (via Corepack), cache the pnpm store and install workspace dependencies'
 runs:
   using: 'composite'
   steps:
     - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
       with:
         node-version-file: '.nvmrc'
-        cache: 'npm'
-    - name: Cache node_modules
-      id: cache-node-modules
+    - name: Enable Corepack (pnpm version pinned by package.json "packageManager")
+      shell: bash
+      env:
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+      run: |
+        corepack enable
+        corepack prepare --activate
+    - name: Resolve pnpm store path
+      id: pnpm-store
+      shell: bash
+      run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+    - name: Cache pnpm store
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
       with:
-        path: |
-          node_modules
-          apps/*/node_modules
-          packages/*/node_modules
-          services/*/node_modules
-          e2e/node_modules
-        key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        path: ${{ steps.pnpm-store.outputs.path }}
+        key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
         restore-keys: |
-          node-modules-${{ runner.os }}-
+          pnpm-store-${{ runner.os }}-
     - name: Install workspace dependencies
-      if: steps.cache-node-modules.outputs.cache-hit != 'true'
       shell: bash
-      run: npm ci --prefer-offline --no-audit --no-fund
+      run: pnpm install --frozen-lockfile --prefer-offline

@@ -39,12 +39,12 @@ function parseArgs(argv) {
 function showUsage() {
   log('❌ Please provide a library name', 'red');
   log(
-    'Usage: npm run new-lib <library-name> [description] [--type=service|utility] [--with-api]',
+    'Usage: pnpm new-lib <library-name> [description] [--type=service|utility] [--with-api]',
     'yellow'
   );
-  log('Example: npm run new-lib chat "Real-time chat functionality" --type=service', 'cyan');
-  log('Example: npm run new-lib dev-tools "Development utilities" --type=utility', 'cyan');
-  log('Example: npm run new-lib auth "Authentication service" --type=service --with-api', 'cyan');
+  log('Example: pnpm new-lib chat "Real-time chat functionality" --type=service', 'cyan');
+  log('Example: pnpm new-lib dev-tools "Development utilities" --type=utility', 'cyan');
+  log('Example: pnpm new-lib auth "Authentication service" --type=service --with-api', 'cyan');
 }
 
 function toPascalCase(libName) {
@@ -101,11 +101,11 @@ function pickServiceFiles(libDir, libName, useLibApi) {
 async function installDependencies(libDir) {
   try {
     log('📦 Installing dependencies...', 'yellow');
-    await execAsync('npm install', { cwd: libDir });
+    await execAsync('pnpm install', { cwd: libDir });
     log('✅ Dependencies installed successfully', 'green');
   } catch (error) {
     log(`❌ Failed to install dependencies: ${error.message}`, 'red');
-    log('💡 You can install them manually by running: npm install', 'yellow');
+    log('💡 You can install them manually by running: pnpm install', 'yellow');
   }
 }
 
@@ -183,8 +183,8 @@ function printSuccess(libName, libType) {
   log('', 'reset');
   log('📋 Next steps:', 'bright');
   log(`   1. cd lib.${libName}`, 'cyan');
-  log('   2. npm run dev     # Start development build', 'cyan');
-  log('   3. npm test        # Run tests', 'cyan');
+  log('   2. pnpm dev     # Start development build', 'cyan');
+  log('   3. pnpm test        # Run tests', 'cyan');
 
   if (libType === 'service') {
     log(`   4. Edit src/services/${libName}-service.ts to implement your logic`, 'cyan');

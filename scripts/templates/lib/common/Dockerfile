@@ -5,42 +5,50 @@ FROM node:22.15.1-alpine AS development
 
 WORKDIR /app
 
+# pnpm via Corepack — version is pinned by package.json "packageManager".
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
+
 # Copy package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml* ./
 COPY tsconfig.json ./
 
 # Install dependencies
-RUN npm ci
+RUN pnpm install
 
 # Copy source code
 COPY src/ ./src/
 
 # Build the library
-RUN npm run build
+RUN pnpm run build
 
 # Create a volume for the built library
 VOLUME ["/app/dist"]
 
 # Default command for development
-CMD ["npm", "run", "dev"]
+CMD ["pnpm", "run", "dev"]
 
 # Production build stage
 FROM node:22.15.1-alpine AS build
 
 WORKDIR /app
 
+# pnpm via Corepack — version is pinned by package.json "packageManager".
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
+
 # Copy package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml* ./
 COPY tsconfig.json ./
 
 # Install dependencies (including dev dependencies for build)
-RUN npm ci
+RUN pnpm install
 
 # Copy source code
 COPY src/ ./src/
 
 # Build the library
-RUN npm run build && npm prune --production
+RUN pnpm run build && pnpm prune --prod
 
 # Production stage
 FROM node:22.15.1-alpine AS production

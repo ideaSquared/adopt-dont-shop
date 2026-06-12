@@ -4,7 +4,7 @@ name: Docker
 #
 # - Pull requests trigger this workflow ONLY when Docker plumbing actually
 #   changes (Dockerfiles, compose files, .dockerignore). Source-only PRs
-#   are covered by `ci.yml`'s native `npm run build` and by the E2E job,
+#   are covered by `ci.yml`'s native `pnpm build` and by the E2E job,
 #   which does `docker compose up --build` and is the de-facto Dockerfile
 #   smoke test for the dev images.
 # - Push to main/develop keeps the broader source path set so a regression
@@ -24,7 +24,7 @@ on:
       - 'packages/**'
       - 'services/**'
       - 'package.json'
-      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
       - '**/Dockerfile*'
       - 'docker-compose*.yml'
       - '.dockerignore'

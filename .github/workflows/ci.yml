@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   # ============================================================================
-  # WORKSPACE DRIFT — verify the npm workspaces globs still resolve to the
+  # WORKSPACE DRIFT — verify the pnpm workspace globs still resolve to the
   # filesystem layout. Catches the case where a package is added to the
   # workspaces array but the directory is missing (or vice-versa), which
   # silently breaks Docker image builds.
@@ -27,21 +27,28 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
+        with:
+          node-version-file: '.nvmrc'
+      - name: Enable Corepack (pnpm pinned by package.json "packageManager")
+        run: corepack enable
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
       - name: Verify workspace ↔ filesystem alignment
         run: |
-          # Every dir matched by the workspaces globs must have a package.json,
-          # and every package.json under apps/, packages/, services/ must be
-          # picked up by a glob. `npm ls -ws --depth=0 --json` does both.
-          npm ls -ws --depth=0 --json >/dev/null
+          # Enumerate every workspace project pnpm-workspace.yaml resolves.
+          # Fails if the manifest is malformed or any matched package.json is
+          # invalid; the thorough alignment guard is check-workspace-consistency.
+          pnpm ls -r --depth -1 >/dev/null
 
-      # ADS-618: Only the root package-lock.json is authoritative in an npm
+      # ADS-618: Only the root pnpm-lock.yaml is authoritative in a pnpm
       # workspaces setup. Per-package lockfiles drift silently and confuse
       # contributors — fail CI if any get committed.
       - name: Verify no per-package lockfiles exist
         run: |
-          if find apps packages services -maxdepth 3 -name package-lock.json | grep -q .; then
-            echo "Per-package lockfiles found — only the root package-lock.json is authoritative."
-            find apps packages services -maxdepth 3 -name package-lock.json
+          if find apps packages services -maxdepth 3 -name pnpm-lock.yaml | grep -q .; then
+            echo "Per-package lockfiles found — only the root pnpm-lock.yaml is authoritative."
+            find apps packages services -maxdepth 3 -name pnpm-lock.yaml
             exit 1
           fi
 
@@ -80,21 +87,21 @@ jobs:
               - 'services/**'
               - 'packages/**'
               - 'package.json'
-              - 'package-lock.json'
+              - 'pnpm-lock.yaml'
               - 'tsconfig.json'
               - 'turbo.json'
             frontend:
               - 'apps/**'
               - 'packages/**'
               - 'package.json'
-              - 'package-lock.json'
+              - 'pnpm-lock.yaml'
               - 'tsconfig.json'
               - 'turbo.json'
               - 'vite.shared.config.ts'
             libs:
               - 'packages/**'
               - 'package.json'
-              - 'package-lock.json'
+              - 'pnpm-lock.yaml'
               - 'tsconfig.json'
               - 'turbo.json'
             # ADS-802: paths that change the e2e stack itself but match no
@@ -140,13 +147,13 @@ jobs:
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
           path: packages/lib.*/dist
-          key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'package-lock.json') }}
+          key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'pnpm-lock.yaml') }}
           restore-keys: |
             lib-dist-${{ runner.os }}-
 
       - name: Build shared libraries
         if: steps.cache-lib-dist.outputs.cache-hit != 'true'
-        run: npm run build:libs
+        run: pnpm build:libs
 
       # Bundle every packages/lib.*/dist (and matching package.json) into a
       # single artifact that downstream jobs pick up via download-artifact.
@@ -188,18 +195,18 @@ jobs:
           name: lib-dist
 
       - name: Lint
-        run: npm run lint
+        run: pnpm lint
         working-directory: apps/${{ matrix.app }}
 
       - name: Test (with coverage thresholds)
-        run: npm run test:coverage
+        run: pnpm test:coverage
         working-directory: apps/${{ matrix.app }}
 
       - name: Type check
-        run: npx turbo run type-check --filter='@adopt-dont-shop/app.${{ matrix.app }}'
+        run: pnpm exec turbo run type-check --filter='@adopt-dont-shop/app.${{ matrix.app }}'
 
       - name: Build
-        run: npm run build
+        run: pnpm build
         working-directory: apps/${{ matrix.app }}
         env:
           CI: true
@@ -238,7 +245,7 @@ jobs:
           name: lib-dist
 
       - name: Lint, test and type-check all libraries
-        run: npx turbo run lint test:coverage type-check --filter='@adopt-dont-shop/lib.*'
+        run: pnpm exec turbo run lint test:coverage type-check --filter='@adopt-dont-shop/lib.*'
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         if: always()
@@ -275,7 +282,7 @@ jobs:
           name: lib-dist
 
       - name: Lint, test and type-check all services
-        run: npx turbo run lint test type-check --filter='@adopt-dont-shop/service.*'
+        run: pnpm exec turbo run lint test type-check --filter='@adopt-dont-shop/service.*'
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         if: always()
@@ -411,7 +418,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
 
       - name: Install Playwright browsers
-        run: npm run test:e2e:install
+        run: pnpm test:e2e:install
 
       - name: Generate secrets and write .env
         run: |
@@ -481,7 +488,7 @@ jobs:
         # Actions runtime token, so proper caching is deferred to the
         # build-push-action→GHCR design on the ticket. The npm-registry
         # congestion (ECONNRESET) that motivated caching is mitigated by
-        # capping build concurrency instead of all images running npm ci
+        # capping build concurrency instead of all images running pnpm install
         # simultaneously.
         run: |
           COMPOSE_PARALLEL_LIMIT=4 docker compose -f docker-compose.yml --profile full build
@@ -573,10 +580,10 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "PR event — running @smoke subset"
-            npm run test:e2e:smoke
+            pnpm test:e2e:smoke
           else
             echo "${{ github.event_name }} on ${{ github.ref }} — running full suite"
-            npm run test:e2e
+            pnpm test:e2e
           fi
 
       # ADS-386: Surface flaky-retry signal so engineers can see which tests
