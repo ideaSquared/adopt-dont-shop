@@ -2,6 +2,9 @@
 import { randomBytes } from 'node:crypto';
 
 const b64 = (n = 32) => randomBytes(n).toString('base64');
+// Hex is URL-safe (no + / =) — required for values interpolated into
+// connection URLs such as DATABASE_URL / REDIS_URL.
+const hex = (n = 24) => randomBytes(n).toString('hex');
 
 /**
  * Returns a block of freshly-generated secret key=value lines suitable for
@@ -18,8 +21,10 @@ export function generateSecretsBlock() {
     `ENCRYPTION_KEY=${randomBytes(32).toString('hex')}`,
     `UPLOAD_SIGNING_SECRET=${b64()}`,
     `JWT_REPORT_SHARE_SECRET=${b64()}`,
-    '# POSTGRES_PASSWORD is sensitive too — regenerate if leaked:',
-    `POSTGRES_PASSWORD=${b64(24)}`,
+    '# Infra passwords are interpolated into DATABASE_URL / REDIS_URL, so they',
+    '# use hex (URL-safe) rather than base64. Regenerate if leaked:',
+    `POSTGRES_PASSWORD=${hex(24)}`,
+    `REDIS_PASSWORD=${hex(24)}`,
   ].join('\n');
 }
 
