@@ -28,3 +28,7 @@
 - name: "area: config"
   color: "6b7280"
   description: "Changes to root config files (package.json, turbo.json, etc.)"
+
+- name: "run-e2e"
+  color: "16a34a"
+  description: "Run the full Playwright E2E suite on this PR"
