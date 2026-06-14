@@ -89,7 +89,7 @@
   },
   "overridesDocumentation": {
     "lodash": "Force lodash to >=4.17.21 to mitigate the prototype-pollution vulnerability tracked by CVE-2019-10744 / CVE-2020-8203 (GHSA-jf85-cpcp-j695, GHSA-p6mc-m468-83gw). The constraint is intentionally permissive (^4.18.1) so npm resolves the latest patched 4.x release across all transitive consumers. Do not remove without first verifying every transitive lodash dependency satisfies >=4.17.21.",
-    "esbuild": "Pinned as a root devDependency (^0.27.0) — npm's workspace deduper uses the root version for every transitive consumer (notably @vanilla-extract/vite-plugin and @vanilla-extract/integration), which mitigates the dev-server CORS bypass tracked by GHSA-67mh-4wv8-2f99. Adding a separate `overrides` entry conflicts with the direct devDependency under npm 10/11; the devDep is enough on its own. Do not downgrade below 0.25.0.",
+    "esbuild": "Force esbuild >=0.28.1 everywhere via pnpm `overrides`. 0.28.1 patches the binary-integrity RCE (GHSA-gv7w-rqvm-qjhr); it also covers the earlier dev-server CORS bypass (GHSA-67mh-4wv8-2f99). The root devDependency alone is NOT enough under pnpm's isolated layout — nested consumers (notably storybook in lib.components) resolve their own transitive esbuild, which `pnpm audit` flags. The override (unlike the npm-era guidance this note replaces) reaches every transitive copy. Do not downgrade below 0.28.1.",
     "eslint-plugin-react": "Override eslint-plugin-react's eslint peer range to accept eslint 10. As of 7.37.5 the plugin still declares `eslint: ^3 || ... || ^9.7`, which blocks `npm ci` under eslint 10 even though the plugin runs fine on flat config. TODO: remove this override once eslint-plugin-react publishes a release that lists eslint 10 in its peerDependencies.",
     "@types/react": "Pinned to an exact version (not a `^19` range) so npm collapses the type package to a single copy. With a range, transitive consumers (e.g. @types/react-dom) can resolve a different 19.x patch, leaving two physically separate @types/react copies — which makes tsc treat React's `Ref`/element types as unrelated and fails the lib.components build (TS2322). Bump this exact version when intentionally updating React types.",
     "react": "react and react-dom are pinned to the same exact version (not a `^19.2.x` range) because npm's deduper can otherwise hoist a different react-dom patch to the root than react (e.g. react 19.2.7 / react-dom 19.2.6), which trips react-dom's `react`/`react-dom` exact-version-match guard and crashes every React test. The `react-zdog` nested override keeps that subtree on react 18, which it requires. Bump react and react-dom together when updating React."
@@ -106,6 +106,7 @@
     ],
     "overrides": {
       "lodash": "^4.18.1",
+      "esbuild": "^0.28.1",
       "react": "19.2.7",
       "react-dom": "19.2.7",
       "@types/react": "19.2.16",
