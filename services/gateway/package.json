@@ -38,6 +38,8 @@
     "@adopt-dont-shop/proto": "workspace:*",
     "@adopt-dont-shop/service-bootstrap": "workspace:*",
     "@adopt-dont-shop/storage": "workspace:*",
+    "@fastify/cors": "^11.2.0",
+    "@fastify/helmet": "^13.0.2",
     "@fastify/multipart": "^9.0.3",
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/swagger": "^9.7.0",

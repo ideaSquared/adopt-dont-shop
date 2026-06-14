@@ -121,3 +121,37 @@ describe('loadConfig — principal signing key (ADS-800)', () => {
     expect(config.principalSigningKey).toBeUndefined();
   });
 });
+
+describe('loadConfig — CORS origins (ADS-809)', () => {
+  it('parses a single origin from CORS_ORIGIN', () => {
+    const config = loadConfig({ CORS_ORIGIN: 'https://app.example.com' });
+    expect(config.cors.origins).toEqual(['https://app.example.com']);
+  });
+
+  it('parses multiple comma-separated origins from CORS_ORIGIN', () => {
+    const config = loadConfig({
+      CORS_ORIGIN: 'https://app.example.com,https://admin.example.com,https://rescue.example.com',
+    });
+    expect(config.cors.origins).toEqual([
+      'https://app.example.com',
+      'https://admin.example.com',
+      'https://rescue.example.com',
+    ]);
+  });
+
+  it('trims whitespace around each origin', () => {
+    const config = loadConfig({ CORS_ORIGIN: ' https://a.example.com , https://b.example.com ' });
+    expect(config.cors.origins).toEqual(['https://a.example.com', 'https://b.example.com']);
+  });
+
+  it('falls back to localhost dev origins when CORS_ORIGIN is unset', () => {
+    const config = loadConfig({});
+    expect(config.cors.origins).toContain('http://localhost:3000');
+    expect(config.cors.origins.length).toBeGreaterThan(0);
+  });
+
+  it('falls back to defaults when CORS_ORIGIN is an empty string', () => {
+    const config = loadConfig({ CORS_ORIGIN: '' });
+    expect(config.cors.origins).toContain('http://localhost:3000');
+  });
+});
