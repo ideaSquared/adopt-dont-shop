@@ -1,0 +1,48 @@
+# syntax=docker/dockerfile:1.4
+#
+# ONE dev image shared by every app and service in the docker-compose dev stack.
+#
+# It bakes a full workspace `pnpm install` (the standard, isolated symlink
+# layout) so dependencies resolve EXACTLY as pnpm intends — workspace packages
+# (@adopt-dont-shop/*), binaries (vite/tsx/turbo), and native modules
+# (sharp/rolldown) all in their correct places, built for THIS image's platform.
+#
+# At runtime the dev stack bind-mounts the host SOURCE over /app for HMR, but
+# re-exposes the image's node_modules through anonymous volumes (see
+# docker-compose.dev.yml) so the host's node_modules — whose pnpm symlinks are
+# absolute HOST paths that don't exist in the container — never leak in.
+#
+# Debian slim (glibc), NOT alpine (musl): vite 8 / rolldown and sharp ship
+# native bindings that resolve to the glibc variant at runtime; on alpine/musl
+# they fail with MODULE_NOT_FOUND. Matches the production app image.
+#
+# Network only touches the registry during `pnpm install` at BUILD time. The
+# entry script (scripts/docker-dev.mjs) pulls a prebuilt image from GHCR first
+# and only builds locally as a fallback, so most developers never run this.
+
+ARG NODE_VERSION=22.15.1
+FROM node:${NODE_VERSION}-slim AS development
+
+# curl + wget: container healthchecks (services use curl, the app healthchecks
+# in the base compose use wget). dumb-init: clean signal forwarding for the watch
+# processes (tsx watch / vite). git: some postinstalls / tooling expect it.
+# hadolint ignore=DL3008
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl wget dumb-init git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ENV HUSKY=0
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
+
+# Copy the whole workspace and install. At runtime the bind mount replaces this
+# baked source with the host's live source (HMR); only the baked node_modules is
+# kept (re-exposed via anon volumes in compose). A BuildKit cache mount keeps the
+# pnpm store warm across rebuilds so a lockfile change re-links fast.
+COPY . .
+RUN --mount=type=cache,id=pnpm-dev-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline --store-dir=/pnpm/store
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
