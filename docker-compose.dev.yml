@@ -1,0 +1,218 @@
+# Dev override — fast, network-resilient, never-breaks dev stack.
+#
+# Layered on top of docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml ...
+# (the `pnpm docker:dev` entry script does this for you).
+#
+# What this override changes vs the base file:
+#   * Every app/service swaps its heavy per-service multi-stage build
+#     (Dockerfile.app.optimized / Dockerfile.service, which prune + turbo build
+#     each service separately) for ONE shared Dockerfile.dev. That image bakes a
+#     single full workspace `pnpm install` in the standard isolated layout, so
+#     deps resolve exactly as pnpm intends (workspace pkgs, bins, native modules
+#     all correct, built for the image's glibc platform).
+#   * Source is bind-mounted (.:/app) for HMR. node_modules is NOT taken from the
+#     host (its pnpm symlinks are absolute host paths invalid in the container) —
+#     instead an anonymous volume at each node_modules path re-exposes the
+#     image's baked node_modules through the bind mount.
+#
+# Why anon volumes for node_modules: a Docker anonymous volume is initialised
+# from the image's contents at that path. So `.:/app` + a volume at
+# /app/node_modules => host source on top, image's node_modules underneath. The
+# host node_modules never leaks; the baked (correct) one is used.
+#
+# Production / staging images are unchanged — they still use the full
+# Dockerfile.service / Dockerfile.app.optimized builds.
+
+# ---------------------------------------------------------------------------
+# Shared anchors
+# ---------------------------------------------------------------------------
+x-dev-build: &dev-build
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+    target: development
+  image: adopt-dont-shop-dev:latest
+
+x-dev-env: &dev-env
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+  HUSKY: '0'
+
+# Every dev container shares this exact mount set:
+#   * .:/app             — host source for HMR
+#   * /app/node_modules  — anon volume re-exposing the image's baked root deps
+#   * one anon volume per workspace package's node_modules — re-exposes the
+#     image's baked per-package deps so the .:/app bind mount can't shadow them
+#     with the host's (absolute-path, container-invalid) pnpm symlink farm.
+# Anon volumes initialise from the image's contents at that path, so the baked
+# (correct, Linux-native) node_modules is what every container sees.
+x-dev-volumes: &dev-volumes
+  - .:/app
+  - /app/node_modules
+  - /app/apps/admin/node_modules
+  - /app/apps/client/node_modules
+  - /app/apps/rescue/node_modules
+  - /app/e2e/node_modules
+  - /app/packages/authz/node_modules
+  - /app/packages/config-secrets/node_modules
+  - /app/packages/db/node_modules
+  - /app/packages/eslint-config-base/node_modules
+  - /app/packages/eslint-config-node/node_modules
+  - /app/packages/eslint-config-react/node_modules
+  - /app/packages/events/node_modules
+  - /app/packages/lib.analytics/node_modules
+  - /app/packages/lib.api/node_modules
+  - /app/packages/lib.applications/node_modules
+  - /app/packages/lib.audit-logs/node_modules
+  - /app/packages/lib.auth/node_modules
+  - /app/packages/lib.chat/node_modules
+  - /app/packages/lib.components/node_modules
+  - /app/packages/lib.dev-tools/node_modules
+  - /app/packages/lib.discovery/node_modules
+  - /app/packages/lib.feature-flags/node_modules
+  - /app/packages/lib.invitations/node_modules
+  - /app/packages/lib.legal/node_modules
+  - /app/packages/lib.matching/node_modules
+  - /app/packages/lib.moderation/node_modules
+  - /app/packages/lib.notifications/node_modules
+  - /app/packages/lib.observability/node_modules
+  - /app/packages/lib.permissions/node_modules
+  - /app/packages/lib.pets/node_modules
+  - /app/packages/lib.rescue/node_modules
+  - /app/packages/lib.search/node_modules
+  - /app/packages/lib.support-tickets/node_modules
+  - /app/packages/lib.types/node_modules
+  - /app/packages/lib.utils/node_modules
+  - /app/packages/lib.validation/node_modules
+  - /app/packages/observability/node_modules
+  - /app/packages/proto/node_modules
+  - /app/packages/service-bootstrap/node_modules
+  - /app/packages/storage/node_modules
+  - /app/services/applications/node_modules
+  - /app/services/audit/node_modules
+  - /app/services/auth/node_modules
+  - /app/services/chat/node_modules
+  - /app/services/cms/node_modules
+  - /app/services/gateway/node_modules
+  - /app/services/matching/node_modules
+  - /app/services/moderation/node_modules
+  - /app/services/notifications/node_modules
+  - /app/services/pets/node_modules
+  - /app/services/rescue/node_modules
+
+services:
+  # =========================================================================
+  # redis — remap the HOST port off 6379 by default.
+  # On Windows the Hyper-V/WSL2 dynamic port range frequently reserves 6379,
+  # making the host bind fail with "access permissions". Container-internal
+  # Redis stays on 6379 (every service connects via redis://redis:6379 on the
+  # docker network — unaffected). Only the host-side port moves. Override with
+  # REDIS_HOST_PORT in .env if you want host redis-cli access on a specific port.
+  # =========================================================================
+  redis:
+    ports:
+      - '127.0.0.1:${REDIS_HOST_PORT:-6380}:6379'
+
+  # =========================================================================
+  # Frontend apps. Anon volume at /app/node_modules re-exposes the image's
+  # baked deps; the per-app node_modules anon volume does the same for the app's
+  # own (workspace) node_modules so HMR source can't shadow it.
+  # =========================================================================
+  app-admin:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/app.admin run dev"
+
+  app-client:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/app.client run dev"
+
+  app-rescue:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/app.rescue run dev"
+
+  # =========================================================================
+  # lib-types-watcher — base uses raw node:alpine (no pnpm); override to the
+  # shared dev image so pnpm + the baked deps are available.
+  # =========================================================================
+  lib-types-watcher:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/lib.types run dev"
+
+  # =========================================================================
+  # Microservices. Each: shared dev image, source mount, node_modules anon
+  # volumes, then migrate (+ seed if present) and start watch.
+  # =========================================================================
+  service-gateway:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.gateway run dev"
+
+  service-auth:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.auth run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.auth run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.auth run dev"
+
+  service-pets:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.pets run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.pets run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.pets run dev"
+
+  service-rescue:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.rescue run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.rescue run dev"
+
+  service-applications:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.applications run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.applications run dev"
+
+  service-notifications:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.notifications run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.notifications run dev"
+
+  service-matching:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.matching run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.matching run dev"
+
+  service-moderation:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.moderation run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.moderation run dev"
+
+  service-audit:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.audit run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.audit run dev"

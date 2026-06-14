@@ -5,9 +5,12 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
-  // Check if we're running in Docker (service-backend hostname is available)
+  // The gateway fronts /api, /health and /monitoring. In Docker it's reachable
+  // by its compose service name; natively it runs on localhost. (Replaces the
+  // deleted service-backend monolith — gateway listens on 4000.)
   const isDocker = process.env.DOCKER_ENV === 'true' || process.env.NODE_ENV === 'production';
-  const backendHost = isDocker ? 'service-backend' : '127.0.0.1';
+  const backendHost = isDocker ? 'service-gateway' : '127.0.0.1';
+  const backendPort = 4000;
 
   // Development aliases for all libraries to use source files directly
   const libraryAliases =
@@ -155,17 +158,17 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         '/api': {
-          target: `http://${backendHost}:5000`,
+          target: `http://${backendHost}:${backendPort}`,
           changeOrigin: true,
           secure: false,
         },
         '/health': {
-          target: `http://${backendHost}:5000`,
+          target: `http://${backendHost}:${backendPort}`,
           changeOrigin: true,
           secure: false,
         },
         '/monitoring': {
-          target: `http://${backendHost}:5000`,
+          target: `http://${backendHost}:${backendPort}`,
           changeOrigin: true,
           secure: false,
         },
