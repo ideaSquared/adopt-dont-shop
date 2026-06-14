@@ -59,7 +59,7 @@
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "workspace:*",
     "@types/node": "^25.9.1",
-    "@types/react": "^19.2.15",
+    "@types/react": "^19.2.17",
     "react": "^19.2.7"
   },
   "repository": {
