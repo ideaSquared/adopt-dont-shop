@@ -211,3 +211,53 @@ jobs:
           sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
           category: 'trivy-service-${{ matrix.service }}'
 
+  # ============================================================================
+  # BUILD + PUBLISH SHARED DEV IMAGE (Dockerfile.dev)
+  #
+  # The local dev stack (docker-compose.dev.yml, driven by `pnpm docker:dev`)
+  # uses one shared image that bakes a full workspace install. Publishing it to
+  # GHCR means scripts/docker-dev.mjs can PULL it instead of building locally,
+  # so most developers never run a build at all (the original network-flakiness
+  # source). Built on every trigger to catch breakage; pushed only on main/
+  # develop pushes (PRs can't push to the shared :latest tag).
+  # ============================================================================
+  build-dev-image:
+    name: Build + Publish Dev Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.23.0
+            network=host
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee  # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (and push on non-PR) dev image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
+        with:
+          context: .
+          file: ./Dockerfile.dev
+          target: development
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ghcr.io/ideasquared/adopt-dont-shop/dev:${{ github.sha }}
+            ghcr.io/ideasquared/adopt-dont-shop/dev:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
+

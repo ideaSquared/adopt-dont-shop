@@ -268,6 +268,27 @@ async function checkPostgresVolume() {
   ok('Database volume wiped — will re-initialise fresh');
 }
 
+const GHCR_DEV_IMAGE = 'ghcr.io/ideasquared/adopt-dont-shop/dev:latest';
+const LOCAL_DEV_IMAGE = 'adopt-dont-shop-dev:latest';
+
+// Try to pull the prebuilt dev image from GHCR and tag it as the local image
+// the compose stack expects. This is the fast path: most developers never build
+// (the original network-flakiness source). Returns true on success.
+// Skipped when --build is passed or the local Dockerfile.dev differs from what
+// CI published (we can't tell that cheaply, so a Dockerfile.dev change bumps the
+// build-input hash and the caller forces a local build instead of pulling).
+function tryPullDevImage() {
+  step('Pulling prebuilt dev image from GHCR');
+  const pulled = spawnSync('docker', ['pull', GHCR_DEV_IMAGE], { cwd: ROOT, stdio: 'ignore' });
+  if (pulled.status !== 0) {
+    warn('Could not pull from GHCR (not published yet, or not logged in) — building locally.');
+    return false;
+  }
+  spawnSync('docker', ['tag', GHCR_DEV_IMAGE, LOCAL_DEV_IMAGE], { cwd: ROOT, stdio: 'ignore' });
+  ok('Using prebuilt dev image from GHCR');
+  return true;
+}
+
 // Build the ONE shared dev image a single time. Every app/service references
 // the same image (adopt-dont-shop-dev:latest); letting `up --build` build it
 // per-service races on the image export ("image already exists"). So build it
@@ -294,7 +315,15 @@ function up() {
   checkEnv();
   checkRedisPort();
   const rebuild = needsImageRebuild();
-  if (BUILD || rebuild) buildDevImage();
+  if (BUILD) {
+    // Explicit --build: always build locally (use this after editing
+    // Dockerfile.dev or the lockfile on your branch).
+    buildDevImage();
+  } else if (rebuild) {
+    // Image missing or build inputs changed: prefer GHCR's prebuilt image,
+    // fall back to a local build if the pull fails.
+    if (!tryPullDevImage()) buildDevImage();
+  }
   await checkPostgresVolume();
   up();
   if (DETACH) {
