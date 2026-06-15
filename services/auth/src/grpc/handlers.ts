@@ -271,6 +271,18 @@ function rolesToProto(roles: UserRole[]): AuthV1.UserRole[] {
 // latency doesn't reveal whether an account exists.
 const DUMMY_PASSWORD_HASH = '$2a$12$0000000000000000000000000000000000000000000000000000u';
 
+// Progressive login throttle. Rather than a hard lockout (which lets an
+// attacker deny a victim access by deliberately failing logins), failed
+// attempts apply a SHORT, exponentially-growing soft-lock that clears on
+// its own. The first LOGIN_LOCK_THRESHOLD attempts only count; from there
+// each further failure locks the account for base * 2^(n - threshold)
+// seconds, capped at LOGIN_LOCK_MAX_SECONDS. A successful login resets the
+// counter and clears the lock. (Edge/IP rate-limiting is layered on top at
+// the gateway.)
+const LOGIN_LOCK_THRESHOLD = 5;
+const LOGIN_LOCK_BASE_SECONDS = 60;
+const LOGIN_LOCK_MAX_SECONDS = 900;
+
 export async function login(
   deps: HandlerDeps,
   _principal: Principal | null,
@@ -311,13 +323,27 @@ export async function login(
 
   const ok = await deps.passwordHasher.compare(req.password, user.password);
   if (!ok) {
-    // Increment login_attempts. We don't issue the 30-min lock here —
-    // that policy lands with the dedicated auth-policy module in a
-    // later phase. The counter is bumped synchronously so successive
-    // wrong attempts within a request burst are visible.
+    // Count the failure and, once past the threshold, apply a short
+    // exponential soft-lock. The lock is computed atomically from the
+    // incremented count so a burst of concurrent failures can't race the
+    // lock open, and from `login_attempts` (not wall clock) so it grows
+    // deterministically.
     await deps.pool.query(
-      `UPDATE auth.users SET login_attempts = login_attempts + 1, updated_at = now() WHERE user_id = $1`,
-      [user.user_id]
+      `UPDATE auth.users
+          SET login_attempts = login_attempts + 1,
+              locked_until = CASE
+                WHEN login_attempts + 1 >= $2
+                THEN now() + make_interval(
+                  secs => LEAST(
+                    $3::double precision * power(2, login_attempts + 1 - $2),
+                    $4::double precision
+                  )
+                )
+                ELSE locked_until
+              END,
+              updated_at = now()
+        WHERE user_id = $1`,
+      [user.user_id, LOGIN_LOCK_THRESHOLD, LOGIN_LOCK_BASE_SECONDS, LOGIN_LOCK_MAX_SECONDS]
     );
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
@@ -333,7 +359,7 @@ export async function login(
       [minted.pair.refreshToken, user.user_id, minted.refreshExpiresAt]
     );
     await client.query(
-      `UPDATE auth.users SET last_login_at = now(), login_attempts = 0, updated_at = now() WHERE user_id = $1`,
+      `UPDATE auth.users SET last_login_at = now(), login_attempts = 0, locked_until = NULL, updated_at = now() WHERE user_id = $1`,
       [user.user_id]
     );
 

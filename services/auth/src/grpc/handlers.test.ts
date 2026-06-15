@@ -208,6 +208,44 @@ describe('login', () => {
     expect(bumpCall).toMatch(/UPDATE auth\.users.*login_attempts = login_attempts \+ 1/s);
   });
 
+  it('applies a progressive, capped soft-lock in the same failed-login UPDATE', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture()] });
+    mocks.hasherMock.compare.mockResolvedValueOnce(false);
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // bump + lock
+
+    await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+
+    const [sql, params] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    // The lock is set atomically in the same UPDATE, only once the count
+    // crosses the threshold, and is capped — so a victim cannot be locked
+    // out indefinitely by deliberate failed logins.
+    expect(sql).toMatch(/locked_until = CASE/s);
+    expect(sql).toMatch(/login_attempts \+ 1 >= \$2/s);
+    expect(sql).toMatch(/LEAST\(/s);
+    expect(params).toEqual(['usr-adopter', 5, 60, 900]);
+  });
+
+  it('clears login_attempts AND locked_until on a successful login', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture()] });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
+
+    await login(mocks.deps, null, BASE_LOGIN_REQ);
+
+    const resetCall = mocks.clientMock.query.mock.calls
+      .map(c => c[0] as string)
+      .find(s => /login_attempts = 0/.test(s));
+    expect(resetCall).toBeDefined();
+    expect(resetCall).toMatch(/locked_until = NULL/);
+  });
+
   it('mints tokens, persists refresh row inside transaction, publishes auth.userLoggedIn AFTER commit', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture()] });
     mocks.hasherMock.compare.mockResolvedValueOnce(true);
