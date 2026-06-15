@@ -15,7 +15,7 @@
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.0",
+    "@playwright/test": "^1.61.0",
     "@types/node": "^25.9.1",
     "otplib": "^13.4.1",
     "typescript": "^6.0.3"
