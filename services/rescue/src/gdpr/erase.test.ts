@@ -63,4 +63,27 @@ describe('eraseRescue', () => {
     const total = await eraseRescue(client, PAYLOAD);
     expect(total).toBe(0);
   });
+
+  it('erases email-keyed pending invitations when the payload carries an email', async () => {
+    // The user_id-keyed deletes touch 0 rows (the invitee never registered);
+    // the email-keyed delete catches 2 pending invitations.
+    const { client, calls } = makeClient([0, 0, 0, 2]);
+    const total = await eraseRescue(client, { ...PAYLOAD, email: 'invitee@example.com' });
+
+    const emailCall = calls.find(
+      c => c.text.includes('invitations') && c.text.toLowerCase().includes('email')
+    );
+    expect(emailCall).toBeDefined();
+    // Case-insensitive match so casing variants of the same address are caught.
+    expect(emailCall?.text).toMatch(/lower\(email\)\s*=\s*lower\(\$1\)/i);
+    expect(emailCall?.values[0]).toBe('invitee@example.com');
+    expect(total).toBe(2);
+  });
+
+  it('does not run an email-keyed query when the payload has no email', async () => {
+    const { client, calls } = makeClient([0, 0, 0]);
+    await eraseRescue(client, PAYLOAD);
+    expect(calls).toHaveLength(3);
+    expect(calls.some(c => c.text.toLowerCase().includes('email'))).toBe(false);
+  });
 });

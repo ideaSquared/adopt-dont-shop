@@ -135,6 +135,29 @@ describe('registerGdprSubscriber', () => {
     expect(env.payload.error).toBeUndefined();
   });
 
+  it('forwards the optional email on the request payload to the erase callback', async () => {
+    const client = {
+      query: vi.fn(async () => ({ rows: [] })),
+      release: vi.fn(),
+    } as unknown as PoolClient;
+
+    const seen: Array<GdprErasureRequestedPayload> = [];
+    const bus = makeBus({ ...PAYLOAD, email: 'erased@example.com' });
+    registerGdprSubscriber({
+      nats: bus.nc,
+      pool: fakePool(client),
+      service: 'rescue',
+      erase: async (_c, payload) => {
+        seen.push(payload);
+        return 0;
+      },
+    });
+    await flush();
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0].email).toBe('erased@example.com');
+  });
+
   it('rolls back and publishes a (durable) failure completion when erase throws', async () => {
     const client = {
       query: vi.fn(async () => ({ rows: [] })),

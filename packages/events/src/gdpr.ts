@@ -20,6 +20,15 @@ export const GDPR_ERASURE_COMPLETED = 'gdpr.erasureCompleted';
 export type GdprErasureRequestedPayload = {
   // The user being erased — primary key in auth.users.
   userId: string;
+  // The user's email, resolved by the gateway from the auth record at
+  // request time. Optional because not every erasure has a resolvable
+  // email (e.g. the auth lookup failed). Consumers use it to erase
+  // email-keyed rows that carry no user_id — notably rescue pending
+  // invitations for a user who never registered. This deliberately
+  // broadcasts the email on the erasure event: the whole purpose of the
+  // event is erasure, so the scoped PII spread is the accepted tradeoff
+  // for erasure completeness.
+  email?: string;
   // Saga-wide correlation id. Mint at the gateway; every subscriber
   // echoes it on its completion event so the audit consumer can join.
   correlationId: string;
