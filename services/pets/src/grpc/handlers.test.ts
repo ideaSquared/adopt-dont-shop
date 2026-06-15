@@ -236,6 +236,12 @@ describe('listPets', () => {
     });
   });
 
+  it('rejects a negative limit (would otherwise emit a negative SQL LIMIT)', async () => {
+    await expect(listPets(mocks.deps, ADOPTER, { limit: -1 } as never)).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
   it('applies status + rescue filters to the query', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     await listPets(mocks.deps, STAFF, {
@@ -317,6 +323,21 @@ describe('updatePet', () => {
     expect(updateSql).toMatch(/name = \$1/);
     expect(updateSql).toMatch(/version = version \+ 1/);
   });
+
+  it('publishes pets.updated with a deterministic id keyed on the new version', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ version: 4 })] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [petRow({ name: 'Rexy', version: 5 })] });
+
+    await updatePet(mocks.deps, STAFF, { petId: 'pet-1', name: 'Rexy' } as never);
+
+    const event = mocks.natsMock.publish.mock.calls[0][0] as string;
+    // JetStream Nats-Msg-Id derives from the event id — it must be
+    // deterministic (aggregateId:version) so a retried publish dedups.
+    expect(event).toBe('pets.updated');
+    // The DomainEvent.id is passed via the publish options (3rd arg).
+    const opts = mocks.natsMock.publish.mock.calls[0][2] as { msgID?: string } | undefined;
+    expect(opts?.msgID).toBe('pets.updated.pet-1.5');
+  });
 });
 
 // --- updatePetStatus -------------------------------------------------
@@ -361,6 +382,11 @@ describe('updatePetStatus', () => {
     const order: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
       order.push(sql.trim().split(/\s+/)[0]);
+      // The in-transaction lock read still sees `available`; the UPDATE
+      // returns the post-write `pending` row.
+      if (/FOR UPDATE/.test(sql)) {
+        return { rows: [petRow({ status: 'available' })] };
+      }
       return { rows: [petRow({ status: 'pending' })] };
     });
     mocks.natsMock.publish.mockImplementation(() => order.push('NATS_PUBLISH'));
@@ -374,8 +400,9 @@ describe('updatePetStatus', () => {
     expect(res.pet.status).toBe(PetsV1.PetStatus.PET_STATUS_PENDING);
     expect(res.transition.fromStatus).toBe(PetsV1.PetStatus.PET_STATUS_AVAILABLE);
     expect(res.transition.toStatus).toBe(PetsV1.PetStatus.PET_STATUS_PENDING);
-    // BEGIN → INSERT transition → UPDATE pet → COMMIT → publish
-    expect(order).toEqual(['BEGIN', 'INSERT', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+    // BEGIN → SELECT … FOR UPDATE (lock + re-validate) → INSERT transition →
+    // UPDATE pet → COMMIT → publish
+    expect(order).toEqual(['BEGIN', 'SELECT', 'INSERT', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
   });
 
   it('PERMISSION_DENIED for staff at a different rescue', async () => {
@@ -386,6 +413,49 @@ describe('updatePetStatus', () => {
         toStatus: PetsV1.PetStatus.PET_STATUS_PENDING,
       } as never)
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('locks the pet row FOR UPDATE inside the transaction before transitioning', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
+    const sqls: string[] = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      sqls.push(sql);
+      // The in-transaction lock read returns the current (still available) row.
+      if (/FOR UPDATE/.test(sql)) {
+        return { rows: [petRow({ status: 'available' })] };
+      }
+      return { rows: [petRow({ status: 'pending' })] };
+    });
+
+    await updatePetStatus(mocks.deps, STAFF, {
+      petId: 'pet-1',
+      toStatus: PetsV1.PetStatus.PET_STATUS_PENDING,
+    } as never);
+
+    // A SELECT ... FOR UPDATE must run inside the txn (after BEGIN) so two
+    // concurrent transitions serialise on the row lock rather than both
+    // validating against a stale pre-transaction read.
+    expect(sqls.some(s => /SELECT[\s\S]*FOR UPDATE/.test(s))).toBe(true);
+  });
+
+  it('re-validates the transition against the locked row (loses a concurrent race)', async () => {
+    // Pre-transaction read sees `available` → pending looks legal.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'available' })] });
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      // But by the time we lock the row, a concurrent commit moved it to
+      // `adopted` — available is no longer reachable, so pending is illegal.
+      if (/FOR UPDATE/.test(sql)) {
+        return { rows: [petRow({ status: 'adopted' })] };
+      }
+      return { rows: [petRow()] };
+    });
+
+    await expect(
+      updatePetStatus(mocks.deps, STAFF, {
+        petId: 'pet-1',
+        toStatus: PetsV1.PetStatus.PET_STATUS_PENDING,
+      } as never)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 });
 
