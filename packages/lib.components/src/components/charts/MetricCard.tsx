@@ -21,9 +21,9 @@ const formatValue = (value: number | string, format: MetricCardFormat | undefine
     return `${(value * 100).toFixed(1)}%`;
   }
   if (format === 'currency') {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'GBP',
       maximumFractionDigits: 0,
     }).format(value);
   }

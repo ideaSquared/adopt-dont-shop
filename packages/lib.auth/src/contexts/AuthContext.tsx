@@ -336,10 +336,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       if (import.meta.env?.DEV) {
         localStorage.removeItem('dev_user');
         // Clear mock tokens for dev users
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
         if (token?.startsWith('dev-token-')) {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('authToken');
+          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         }
       }
     } catch (error) {
@@ -359,10 +359,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       if (import.meta.env?.DEV) {
         localStorage.removeItem('dev_user');
         // Clear mock tokens for dev users
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
         if (token?.startsWith('dev-token-')) {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('authToken');
+          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         }
       }
     } finally {
@@ -392,7 +392,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
 
     // In development mode, handle dev users differently
     if (import.meta.env?.DEV) {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
       if (token?.startsWith('dev-token-')) {
         const updatedUser = { ...user, ...profileData };
         setUser(updatedUser);

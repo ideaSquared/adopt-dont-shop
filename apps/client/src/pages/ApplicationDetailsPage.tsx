@@ -260,7 +260,7 @@ export const ApplicationDetailsPage: React.FC = () => {
           </Button>
         )}
         {application.status === 'withdrawn' && (
-          <Button variant='primary' onClick={() => navigate('/pets')}>
+          <Button variant='primary' onClick={() => navigate('/search')}>
             Browse Available Pets
           </Button>
         )}

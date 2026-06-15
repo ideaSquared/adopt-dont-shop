@@ -15,8 +15,14 @@ export const usePlatformMetrics = () => {
 
 export const useDashboardAnalytics = (options?: DashboardAnalyticsOptions) => {
   return useQuery({
+    // Key lives in the `analytics` namespace so useAnalyticsInvalidator's
+    // `invalidateQueries({ queryKey: ['analytics', cat] })` can match it —
+    // the previous `['dashboard-analytics', …]` key was a sibling namespace
+    // the invalidator could never reach (ADS-647). Real-time refresh still
+    // requires the backend to emit a `dashboard` category.
     queryKey: [
-      'dashboard-analytics',
+      'analytics',
+      'dashboard',
       options?.startDate?.toISOString(),
       options?.endDate?.toISOString(),
     ],

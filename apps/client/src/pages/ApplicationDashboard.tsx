@@ -155,7 +155,7 @@ export const ApplicationDashboard: React.FC = () => {
         <div className={styles.emptyState}>
           <h2>No applications yet</h2>
           <p>Start your adoption journey by browsing available pets.</p>
-          <Link to='/pets'>
+          <Link to='/search'>
             <Button>Browse Pets</Button>
           </Link>
         </div>
