@@ -153,8 +153,10 @@ export type UserRow = {
 type RefreshTokenRow = {
   token: string;
   user_id: string;
+  family_id: string;
   expires_at: Date;
   revoked_at: Date | null;
+  is_revoked: boolean;
 };
 
 export function rowToProtoUser(row: UserRow): AuthUser {
@@ -223,6 +225,27 @@ export async function loadPrincipal(
   const permissions = permsRes.rows.map(r => r.name as Permission);
 
   return { roles, permissions };
+}
+
+// Reject tokens for users who are no longer permitted to authenticate.
+// A token (access or refresh) stays cryptographically valid until it
+// expires, so a user suspended/deactivated/deleted mid-session would
+// otherwise keep access — and could refresh indefinitely — until the
+// token's own expiry. ValidateToken (every gateway request) and
+// RefreshToken both gate on this. A single indexed point-read on the PK.
+async function assertActiveUser(deps: HandlerDeps, userId: string): Promise<void> {
+  const res = await deps.pool.query<{ status: UserStatusDb }>(
+    `SELECT status FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
+    [userId]
+  );
+  const status = res.rows[0]?.status;
+  // Mirror Login's policy exactly: reject suspended/deactivated (and a
+  // missing row = deleted). `inactive` / `pending_verification` are NOT
+  // blocked here because Login lets them authenticate. We do NOT
+  // distinguish cases in the error — the caller only needs "not allowed".
+  if (status === undefined || status === 'suspended' || status === 'deactivated') {
+    throw new HandlerError('UNAUTHENTICATED', 'account is not active');
+  }
 }
 
 function uniqueRoles(roles: UserRole[]): UserRole[] {
@@ -376,7 +399,7 @@ export async function logout(
       [claims.jti, claims.sub, new Date(claims.exp * 1000)]
     );
     await client.query(
-      `UPDATE auth.refresh_tokens SET revoked_at = now(), updated_at = now() WHERE token = $1 AND revoked_at IS NULL`,
+      `UPDATE auth.refresh_tokens SET revoked_at = now(), is_revoked = true, updated_at = now() WHERE token = $1 AND revoked_at IS NULL`,
       [req.refreshToken]
     );
 
@@ -417,27 +440,53 @@ export async function refreshToken(
     throw new HandlerError('UNAUTHENTICATED', 'refresh token revoked');
   }
 
-  // Confirm the persisted refresh row is still active (covers the
-  // case where Logout revoked the row without the jti in the denylist
-  // — older monolith path).
+  // Confirm the persisted refresh row is still active. A row is active
+  // only when BOTH revocation columns agree: `revoked_at` (set by the
+  // refresh/logout path) AND `is_revoked` (set by RevokeSession). The two
+  // columns historically diverged — checking only `revoked_at` let a
+  // session revoked via RevokeSession keep refreshing (it sets is_revoked
+  // but never revoked_at). Honour both.
   const stored = await deps.pool.query<RefreshTokenRow>(
     `SELECT * FROM auth.refresh_tokens WHERE token = $1`,
     [req.refreshToken]
   );
-  if (stored.rows.length === 0 || stored.rows[0].revoked_at !== null) {
+  if (stored.rows.length === 0 || stored.rows[0].revoked_at !== null || stored.rows[0].is_revoked) {
     throw new HandlerError('UNAUTHENTICATED', 'refresh token revoked');
   }
+  const familyId = stored.rows[0].family_id;
+
+  // A suspended/deactivated/deleted user must not be able to rotate their
+  // refresh token into a fresh pair — otherwise admin deactivation only
+  // takes effect when the current refresh token finally expires (30d).
+  await assertActiveUser(deps, claims.sub);
 
   const minted = await deps.tokenIssuer.mint(claims.sub);
 
-  await withTransaction(deps, async ({ client, publish }) => {
-    // Mark the old refresh row revoked + add its jti to the denylist
-    // so a stolen old token can't replay even if the new one is also
-    // out in the wild.
-    await client.query(
-      `UPDATE auth.refresh_tokens SET revoked_at = now(), updated_at = now() WHERE token = $1`,
+  const rotated = await withTransaction(deps, async ({ client, publish }) => {
+    // Atomic rotation gate: revoke the old row ONLY if it is still active,
+    // and serialise concurrent refreshes on the same token through this
+    // conditional UPDATE. The `revoked_at IS NULL AND is_revoked = false`
+    // predicate makes the row its own lock — the second of two racing
+    // refreshes finds rowCount 0 (the first already flipped the row) and
+    // bails out below WITHOUT minting a second valid family. It also loses
+    // to a concurrent RevokeSession (which flips is_revoked). The
+    // pre-transaction SELECT above is a cheap fast-fail only; THIS is the
+    // authoritative check. We set BOTH columns so the sessions list and
+    // the refresh path stay consistent.
+    const revoke = await client.query(
+      `UPDATE auth.refresh_tokens
+       SET revoked_at = now(), is_revoked = true, updated_at = now()
+       WHERE token = $1 AND revoked_at IS NULL AND is_revoked = false`,
       [req.refreshToken]
     );
+    if (revoke.rowCount === 0) {
+      // The token was already rotated/revoked between our read and this
+      // write — concurrent reuse. Deny without issuing new tokens.
+      return false;
+    }
+
+    // Add the old jti to the denylist so a stolen old access/refresh token
+    // can't replay even if the new one is also out in the wild.
     await client.query(
       `
       INSERT INTO auth.revoked_tokens (jti, user_id, expires_at, revoked_at, updated_at)
@@ -446,12 +495,14 @@ export async function refreshToken(
       `,
       [claims.jti, claims.sub, new Date(claims.exp * 1000)]
     );
+    // Inherit the rotation family so RevokeSession can revoke the whole
+    // chain in one shot. The new row is the active head of the family.
     await client.query(
       `
-      INSERT INTO auth.refresh_tokens (token, user_id, expires_at, revoked_at, created_at, updated_at)
-      VALUES ($1, $2, $3, NULL, now(), now())
+      INSERT INTO auth.refresh_tokens (token, user_id, family_id, expires_at, revoked_at, is_revoked, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NULL, false, now(), now())
       `,
-      [minted.pair.refreshToken, claims.sub, minted.refreshExpiresAt]
+      [minted.pair.refreshToken, claims.sub, familyId, minted.refreshExpiresAt]
     );
 
     publish({
@@ -459,7 +510,12 @@ export async function refreshToken(
       id: `auth.tokenRefreshed.${minted.accessJti}`,
       payload: { userId: claims.sub, oldJti: claims.jti, newJti: minted.accessJti },
     });
+    return true;
   });
+
+  if (!rotated) {
+    throw new HandlerError('UNAUTHENTICATED', 'refresh token revoked');
+  }
 
   return { tokens: minted.pair };
 }
@@ -490,6 +546,12 @@ export async function validateToken(
   if (denied.rows.length > 0) {
     throw new HandlerError('UNAUTHENTICATED', 'access token revoked');
   }
+
+  // Reject the token if the user is no longer allowed to authenticate
+  // (suspended/deactivated/deleted) — a still-valid access token must not
+  // outlive an admin action. Checked BEFORE hydrating the principal so a
+  // blocked user never gets roles/permissions surfaced.
+  await assertActiveUser(deps, claims.sub);
 
   // Now (and only now) hydrate the principal. Single user_id read +
   // role/permission joins — same query loadPrincipal uses.

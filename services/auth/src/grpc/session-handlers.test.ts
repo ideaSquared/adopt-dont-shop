@@ -140,5 +140,9 @@ describe('revokeSession', () => {
       return sql.includes('UPDATE') && sql.includes('refresh_tokens');
     });
     expect(updateCall?.[1]).toEqual(['fam-1']);
+    // Sets BOTH revocation columns so the refresh path (which reads
+    // revoked_at) also rejects a revoked session's tokens.
+    expect(String(updateCall?.[0])).toMatch(/revoked_at = now\(\)/);
+    expect(String(updateCall?.[0])).toMatch(/is_revoked = true/);
   });
 });
