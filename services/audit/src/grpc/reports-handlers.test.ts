@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuditV1 } from '@adopt-dont-shop/proto';
 
-import { HandlerError, type HandlerDeps } from './adapter.js';
+import { type HandlerDeps } from './adapter.js';
 import {
   createSavedReport,
   deleteSavedReport,
@@ -12,10 +12,10 @@ import {
   updateSavedReport,
 } from './reports-handlers.js';
 
-function makePrincipal(over: { userId?: string; permissions?: string[] } = {}) {
+function makePrincipal(over: { userId?: string; roles?: string[]; permissions?: string[] } = {}) {
   return {
     userId: over.userId ?? 'usr-1',
-    roles: ['admin'],
+    roles: over.roles ?? ['admin'],
     permissions: over.permissions ?? ['reports.read'],
     rescueId: undefined,
   } as unknown as Parameters<typeof listSavedReports>[1];
@@ -305,6 +305,42 @@ describe('deleteSavedReport', () => {
     );
     const sql = q.mock.calls[0][0] as string;
     expect(sql).toContain('user_id = $');
+  });
+});
+
+describe('super_admin role grant', () => {
+  // super_admin is a platform-wide superuser whose grant is on the role,
+  // not the permissions array. requirePermission honours it everywhere
+  // else in the service; these handlers must too.
+  function superAdmin(userId = 'usr-9') {
+    return makePrincipal({ userId, roles: ['super_admin'], permissions: [] });
+  }
+
+  it('reaches reads with no explicit reports.read permission', async () => {
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ total: '0' }] })
+      .mockResolvedValueOnce({ rows: [] });
+    const { deps } = makeDeps(q);
+    await expect(
+      listSavedReports(deps, superAdmin(), { page: 1, limit: 20 })
+    ).resolves.toBeDefined();
+  });
+
+  it('reaches creates with no explicit reports.create permission', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [makeRow()] });
+    const { deps } = makeDeps(q);
+    await expect(
+      createSavedReport(deps, superAdmin(), { name: 'X', configJson: '{"widgets":[]}' })
+    ).resolves.toBeDefined();
+  });
+
+  it('updates any row (treated as :any) with no explicit permission', async () => {
+    const q = vi.fn().mockResolvedValue({ rows: [makeRow({ name: 'New' })] });
+    const { deps } = makeDeps(q);
+    await updateSavedReport(deps, superAdmin(), { savedReportId: 'rep-1', name: 'New' });
+    const sql = q.mock.calls[0][0] as string;
+    expect(sql).not.toContain('user_id = $');
   });
 });
 

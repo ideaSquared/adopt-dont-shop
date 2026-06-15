@@ -15,6 +15,7 @@
 //   reports.read for ListReportTemplates (no separate template perm —
 //     templates aren't sensitive)
 
+import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import type { Permission } from '@adopt-dont-shop/lib.types';
 import {
   AuditV1,
@@ -33,7 +34,6 @@ import {
   type AuditUpdateSavedReportRequest,
   type AuditUpdateSavedReportResponse,
 } from '@adopt-dont-shop/proto';
-import type { Principal } from '@adopt-dont-shop/authz';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
 
@@ -54,8 +54,11 @@ const TEMPLATE_COLUMNS = `template_id, name, description, category, config, is_s
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
+// Route through requirePermission (no scope) so the super_admin role grant
+// is honoured consistently with the rest of the service — super_admin's
+// permission isn't in the permissions array, it's implied by the role.
 function hasPerm(principal: Principal, p: Permission): boolean {
-  return principal.permissions.includes(p);
+  return requirePermission(principal, p);
 }
 
 function ensureRead(principal: Principal): void {
