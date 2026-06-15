@@ -243,6 +243,11 @@ function rolesToProto(roles: UserRole[]): AuthV1.UserRole[] {
 
 // --- Login -----------------------------------------------------------
 
+// A fixed valid bcrypt hash (of an arbitrary throwaway password) used only
+// to spend an equivalent amount of CPU when the email is unknown, so login
+// latency doesn't reveal whether an account exists.
+const DUMMY_PASSWORD_HASH = '$2a$12$0000000000000000000000000000000000000000000000000000u';
+
 export async function login(
   deps: HandlerDeps,
   _principal: Principal | null,
@@ -264,6 +269,10 @@ export async function login(
     [req.email]
   );
   if (userRes.rows.length === 0) {
+    // Run a dummy comparison against a fixed hash so an unknown email
+    // costs the same wall-clock time as a wrong password — otherwise the
+    // early return is a user-enumeration timing oracle.
+    await deps.passwordHasher.compare(req.password, DUMMY_PASSWORD_HASH);
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
   const user = userRes.rows[0];

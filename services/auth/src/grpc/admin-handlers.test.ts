@@ -1,5 +1,5 @@
 import type { NatsConnection } from 'nats';
-import type { Pool, PoolClient } from 'pg';
+import type { Pool } from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Principal } from '@adopt-dont-shop/authz';

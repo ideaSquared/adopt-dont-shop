@@ -160,6 +160,23 @@ describe('login', () => {
     });
   });
 
+  it('performs a password comparison even when the email is unknown (no enumeration timing leak)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    mocks.hasherMock.compare.mockResolvedValueOnce(false);
+
+    await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+
+    // The hasher must be exercised so a missing account costs the same
+    // wall-clock time as a wrong password against a real account.
+    expect(mocks.hasherMock.compare).toHaveBeenCalledTimes(1);
+    expect(mocks.hasherMock.compare).toHaveBeenCalledWith(
+      BASE_LOGIN_REQ.password,
+      expect.any(String)
+    );
+  });
+
   it('returns PERMISSION_DENIED when account is locked', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [userRowFixture({ locked_until: new Date(Date.now() + 60_000) })],
