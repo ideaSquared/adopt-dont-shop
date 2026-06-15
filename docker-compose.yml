@@ -83,7 +83,7 @@ services:
 
   # Redis for caching and sessions
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine
     restart: always
     ports:
       - '127.0.0.1:6379:6379'
@@ -249,7 +249,7 @@ services:
   # alongside a single frontend profile when they want subdomain routing.
   nginx:
     profiles: ['proxy', 'full']
-    image: nginx:1.27-alpine
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
     ports:
       - '127.0.0.1:80:80'
       - '127.0.0.1:443:443'

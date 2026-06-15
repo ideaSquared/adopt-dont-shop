@@ -9,9 +9,10 @@ name: Docker
 #   smoke test for the dev images.
 # - Push to main/develop keeps the broader source path set so a regression
 #   that only manifests inside a container is caught before deploy.
-# - Production-stage builds + Trivy run only on push events. The PR loop
-#   doesn't deploy prod images, so re-running the multi-stage prod build
-#   on every PR was duplicating native `tsc + vite build` from ci.yml.
+# - Production-stage builds + Trivy run on both PR and push events (ADS-833).
+#   PRs are already narrowed to Dockerfile-changing changes, so the extra prod
+#   build cost is bounded. Scanning before merge prevents CRITICAL/HIGH CVEs
+#   from being tagged on main before they're detected.
 
 on:
   push:
@@ -102,7 +103,8 @@ jobs:
           cache-to: type=gha,mode=max,ignore-error=true
 
   # ============================================================================
-  # BUILD SERVICES — dev image on all triggers, prod image + Trivy scan on push
+  # BUILD SERVICES — dev image on all triggers, prod image + Trivy scan on
+  # all triggers (ADS-833: scan PRs so CVEs are caught before merge, not after)
   #
   # Replaces the CVE-scan coverage lost when the service.backend monolith
   # was deleted in #995 (the old `build-backend` job ran a single Trivy
@@ -146,7 +148,6 @@ jobs:
             network=host
 
       - name: Log in to GHCR (for Trivy DB pulls)
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee  # v4.2.0
         with:
           registry: ghcr.io
@@ -168,12 +169,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
 
-      # Push-only: the prod stage re-runs the full multi-stage build,
-      # which is expensive across 11 images. ci.yml + E2E already cover
-      # source-level regressions on PRs; keep prod build + Trivy as a
-      # pre-deploy gate on main pushes.
+      # Build the prod image on all triggers so Trivy can scan it (ADS-833).
+      # On PRs this workflow is already narrowed to Dockerfile-changing changes,
+      # so the extra build cost is bounded to the cases where scanning matters.
       - name: Build production image
-        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
         with:
           context: .
@@ -190,7 +189,6 @@ jobs:
           cache-to: type=gha,mode=max,ignore-error=true
 
       - name: Run Trivy vulnerability scanner
-        if: github.event_name != 'pull_request'
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
@@ -205,9 +203,59 @@ jobs:
               paragonjenko/adoptdontshop:service-${{ matrix.service }}-prod-${{ github.sha }}
 
       - name: Upload Trivy results to GitHub Security tab
-        if: github.event_name != 'pull_request' && always() && hashFiles(format('trivy-results-{0}.sarif', matrix.service)) != ''
-        uses: github/codeql-action/upload-sarif@87557b9c84dde89fdd9b10e88954ac2f4248e463  # v4.36.1
+        if: always() && hashFiles(format('trivy-results-{0}.sarif', matrix.service)) != ''
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e  # v4.36.2
         with:
           sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
           category: 'trivy-service-${{ matrix.service }}'
+
+  # ============================================================================
+  # BUILD + PUBLISH SHARED DEV IMAGE (Dockerfile.dev)
+  #
+  # The local dev stack (docker-compose.dev.yml, driven by `pnpm docker:dev`)
+  # uses one shared image that bakes a full workspace install. Publishing it to
+  # GHCR means scripts/docker-dev.mjs can PULL it instead of building locally,
+  # so most developers never run a build at all (the original network-flakiness
+  # source). Built on every trigger to catch breakage; pushed only on main/
+  # develop pushes (PRs can't push to the shared :latest tag).
+  # ============================================================================
+  build-dev-image:
+    name: Build + Publish Dev Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.23.0
+            network=host
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee  # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build (and push on non-PR) dev image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
+        with:
+          context: .
+          file: ./Dockerfile.dev
+          target: development
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ghcr.io/ideasquared/adopt-dont-shop/dev:${{ github.sha }}
+            ghcr.io/ideasquared/adopt-dont-shop/dev:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
 

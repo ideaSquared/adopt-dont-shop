@@ -37,10 +37,20 @@ This directory contains GitHub Actions workflows for the Adopt Don't Shop platfo
 
 **E2E strategy**:
 
-- **Pull request**: runs `--grep @smoke` (2 critical journeys: adopter registration + full adoption journey). ~3-5 min of test runtime on top of the stack-up step.
-- **Push to main/develop**: runs the full Playwright suite as the integration gate before `deploy.yml`.
+E2E is **opt-in on pull requests** — the full docker-stack build plus Playwright
+run is too slow to pay on every push during development. The `test-e2e` job runs
+the full Playwright suite when:
 
-Tag a test with `@smoke` in its title to add it to the PR set. Keep the smoke set small — its job is to catch obvious integration breaks, not to be a coverage proxy. Unit/integration coverage lives in `test-backend`, `test-frontend`, and `test-libs`.
+- **Push to main**: the integration gate before `deploy.yml`.
+- **PR labelled `run-e2e`**: opt in when the branch is ready. Adding the label
+  re-triggers CI (the `pull_request: labeled` event), so no extra push is needed.
+- **Manual dispatch** (`workflow_dispatch`).
+
+On any other PR `test-e2e` is **skipped**, which the `ci-required` aggregator
+treats as success — so E2E never blocks an in-progress PR. Unit/integration
+coverage still runs on every PR via `test-backend`, `test-frontend`, and
+`test-libs`. Tag a test with `@smoke` and run `pnpm test:e2e:smoke` locally for a
+quick critical-path subset.
 
 **Triggers**: Push/PR to `main` or `develop` branches
 
@@ -185,9 +195,11 @@ The set is filtered to **HIGH-accuracy, no-regression-allowed** signals:
   deterministic checks. No flake, no false positives.
 - **Backend / Frontend / Library Tests** — coverage-thresholded in
   `vitest.config.ts`, so a behaviour regression fails the build directly.
-- **E2E (Playwright)** — designed as the integration blocking signal under
-  ADS-419. Retries are set to `2` in `e2e/playwright.config.ts` to absorb
-  browser/timing flake without hiding real breakage.
+- **E2E (Playwright)** — opt-in integration signal: runs on main pushes, on PRs
+  labelled `run-e2e`, and on manual dispatch; skipped (treated as success) on
+  other PRs so it never blocks in-progress work. Retries are set to `2` in
+  `e2e/playwright.config.ts` to absorb browser/timing flake without hiding real
+  breakage.
 
 Intentionally **not** required:
 - `Detect Changes` — pure metadata helper, not a regression signal.

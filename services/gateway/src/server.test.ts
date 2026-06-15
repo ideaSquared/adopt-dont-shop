@@ -32,6 +32,7 @@ const baseConfig: GatewayConfig = {
   config: { publicEnabled: false },
   // Rate-limit: no Redis in tests, low cap so we can hit 429 quickly.
   rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+  cors: { origins: ['http://localhost:3000'] },
 } as GatewayConfig;
 
 describe('createServer — health endpoint', () => {
@@ -419,5 +420,191 @@ describe('createServer — per-domain cutover gate', () => {
     // The gateway route served it — Stage B view adapter wraps the
     // (empty) result in the frontend's `{ data }` envelope.
     expect(res.json()).toEqual({ data: [] });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// /docs gate — admin only when authClient is wired
+// ---------------------------------------------------------------------------
+//
+// The authenticate hook strips x-user-* headers, validates the Bearer
+// token, and stamps the principal back onto the request. A second
+// onRequest hook (registered after authenticate) gates /docs by checking
+// x-user-roles. /openapi.json stays open for SDK generation tooling.
+describe('createServer — /docs gate (admin only)', () => {
+  let server: FastifyInstance;
+
+  // Minimal authClient stubs — only validateToken is called by the
+  // authenticate middleware in this suite.
+
+  function makeAuthClient(roles: number[]) {
+    return {
+      validateToken: () =>
+        Promise.resolve({
+          principal: {
+            userId: 'u-test',
+            roles,
+            permissions: [],
+            rescueId: '',
+          },
+        }),
+      close: () => undefined,
+    } as unknown as Parameters<typeof createServer>[0]['authClient'];
+  }
+
+  const allCutoverOff = {
+    auth: false,
+    notifications: false,
+    pets: false,
+    rescue: false,
+    applications: false,
+    moderation: false,
+    matching: false,
+    audit: false,
+    chat: false,
+    cms: false,
+  } as const;
+
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('returns 403 for unauthenticated requests to /docs when authClient is wired', async () => {
+    server = await createServer({
+      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      logger: quietLogger,
+      authClient: makeAuthClient([]), // stub — won't be called (no Bearer token)
+    });
+    const res = await server.inject({ method: 'GET', url: '/docs' });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'forbidden' });
+  });
+
+  it('returns 403 for non-admin authenticated requests to /docs', async () => {
+    // Role 1 = adopter — not admin
+    server = await createServer({
+      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      logger: quietLogger,
+      authClient: makeAuthClient([1]),
+    });
+    const res = await server.inject({
+      method: 'GET',
+      url: '/docs',
+      headers: { authorization: 'Bearer some-valid-token' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('allows admin users through to /docs', async () => {
+    // Role 3 = admin
+    server = await createServer({
+      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      logger: quietLogger,
+      authClient: makeAuthClient([3]),
+    });
+    const res = await server.inject({
+      method: 'GET',
+      url: '/docs',
+      headers: { authorization: 'Bearer some-valid-token' },
+    });
+    // swaggerUi returns 200 (HTML) or 302 redirect — either way, not 403
+    expect(res.statusCode).not.toBe(403);
+  });
+
+  it('allows super_admin users through to /docs', async () => {
+    // Role 5 = super_admin
+    server = await createServer({
+      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      logger: quietLogger,
+      authClient: makeAuthClient([5]),
+    });
+    const res = await server.inject({
+      method: 'GET',
+      url: '/docs',
+      headers: { authorization: 'Bearer some-valid-token' },
+    });
+    expect(res.statusCode).not.toBe(403);
+  });
+
+  it('serves /openapi.json without authentication (stays open for SDK tooling)', async () => {
+    server = await createServer({
+      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      logger: quietLogger,
+      authClient: makeAuthClient([]),
+    });
+    const res = await server.inject({ method: 'GET', url: '/openapi.json' });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('leaves /docs open when no authClient is wired (dev / smoke-test mode)', async () => {
+    server = await createServer({
+      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      logger: quietLogger,
+      // No authClient — authenticate middleware is skipped entirely
+    });
+    const res = await server.inject({ method: 'GET', url: '/docs' });
+    expect(res.statusCode).not.toBe(403);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Security headers — Helmet (defence-in-depth alongside nginx)
+// ---------------------------------------------------------------------------
+describe('createServer — security headers (Helmet)', () => {
+  let server: FastifyInstance;
+
+  beforeEach(async () => {
+    server = await createServer({ config: baseConfig, logger: quietLogger });
+  });
+
+  afterEach(async () => {
+    await server.close();
+  });
+
+  it('sets x-content-type-options: nosniff on responses', async () => {
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+  });
+
+  it('sets x-frame-options on responses', async () => {
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+    expect(res.headers['x-frame-options']).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CORS headers
+// ---------------------------------------------------------------------------
+describe('createServer — CORS', () => {
+  let server: FastifyInstance;
+
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('includes access-control-allow-origin for a request from an allowed origin', async () => {
+    server = await createServer({
+      config: { ...baseConfig, cors: { origins: ['http://localhost:3000'] } },
+      logger: quietLogger,
+    });
+    const res = await server.inject({
+      method: 'GET',
+      url: '/health/simple',
+      headers: { origin: 'http://localhost:3000' },
+    });
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+  });
+
+  it('does not include access-control-allow-origin for an unknown origin', async () => {
+    server = await createServer({
+      config: { ...baseConfig, cors: { origins: ['http://localhost:3000'] } },
+      logger: quietLogger,
+    });
+    const res = await server.inject({
+      method: 'GET',
+      url: '/health/simple',
+      headers: { origin: 'http://evil.example.com' },
+    });
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 });

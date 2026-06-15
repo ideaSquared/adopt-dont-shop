@@ -98,3 +98,5 @@ e2e/playwright/.cache/
 docs/dependency-graph.html
 # Husky pre-push opt-in marker (ADS-732)
 .husky/.prepush-enabled
+
+.pnpm-store/

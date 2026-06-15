@@ -20,7 +20,7 @@ before `docker compose up -d`; the deploy workflow
 | `jwt_refresh_secret`          | `service-auth`                  | refresh-token signing secret                                   |
 | `upload_signing_secret`       | `service-gateway`               | HMAC secret for `/uploads-signed` URLs                         |
 | `principal_signing_key`       | `service-gateway` + every domain service | HMAC key for the signed `x-principal-token` gRPC metadata (ADS-800) |
-| `db_password` (staging only)  | `database` container            | Postgres superuser password (read via `POSTGRES_PASSWORD_FILE`) |
+| `db_password`                 | `database` container (staging + production) | Postgres superuser password (read via `POSTGRES_PASSWORD_FILE`) |
 
 Each file must contain only the secret value (trailing whitespace is
 trimmed by the loader). No quoting, no `KEY=value` framing — just the value.

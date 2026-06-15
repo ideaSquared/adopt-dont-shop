@@ -36,6 +36,7 @@ const baseConfig: GatewayConfig = {
   legal: { enabled: false, docsDir: 'docs/legal' },
   config: { publicEnabled: false },
   rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+  cors: { origins: ['http://localhost:3000'] },
 } as GatewayConfig;
 
 // Minimal stubs — we only need the route to register so its `schema`

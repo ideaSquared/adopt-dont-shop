@@ -5,6 +5,9 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+    # `labeled` is included so adding the `run-e2e` label re-triggers CI and
+    # opts the PR into the (otherwise skipped) Playwright E2E job. See test-e2e.
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 permissions:
@@ -75,7 +78,6 @@ jobs:
       backend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.backend }}
       frontend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.frontend }}
       libs: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.libs }}
-      e2e: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.e2e }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
 
@@ -104,17 +106,6 @@ jobs:
               - 'pnpm-lock.yaml'
               - 'tsconfig.json'
               - 'turbo.json'
-            # ADS-802: paths that change the e2e stack itself but match no
-            # other filter. Without these, a PR that only touches the
-            # Playwright specs, the compose file, the service image, or this
-            # workflow runs zero integration coverage.
-            e2e:
-              - 'e2e/**'
-              - 'docker-compose.yml'
-              - 'Dockerfile.service'
-              - 'Dockerfile.app.optimized'
-              - 'nginx/**'
-              - '.github/workflows/ci.yml'
 
   # ============================================================================
   # BUILD-LIBS — single source of truth for compiled lib.*/dist artifacts
@@ -354,15 +345,21 @@ jobs:
   # ============================================================================
   test-e2e:
     name: E2E Tests (Playwright)
-    needs: [changes, test-frontend, test-services]
-    # ADS-419: e2e is now a blocking signal. The previous continue-on-error
-    # escape hatch was removed because broken integration tests must fail PRs
-    # — a green CI badge that ignores e2e failures gives a false sense of
-    # readiness. After this lands, add `test-e2e` as a required status check
-    # in branch protection.
+    needs: [test-frontend, test-services]
+    # E2E is opt-in on pull requests — the full docker-stack build + Playwright
+    # run is too slow to pay on every push during development. It runs when:
+    #   * pushing to main (the pre-deploy integration gate), or
+    #   * a PR carries the `run-e2e` label (opt in when the branch is ready), or
+    #   * triggered manually via workflow_dispatch.
+    # On any other PR it is skipped, which the `ci-required` aggregator treats as
+    # success — so E2E never blocks normal in-progress PRs.
     if: |
       always() &&
-      (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.e2e == 'true') &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-e2e'))
+      ) &&
       (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') &&
       (needs.test-services.result == 'success' || needs.test-services.result == 'skipped')
     runs-on: ubuntu-latest
@@ -651,21 +648,16 @@ jobs:
           done
 
       - name: Run Playwright suite
-        # PRs run the @smoke subset (~2 critical journeys, ~3-5 min). Push
-        # to main/develop runs the full suite as the integration gate
-        # before deploy. The full set still runs on PR via the smoke
-        # signal + the unit/integration jobs; tagging more tests as
-        # @smoke is the lever if you want broader PR coverage.
+        # E2E only reaches this point when explicitly requested (main push,
+        # `run-e2e` label, or manual dispatch), so always run the full suite —
+        # the point of opting in is to get complete integration coverage, not a
+        # smoke subset. Tag tests with @smoke and run `pnpm test:e2e:smoke`
+        # locally for a quick subset.
         #
         # Retries are configured in e2e/playwright.config.ts (retries: CI ? 2 : 0).
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "PR event — running @smoke subset"
-            pnpm test:e2e:smoke
-          else
-            echo "${{ github.event_name }} on ${{ github.ref }} — running full suite"
-            pnpm test:e2e
-          fi
+          echo "${{ github.event_name }} on ${{ github.ref }} — running full suite"
+          pnpm test:e2e
 
       # ADS-386: Surface flaky-retry signal so engineers can see which tests
       # needed retries without having to open the full HTML report.
@@ -722,12 +714,13 @@ jobs:
   # every regression-blocking job above so adding/renaming a job below does
   # not require touching the ruleset.
   #
-  # Path-filtered jobs (test-frontend, test-libs, dev-auth-guard,
-  # test-e2e) report `skipped` on PRs that do not touch their paths; classic
-  # branch protection treats `skipped` as a failure, which is why a plain list
-  # of required checks is fragile. This aggregator only fails on `failure`
-  # or `cancelled`, treating `skipped` as success — the standard "merge gate"
-  # pattern.
+  # Several needs report `skipped` rather than `success`: the path-filtered
+  # jobs (test-frontend, test-libs, dev-auth-guard) on PRs that do not touch
+  # their paths, and test-e2e on any PR not labelled `run-e2e` (E2E is opt-in
+  # — see that job). Classic branch protection treats `skipped` as a failure,
+  # which is why a plain list of required checks is fragile. This aggregator
+  # only fails on `failure` or `cancelled`, treating `skipped` as success — the
+  # standard "merge gate" pattern. So an absent/skipped E2E never blocks merge.
   # ============================================================================
   ci-required:
     name: CI Required

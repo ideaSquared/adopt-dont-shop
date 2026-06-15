@@ -125,13 +125,27 @@ adopt-dont-shop/
 
 ```bash
 # Docker dev (primary workflow — full stack with HMR)
-pnpm docker:dev             # Start all containers in foreground
-pnpm docker:dev:build       # Rebuild images then start
-pnpm docker:dev:detach      # Start in background
+# `docker:dev` runs scripts/docker-dev.mjs: a preflight that checks Docker is up,
+# .env is present, the Redis host port is free (Windows reserved-range trap),
+# rebuilds the shared dev image only when pnpm-lock.yaml / Dockerfile.dev change,
+# and prompts before wiping a stale Postgres volume. It composes the base file
+# with docker-compose.dev.yml (the dev override).
+pnpm docker:dev             # Preflight + start all containers (foreground)
+pnpm docker:dev:detach      # Same, in background
+pnpm docker:dev:build       # Force-rebuild the dev image, then start
 pnpm docker:down            # Stop containers
 pnpm docker:reset           # Stop and wipe volumes (incl. DB)
 pnpm docker:logs            # Follow logs
 pnpm docker:shell:db        # Open psql in database container
+# Escape hatches: docker:dev:raw (override, skip preflight), docker:dev:legacy
+# (old per-service heavy build). REDIS_HOST_PORT in .env remaps the host Redis
+# port (default 6380) if 6379 is reserved.
+#
+# How the dev stack works: ONE shared image (Dockerfile.dev, Debian/glibc) bakes
+# a full workspace `pnpm install`. Containers bind-mount host source for HMR and
+# re-expose the image's baked node_modules via anonymous volumes (the host's
+# node_modules is never used — its pnpm symlinks are absolute host paths invalid
+# in the container). Must be Debian not Alpine: vite/rolldown + sharp need glibc.
 
 # Native dev (no Docker — fastest HMR but you must run Postgres yourself)
 pnpm dev                    # Run everything via Turbo (apps + gateway + services)

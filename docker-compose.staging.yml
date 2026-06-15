@@ -105,7 +105,7 @@ services:
           memory: 512m
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4-alpine
     container_name: ads_staging_redis
     restart: always
     ports: []

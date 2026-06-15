@@ -85,11 +85,16 @@ services:
   database:
     image: postgis/postgis:16-3.4
     container_name: ads_prod_db
+    # ADS-752: read the DB password from the file-mounted Docker secret rather
+    # than the env var. POSTGRES_PASSWORD_FILE is honoured by the postgres
+    # entrypoint and keeps the value out of `docker inspect` and the host .env.
     environment:
       # NO DEFAULTS - Must be explicitly set
       POSTGRES_USER: "${POSTGRES_USER:?Error: POSTGRES_USER required in production}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD required in production}"
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
       POSTGRES_DB: "${POSTGRES_DB:?Error: POSTGRES_DB required in production}"
+    secrets:
+      - db_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -113,11 +118,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512m
-    # Optional: Use Docker secrets instead of environment variables
-    # secrets:
-    #   - postgres_password
-    # environment:
-    #   POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
 
   # Redis - Production configuration
   redis:
@@ -501,7 +501,7 @@ services:
   # Public TLS is handled by the gateway stack — this nginx only listens on
   # the internal network and is reverse-proxied by the gateway.
   nginx:
-    image: nginx:1.27-alpine  # TODO: pin to digest once resolved via `docker pull nginx:1.27-alpine && docker inspect --format='{{index .RepoDigests 0}}'`
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
     container_name: ads_prod_nginx
     restart: always
     volumes:
@@ -580,6 +580,8 @@ networks:
 # (.github/workflows/deploy.yml) materialises ./secrets/<name> on the host
 # before `docker compose up -d`.
 secrets:
+  db_password:
+    file: ./secrets/db_password
   database_url:
     file: ./secrets/database_url
   redis_url:

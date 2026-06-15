@@ -4,7 +4,7 @@
 
 services:
   nginx:
-    image: nginx:1.27-alpine  # TODO: pin to digest once resolved via `docker pull nginx:1.27-alpine && docker inspect --format='{{index .RepoDigests 0}}'`
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
     container_name: ads_gateway
     restart: always
     ports:
@@ -45,7 +45,7 @@ services:
           memory: 64m
 
   certbot:
-    image: certbot/certbot:v3.1.0  # TODO: pin to digest once resolved via `docker pull certbot/certbot:v3.1.0 && docker inspect --format='{{index .RepoDigests 0}}'`
+    image: certbot/certbot:v3.1.0@sha256:fb978b4fef92dc5c85cc0b908836714c600e717b52a3f74c93276eb63a9d0af9
     container_name: ads_certbot
     restart: unless-stopped
     volumes:

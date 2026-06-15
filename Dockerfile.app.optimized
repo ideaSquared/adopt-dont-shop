@@ -43,7 +43,7 @@ ARG APP_NAME
 # package.json. node_modules / dist are excluded via .dockerignore.
 COPY . .
 
-RUN pnpm dlx turbo@2.9.14 prune @adopt-dont-shop/app.${APP_NAME} --docker
+RUN pnpm dlx turbo@2.9.18 prune @adopt-dont-shop/app.${APP_NAME} --docker
 
 # Development stage
 FROM base AS development
@@ -108,6 +108,12 @@ RUN --mount=type=cache,id=pnpm-build-${APP_NAME},target=/home/viteuser/.pnpm-sto
 # Pruned source — only the lib.* directories the app actually depends on.
 COPY --from=pruner --chown=viteuser:nodejs /app/out/full/ ./
 
+# turbo prune --docker doesn't copy root-level config files into out/full/.
+# Workspace tsconfigs extend ../tsconfig.base.json (ESM build) and lib.types
+# additionally extends ../tsconfig.cjs.base.json for its dual ESM+CJS build.
+# Mirrors Dockerfile.service.
+COPY --chown=viteuser:nodejs tsconfig.base.json tsconfig.cjs.base.json ./
+
 # Build libraries first, then the specific app using Turbo
 # Use cache mount for Turbo cache
 # The '...' prefix builds all dependencies first, then the target app
@@ -140,7 +146,7 @@ RUN find /app/apps/${APP_NAME}/dist -name '*.map' -delete
 # ============================================================================
 # Uses the unprivileged nginx image (runs as UID 101, listens on 8080) so the
 # container does not run as root. [ADS-701]
-FROM nginxinc/nginx-unprivileged:1.31-alpine AS production
+FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:85bcbc6b2edd325462560c597d784ecee415024f1c6a004e53ac5f202b8ca561 AS production
 ARG APP_NAME
 
 # Privileged setup (package upgrade, suid strip, config write). The base image
