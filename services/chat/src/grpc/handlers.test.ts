@@ -225,6 +225,12 @@ describe('sendMessage', () => {
     });
   });
 
+  it('rejects a body over the length limit', async () => {
+    await expect(
+      sendMessage(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE_SEND, body: 'a'.repeat(10_001) })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
   it('inserts the message and publishes chat.messageCreated after commit', async () => {
     // isParticipantOrAdmin → one row
     mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
@@ -256,6 +262,14 @@ describe('listMessages', () => {
     await expect(listMessages(mocks.deps, UNPRIVILEGED_PRINCIPAL, BASE_LIST)).rejects.toMatchObject(
       { code: 'PERMISSION_DENIED' }
     );
+  });
+
+  it('rejects a participant-scope miss (has chat.read but is not a member)', async () => {
+    // isParticipantOrAdmin SELECT → no rows
+    mocks.poolScript.push({ rows: [] });
+    await expect(listMessages(mocks.deps, ADOPTER_PRINCIPAL, BASE_LIST)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
   });
 
   it('returns ordered rows with reactions aggregated', async () => {
@@ -343,6 +357,20 @@ describe('markRead', () => {
     mocks = makeMocks();
   });
 
+  it('rejects principals without chat.read', async () => {
+    await expect(markRead(mocks.deps, UNPRIVILEGED_PRINCIPAL, BASE_MARK)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('rejects a non-participant (participant-scope miss)', async () => {
+    // isParticipantOrAdmin → no rows
+    mocks.poolScript.push({ rows: [] });
+    await expect(markRead(mocks.deps, ADOPTER_PRINCIPAL, BASE_MARK)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
   it('rejects when message does not exist in chat', async () => {
     // isParticipantOrAdmin → ok
     mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
@@ -384,12 +412,47 @@ describe('react', () => {
     mocks = makeMocks();
   });
 
+  it('rejects principals without chat.send', async () => {
+    await expect(react(mocks.deps, UNPRIVILEGED_PRINCIPAL, BASE_REACT)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('rejects reacting in a chat the caller is not a member of', async () => {
+    // message lookup → ok (resolves the chat)
+    mocks.poolScript.push({ rows: [{ chat_id: 'chat-1' }] });
+    // isParticipantOrAdmin → no rows
+    mocks.poolScript.push({ rows: [] });
+    await expect(react(mocks.deps, ADOPTER_PRINCIPAL, BASE_REACT)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
   it('returns NOT_FOUND when the target message is missing', async () => {
     // message lookup → empty
     mocks.poolScript.push({ rows: [] });
     await expect(react(mocks.deps, ADOPTER_PRINCIPAL, BASE_REACT)).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+
+  it('uses ON CONFLICT DO NOTHING so re-reacting is idempotent', async () => {
+    mocks.poolScript.push({ rows: [{ chat_id: 'chat-1' }] });
+    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.clientScript.push({ rows: [] });
+    mocks.poolScript.push({ rows: [messageRowFixture()] });
+    mocks.poolScript.push({ rows: [] });
+
+    await react(mocks.deps, ADOPTER_PRINCIPAL, BASE_REACT);
+
+    const insertCall = mocks.clientMock.query.mock.calls.find(
+      ([sql]) => typeof sql === 'string' && sql.includes('INSERT INTO message_reactions')
+    );
+    expect(insertCall).toBeDefined();
+    expect(insertCall?.[0]).toMatch(/ON CONFLICT \(message_id, user_id, emoji\) DO NOTHING/);
   });
 
   it('adds a reaction and publishes chat.reactionAdded', async () => {
@@ -675,6 +738,24 @@ describe('deleteMessage', () => {
     await expect(
       deleteMessage(mocks.deps, ADOPTER_PRINCIPAL, { messageId: 'msg-1' })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('lets the sender soft-delete their own message and publishes chat.messageDeleted', async () => {
+    // existing row → sender owns it, not yet deleted
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [messageRowFixture({ sender_id: 'usr-adopter' })],
+    });
+    // Inside withTransaction: UPDATE returning, SELECT participants
+    mocks.clientScript.push({ rows: [messageRowFixture({ deleted_at: new Date() })] });
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    // After commit: reactions lookup
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await deleteMessage(mocks.deps, ADOPTER_PRINCIPAL, { messageId: 'msg-1' });
+    expect(res.message?.deletedAt).toBeDefined();
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.messageDeleted');
   });
 
   it('is idempotent on an already-deleted row (no write, no publish)', async () => {
