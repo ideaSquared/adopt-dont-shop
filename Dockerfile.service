@@ -42,7 +42,7 @@ ARG SERVICE
 # Full monorepo source is needed so turbo can read every workspace package.json.
 # node_modules / dist are excluded via .dockerignore.
 COPY . .
-RUN pnpm dlx turbo@2.9.16 prune ${SERVICE} --docker
+RUN pnpm dlx turbo@2.9.18 prune ${SERVICE} --docker
 
 # ---------------------------------------------------------------------------
 # build — install the pruned deps + turbo build the service (+ its deps)

@@ -68,17 +68,29 @@ function runCommand(command, options = {}) {
   }
 }
 
+// Keep in sync with scripts/generate-secrets.mjs (`pnpm secrets:generate`) so
+// both onboarding paths produce the same set of secrets.
 const SECRET_KEYS = [
   'JWT_SECRET',
   'JWT_REFRESH_SECRET',
   'SESSION_SECRET',
   'CSRF_SECRET',
   'ENCRYPTION_KEY',
+  'UPLOAD_SIGNING_SECRET',
+  'JWT_REPORT_SHARE_SECRET',
+  'POSTGRES_PASSWORD',
+  'REDIS_PASSWORD',
 ];
 
 function generateSecret(key) {
   if (key === 'ENCRYPTION_KEY') {
+    // AES-256 needs exactly 32 bytes (64 hex chars).
     return randomBytes(32).toString('hex');
+  }
+  if (key === 'POSTGRES_PASSWORD' || key === 'REDIS_PASSWORD') {
+    // These are interpolated into connection URLs (DATABASE_URL / REDIS_URL),
+    // so use hex — base64 can contain + / = which break URL parsing.
+    return randomBytes(24).toString('hex');
   }
   return randomBytes(32).toString('base64');
 }
@@ -206,8 +218,8 @@ function printNextSteps() {
   log('Next steps:', `${BOLD}${GREEN}`);
   log('', RESET);
   log('1. Review your .env file:', BLUE);
-  log('   - Secrets have been generated for you.', RESET);
-  log('   - Set POSTGRES_PASSWORD and any third-party API keys you need.', RESET);
+  log('   - Secrets (including POSTGRES_PASSWORD / REDIS_PASSWORD) have been generated for you.', RESET);
+  log('   - Set any third-party API keys you need.', RESET);
   log('', RESET);
   log('2. Start the development stack:', BLUE);
   log('   pnpm docker:dev          # recommended (includes database + redis)', RESET);
@@ -325,7 +337,7 @@ async function setup() {
       logSuccess('Environment configuration valid');
     } catch (err) {
       logError('Environment validation reported issues — review the output above before starting the stack.');
-      // Non-fatal: the user may need to fill in non-secret values like POSTGRES_PASSWORD.
+      // Non-fatal: the user may still need to fill in optional values (e.g. third-party API keys).
     }
     log('', RESET);
 

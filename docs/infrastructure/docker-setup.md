@@ -2,16 +2,23 @@
 
 This document explains how to set up and run the Adopt Don't Shop application using Docker, along with common troubleshooting solutions.
 
+> **Canonical quick-start:** the fastest path is `pnpm setup` followed by `pnpm docker:dev`
+> (see the root [README](../../README.md)). This guide focuses on the architecture overview
+> and troubleshooting. The stack is now a Fastify **gateway** plus gRPC microservices — the
+> old single `service.backend` monolith has been removed.
+
 ## Architecture
 
 The application consists of multiple services:
 
-- **service.backend** - Main API backend service (Node.js/Express)
+- **service.gateway** - Fastify REST/WS API gateway / edge (port 4000)
+- **service.\*** - gRPC microservices: auth, pets, rescue, applications, notifications, moderation, matching, audit, chat, cms
 - **app.client** - Public-facing React application (port 3000)
 - **app.admin** - Admin dashboard React application (port 3001)
 - **app.rescue** - Rescue management React application (port 3002)
 - **database** - PostgreSQL (with PostGIS)
 - **redis** - Redis for caching and sessions
+- **nats** - JetStream event bus between microservices
 - **nginx** - Reverse proxy for subdomain routing (runs in dev and prod)
 
 ## Quick Start
@@ -32,7 +39,7 @@ Modern browsers automatically resolve `*.localhost` subdomains to `127.0.0.1`, s
 - Client: http://localhost:3000
 - Admin: http://localhost:3001
 - Rescue: http://localhost:3002
-- API: http://localhost:5000
+- API (gateway): http://localhost:4000
 
 ### Development Environment
 
@@ -47,12 +54,11 @@ Modern browsers automatically resolve `*.localhost` subdomains to `127.0.0.1`, s
    git clone <repository-url>
    cd adopt-dont-shop
 
-   # Copy environment file
-   cp .env.example .env
-   # Edit .env with your configuration
+   # One-time setup: creates .env, generates secrets, installs deps
+   pnpm setup
 
-   # Start all services
-   docker compose up
+   # Start the full dev stack (preflight checks + HMR)
+   pnpm docker:dev
    ```
 
 3. **Access Applications**
@@ -89,10 +95,10 @@ CSRF_SECRET=...
 # /api requests to the backend via docker-compose networking. Set an
 # absolute URL only when running the apps outside Docker.
 VITE_API_BASE_URL=
-VITE_WS_BASE_URL=ws://localhost:5000
+VITE_WS_BASE_URL=ws://localhost:4000
 
 # CORS (comma-separated list of allowed origins)
-CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost,http://admin.localhost,http://rescue.localhost,http://api.localhost,http://localhost:5000
+CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost,http://admin.localhost,http://rescue.localhost,http://api.localhost,http://localhost:4000
 ```
 
 Generate strong secrets and append them to your `.env` with `pnpm secrets:generate >> .env`.
@@ -101,7 +107,7 @@ Generate strong secrets and append them to your `.env` with `pnpm secrets:genera
 
 ### 1. Database Connection Issues ✅ RESOLVED
 
-**Problem**: Service-backend couldn't connect to PostgreSQL database due to missing environment variables.
+**Problem**: A backend service couldn't connect to PostgreSQL database due to missing environment variables.
 
 **Solution**: Updated `docker-compose.yml` to provide proper database configuration:
 
@@ -228,7 +234,7 @@ docker system prune                  # Clean up unused resources
 docker compose logs -f
 
 # View specific service logs
-docker compose logs -f service-backend
+docker compose logs -f service-gateway
 docker compose logs -f app-client
 
 # Monitor resource usage
