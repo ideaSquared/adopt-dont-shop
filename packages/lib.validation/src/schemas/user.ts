@@ -78,6 +78,7 @@ export const PhoneNumberSchema = z
   .pipe(
     z
       .string()
+      .regex(/^\+?\d+$/, 'Phone number must contain only digits (optionally prefixed with +)')
       .min(10, 'Phone number must be at least 10 digits')
       .max(20, 'Phone number must be at most 20 digits')
   );
