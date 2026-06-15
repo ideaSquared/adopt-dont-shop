@@ -32,6 +32,8 @@ import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 import { NotificationsV1, type CreateNotificationRequest } from '@adopt-dont-shop/proto';
 
 import { createNotification, type HandlerDeps } from '../grpc/handlers.js';
+import type { PetsFavoritersClient } from '../grpc/pets-client.js';
+import type { RescueStaffClient } from '../grpc/rescue-client.js';
 
 import type {
   ApplicationAdoptedEvent,
@@ -55,6 +57,12 @@ export type RegisterSubscribersOptions = {
   nats: NatsConnection;
   deps: HandlerDeps;
   logger: Logger;
+  // Cross-service clients for recipient discovery. Optional — when a
+  // client is absent (its gRPC URL isn't configured) the corresponding
+  // fan-out no-ops gracefully, exactly like Broadcast degrades without
+  // authGrpcUrl. The wire path stays subscribed either way.
+  petsClient?: PetsFavoritersClient;
+  rescueClient?: RescueStaffClient;
 };
 
 // Durable-consumer name prefix so multiple replicas of service.notifications
@@ -79,8 +87,19 @@ const dedupFor = (
 ): { dedup: { consumer: string; eventId: string } } | undefined =>
   meta.id ? { dedup: { consumer: subject, eventId: meta.id } } : undefined;
 
+// Per-recipient dedup key for fan-out subjects (one event → N rows). The
+// recipient is appended to the event id so the first recipient's claim
+// doesn't suppress everyone else's notification. Mirrors the chat handler's
+// inline `${meta.id}:${userId}` key.
+const perRecipientDedup = (
+  subject: string,
+  meta: { id?: string },
+  recipientUserId: string
+): { dedup: { consumer: string; eventId: string } } | undefined =>
+  meta.id ? { dedup: { consumer: subject, eventId: `${meta.id}:${recipientUserId}` } } : undefined;
+
 export const registerSubscribers = (opts: RegisterSubscribersOptions): SubscriptionHandle[] => {
-  const { nats, deps, logger } = opts;
+  const { nats, deps, logger, petsClient, rescueClient } = opts;
 
   const onError = (err: unknown, ctx: { subject: string }): void => {
     logger.error('subscriber handler failed', {
@@ -219,24 +238,41 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     )
   );
 
-  // pets.statusChanged / pets.deleted (Phase 3.4): the subjects are
-  // wired here so the wire path is exercised end-to-end, but we do
-  // not yet create user-facing notification rows — see event-types.ts
-  // for the recipient-discovery deferral. Subscribing keeps the
-  // contract anchored on the consumer side and means upcoming changes
-  // (rescue staff lookup, favourite fan-out) only need to fill in the
-  // translator, not the registration.
+  // pets.statusChanged — fan a pet_update notification out to every user
+  // who FAVOURITED the pet. Recipient discovery is PetService.ListFavoriters
+  // (a system-principal gRPC read). When the pets client isn't configured
+  // the fan-out no-ops gracefully — the wire path stays subscribed either
+  // way. pets.deleted stays log-only (no recipient derivable here).
   subscriptions.push(
     subscribe<PetStatusChangedEvent>(
       nats,
       { subject: 'pets.statusChanged', durable: durableFor('pets.statusChanged'), onError },
-      async payload => {
-        logger.info('pets.statusChanged received', {
-          petId: payload.petId,
-          rescueId: payload.rescueId,
-          fromStatus: payload.fromStatus,
-          toStatus: payload.toStatus,
-        });
+      async (payload, meta) => {
+        if (!petsClient) {
+          logger.warn('pets.statusChanged fan-out skipped — no PETS_GRPC_URL configured', {
+            petId: payload.petId,
+          });
+          return;
+        }
+        const favouriters = await petsClient.listFavoriters(payload.petId);
+        // Each favouriter gets one row; one recipient's failure must not
+        // abort the rest (poison-pill protection — same as the chat handler).
+        for (const userId of favouriters) {
+          try {
+            await createNotification(
+              deps,
+              SYSTEM_PRINCIPAL,
+              buildPetStatusChangedCreate(payload, userId),
+              perRecipientDedup('pets.statusChanged', meta, userId)
+            );
+          } catch (err) {
+            logger.warn('pets.statusChanged notification create failed', {
+              petId: payload.petId,
+              recipientUserId: userId,
+              err: (err as Error)?.message ?? String(err),
+            });
+          }
+        }
       }
     )
   );
@@ -254,20 +290,42 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     )
   );
 
-  // rescue.verified / rescue.rejected / rescue.staffInvited (Phase 4.4):
-  // log-only on the consumer side, same pattern as the pets.* events.
-  // Recipient-discovery (rescue.contact_person, invitee email worker)
-  // lands when those upstream lookups exist.
+  // rescue.verified / rescue.rejected — fan a system-announcement
+  // notification out to the rescue's staff. Recipient discovery is
+  // RescueService.ListStaffMembers (a system-principal gRPC read); the
+  // rescue name (for the body) comes from RescueService.Get. When the
+  // rescue client isn't configured the fan-out no-ops gracefully.
+  // rescue.staffInvited stays log-only — it carries an email for a
+  // possibly-not-yet-user, which is out of scope for the staff fan-out.
   subscriptions.push(
     subscribe<RescueVerifiedEvent>(
       nats,
       { subject: 'rescue.verified', durable: durableFor('rescue.verified'), onError },
-      async payload => {
-        logger.info('rescue.verified received', {
-          rescueId: payload.rescueId,
-          fromStatus: payload.fromStatus,
-          toStatus: payload.toStatus,
-        });
+      async (payload, meta) => {
+        if (!rescueClient) {
+          logger.warn('rescue.verified fan-out skipped — no RESCUE_GRPC_URL configured', {
+            rescueId: payload.rescueId,
+          });
+          return;
+        }
+        const staff = await rescueClient.listStaffMembers(payload.rescueId);
+        const rescueName = await rescueClient.getRescueName(payload.rescueId);
+        for (const userId of staff) {
+          try {
+            await createNotification(
+              deps,
+              SYSTEM_PRINCIPAL,
+              buildRescueVerifiedCreate(payload, rescueName, userId),
+              perRecipientDedup('rescue.verified', meta, userId)
+            );
+          } catch (err) {
+            logger.warn('rescue.verified notification create failed', {
+              rescueId: payload.rescueId,
+              recipientUserId: userId,
+              err: (err as Error)?.message ?? String(err),
+            });
+          }
+        }
       }
     )
   );
@@ -276,11 +334,31 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     subscribe<RescueRejectedEvent>(
       nats,
       { subject: 'rescue.rejected', durable: durableFor('rescue.rejected'), onError },
-      async payload => {
-        logger.info('rescue.rejected received', {
-          rescueId: payload.rescueId,
-          reason: payload.reason,
-        });
+      async (payload, meta) => {
+        if (!rescueClient) {
+          logger.warn('rescue.rejected fan-out skipped — no RESCUE_GRPC_URL configured', {
+            rescueId: payload.rescueId,
+          });
+          return;
+        }
+        const staff = await rescueClient.listStaffMembers(payload.rescueId);
+        const rescueName = await rescueClient.getRescueName(payload.rescueId);
+        for (const userId of staff) {
+          try {
+            await createNotification(
+              deps,
+              SYSTEM_PRINCIPAL,
+              buildRescueRejectedCreate(payload, rescueName, userId),
+              perRecipientDedup('rescue.rejected', meta, userId)
+            );
+          } catch (err) {
+            logger.warn('rescue.rejected notification create failed', {
+              rescueId: payload.rescueId,
+              recipientUserId: userId,
+              err: (err as Error)?.message ?? String(err),
+            });
+          }
+        }
       }
     )
   );
@@ -574,3 +652,86 @@ export const buildChatMessageReceivedCreate = (
     relatedEntityId: event.messageId,
   };
 };
+
+// pets.statusChanged — fan an in-app update out to every user who
+// favourited the pet. Type PET_UPDATE (the closest existing fit for a
+// favourite-pet status change). The from/to status pair rides in
+// data_json so the SPA frames "now available" vs "adopted" appropriately
+// rather than the raw enum landing in the body.
+export const buildPetStatusChangedCreate = (
+  event: PetStatusChangedEvent,
+  recipientUserId: string
+): CreateNotificationRequest => ({
+  userId: recipientUserId,
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_PET_UPDATE,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL,
+  title: 'A pet you favourited was updated',
+  message: 'The status of a pet on your favourites list has changed.',
+  dataJson: JSON.stringify({
+    petId: event.petId,
+    rescueId: event.rescueId,
+    fromStatus: event.fromStatus,
+    toStatus: event.toStatus,
+  }),
+  templateVariablesJson: '{}',
+  relatedEntityType:
+    NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_PET,
+  relatedEntityId: event.petId,
+});
+
+// rescue.verified — tell the rescue's staff their organisation was
+// verified. There is no dedicated "rescue updates" NotificationType, so
+// we use NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT — the generic system /
+// platform-news type — which is the closest existing fit for rescue-org
+// status news. HIGH priority: verification unblocks the rescue's ability
+// to list pets, so staff should see it promptly.
+export const buildRescueVerifiedCreate = (
+  event: RescueVerifiedEvent,
+  rescueName: string | null,
+  recipientUserId: string
+): CreateNotificationRequest => ({
+  userId: recipientUserId,
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH,
+  title: 'Your rescue has been verified',
+  message: rescueName
+    ? `${rescueName} has been verified. You can now publish pet listings.`
+    : 'Your rescue has been verified. You can now publish pet listings.',
+  dataJson: JSON.stringify({
+    rescueId: event.rescueId,
+    fromStatus: event.fromStatus,
+    toStatus: event.toStatus,
+  }),
+  templateVariablesJson: '{}',
+  relatedEntityType:
+    NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE,
+  relatedEntityId: event.rescueId,
+});
+
+// rescue.rejected — same SYSTEM_ANNOUNCEMENT type + RESCUE related-entity
+// as rescue.verified, different translation. The reason rides in the
+// message body when present so staff understand the decision.
+export const buildRescueRejectedCreate = (
+  event: RescueRejectedEvent,
+  rescueName: string | null,
+  recipientUserId: string
+): CreateNotificationRequest => ({
+  userId: recipientUserId,
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL,
+  title: 'Your rescue application was not approved',
+  message: event.reason
+    ? `Your rescue application was not approved. Reason: ${event.reason}`
+    : 'Your rescue application was not approved.',
+  dataJson: JSON.stringify({
+    rescueId: event.rescueId,
+    reason: event.reason ?? null,
+  }),
+  templateVariablesJson: '{}',
+  relatedEntityType:
+    NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE,
+  relatedEntityId: event.rescueId,
+});

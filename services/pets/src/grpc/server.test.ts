@@ -30,7 +30,7 @@ const pool = {} as unknown as Pool;
 const nats = {} as unknown as NatsConnection;
 
 describe('createGrpcServer', () => {
-  it('registers all six PetService methods on the grpc.Server', () => {
+  it('registers all PetService methods on the grpc.Server', () => {
     const server = createGrpcServer({ config, pool, nats, logger: quietLogger });
     const handlers = (server as unknown as { handlers: Map<string, unknown> }).handlers;
 
@@ -40,6 +40,7 @@ describe('createGrpcServer', () => {
     expect(handlers.has('/adopt_dont_shop.pets.v1.PetService/Update')).toBe(true);
     expect(handlers.has('/adopt_dont_shop.pets.v1.PetService/UpdateStatus')).toBe(true);
     expect(handlers.has('/adopt_dont_shop.pets.v1.PetService/Delete')).toBe(true);
+    expect(handlers.has('/adopt_dont_shop.pets.v1.PetService/ListFavoriters')).toBe(true);
   });
 
   it('matches every path from the canonical PetServiceService Definition table', () => {
