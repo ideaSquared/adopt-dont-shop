@@ -36,6 +36,8 @@ import {
   type Notification,
 } from '@adopt-dont-shop/proto';
 
+import { claimEvent } from '../processed-events.js';
+
 import {
   channelFromDb,
   channelToDb,
@@ -157,10 +159,20 @@ const NOTIFICATIONS_CREATE: Permission = 'notifications.create' as Permission;
 const NOTIFICATIONS_READ: Permission = 'notifications.read' as Permission;
 const NOTIFICATIONS_UPDATE: Permission = 'notifications.update' as Permission;
 
+// Subscriber-path idempotency. When set, the create claims (consumer,
+// eventId) in processed_events inside the same transaction as the insert,
+// so a redelivered upstream event is a no-op (returns `{ notification:
+// undefined }`). Direct gRPC callers omit it and keep the original
+// always-insert behaviour.
+export type CreateNotificationOptions = {
+  dedup?: { consumer: string; eventId: string };
+};
+
 export async function createNotification(
   deps: HandlerDeps,
   principal: Principal,
-  req: CreateNotificationRequest
+  req: CreateNotificationRequest,
+  opts?: CreateNotificationOptions
 ): Promise<CreateNotificationResponse> {
   // Input validation — INVALID_ARGUMENT for caller bugs.
   if (!req.userId) {
@@ -196,8 +208,20 @@ export async function createNotification(
       : req.priority;
 
   let inserted: NotificationRow | undefined;
+  let skipped = false;
 
   await withTransaction(deps, async ({ client, publish }) => {
+    // Idempotency claim FIRST — atomic with the insert below. A redelivered
+    // event loses the ON CONFLICT race, so we skip the insert + publish and
+    // the whole transaction is a no-op.
+    if (opts?.dedup) {
+      const claimed = await claimEvent(client, opts.dedup.consumer, opts.dedup.eventId);
+      if (!claimed) {
+        skipped = true;
+        return;
+      }
+    }
+
     const result = await client.query<NotificationRow>(
       `
       INSERT INTO notifications.notifications (
@@ -255,6 +279,12 @@ export async function createNotification(
       },
     });
   });
+
+  // Redelivery — the event was already processed, so there is no new row.
+  // Subscribers ignore the return value; this just makes the skip explicit.
+  if (skipped) {
+    return { notification: undefined };
+  }
 
   // `inserted` is guaranteed populated by the RETURNING clause —
   // withTransaction would have thrown if the query failed.

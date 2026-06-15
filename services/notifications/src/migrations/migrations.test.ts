@@ -49,6 +49,8 @@ describe('notifications migrations', () => {
     '004_create_email_queue.ts',
     '005_create_email_templates.ts',
     '006_create_email_preferences.ts',
+    '007_email_queue_stale_sending_idx.ts',
+    '008_create_processed_events.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;
