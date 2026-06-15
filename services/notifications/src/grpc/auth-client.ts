@@ -7,6 +7,8 @@ import { credentials, status, type CallOptions, Metadata } from '@grpc/grpc-js';
 
 import {
   AuthV1,
+  type AdminGetUserRequest,
+  type AdminGetUserResponse,
   type ListUserIdsByCohortRequest,
   type ListUserIdsByCohortResponse,
 } from '@adopt-dont-shop/proto';
@@ -66,9 +68,15 @@ const jitteredBackoff = (attempt: number, baseMs: number): number => {
   return base * (0.75 + Math.random() * 0.5);
 };
 
-export function createAuthCohortClient(opts: CreateAuthCohortClientOptions): AuthCohortClient & {
-  close(): void;
-} {
+// The email channel adapter resolves a recipient's address by user id.
+export type AuthUserClient = {
+  adminGetUser: (req: AdminGetUserRequest) => Promise<AdminGetUserResponse>;
+};
+
+export function createAuthCohortClient(opts: CreateAuthCohortClientOptions): AuthCohortClient &
+  AuthUserClient & {
+    close(): void;
+  } {
   const stub = new AuthV1.AuthServiceClient(opts.address, credentials.createInsecure());
   const deadlineMs = opts.deadlineMs ?? DEFAULT_DEADLINE_MS;
   const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
@@ -76,7 +84,10 @@ export function createAuthCohortClient(opts: CreateAuthCohortClientOptions): Aut
   const systemPrincipal = {
     userId: opts.systemUserId ?? 'svc-notifications',
     roles: splitList(opts.systemRoles ?? 'admin'),
-    permissions: splitList(opts.systemPermissions ?? 'admin.users.broadcast'),
+    // admin.users.broadcast → Broadcast cohort expansion;
+    // admin.users.read → AdminGetUser, used by the email channel adapter to
+    // resolve a recipient's address from their user id.
+    permissions: splitList(opts.systemPermissions ?? 'admin.users.broadcast,admin.users.read'),
   };
 
   // Built per attempt, not once at client creation: the signed
@@ -133,6 +144,8 @@ export function createAuthCohortClient(opts: CreateAuthCohortClientOptions): Aut
   return {
     listUserIdsByCohort: (req: ListUserIdsByCohortRequest): Promise<ListUserIdsByCohortResponse> =>
       callWithRetry(stub.listUserIdsByCohort, req),
+    adminGetUser: (req: AdminGetUserRequest): Promise<AdminGetUserResponse> =>
+      callWithRetry(stub.adminGetUser, req),
     close: () => stub.close(),
   };
 }

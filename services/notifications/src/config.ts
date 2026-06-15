@@ -43,6 +43,14 @@ export type NotificationsConfig = {
   // Toggle the email queue worker. Defaults to true. Tests + the
   // migrations-only smoke set this to false to keep the loop quiet.
   emailWorkerEnabled: boolean;
+  // Toggle the email CHANNEL adapter — the notifications.created subscriber
+  // that enqueues transactional emails. Distinct from emailWorkerEnabled
+  // (which drains the queue). Defaults to true, but only starts when an
+  // auth client is configured (it needs AdminGetUser to resolve addresses).
+  emailChannelEnabled: boolean;
+  // From-address for adapter-generated transactional emails.
+  defaultFromEmail: string;
+  defaultFromName: string;
   // Push provider selection — Phase 7.2. Same ADS-549 rule: production
   // refuses 'console' so an unconfigured push channel surfaces at boot.
   pushProvider: PushProviderConfig;
@@ -84,6 +92,9 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     emailProvider: loadEmailProviderConfig(env),
     emailWorkerEnabled: env.EMAIL_WORKER_ENABLED?.trim() !== 'false',
+    emailChannelEnabled: env.EMAIL_CHANNEL_ENABLED?.trim() !== 'false',
+    defaultFromEmail: env.DEFAULT_FROM_EMAIL?.trim() || 'noreply@adoptdontshop.com',
+    defaultFromName: env.DEFAULT_FROM_NAME?.trim() || "Adopt Don't Shop",
     pushProvider: loadPushProviderConfig(env),
     pushWorkerEnabled: env.PUSH_WORKER_ENABLED?.trim() !== 'false',
     schedulerEnabled: env.SCHEDULER_ENABLED?.trim() !== 'false',

@@ -237,13 +237,13 @@ describe('createAuthCohortClient — signed system principal (ADS-800)', () => {
       // Legacy headers still present for services running without the key.
       expect(meta.get('x-user-id')).toEqual(['svc-notifications']);
       expect(meta.get('x-user-roles')).toEqual(['admin']);
-      expect(meta.get('x-user-permissions')).toEqual(['admin.users.broadcast']);
+      expect(meta.get('x-user-permissions')).toEqual(['admin.users.broadcast,admin.users.read']);
       // And the signed token carries the same principal.
       const token = String(meta.get(PRINCIPAL_TOKEN_HEADER)[0]);
       const principal = verifyPrincipalToken(token, SIGNING_KEY);
       expect(principal.userId).toBe('svc-notifications');
       expect(principal.roles).toEqual(['admin']);
-      expect(principal.permissions).toEqual(['admin.users.broadcast']);
+      expect(principal.permissions).toEqual(['admin.users.broadcast', 'admin.users.read']);
     } finally {
       client.close();
     }
