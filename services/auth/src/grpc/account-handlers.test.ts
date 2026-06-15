@@ -285,6 +285,17 @@ describe('resetPassword', () => {
     expect(sql).toContain('locked_until = NULL');
     expect(sql).toContain('login_attempts = 0');
   });
+
+  it('revokes all of the user’s refresh tokens (sessions) on reset', async () => {
+    mocks.hasherMock.hash.mockResolvedValueOnce('hash');
+    mocks.clientScript([userRowFixture()]);
+    await resetPassword(mocks.deps, null, { resetToken: 'tok', newPassword: 'longenough' });
+    const revoke = realQueries(mocks.clientMock.query).find(
+      q => /auth\.refresh_tokens/.test(String(q[0])) && /is_revoked = true/.test(String(q[0]))
+    );
+    expect(revoke).toBeDefined();
+    expect(revoke?.[1]).toContain('usr-1');
+  });
 });
 
 describe('changePassword', () => {
@@ -321,6 +332,21 @@ describe('changePassword', () => {
     });
     expect(res.ok).toBe(true);
     expect(realQueries(mocks.clientMock.query)[0][1]).toContain('new-hash');
+  });
+
+  it('revokes all of the user’s refresh tokens (sessions) on change', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ password: 'existing-hash' }] });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.hasherMock.hash.mockResolvedValueOnce('new-hash');
+    await changePassword(mocks.deps, PRINCIPAL, {
+      currentPassword: 'right',
+      newPassword: 'longenough',
+    });
+    const revoke = realQueries(mocks.clientMock.query).find(
+      q => /auth\.refresh_tokens/.test(String(q[0])) && /is_revoked = true/.test(String(q[0]))
+    );
+    expect(revoke).toBeDefined();
+    expect(revoke?.[1]).toContain('usr-1');
   });
 });
 
