@@ -40,19 +40,16 @@ jobs:
           ROLLBACK_ENV: ${{ github.event.inputs.environment }}
           SECRET_JWT_SECRET: ${{ secrets.JWT_SECRET }}
           SECRET_JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
-          SECRET_SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          SECRET_CSRF_SECRET: ${{ secrets.CSRF_SECRET }}
-          SECRET_ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
           SECRET_UPLOAD_SIGNING_SECRET: ${{ secrets.UPLOAD_SIGNING_SECRET }}
           SECRET_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          SECRET_REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          SECRET_PRINCIPAL_SIGNING_KEY: ${{ secrets.PRINCIPAL_SIGNING_KEY }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          envs: GHCR_TOKEN,ROLLBACK_SHA,ROLLBACK_ENV,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_SESSION_SECRET,SECRET_CSRF_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_REDIS_PASSWORD
+          envs: GHCR_TOKEN,ROLLBACK_SHA,ROLLBACK_ENV,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY
           script: |
             set -euo pipefail
             # Validate SHA before use to prevent shell injection.
@@ -87,21 +84,30 @@ jobs:
               COMPOSE_FILE="docker-compose.staging.yml"
             fi
 
-            # Materialize Docker secret files for production (consumed via
-            # file: ./secrets/<name> in docker-compose.prod.yml). [ADS-675]
-            if [ "$ENV" = "production" ]; then
-              mkdir -p secrets
-              chmod 700 secrets
-              printf '%s' "$SECRET_JWT_SECRET"            > secrets/jwt_secret
-              printf '%s' "$SECRET_JWT_REFRESH_SECRET"    > secrets/jwt_refresh_secret
-              printf '%s' "$SECRET_SESSION_SECRET"        > secrets/session_secret
-              printf '%s' "$SECRET_CSRF_SECRET"           > secrets/csrf_secret
-              printf '%s' "$SECRET_ENCRYPTION_KEY"        > secrets/encryption_key
-              printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET" > secrets/upload_signing_secret
-              printf '%s' "$SECRET_DB_PASSWORD"           > secrets/db_password
-              printf '%s' "$SECRET_REDIS_PASSWORD"        > secrets/redis_password
-              chmod 600 secrets/*
-            fi
+            # Materialize the file-mounted Docker secrets consumed via
+            # `file: ./secrets/<name>` by BOTH docker-compose.prod.yml and
+            # docker-compose.staging.yml. The set must match the `secrets:`
+            # blocks in those files (see secrets/README.md). [ADS-675, ADS-752]
+            read_env() {  # read a key from the host .env, quotes stripped; fails if absent
+              local v
+              v="$(grep -E "^$1=" .env | head -n1 | cut -d= -f2-)" || true
+              v="${v%\"}"; v="${v#\"}"; v="${v%\'}"; v="${v#\'}"
+              [ -n "$v" ] || { echo "ERROR: $1 missing from .env" >&2; exit 1; }
+              printf '%s' "$v"
+            }
+            PG_USER="$(read_env POSTGRES_USER)"
+            PG_DB="$(read_env POSTGRES_DB)"
+            REDIS_PW="$(read_env REDIS_PASSWORD)"
+            mkdir -p secrets
+            chmod 700 secrets
+            printf '%s' "postgresql://${PG_USER}:${SECRET_DB_PASSWORD}@database:5432/${PG_DB}" > secrets/database_url
+            printf '%s' "redis://:${REDIS_PW}@redis:6379"      > secrets/redis_url
+            printf '%s' "$SECRET_JWT_SECRET"                    > secrets/jwt_secret
+            printf '%s' "$SECRET_JWT_REFRESH_SECRET"            > secrets/jwt_refresh_secret
+            printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET"         > secrets/upload_signing_secret
+            printf '%s' "$SECRET_PRINCIPAL_SIGNING_KEY"         > secrets/principal_signing_key
+            printf '%s' "$SECRET_DB_PASSWORD"                   > secrets/db_password
+            chmod 600 secrets/*
 
             docker compose -f $COMPOSE_FILE --env-file .env up -d
 
@@ -119,9 +125,7 @@ jobs:
             done
 
             # Remove secret files now that containers have started. [ADS-675]
-            if [ "$ENV" = "production" ]; then
-              rm -f secrets/*
-            fi
+            rm -f secrets/*
 
             echo "$SHA" > .last_sha
             echo "Rolled back $ENV to $SHA."

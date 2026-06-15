@@ -126,18 +126,18 @@ Production deployments use file-based Docker secrets (plain Compose v2, not Swar
 
 ### How the Deploy Workflow Materializes Secrets
 
-The `deploy.yml` and `rollback.yml` workflows pass the 8 production secrets via the `env:` block of the `appleboy/ssh-action` step (never interpolated into the script text). On the server, before `docker compose up -d`, the script writes each secret file using `printf '%s'` (no trailing newline):
+The `deploy.yml` and `rollback.yml` workflows pass the rotating secrets via the `env:` block of the `appleboy/ssh-action` step (never interpolated into the script text) and run for **both staging and production**. On the server, before `docker compose up -d`, the script writes each file the compose `secrets:` block mounts, using `printf '%s'` (no trailing newline). `database_url` / `redis_url` are composed from the DB password plus the non-rotating identifiers already in the host `.env` (so the URLs always match what the database / redis containers use):
 
 ```bash
 mkdir -p secrets && chmod 700 secrets
-printf '%s' "$SECRET_JWT_SECRET"            > secrets/jwt_secret
-printf '%s' "$SECRET_JWT_REFRESH_SECRET"    > secrets/jwt_refresh_secret
-printf '%s' "$SECRET_SESSION_SECRET"        > secrets/session_secret
-printf '%s' "$SECRET_CSRF_SECRET"           > secrets/csrf_secret
-printf '%s' "$SECRET_ENCRYPTION_KEY"        > secrets/encryption_key
-printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET" > secrets/upload_signing_secret
-printf '%s' "$SECRET_DB_PASSWORD"           > secrets/db_password
-printf '%s' "$SECRET_REDIS_PASSWORD"        > secrets/redis_password
+PG_USER="$(read_env POSTGRES_USER)"; PG_DB="$(read_env POSTGRES_DB)"; REDIS_PW="$(read_env REDIS_PASSWORD)"
+printf '%s' "postgresql://${PG_USER}:${SECRET_DB_PASSWORD}@database:5432/${PG_DB}" > secrets/database_url
+printf '%s' "redis://:${REDIS_PW}@redis:6379"      > secrets/redis_url
+printf '%s' "$SECRET_JWT_SECRET"                    > secrets/jwt_secret
+printf '%s' "$SECRET_JWT_REFRESH_SECRET"            > secrets/jwt_refresh_secret
+printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET"         > secrets/upload_signing_secret
+printf '%s' "$SECRET_PRINCIPAL_SIGNING_KEY"         > secrets/principal_signing_key
+printf '%s' "$SECRET_DB_PASSWORD"                   > secrets/db_password
 chmod 600 secrets/*
 # ... docker compose up -d ...
 rm -f secrets/*
@@ -149,48 +149,48 @@ The `secrets/` directory is gitignored and must never be committed.
 
 ```yaml
 secrets:
+  database_url:
+    file: ./secrets/database_url
+  redis_url:
+    file: ./secrets/redis_url
   jwt_secret:
     file: ./secrets/jwt_secret
   jwt_refresh_secret:
     file: ./secrets/jwt_refresh_secret
-  session_secret:
-    file: ./secrets/session_secret
-  csrf_secret:
-    file: ./secrets/csrf_secret
-  encryption_key:
-    file: ./secrets/encryption_key
   upload_signing_secret:
     file: ./secrets/upload_signing_secret
+  principal_signing_key:
+    file: ./secrets/principal_signing_key
   db_password:
     file: ./secrets/db_password
-  redis_password:
-    file: ./secrets/redis_password
 ```
 
 Each service that needs a secret lists it under its own `secrets:` key; Compose mounts the file content at `/run/secrets/<name>`.
 
 ### Application Code for Docker Secrets
 
-The backend reads secrets via `readSecretOrEnv()` in `config/env.ts`, which checks `/run/secrets/<name>` first and falls back to the environment variable of the same name:
+Each service reads secrets via the `@adopt-dont-shop/config-secrets` loader, which checks `<NAME>_FILE` (a path, e.g. `/run/secrets/database_url`) first and falls back to the plain `<NAME>` env var:
 
 ```typescript
-// Reads /run/secrets/<name> if it exists, otherwise falls back to process.env[envVar]
-const jwtSecret = readSecretOrEnv('jwt_secret', 'JWT_SECRET');
-const dbPassword = readSecretOrEnv('db_password', 'DB_PASSWORD');
+import { readSecret, requireSecret } from '@adopt-dont-shop/config-secrets';
+
+// Prefers DATABASE_URL_FILE (the mounted secret), falls back to DATABASE_URL.
+const databaseUrl = requireSecret('DATABASE_URL');
+const uploadSigningSecret = readSecret('UPLOAD_SIGNING_SECRET');
 ```
 
 ### Manual Provisioning (without the deploy workflow)
 
 ```bash
 mkdir -p secrets && chmod 700 secrets
+# Connection URLs — use the same POSTGRES_USER / POSTGRES_DB / passwords as .env.
+printf '%s' "postgresql://USER:DB_PASSWORD@database:5432/DB_NAME" > secrets/database_url
+printf '%s' "redis://:REDIS_PASSWORD@redis:6379"                  > secrets/redis_url
 printf '%s' "$(openssl rand -base64 32)"  > secrets/jwt_secret
 printf '%s' "$(openssl rand -base64 32)"  > secrets/jwt_refresh_secret
-printf '%s' "$(openssl rand -base64 32)"  > secrets/session_secret
-printf '%s' "$(openssl rand -base64 32)"  > secrets/csrf_secret
-printf '%s' "$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")" > secrets/encryption_key
 printf '%s' "$(openssl rand -base64 32)"  > secrets/upload_signing_secret
-printf '%s' "$(openssl rand -base64 32)"  > secrets/db_password
-printf '%s' "$(openssl rand -base64 32)"  > secrets/redis_password
+printf '%s' "$(openssl rand -base64 32)"  > secrets/principal_signing_key
+printf '%s' "DB_PASSWORD"                  > secrets/db_password   # same value used in database_url
 chmod 600 secrets/*
 ```
 
