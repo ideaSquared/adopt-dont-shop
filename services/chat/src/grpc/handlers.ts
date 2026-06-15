@@ -287,22 +287,21 @@ export async function openChat(
   const chatId = randomUUID();
   let inserted: ChatRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
-    // rescue_id is required by the schema but we don't have it at this
-    // call. The monolith populates it from the application's rescue_id.
-    // For the gRPC path we accept that it's the caller's responsibility
-    // to either populate via a gateway translation or carry it in a
-    // future RPC field — for now we use a NULL UUID placeholder.
-    //
-    // TODO: route through gateway translator that fetches application
-    // → rescue_id before issuing OpenChat.
+    // rescue_id is required (NOT NULL) by the schema. The gateway resolves
+    // it from the caller's rescue context and threads it on the request so
+    // the chat row records its owning rescue — rescue-scoped chat search
+    // then matches gRPC-created chats. When the caller has no rescue
+    // context (e.g. an adopter), fall back to the NULL-UUID placeholder so
+    // the NOT NULL constraint still holds.
     const placeholderRescue = '00000000-0000-0000-0000-000000000000';
+    const rescueId = req.rescueId || placeholderRescue;
     const inserted0 = await client.query<ChatRow>(
       `
       INSERT INTO chats (chat_id, application_id, rescue_id, created_at, updated_at)
       VALUES ($1, $2, $3, now(), now())
       RETURNING *
       `,
-      [chatId, req.applicationId, placeholderRescue]
+      [chatId, req.applicationId, rescueId]
     );
     inserted = inserted0.rows[0];
 

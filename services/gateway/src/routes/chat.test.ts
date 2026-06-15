@@ -189,6 +189,30 @@ describe('POST /api/v1/chats — open', () => {
     expect(req.otherUserId).toBe('usr-2');
   });
 
+  it('populates rescueId from the x-rescue-id header', async () => {
+    client.openChatMock.mockResolvedValueOnce({ chat: CHAT_FIXTURE, created: true });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/chats',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'rescue_staff', 'x-rescue-id': 'rsc-1' },
+      payload: { applicationId: 'app-1', otherUserId: 'usr-2' },
+    });
+    const [req] = client.openChatMock.mock.calls[0] as [OpenChatRequest, Metadata];
+    expect(req.rescueId).toBe('rsc-1');
+  });
+
+  it('sends an empty rescueId when no x-rescue-id header is present', async () => {
+    client.openChatMock.mockResolvedValueOnce({ chat: CHAT_FIXTURE, created: true });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/chats',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+      payload: { applicationId: 'app-1', otherUserId: 'usr-2' },
+    });
+    const [req] = client.openChatMock.mock.calls[0] as [OpenChatRequest, Metadata];
+    expect(req.rescueId).toBe('');
+  });
+
   it('maps gRPC PERMISSION_DENIED to HTTP 403', async () => {
     client.openChatMock.mockRejectedValueOnce({
       code: status.PERMISSION_DENIED,
