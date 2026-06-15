@@ -14,6 +14,7 @@ import type { Logger } from 'winston';
 
 import { subscribe } from '@adopt-dont-shop/events';
 
+import { loadNotificationPrefs, shouldDeliver } from '../preferences-gate.js';
 import { claimEvent } from '../processed-events.js';
 
 import { listDeviceTokensForUser, markDeviceTokenInvalid } from './device-tokens.js';
@@ -100,6 +101,20 @@ export const startPushWorker = (opts: PushWorkerOptions): RunningPushWorker => {
         return;
       }
       if (!ev.userId) {
+        return;
+      }
+
+      // Preference gate — respect push_enabled, the category toggle, and
+      // quiet hours. A suppressed push leaves the in-app record intact;
+      // checked before the dedup claim so a redelivery re-evaluates to the
+      // same outcome rather than being silently swallowed.
+      const prefs = await loadNotificationPrefs(opts.pool, ev.userId);
+      if (!shouldDeliver(prefs, { type: ev.type, channel: 'push', now: new Date() })) {
+        opts.logger.info('push.worker.suppressed_by_prefs', {
+          userId: ev.userId,
+          notificationId: ev.notificationId,
+          type: ev.type,
+        });
         return;
       }
 

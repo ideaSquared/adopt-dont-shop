@@ -16,10 +16,13 @@ const flush = async (): Promise<void> => {
   }
 };
 
-const makePool = (claimRowCount: number) => {
+const makePool = (opts: { claimRowCount?: number; prefs?: Record<string, unknown> } = {}) => {
   const query = vi.fn(async (sql: string) => {
+    if (sql.includes('user_notification_prefs')) {
+      return { rows: opts.prefs ? [opts.prefs] : [] };
+    }
     if (sql.includes('processed_events')) {
-      return { rowCount: claimRowCount, rows: [] };
+      return { rowCount: opts.claimRowCount ?? 1, rows: [] };
     }
     if (sql.includes('device_tokens')) {
       return { rows: [{ token_id: 't1', device_token: 'tok-1', platform: 'ios' }] };
@@ -28,6 +31,9 @@ const makePool = (claimRowCount: number) => {
   });
   return { query, asPool: { query } as unknown as Pool };
 };
+
+const includesSql = (query: ReturnType<typeof vi.fn>, fragment: string): boolean =>
+  query.mock.calls.some(c => String(c[0]).includes(fragment));
 
 const makeProvider = () => {
   const send = vi.fn(async () => ({ success: true, messageId: 'm1' }));
@@ -92,33 +98,60 @@ const pushEvent = (overrides: Record<string, unknown> = {}) => ({
 
 describe('push worker dedup', () => {
   it('claims the event then fans out to device tokens on first delivery', async () => {
-    const { asPool, query } = makePool(1);
+    const { asPool, query } = makePool({ claimRowCount: 1 });
     const { provider, send } = makeProvider();
     const nats = makeNats([{ id: 'notifications.created.n-1', payload: pushEvent() }]);
 
     startPushWorker({ pool: asPool, nats, provider, logger });
     await flush();
 
-    expect(query.mock.calls[0][0]).toContain('processed_events');
+    expect(includesSql(query, 'processed_events')).toBe(true);
+    expect(includesSql(query, 'device_tokens')).toBe(true);
     expect(send).toHaveBeenCalledTimes(1);
   });
 
   it('does not fan out on a redelivery (claim loses the ON CONFLICT race)', async () => {
-    const { asPool, query } = makePool(0);
+    const { asPool, query } = makePool({ claimRowCount: 0 });
     const { provider, send } = makeProvider();
     const nats = makeNats([{ id: 'notifications.created.n-1', payload: pushEvent() }]);
 
     startPushWorker({ pool: asPool, nats, provider, logger });
     await flush();
 
-    expect(query.mock.calls[0][0]).toContain('processed_events');
+    expect(includesSql(query, 'processed_events')).toBe(true);
     // Claim failed → never reaches the device-token lookup or provider send.
-    expect(query.mock.calls.some(c => String(c[0]).includes('device_tokens'))).toBe(false);
+    expect(includesSql(query, 'device_tokens')).toBe(false);
     expect(send).not.toHaveBeenCalled();
   });
 
-  it('ignores non-push notifications without claiming the event', async () => {
-    const { asPool, query } = makePool(1);
+  it('suppresses the push (and does not claim) when push is disabled in prefs', async () => {
+    const { asPool, query } = makePool({
+      prefs: {
+        email_enabled: true,
+        push_enabled: false,
+        sms_enabled: false,
+        application_updates: true,
+        pet_matches: true,
+        rescue_updates: true,
+        chat_messages: true,
+        quiet_hours_start: null,
+        quiet_hours_end: null,
+        timezone: 'UTC',
+      },
+    });
+    const { provider, send } = makeProvider();
+    const nats = makeNats([{ id: 'notifications.created.n-1', payload: pushEvent() }]);
+
+    startPushWorker({ pool: asPool, nats, provider, logger });
+    await flush();
+
+    expect(includesSql(query, 'user_notification_prefs')).toBe(true);
+    expect(includesSql(query, 'processed_events')).toBe(false);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('ignores non-push notifications without loading prefs or claiming', async () => {
+    const { asPool, query } = makePool({ claimRowCount: 1 });
     const { provider, send } = makeProvider();
     const nats = makeNats([
       { id: 'notifications.created.n-2', payload: pushEvent({ channel: 'in_app' }) },
