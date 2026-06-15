@@ -12,6 +12,7 @@ import {
   getPet,
   getPetStats,
   HandlerError,
+  listFavoriters,
   listPets,
   updatePet,
   updatePetStatus,
@@ -623,6 +624,56 @@ describe('getPetStats', () => {
 
   it('rejects when caller has pets.read but no rescue scope and no :any', async () => {
     await expect(getPetStats(mocks.deps, ADOPTER, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+});
+
+// --- listFavoriters --------------------------------------------------
+
+describe('listFavoriters', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('returns the user_ids of every active favouriter for the pet', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ user_id: 'usr-1' }, { user_id: 'usr-2' }],
+    });
+    const res = await listFavoriters(mocks.deps, ADOPTER, { petId: 'pet-1' });
+    expect(res.userIds).toEqual(['usr-1', 'usr-2']);
+
+    const [sql, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    // Schema-qualified + filters out soft-deleted favourite rows.
+    expect(sql).toMatch(/pets\.user_favorites/);
+    expect(sql).toMatch(/pet_id = \$1/);
+    expect(sql).toMatch(/deleted_at IS NULL/);
+    expect(params).toEqual(['pet-1']);
+  });
+
+  it('returns an empty list when the pet has no favouriters', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    const res = await listFavoriters(mocks.deps, ADOPTER, { petId: 'pet-1' });
+    expect(res.userIds).toEqual([]);
+  });
+
+  it('INVALID_ARGUMENT when pet_id is missing', async () => {
+    await expect(listFavoriters(mocks.deps, ADOPTER, { petId: '' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('PERMISSION_DENIED for a principal without pets.read', async () => {
+    const noPerms: Principal = {
+      userId: 'usr-noperms' as UserId,
+      roles: ['adopter'],
+      permissions: [],
+    };
+    await expect(listFavoriters(mocks.deps, noPerms, { petId: 'pet-1' })).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
   });

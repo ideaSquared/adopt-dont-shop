@@ -6,7 +6,14 @@ import { runServiceShutdown } from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from './config.js';
 import { createAuthCohortClient } from './grpc/auth-client.js';
+import { createPetsClient } from './grpc/pets-client.js';
+import { createRescueClient } from './grpc/rescue-client.js';
 import { validateAuthPrincipal } from './grpc/validate-auth-principal.js';
+import {
+  startEmailChannelWorker,
+  type ResolveRecipient,
+  type RunningEmailChannelWorker,
+} from './email/channel-adapter.js';
 import { createProvider } from './email/providers/factory.js';
 import { startEmailWorker, type RunningEmailWorker } from './email/worker.js';
 import { startGrpcServer, type RunningGrpcServer } from './grpc/server.js';
@@ -24,6 +31,7 @@ const main = async (): Promise<void> => {
   let pool: Awaited<ReturnType<typeof createDbClient>> | undefined;
   let grpc: RunningGrpcServer | undefined;
   let emailWorker: RunningEmailWorker | undefined;
+  let emailChannelWorker: RunningEmailChannelWorker | undefined;
   let pushWorker: RunningPushWorker | undefined;
   let scheduler: RunningScheduler | undefined;
   let grpcReady = false;
@@ -61,13 +69,25 @@ const main = async (): Promise<void> => {
       await validateAuthPrincipal(authClient, logger);
     }
 
+    // Cross-service clients for the cross-service event fan-out:
+    //   - pets → pets.statusChanged (notify favouriters)
+    //   - rescue → rescue.verified / rescue.rejected (notify staff)
+    // Only created when their gRPC URL is set; without it the matching
+    // fan-out no-ops gracefully (same degradation as Broadcast without auth).
+    const petsClient = config.petsGrpcUrl
+      ? createPetsClient({ address: config.petsGrpcUrl })
+      : undefined;
+    const rescueClient = config.rescueGrpcUrl
+      ? createRescueClient({ address: config.rescueGrpcUrl })
+      : undefined;
+
     grpc = await startGrpcServer({ config, pool, nats, logger, authClient });
     grpcReady = true;
     // NATS subscribers register AFTER gRPC so a fast event arriving on
     // applications.submitted before we're ready to handle gRPC calls
     // can't race against partially-constructed deps. Shutdown drains the
     // whole NATS connection later, which transparently cancels these.
-    registerSubscribers({ nats, deps: { pool, nats }, logger });
+    registerSubscribers({ nats, deps: { pool, nats }, logger, petsClient, rescueClient });
 
     // GDPR erasure subscriber — drops the user's notifications + prefs
     // + device tokens. Reported back via gdpr.erasureCompleted.
@@ -103,6 +123,32 @@ const main = async (): Promise<void> => {
       }
       emailWorker = startEmailWorker({ pool, nats, provider, logger });
       logger.info('email worker started', { provider: provider.getName() });
+    }
+    // Email channel adapter: turns notifications.created into enqueued
+    // transactional emails. Needs the auth client to resolve recipient
+    // addresses; without it, we skip rather than enqueue address-less rows.
+    if (config.emailChannelEnabled) {
+      if (authClient) {
+        const resolveRecipient: ResolveRecipient = async userId => {
+          const res = await authClient.adminGetUser({ userId });
+          const user = res.user;
+          if (!user || !user.email) {
+            return null;
+          }
+          const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
+          return { email: user.email, name: name || undefined };
+        };
+        emailChannelWorker = startEmailChannelWorker({
+          pool,
+          nats,
+          logger,
+          resolveRecipient,
+          fromEmail: config.defaultFromEmail,
+          fromName: config.defaultFromName,
+        });
+      } else {
+        logger.warn('email channel adapter disabled — no AUTH_GRPC_URL to resolve recipients');
+      }
     }
     if (config.pushWorkerEnabled) {
       const pushProviderConfig =
@@ -157,6 +203,11 @@ const main = async (): Promise<void> => {
         await emailWorker?.stop();
       } catch (err) {
         logger.error('email worker stop error', { err });
+      }
+      try {
+        await emailChannelWorker?.stop();
+      } catch (err) {
+        logger.error('email channel worker stop error', { err });
       }
       try {
         await pushWorker?.stop();

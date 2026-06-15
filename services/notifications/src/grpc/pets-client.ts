@@ -1,16 +1,15 @@
-// Promise-wrapped client for service.auth — just the cohort RPC the
-// broadcast handler needs. Defining it locally (rather than depending on
-// the gateway's full AuthClient interface) keeps the notifications
-// service decoupled from the gateway and means a slimmer dial table.
+// Promise-wrapped client for service.pets — just the favouriter-discovery
+// RPC the pets.statusChanged fan-out needs. Mirrors auth-client.ts:
+// signed system-principal metadata (ADS-800), retry on UNAVAILABLE /
+// DEADLINE_EXCEEDED, a per-call deadline. Defining the slice locally keeps
+// the notifications service decoupled from the gateway's full PetsClient.
 
 import { credentials, status, type CallOptions, Metadata } from '@grpc/grpc-js';
 
 import {
-  AuthV1,
-  type AdminGetUserRequest,
-  type AdminGetUserResponse,
-  type ListUserIdsByCohortRequest,
-  type ListUserIdsByCohortResponse,
+  PetsV1,
+  type ListPetFavoritersRequest,
+  type ListPetFavoritersResponse,
 } from '@adopt-dont-shop/proto';
 import {
   getDefaultPrincipalSigningKey,
@@ -18,32 +17,21 @@ import {
   signPrincipalToken,
 } from '@adopt-dont-shop/service-bootstrap';
 
-import type { AuthCohortClient } from './handlers.js';
-
-export type CreateAuthCohortClientOptions = {
+export type CreatePetsClientOptions = {
   address: string;
-  // System principal metadata — needed because ListUserIdsByCohort gates
-  // on admin.users.broadcast. The notifications service runs as
-  // `svc-notifications` with the same permission seeded by the auth
-  // service. Stamping it here means callers (the broadcast handler)
-  // don't need to thread metadata through — they're already gating
-  // on admin.notifications.broadcast against the caller's principal.
+  // System principal metadata — PetService.ListFavoriters gates on
+  // `pets.read`. The notifications service runs as `svc-notifications`;
+  // stamping the permission here means the fan-out handler doesn't thread
+  // metadata through.
   systemUserId?: string;
   systemRoles?: string;
   systemPermissions?: string;
-  // Per-call deadline in milliseconds. Without one, a hung downstream
-  // service would hang this request forever; 5s caps the blast radius
-  // and lets the caller fail fast with DEADLINE_EXCEEDED.
   deadlineMs?: number;
-  // Maximum additional attempts after the first. Only UNAVAILABLE and
-  // DEADLINE_EXCEEDED trigger a retry (both are safe for idempotent
-  // reads). Defaults to 2 (i.e. up to 3 total attempts).
   maxRetries?: number;
 };
 
 const DEFAULT_DEADLINE_MS = 5_000;
 const DEFAULT_MAX_RETRIES = 2;
-// Retry-eligible status codes for idempotent reads.
 const RETRYABLE_CODES = new Set([status.UNAVAILABLE, status.DEADLINE_EXCEEDED]);
 
 const isRetryableError = (err: unknown): boolean => {
@@ -63,39 +51,31 @@ const splitList = (raw: string): string[] =>
     .filter(Boolean);
 
 const jitteredBackoff = (attempt: number, baseMs: number): number => {
-  // Exponential backoff with ±25% jitter: 100ms, 200ms (base defaults).
   const base = baseMs * Math.pow(2, attempt - 1);
   return base * (0.75 + Math.random() * 0.5);
 };
 
-// The email channel adapter resolves a recipient's address by user id.
-export type AuthUserClient = {
-  adminGetUser: (req: AdminGetUserRequest) => Promise<AdminGetUserResponse>;
+// The slice of the pets stub the fan-out handler consumes.
+export type PetsFavoritersClient = {
+  listFavoriters: (petId: string) => Promise<string[]>;
+  close(): void;
 };
 
-export function createAuthCohortClient(opts: CreateAuthCohortClientOptions): AuthCohortClient &
-  AuthUserClient & {
-    close(): void;
-  } {
-  const stub = new AuthV1.AuthServiceClient(opts.address, credentials.createInsecure());
+export function createPetsClient(opts: CreatePetsClientOptions): PetsFavoritersClient {
+  const stub = new PetsV1.PetServiceClient(opts.address, credentials.createInsecure());
   const deadlineMs = opts.deadlineMs ?? DEFAULT_DEADLINE_MS;
   const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
 
   const systemPrincipal = {
     userId: opts.systemUserId ?? 'svc-notifications',
     roles: splitList(opts.systemRoles ?? 'admin'),
-    // admin.users.broadcast → Broadcast cohort expansion;
-    // admin.users.read → AdminGetUser, used by the email channel adapter to
-    // resolve a recipient's address from their user id.
-    permissions: splitList(opts.systemPermissions ?? 'admin.users.broadcast,admin.users.read'),
+    // pets.read → ListFavoriters (recipient discovery for the
+    // pets.statusChanged fan-out).
+    permissions: splitList(opts.systemPermissions ?? 'pets.read'),
   };
 
-  // Built per attempt, not once at client creation: the signed
-  // x-principal-token (ADS-800) carries a short TTL, so a metadata
-  // object minted at boot would expire. When PRINCIPAL_SIGNING_KEY is
-  // configured (read via config-secrets, _FILE variant supported) the
-  // system principal is signed with the shared helper; the x-user-*
-  // headers stay for services still running without the key.
+  // Built per attempt — the signed x-principal-token (ADS-800) carries a
+  // short TTL, so a metadata object minted at boot would expire.
   const buildSystemMetadata = (): Metadata => {
     const meta = new Metadata();
     meta.set('x-user-id', systemPrincipal.userId);
@@ -142,10 +122,13 @@ export function createAuthCohortClient(opts: CreateAuthCohortClientOptions): Aut
   };
 
   return {
-    listUserIdsByCohort: (req: ListUserIdsByCohortRequest): Promise<ListUserIdsByCohortResponse> =>
-      callWithRetry(stub.listUserIdsByCohort, req),
-    adminGetUser: (req: AdminGetUserRequest): Promise<AdminGetUserResponse> =>
-      callWithRetry(stub.adminGetUser, req),
+    listFavoriters: async (petId: string): Promise<string[]> => {
+      const res = await callWithRetry<ListPetFavoritersRequest, ListPetFavoritersResponse>(
+        stub.listFavoriters,
+        { petId }
+      );
+      return res.userIds;
+    },
     close: () => stub.close(),
   };
 }

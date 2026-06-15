@@ -34,6 +34,8 @@ import {
   type GetPetResponse,
   type GetPetStatsRequest,
   type GetPetStatsResponse,
+  type ListPetFavoritersRequest,
+  type ListPetFavoritersResponse,
   type ListPetsRequest,
   type ListPetsResponse,
   type Pet,
@@ -826,4 +828,31 @@ export async function getPetStats(
     monthlyAdoptions,
     averageDaysToAdoption,
   };
+}
+
+// --- ListFavoriters --------------------------------------------------
+
+// Recipient-discovery read for service.notifications: the user_ids of
+// every adopter with an ACTIVE favourite on the pet. Gated on plain
+// pets.read (same as Get / List) — no rescue scope, because favouriters
+// are cross-rescue and the caller is a trusted system principal fanning
+// out a pets.statusChanged event. A missing/soft-deleted pet just yields
+// an empty list (no NOT_FOUND): the caller only cares about recipients.
+export async function listFavoriters(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ListPetFavoritersRequest
+): Promise<ListPetFavoritersResponse> {
+  if (!req.petId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
+  }
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+
+  const result = await deps.pool.query<{ user_id: string }>(
+    `SELECT user_id FROM pets.user_favorites WHERE pet_id = $1 AND deleted_at IS NULL`,
+    [req.petId]
+  );
+  return { userIds: result.rows.map(row => row.user_id) };
 }

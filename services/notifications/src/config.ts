@@ -24,6 +24,14 @@ export type NotificationsConfig = {
   // concrete user_ids. Optional in tests / migrations smokes; Broadcast
   // returns INTERNAL when unset.
   authGrpcUrl?: string;
+  // service.pets gRPC URL — needed by the pets.statusChanged fan-out
+  // (PetService.ListFavoriters discovers who favourited the pet). Optional;
+  // when unset the fan-out no-ops gracefully, like Broadcast without auth.
+  petsGrpcUrl?: string;
+  // service.rescue gRPC URL — needed by the rescue.verified / rescue.rejected
+  // fan-out (RescueService.ListStaffMembers + Get discover the rescue's
+  // staff). Optional; when unset the fan-out no-ops gracefully.
+  rescueGrpcUrl?: string;
   // Environment label, surfaced in health responses and on log lines.
   environment: string;
   // Postgres connection string. Required for migrations + the runtime
@@ -43,6 +51,14 @@ export type NotificationsConfig = {
   // Toggle the email queue worker. Defaults to true. Tests + the
   // migrations-only smoke set this to false to keep the loop quiet.
   emailWorkerEnabled: boolean;
+  // Toggle the email CHANNEL adapter — the notifications.created subscriber
+  // that enqueues transactional emails. Distinct from emailWorkerEnabled
+  // (which drains the queue). Defaults to true, but only starts when an
+  // auth client is configured (it needs AdminGetUser to resolve addresses).
+  emailChannelEnabled: boolean;
+  // From-address for adapter-generated transactional emails.
+  defaultFromEmail: string;
+  defaultFromName: string;
   // Push provider selection — Phase 7.2. Same ADS-549 rule: production
   // refuses 'console' so an unconfigured push channel surfaces at boot.
   pushProvider: PushProviderConfig;
@@ -77,6 +93,8 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     port,
     grpcPort,
     authGrpcUrl: env.AUTH_GRPC_URL?.trim() || undefined,
+    petsGrpcUrl: env.PETS_GRPC_URL?.trim() || undefined,
+    rescueGrpcUrl: env.RESCUE_GRPC_URL?.trim() || undefined,
     host: env.NOTIFICATIONS_HOST?.trim() || DEFAULT_HOST,
     environment: env.NODE_ENV?.trim() || 'development',
     databaseUrl,
@@ -84,6 +102,9 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     emailProvider: loadEmailProviderConfig(env),
     emailWorkerEnabled: env.EMAIL_WORKER_ENABLED?.trim() !== 'false',
+    emailChannelEnabled: env.EMAIL_CHANNEL_ENABLED?.trim() !== 'false',
+    defaultFromEmail: env.DEFAULT_FROM_EMAIL?.trim() || 'noreply@adoptdontshop.com',
+    defaultFromName: env.DEFAULT_FROM_NAME?.trim() || "Adopt Don't Shop",
     pushProvider: loadPushProviderConfig(env),
     pushWorkerEnabled: env.PUSH_WORKER_ENABLED?.trim() !== 'false',
     schedulerEnabled: env.SCHEDULER_ENABLED?.trim() !== 'false',
