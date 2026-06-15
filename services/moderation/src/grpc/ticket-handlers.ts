@@ -6,8 +6,8 @@
 // moderator actions + evidence #925, sanctions #926, tickets here).
 //
 // Same discipline: withTransaction for writes, ticket reads gate on
-// ADMIN_DASHBOARD (placeholder until lib.types ships MODERATION_*),
-// $-indexed SQL params, mappers from #914 for row → proto.
+// MODERATION_TICKETS_MANAGE, $-indexed SQL params, mappers from #914
+// for row → proto.
 //
 // Note: OpenSupportTicket is OPEN to any principal AND to
 // unauthenticated callers (the proto carries user_id as optional).
@@ -20,7 +20,7 @@ import { randomUUID } from 'node:crypto';
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-import { ADMIN_DASHBOARD } from '@adopt-dont-shop/lib.types';
+import { MODERATION_TICKETS_MANAGE } from '@adopt-dont-shop/lib.types';
 import type {
   GetSupportTicketRequest,
   GetSupportTicketResponse,
@@ -161,7 +161,7 @@ export async function getSupportTicket(
 
   // Admins can read any ticket; non-admins must own it. Anonymous-
   // owner tickets (user_id NULL) are admin-only.
-  const isAdmin = requirePermission(principal, ADMIN_DASHBOARD);
+  const isAdmin = requirePermission(principal, MODERATION_TICKETS_MANAGE);
   if (!isAdmin && rows[0].user_id !== principal.userId) {
     throw new HandlerError('NOT_FOUND', `ticket ${req.ticketId} not found`);
   }
@@ -192,7 +192,7 @@ export async function listSupportTickets(
   principal: Principal,
   req: ListSupportTicketsRequest
 ): Promise<ListSupportTicketsResponse> {
-  const isAdmin = requirePermission(principal, ADMIN_DASHBOARD);
+  const isAdmin = requirePermission(principal, MODERATION_TICKETS_MANAGE);
 
   const limit = clampLimit(req.limit);
 
@@ -207,7 +207,7 @@ export async function listSupportTickets(
     if (req.userId !== undefined && req.userId !== '' && req.userId !== principal.userId) {
       throw new HandlerError(
         'PERMISSION_DENIED',
-        `'${ADMIN_DASHBOARD}' required to list another user's tickets`
+        `'${MODERATION_TICKETS_MANAGE}' required to list another user's tickets`
       );
     }
     where.push(`user_id = $${p++}`);
@@ -298,12 +298,12 @@ export async function respondToTicket(
   if (req.content === undefined || req.content === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'content is required');
   }
-  const isAdmin = requirePermission(principal, ADMIN_DASHBOARD);
+  const isAdmin = requirePermission(principal, MODERATION_TICKETS_MANAGE);
   // Non-admins MUST NOT post internal-only notes.
   if (!isAdmin && req.isInternal) {
     throw new HandlerError(
       'PERMISSION_DENIED',
-      `'${ADMIN_DASHBOARD}' required for internal responses`
+      `'${MODERATION_TICKETS_MANAGE}' required for internal responses`
     );
   }
 

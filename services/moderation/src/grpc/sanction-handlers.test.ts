@@ -16,7 +16,7 @@ function makePrincipal(
   return {
     userId: overrides.userId ?? 'mod-1',
     roles: overrides.roles ?? ['moderator'],
-    permissions: overrides.permissions ?? ['admin.dashboard'],
+    permissions: overrides.permissions ?? ['moderation.sanctions.manage'],
     rescueId: undefined,
   } as unknown as Parameters<typeof issueSanction>[1];
 }
@@ -87,7 +87,7 @@ const VALID_ISSUE: IssueSanctionRequest = {
 };
 
 describe('issueSanction', () => {
-  it('throws PERMISSION_DENIED without admin.dashboard', async () => {
+  it('throws PERMISSION_DENIED without moderation.sanctions.manage', async () => {
     const { deps } = makeDeps([]);
     await expect(
       issueSanction(deps, makePrincipal({ permissions: [] }), VALID_ISSUE)

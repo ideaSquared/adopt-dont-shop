@@ -19,7 +19,7 @@ function makePrincipal(
   return {
     userId: overrides.userId ?? 'usr-1',
     roles: overrides.roles ?? ['adopter'],
-    permissions: overrides.permissions ?? ['admin.dashboard'],
+    permissions: overrides.permissions ?? ['moderation.reports.view', 'moderation.reports.manage'],
     rescueId: undefined,
   } as unknown as Parameters<typeof getReport>[1];
 }
@@ -156,11 +156,31 @@ describe('fileReport', () => {
 });
 
 describe('getReport', () => {
-  it('throws PERMISSION_DENIED without admin.dashboard', async () => {
-    const { deps } = makeDeps([]);
+  it('throws PERMISSION_DENIED without the reports-view permission for someone else’s report', async () => {
+    const { deps } = makeDeps([{ rows: [reportRow({ reporter_id: 'someone-else' })] }]);
     await expect(
-      getReport(deps, makePrincipal({ permissions: [] }), { reportId: 'rpt-1' } as GetReportRequest)
-    ).rejects.toBeInstanceOf(HandlerError);
+      getReport(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+        reportId: 'rpt-1',
+      } as GetReportRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('allows a moderator with moderation.reports.view to read any report', async () => {
+    const { deps } = makeDeps([{ rows: [reportRow({ reporter_id: 'someone-else' })] }]);
+    const res = await getReport(
+      deps,
+      makePrincipal({ userId: 'mod-9', permissions: ['moderation.reports.view'] }),
+      { reportId: 'rpt-1' } as GetReportRequest
+    );
+    expect(res.report.reportId).toBe('rpt-1');
+  });
+
+  it('allows a reporter to read their OWN report without any moderation permission', async () => {
+    const { deps } = makeDeps([{ rows: [reportRow({ reporter_id: 'usr-1' })] }]);
+    const res = await getReport(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+      reportId: 'rpt-1',
+    } as GetReportRequest);
+    expect(res.report.reportId).toBe('rpt-1');
   });
 
   it('throws NOT_FOUND when the report does not exist', async () => {
@@ -205,11 +225,26 @@ describe('getReport', () => {
 });
 
 describe('listReports', () => {
-  it('throws PERMISSION_DENIED without admin.dashboard', async () => {
-    const { deps } = makeDeps([]);
-    await expect(
-      listReports(deps, makePrincipal({ permissions: [] }), {} as ListReportsRequest)
-    ).rejects.toBeInstanceOf(HandlerError);
+  it('scopes a caller without moderation.reports.view to their OWN reports', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await listReports(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+      limit: 10,
+    } as ListReportsRequest);
+    const sql = query.mock.calls[0][0] as string;
+    const params = query.mock.calls[0][1] as unknown[];
+    expect(sql).toContain('reporter_id = $1');
+    expect(params[0]).toBe('usr-1');
+  });
+
+  it('does NOT scope a moderator with moderation.reports.view to their own reports', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }]);
+    await listReports(
+      deps,
+      makePrincipal({ userId: 'mod-9', permissions: ['moderation.reports.view'] }),
+      { limit: 10 } as ListReportsRequest
+    );
+    const sql = query.mock.calls[0][0] as string;
+    expect(sql).not.toContain('reporter_id =');
   });
 
   it('applies status / severity / category / assigned filters', async () => {
@@ -265,7 +300,7 @@ describe('listReports', () => {
 });
 
 describe('assignReport', () => {
-  it('throws PERMISSION_DENIED without admin.dashboard', async () => {
+  it('throws PERMISSION_DENIED without moderation.reports.manage', async () => {
     const { deps } = makeDeps([]);
     await expect(
       assignReport(deps, makePrincipal({ permissions: [] }), {
