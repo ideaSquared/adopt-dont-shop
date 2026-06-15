@@ -39,7 +39,7 @@ import type {
   ChatMessageCreatedEvent,
   PetCreatedEvent,
 } from './event-types.js';
-import { scanContent, type ScanCategory, type ScanHit } from './content-scanner.js';
+import { scanContent, type ScanCategory, type ScanSeverity } from './content-scanner.js';
 import { SYSTEM_PRINCIPAL } from './system-principal.js';
 
 export type RegisterSubscribersOptions = {
@@ -62,14 +62,13 @@ const CATEGORY_TO_PROTO: Record<ScanCategory, ModerationV1.ReportCategory> = {
   inappropriate_content: ModerationV1.ReportCategory.REPORT_CATEGORY_INAPPROPRIATE_CONTENT,
 };
 
-// Severity heuristic — content the scanner trips is at LEAST medium;
-// harassment + scam land higher. Tuneable as the catalogue grows.
-function severityFor(hit: ScanHit): ModerationV1.Severity {
-  if (hit.category === 'harassment' || hit.category === 'scam') {
-    return ModerationV1.Severity.SEVERITY_HIGH;
-  }
-  return ModerationV1.Severity.SEVERITY_MEDIUM;
-}
+// Map the scanner's per-hit severity onto the proto Severity enum.
+const SEVERITY_TO_PROTO: Record<ScanSeverity, ModerationV1.Severity> = {
+  low: ModerationV1.Severity.SEVERITY_LOW,
+  medium: ModerationV1.Severity.SEVERITY_MEDIUM,
+  high: ModerationV1.Severity.SEVERITY_HIGH,
+  critical: ModerationV1.Severity.SEVERITY_CRITICAL,
+};
 
 export const registerSubscribers = (opts: RegisterSubscribersOptions): SubscriptionHandle[] => {
   const { nats, deps, logger } = opts;
@@ -96,7 +95,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
           reportedEntityId: event.messageId,
           reportedUserId: event.senderId,
           category: CATEGORY_TO_PROTO[hit.category],
-          severity: severityFor(hit),
+          severity: SEVERITY_TO_PROTO[hit.severity],
           title: `Auto-report: ${hit.reason}`,
           description: `Chat message ${event.messageId} from sender ${String(event.senderId)} matched the moderation scanner: ${hit.reason}. The content was: "${truncate(event.content, 300)}"`,
         });
@@ -120,7 +119,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
           reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_PET,
           reportedEntityId: event.petId,
           category: CATEGORY_TO_PROTO[hit.category],
-          severity: severityFor(hit),
+          severity: SEVERITY_TO_PROTO[hit.severity],
           title: `Auto-report: pet listing — ${hit.reason}`,
           description: `Pet listing ${event.petId} (rescue ${event.rescueId ?? 'unknown'}) matched the moderation scanner: ${hit.reason}. Description excerpt: "${truncate(text, 300)}"`,
         });
@@ -145,7 +144,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
           reportedEntityId: event.applicationId,
           reportedUserId: event.adopterId,
           category: CATEGORY_TO_PROTO[hit.category],
-          severity: severityFor(hit),
+          severity: SEVERITY_TO_PROTO[hit.severity],
           title: `Auto-report: application — ${hit.reason}`,
           description: `Adoption application ${event.applicationId} from adopter ${String(event.adopterId)} matched the moderation scanner: ${hit.reason}. Text excerpt: "${truncate(text, 300)}"`,
         });
