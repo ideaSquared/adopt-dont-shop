@@ -98,6 +98,43 @@ const perRecipientDedup = (
 ): { dedup: { consumer: string; eventId: string } } | undefined =>
   meta.id ? { dedup: { consumer: subject, eventId: `${meta.id}:${recipientUserId}` } } : undefined;
 
+// A simple-event route descriptor: a subject paired with the pure
+// translator that turns its payload into a CreateNotificationRequest.
+// `defineRoute` captures the payload type T per row so each `build` stays
+// strongly typed to its own event shape (no `any`, no widening). The
+// generic registrar below consumes these uniformly.
+type SimpleEventRoute = {
+  subject: string;
+  register: (ctx: SimpleRouteContext) => SubscriptionHandle;
+};
+
+type SimpleRouteContext = {
+  nats: NatsConnection;
+  deps: HandlerDeps;
+  onError: (err: unknown, ctx: { subject: string }) => void;
+};
+
+const defineRoute = <TPayload>(
+  subject: string,
+  build: (payload: TPayload) => CreateNotificationRequest
+): SimpleEventRoute => ({
+  subject,
+  register: ({ nats, deps, onError }) =>
+    subscribe<TPayload>(
+      nats,
+      { subject, durable: durableFor(subject), onError },
+      async (payload, meta) => {
+        await createNotification(deps, SYSTEM_PRINCIPAL, build(payload), dedupFor(subject, meta));
+      }
+    ),
+});
+
+// The table itself (SIMPLE_EVENT_ROUTES) is declared at the bottom of
+// the file, after the build* translators it references — those are
+// `const` declarations and so live in the temporal dead zone until then.
+// registerSubscribers only READS the table at call time, by which point
+// the module is fully initialised, so its forward reference is safe.
+
 export const registerSubscribers = (opts: RegisterSubscribersOptions): SubscriptionHandle[] => {
   const { nats, deps, logger, petsClient, rescueClient } = opts;
 
@@ -110,133 +147,10 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
 
   const subscriptions: SubscriptionHandle[] = [];
 
-  subscriptions.push(
-    subscribe<ApplicationSubmittedEvent>(
-      nats,
-      { subject: 'applications.submitted', durable: durableFor('applications.submitted'), onError },
-      async (payload, meta) => {
-        await createNotification(
-          deps,
-          SYSTEM_PRINCIPAL,
-          buildApplicationSubmittedCreate(payload),
-          dedupFor('applications.submitted', meta)
-        );
-      }
-    )
-  );
-
-  subscriptions.push(
-    subscribe<ApplicationApprovedEvent>(
-      nats,
-      { subject: 'applications.approved', durable: durableFor('applications.approved'), onError },
-      async (payload, meta) => {
-        await createNotification(
-          deps,
-          SYSTEM_PRINCIPAL,
-          buildApplicationApprovedCreate(payload),
-          dedupFor('applications.approved', meta)
-        );
-      }
-    )
-  );
-
-  subscriptions.push(
-    subscribe<ApplicationRejectedEvent>(
-      nats,
-      { subject: 'applications.rejected', durable: durableFor('applications.rejected'), onError },
-      async (payload, meta) => {
-        await createNotification(
-          deps,
-          SYSTEM_PRINCIPAL,
-          buildApplicationRejectedCreate(payload),
-          dedupFor('applications.rejected', meta)
-        );
-      }
-    )
-  );
-
-  subscriptions.push(
-    subscribe<ApplicationHomeVisitScheduledEvent>(
-      nats,
-      {
-        subject: 'applications.homeVisitScheduled',
-        durable: durableFor('applications.homeVisitScheduled'),
-        onError,
-      },
-      async (payload, meta) => {
-        await createNotification(
-          deps,
-          SYSTEM_PRINCIPAL,
-          buildApplicationHomeVisitScheduledCreate(payload),
-          dedupFor('applications.homeVisitScheduled', meta)
-        );
-      }
-    )
-  );
-
-  subscriptions.push(
-    subscribe<ApplicationHomeVisitCompletedEvent>(
-      nats,
-      {
-        subject: 'applications.homeVisitCompleted',
-        durable: durableFor('applications.homeVisitCompleted'),
-        onError,
-      },
-      async (payload, meta) => {
-        await createNotification(
-          deps,
-          SYSTEM_PRINCIPAL,
-          buildApplicationHomeVisitCompletedCreate(payload),
-          dedupFor('applications.homeVisitCompleted', meta)
-        );
-      }
-    )
-  );
-
-  subscriptions.push(
-    subscribe<ApplicationAdoptedEvent>(
-      nats,
-      { subject: 'applications.adopted', durable: durableFor('applications.adopted'), onError },
-      async (payload, meta) => {
-        await createNotification(
-          deps,
-          SYSTEM_PRINCIPAL,
-          buildApplicationAdoptedCreate(payload),
-          dedupFor('applications.adopted', meta)
-        );
-      }
-    )
-  );
-
-  subscriptions.push(
-    subscribe<AuthUserLoggedInEvent>(
-      nats,
-      { subject: 'auth.userLoggedIn', durable: durableFor('auth.userLoggedIn'), onError },
-      async (payload, meta) => {
-        await createNotification(
-          deps,
-          SYSTEM_PRINCIPAL,
-          buildAuthUserLoggedInCreate(payload),
-          dedupFor('auth.userLoggedIn', meta)
-        );
-      }
-    )
-  );
-
-  subscriptions.push(
-    subscribe<AuthRoleAssignedEvent>(
-      nats,
-      { subject: 'auth.roleAssigned', durable: durableFor('auth.roleAssigned'), onError },
-      async (payload, meta) => {
-        await createNotification(
-          deps,
-          SYSTEM_PRINCIPAL,
-          buildAuthRoleAssignedCreate(payload),
-          dedupFor('auth.roleAssigned', meta)
-        );
-      }
-    )
-  );
+  // Simple single-recipient events first — same order as the table.
+  for (const route of SIMPLE_EVENT_ROUTES) {
+    subscriptions.push(route.register({ nats, deps, onError }));
+  }
 
   // pets.statusChanged — fan a pet_update notification out to every user
   // who FAVOURITED the pet. Recipient discovery is PetService.ListFavoriters
@@ -735,3 +649,33 @@ export const buildRescueRejectedCreate = (
     NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE,
   relatedEntityId: event.rescueId,
 });
+
+// --- Declarative routing table for simple single-recipient events ----
+//
+// Each row pairs a subject with its (unchanged) build* translator;
+// registerSubscribers iterates this table to register the boilerplate
+// subscribers in order. Declared here, AFTER the build* functions, so
+// the const references aren't in the temporal dead zone at module load.
+//
+// The single-recipient events whose registration is pure boilerplate:
+// subscribe to the subject, translate, create with subject-scoped dedup.
+// Adding a new simple event is "write a build* + add one row here". The
+// table ORDER is the registration order — it stays aligned with the
+// fan-out handlers in registerSubscribers to preserve the overall subject
+// ordering.
+const SIMPLE_EVENT_ROUTES: readonly SimpleEventRoute[] = [
+  defineRoute<ApplicationSubmittedEvent>('applications.submitted', buildApplicationSubmittedCreate),
+  defineRoute<ApplicationApprovedEvent>('applications.approved', buildApplicationApprovedCreate),
+  defineRoute<ApplicationRejectedEvent>('applications.rejected', buildApplicationRejectedCreate),
+  defineRoute<ApplicationHomeVisitScheduledEvent>(
+    'applications.homeVisitScheduled',
+    buildApplicationHomeVisitScheduledCreate
+  ),
+  defineRoute<ApplicationHomeVisitCompletedEvent>(
+    'applications.homeVisitCompleted',
+    buildApplicationHomeVisitCompletedCreate
+  ),
+  defineRoute<ApplicationAdoptedEvent>('applications.adopted', buildApplicationAdoptedCreate),
+  defineRoute<AuthUserLoggedInEvent>('auth.userLoggedIn', buildAuthUserLoggedInCreate),
+  defineRoute<AuthRoleAssignedEvent>('auth.roleAssigned', buildAuthRoleAssignedCreate),
+];
