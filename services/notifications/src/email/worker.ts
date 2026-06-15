@@ -30,6 +30,11 @@ export type EmailWorkerOptions = {
   // Max rows claimed per tick. Default 25 — bounded so a backlog
   // doesn't monopolise the worker for one slow provider call.
   batchSize?: number;
+  // How long (ms) a row may sit in 'sending' before it's treated as
+  // orphaned by a crashed worker and reclaimed. Must comfortably exceed
+  // the provider send timeout (Resend's is 10s) so an in-flight send is
+  // never stolen. Default 120s.
+  staleSendingMs?: number;
 };
 
 export type RunningEmailWorker = {
@@ -41,6 +46,7 @@ export type RunningEmailWorker = {
 
 const DEFAULT_POLL_MS = 2_000;
 const DEFAULT_BATCH = 25;
+const DEFAULT_STALE_SENDING_MS = 120_000;
 
 const dispatchOne = async (
   pool: Pool,
@@ -92,6 +98,7 @@ const dispatchOne = async (
 export const startEmailWorker = (opts: EmailWorkerOptions): RunningEmailWorker => {
   const pollIntervalMs = opts.pollIntervalMs ?? DEFAULT_POLL_MS;
   const batchSize = opts.batchSize ?? DEFAULT_BATCH;
+  const staleSendingMs = opts.staleSendingMs ?? DEFAULT_STALE_SENDING_MS;
   let running = true;
   let timer: NodeJS.Timeout | undefined;
   let inflight = Promise.resolve<number>(0);
@@ -102,7 +109,7 @@ export const startEmailWorker = (opts: EmailWorkerOptions): RunningEmailWorker =
     }
     let claimed: QueuedEmail[] = [];
     try {
-      claimed = await claimDueEmails(opts.pool, batchSize);
+      claimed = await claimDueEmails(opts.pool, batchSize, staleSendingMs);
     } catch (err) {
       opts.logger.error('email.worker.claim_error', { err });
       return 0;
