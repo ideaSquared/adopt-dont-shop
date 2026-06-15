@@ -178,6 +178,14 @@ describe('removeDocument', () => {
     ).rejects.toBeInstanceOf(HandlerError);
   });
 
+  it('throws INVALID_ARGUMENT when application_id is empty', async () => {
+    const { deps, query } = makeDeps();
+    await expect(
+      removeDocument(deps, makePrincipal(), { applicationId: '', documentId: 'doc-1' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(query).not.toHaveBeenCalled();
+  });
+
   it('soft-deletes the document and returns an empty response', async () => {
     const { deps, query } = makeDeps();
     query.mockResolvedValueOnce({ rowCount: 1 });

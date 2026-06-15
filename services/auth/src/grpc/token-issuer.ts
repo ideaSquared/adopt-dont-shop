@@ -26,6 +26,11 @@ import type {
 const ACCESS_TTL_SECONDS = 15 * 60;
 const REFRESH_TTL_SECONDS = 30 * 24 * 60 * 60;
 
+// Pin the signing algorithm on BOTH sign and verify. Without pinning,
+// jwt.verify trusts the `alg` header on the inbound token, which opens
+// the door to algorithm-substitution attacks. We only ever issue HS256.
+const SIGNING_ALGORITHM = 'HS256' as const;
+
 export type TokenIssuerConfig = {
   accessSecret: string;
   refreshSecret: string;
@@ -43,11 +48,13 @@ export function createJwtTokenIssuer(cfg: TokenIssuerConfig): TokenIssuer {
 
       const accessToken = jwt.sign(
         { sub: userId, jti: accessJti, iat: now, exp: accessExp },
-        cfg.accessSecret
+        cfg.accessSecret,
+        { algorithm: SIGNING_ALGORITHM }
       );
       const refreshToken = jwt.sign(
         { sub: userId, jti: refreshJti, iat: now, exp: refreshExp },
-        cfg.refreshSecret
+        cfg.refreshSecret,
+        { algorithm: SIGNING_ALGORITHM }
       );
 
       const minted: MintedTokens = {
@@ -66,12 +73,16 @@ export function createJwtTokenIssuer(cfg: TokenIssuerConfig): TokenIssuer {
     },
 
     verifyAccess: async token => {
-      const decoded = jwt.verify(token, cfg.accessSecret) as Record<string, unknown>;
+      const decoded = jwt.verify(token, cfg.accessSecret, {
+        algorithms: [SIGNING_ALGORITHM],
+      }) as Record<string, unknown>;
       return toAccessClaims(decoded);
     },
 
     verifyRefresh: async token => {
-      const decoded = jwt.verify(token, cfg.refreshSecret) as Record<string, unknown>;
+      const decoded = jwt.verify(token, cfg.refreshSecret, {
+        algorithms: [SIGNING_ALGORITHM],
+      }) as Record<string, unknown>;
       return toRefreshClaims(decoded);
     },
   };

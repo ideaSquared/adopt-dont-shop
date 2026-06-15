@@ -13,7 +13,9 @@ export async function erasePets(
   let total = 0;
   for (const sql of [
     `DELETE FROM pets.user_favorites WHERE user_id = $1`,
-    `DELETE FROM pets.ratings WHERE user_id = $1`,
+    // The ratings author column is `reviewer_id` (there is no `user_id`
+    // column on pets.ratings — keying on it would throw at runtime).
+    `DELETE FROM pets.ratings WHERE reviewer_id = $1`,
   ]) {
     const res = await client.query(sql, [payload.userId]);
     total += res.rowCount ?? 0;

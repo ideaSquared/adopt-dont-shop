@@ -246,10 +246,12 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
       nats,
       { subject: 'rescue.staffInvited', durable: durableFor('rescue.staffInvited'), onError },
       async payload => {
+        // The invitee email is PII — keep it out of operational logs
+        // (Layer 1 redaction only protects known fields). Identifiers
+        // are sufficient to trace the event.
         logger.info('rescue.staffInvited received', {
           invitationId: payload.invitationId,
           rescueId: payload.rescueId,
-          email: payload.email,
         });
       }
     )

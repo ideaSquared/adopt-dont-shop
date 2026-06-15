@@ -141,6 +141,18 @@ describe('fileReport', () => {
       fileReport(deps, makePrincipal(), { ...VALID_FILE_REQ, metadataJson: 'not-json' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
+
+  it('uses ON CONFLICT so a re-delivered auto-report is idempotent (no duplicate row)', async () => {
+    // The NATS subscribers re-file the SAME (reporter, entity_type, entity_id)
+    // tuple when JetStream redelivers an event. The insert must collapse to a
+    // no-op that returns the existing row rather than minting a duplicate.
+    const { deps, query } = makeDeps([{ rows: [reportRow()] }]);
+    await fileReport(deps, makePrincipal(), VALID_FILE_REQ);
+    const sql = String(query.mock.calls[0][0]);
+    expect(sql).toMatch(/ON CONFLICT/i);
+    expect(sql).toMatch(/reported_entity_type/);
+    expect(sql).toMatch(/reported_entity_id/);
+  });
 });
 
 describe('getReport', () => {

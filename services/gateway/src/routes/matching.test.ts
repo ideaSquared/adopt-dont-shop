@@ -194,7 +194,11 @@ describe('POST /api/v1/matching/sessions', () => {
     });
 
     expect(httpRes.statusCode).toBe(httpCode);
-    expect(httpRes.json()).toMatchObject({ error: 'oops' });
+    // 4xx codes echo the upstream detail; 5xx are sanitised so internal
+    // text never reaches the client.
+    expect(httpRes.json()).toMatchObject({
+      error: httpCode >= 500 ? 'internal_error' : 'oops',
+    });
   });
 });
 

@@ -22,15 +22,25 @@ function fakeClient(counts: number[]): PoolClient {
 }
 
 describe('eraseNotifications', () => {
-  it('deletes from all four user-keyed tables in the notifications schema', async () => {
-    const client = fakeClient([4, 1, 1, 2]);
+  it('deletes from all user-keyed tables in the notifications schema, including the email queue', async () => {
+    const client = fakeClient([4, 1, 1, 2, 3]);
     const total = await eraseNotifications(client, PAYLOAD);
-    expect(total).toBe(8);
+    expect(total).toBe(11);
     const calls = (client.query as ReturnType<typeof vi.fn>).mock.calls;
-    expect(calls).toHaveLength(4);
+    expect(calls).toHaveLength(5);
     expect(String(calls[0][0])).toContain('DELETE FROM notifications.notifications');
     expect(String(calls[1][0])).toContain('DELETE FROM notifications.user_notification_prefs');
     expect(String(calls[2][0])).toContain('DELETE FROM notifications.email_preferences');
     expect(String(calls[3][0])).toContain('DELETE FROM notifications.device_tokens');
+    expect(String(calls[4][0])).toContain('DELETE FROM notifications.email_queue');
+  });
+
+  it('parameterizes the user id on every delete', async () => {
+    const client = fakeClient([0, 0, 0, 0, 0]);
+    await eraseNotifications(client, PAYLOAD);
+    const calls = (client.query as ReturnType<typeof vi.fn>).mock.calls;
+    for (const call of calls) {
+      expect(call[1]).toEqual([PAYLOAD.userId]);
+    }
   });
 });

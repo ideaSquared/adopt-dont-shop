@@ -277,6 +277,22 @@ describe('updatePet', () => {
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
+  it('PERMISSION_DENIED for a no-rescue (orphan) pet unless super_admin', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ rescue_id: null })] });
+    // Staff with pets.update but the pet has no rescue scope — must NOT
+    // fall through to an unscoped permission pass.
+    await expect(
+      updatePet(mocks.deps, STAFF, { petId: 'pet-1', name: 'x' } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('lets super_admin update a no-rescue (orphan) pet', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ rescue_id: null })] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [petRow({ rescue_id: null, name: 'x' })] });
+    const res = await updatePet(mocks.deps, SUPER_ADMIN, { petId: 'pet-1', name: 'x' } as never);
+    expect(res.pet.name).toBe('x');
+  });
+
   it('no-ops (returns current row, no write) when no fields supplied', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     const res = await updatePet(mocks.deps, STAFF, { petId: 'pet-1' } as never);
@@ -406,6 +422,20 @@ describe('deletePet', () => {
     await expect(deletePet(mocks.deps, OTHER_STAFF, { petId: 'pet-1' })).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
+  });
+
+  it('PERMISSION_DENIED for a no-rescue (orphan) pet unless super_admin', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ rescue_id: null })] });
+    await expect(deletePet(mocks.deps, STAFF, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('lets super_admin soft-delete a no-rescue (orphan) pet', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ rescue_id: null })] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    const res = await deletePet(mocks.deps, SUPER_ADMIN, { petId: 'pet-1' });
+    expect(res.deleted).toBe(true);
   });
 });
 

@@ -350,6 +350,18 @@ describe('verifyRescue', () => {
     expect(publishedSubjects).toEqual(['rescue.verified']);
   });
 
+  it('INVALID_ARGUMENT when rejecting without a failure reason', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
+    await expect(
+      verifyRescue(mocks.deps, ADMIN, {
+        rescueId: 'rsc-1',
+        toStatus: RescueV1.RescueStatus.RESCUE_STATUS_REJECTED,
+      } as never)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    // No write happened — the guard fires before the transaction.
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
   it('publishes rescue.rejected when transitioning pending → rejected with a reason', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ status: 'pending' })] });
     const publishedSubjects: string[] = [];

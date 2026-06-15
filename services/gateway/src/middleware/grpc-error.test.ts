@@ -132,14 +132,44 @@ describe('handleGrpcError', () => {
     expect(reply.send).toHaveBeenCalledWith({ error: 'pet not found' });
   });
 
-  it('sends { error: message } when details is absent but message is set', () => {
-    handleGrpcError({ code: status.INTERNAL, message: 'crash' }, reply);
-    expect(reply.send).toHaveBeenCalledWith({ error: 'crash' });
-  });
-
   it('sends { error: "internal_error" } when neither details nor message is set', () => {
     handleGrpcError({ code: status.INTERNAL }, reply);
     expect(reply.send).toHaveBeenCalledWith({ error: 'internal_error' });
+  });
+
+  // ── 5xx codes never leak upstream message/details to the client ──────────────
+  // The upstream message/details on a server-side error can carry internal
+  // stack fragments, DB errors, file paths, etc. We forward upstream text only
+  // for client-facing (4xx) codes — those come from validation / business logic.
+
+  it('does NOT leak upstream message on INTERNAL (500)', () => {
+    handleGrpcError({ code: status.INTERNAL, message: 'connection to db pool failed' }, reply);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'internal_error' });
+  });
+
+  it('does NOT leak upstream details on INTERNAL (500)', () => {
+    handleGrpcError({ code: status.INTERNAL, details: 'ECONNREFUSED 10.0.3.5:5432' }, reply);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'internal_error' });
+  });
+
+  it('does NOT leak upstream text on UNAVAILABLE (503)', () => {
+    handleGrpcError({ code: status.UNAVAILABLE, details: 'no connection established' }, reply);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'service_unavailable' });
+  });
+
+  it('does NOT leak upstream text on DEADLINE_EXCEEDED (504)', () => {
+    handleGrpcError({ code: status.DEADLINE_EXCEEDED, details: 'retry budget exhausted' }, reply);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'gateway_timeout' });
+  });
+
+  it('does NOT leak a non-gRPC Error message to the client', () => {
+    handleGrpcError(new Error('TypeError: cannot read property foo of undefined'), reply);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'internal_error' });
+  });
+
+  it('still forwards upstream details for client-facing codes (400)', () => {
+    handleGrpcError({ code: status.INVALID_ARGUMENT, details: 'email is required' }, reply);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'email is required' });
   });
 
   it('prefers details over message when both are present', () => {

@@ -180,6 +180,34 @@ describe('endSession', () => {
     expect(publish.mock.calls.length).toBe(0);
   });
 
+  it('throws PERMISSION_DENIED when a non-owner without super_admin ends the session', async () => {
+    const { deps } = makeDeps([{ rows: [sessionRow({ user_id: 'someone-else' })] }]);
+    await expect(endSession(deps, makePrincipal(), { sessionId: 'sess-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('allows a super_admin to end another user session', async () => {
+    const { deps } = makeDeps([
+      { rows: [sessionRow({ user_id: 'someone-else' })] }, // SELECT FOR UPDATE
+      {
+        rows: [
+          sessionRow({
+            user_id: 'someone-else',
+            end_time: new Date('2026-06-01T13:00:00.000Z'),
+            is_active: false,
+          }),
+        ],
+      }, // UPDATE RETURNING
+    ]);
+    const res = await endSession(
+      deps,
+      makePrincipal({ userId: 'admin-1', roles: ['super_admin'] }),
+      { sessionId: 'sess-1' }
+    );
+    expect(res.session.isActive).toBe(false);
+  });
+
   it('closes an active session and publishes matching.sessionEnded', async () => {
     const { deps } = makeDeps([
       { rows: [sessionRow()] }, // SELECT FOR UPDATE

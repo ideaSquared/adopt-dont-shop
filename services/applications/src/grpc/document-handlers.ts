@@ -159,6 +159,9 @@ export async function removeDocument(
   if (!requirePermission(principal, APPLICATIONS_UPDATE)) {
     throw new HandlerError('PERMISSION_DENIED', `'${APPLICATIONS_UPDATE}' required`);
   }
+  if (req.applicationId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'application_id is required');
+  }
   if (req.documentId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'document_id is required');
   }

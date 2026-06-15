@@ -579,7 +579,7 @@ export async function deletePet(
   if (!existing) {
     throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
   }
-  if (!requirePermission(principal, PETS_DELETE, scopeFor(existing))) {
+  if (!isPermittedRescueMutation(principal, PETS_DELETE, existing)) {
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_DELETE}' required for this rescue`);
   }
 
@@ -613,13 +613,23 @@ async function fetchPet(deps: HandlerDeps, petId: string): Promise<PetRow | unde
 // degrades to a plain permission check, which would wrongly let any
 // pets.update holder through, so we gate the no-rescue case explicitly.
 function assertRescueScopedUpdate(principal: Principal, row: PetRow): void {
-  if (!requirePermission(principal, PETS_UPDATE, scopeFor(row))) {
+  if (!isPermittedRescueMutation(principal, PETS_UPDATE, row)) {
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_UPDATE}' required for this rescue`);
   }
 }
 
-function scopeFor(row: PetRow): { rescueId: RescueId } | undefined {
-  return row.rescue_id ? { rescueId: row.rescue_id as RescueId } : undefined;
+// Gate a mutation on a pet's rescue scope. Orphan pets (no rescue_id)
+// have no scope to check against, so requirePermission would let any
+// holder of the permission through — we restrict those to super_admin.
+function isPermittedRescueMutation(
+  principal: Principal,
+  permission: Permission,
+  row: PetRow
+): boolean {
+  if (!row.rescue_id) {
+    return principal.roles.includes('super_admin');
+  }
+  return requirePermission(principal, permission, { rescueId: row.rescue_id as RescueId });
 }
 
 function clampLimit(requested: number): number {

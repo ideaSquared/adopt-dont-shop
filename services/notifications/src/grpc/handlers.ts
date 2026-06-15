@@ -398,10 +398,10 @@ export async function dismissNotification(
   }
 
   // Fetch outside the transaction first so we can return NOT_FOUND
-  // cleanly without holding a write lock. The DB scope check below
-  // covers the TOCTOU window: even if the row's user_id changed
-  // between SELECT and UPDATE (it can't — user_id is immutable), the
-  // UPDATE WHERE clause re-enforces.
+  // cleanly without holding a write lock. The ownership check below
+  // runs against this SELECTed row; there is no TOCTOU window because
+  // user_id is immutable, so the row the UPDATE targets by
+  // notification_id still belongs to the same user.
   const existing = await deps.pool.query<NotificationRow>(
     `SELECT * FROM notifications.notifications WHERE notification_id = $1 AND deleted_at IS NULL`,
     [req.notificationId]

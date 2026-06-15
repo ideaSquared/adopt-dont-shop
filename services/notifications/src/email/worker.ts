@@ -145,7 +145,7 @@ export const startEmailWorker = (opts: EmailWorkerOptions): RunningEmailWorker =
         })
         .finally(() => {
           schedule();
-        }) as Promise<number>;
+        });
     }, pollIntervalMs);
   };
 

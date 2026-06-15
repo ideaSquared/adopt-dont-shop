@@ -94,7 +94,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
         await fileAutoReport(deps, {
           reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_MESSAGE,
           reportedEntityId: event.messageId,
-          reportedUserId: event.senderId as string,
+          reportedUserId: event.senderId,
           category: CATEGORY_TO_PROTO[hit.category],
           severity: severityFor(hit),
           title: `Auto-report: ${hit.reason}`,
@@ -143,7 +143,7 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
         await fileAutoReport(deps, {
           reportedEntityType: ModerationV1.ReportEntityType.REPORT_ENTITY_TYPE_APPLICATION,
           reportedEntityId: event.applicationId,
-          reportedUserId: event.adopterId as string,
+          reportedUserId: event.adopterId,
           category: CATEGORY_TO_PROTO[hit.category],
           severity: severityFor(hit),
           title: `Auto-report: application — ${hit.reason}`,

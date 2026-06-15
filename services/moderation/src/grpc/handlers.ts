@@ -35,6 +35,8 @@ import type {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
+import { SYSTEM_USER_ID } from '../nats/system-principal.js';
+
 import { decodeCursor, encodeCursor, InvalidCursorError } from './cursor.js';
 import { categoryToDb, entityTypeToDb, reportStatusToDb, severityToDb } from './enum-map.js';
 import {
@@ -103,6 +105,9 @@ export async function fileReport(
          metadata
        )
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9, $10::jsonb)
+       ON CONFLICT (reported_entity_type, reported_entity_id)
+         WHERE reporter_id = '${SYSTEM_USER_ID}'
+         DO UPDATE SET updated_at = reports.updated_at
        RETURNING report_id, reporter_id, reported_entity_type, reported_entity_id,
                  reported_user_id, category, severity, status, title, description,
                  metadata, assigned_moderator, assigned_at, resolved_by, resolved_at,

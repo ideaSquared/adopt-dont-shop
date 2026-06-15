@@ -103,9 +103,10 @@ export const startScheduler = (jobs: ScheduledJob[], opts: SchedulerOptions): Ru
           opts.logger.error('scheduler.tick_error', { err });
           return [] as string[];
         })
+        .then(() => undefined)
         .finally(() => {
           schedule();
-        }) as unknown as Promise<void>;
+        });
     }, tickIntervalMs);
   };
 
