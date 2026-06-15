@@ -19,6 +19,8 @@
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Permission } from '@adopt-dont-shop/lib.types';
+
+import { isLegalTransition } from './status-machine.js';
 import {
   CmsV1,
   type CmsArchiveContentRequest,
@@ -655,6 +657,26 @@ async function setStatus(
   setPublishedAt: boolean
 ): Promise<ContentRow> {
   return withTransaction(deps, async ({ client, publish }) => {
+    // Lock the row and re-validate the transition against the *locked*
+    // status so two concurrent transitions can't both pass the gate
+    // (no TOCTOU): the second one blocks on FOR UPDATE, then sees the
+    // first one's committed status.
+    const currentResult = await client.query<ContentRow>(
+      `SELECT ${CONTENT_COLUMNS} FROM cms_content
+         WHERE content_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+      [contentId]
+    );
+    const current = currentResult.rows[0];
+    if (!current) {
+      throw new HandlerError('NOT_FOUND', `content ${contentId} not found`);
+    }
+    if (!isLegalTransition(current.status, status)) {
+      throw new HandlerError(
+        'INVALID_ARGUMENT',
+        `illegal status transition: ${current.status} -> ${status}`
+      );
+    }
+
     const setExtra = setPublishedAt ? ', published_at = now()' : '';
     const result = await client.query<ContentRow>(
       `UPDATE cms_content

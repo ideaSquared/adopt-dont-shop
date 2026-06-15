@@ -452,6 +452,7 @@ describe('workflow actions', () => {
   });
 
   it('publishContent: sets status=published + published_at', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] }); // SELECT FOR UPDATE
     mocks.clientScript.push({
       rows: [contentRow({ status: 'published', published_at: new Date() })],
     });
@@ -462,6 +463,7 @@ describe('workflow actions', () => {
   });
 
   it('unpublishContent: sets status=draft (NO published_at update)', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] }); // SELECT FOR UPDATE
     mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] });
     await unpublishContent(mocks.deps, ADMIN, { contentId: 'c-1' });
     const call = mocks.clientMock.query.mock.calls.find(c => /^UPDATE/i.test(String(c[0])));
@@ -469,9 +471,71 @@ describe('workflow actions', () => {
   });
 
   it('archiveContent: sets status=archived', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] }); // SELECT FOR UPDATE
     mocks.clientScript.push({ rows: [contentRow({ status: 'archived' })] });
     const res = await archiveContent(mocks.deps, ADMIN, { contentId: 'c-1' });
     expect(res.content?.status).toBe(CmsV1.ContentStatus.CONTENT_STATUS_ARCHIVED);
+  });
+
+  it('publishContent: 404 when content missing (no UPDATE attempted)', async () => {
+    mocks.clientScript.push({ rows: [] }); // SELECT FOR UPDATE finds nothing
+    await expect(publishContent(mocks.deps, ADMIN, { contentId: 'c-x' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    const updateCall = mocks.clientMock.query.mock.calls.find(c => /^UPDATE/i.test(String(c[0])));
+    expect(updateCall).toBeUndefined();
+  });
+});
+
+describe('status transition validation (state machine)', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('reads the current status under FOR UPDATE before writing', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] });
+    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] });
+    await publishContent(mocks.deps, ADMIN, { contentId: 'c-1' });
+    const selectCall = mocks.clientMock.query.mock.calls.find(c => /^SELECT/i.test(String(c[0])));
+    expect(String(selectCall![0])).toContain('FOR UPDATE');
+  });
+
+  it('rejects publishing an already-published item (self-transition)', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] });
+    await expect(publishContent(mocks.deps, ADMIN, { contentId: 'c-1' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+    const updateCall = mocks.clientMock.query.mock.calls.find(c => /^UPDATE/i.test(String(c[0])));
+    expect(updateCall).toBeUndefined();
+  });
+
+  it('rejects re-publishing an archived item (illegal jump)', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'archived' })] });
+    await expect(publishContent(mocks.deps, ADMIN, { contentId: 'c-1' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('rejects archiving an already-archived item', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'archived' })] });
+    await expect(archiveContent(mocks.deps, ADMIN, { contentId: 'c-1' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('rejects unpublishing a draft (nothing to unpublish)', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] });
+    await expect(unpublishContent(mocks.deps, ADMIN, { contentId: 'c-1' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('allows restore: archived -> draft via unpublish', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'archived' })] });
+    mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] });
+    const res = await unpublishContent(mocks.deps, ADMIN, { contentId: 'c-1' });
+    expect(res.content?.status).toBe(CmsV1.ContentStatus.CONTENT_STATUS_DRAFT);
   });
 });
 
@@ -506,12 +570,14 @@ describe('event idempotency keys (Nats-Msg-Id)', () => {
   });
 
   it('publish and unpublish of the same content do not share a msgID', async () => {
-    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] });
+    mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] }); // SELECT FOR UPDATE
+    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] }); // UPDATE
     await publishContent(mocks.deps, ADMIN, { contentId: 'c-1' });
     const publishId = msgIdFor('cms.contentPublished');
 
     mocks.natsMock.jetstream().publish.mockClear();
-    mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] });
+    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] }); // SELECT FOR UPDATE
+    mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] }); // UPDATE
     await unpublishContent(mocks.deps, ADMIN, { contentId: 'c-1' });
     const unpublishId = msgIdFor('cms.contentUnpublished');
 
