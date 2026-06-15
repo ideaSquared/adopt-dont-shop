@@ -88,20 +88,21 @@ CMD ["sh", "-c", "pnpm run --if-present db:migrate && pnpm run --if-present db:s
 # ---------------------------------------------------------------------------
 # prod-deps — re-resolve node_modules with ONLY production dependencies.
 # The build stage installs the full dependency set (dev tooling: tsx, esbuild,
-# vitest, typescript, turbo, eslint) to compile the service; none of it is
-# needed at runtime now that the workspace packages expose their compiled
-# dist via the "production" export condition (resolved via NODE_OPTIONS in the
-# production stage below). Re-running the install with --prod strips those
-# dev-only packages, shrinking the image and removing them from the Trivy CVE
-# surface. Workspace packages stay symlinked to /app/packages/* (their dist is
-# built in the build stage), so this only prunes node_modules. `development`
-# extends `build` — not this stage — so HMR keeps its dev deps.
-# confirmModulesPurge=false: pnpm otherwise prompts before removing the dev
-# packages, which aborts in a non-TTY build.
+# vitest, typescript, turbo, eslint, buf) to compile the service; none of it is
+# needed at runtime now that the workspace packages expose their compiled dist
+# via the "production" export condition (resolved via NODE_OPTIONS in the
+# production stage below). A plain `pnpm install --prod` only removes the
+# top-level symlinks — the dev packages stay physically in node_modules/.pnpm,
+# where Trivy still scans them. Deleting node_modules first and reinstalling
+# from the warm store cache yields a virtual store containing only production
+# dependencies. Workspace dist lives in packages/*/dist (outside node_modules),
+# so it is untouched; `development` extends `build` — not this stage — so HMR
+# keeps its dev deps. confirmModulesPurge=false avoids pnpm's non-TTY prompt.
 # ---------------------------------------------------------------------------
 FROM build AS prod-deps
 ARG SERVICE
 RUN --mount=type=cache,id=pnpm-${SERVICE},target=/pnpm/store \
+    find . -name node_modules -type d -prune -exec rm -rf {} + && \
     pnpm install --prod --frozen-lockfile --prefer-offline \
       --store-dir=/pnpm/store --config.confirmModulesPurge=false
 

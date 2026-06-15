@@ -188,11 +188,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
 
-      # Scan once to JSON (full CRITICAL/HIGH report), then `trivy convert`
-      # renders it to the job log (table) and to SARIF (Security tab) without
-      # re-scanning. The gate fails only on *fixable* CVEs (--ignore-unfixed):
-      # CVEs with no upstream patch can't be actioned and shouldn't block PRs,
-      # but they still surface in the log and Security tab for tracking.
+      # Scan once to JSON with --ignore-unfixed (gate only on CVEs that have an
+      # upstream patch — un-actionable ones shouldn't block PRs). `trivy convert`
+      # then renders that report to the job log (table) and to SARIF (Security
+      # tab) without re-scanning, and the final step fails the job if the report
+      # contains any CRITICAL/HIGH. (--ignore-unfixed is a scan flag; `convert`
+      # rejects it, so it must live on the `image` command.)
       - name: Run Trivy vulnerability scanner
         run: |
           docker run --rm \
@@ -204,6 +205,7 @@ jobs:
               --format json \
               --output trivy-results-${{ matrix.service }}.json \
               --severity CRITICAL,HIGH \
+              --ignore-unfixed \
               paragonjenko/adoptdontshop:service-${{ matrix.service }}-prod-${{ github.sha }}
 
       - name: Render Trivy results (table to log + SARIF)
@@ -228,7 +230,7 @@ jobs:
         run: |
           docker run --rm -v "$PWD:/workspace" -w /workspace \
             aquasec/trivy:0.63.0 convert --exit-code 1 \
-              --severity CRITICAL,HIGH --ignore-unfixed \
+              --severity CRITICAL,HIGH \
               trivy-results-${{ matrix.service }}.json
 
   # ============================================================================
