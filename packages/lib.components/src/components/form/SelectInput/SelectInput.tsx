@@ -226,6 +226,7 @@ export const SelectInput = ({
         >
           <Select.Trigger
             ref={ref}
+            id={dataTestId}
             className={trigger({ size, state: actualState, disabled, fullWidth })}
             aria-label={label}
             aria-required={required ? true : undefined}

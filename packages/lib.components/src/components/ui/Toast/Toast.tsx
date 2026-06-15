@@ -125,8 +125,17 @@ export const Toast: React.FC<ToastProps> = ({
     exitTimerRef.current = setTimeout(() => onClose?.(id), 200);
   };
 
+  // Announce to assistive tech: errors/warnings interrupt (assertive),
+  // success/info wait their turn (polite). Without this, screen-reader
+  // users get no feedback when an action succeeds or fails.
+  const isUrgent = type === 'error' || type === 'warning';
+
   return (
-    <div className={styles.toastWrapper({ type, position, exiting: isExiting })}>
+    <div
+      className={styles.toastWrapper({ type, position, exiting: isExiting })}
+      role={isUrgent ? 'alert' : 'status'}
+      aria-live={isUrgent ? 'assertive' : 'polite'}
+    >
       <div className={styles.toastIcon}>{typeIcons[type]}</div>
       <div className={styles.toastContent}>{message}</div>
       <button

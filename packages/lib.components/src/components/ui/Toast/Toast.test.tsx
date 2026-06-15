@@ -43,6 +43,21 @@ describe('Toast', () => {
     expect(screen.getByText('Test notification')).toBeInTheDocument();
   });
 
+  it('announces success/info as a polite status region', () => {
+    renderWithTheme(<Toast {...mockToast} type='info' />);
+    const region = screen.getByRole('status');
+    expect(region).toHaveAttribute('aria-live', 'polite');
+    expect(region).toHaveTextContent('Test notification');
+  });
+
+  it('announces errors/warnings as an assertive alert region', () => {
+    const { rerender } = renderWithTheme(<Toast {...mockToast} type='error' />);
+    expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'assertive');
+
+    rerender(<Toast {...mockToast} type='warning' />);
+    expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'assertive');
+  });
+
   it('calls onClose when close button is clicked', () => {
     const handleClose = vi.fn();
     renderWithTheme(<Toast {...mockToast} onClose={handleClose} />);
