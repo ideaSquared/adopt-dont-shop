@@ -238,6 +238,51 @@ describe('listFosterPlacements', () => {
       })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
+
+  it('pins a non-super_admin with no rescue_id to their own rescue (no cross-rescue list)', async () => {
+    // foster.read is rescue-scoped; without a rescue_id, staff must NOT get an
+    // unscoped cross-rescue read. Resolve their own rescue and force it in.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ rescue_id: RESCUE_ID }] }); // membership
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [fosterRow()] }); // foster list
+
+    await listFosterPlacements(mocks.deps, STAFF, {
+      rescueId: undefined,
+      fosterUserId: 'usr-target',
+      statusFilter: RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_UNSPECIFIED,
+    });
+
+    // The foster query (2nd call) must be scoped to the caller's own rescue.
+    const fosterSql = mocks.poolMock.query.mock.calls[1][0] as string;
+    const fosterParams = mocks.poolMock.query.mock.calls[1][1] as unknown[];
+    expect(fosterSql).toMatch(/rescue_id = \$/);
+    expect(fosterParams).toContain(RESCUE_ID);
+  });
+
+  it('returns NOT_FOUND when a non-super_admin with no rescue_id has no rescue membership', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // membership → none
+    await expect(
+      listFosterPlacements(mocks.deps, STAFF, {
+        rescueId: undefined,
+        fosterUserId: undefined,
+        statusFilter: RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_UNSPECIFIED,
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('lets a super_admin list across rescues when no rescue_id is given', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [fosterRow()] }); // foster list (only query)
+
+    await listFosterPlacements(mocks.deps, SUPER_ADMIN, {
+      rescueId: undefined,
+      fosterUserId: undefined,
+      statusFilter: RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_UNSPECIFIED,
+    });
+
+    // Single query, no rescue_id predicate or param — a true cross-rescue list.
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+    const fosterSql = mocks.poolMock.query.mock.calls[0][0] as string;
+    expect(fosterSql).not.toMatch(/rescue_id = \$/);
+  });
 });
 
 // --- GetFosterPlacement ---------------------------------------------
