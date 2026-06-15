@@ -7,8 +7,8 @@
 // permission is held. Profile upsert is a single ON CONFLICT statement;
 // stats are aggregate COUNT queries over swipe_actions.
 
-import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
-import type { Permission } from '@adopt-dont-shop/lib.types';
+import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
+import { PETS_VIEW, type Permission } from '@adopt-dont-shop/lib.types';
 import type {
   GetMatchProfileRequest,
   GetMatchProfileResponse,
@@ -111,6 +111,12 @@ export async function getMatchProfile(
   _req: GetMatchProfileRequest
 ): Promise<GetMatchProfileResponse> {
   void _req;
+  // Self-scoped read, but still gate on the base swipe permission so the
+  // match-profile surface matches the sibling swipe/stats handlers
+  // (defence-in-depth — no ungated handler in this service).
+  if (!requirePermission(principal, PETS_VIEW)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_VIEW}' required`);
+  }
   const res = await deps.pool.query<MatchProfileRow>(
     `SELECT ${PROFILE_SELECT} FROM matching.adopter_match_profiles WHERE user_id = $1 LIMIT 1`,
     [principal.userId]
@@ -138,6 +144,9 @@ export async function upsertMatchProfile(
   principal: Principal,
   req: UpsertMatchProfileRequest
 ): Promise<UpsertMatchProfileResponse> {
+  if (!requirePermission(principal, PETS_VIEW)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_VIEW}' required`);
+  }
   // Build the column → value map from only the fields the caller marked
   // as set. COALESCE in the SQL keeps unset columns at their current
   // value (or default on insert).
@@ -240,12 +249,15 @@ const STATS_AGG = `
 // pet wins (a like→pass→like sequence counts as one like). DISTINCT ON
 // (pet_id) ordered by recency collapses to the most-recent row per pet;
 // the outer aggregate then counts those deduped rows.
-const userLatestPerPetStatsSql = (placeholder: string): string => `
+// `scope` is a fixed column name (never user input), so it is safe to
+// interpolate. Both the user-level and session-level stats dedupe the
+// same way; only the filter column differs.
+const latestPerPetStatsSql = (scope: 'user_id' | 'session_id', placeholder: string): string => `
   SELECT ${STATS_AGG}
   FROM (
     SELECT DISTINCT ON (pet_id) pet_id, action
     FROM matching.swipe_actions
-    WHERE user_id = ${placeholder}
+    WHERE ${scope} = ${placeholder}
     ORDER BY pet_id, timestamp DESC, swipe_action_id DESC
   ) AS latest
 `;
@@ -263,7 +275,7 @@ export async function getUserSwipeStats(
   if (target !== principal.userId && !hasPermission(principal, SWIPES_READ_ANY)) {
     throw new HandlerError('PERMISSION_DENIED', `'${SWIPES_READ_ANY}' required`);
   }
-  const res = await deps.pool.query<StatsRow>(userLatestPerPetStatsSql('$1'), [target]);
+  const res = await deps.pool.query<StatsRow>(latestPerPetStatsSql('user_id', '$1'), [target]);
   return { stats: statsRowToProto(res.rows[0]) };
 }
 
@@ -295,9 +307,10 @@ export async function getSessionStats(
     throw new HandlerError('PERMISSION_DENIED', 'not the session owner');
   }
 
-  const res = await deps.pool.query<StatsRow>(
-    `SELECT ${STATS_AGG} FROM matching.swipe_actions WHERE session_id = $1`,
-    [req.sessionId]
-  );
+  // Dedupe re-swipes within the session too (append-only swipe log): the
+  // latest action per pet wins, matching the user-level stats.
+  const res = await deps.pool.query<StatsRow>(latestPerPetStatsSql('session_id', '$1'), [
+    req.sessionId,
+  ]);
   return { stats: statsRowToProto(res.rows[0]) };
 }
