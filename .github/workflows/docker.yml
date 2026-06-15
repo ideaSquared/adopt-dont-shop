@@ -185,14 +185,8 @@ jobs:
             BUILDKIT_INLINE_CACHE=1
           push: false
           tags: paragonjenko/adoptdontshop:service-${{ matrix.service }}-prod-${{ github.sha }}
-          # Build the scanned prod image WITHOUT layer cache. A stale GHA cache
-          # entry can carry an out-of-date dependency tree (packages since removed
-          # or patched in pnpm-lock.yaml) that Trivy then flags as phantom CVEs.
-          # `no-cache-filters` was insufficient: the dev image build above shares
-          # the pruner/build stages and repopulates the builder cache from the
-          # stale GHA entry. The pnpm-store and turbo cache *mounts* stay warm
-          # from that dev build, so install/build still resolve quickly. [ADS-833]
-          no-cache: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
 
       # Scan once to JSON with --ignore-unfixed (gate only on CVEs that have an
       # upstream patch — un-actionable ones shouldn't block PRs). `trivy convert`
