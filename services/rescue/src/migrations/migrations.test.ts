@@ -24,7 +24,7 @@ async function listMigrationFiles(): Promise<string[]> {
 describe('rescue migrations', () => {
   it('has migration files following the NNN_snake_case.ts naming convention', async () => {
     const files = await listMigrationFiles();
-    expect(files.length).toBeGreaterThanOrEqual(6);
+    expect(files.length).toBeGreaterThanOrEqual(7);
     for (const f of files) {
       expect(f).toMatch(MIGRATION_FILENAME_PATTERN);
     }
@@ -45,6 +45,7 @@ describe('rescue migrations', () => {
     '004_create_invitations.ts',
     '005_create_foster_placements.ts',
     '006_create_application_questions.ts',
+    '007_invitation_pending_unique.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;
