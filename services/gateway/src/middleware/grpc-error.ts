@@ -34,9 +34,28 @@ export const GRPC_TO_HTTP: Record<number, number> = {
 
 type GrpcError = { code?: number; details?: string; message?: string };
 
+// Generic client-safe messages for server-side (5xx) statuses. The
+// upstream message/details on a 5xx can carry internal stack fragments,
+// raw DB errors, connection strings or file paths — none of which a
+// client should see. We forward the upstream text ONLY for client-facing
+// (4xx) codes, where it comes from validation / business logic and is
+// meant for the caller.
+const GENERIC_5XX_MESSAGE: Record<number, string> = {
+  500: 'internal_error',
+  501: 'not_implemented',
+  502: 'bad_gateway',
+  503: 'service_unavailable',
+  504: 'gateway_timeout',
+};
+
 export const handleGrpcError = (err: unknown, reply: FastifyReply): FastifyReply => {
   const grpcErr = err as GrpcError;
   const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
+  if (httpStatus >= 500) {
+    return reply
+      .code(httpStatus)
+      .send({ error: GENERIC_5XX_MESSAGE[httpStatus] ?? 'internal_error' });
+  }
   return reply.code(httpStatus).send({
     error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',
   });

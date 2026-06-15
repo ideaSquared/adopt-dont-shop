@@ -150,7 +150,11 @@ describe('GET /api/v1/audit', () => {
     });
 
     expect(httpRes.statusCode).toBe(httpCode);
-    expect(httpRes.json()).toMatchObject({ error: 'test' });
+    // 4xx codes echo the upstream detail; 5xx are sanitised so internal
+    // text never reaches the client.
+    expect(httpRes.json()).toMatchObject({
+      error: httpCode >= 500 ? 'internal_error' : 'test',
+    });
   });
 });
 
