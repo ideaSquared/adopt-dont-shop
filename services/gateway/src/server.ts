@@ -29,6 +29,8 @@ import {
   registerMetrics,
   registerRequestId,
 } from '@adopt-dont-shop/observability';
+import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance } from 'fastify';
 import Redis from 'ioredis';
@@ -185,6 +187,21 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     void reply.status(err.statusCode ?? 500).send({ error: 'internal_error' });
   });
 
+  // Security headers (defence-in-depth alongside nginx). CSP is omitted
+  // here because nginx enforces a strict policy at the edge and Swagger
+  // UI requires 'unsafe-inline' relaxation that would weaken that policy
+  // for gateway-direct callers. All other Helmet defaults are applied.
+  await server.register(helmet, { contentSecurityPolicy: false });
+
+  // CORS — explicit allowed-origins list from config. nginx also handles
+  // CORS at the edge; this layer protects direct-gateway scenarios
+  // (internal load balancer, debug runs without nginx, etc.).
+  await server.register(cors, {
+    origin: config.cors?.origins ?? [],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  });
+
   // Request-id middleware runs FIRST so the id is on req for every
   // hook after it (including the metrics onResponse hook + the
   // authenticate hook, which forwards it on downstream gRPC metadata).
@@ -335,6 +352,29 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       authClient: opts.authClient,
       logger,
       principalSigningKey: config.principalSigningKey,
+    });
+
+    // Gate /docs behind admin role. This hook runs AFTER the authenticate
+    // hook (hooks execute in registration order), so x-user-roles is
+    // already stamped from the validated JWT by the time we check it.
+    // /openapi.json stays open — it reveals only route URLs already
+    // visible in the codebase and is needed for SDK generation tooling.
+    server.addHook('onRequest', async (req, reply) => {
+      if (!req.url.startsWith('/docs')) {
+        return;
+      }
+      const rolesHeader = req.headers['x-user-roles'];
+      const roles =
+        typeof rolesHeader === 'string'
+          ? rolesHeader
+              .split(',')
+              .map(r => r.trim())
+              .filter(Boolean)
+          : [];
+      const isAdmin = roles.some(r => r === 'admin' || r === 'super_admin');
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'forbidden' });
+      }
     });
   }
 

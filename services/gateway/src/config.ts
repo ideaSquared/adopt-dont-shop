@@ -108,6 +108,14 @@ export type GatewayConfig = {
   // Optional: unset → legacy header-only propagation (phased rollout).
   // Read via config-secrets so PRINCIPAL_SIGNING_KEY_FILE works.
   principalSigningKey: string | undefined;
+  // CORS — explicit allowed-origin list for the @fastify/cors plugin.
+  // Loaded from CORS_ORIGIN (comma-separated). The list must include the
+  // origins of every SPA that calls the gateway directly. nginx also
+  // applies CORS at the edge; the gateway layer is defence-in-depth for
+  // scenarios where the gateway is hit without nginx in front.
+  cors: {
+    origins: string[];
+  };
   // Rate limiting — applied at the gateway edge for every route.
   // Backed by a shared Redis store in production/staging so per-replica
   // limits don't multiply by N replicas. Falls back to an in-memory
@@ -182,9 +190,33 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
       publicEnabled: env.GATEWAY_CONFIG_ENABLED?.trim().toLowerCase() !== 'false',
     },
     principalSigningKey: readSecret('PRINCIPAL_SIGNING_KEY', env)?.trim() || undefined,
+    cors: buildCorsConfig(env),
     rateLimit: buildRateLimitConfig(env),
   };
 };
+
+// Build the CORS config block. CORS_ORIGIN is a comma-separated list
+// of allowed origins (e.g. "http://localhost:3000,http://localhost:3001").
+// Defaults to localhost dev origins when unset so local dev works without
+// extra config; production must set this explicitly.
+function buildCorsConfig(env: NodeJS.ProcessEnv): GatewayConfig['cors'] {
+  const raw = env.CORS_ORIGIN?.trim() || '';
+  const origins = raw
+    ? raw
+        .split(',')
+        .map(o => o.trim())
+        .filter(Boolean)
+    : [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3002',
+        'http://localhost',
+        'http://admin.localhost',
+        'http://rescue.localhost',
+        'http://api.localhost',
+      ];
+  return { origins };
+}
 
 // Build the rate-limit config block.
 function buildRateLimitConfig(env: NodeJS.ProcessEnv): GatewayConfig['rateLimit'] {
