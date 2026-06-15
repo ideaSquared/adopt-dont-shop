@@ -6,7 +6,7 @@ import { verifyPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 
-import { registerAuthenticate } from './authenticate.js';
+import { __TEST_PUBLIC_PATH_PREFIXES, registerAuthenticate } from './authenticate.js';
 
 const quietLogger = {
   info: () => undefined,
@@ -38,7 +38,8 @@ function makeApp(authClient: AuthClient, principalSigningKey?: string): Promise<
     };
   });
   app.get('/health/simple', async () => ({ ok: true }));
-  app.post('/api/auth/login', async () => ({ logged: 'in' }));
+  app.post('/api/v1/auth/login', async () => ({ logged: 'in' }));
+  app.post('/api/v1/auth/refresh-token', async () => ({ refreshed: true }));
   return registerAuthenticate(app, { authClient, logger: quietLogger, principalSigningKey }).then(
     () => app
   );
@@ -146,16 +147,39 @@ describe('registerAuthenticate — public paths', () => {
     expect(validateMock).not.toHaveBeenCalled();
   });
 
-  it('passes through /api/auth/login even when ValidateToken would reject the token', async () => {
+  it('passes through /api/v1/auth/login even when ValidateToken would reject the token', async () => {
     validateMock.mockRejectedValueOnce(Object.assign(new Error('expired'), { code: 16 }));
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/api/v1/auth/login',
       headers: { authorization: 'Bearer expired.token' },
       payload: {},
     });
     expect(res.statusCode).toBe(200);
+  });
+
+  // Regression: the public allowlist must match the REAL registered route
+  // prefix (`/api/v1/auth/*`). A stale access token attached to a
+  // refresh-token call must not 401 before the handler runs, or
+  // token-based clients can never recover an expired session.
+  it('passes through /api/v1/auth/refresh-token when an expired token is attached', async () => {
+    validateMock.mockRejectedValueOnce(Object.assign(new Error('expired'), { code: 16 }));
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/refresh-token',
+      headers: { authorization: 'Bearer expired.token' },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ refreshed: true });
+  });
+
+  it('lists only real /api/v1/auth/* prefixes in the public allowlist', () => {
+    for (const prefix of __TEST_PUBLIC_PATH_PREFIXES) {
+      expect(prefix === '/health' || prefix.startsWith('/api/v1/auth/')).toBe(true);
+    }
   });
 });
 
