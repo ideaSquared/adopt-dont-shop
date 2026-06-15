@@ -500,6 +500,11 @@ export async function verifyRescue(
       `illegal status transition ${existing.status} → ${toStatus}`
     );
   }
+  // A rejection must carry a reason — the SQL denormalises it onto the
+  // row and downstream consumers / the audit trail rely on it.
+  if (toStatus === 'rejected' && !req.failureReason) {
+    throw new HandlerError('INVALID_ARGUMENT', 'failure_reason is required when rejecting');
+  }
 
   let updated: RescueRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {

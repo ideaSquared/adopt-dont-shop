@@ -279,6 +279,21 @@ describe('endFosterPlacement', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it('PERMISSION_DENIED when the placement belongs to another rescue', async () => {
+    // Existing placement is owned by a rescue the STAFF principal is not
+    // scoped to — the foster.update gate must reject the cross-rescue end.
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [fosterRow({ rescue_id: 'rsc-other' })],
+    });
+    await expect(
+      endFosterPlacement(mocks.deps, STAFF, {
+        placementId: 'fp-1',
+        outcome: RescueV1.FosterEndOutcome.FOSTER_END_OUTCOME_RETURN_TO_RESCUE,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
   it('is idempotent on already-ended placements (no publish)', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [fosterRow({ status: 'completed', end_date: new Date() })],
