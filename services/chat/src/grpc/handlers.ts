@@ -592,15 +592,18 @@ export async function markRead(
       [principal.userId, req.chatId, target.rows[0].created_at]
     );
 
-    // Bump the participant's last_read_at watermark for the chat-list
-    // unread badge calculation.
+    // Advance the participant's last_read_at watermark to the TARGET
+    // message's timestamp — not now(). now() would swallow any message that
+    // arrives between the target lookup and this write (its created_at falls
+    // in (target, now()] yet would read as "below the watermark"). GREATEST
+    // keeps the watermark monotonic so out-of-order marks never rewind it.
     await client.query(
       `
       UPDATE chat_participants
-      SET last_read_at = now(), updated_at = now()
+      SET last_read_at = GREATEST(last_read_at, $3), updated_at = now()
       WHERE chat_id = $1 AND participant_id = $2
       `,
-      [req.chatId, principal.userId]
+      [req.chatId, principal.userId, target.rows[0].created_at]
     );
 
     const participantUserIds = await loadChatParticipantsTx(client, req.chatId);
@@ -621,6 +624,12 @@ export async function markRead(
 
 // --- React -----------------------------------------------------------
 
+// The emoji column is varchar(32). Postgres counts code points; JS string
+// length counts UTF-16 code units (>= code points), so a length <= 32 here
+// can never overflow the column. Guarding in the handler turns a would-be
+// DB 22001 (surfaced as INTERNAL) into a clean INVALID_ARGUMENT.
+const MAX_EMOJI_LENGTH = 32;
+
 export async function react(
   deps: HandlerDeps,
   principal: Principal,
@@ -631,6 +640,9 @@ export async function react(
   }
   if (!req.emoji) {
     throw new HandlerError('INVALID_ARGUMENT', 'emoji is required');
+  }
+  if (req.emoji.length > MAX_EMOJI_LENGTH) {
+    throw new HandlerError('INVALID_ARGUMENT', `emoji exceeds ${MAX_EMOJI_LENGTH} character limit`);
   }
   if (!hasPermission(principal, CHAT_SEND)) {
     throw new HandlerError('PERMISSION_DENIED', `'${CHAT_SEND}' required`);

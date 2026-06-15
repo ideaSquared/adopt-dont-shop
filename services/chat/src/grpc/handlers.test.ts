@@ -396,6 +396,30 @@ describe('markRead', () => {
     expect(realClientQueries(mocks)).toEqual(['INSERT', 'UPDATE', 'SELECT']);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.messageRead');
   });
+
+  it('advances last_read_at to the target message timestamp (not now()) and never backwards', async () => {
+    const targetCreatedAt = new Date('2026-06-01T00:01:00Z');
+    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    mocks.poolScript.push({ rows: [{ created_at: targetCreatedAt }] });
+    mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({ rows: [] });
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+
+    await markRead(mocks.deps, ADOPTER_PRINCIPAL, BASE_MARK);
+
+    const updateCall = mocks.clientMock.query.mock.calls.find(
+      ([sql]) => typeof sql === 'string' && sql.includes('UPDATE chat_participants')
+    ) as [string, unknown[]] | undefined;
+    expect(updateCall).toBeDefined();
+    // Watermark must be derived from the target's created_at, not wall-clock
+    // now(), so a message arriving mid-mark is not silently swallowed; and it
+    // must be monotonic (GREATEST) so out-of-order marks never rewind it.
+    expect(updateCall?.[0]).toMatch(/GREATEST\(last_read_at,/);
+    expect(updateCall?.[0]).not.toMatch(/last_read_at = now\(\)/);
+    expect(updateCall?.[1]).toContain(targetCreatedAt);
+  });
 });
 
 // --- React ----------------------------------------------------------
@@ -416,6 +440,14 @@ describe('react', () => {
     await expect(react(mocks.deps, UNPRIVILEGED_PRINCIPAL, BASE_REACT)).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
+  });
+
+  it('rejects an emoji longer than the column bound before touching the DB', async () => {
+    await expect(
+      react(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE_REACT, emoji: 'x'.repeat(33) })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    // No DB work attempted — validation precedes the message lookup.
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
   });
 
   it('rejects reacting in a chat the caller is not a member of', async () => {
