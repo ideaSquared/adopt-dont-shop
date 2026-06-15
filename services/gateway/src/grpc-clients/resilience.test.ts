@@ -258,6 +258,61 @@ describe('callWithResilience', () => {
     expect(fn.mock.calls.length).toBe(callsAfterProbe); // fn NOT called
   });
 
+  // ── circuit breaker: client-fault errors must NOT open it ────────
+
+  it('does NOT count client-fault errors (NOT_FOUND) toward opening the circuit', async () => {
+    // A healthy downstream returning a burst of NOT_FOUND is not a signal
+    // of unhealthiness. Counting them would let normal traffic trip the
+    // breaker and 503 a perfectly healthy service.
+    const err = makeGrpcError(GRPC_STATUS.NOT_FOUND);
+    const fn = vi.fn().mockRejectedValue(err);
+
+    // Far exceed the failure threshold (3) with client-fault errors.
+    for (let i = 0; i < 6; i++) {
+      await expect(callWithResilience(fn, opts)).rejects.toBe(err);
+    }
+
+    // Circuit must still be closed — the next call reaches fn and gets the
+    // real NOT_FOUND rather than a fast-fail UNAVAILABLE from an open breaker.
+    const callsBefore = fn.mock.calls.length;
+    await expect(callWithResilience(fn, opts)).rejects.toBe(err);
+    expect(fn.mock.calls.length).toBe(callsBefore + 1);
+  });
+
+  it('does NOT count UNAUTHENTICATED toward opening the circuit', async () => {
+    // Expired-token bursts (a very common, benign condition) must not take
+    // the auth service offline at the gateway.
+    const UNAUTHENTICATED = 16;
+    const err = makeGrpcError(UNAUTHENTICATED);
+    const fn = vi.fn().mockRejectedValue(err);
+
+    for (let i = 0; i < 6; i++) {
+      await expect(callWithResilience(fn, opts)).rejects.toBe(err);
+    }
+
+    const callsBefore = fn.mock.calls.length;
+    await expect(callWithResilience(fn, opts)).rejects.toBe(err);
+    expect(fn.mock.calls.length).toBe(callsBefore + 1);
+  });
+
+  it('counts errors with no gRPC code (transport failure) toward opening the circuit', async () => {
+    // A raw connection error (no numeric `code`) means the downstream
+    // couldn't be reached — that IS unhealthiness and must trip the breaker.
+    const err = new Error('ECONNREFUSED');
+    const fn = vi.fn().mockRejectedValue(err);
+
+    for (let i = 0; i < 3; i++) {
+      await expect(callWithResilience(fn, opts)).rejects.toBe(err);
+    }
+
+    // Circuit now open — next call fast-fails without reaching fn.
+    const callsBefore = fn.mock.calls.length;
+    await expect(callWithResilience(fn, opts)).rejects.toMatchObject({
+      code: GRPC_STATUS.UNAVAILABLE,
+    });
+    expect(fn.mock.calls.length).toBe(callsBefore);
+  });
+
   // ── circuit breaker: gauge ───────────────────────────────────────
 
   it('gauge is 0 (closed) initially', async () => {

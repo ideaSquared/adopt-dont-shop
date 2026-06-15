@@ -32,6 +32,27 @@ const STATUS_DEADLINE_EXCEEDED = 4;
 
 const RETRYABLE_CODES = new Set([STATUS_UNAVAILABLE, STATUS_DEADLINE_EXCEEDED]);
 
+// Codes that indicate the DOWNSTREAM is unhealthy and so should count
+// toward opening the circuit breaker. Client-fault codes
+// (INVALID_ARGUMENT, NOT_FOUND, ALREADY_EXISTS, PERMISSION_DENIED,
+// UNAUTHENTICATED, FAILED_PRECONDITION, ABORTED, …) are NOT faults: a
+// healthy service returning a burst of 404s or expired-token 401s must
+// never trip the breaker and 503 normal traffic. An error with no numeric
+// gRPC code (a raw transport/connection error) means the downstream
+// couldn't be reached and is treated as a fault.
+const STATUS_UNKNOWN = 2;
+const STATUS_RESOURCE_EXHAUSTED = 8;
+const STATUS_INTERNAL = 13;
+const STATUS_DATA_LOSS = 15;
+const FAULT_CODES = new Set([
+  STATUS_UNKNOWN,
+  STATUS_DEADLINE_EXCEEDED,
+  STATUS_RESOURCE_EXHAUSTED,
+  STATUS_INTERNAL,
+  STATUS_UNAVAILABLE,
+  STATUS_DATA_LOSS,
+]);
+
 // ── env-based defaults ────────────────────────────────────────────────
 
 const DEFAULT_MAX_RETRIES = parseInt(process.env['GRPC_RETRY_COUNT'] ?? '2', 10);
@@ -212,6 +233,24 @@ const isRetryableError = (err: unknown): boolean => {
   return false;
 };
 
+// Whether an error indicates the DOWNSTREAM is unhealthy and so should
+// count toward opening the circuit breaker. An error carrying one of the
+// FAULT_CODES is a fault; client-fault codes (NOT_FOUND, UNAUTHENTICATED,
+// INVALID_ARGUMENT, …) are not. An error with no numeric gRPC code is a
+// raw transport/connection failure — the downstream couldn't be reached,
+// which IS a fault.
+const isFaultError = (err: unknown): boolean => {
+  if (
+    err &&
+    typeof err === 'object' &&
+    'code' in err &&
+    typeof (err as { code?: unknown }).code === 'number'
+  ) {
+    return FAULT_CODES.has((err as { code: number }).code);
+  }
+  return true;
+};
+
 const makeUnavailableError = (): Error & { code: number } => {
   const err = new Error('circuit breaker open — service unavailable') as Error & { code: number };
   err.code = STATUS_UNAVAILABLE;
@@ -250,7 +289,12 @@ export const callWithResilience = async <T>(
       return result;
     } catch (err: unknown) {
       lastError = err;
-      breaker.onFailure();
+      // Only downstream-health faults trip the breaker. A burst of benign
+      // client-fault errors (404s, expired-token 401s) from a healthy
+      // service must never open the circuit and 503 normal traffic.
+      if (isFaultError(err)) {
+        breaker.onFailure();
+      }
 
       const shouldRetry = idempotent && isRetryableError(err) && attempt < maxAttempts - 1;
       if (!shouldRetry) {

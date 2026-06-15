@@ -261,6 +261,29 @@ describe('GET /api/v1/dashboard/rescue', () => {
     expect(appStatsReq.rescueIdFilter).toBe('rsc-target');
   });
 
+  it('ignores ?rescueId= for a non-admin caller — scopes to their own rescue', async () => {
+    pets.getStatsMock.mockResolvedValueOnce(PET_STATS_FIXTURE);
+    apps.getStatsMock.mockResolvedValueOnce(APP_STATS_FIXTURE);
+    pets.listMock.mockResolvedValueOnce({ pets: [] });
+    apps.listMock.mockResolvedValueOnce({ applications: [] });
+    rescue.listStaffMembersMock.mockResolvedValueOnce({ staffMembers: [] });
+
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/dashboard/rescue?rescueId=rsc-other',
+      headers: {
+        'x-user-id': 'usr-staff',
+        'x-user-roles': 'rescue_staff',
+        'x-rescue-id': 'rsc-own',
+      },
+    });
+
+    const [petStatsReq] = pets.getStatsMock.mock.calls[0] as [{ rescueIdFilter: string }, Metadata];
+    expect(petStatsReq.rescueIdFilter).toBe('rsc-own');
+    const [appStatsReq] = apps.getStatsMock.mock.calls[0] as [{ rescueIdFilter: string }, Metadata];
+    expect(appStatsReq.rescueIdFilter).toBe('rsc-own');
+  });
+
   it('propagates an upstream PERMISSION_DENIED as a 403', async () => {
     pets.getStatsMock.mockRejectedValueOnce({
       code: status.PERMISSION_DENIED,
