@@ -14,13 +14,13 @@ export async function eraseCms(
   let total = 0;
 
   const a = await client.query(
-    `UPDATE cms.cms_content SET author_id = NULL, updated_at = now() WHERE author_id = $1`,
+    `UPDATE cms_content SET author_id = NULL, updated_at = now() WHERE author_id = $1`,
     [payload.userId]
   );
   total += a.rowCount ?? 0;
 
   const b = await client.query(
-    `UPDATE cms.cms_content
+    `UPDATE cms_content
         SET last_modified_by = NULL, updated_at = now()
       WHERE last_modified_by = $1`,
     [payload.userId]

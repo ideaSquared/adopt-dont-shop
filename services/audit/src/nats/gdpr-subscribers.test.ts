@@ -154,8 +154,21 @@ describe('recordCompletion', () => {
     // completed_at must be gated on the number of completion entries
     // WITHOUT an `error` field, not the raw key count.
     expect(sql).toMatch(/jsonb_each/);
-    expect(sql).toMatch(/NOT\s*\(value \? 'error'\)/);
+    expect(sql).toMatch(/NOT\s*\(c\.value \? 'error'\)/);
     expect(sql).not.toContain('jsonb_object_keys');
+  });
+
+  it('counts only EXPECTED_SERVICES towards completed_at, not arbitrary error-free keys (no premature completion)', async () => {
+    const pool = makePool();
+    await recordCompletion(pool, COMPLETION_PAYLOAD, makeLogger());
+    const [[sql, params]] = capturedCalls(pool);
+    // The error-free count must be restricted to keys that ARE expected
+    // services — otherwise a stray completion from a non-expected service
+    // (e.g. 'gateway') could inflate the count and flip completed_at before
+    // every expected service has acked. The expected-services set is threaded
+    // in as a param so the SQL can intersect the blob keys against it.
+    expect(params).toContainEqual([...EXPECTED_SERVICES]);
+    expect(sql).toMatch(/= ANY\(/);
   });
 
   it('stamps failed_at (once) when a completion carries an error, on both insert and conflict paths', async () => {
@@ -218,7 +231,7 @@ describe('recordCompletion', () => {
     // Every statement gates completed_at on the count of error-free
     // entries reaching the full expected-services threshold...
     for (const [sql, params] of calls) {
-      expect(sql).toMatch(/NOT\s*\(value \? 'error'\)/);
+      expect(sql).toMatch(/NOT\s*\(c\.value \? 'error'\)/);
       expect(params[5]).toBe(EXPECTED_SERVICES.length);
     }
 

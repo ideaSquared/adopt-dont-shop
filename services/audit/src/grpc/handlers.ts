@@ -244,11 +244,14 @@ export async function getGdprErasureRequest(
     throw new HandlerError('NOT_FOUND', `erasure request ${correlationId} not found`);
   }
 
-  // Admin OR self can read. Anything else is denied.
+  // Admin OR self can read. A non-admin non-owner gets NOT_FOUND (the same
+  // error as an absent id) rather than PERMISSION_DENIED — a denial would
+  // confirm the id exists, an existence oracle. Returning NOT_FOUND keeps
+  // existence indistinguishable for callers who aren't entitled to the row.
   const isOwner = row.user_id === principal.userId;
   const isAdmin = requirePermission(principal, ADMIN_GDPR_READ);
   if (!isOwner && !isAdmin) {
-    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_GDPR_READ}' required`);
+    throw new HandlerError('NOT_FOUND', `erasure request ${correlationId} not found`);
   }
 
   return {

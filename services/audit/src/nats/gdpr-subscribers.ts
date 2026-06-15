@@ -148,7 +148,8 @@ export async function recordCompletion(
                SELECT count(*) FROM jsonb_each(
                  audit.gdpr_erasure_requests.completions
                    || jsonb_build_object($4::text, $5::jsonb)
-               ) WHERE NOT (value ? 'error')
+               ) AS c(key, value)
+               WHERE NOT (c.value ? 'error') AND c.key = ANY($7::text[])
              ) >= $6
                THEN now()
              ELSE NULL
@@ -165,6 +166,7 @@ export async function recordCompletion(
       payload.service,
       JSON.stringify(entry),
       EXPECTED_SERVICES.length,
+      [...EXPECTED_SERVICES],
     ]
   );
 }

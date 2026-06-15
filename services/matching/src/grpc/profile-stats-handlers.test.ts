@@ -151,6 +151,20 @@ describe('getUserSwipeStats', () => {
     expect(query.mock.calls[0][1]).toEqual(['usr-1']);
   });
 
+  it('dedupes repeat swipes by pet, taking the latest action per pet', async () => {
+    // Append-only history (product decision keeps every row): a user who
+    // swiped the SAME pet three times must not be counted three times.
+    // The aggregate must collapse to one row per pet using the MOST
+    // RECENT action so a like→pass→like sequence counts as one like.
+    const { deps, query } = makeDeps([{ rows: [statsRow] }]);
+    await getUserSwipeStats(deps, makePrincipal(), {} as GetUserSwipeStatsRequest);
+    const sql = query.mock.calls[0][0] as string;
+    // Dedup by (user, pet) latest-wins: a window/DISTINCT ON over pet_id
+    // ordered by recency, aggregated on the outside.
+    expect(sql).toMatch(/DISTINCT ON \(pet_id\)/);
+    expect(sql).toMatch(/ORDER BY pet_id,\s*timestamp DESC/);
+  });
+
   it('rejects cross-user read without swipes:read:any', async () => {
     const { deps } = makeDeps([]);
     await expect(

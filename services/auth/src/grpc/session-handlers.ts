@@ -124,7 +124,7 @@ export async function revokeSession(
     // middle of the chain must also stop working.
     await client.query(
       `UPDATE auth.refresh_tokens
-       SET is_revoked = true, updated_at = now()
+       SET is_revoked = true, revoked_at = now(), updated_at = now()
        WHERE family_id = $1 AND is_revoked = false`,
       [family_id]
     );

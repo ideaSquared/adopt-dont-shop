@@ -126,6 +126,7 @@ type PetRow = {
   adopted_date: Date | null;
   created_at: Date;
   updated_at: Date;
+  version: number;
 };
 
 function rowToProto(row: PetRow): Pet {
@@ -182,7 +183,7 @@ const PETS_SELECT = `
   temperament, tags, good_with_children, good_with_dogs, good_with_cats,
   good_with_small_animals, medical_notes, behavioral_notes,
   view_count, favorite_count, application_count, available_since,
-  adopted_date, created_at, updated_at
+  adopted_date, created_at, updated_at, version
 `;
 
 const PETS_CREATE: Permission = 'pets.create' as Permission;
@@ -461,9 +462,15 @@ export async function updatePet(
       [...params, req.petId]
     );
     updated = result.rows[0];
+    if (!updated) {
+      throw new HandlerError('INTERNAL', 'update returned no rows');
+    }
+    // Deterministic idempotency key: aggregateId + the post-write version.
+    // A retried publish for the same write dedups in JetStream (vs. a
+    // Date.now() suffix, which minted a fresh id on every retry).
     publish({
       type: 'pets.updated',
-      id: `pets.updated.${req.petId}.${Date.now()}`,
+      id: `pets.updated.${req.petId}.${updated.version}`,
       payload: { petId: req.petId, rescueId: existing.rescue_id },
     });
   });
@@ -495,18 +502,43 @@ export async function updatePetStatus(
   assertRescueScopedUpdate(principal, existing);
 
   const toStatus = statusToDb(req.toStatus);
-  const fromStatus = existing.status;
-  if (!isLegalTransition(fromStatus, toStatus)) {
+
+  // Fast-fail on an obviously-illegal transition before opening a
+  // transaction. This read is unlocked, so the authoritative re-validation
+  // happens against the locked row inside withTransaction below.
+  if (!isLegalTransition(existing.status, toStatus)) {
     throw new HandlerError(
       'INVALID_ARGUMENT',
-      `illegal status transition ${fromStatus} → ${toStatus}`
+      `illegal status transition ${existing.status} → ${toStatus}`
     );
   }
 
   const transitionId = randomUUID();
   let updated: PetRow | undefined;
+  let fromStatus: PetStatusDb = existing.status;
 
   await withTransaction(deps, async ({ client, publish }) => {
+    // 0. Lock the row and re-read the authoritative status INSIDE the
+    //    transaction. The pre-transaction fetchPet read is unlocked, so two
+    //    concurrent transitions could both validate against the same stale
+    //    `from` status and both write. Locking + re-validating here serialises
+    //    them: the loser sees the winner's committed status and is rejected.
+    const locked = await client.query<{ status: PetStatusDb }>(
+      `SELECT status FROM pets.pets WHERE pet_id = $1 AND deleted_at IS NULL FOR UPDATE`,
+      [req.petId]
+    );
+    const lockedRow = locked.rows[0];
+    if (!lockedRow) {
+      throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
+    }
+    fromStatus = lockedRow.status;
+    if (!isLegalTransition(fromStatus, toStatus)) {
+      throw new HandlerError(
+        'INVALID_ARGUMENT',
+        `illegal status transition ${fromStatus} → ${toStatus}`
+      );
+    }
+
     // 1. Append the transition row (the event log).
     await client.query(
       `
@@ -635,6 +667,9 @@ function isPermittedRescueMutation(
 function clampLimit(requested: number): number {
   if (requested === 0) {
     return DEFAULT_LIST_LIMIT;
+  }
+  if (requested < 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'limit must be >= 0');
   }
   if (requested > MAX_LIST_LIMIT) {
     throw new HandlerError('INVALID_ARGUMENT', `limit must be <= ${MAX_LIST_LIMIT}`);

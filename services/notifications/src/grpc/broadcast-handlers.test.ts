@@ -407,6 +407,38 @@ describe('isInQuietHours', () => {
     ).toBe(false);
   });
 
+  it('handles Postgres time values that include seconds (HH:MM:SS)', () => {
+    // pg returns `time` columns as 'HH:MM:SS'; the localised "now" is
+    // HH:MM. Comparison must normalise so the boundary minute is correct.
+    // 22:00 UTC is the exact start of a 22:00:00 → 07:00:00 window.
+    const exactStart = new Date('2026-06-01T22:00:00Z');
+    expect(
+      isInQuietHours(
+        {
+          user_id: 'u',
+          quiet_hours_start: '22:00:00',
+          quiet_hours_end: '07:00:00',
+          timezone: 'UTC',
+        },
+        exactStart
+      )
+    ).toBe(true);
+
+    // 21:59 UTC is one minute before the window — must NOT be suppressed.
+    const justBefore = new Date('2026-06-01T21:59:00Z');
+    expect(
+      isInQuietHours(
+        {
+          user_id: 'u',
+          quiet_hours_start: '22:00:00',
+          quiet_hours_end: '07:00:00',
+          timezone: 'UTC',
+        },
+        justBefore
+      )
+    ).toBe(false);
+  });
+
   it('falls back to UTC when timezone is unknown', () => {
     expect(
       isInQuietHours(

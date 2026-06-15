@@ -266,17 +266,21 @@ describe('getGdprErasureRequest', () => {
     expect(res.request?.userId).toBe('usr-1');
   });
 
-  it('refuses a different user without admin.gdpr.read', async () => {
+  it('returns NOT_FOUND (not PERMISSION_DENIED) to a non-admin non-owner so the id existence is not leaked', async () => {
     const queryMock = vi.fn(() => Promise.resolve({ rows: [makeGdprRow()] }));
     const deps = {
       pool: { query: queryMock },
       nats: {},
     } as unknown as HandlerDeps;
+    // The row exists (user_id 'usr-1') but the caller is 'usr-2' without
+    // admin.gdpr.read. A PERMISSION_DENIED would confirm the id exists;
+    // an absent id returns NOT_FOUND — so a non-admin non-owner must get
+    // NOT_FOUND in both cases to avoid the existence oracle.
     await expect(
       getGdprErasureRequest(deps, makePrincipal({ userId: 'usr-2', permissions: [] }), {
         correlationId: 'corr-1',
       })
-    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('rejects empty correlationId with INVALID_ARGUMENT', async () => {

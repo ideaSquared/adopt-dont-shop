@@ -58,11 +58,30 @@ const parseLimit = (raw: string | undefined): number => {
 // Pull the caller's rescue scope from the principal headers. We don't
 // look it up via getMyStaffMembership for the simple cases — the
 // gateway's authenticate middleware has already populated x-rescue-id
-// when the principal is rescue staff. Admins can override via
-// ?rescueId= in the query string.
+// when the principal is rescue staff. Admins (and super_admins) can
+// override via ?rescueId= in the query string to inspect any rescue's
+// dashboard; a non-admin's ?rescueId= is IGNORED, so rescue staff can
+// only ever read their OWN rescue regardless of the query string. The
+// override is an authorization decision the gateway makes here, so it
+// must verify the role — without the check, any rescue_staff member
+// could read another rescue's stats by passing a foreign rescueId.
+const ADMIN_ROLES = new Set(['admin', 'super_admin']);
+
+const callerIsAdmin = (req: FastifyRequest): boolean => {
+  const headers = req.headers as Record<string, string | string[] | undefined>;
+  const raw = headers['x-user-roles'];
+  if (typeof raw !== 'string') {
+    return false;
+  }
+  return raw
+    .split(',')
+    .map(r => r.trim())
+    .some(r => ADMIN_ROLES.has(r));
+};
+
 const resolveRescueScope = (req: FastifyRequest): string | null => {
   const query = req.query as Record<string, string | undefined>;
-  if (query.rescueId) {
+  if (query.rescueId && callerIsAdmin(req)) {
     return query.rescueId;
   }
   const headers = req.headers as Record<string, string | string[] | undefined>;

@@ -98,6 +98,7 @@ type RescueRow = {
   verification_source: RescueVerificationSourceDb | null;
   verification_failure_reason: string | null;
   settings: Record<string, unknown> | null;
+  version: number;
   created_at: Date;
   updated_at: Date;
 };
@@ -166,7 +167,7 @@ const RESCUES_SELECT = `
   website, description, mission, companies_house_number, charity_registration_number,
   contact_person, contact_title, contact_email, contact_phone,
   status, verified_at, verified_by, verification_source, verification_failure_reason,
-  settings, created_at, updated_at
+  settings, version, created_at, updated_at
 `;
 
 const RESCUES_CREATE: Permission = 'rescues.create' as Permission;
@@ -459,9 +460,12 @@ export async function updateRescue(
       [...params, req.rescueId]
     );
     updated = result.rows[0];
+    // Deterministic idempotency key: aggregateId:version. The UPDATE just
+    // bumped version, so each committed update maps to exactly one id and
+    // a replay de-dups in JetStream instead of minting a fresh id.
     publish({
       type: 'rescue.updated',
-      id: `rescue.updated.${req.rescueId}.${Date.now()}`,
+      id: `rescue.updated.${req.rescueId}:${updated?.version}`,
       payload: { rescueId: req.rescueId },
     });
   });
@@ -542,7 +546,7 @@ export async function verifyRescue(
           : `rescue.statusChanged`;
     publish({
       type: subject,
-      id: `${subject}.${req.rescueId}.${Date.now()}`,
+      id: `${subject}.${req.rescueId}:${updated?.version}`,
       payload: {
         rescueId: req.rescueId,
         fromStatus: existing.status,
@@ -592,6 +596,12 @@ export async function inviteStaff(
 
   let inserted: InvitationRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
+    // Dedupe: a pending invite (used = false) to the same rescue+email is
+    // refreshed in place rather than duplicated. The partial unique index
+    // invitations_one_pending_per_email on (rescue_id, lower(email)) WHERE
+    // used = false is the conflict target; on hit we rotate the token,
+    // extend the expiry and update the title. Accepted invites (used =
+    // true) fall outside the index, so a fresh row is inserted normally.
     const result = await client.query<InvitationRow>(
       `
       INSERT INTO rescue.invitations (
@@ -599,6 +609,15 @@ export async function inviteStaff(
         expiration, used, created_by, version, created_at, updated_at
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, false, $6, 0, now(), now())
+      ON CONFLICT (rescue_id, lower(email)) WHERE used = false
+      DO UPDATE SET
+        token = EXCLUDED.token,
+        expiration = EXCLUDED.expiration,
+        title = EXCLUDED.title,
+        invited_by = EXCLUDED.invited_by,
+        updated_by = EXCLUDED.invited_by,
+        version = rescue.invitations.version + 1,
+        updated_at = now()
       RETURNING invitation_id, email, rescue_id, user_id, title, invited_by, expiration, used, created_at
       `,
       [
@@ -613,11 +632,14 @@ export async function inviteStaff(
     );
     inserted = result.rows[0];
 
+    // Key the event on the PERSISTED id (the existing row's id on a
+    // refresh), not the freshly-minted one, so a re-invite is idempotent.
+    const persistedId = inserted?.invitation_id ?? invitationId;
     publish({
       type: 'rescue.staffInvited',
-      id: `rescue.staffInvited.${invitationId}`,
+      id: `rescue.staffInvited.${persistedId}`,
       payload: {
-        invitationId,
+        invitationId: persistedId,
         rescueId: req.rescueId,
         email: req.email,
         invitedBy: principal.userId,

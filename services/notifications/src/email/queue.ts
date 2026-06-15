@@ -192,20 +192,46 @@ export const findByIdempotencyKey = async (
   return res.rows[0] ?? null;
 };
 
-// Claim up to `limit` rows that are due to send: status='queued' AND
-// (scheduled_for IS NULL OR scheduled_for <= now()). Sets them to
-// `sending` and stamps `last_attempt_at`. Returns the claimed rows.
+// How long a row may sit in `sending` before it's treated as orphaned by
+// a crashed worker and reclaimed. A process that dies between the claim
+// (status→'sending') and markSent/markFailed would otherwise leave the
+// row stuck forever — claimDueEmails only ever looked at 'queued'. The
+// reclaim path bumps current_retries so a row whose worker keeps crashing
+// mid-send still terminates as 'failed' once max_retries is exhausted,
+// rather than being retried forever.
+const DEFAULT_STALE_SENDING_MS = 120_000;
+
+// Claim up to `limit` rows that are due to send. Two sources:
+//   1. status='queued' AND (scheduled_for IS NULL OR scheduled_for <= now())
+//   2. status='sending' whose last_attempt_at is older than the stale
+//      timeout (orphaned by a crashed worker) AND still have retry budget.
+// Claimed rows are set to 'sending' and stamped `last_attempt_at`.
+// Reclaimed (source 2) rows additionally bump current_retries.
+//
+// Orphaned 'sending' rows that have exhausted max_retries are terminated
+// as 'failed' in the same statement (they are NOT returned for dispatch).
 //
 // SKIP LOCKED so multiple worker instances draining the same queue
 // don't block each other.
-export const claimDueEmails = async (conn: DbConn, limit: number): Promise<QueuedEmail[]> => {
+export const claimDueEmails = async (
+  conn: DbConn,
+  limit: number,
+  staleSendingMs: number = DEFAULT_STALE_SENDING_MS
+): Promise<QueuedEmail[]> => {
   const res = await conn.query<EmailQueueRow>(
     `
     WITH due AS (
       SELECT email_id
       FROM email_queue
-      WHERE status = 'queued'
-        AND (scheduled_for IS NULL OR scheduled_for <= now())
+      WHERE (
+          status = 'queued'
+          AND (scheduled_for IS NULL OR scheduled_for <= now())
+        )
+        OR (
+          status = 'sending'
+          AND last_attempt_at IS NOT NULL
+          AND last_attempt_at <= now() - make_interval(secs => $2 / 1000.0)
+        )
       ORDER BY
         CASE priority
           WHEN 'urgent' THEN 1
@@ -216,17 +242,37 @@ export const claimDueEmails = async (conn: DbConn, limit: number): Promise<Queue
         created_at
       LIMIT $1
       FOR UPDATE SKIP LOCKED
+    ),
+    -- Orphaned 'sending' rows with no retry budget left terminate as
+    -- 'failed' instead of being reclaimed — they never come back.
+    exhausted AS (
+      UPDATE email_queue q
+      SET status = 'failed',
+          current_retries = q.current_retries + 1,
+          failure_reason = 'reclaimed after stale send; max_retries exhausted',
+          updated_at = now(),
+          version = q.version + 1
+      FROM due
+      WHERE q.email_id = due.email_id
+        AND q.status = 'sending'
+        AND q.current_retries + 1 >= q.max_retries
+      RETURNING q.email_id
     )
     UPDATE email_queue q
     SET status = 'sending',
+        -- Reclaimed orphans count as a fresh attempt; fresh 'queued'
+        -- claims don't (markFailed already counts their retries).
+        current_retries = CASE WHEN q.status = 'sending'
+          THEN q.current_retries + 1 ELSE q.current_retries END,
         last_attempt_at = now(),
         updated_at = now(),
         version = q.version + 1
     FROM due
     WHERE q.email_id = due.email_id
+      AND q.email_id NOT IN (SELECT email_id FROM exhausted)
     RETURNING q.*
     `,
-    [limit]
+    [limit, staleSendingMs]
   );
   return res.rows.map(rowToQueuedEmail);
 };

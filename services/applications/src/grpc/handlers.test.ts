@@ -132,7 +132,14 @@ describe('saveDraftAnswers', () => {
     const data = JSON.parse(res.application.answersJson) as Record<string, unknown>;
     expect(data.hasYard).toBe(true);
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
-    expect(publish.mock.calls[0][0]).toMatchObject({ type: 'applications.draftUpdated' });
+    // Idempotency key is per-event (aggregate:version), not the bare
+    // aggregate id — the bare id would collide across every event of the
+    // same aggregate under JetStream Nats-Msg-Id de-dup. Post-command
+    // version is 2 (draftCreated v1 + draftAnswersSaved v2).
+    expect(publish.mock.calls[0][0]).toMatchObject({
+      type: 'applications.draftUpdated',
+      id: 'app-1:2',
+    });
   });
 
   it('accepts a valid references_json array', async () => {
@@ -240,7 +247,11 @@ describe('submitDraft', () => {
       ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_SUBMITTED
     );
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
-    expect(publish.mock.calls[0][0]).toMatchObject({ type: 'applications.submitted' });
+    // Post-command version is 2 (draftCreated v1 + draftSubmitted v2).
+    expect(publish.mock.calls[0][0]).toMatchObject({
+      type: 'applications.submitted',
+      id: 'app-1:2',
+    });
   });
 
   it('surfaces a domain ILLEGAL_TRANSITION as INVALID_ARGUMENT (double submit)', async () => {

@@ -233,6 +233,23 @@ const STATS_AGG = `
   COUNT(*) FILTER (WHERE action = 'info') AS info_views
 `;
 
+// Swipes are append-only — the same pet can have many rows from repeat
+// swipes (product decision keeps the full history). User-level stats
+// must DEDUPE by (user, pet) at read time so a user who swiped the same
+// pet three times isn't counted three times, and the latest action per
+// pet wins (a like→pass→like sequence counts as one like). DISTINCT ON
+// (pet_id) ordered by recency collapses to the most-recent row per pet;
+// the outer aggregate then counts those deduped rows.
+const userLatestPerPetStatsSql = (placeholder: string): string => `
+  SELECT ${STATS_AGG}
+  FROM (
+    SELECT DISTINCT ON (pet_id) pet_id, action
+    FROM matching.swipe_actions
+    WHERE user_id = ${placeholder}
+    ORDER BY pet_id, timestamp DESC, swipe_action_id DESC
+  ) AS latest
+`;
+
 // --- GetUserSwipeStats -----------------------------------------------
 
 export async function getUserSwipeStats(
@@ -246,10 +263,7 @@ export async function getUserSwipeStats(
   if (target !== principal.userId && !hasPermission(principal, SWIPES_READ_ANY)) {
     throw new HandlerError('PERMISSION_DENIED', `'${SWIPES_READ_ANY}' required`);
   }
-  const res = await deps.pool.query<StatsRow>(
-    `SELECT ${STATS_AGG} FROM matching.swipe_actions WHERE user_id = $1`,
-    [target]
-  );
+  const res = await deps.pool.query<StatsRow>(userLatestPerPetStatsSql('$1'), [target]);
   return { stats: statsRowToProto(res.rows[0]) };
 }
 

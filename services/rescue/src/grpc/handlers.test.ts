@@ -86,6 +86,7 @@ function rescueRow(overrides: Record<string, unknown> = {}) {
     verification_source: null,
     verification_failure_reason: null,
     settings: {},
+    version: 0,
     created_at: new Date('2026-06-01T00:00:00Z'),
     updated_at: new Date('2026-06-01T00:00:00Z'),
     ...overrides,
@@ -294,6 +295,20 @@ describe('updateRescue', () => {
     expect(sql).toMatch(/name = \$1/);
     expect(sql).toMatch(/version = version \+ 1/);
   });
+
+  it('keys rescue.updated on aggregateId:version (deterministic, replay-safe)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ version: 3 })] });
+    let msgID: string | undefined;
+    mocks.natsMock.publish.mockImplementation(
+      (_subject: string, _data: unknown, opts: { msgID?: string }) => {
+        msgID = opts.msgID;
+      }
+    );
+
+    await updateRescue(mocks.deps, STAFF, { rescueId: 'rsc-1', name: 'Pawsome 2' } as never);
+    expect(msgID).toBe('rescue.updated.rsc-1:3');
+  });
 });
 
 // --- verifyRescue ----------------------------------------------------
@@ -443,6 +458,75 @@ describe('inviteStaff', () => {
     expect(res.invitation.invitationId).toBe('inv-1');
     expect(res.token).toMatch(/^[0-9a-f]{64}$/);
     expect(order).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
+  });
+
+  it('upserts on the pending-email conflict instead of inserting a duplicate row', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+    let insertSql = '';
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (sql.trim().startsWith('INSERT')) {
+        insertSql = sql;
+      }
+      return {
+        rows: [
+          {
+            invitation_id: 'inv-existing',
+            email: 'dup@p.example',
+            rescue_id: 'rsc-1',
+            user_id: null,
+            title: 'Refreshed',
+            invited_by: STAFF.userId,
+            expiration: new Date('2026-06-15T00:00:00Z'),
+            used: false,
+            created_at: new Date('2026-06-01T00:00:00Z'),
+          },
+        ],
+      };
+    });
+
+    const res = await inviteStaff(mocks.deps, STAFF, {
+      rescueId: 'rsc-1',
+      email: 'dup@p.example',
+      title: 'Refreshed',
+    } as never);
+
+    // The write targets the partial-unique conflict and refreshes the
+    // existing row's token + expiry rather than inserting a second row.
+    expect(insertSql).toMatch(/ON CONFLICT/i);
+    expect(insertSql).toMatch(/lower\(email\)/i);
+    expect(insertSql).toMatch(/DO UPDATE/i);
+    expect(insertSql).toMatch(/token = EXCLUDED\.token/i);
+    expect(insertSql).toMatch(/expiration = EXCLUDED\.expiration/i);
+    // The returned invitation carries the EXISTING row's id (no duplicate).
+    expect(res.invitation.invitationId).toBe('inv-existing');
+  });
+
+  it('keys the published event on the persisted invitation id (stable on refresh)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({
+      rows: [
+        {
+          invitation_id: 'inv-existing',
+          email: 'dup@p.example',
+          rescue_id: 'rsc-1',
+          user_id: null,
+          title: null,
+          invited_by: STAFF.userId,
+          expiration: new Date('2026-06-15T00:00:00Z'),
+          used: false,
+          created_at: new Date('2026-06-01T00:00:00Z'),
+        },
+      ],
+    });
+
+    await inviteStaff(mocks.deps, STAFF, {
+      rescueId: 'rsc-1',
+      email: 'dup@p.example',
+    } as never);
+
+    const published = mocks.natsMock.publish.mock.calls[0];
+    const opts = published[2] as { msgID?: string };
+    expect(opts.msgID).toBe('rescue.staffInvited.inv-existing');
   });
 });
 

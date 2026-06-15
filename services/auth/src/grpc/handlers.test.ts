@@ -208,6 +208,44 @@ describe('login', () => {
     expect(bumpCall).toMatch(/UPDATE auth\.users.*login_attempts = login_attempts \+ 1/s);
   });
 
+  it('applies a progressive, capped soft-lock in the same failed-login UPDATE', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture()] });
+    mocks.hasherMock.compare.mockResolvedValueOnce(false);
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // bump + lock
+
+    await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+
+    const [sql, params] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    // The lock is set atomically in the same UPDATE, only once the count
+    // crosses the threshold, and is capped — so a victim cannot be locked
+    // out indefinitely by deliberate failed logins.
+    expect(sql).toMatch(/locked_until = CASE/s);
+    expect(sql).toMatch(/login_attempts \+ 1 >= \$2/s);
+    expect(sql).toMatch(/LEAST\(/s);
+    expect(params).toEqual(['usr-adopter', 5, 60, 900]);
+  });
+
+  it('clears login_attempts AND locked_until on a successful login', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture()] });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
+
+    await login(mocks.deps, null, BASE_LOGIN_REQ);
+
+    const resetCall = mocks.clientMock.query.mock.calls
+      .map(c => c[0] as string)
+      .find(s => /login_attempts = 0/.test(s));
+    expect(resetCall).toBeDefined();
+    expect(resetCall).toMatch(/locked_until = NULL/);
+  });
+
   it('mints tokens, persists refresh row inside transaction, publishes auth.userLoggedIn AFTER commit', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture()] });
     mocks.hasherMock.compare.mockResolvedValueOnce(true);
@@ -302,6 +340,26 @@ describe('logout', () => {
     expect(res.revoked).toBe(true);
     expect(callOrder).toEqual(['BEGIN', 'INSERT', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
   });
+
+  it('the refresh-row UPDATE flips both revoked_at AND is_revoked so the session list updates', async () => {
+    mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
+      sub: 'usr-1',
+      jti: 'jti-1',
+      iat: 0,
+      exp: Math.floor(Date.now() / 1000) + 1000,
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // not denylisted
+
+    const sqls: string[] = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      sqls.push(sql);
+      return { rows: [] };
+    });
+
+    await logout(mocks.deps, ADOPTER_PRINCIPAL, { refreshToken: 'token' });
+    const update = sqls.find(s => s.includes('UPDATE auth.refresh_tokens'));
+    expect(update).toMatch(/is_revoked = true/);
+  });
 });
 
 // --- refreshToken ----------------------------------------------------
@@ -352,6 +410,90 @@ describe('refreshToken', () => {
     });
   });
 
+  it('UNAUTHENTICATED when the stored row was revoked via RevokeSession (is_revoked=true, revoked_at=null)', async () => {
+    // RevokeSession sets is_revoked but the refresh/logout path historically
+    // only stamped revoked_at. The refresh check must honour is_revoked, or a
+    // revoked session keeps minting fresh tokens.
+    mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
+      sub: 'u',
+      jti: 'j',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({
+        rows: [{ token: 'tok', user_id: 'u', revoked_at: null, is_revoked: true, family_id: 'f' }],
+      });
+    await expect(refreshToken(mocks.deps, null, { refreshToken: 'tok' })).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+    // No rotation transaction is opened.
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('UNAUTHENTICATED when the user has been deactivated — refresh cannot extend access', async () => {
+    mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
+      sub: 'usr-1',
+      jti: 'old-jti',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({
+        rows: [
+          { token: 'tok', user_id: 'usr-1', revoked_at: null, is_revoked: false, family_id: 'f' },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ status: 'deactivated' }] }); // status guard rejects
+    await expect(refreshToken(mocks.deps, null, { refreshToken: 'tok' })).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+    // No rotation transaction, no new tokens minted.
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+  });
+
+  it('rotation inherits the old row family_id and flips is_revoked atomically', async () => {
+    mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
+      sub: 'usr-1',
+      jti: 'old-jti',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            token: 'tok',
+            user_id: 'usr-1',
+            revoked_at: null,
+            is_revoked: false,
+            family_id: 'fam-7',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ status: 'active' }] }); // status guard
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+
+    const calls: Array<{ verb: string; sql: string; params: unknown[] }> = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[] = []) => {
+      calls.push({ verb: sql.trim().split(/\s+/)[0], sql, params });
+      return { rows: [], rowCount: 1 };
+    });
+
+    await refreshToken(mocks.deps, null, { refreshToken: 'tok' });
+
+    const revoke = calls.find(c => c.verb === 'UPDATE');
+    expect(revoke?.sql).toMatch(/is_revoked = true/);
+    expect(revoke?.sql).toMatch(/revoked_at IS NULL AND is_revoked = false/);
+    const insertNew = calls.find(c => c.verb === 'INSERT' && c.sql.includes('refresh_tokens'));
+    // The new head row carries the SAME family so RevokeSession kills the chain.
+    expect(insertNew?.params).toContain('fam-7');
+  });
+
   it('rotates tokens and publishes auth.tokenRefreshed', async () => {
     mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
       sub: 'usr-1',
@@ -361,13 +503,16 @@ describe('refreshToken', () => {
     });
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [] }) // not denylisted
-      .mockResolvedValueOnce({ rows: [{ token: 'tok', user_id: 'usr-1', revoked_at: null }] });
+      .mockResolvedValueOnce({ rows: [{ token: 'tok', user_id: 'usr-1', revoked_at: null }] })
+      .mockResolvedValueOnce({ rows: [{ status: 'active' }] }); // status guard
     mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
 
     const calls: string[] = [];
     mocks.clientMock.query.mockImplementation(async (sql: string) => {
       calls.push(sql.trim().split(/\s+/)[0]);
-      return { rows: [] };
+      // The conditional revoke UPDATE must report a row was flipped so the
+      // rotation proceeds.
+      return { rows: [], rowCount: 1 };
     });
     mocks.natsMock.publish.mockImplementation(() => {
       calls.push('NATS_PUBLISH');
@@ -377,6 +522,41 @@ describe('refreshToken', () => {
     expect(res.tokens.accessToken).toBe('access.jwt.token');
     // BEGIN → UPDATE old refresh → INSERT denylist → INSERT new refresh → COMMIT → NATS_PUBLISH
     expect(calls).toEqual(['BEGIN', 'UPDATE', 'INSERT', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
+  });
+
+  it('rejects a concurrent reuse: when the atomic revoke flips no rows it does not mint a second family', async () => {
+    mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
+      sub: 'usr-1',
+      jti: 'old-jti',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    // Both pre-transaction checks pass (the row LOOKED active at read time),
+    // modelling the loser of a rotation race.
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({ rows: [{ token: 'tok', user_id: 'usr-1', revoked_at: null }] })
+      .mockResolvedValueOnce({ rows: [{ status: 'active' }] }); // status guard
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+
+    const sqls: string[] = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      const verb = sql.trim().split(/\s+/)[0];
+      sqls.push(verb);
+      // The conditional revoke flips 0 rows — another request already rotated.
+      if (verb === 'UPDATE') {
+        return { rows: [], rowCount: 0 };
+      }
+      return { rows: [], rowCount: 1 };
+    });
+
+    await expect(refreshToken(mocks.deps, null, { refreshToken: 'tok' })).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+
+    // Critically: NO new refresh row is inserted and NO event is published.
+    expect(sqls).not.toContain('INSERT');
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 });
 
@@ -423,6 +603,7 @@ describe('validateToken', () => {
     });
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({ rows: [{ status: 'active' }] }) // status guard
       .mockResolvedValueOnce({ rows: [{ user_type: 'rescue_staff' }] }) // primary role
       .mockResolvedValueOnce({ rows: [] }) // extra roles
       .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }, { name: 'pets.update' }] });
@@ -432,6 +613,36 @@ describe('validateToken', () => {
     expect(res.principal.roles).toEqual([AuthV1.UserRole.USER_ROLE_RESCUE_STAFF]);
     expect(res.principal.permissions).toEqual(['pets.read', 'pets.update']);
     expect(res.expiresAt).toBe(new Date(9_000_000_000 * 1000).toISOString());
+  });
+
+  it('UNAUTHENTICATED when the user is suspended (no stale access window)', async () => {
+    mocks.issuerMock.verifyAccess.mockResolvedValueOnce({
+      sub: 'usr-1',
+      jti: 'j',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({ rows: [{ status: 'suspended' }] }); // status guard rejects
+    await expect(validateToken(mocks.deps, null, { accessToken: 'tok' })).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+  });
+
+  it('UNAUTHENTICATED when the user row is gone (deleted)', async () => {
+    mocks.issuerMock.verifyAccess.mockResolvedValueOnce({
+      sub: 'usr-1',
+      jti: 'j',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({ rows: [] }); // status guard finds no live row
+    await expect(validateToken(mocks.deps, null, { accessToken: 'tok' })).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
   });
 });
 

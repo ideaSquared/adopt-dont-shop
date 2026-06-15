@@ -101,8 +101,12 @@ export function isInQuietHours(prefs: PrefsRow, now: Date = new Date()): boolean
       hourCycle: 'h23',
     }).format(now);
   }
-  const start = prefs.quiet_hours_start;
-  const end = prefs.quiet_hours_end;
+  // Postgres `time` columns come back as 'HH:MM:SS'; the localised `now`
+  // is 'HH:MM'. Normalise the stored bounds to 'HH:MM' so the boundary
+  // minute compares correctly (a raw 'HH:MM' < 'HH:MM:SS' string compare
+  // wrongly excludes the exact start minute).
+  const start = prefs.quiet_hours_start.slice(0, 5);
+  const end = prefs.quiet_hours_end.slice(0, 5);
   // Window may wrap midnight (e.g. 22:00 → 07:00).
   if (start <= end) {
     return hhmm >= start && hhmm < end;
