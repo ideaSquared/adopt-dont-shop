@@ -215,3 +215,18 @@ pending-invitation erasure, and moderation `reporter_id` nullability.
 | notifications | No reaper for orphaned `sending` email rows after a crash; provider-success-then-DB-failure can double-send | Needs a stale-claim timeout + a provider idempotency token |
 | matching | `getMatchProfile`/`upsertMatchProfile` have no permission gate (self-scoped, not IDOR) | Adding a gate changes access semantics |
 | moderation | `SYSTEM_USER_ID` string-interpolated into the `ON CONFLICT … WHERE` predicate | Safe today (hard-coded constant; index predicates can't be parameterised) — latent smell only |
+
+## Deferred backlog — resolved (follow-up PR, per product decision)
+
+After review of the deferred items, the following were actioned:
+
+| Service | Resolution | Decision |
+|---|---|---|
+| auth | The ADS-801 revocation-column split was already unified on `main` (refresh + ListSessions both honour `revoked_at` AND `is_revoked`). Added the remaining piece: **password reset and change now revoke all of the user's refresh tokens** inside the password-update transaction. Access tokens are short-lived JWTs that can't be refreshed once the session is gone. | Full fix |
+| matching | `getMatchProfile`/`upsertMatchProfile` now **gate on `pets.read`** (matching the sibling swipe handlers). | Gate on pets.read |
+| matching | Re-swipes are kept as an **append-only log, deduplicated at read time**: `getSessionStats` now collapses to the latest action per pet (DISTINCT ON), matching the user-level stats which already did so. No schema change. | Append-only log |
+| notifications | The stale-`sending` reaper was already on `main` (`claimDueEmails` reclaims orphaned rows). Added the second half: the Resend provider now sends a **stable `Idempotency-Key`** (row `idempotency_key`, falling back to the immutable `email_id`) so a retry after a post-send bookkeeping failure can't double-deliver. | Both |
+
+Login lockout and rescue invitation dedupe (also on the original deferred list)
+were independently resolved on `main` (login throttle + invitation pending
+unique index).
