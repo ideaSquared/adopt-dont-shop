@@ -172,10 +172,14 @@ export async function getSupportTicket(
   };
 
   if (req.includeResponses) {
+    // Internal notes are moderator-only: respondToTicket blocks non-admins
+    // from POSTing them, so we must not return them to a non-admin owner
+    // reading their own ticket.
+    const internalFilter = isAdmin ? '' : 'AND is_internal = false';
     const responses = await deps.pool.query<SupportTicketResponseRow>(
       `SELECT ${RESPONSE_SELECT}
        FROM support_ticket_responses
-       WHERE ticket_id = $1 AND deleted_at IS NULL
+       WHERE ticket_id = $1 AND deleted_at IS NULL ${internalFilter}
        ORDER BY created_at ASC`,
       [req.ticketId]
     );

@@ -100,7 +100,11 @@ export async function fileReport(
 
   return withTransaction(deps, async ({ client, publish }) => {
     const reportId = randomUUID();
-    const inserted = await client.query<ReportRow>(
+    // `was_inserted` (xmax = 0) distinguishes a fresh insert from the
+    // ON CONFLICT no-op so JetStream redelivery of a SYSTEM auto-report
+    // doesn't re-publish. The persisted report_id (not the throwaway
+    // `reportId`) is the canonical id on the conflict path.
+    const inserted = await client.query<ReportRow & { was_inserted: boolean }>(
       `INSERT INTO reports (
          report_id, reporter_id, reported_entity_type, reported_entity_id,
          reported_user_id, category, severity, status, title, description,
@@ -114,7 +118,7 @@ export async function fileReport(
                  reported_user_id, category, severity, status, title, description,
                  metadata, assigned_moderator, assigned_at, resolved_by, resolved_at,
                  resolution, resolution_notes, escalated_to, escalated_at,
-                 escalation_reason, created_at, updated_at`,
+                 escalation_reason, created_at, updated_at, (xmax = 0) AS was_inserted`,
       [
         reportId,
         principal.userId,
@@ -133,20 +137,27 @@ export async function fileReport(
       throw new HandlerError('INTERNAL', 'insert returned no rows');
     }
 
-    publish({
-      type: 'moderation.reportFiled',
-      id: reportId,
-      payload: {
-        reportId,
-        reporterId: principal.userId,
-        reportedEntityType: entityTypeDb,
-        reportedEntityId: req.reportedEntityId,
-        category: categoryDb,
-        severity: severityDb,
-      },
-    });
+    const row = inserted.rows[0];
 
-    return { report: reportRowToProto(inserted.rows[0]) };
+    // Only publish for a genuinely new row. On the conflict no-op (a
+    // redelivered system auto-report) the row already exists and was
+    // already announced, so re-publishing would mint duplicate events.
+    if (row.was_inserted) {
+      publish({
+        type: 'moderation.reportFiled',
+        id: row.report_id,
+        payload: {
+          reportId: row.report_id,
+          reporterId: principal.userId,
+          reportedEntityType: entityTypeDb,
+          reportedEntityId: req.reportedEntityId,
+          category: categoryDb,
+          severity: severityDb,
+        },
+      });
+    }
+
+    return { report: reportRowToProto(row) };
   });
 }
 
