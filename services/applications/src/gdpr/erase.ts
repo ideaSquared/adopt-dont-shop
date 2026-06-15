@@ -14,12 +14,13 @@ export async function eraseApplications(
 ): Promise<number> {
   let total = 0;
 
-  // The applications table stores the user's answers + references as
-  // JSONB. Scrub these alongside the personal columns.
+  // The applications read model stores the user's answers + references
+  // inside the JSONB `documents` column (the projector writes
+  // { answers, references } there — there are no separate answers /
+  // references columns). Scrub that blob alongside the free-text notes.
   const appsRes = await client.query(
     `UPDATE applications.applications
-        SET answers = '{}'::jsonb,
-            "references" = '[]'::jsonb,
+        SET documents = '{"answers":{},"references":[]}'::jsonb,
             notes = NULL,
             interview_notes = NULL,
             home_visit_notes = NULL,
@@ -33,9 +34,9 @@ export async function eraseApplications(
   // sitting in storage are erased by a separate retention sweep — see
   // gateway uploads route).
   const docsRes = await client.query(
-    `DELETE FROM applications.documents
+    `DELETE FROM applications.application_documents
        USING applications.applications a
-       WHERE applications.documents.application_id = a.application_id
+       WHERE applications.application_documents.application_id = a.application_id
          AND a.user_id = $1`,
     [payload.userId]
   );

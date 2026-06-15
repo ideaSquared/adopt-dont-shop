@@ -184,6 +184,41 @@ describe('listApplications', () => {
     expect(indexParams).toContain('approved');
   });
 
+  it('decodes a supplied cursor into a correctly-parameterised keyset predicate', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [] });
+
+    const cursor = Buffer.from(
+      JSON.stringify({ createdAt: '2026-06-02T12:00:00.000Z', applicationId: 'app-1' }),
+      'utf8'
+    ).toString('base64url');
+
+    await listApplications(deps, makePrincipal({ userId: 'usr-1' }), {
+      limit: 20,
+      statusFilter: S.APPLICATION_STATUS_UNSPECIFIED,
+      cursor,
+    });
+
+    const sql = query.mock.calls[0][0] as string;
+    const params = query.mock.calls[0][1] as unknown[];
+    // user_id = $1, then the keyset predicate references $2 (created_at)
+    // twice and $3 (application_id) once, LIMIT is the final placeholder.
+    expect(sql).toContain('(created_at < $2 OR (created_at = $2 AND application_id < $3))');
+    // $1 user id, $2 cursor created_at, $3 cursor application_id, $4 limit+1.
+    expect(params).toEqual(['usr-1', '2026-06-02T12:00:00.000Z', 'app-1', 21]);
+  });
+
+  it('rejects a malformed cursor with INVALID_ARGUMENT', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      listApplications(deps, makePrincipal(), {
+        limit: 20,
+        statusFilter: S.APPLICATION_STATUS_UNSPECIFIED,
+        cursor: 'not-a-valid-cursor!!!',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
   it('emits a next_cursor when more rows exist', async () => {
     const { deps, query } = makeDeps();
     // limit 1 → fetch 2; two index rows means hasMore.
