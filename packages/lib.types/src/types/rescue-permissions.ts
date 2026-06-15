@@ -2,7 +2,7 @@
  * Rescue-specific permission constants
  * These permissions are specifically designed for rescue management applications
  */
-import type { Permission } from './index';
+import type { Permission } from './index.js';
 
 /**
  * Pet Management Permissions

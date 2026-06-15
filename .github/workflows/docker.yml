@@ -188,6 +188,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
 
+      # Scan once to JSON with --ignore-unfixed (gate only on CVEs that have an
+      # upstream patch — un-actionable ones shouldn't block PRs). `trivy convert`
+      # then renders that report to the job log (table) and to SARIF (Security
+      # tab) without re-scanning, and the final step fails the job if the report
+      # contains any CRITICAL/HIGH. (--ignore-unfixed is a scan flag; `convert`
+      # rejects it, so it must live on the `image` command.)
       - name: Run Trivy vulnerability scanner
         run: |
           docker run --rm \
@@ -196,11 +202,22 @@ jobs:
             -e TRIVY_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-db:2 \
             -e TRIVY_JAVA_DB_REPOSITORY=public.ecr.aws/aquasecurity/trivy-java-db:1 \
             aquasec/trivy:0.63.0 image \
-              --format sarif \
-              --output trivy-results-${{ matrix.service }}.sarif \
+              --format json \
+              --output trivy-results-${{ matrix.service }}.json \
               --severity CRITICAL,HIGH \
-              --exit-code 1 \
+              --ignore-unfixed \
               paragonjenko/adoptdontshop:service-${{ matrix.service }}-prod-${{ github.sha }}
+
+      - name: Render Trivy results (table to log + SARIF)
+        if: always() && hashFiles(format('trivy-results-{0}.json', matrix.service)) != ''
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            aquasec/trivy:0.63.0 convert --format table \
+              trivy-results-${{ matrix.service }}.json
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            aquasec/trivy:0.63.0 convert --format sarif \
+              --output trivy-results-${{ matrix.service }}.sarif \
+              trivy-results-${{ matrix.service }}.json
 
       - name: Upload Trivy results to GitHub Security tab
         if: always() && hashFiles(format('trivy-results-{0}.sarif', matrix.service)) != ''
@@ -208,6 +225,13 @@ jobs:
         with:
           sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
           category: 'trivy-service-${{ matrix.service }}'
+
+      - name: Fail on fixable CRITICAL/HIGH vulnerabilities
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace \
+            aquasec/trivy:0.63.0 convert --exit-code 1 \
+              --severity CRITICAL,HIGH \
+              trivy-results-${{ matrix.service }}.json
 
   # ============================================================================
   # BUILD + PUBLISH SHARED DEV IMAGE (Dockerfile.dev)

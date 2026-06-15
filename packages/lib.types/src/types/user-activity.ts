@@ -12,7 +12,11 @@
 // differ per entity (a rescue summary, for example, would expose verified
 // staff count rather than messages exchanged).
 
-import type { EntityActivity, EntityActivityFilters, EntityActivityType } from './entity-activity';
+import type {
+  EntityActivity,
+  EntityActivityFilters,
+  EntityActivityType,
+} from './entity-activity.js';
 
 export type UserActivityType = EntityActivityType;
 export type UserActivity = EntityActivity;
