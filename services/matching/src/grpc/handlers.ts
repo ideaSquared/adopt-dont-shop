@@ -162,20 +162,14 @@ export async function endSession(
 
     const row = existing.rows[0];
 
-    // Authz scope: a swipe session belongs to its user; only the
-    // owner can close it. Admins bypass via super_admin (handled by
-    // requirePermission).
+    // Ownership: only the session owner can close it. super_admin
+    // bypasses (CAD pattern) — same guard shape as recordSwipe.
     if (
       row.user_id !== null &&
       row.user_id !== principal.userId &&
-      !hasPermission(principal, PETS_VIEW) === false
+      !principal.roles.includes('super_admin')
     ) {
-      // hasPermission gate above already covered — just guard the
-      // ownership here. Admins skip via super_admin in
-      // requirePermission.
-      if (!principal.roles.includes('super_admin')) {
-        throw new HandlerError('PERMISSION_DENIED', 'not the session owner');
-      }
+      throw new HandlerError('PERMISSION_DENIED', 'not the session owner');
     }
 
     // Idempotency: closing an already-closed session is a no-op.
