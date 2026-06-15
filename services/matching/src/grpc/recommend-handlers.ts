@@ -48,7 +48,7 @@ const MAX_SEARCH_LIMIT = 100;
 export function makeRecommend(
   petsClient: PetsClient
 ): (deps: HandlerDeps, principal: Principal, req: RecommendRequest) => Promise<RecommendResponse> {
-  return async (_deps, principal, req) => {
+  return async (deps, principal, req) => {
     ensureSwipePermission(principal);
 
     const limit = clamp(req.limit, DEFAULT_RECOMMEND_LIMIT, MAX_RECOMMEND_LIMIT);
@@ -64,18 +64,26 @@ export function makeRecommend(
 
     const pets = await listPets(petsClient, principal, listReq);
 
+    // Drop any pet the caller has already decided on (liked / passed /
+    // super-liked). Swipes are append-only — the same pet can appear
+    // across many rows — so the exclusion query DEDUPEs by pet_id and we
+    // match against a Set. 'info' views are NOT a decision and don't
+    // exclude.
+    const swiped = await fetchSwipedPetIds(deps, principal.userId);
+    const fresh = pets.filter(pet => !swiped.has(pet.petId));
+
     const preferences: RecommendPreferences = filters.ageGroup
       ? { ageGroup: filters.ageGroup }
       : {};
-    const ranked = scoreCandidates(pets, preferences).slice(0, limit);
+    const ranked = scoreCandidates(fresh, preferences).slice(0, limit);
 
     const candidates = ranked.map(({ pet, score }) => petToCandidate(pet, score));
 
     return {
       candidates,
-      // Exhausted when the candidate pool didn't even fill the request —
-      // the SPA can prompt the user to widen filters.
-      exhausted: pets.length <= limit,
+      // Exhausted when the post-exclusion pool didn't even fill the
+      // request — the SPA can prompt the user to widen filters.
+      exhausted: fresh.length <= limit,
     };
   };
 }
@@ -161,6 +169,21 @@ async function listPetsResponse(
     }
     throw new HandlerError('INTERNAL', 'failed to read candidate pets');
   }
+}
+
+// The set of pet_ids the caller has already DECIDED on (like / pass /
+// super_like). Returns DISTINCT pet_id so the append-only swipe history
+// — where the same pet can have many rows from repeat swipes — collapses
+// to one exclusion per pet. 'info' actions are trace views, not
+// decisions, so they don't exclude a pet from future recommendations.
+async function fetchSwipedPetIds(deps: HandlerDeps, userId: string): Promise<Set<string>> {
+  const { rows } = await deps.pool.query<{ pet_id: string }>(
+    `SELECT DISTINCT pet_id
+       FROM matching.swipe_actions
+      WHERE user_id = $1 AND action IN ('like', 'pass', 'super_like')`,
+    [userId]
+  );
+  return new Set(rows.map(r => r.pet_id));
 }
 
 type ParsedFilters = {

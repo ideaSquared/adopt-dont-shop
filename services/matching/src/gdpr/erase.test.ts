@@ -43,6 +43,20 @@ describe('eraseMatching', () => {
     }
   });
 
+  it('erases swipe actions the user made even on anonymous (null-owner) sessions', async () => {
+    // recordSwipe lets an authenticated user swipe within a null-owner
+    // session (the owner guard passes when session.user_id IS NULL), so
+    // swipe_actions can carry user_id = X under a session with no owner.
+    // Deleting only via session ownership would orphan that personal
+    // data; the actions delete must also match swipe_actions.user_id.
+    const { client, query } = makeClient();
+
+    await eraseMatching(client, payload);
+
+    const actionsSql = query.mock.calls[0][0] as string;
+    expect(actionsSql).toMatch(/swipe_actions\.user_id = \$1/);
+  });
+
   it('returns the total rows erased across all statements', async () => {
     const { client, query } = makeClient();
     query.mockResolvedValueOnce({ rowCount: 4 }); // swipe_actions

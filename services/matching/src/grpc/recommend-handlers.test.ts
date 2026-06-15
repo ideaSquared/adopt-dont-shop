@@ -23,9 +23,23 @@ function makePrincipal(
   } as unknown as Parameters<ReturnType<typeof makeRecommend>>[1];
 }
 
-// Recommend + SearchPets are stateless reads — deps are unused, so an
-// empty object suffices.
+// SearchPets is a stateless read — deps are unused, so an empty object
+// suffices. Recommend reads the caller's swipe history from deps.pool to
+// exclude already-swiped pets; tests that exercise that inject a pool
+// stub via depsWithSwipes().
 const deps = {} as unknown as HandlerDeps;
+
+// Build a deps whose pool returns the given already-swiped pet_ids from
+// the swipe-history exclusion query. DISTINCT pet_id is the contract —
+// the stub returns whatever rows the test supplies.
+function depsWithSwipes(petIds: string[]): HandlerDeps {
+  const query = vi.fn().mockResolvedValue({ rows: petIds.map(pet_id => ({ pet_id })) });
+  return { pool: { query } } as unknown as HandlerDeps;
+}
+
+// Default deps for Recommend tests that don't care about swipe history —
+// the exclusion query returns no rows (user has swiped nothing).
+const recommendDeps = depsWithSwipes([]);
 
 function makePetsClient(listPets: ReturnType<typeof vi.fn>): PetsClient {
   return { listPets, close: vi.fn() } as unknown as PetsClient;
@@ -82,7 +96,7 @@ describe('makeRecommend', () => {
       );
     const recommend = makeRecommend(makePetsClient(listPets));
 
-    const res = await recommend(deps, makePrincipal(), { sessionId: 's-1', limit: 1 });
+    const res = await recommend(recommendDeps, makePrincipal(), { sessionId: 's-1', limit: 1 });
 
     // Only the available status is requested from service.pets.
     const listReq = listPets.mock.calls[0][0];
@@ -99,7 +113,10 @@ describe('makeRecommend', () => {
     const listPets = vi.fn().mockResolvedValue(listResponse([]));
     const recommend = makeRecommend(makePetsClient(listPets));
 
-    await recommend(deps, makePrincipal({ userId: 'usr-9' }), { sessionId: 's-1', limit: 10 });
+    await recommend(recommendDeps, makePrincipal({ userId: 'usr-9' }), {
+      sessionId: 's-1',
+      limit: 10,
+    });
 
     const metadata = listPets.mock.calls[0][1];
     expect(metadata.get('x-user-id')).toEqual(['usr-9']);
@@ -109,7 +126,7 @@ describe('makeRecommend', () => {
     const listPets = vi.fn().mockResolvedValue(listResponse([]));
     const recommend = makeRecommend(makePetsClient(listPets));
 
-    await recommend(deps, makePrincipal(), {
+    await recommend(recommendDeps, makePrincipal(), {
       sessionId: 's-1',
       limit: 10,
       filtersJsonOverride: '{"species":"cat"}',
@@ -124,14 +141,14 @@ describe('makeRecommend', () => {
       .mockResolvedValue(listResponse([makePet({ petId: 'a', rescueId: 'rsc-1' })]));
     const recommend = makeRecommend(makePetsClient(listPets));
 
-    const res = await recommend(deps, makePrincipal(), { sessionId: 's-1', limit: 10 });
+    const res = await recommend(recommendDeps, makePrincipal(), { sessionId: 's-1', limit: 10 });
     expect(res.exhausted).toBe(true);
   });
 
   it('throws INVALID_ARGUMENT on malformed filters override', async () => {
     const recommend = makeRecommend(makePetsClient(vi.fn()));
     await expect(
-      recommend(deps, makePrincipal(), {
+      recommend(recommendDeps, makePrincipal(), {
         sessionId: 's-1',
         limit: 10,
         filtersJsonOverride: 'not-json',
@@ -143,7 +160,7 @@ describe('makeRecommend', () => {
     const listPets = vi.fn().mockRejectedValue({ code: 7 });
     const recommend = makeRecommend(makePetsClient(listPets));
     await expect(
-      recommend(deps, makePrincipal(), { sessionId: 's-1', limit: 10 })
+      recommend(recommendDeps, makePrincipal(), { sessionId: 's-1', limit: 10 })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
@@ -151,8 +168,50 @@ describe('makeRecommend', () => {
     const listPets = vi.fn().mockRejectedValue(new Error('boom'));
     const recommend = makeRecommend(makePetsClient(listPets));
     await expect(
-      recommend(deps, makePrincipal(), { sessionId: 's-1', limit: 10 })
+      recommend(recommendDeps, makePrincipal(), { sessionId: 's-1', limit: 10 })
     ).rejects.toMatchObject({ code: 'INTERNAL' });
+  });
+
+  it('excludes a pet the user has already swiped, deduping repeat swipe rows', async () => {
+    // Append-only history: the user swiped 'seen' THREE times (product
+    // decision keeps every row). The exclusion read must dedupe by
+    // pet so 'seen' is filtered out exactly once and never leaks back
+    // into the candidate set.
+    const listPets = vi
+      .fn()
+      .mockResolvedValue(
+        listResponse([
+          makePet({ petId: 'seen', rescueId: 'rsc-1' }),
+          makePet({ petId: 'fresh', rescueId: 'rsc-1' }),
+        ])
+      );
+    const recommend = makeRecommend(makePetsClient(listPets));
+    // DISTINCT pet_id query returns 'seen' once even though it was
+    // swiped three times.
+    const deps3 = depsWithSwipes(['seen']);
+
+    const res = await recommend(deps3, makePrincipal(), { sessionId: 's-1', limit: 10 });
+
+    const ids = res.candidates.map(c => c.petId);
+    expect(ids).toContain('fresh');
+    expect(ids).not.toContain('seen');
+  });
+
+  it('scopes the swipe-history exclusion query to the calling user', async () => {
+    const listPets = vi
+      .fn()
+      .mockResolvedValue(listResponse([makePet({ petId: 'fresh', rescueId: 'rsc-1' })]));
+    const recommend = makeRecommend(makePetsClient(listPets));
+    const query = vi.fn().mockResolvedValue({ rows: [] });
+    const depsUser = { pool: { query } } as unknown as HandlerDeps;
+
+    await recommend(depsUser, makePrincipal({ userId: 'usr-42' }), {
+      sessionId: 's-1',
+      limit: 10,
+    });
+
+    // The exclusion query is parameterised on the caller's userId.
+    expect(query.mock.calls[0][1]).toContain('usr-42');
   });
 });
 
