@@ -107,9 +107,15 @@ const registerChatRoutesForPrefix = (
       application_id?: string;
       other_user_id?: string;
     };
+    // rescueId is sourced from the principal's rescue context (the
+    // x-rescue-id header stamped by the authenticate middleware), not the
+    // request body — so the chat row records its owning rescue instead of
+    // the chat service's null-UUID placeholder.
+    const rescueIdHeader = req.headers['x-rescue-id'];
     const grpcReq: OpenChatRequest = {
       applicationId: body.applicationId ?? body.application_id ?? '',
       otherUserId: body.otherUserId ?? body.other_user_id ?? '',
+      rescueId: typeof rescueIdHeader === 'string' ? rescueIdHeader : '',
     };
 
     try {

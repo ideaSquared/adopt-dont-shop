@@ -561,6 +561,17 @@ describe('@adopt-dont-shop/proto', () => {
       expect(decoded).toEqual(original);
     });
 
+    it('carries rescueId on an OpenChatRequest through the binary wire format', () => {
+      const original = {
+        applicationId: 'app-1',
+        otherUserId: 'usr-2',
+        rescueId: 'rsc-1',
+      };
+      const buf = ChatV1.OpenChatRequest.encode(original).finish();
+      const decoded = ChatV1.OpenChatRequest.decode(buf);
+      expect(decoded.rescueId).toBe('rsc-1');
+    });
+
     it('flat type-only re-exports compile in type position', () => {
       const c: Chat = {
         chatId: 'c-1',
