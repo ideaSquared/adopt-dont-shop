@@ -271,9 +271,33 @@ describe('sendMessage', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it('rejects sending to a non-active (archived/locked) chat', async () => {
+    // isParticipantOrAdmin → ok
+    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    // ensureChatWritable → archived chat
+    mocks.poolScript.push({ rows: [{ status: 'archived', deleted_at: null }] });
+    await expect(sendMessage(mocks.deps, ADOPTER_PRINCIPAL, BASE_SEND)).rejects.toMatchObject({
+      code: 'FAILED_PRECONDITION',
+    });
+    // No write was attempted.
+    expect(realClientQueries(mocks)).toEqual([]);
+  });
+
+  it('rejects sending to a soft-deleted chat', async () => {
+    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    // ensureChatWritable → row with deleted_at set
+    mocks.poolScript.push({ rows: [{ status: 'active', deleted_at: new Date() }] });
+    await expect(sendMessage(mocks.deps, ADOPTER_PRINCIPAL, BASE_SEND)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    expect(realClientQueries(mocks)).toEqual([]);
+  });
+
   it('inserts the message and publishes chat.messageCreated after commit', async () => {
     // isParticipantOrAdmin → one row
     mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    // ensureChatWritable → active, not deleted
+    mocks.poolScript.push({ rows: [{ status: 'active', deleted_at: null }] });
     // INSERT message, UPDATE chats.updated_at, SELECT participants
     mocks.clientScript.push({ rows: [messageRowFixture()] });
     mocks.clientScript.push({ rows: [] });
@@ -511,6 +535,8 @@ describe('react', () => {
   it('uses ON CONFLICT DO NOTHING so re-reacting is idempotent', async () => {
     mocks.poolScript.push({ rows: [{ chat_id: 'chat-1' }] });
     mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    // ensureChatWritable → active, not deleted
+    mocks.poolScript.push({ rows: [{ status: 'active', deleted_at: null }] });
     mocks.clientScript.push({
       rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
     });
@@ -527,11 +553,24 @@ describe('react', () => {
     expect(insertCall?.[0]).toMatch(/ON CONFLICT \(message_id, user_id, emoji\) DO NOTHING/);
   });
 
+  it('rejects adding a reaction in a non-active chat', async () => {
+    mocks.poolScript.push({ rows: [{ chat_id: 'chat-1' }] });
+    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    // ensureChatWritable → locked
+    mocks.poolScript.push({ rows: [{ status: 'locked', deleted_at: null }] });
+    await expect(react(mocks.deps, ADOPTER_PRINCIPAL, BASE_REACT)).rejects.toMatchObject({
+      code: 'FAILED_PRECONDITION',
+    });
+    expect(realClientQueries(mocks)).toEqual([]);
+  });
+
   it('adds a reaction and publishes chat.reactionAdded', async () => {
     // message lookup → ok
     mocks.poolScript.push({ rows: [{ chat_id: 'chat-1' }] });
     // isParticipantOrAdmin → ok
     mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] });
+    // ensureChatWritable → active, not deleted
+    mocks.poolScript.push({ rows: [{ status: 'active', deleted_at: null }] });
     // Inside withTransaction: SELECT participants, INSERT reaction
     mocks.clientScript.push({
       rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],

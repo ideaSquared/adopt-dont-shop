@@ -200,6 +200,30 @@ describe('getSupportTicket', () => {
     // The thread query excludes soft-deleted responses.
     expect(query.mock.calls[1][0]).toContain('deleted_at IS NULL');
   });
+
+  it('hides internal (moderator-only) responses from a non-admin ticket owner', async () => {
+    // Owner reads their own ticket with no admin.dashboard permission.
+    const { deps, query } = makeDeps([
+      { rows: [ticketRow({ user_id: 'usr-1' })] },
+      { rows: [responseRow()] },
+    ]);
+    await getSupportTicket(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+      ticketId: 'tkt-1',
+      includeResponses: true,
+    });
+    // The responses query must filter out internal notes for non-admins.
+    expect(query.mock.calls[1][0]).toMatch(/is_internal = false/);
+  });
+
+  it('returns internal responses to an admin reader', async () => {
+    const { deps, query } = makeDeps([{ rows: [ticketRow()] }, { rows: [responseRow()] }]);
+    await getSupportTicket(deps, makePrincipal(), {
+      ticketId: 'tkt-1',
+      includeResponses: true,
+    });
+    // Admins see everything — no internal filter applied.
+    expect(query.mock.calls[1][0]).not.toMatch(/is_internal = false/);
+  });
 });
 
 describe('listSupportTickets', () => {

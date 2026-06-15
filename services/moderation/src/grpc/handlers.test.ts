@@ -83,6 +83,9 @@ function reportRow(overrides: Record<string, unknown> = {}) {
     escalation_reason: null,
     created_at: new Date('2026-06-01T12:00:00.000Z'),
     updated_at: new Date('2026-06-01T12:00:00.000Z'),
+    // (xmax = 0) AS was_inserted — true for a genuine insert. Defaults true
+    // so the happy-path tests exercise the publish branch.
+    was_inserted: true,
     ...overrides,
   };
 }
@@ -152,6 +155,34 @@ describe('fileReport', () => {
     expect(sql).toMatch(/ON CONFLICT/i);
     expect(sql).toMatch(/reported_entity_type/);
     expect(sql).toMatch(/reported_entity_id/);
+    // RETURNING must surface whether the row was freshly inserted so the
+    // publish can be suppressed on the conflict path.
+    expect(sql).toMatch(/xmax = 0/);
+  });
+
+  it('does NOT re-publish on a conflict no-op (redelivered system auto-report)', async () => {
+    // ON CONFLICT DO UPDATE returns the pre-existing row with was_inserted=false.
+    const { deps } = makeDeps([
+      { rows: [reportRow({ report_id: 'existing-rpt', was_inserted: false })] },
+    ]);
+    const res = await fileReport(deps, makePrincipal(), VALID_FILE_REQ);
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    // No duplicate event for an already-announced report.
+    expect(publish).not.toHaveBeenCalled();
+    // The persisted (existing) id is returned, not the throwaway generated one.
+    expect(res.report.reportId).toBe('existing-rpt');
+  });
+
+  it('publishes the event keyed by the persisted report_id', async () => {
+    const { deps } = makeDeps([
+      { rows: [reportRow({ report_id: 'persisted-rpt', was_inserted: true })] },
+    ]);
+    await fileReport(deps, makePrincipal(), VALID_FILE_REQ);
+    const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
+    expect(publish.mock.calls[0][0]).toMatchObject({
+      id: 'persisted-rpt',
+      payload: { reportId: 'persisted-rpt' },
+    });
   });
 });
 

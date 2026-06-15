@@ -68,12 +68,13 @@ const SPOOFABLE_HEADERS = [
 // editing this list, which is the audit point.
 const PUBLIC_PATH_PREFIXES = [
   '/health',
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/refresh-token',
-  '/api/auth/verify-email',
-  '/api/auth/forgot-password',
-  '/api/auth/reset-password',
+  '/api/v1/auth/login',
+  '/api/v1/auth/register',
+  '/api/v1/auth/refresh-token',
+  '/api/v1/auth/verify-email',
+  '/api/v1/auth/resend-verification',
+  '/api/v1/auth/forgot-password',
+  '/api/v1/auth/reset-password',
 ] as const;
 
 export const registerAuthenticate = async (

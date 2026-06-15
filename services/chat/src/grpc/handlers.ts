@@ -127,6 +127,28 @@ const isParticipantOrAdmin = async (
   return res.rows.length > 0;
 };
 
+// A chat accepts new content only while it exists and is `active`.
+// `locked`/`archived` chats are read-only and a soft-deleted chat is gone
+// — but isParticipantOrAdmin only checks membership, so without this guard
+// messages and reactions silently accrue to chats that the read side
+// (getChat/listChats/searchChats) already treats as closed.
+const ensureChatWritable = async (deps: HandlerDeps, chatId: string): Promise<void> => {
+  const res = await deps.pool.query<{ status: string; deleted_at: Date | null }>(
+    `SELECT status, deleted_at FROM chats WHERE chat_id = $1 LIMIT 1`,
+    [chatId]
+  );
+  const row = res.rows[0];
+  if (!row || row.deleted_at !== null) {
+    throw new HandlerError('NOT_FOUND', `chat '${chatId}' not found`);
+  }
+  if (row.status !== 'active') {
+    throw new HandlerError(
+      'FAILED_PRECONDITION',
+      `chat '${chatId}' is ${row.status} and cannot accept new messages`
+    );
+  }
+};
+
 const loadChatParticipants = async (deps: HandlerDeps, chatId: string): Promise<string[]> => {
   const res = await deps.pool.query<{ participant_id: string }>(
     `SELECT participant_id FROM chat_participants
@@ -361,6 +383,7 @@ export async function sendMessage(
   if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
     throw new HandlerError('PERMISSION_DENIED', 'only chat participants may send messages');
   }
+  await ensureChatWritable(deps, req.chatId);
 
   const messageId = randomUUID();
   let inserted: MessageRow | undefined;
@@ -659,6 +682,11 @@ export async function react(
   const chatId = msg.rows[0].chat_id;
   if (!(await isParticipantOrAdmin(deps, principal, chatId))) {
     throw new HandlerError('PERMISSION_DENIED', 'only chat participants may react to messages');
+  }
+  // Adding a reaction is new content — block it on closed chats. Removing
+  // a reaction stays allowed so cleanup still works on an archived thread.
+  if (!req.remove) {
+    await ensureChatWritable(deps, chatId);
   }
 
   await withTransaction(deps, async ({ client, publish }) => {

@@ -276,6 +276,12 @@ export async function createNotification(
         userId: req.userId,
         type: typeToDb(req.type),
         channel: channelToDb(req.channel),
+        // The push worker renders the device notification straight from
+        // this payload — without title/message/dataJson every push went
+        // out with the default title and an empty body.
+        title: req.title,
+        message: req.message,
+        dataJson: req.dataJson || '{}',
       },
     });
   });

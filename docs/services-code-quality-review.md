@@ -181,3 +181,37 @@ their consumers rely on.
 | moderation | `MODERATION_*` permission namespace; regex content scanner | Cross-package; scanner to be replaced |
 | audit | reports-handlers super_admin consistency; GDPR existence-leak | Changes access semantics |
 | cms | Publish/archive transition state machine | Product intent for legal transitions |
+
+## Second pass
+
+A follow-up sweep (each service re-audited independently) surfaced **five
+new genuine defects** not covered by the first pass — all fixed in place
+with tests.
+
+| Service | New fix | Severity |
+|---|---|---|
+| gateway | `PUBLIC_PATH_PREFIXES` used `/api/auth/*` but the auth routes are registered at `/api/v1/auth/*`, so the check never matched. A public auth route hit WITH an expired bearer token (e.g. a token client's stale access token on a `refresh-token` call) 401'd before the handler → session-refresh lockout. Corrected the prefixes; fixed the test that shared the typo. | High |
+| moderation | `getSupportTicket` returned moderator-only internal notes (`is_internal`) to a non-admin ticket owner — the post side already blocks non-admins, so the read was an info leak. Non-admins now get `is_internal = false` only. | High |
+| moderation | `fileReport` re-published `moderation.reportFiled` on every JetStream redelivery with a fresh event id (defeating broker dedup) and a throwaway `reportId` not matching the persisted row. `RETURNING (xmax = 0)` now skips the publish on the `ON CONFLICT` no-op and keys the event by the persisted `report_id`. | High |
+| rescue | `listFosterPlacements` with no `rescue_id` fell back to an unscoped `hasPermission` check and a query with no `rescue_id` predicate, so any `rescue_staff` with `foster.read` could list across all rescues. Non-super_admins now pinned to their own verified rescue (mirrors `listStaffMembers`). | High |
+| chat | `isParticipantOrAdmin` checks only membership, so `sendMessage`/`react` still mutated chats the read side excludes as soft-deleted or non-active. Added `ensureChatWritable` to block new content on `deleted`/`locked`/`archived` chats (reads + reaction-removal stay allowed). | Medium |
+| notifications | `createNotification` published only `{ notificationId, userId, type, channel }`, but the push worker renders the device notification from the event payload — so every push had the default title and an empty body. Payload now carries `title`/`message`/`dataJson`. | High |
+
+**Independently fixed on `main` (not duplicated here):** the applications
+GDPR event-stream redaction was the same defect this pass found, but `main`
+landed a more correct version (it bypasses the `application_events`
+append-only trigger via the `applications.allow_event_mutation` GUC, which
+a plain `UPDATE` cannot) — so this pass defers to it. `main` also closed
+several first-pass deferred items: auth login throttle (progressive
+soft-lock), matching anonymous-session swipe erasure, rescue email-keyed
+pending-invitation erasure, and moderation `reporter_id` nullability.
+
+### Deferred from the second pass (need product/architecture decision)
+
+| Service | Item | Why deferred |
+|---|---|---|
+| auth | `resetPassword`/`changePassword` don't revoke existing sessions | Overlaps the deferred ADS-801 revocation-model rework |
+| auth | `RevokeSession` sets `is_revoked` but refresh checks `revoked_at` → a revoked session can still refresh | Confirmed live impact of the already-deferred ADS-801 split |
+| notifications | No reaper for orphaned `sending` email rows after a crash; provider-success-then-DB-failure can double-send | Needs a stale-claim timeout + a provider idempotency token |
+| matching | `getMatchProfile`/`upsertMatchProfile` have no permission gate (self-scoped, not IDOR) | Adding a gate changes access semantics |
+| moderation | `SYSTEM_USER_ID` string-interpolated into the `ON CONFLICT … WHERE` predicate | Safe today (hard-coded constant; index predicates can't be parameterised) — latent smell only |

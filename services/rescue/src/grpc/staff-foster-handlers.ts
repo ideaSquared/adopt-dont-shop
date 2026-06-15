@@ -301,21 +301,38 @@ export async function listFosterPlacements(
   principal: Principal,
   req: ListFosterPlacementsRequest
 ): Promise<ListFosterPlacementsResponse> {
-  // foster.read is rescue-scoped; when rescue_id is supplied we gate on
-  // it, otherwise the caller needs the unscoped permission (admins).
+  // foster.read is rescue-scoped. With an explicit rescue_id we gate on
+  // it. Without one, hasPermission ignores rescue scope — so a missing
+  // rescue_id must NOT fall through to an unscoped, cross-rescue read for
+  // ordinary staff. Pin non-super_admins to their own verified rescue
+  // (mirroring listStaffMembers); only super_admin may list across rescues.
+  const isSuperAdmin = principal.roles.includes('super_admin');
+  let scopedRescueId = req.rescueId;
   if (req.rescueId) {
     if (!requirePermission(principal, FOSTER_READ, { rescueId: req.rescueId as RescueId })) {
       throw new HandlerError('PERMISSION_DENIED', `'${FOSTER_READ}' required for this rescue`);
     }
-  } else if (!hasPermission(principal, FOSTER_READ)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${FOSTER_READ}' required`);
+  } else if (!isSuperAdmin) {
+    if (!hasPermission(principal, FOSTER_READ)) {
+      throw new HandlerError('PERMISSION_DENIED', `'${FOSTER_READ}' required`);
+    }
+    const mine = await deps.pool.query<{ rescue_id: string }>(
+      `SELECT rescue_id FROM rescue.staff_members
+       WHERE user_id = $1 AND is_verified = true AND deleted_at IS NULL
+       LIMIT 1`,
+      [principal.userId]
+    );
+    if (!mine.rows[0]) {
+      throw new HandlerError('NOT_FOUND', 'you are not associated with any rescue organisation');
+    }
+    scopedRescueId = mine.rows[0].rescue_id;
   }
 
   const statusDb = fosterStatusFilterToDb(req.statusFilter);
   const conditions: string[] = ['deleted_at IS NULL'];
   const params: unknown[] = [];
-  if (req.rescueId) {
-    params.push(req.rescueId);
+  if (scopedRescueId) {
+    params.push(scopedRescueId);
     conditions.push(`rescue_id = $${params.length}`);
   }
   if (req.fosterUserId) {
