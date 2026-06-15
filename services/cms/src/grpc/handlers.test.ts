@@ -228,6 +228,75 @@ describe('admin reads', () => {
   });
 });
 
+describe('anonymous reads never leak unpublished content', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('getPublicContentBySlug constrains the query to published + non-deleted rows', async () => {
+    mocks.poolScript.push({ rows: [contentRow({ status: 'published' })] });
+    await getPublicContentBySlug(mocks.deps, null, { slug: 'hello' });
+    const [sql] = mocks.poolMock.query.mock.calls[0] as [string];
+    expect(sql).toContain("status = 'published'");
+    expect(sql).toContain('deleted_at IS NULL');
+  });
+
+  it('listPublicContent never filters by an admin-only status (cannot request drafts)', async () => {
+    mocks.poolScript.push({ rows: [{ count: '0' }] });
+    mocks.poolScript.push({ rows: [] });
+    // A public caller has no `status` field on its request; the handler must
+    // hard-code published and ignore any attempt to widen the filter.
+    await listPublicContent(mocks.deps, null, { contentType: 0, page: 1, limit: 10 });
+    const [countSql] = mocks.poolMock.query.mock.calls[0] as [string];
+    expect(countSql).toContain("status = 'published'");
+    expect(countSql).not.toContain('status = $');
+  });
+});
+
+describe('admin write handlers gate on permission', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('createContent refuses callers without cms.content.create', async () => {
+    await expect(
+      createContent(mocks.deps, NO_PERMS, {
+        title: 'x',
+        slug: 'hello',
+        contentType: CmsV1.ContentType.CONTENT_TYPE_PAGE,
+        content: '',
+        metaKeywords: [],
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('publishContent refuses callers without cms.content.publish', async () => {
+    await expect(publishContent(mocks.deps, NO_PERMS, { contentId: 'c-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('archiveContent refuses callers without cms.content.publish', async () => {
+    await expect(archiveContent(mocks.deps, NO_PERMS, { contentId: 'c-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('createMenu refuses callers without cms.menu.create', async () => {
+    await expect(
+      createMenu(mocks.deps, NO_PERMS, { name: 'X', location: 'header', itemsJson: '[]' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('deleteMenu refuses callers without cms.menu.delete', async () => {
+    await expect(deleteMenu(mocks.deps, NO_PERMS, { menuId: 'm-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+});
+
 describe('createContent', () => {
   let mocks: ReturnType<typeof makeMocks>;
   beforeEach(() => {
@@ -324,6 +393,40 @@ describe('updateContent', () => {
       })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
+
+  it('translates a slug collision on update into ALREADY_EXISTS', async () => {
+    mocks.clientScript.push({ rows: [contentRow()] }); // SELECT FOR UPDATE
+    mocks.clientMock.query = vi.fn(async (sql: string) => {
+      const op = sql.trim().split(/\s+/)[0].toUpperCase();
+      if (op === 'BEGIN' || op === 'COMMIT' || op === 'ROLLBACK') {
+        return { rows: [], rowCount: 0 };
+      }
+      if (op === 'SELECT') {
+        return { rows: [contentRow()], rowCount: 1 };
+      }
+      const err = new Error('duplicate key') as Error & { code: string };
+      err.code = '23505';
+      throw err;
+    });
+    await expect(
+      updateContent(mocks.deps, ADMIN, {
+        contentId: 'c-1',
+        slug: 'taken',
+        setMetaKeywords: false,
+      })
+    ).rejects.toMatchObject({ code: 'ALREADY_EXISTS' });
+  });
+
+  it('rejects an invalid slug shape on update', async () => {
+    mocks.clientScript.push({ rows: [contentRow()] });
+    await expect(
+      updateContent(mocks.deps, ADMIN, {
+        contentId: 'c-1',
+        slug: 'Not Valid',
+        setMetaKeywords: false,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
 });
 
 describe('deleteContent', () => {
@@ -369,6 +472,63 @@ describe('workflow actions', () => {
     mocks.clientScript.push({ rows: [contentRow({ status: 'archived' })] });
     const res = await archiveContent(mocks.deps, ADMIN, { contentId: 'c-1' });
     expect(res.content?.status).toBe(CmsV1.ContentStatus.CONTENT_STATUS_ARCHIVED);
+  });
+});
+
+describe('event idempotency keys (Nats-Msg-Id)', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  // The JetStream dedup window de-dups by Nats-Msg-Id stream-wide. Using the
+  // bare aggregate id for every event type means a create+publish of the same
+  // content within the window collides and the broker silently drops one. Each
+  // distinct business action must carry a distinct msgID — namespaced by event
+  // type, like the pets/rescue services.
+  const msgIdFor = (type: string): string | undefined => {
+    const call = mocks.natsMock.jetstream().publish.mock.calls.find(c => c[0] === type) as
+      | [string, unknown, { msgID?: string }]
+      | undefined;
+    return call?.[2]?.msgID;
+  };
+
+  it('namespaces the create event id by event type', async () => {
+    mocks.clientScript.push({ rows: [contentRow()] });
+    await createContent(mocks.deps, ADMIN, {
+      title: 'Hello',
+      slug: 'hello',
+      contentType: CmsV1.ContentType.CONTENT_TYPE_PAGE,
+      content: 'body',
+      metaKeywords: [],
+    });
+    expect(msgIdFor('cms.contentCreated')).toBe('cms.contentCreated.c-1');
+  });
+
+  it('publish and unpublish of the same content do not share a msgID', async () => {
+    mocks.clientScript.push({ rows: [contentRow({ status: 'published' })] });
+    await publishContent(mocks.deps, ADMIN, { contentId: 'c-1' });
+    const publishId = msgIdFor('cms.contentPublished');
+
+    mocks.natsMock.jetstream().publish.mockClear();
+    mocks.clientScript.push({ rows: [contentRow({ status: 'draft' })] });
+    await unpublishContent(mocks.deps, ADMIN, { contentId: 'c-1' });
+    const unpublishId = msgIdFor('cms.contentUnpublished');
+
+    expect(publishId).toBeTruthy();
+    expect(unpublishId).toBeTruthy();
+    expect(publishId).not.toBe(unpublishId);
+  });
+
+  it('namespaces menu create + delete event ids by event type', async () => {
+    mocks.clientScript.push({ rows: [menuRow()] });
+    await createMenu(mocks.deps, ADMIN, {
+      name: 'Main',
+      location: 'header',
+      itemsJson: '[]',
+      isActive: true,
+    });
+    expect(msgIdFor('cms.menuCreated')).toBe('cms.menuCreated.m-1');
   });
 });
 

@@ -454,7 +454,7 @@ export async function createContent(
       createdAt: new Date().toISOString(),
     };
     try {
-      const result = await client.query(
+      const result = await client.query<ContentRow>(
         `INSERT INTO cms_content (
            title, slug, content_type, status, content, excerpt, meta_title,
            meta_description, meta_keywords, featured_image_url, scheduled_publish_at,
@@ -477,12 +477,12 @@ export async function createContent(
           principal.userId,
         ]
       );
-      const inserted = (result.rows as ContentRow[])[0];
+      const inserted = result.rows[0];
       if (!inserted) {
         throw new HandlerError('INTERNAL', 'insert returned no row');
       }
       publish({
-        id: inserted.content_id,
+        id: `cms.contentCreated.${inserted.content_id}`,
         type: 'cms.contentCreated',
         payload: { contentId: inserted.content_id, slug, contentType, actorId: principal.userId },
       });
@@ -512,11 +512,11 @@ export async function updateContent(
   }
 
   const row = await withTransaction(deps, async ({ client, publish }) => {
-    const currentResult = await client.query(
+    const currentResult = await client.query<ContentRow>(
       `SELECT ${CONTENT_COLUMNS} FROM cms_content WHERE content_id = $1 AND deleted_at IS NULL FOR UPDATE`,
       [id]
     );
-    const current = (currentResult.rows as ContentRow[])[0];
+    const current = currentResult.rows[0];
     if (!current) {
       throw new HandlerError('NOT_FOUND', `content ${id} not found`);
     }
@@ -587,7 +587,7 @@ export async function updateContent(
     params.push(id);
     let result;
     try {
-      result = await client.query(
+      result = await client.query<ContentRow>(
         `UPDATE cms_content SET ${setSql.join(', ')} WHERE content_id = $${params.length}
          RETURNING ${CONTENT_COLUMNS}`,
         params
@@ -598,12 +598,12 @@ export async function updateContent(
       }
       throw err;
     }
-    const updated = (result.rows as ContentRow[])[0];
+    const updated = result.rows[0];
     if (!updated) {
       throw new HandlerError('INTERNAL', 'update returned no row');
     }
     publish({
-      id: updated.content_id,
+      id: `cms.contentUpdated.${updated.content_id}.${Date.now()}`,
       type: 'cms.contentUpdated',
       payload: { contentId: updated.content_id, actorId: principal.userId },
     });
@@ -634,7 +634,7 @@ export async function deleteContent(
     const wasDeleted = result.rowCount !== null && result.rowCount > 0;
     if (wasDeleted) {
       publish({
-        id,
+        id: `cms.contentDeleted.${id}`,
         type: 'cms.contentDeleted',
         payload: { contentId: id, actorId: principal.userId },
       });
@@ -656,18 +656,22 @@ async function setStatus(
 ): Promise<ContentRow> {
   return withTransaction(deps, async ({ client, publish }) => {
     const setExtra = setPublishedAt ? ', published_at = now()' : '';
-    const result = await client.query(
+    const result = await client.query<ContentRow>(
       `UPDATE cms_content
          SET status = $1, last_modified_by = $2, updated_at = now() ${setExtra}
        WHERE content_id = $3 AND deleted_at IS NULL
        RETURNING ${CONTENT_COLUMNS}`,
       [status, principal.userId, contentId]
     );
-    const row = (result.rows as ContentRow[])[0];
+    const row = result.rows[0];
     if (!row) {
       throw new HandlerError('NOT_FOUND', `content ${contentId} not found`);
     }
-    publish({ id: contentId, type: topic, payload: { contentId, actorId: principal.userId } });
+    publish({
+      id: `${topic}.${contentId}`,
+      type: topic,
+      payload: { contentId, actorId: principal.userId },
+    });
     return row;
   });
 }
@@ -770,11 +774,11 @@ export async function restoreVersion(
   }
 
   const row = await withTransaction(deps, async ({ client, publish }) => {
-    const currentResult = await client.query(
+    const currentResult = await client.query<ContentRow>(
       `SELECT ${CONTENT_COLUMNS} FROM cms_content WHERE content_id = $1 AND deleted_at IS NULL FOR UPDATE`,
       [id]
     );
-    const current = (currentResult.rows as ContentRow[])[0];
+    const current = currentResult.rows[0];
     if (!current) {
       throw new HandlerError('NOT_FOUND', `content ${id} not found`);
     }
@@ -797,7 +801,7 @@ export async function restoreVersion(
       },
     ];
 
-    const result = await client.query(
+    const result = await client.query<ContentRow>(
       `UPDATE cms_content
          SET title = $1, content = $2, excerpt = $3, versions = $4, current_version = $5,
              last_modified_by = $6, updated_at = now()
@@ -813,12 +817,12 @@ export async function restoreVersion(
         id,
       ]
     );
-    const restored = (result.rows as ContentRow[])[0];
+    const restored = result.rows[0];
     if (!restored) {
       throw new HandlerError('INTERNAL', 'update returned no row');
     }
     publish({
-      id,
+      id: `cms.contentRestored.${id}.${Date.now()}`,
       type: 'cms.contentRestored',
       payload: { contentId: id, fromVersion: req.version, actorId: principal.userId },
     });
@@ -897,18 +901,18 @@ export async function createMenu(
   const items = parseItems(req.itemsJson);
 
   const row = await withTransaction(deps, async ({ client, publish }) => {
-    const result = await client.query(
+    const result = await client.query<MenuRow>(
       `INSERT INTO cms_navigation_menus (name, location, items, is_active)
          VALUES ($1, $2, $3, $4)
        RETURNING ${MENU_COLUMNS}`,
       [name, location, JSON.stringify(items), req.isActive ?? true]
     );
-    const inserted = (result.rows as MenuRow[])[0];
+    const inserted = result.rows[0];
     if (!inserted) {
       throw new HandlerError('INTERNAL', 'insert returned no row');
     }
     publish({
-      id: inserted.menu_id,
+      id: `cms.menuCreated.${inserted.menu_id}`,
       type: 'cms.menuCreated',
       payload: { menuId: inserted.menu_id, location, actorId: principal.userId },
     });
@@ -957,18 +961,18 @@ export async function updateMenu(
   params.push(id);
 
   const row = await withTransaction(deps, async ({ client, publish }) => {
-    const result = await client.query(
+    const result = await client.query<MenuRow>(
       `UPDATE cms_navigation_menus SET ${setSql.join(', ')}
          WHERE menu_id = $${params.length} AND deleted_at IS NULL
          RETURNING ${MENU_COLUMNS}`,
       params
     );
-    const updated = (result.rows as MenuRow[])[0];
+    const updated = result.rows[0];
     if (!updated) {
       throw new HandlerError('NOT_FOUND', `menu ${id} not found`);
     }
     publish({
-      id: updated.menu_id,
+      id: `cms.menuUpdated.${updated.menu_id}.${Date.now()}`,
       type: 'cms.menuUpdated',
       payload: { menuId: updated.menu_id, actorId: principal.userId },
     });
@@ -999,7 +1003,7 @@ export async function deleteMenu(
     const wasDeleted = result.rowCount !== null && result.rowCount > 0;
     if (wasDeleted) {
       publish({
-        id,
+        id: `cms.menuDeleted.${id}`,
         type: 'cms.menuDeleted',
         payload: { menuId: id, actorId: principal.userId },
       });
