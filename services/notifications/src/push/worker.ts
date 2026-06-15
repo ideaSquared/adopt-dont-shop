@@ -14,6 +14,8 @@ import type { Logger } from 'winston';
 
 import { subscribe } from '@adopt-dont-shop/events';
 
+import { claimEvent } from '../processed-events.js';
+
 import { listDeviceTokensForUser, markDeviceTokenInvalid } from './device-tokens.js';
 import type { PushProvider, PushSendRequest } from './types.js';
 
@@ -90,7 +92,7 @@ export const startPushWorker = (opts: PushWorkerOptions): RunningPushWorker => {
         opts.logger.error('push.worker.subscriber_error', { err });
       },
     },
-    async ev => {
+    async (ev, meta) => {
       // Channel filter — only push-channel notifications fan out here.
       // The createNotification handler publishes the lowercase Postgres
       // value ('in_app' / 'email' / 'push' / 'sms'), not the proto enum.
@@ -99,6 +101,17 @@ export const startPushWorker = (opts: PushWorkerOptions): RunningPushWorker => {
       }
       if (!ev.userId) {
         return;
+      }
+
+      // Dedup BEFORE fanning out — subscribe() is at-least-once, so a
+      // redelivered notifications.created must not send the push twice.
+      // Best-effort (claim on the pool, not in a transaction): a missed
+      // push from a mid-flight crash is acceptable; a duplicate is not.
+      if (meta.id) {
+        const firstDelivery = await claimEvent(opts.pool, DURABLE, meta.id);
+        if (!firstDelivery) {
+          return;
+        }
       }
 
       const tokens = await listDeviceTokensForUser(opts.pool, ev.userId, false);

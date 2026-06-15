@@ -67,6 +67,18 @@ const DURABLE_PREFIX = 'notifications-workers';
 
 const durableFor = (subject: string): string => `${DURABLE_PREFIX}-${subject.replace(/\./g, '-')}`;
 
+// Build the dedup options for a delivered event. `meta.id` is the
+// publisher's envelope id; the subject scopes the claim so lifecycle
+// events that reuse an aggregate id (applications.* publish every state
+// under the application id) don't collide. When a publisher omits the id
+// we cannot dedupe — fall back to always-create rather than silently
+// dropping a notification.
+const dedupFor = (
+  subject: string,
+  meta: { id?: string }
+): { dedup: { consumer: string; eventId: string } } | undefined =>
+  meta.id ? { dedup: { consumer: subject, eventId: meta.id } } : undefined;
+
 export const registerSubscribers = (opts: RegisterSubscribersOptions): SubscriptionHandle[] => {
   const { nats, deps, logger } = opts;
 
@@ -83,8 +95,13 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     subscribe<ApplicationSubmittedEvent>(
       nats,
       { subject: 'applications.submitted', durable: durableFor('applications.submitted'), onError },
-      async payload => {
-        await createNotification(deps, SYSTEM_PRINCIPAL, buildApplicationSubmittedCreate(payload));
+      async (payload, meta) => {
+        await createNotification(
+          deps,
+          SYSTEM_PRINCIPAL,
+          buildApplicationSubmittedCreate(payload),
+          dedupFor('applications.submitted', meta)
+        );
       }
     )
   );
@@ -93,8 +110,13 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     subscribe<ApplicationApprovedEvent>(
       nats,
       { subject: 'applications.approved', durable: durableFor('applications.approved'), onError },
-      async payload => {
-        await createNotification(deps, SYSTEM_PRINCIPAL, buildApplicationApprovedCreate(payload));
+      async (payload, meta) => {
+        await createNotification(
+          deps,
+          SYSTEM_PRINCIPAL,
+          buildApplicationApprovedCreate(payload),
+          dedupFor('applications.approved', meta)
+        );
       }
     )
   );
@@ -103,8 +125,13 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     subscribe<ApplicationRejectedEvent>(
       nats,
       { subject: 'applications.rejected', durable: durableFor('applications.rejected'), onError },
-      async payload => {
-        await createNotification(deps, SYSTEM_PRINCIPAL, buildApplicationRejectedCreate(payload));
+      async (payload, meta) => {
+        await createNotification(
+          deps,
+          SYSTEM_PRINCIPAL,
+          buildApplicationRejectedCreate(payload),
+          dedupFor('applications.rejected', meta)
+        );
       }
     )
   );
@@ -117,11 +144,12 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
         durable: durableFor('applications.homeVisitScheduled'),
         onError,
       },
-      async payload => {
+      async (payload, meta) => {
         await createNotification(
           deps,
           SYSTEM_PRINCIPAL,
-          buildApplicationHomeVisitScheduledCreate(payload)
+          buildApplicationHomeVisitScheduledCreate(payload),
+          dedupFor('applications.homeVisitScheduled', meta)
         );
       }
     )
@@ -135,11 +163,12 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
         durable: durableFor('applications.homeVisitCompleted'),
         onError,
       },
-      async payload => {
+      async (payload, meta) => {
         await createNotification(
           deps,
           SYSTEM_PRINCIPAL,
-          buildApplicationHomeVisitCompletedCreate(payload)
+          buildApplicationHomeVisitCompletedCreate(payload),
+          dedupFor('applications.homeVisitCompleted', meta)
         );
       }
     )
@@ -149,8 +178,13 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     subscribe<ApplicationAdoptedEvent>(
       nats,
       { subject: 'applications.adopted', durable: durableFor('applications.adopted'), onError },
-      async payload => {
-        await createNotification(deps, SYSTEM_PRINCIPAL, buildApplicationAdoptedCreate(payload));
+      async (payload, meta) => {
+        await createNotification(
+          deps,
+          SYSTEM_PRINCIPAL,
+          buildApplicationAdoptedCreate(payload),
+          dedupFor('applications.adopted', meta)
+        );
       }
     )
   );
@@ -159,8 +193,13 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     subscribe<AuthUserLoggedInEvent>(
       nats,
       { subject: 'auth.userLoggedIn', durable: durableFor('auth.userLoggedIn'), onError },
-      async payload => {
-        await createNotification(deps, SYSTEM_PRINCIPAL, buildAuthUserLoggedInCreate(payload));
+      async (payload, meta) => {
+        await createNotification(
+          deps,
+          SYSTEM_PRINCIPAL,
+          buildAuthUserLoggedInCreate(payload),
+          dedupFor('auth.userLoggedIn', meta)
+        );
       }
     )
   );
@@ -169,8 +208,13 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     subscribe<AuthRoleAssignedEvent>(
       nats,
       { subject: 'auth.roleAssigned', durable: durableFor('auth.roleAssigned'), onError },
-      async payload => {
-        await createNotification(deps, SYSTEM_PRINCIPAL, buildAuthRoleAssignedCreate(payload));
+      async (payload, meta) => {
+        await createNotification(
+          deps,
+          SYSTEM_PRINCIPAL,
+          buildAuthRoleAssignedCreate(payload),
+          dedupFor('auth.roleAssigned', meta)
+        );
       }
     )
   );
@@ -266,17 +310,24 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
     subscribe<ChatMessageCreatedEvent>(
       nats,
       { subject: 'chat.messageCreated', durable: durableFor('chat.messageCreated'), onError },
-      async payload => {
+      async (payload, meta) => {
         const recipients = payload.participantUserIds.filter(id => id !== payload.senderUserId);
         // Each recipient gets one in-app notification. Errors from a
         // single recipient must not abort the others (CAD lesson #4 —
         // poison-pill subscribers); wrap each in its own try/catch.
         for (const userId of recipients) {
           try {
+            // One event fans out to N rows, so the dedup key includes the
+            // recipient — otherwise the first recipient's claim would
+            // suppress everyone else's notification.
+            const dedup = meta.id
+              ? { dedup: { consumer: 'chat.messageCreated', eventId: `${meta.id}:${userId}` } }
+              : undefined;
             await createNotification(
               deps,
               SYSTEM_PRINCIPAL,
-              buildChatMessageReceivedCreate(payload, userId)
+              buildChatMessageReceivedCreate(payload, userId),
+              dedup
             );
           } catch (err) {
             logger.warn('chat.messageCreated notification create failed', {

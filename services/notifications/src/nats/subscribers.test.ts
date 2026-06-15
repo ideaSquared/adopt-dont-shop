@@ -1,8 +1,10 @@
 import type { NatsConnection } from 'nats';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { UserId } from '@adopt-dont-shop/lib.types';
 import { NotificationsV1 } from '@adopt-dont-shop/proto';
+
+import { createNotification } from '../grpc/handlers.js';
 
 import {
   buildApplicationAdoptedCreate,
@@ -16,6 +18,15 @@ import {
   buildChatMessageReceivedCreate,
   registerSubscribers,
 } from './subscribers.js';
+
+// createNotification is mocked so the wiring tests can assert exactly what
+// dedup options each subscriber threads through, without standing up a DB.
+// The translation + registration tests below never deliver a message, so
+// the real handler is never needed there.
+vi.mock('../grpc/handlers.js', async importOriginal => {
+  const actual = await importOriginal<typeof import('../grpc/handlers.js')>();
+  return { ...actual, createNotification: vi.fn(async () => ({ notification: undefined })) };
+});
 
 // --- Translation tests (pure functions) ----------------------------
 
@@ -345,5 +356,156 @@ describe('registerSubscribers', () => {
     for (const cfg of consumersAdded) {
       expect(cfg.durable_name).toMatch(/^notifications-workers-/);
     }
+  });
+});
+
+describe('registerSubscribers idempotency wiring', () => {
+  const mockedCreate = vi.mocked(createNotification);
+
+  const deps = {
+    pool: {},
+    nats: {} as NatsConnection,
+  } as unknown as Parameters<typeof registerSubscribers>[0]['deps'];
+
+  const logger = {
+    info: () => undefined,
+    error: () => undefined,
+    warn: () => undefined,
+    debug: () => undefined,
+    silly: () => undefined,
+  } as unknown as Parameters<typeof registerSubscribers>[0]['logger'];
+
+  const flush = async (): Promise<void> => {
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setImmediate(r));
+    }
+  };
+
+  type DeliveredMessage = { id?: string; payload: unknown };
+
+  // A NATS stub whose durable consumers replay the supplied messages for
+  // their subject, so a single event can be driven through the real
+  // subscribe() loop and we can observe what reaches createNotification.
+  function makeYieldingNats(messagesBySubject: Record<string, DeliveredMessage[]>): NatsConnection {
+    const durableToSubject = new Map<string, string>();
+    const encoder = new TextEncoder();
+    const jsm = {
+      consumers: {
+        add: vi.fn(
+          async (_stream: string, cfg: { durable_name?: string; filter_subject?: string }) => {
+            if (cfg.durable_name && cfg.filter_subject) {
+              durableToSubject.set(cfg.durable_name, cfg.filter_subject);
+            }
+            return cfg;
+          }
+        ),
+      },
+    };
+    const js = {
+      consumers: {
+        get: vi.fn(async (_stream: string, durable: string) => ({
+          consume: vi.fn(async () => {
+            const subject = durableToSubject.get(durable) ?? '';
+            const msgs = (messagesBySubject[subject] ?? []).map(m => ({
+              subject,
+              data: encoder.encode(
+                JSON.stringify({ id: m.id, occurredAt: '2026-06-01T10:00:00Z', payload: m.payload })
+              ),
+              ack: vi.fn(),
+              nak: vi.fn(),
+              term: vi.fn(),
+            }));
+            return {
+              async *[Symbol.asyncIterator]() {
+                for (const m of msgs) {
+                  yield m;
+                }
+              },
+              close: vi.fn(),
+            };
+          }),
+        })),
+      },
+    };
+    return {
+      jetstreamManager: vi.fn(async () => jsm),
+      jetstream: vi.fn(() => js),
+    } as unknown as NatsConnection;
+  }
+
+  beforeEach(() => {
+    mockedCreate.mockClear();
+  });
+
+  it('threads the subject + envelope id into the dedup claim for a single-recipient event', async () => {
+    const nats = makeYieldingNats({
+      'applications.approved': [
+        {
+          id: 'app-1',
+          payload: {
+            applicationId: 'app-1',
+            adopterId: 'usr-a',
+            petId: 'pet-1',
+            rescueId: 'res-1',
+            approvedAt: '2026-06-02T10:00:00Z',
+          },
+        },
+      ],
+    });
+
+    registerSubscribers({ nats, deps, logger });
+    await flush();
+
+    expect(mockedCreate).toHaveBeenCalledTimes(1);
+    expect(mockedCreate.mock.calls[0][3]).toEqual({
+      dedup: { consumer: 'applications.approved', eventId: 'app-1' },
+    });
+  });
+
+  it('keys the chat fan-out dedup per recipient so siblings are not suppressed', async () => {
+    const nats = makeYieldingNats({
+      'chat.messageCreated': [
+        {
+          id: 'msg-1',
+          payload: {
+            messageId: 'msg-1',
+            chatId: 'chat-1',
+            senderUserId: 'usr-sender',
+            body: 'hi',
+            participantUserIds: ['usr-sender', 'usr-r1', 'usr-r2'],
+          },
+        },
+      ],
+    });
+
+    registerSubscribers({ nats, deps, logger });
+    await flush();
+
+    expect(mockedCreate.mock.calls.map(c => c[3]?.dedup)).toEqual([
+      { consumer: 'chat.messageCreated', eventId: 'msg-1:usr-r1' },
+      { consumer: 'chat.messageCreated', eventId: 'msg-1:usr-r2' },
+    ]);
+  });
+
+  it('falls back to no dedup when the publisher omits the envelope id', async () => {
+    const nats = makeYieldingNats({
+      'applications.submitted': [
+        {
+          payload: {
+            applicationId: 'app-2',
+            adopterId: 'usr-a',
+            petId: 'pet-1',
+            rescueId: 'res-1',
+            submittedAt: '2026-06-01T10:00:00Z',
+          },
+        },
+      ],
+    });
+
+    registerSubscribers({ nats, deps, logger });
+    await flush();
+
+    expect(mockedCreate).toHaveBeenCalledTimes(1);
+    expect(mockedCreate.mock.calls[0][3]).toBeUndefined();
   });
 });

@@ -423,6 +423,73 @@ describe('dismissNotification', () => {
 
 // --- HandlerError ----------------------------------------------------
 
+describe('createNotification idempotency (dedup)', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  // SQL-aware mock: the dedup claim hits processed_events; the row insert
+  // hits notifications.notifications. Order is recorded so we can assert the
+  // claim happens before the insert, inside the one transaction.
+  const wireClient = (claimRowCount: number, calls: string[]): void => {
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (sql.includes('processed_events')) {
+        calls.push('CLAIM');
+        return { rowCount: claimRowCount, rows: [] };
+      }
+      if (sql.trim().startsWith('INSERT')) {
+        calls.push('INSERT');
+        return { rows: [rowFixture()] };
+      }
+      calls.push(sql.trim().split(/\s+/)[0]);
+      return { rows: [] };
+    });
+    mocks.natsMock.publish.mockImplementation(() => {
+      calls.push('PUBLISH');
+    });
+  };
+
+  it('claims the event before inserting, then inserts + publishes on first delivery', async () => {
+    const calls: string[] = [];
+    wireClient(1, calls);
+
+    const res = await createNotification(mocks.deps, SYSTEM_PRINCIPAL, BASE_CREATE_REQ, {
+      dedup: { consumer: 'applications.approved', eventId: 'app-1' },
+    });
+
+    expect(calls).toEqual(['BEGIN', 'CLAIM', 'INSERT', 'COMMIT', 'PUBLISH']);
+    expect(res.notification?.notificationId).toBe('n-1');
+  });
+
+  it('skips the insert + publish on a redelivery (claim loses the ON CONFLICT race)', async () => {
+    const calls: string[] = [];
+    wireClient(0, calls);
+
+    const res = await createNotification(mocks.deps, SYSTEM_PRINCIPAL, BASE_CREATE_REQ, {
+      dedup: { consumer: 'applications.approved', eventId: 'app-1' },
+    });
+
+    expect(calls).toEqual(['BEGIN', 'CLAIM', 'COMMIT']);
+    expect(res.notification).toBeUndefined();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('does not claim anything when no dedup option is supplied (direct gRPC path)', async () => {
+    const calls: string[] = [];
+    wireClient(1, calls);
+
+    await createNotification(mocks.deps, SYSTEM_PRINCIPAL, BASE_CREATE_REQ);
+
+    expect(calls).toEqual(['BEGIN', 'INSERT', 'COMMIT', 'PUBLISH']);
+  });
+});
+
 describe('HandlerError', () => {
   it('carries the code field for downstream gRPC status mapping', () => {
     const err = new HandlerError('NOT_FOUND', 'gone');
