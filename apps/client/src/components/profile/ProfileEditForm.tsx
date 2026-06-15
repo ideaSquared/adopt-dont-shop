@@ -105,8 +105,13 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
       newErrors.phone = 'Please enter a valid phone number';
     }
 
-    if (formData.location.zipCode && !/^\d{5}(-\d{4})?$/.test(formData.location.zipCode)) {
-      newErrors['location.zipCode'] = 'Please enter a valid ZIP code';
+    // UK postcode (this is a UK product) — the previous US ZIP pattern
+    // rejected every valid UK postcode, blocking UK adopters from saving.
+    if (
+      formData.location.zipCode &&
+      !/^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/i.test(formData.location.zipCode)
+    ) {
+      newErrors['location.zipCode'] = 'Please enter a valid UK postcode';
     }
 
     if (formData.bio && formData.bio.length > 500) {
