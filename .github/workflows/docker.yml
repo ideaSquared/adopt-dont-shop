@@ -204,7 +204,7 @@ jobs:
 
       - name: Upload Trivy results to GitHub Security tab
         if: always() && hashFiles(format('trivy-results-{0}.sarif', matrix.service)) != ''
-        uses: github/codeql-action/upload-sarif@87557b9c84dde89fdd9b10e88954ac2f4248e463  # v4.36.1
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e  # v4.36.2
         with:
           sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
           category: 'trivy-service-${{ matrix.service }}'
