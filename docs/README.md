@@ -7,7 +7,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 ## Quick start by role
 
 **Frontend developer**
-1. [Component library](../lib.components/README.md)
+1. [Component library](../packages/lib.components/README.md)
 2. [Client app PRD](./frontend/app-client-prd.md)
 3. [Frontend technical architecture](./frontend/technical-architecture.md)
 
@@ -43,11 +43,14 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 ## Architecture
 
 - [ADR 0001 — entity detail pattern](./adr/0001-entity-detail-pattern.md) — canonical pattern for entity detail pages
+- [ADR 0002 — applications strangler cutover](./adr/0002-applications-strangler-cutover.md) — plan to move `/api/v1/applications/*` to the microservice
+- [ADR — sticky sessions for Socket.IO](./architecture/adr-socket-sticky-sessions.md) — connection-cap mitigation for the WebSocket edge
 - [Frontend technical architecture](./frontend/technical-architecture.md) — app shells, routing, state, styling
-- [Backend implementation guide](./backend/implementation-guide.md) — controllers → services → models wiring
+- [Backend implementation guide](./backend/implementation-guide.md) — gateway routes → gRPC handlers → services wiring
 - [Backend service PRD](./backend/service-backend-prd.md) — backend product requirements
 - [Backend deployment](./backend/deployment.md) — how the backend is built and shipped
 - [Microservices standards](./infrastructure/MICROSERVICES-STANDARDS.md) — boundaries, contracts, ownership
+- [Dependency graph](./dependency-graph.md) — Turbo build/dependency graph reference
 - [Data standards](./DATA-STANDARDS.md) — naming, identifiers, timestamp / locale conventions
 
 ## Frontend development
@@ -62,81 +65,77 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Accessibility](./ACCESSIBILITY.md) — WCAG targets, testing checklist, screen-reader notes
 - [UK localization](./UK_LOCALIZATION.md) — full localization guide
 - [UK localization quick reference](./UK_LOCALIZATION_QUICK_REFERENCE.md) — cheat sheet for copy and formatting
-- [app.admin README](../app.admin/README.md) — admin dashboard quick-start
-- [app.client README](../app.client/README.md) — client app quick-start
-- [app.client contexts README](../app.client/src/contexts/README.md) — context providers reference
-- [app.client Statsig feature flags](../app.client/src/docs/STATSIG_FEATURE_FLAGS.md) — gates / configs used by the client app
-- [app.rescue README](../app.rescue/README.md) — rescue app quick-start
+- [app.admin README](../apps/admin/README.md) — admin dashboard quick-start
+- [app.client README](../apps/client/README.md) — client app quick-start
+- [app.client contexts README](../apps/client/src/contexts/README.md) — context providers reference
+- [app.client Statsig feature flags](../apps/client/src/docs/STATSIG_FEATURE_FLAGS.md) — gates / configs used by the client app
+- [app.rescue README](../apps/rescue/README.md) — rescue app quick-start
 
 ## Backend development
 
 - [API endpoints](./backend/api-endpoints.md) — REST endpoints reference
-- [Database schema](./backend/database-schema.md) — Sequelize models and relationships
-- [Implementation guide](./backend/implementation-guide.md) — patterns for controllers, services, middleware
+- [Database schema](./backend/database-schema.md) — service-owned schemas and relationships
+- [Implementation guide](./backend/implementation-guide.md) — patterns for gateway routes, gRPC handlers, services
 - [Testing](./backend/testing.md) — backend test strategy and Vitest setup
 - [Troubleshooting](./backend/troubleshooting.md) — common backend failure modes and fixes
 - [Deployment](./backend/deployment.md) — backend build / release pipeline
-- [Service backend README](../service.backend/README.md) — service quick-start
-- [Service backend seeders README](../service.backend/src/seeders/README.md) — seed data conventions
-- [Bootstrap seeder runbook](../service.backend/src/seeders/bootstrap/RUNBOOK.md) — bootstrapping a fresh DB
-- [Service backend types README](../service.backend/src/types/README.md) — shared type conventions
 - [General testing notes](./testing.md) — cross-cutting test guidance
 - [Analytics reports](./ANALYTICS-REPORTS.md) — analytics surface and reporting endpoints
 
 ## Libraries
 
 - [Libraries index](./libraries/README.md) — index of every `lib.*` package
-- [lib.analytics](../lib.analytics/README.md) — event tracking client
-- [lib.api](../lib.api/README.md) — HTTP client, interceptors, auth-token plumbing
-- [lib.api architecture](../lib.api/ARCHITECTURE.md) — internal design of the API client
-- [lib.applications](../lib.applications/README.md) — adoption application lifecycle
-- [lib.audit-logs](../lib.audit-logs/README.md) — audit logging for sensitive actions
-- [lib.auth](../lib.auth/README.md) — sessions, two-factor, `AuthProvider` / `useAuth`
-- [lib.chat](../lib.chat/README.md) — Socket.IO real-time messaging
-- [lib.components](../lib.components/README.md) — shared React component library
-- [lib.dev-tools](../lib.dev-tools/README.md) — dev-only tooling
-- [lib.discovery](../lib.discovery/README.md) — swipe-based pet discovery sessions
-- [lib.feature-flags](../lib.feature-flags/README.md) — Statsig hooks and typed gate constants
-- [lib.invitations](../lib.invitations/README.md) — staff / user invitation flows
-- [lib.legal](../lib.legal/README.md) — re-acceptance modal, cookie banner, consent service
-- [lib.matching](../lib.matching/README.md) — shared types for pet-adopter matching
-- [lib.moderation](../lib.moderation/README.md) — reporting and moderation workflow
-- [lib.notifications](../lib.notifications/README.md) — email / push / in-app / SMS delivery
-- [lib.observability](../lib.observability/README.md) — Sentry init, Web Vitals, consent gate
-- [lib.permissions](../lib.permissions/README.md) — RBAC and field-level permission services
-- [lib.pets](../lib.pets/README.md) — pets read + write services
-- [lib.rescue](../lib.rescue/README.md) — rescue profiles, staff, settings
-- [lib.search](../lib.search/README.md) — cross-domain search client
-- [lib.support-tickets](../lib.support-tickets/README.md) — support ticket creation / tracking
-- [lib.types](../lib.types/README.md) — shared types and constants (zero-dep)
-- [lib.utils](../lib.utils/README.md) — formatters, locale, env helpers
-- [lib.validation](../lib.validation/README.md) — canonical Zod schemas
+- [lib.analytics](../packages/lib.analytics/README.md) — event tracking client
+- [lib.api](../packages/lib.api/README.md) — HTTP client, interceptors, auth-token plumbing
+- [lib.api architecture](../packages/lib.api/ARCHITECTURE.md) — internal design of the API client
+- [lib.applications](../packages/lib.applications/README.md) — adoption application lifecycle
+- [lib.audit-logs](../packages/lib.audit-logs/README.md) — audit logging for sensitive actions
+- [lib.auth](../packages/lib.auth/README.md) — sessions, two-factor, `AuthProvider` / `useAuth`
+- [lib.chat](../packages/lib.chat/README.md) — Socket.IO real-time messaging
+- [lib.components](../packages/lib.components/README.md) — shared React component library
+- [lib.dev-tools](../packages/lib.dev-tools/README.md) — dev-only tooling
+- [lib.discovery](../packages/lib.discovery/README.md) — swipe-based pet discovery sessions
+- [lib.feature-flags](../packages/lib.feature-flags/README.md) — Statsig hooks and typed gate constants
+- [lib.invitations](../packages/lib.invitations/README.md) — staff / user invitation flows
+- [lib.legal](../packages/lib.legal/README.md) — re-acceptance modal, cookie banner, consent service
+- [lib.matching](../packages/lib.matching/README.md) — shared types for pet-adopter matching
+- [lib.moderation](../packages/lib.moderation/README.md) — reporting and moderation workflow
+- [lib.notifications](../packages/lib.notifications/README.md) — email / push / in-app / SMS delivery
+- [lib.observability](../packages/lib.observability/README.md) — Sentry init, Web Vitals, consent gate
+- [lib.permissions](../packages/lib.permissions/README.md) — RBAC and field-level permission services
+- [lib.pets](../packages/lib.pets/README.md) — pets read + write services
+- [lib.rescue](../packages/lib.rescue/README.md) — rescue profiles, staff, settings
+- [lib.search](../packages/lib.search/README.md) — cross-domain search client
+- [lib.support-tickets](../packages/lib.support-tickets/README.md) — support ticket creation / tracking
+- [lib.types](../packages/lib.types/README.md) — shared types and constants (zero-dep)
+- [lib.utils](../packages/lib.utils/README.md) — formatters, locale, env helpers
+- [lib.validation](../packages/lib.validation/README.md) — canonical Zod schemas
 
 ### lib.components — component READMEs
 
-- [ListGroup](../lib.components/src/components/data/ListGroup/README.md)
-- [Table](../lib.components/src/components/data/Table/README.md)
-- [CheckboxInput](../lib.components/src/components/form/CheckboxInput/README.md)
-- [DateInput](../lib.components/src/components/form/DateInput/README.md)
-- [FileUpload](../lib.components/src/components/form/FileUpload/README.md)
-- [FilterPanel](../lib.components/src/components/form/FilterPanel/README.md)
-- [MarkdownEditor](../lib.components/src/components/form/MarkdownEditor/README.md)
-- [RadioInput](../lib.components/src/components/form/RadioInput/README.md)
-- [TextArea](../lib.components/src/components/form/TextArea/README.md)
-- [TextInput](../lib.components/src/components/form/TextInput/README.md)
-- [BaseSidebar](../lib.components/src/components/layout/BaseSidebar/README.md)
-- [Container](../lib.components/src/components/layout/Container/README.md)
-- [Stack](../lib.components/src/components/layout/Stack/README.md)
-- [DateTime](../lib.components/src/components/ui/DateTime/README.md)
-- [DropdownButton](../lib.components/src/components/ui/DropdownButton/README.md)
-- [DropdownMenu](../lib.components/src/components/ui/DropdownMenu/README.md)
-- [EmptyState](../lib.components/src/components/ui/EmptyState/README.md)
-- [ImageGallery](../lib.components/src/components/ui/ImageGallery/README.md)
-- [Pagination](../lib.components/src/components/ui/Pagination/README.md)
-- [ProgressBar](../lib.components/src/components/ui/ProgressBar/README.md)
-- [ThemeToggle](../lib.components/src/components/ui/ThemeToggle/README.md)
-- [Toast](../lib.components/src/components/ui/Toast/README.md)
-- [Tooltip](../lib.components/src/components/ui/Tooltip/README.md)
+- [ListGroup](../packages/lib.components/src/components/data/ListGroup/README.md)
+- [Table](../packages/lib.components/src/components/data/Table/README.md)
+- [CheckboxInput](../packages/lib.components/src/components/form/CheckboxInput/README.md)
+- [DateInput](../packages/lib.components/src/components/form/DateInput/README.md)
+- [FileUpload](../packages/lib.components/src/components/form/FileUpload/README.md)
+- [FilterPanel](../packages/lib.components/src/components/form/FilterPanel/README.md)
+- [MarkdownEditor](../packages/lib.components/src/components/form/MarkdownEditor/README.md)
+- [RadioInput](../packages/lib.components/src/components/form/RadioInput/README.md)
+- [TextArea](../packages/lib.components/src/components/form/TextArea/README.md)
+- [TextInput](../packages/lib.components/src/components/form/TextInput/README.md)
+- [BaseSidebar](../packages/lib.components/src/components/layout/BaseSidebar/README.md)
+- [Container](../packages/lib.components/src/components/layout/Container/README.md)
+- [Stack](../packages/lib.components/src/components/layout/Stack/README.md)
+- [DateTime](../packages/lib.components/src/components/ui/DateTime/README.md)
+- [DropdownButton](../packages/lib.components/src/components/ui/DropdownButton/README.md)
+- [DropdownMenu](../packages/lib.components/src/components/ui/DropdownMenu/README.md)
+- [EmptyState](../packages/lib.components/src/components/ui/EmptyState/README.md)
+- [ImageGallery](../packages/lib.components/src/components/ui/ImageGallery/README.md)
+- [Pagination](../packages/lib.components/src/components/ui/Pagination/README.md)
+- [ProgressBar](../packages/lib.components/src/components/ui/ProgressBar/README.md)
+- [ThemeToggle](../packages/lib.components/src/components/ui/ThemeToggle/README.md)
+- [Toast](../packages/lib.components/src/components/ui/Toast/README.md)
+- [Tooltip](../packages/lib.components/src/components/ui/Tooltip/README.md)
 
 ## Infrastructure & deployment
 
@@ -154,10 +153,15 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 
 - [Operations — deploy](./operations/deploy.md) — release procedures
 - [Operations — snapshot policy](./operations/snapshot-policy.md) — DB snapshot cadence and retention
+- [Operations — dependency updates (Renovate)](./operations/dependency-updates.md) — automated dependency upgrades
+- [Operations — pet CSV import](./operations/pet-csv-import.md) — bulk-loading pet records
+- [Per-service rollback](./deploy/per-service-rollback.md) — hotfix and rollback a single service
+- [Distributed tracing](./observability/tracing.md) — OpenTelemetry setup and conventions
 - [DB backup runbook](./db-backup-runbook.md) — taking and restoring backups
 - [Observability and alerting](./observability-alerting.md) — metrics, logs, alert routing
 - [Runbooks index](./runbooks/README.md) — runbook catalogue
 - [5xx spike runbook](./runbooks/5xx-spike.md) — diagnose elevated server errors
+- [Applications cutover runbook](./runbooks/applications-cutover.md) — route applications traffic to the microservice
 - [DB pool exhaustion runbook](./runbooks/db-pool-exhaustion.md) — recover from connection saturation
 - [Deploy rollback runbook](./runbooks/deploy-rollback.md) — roll back a bad release
 - [Maintenance mode runbook](./runbooks/maintenance-mode.md) — engage / disengage maintenance mode
@@ -187,7 +191,10 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 
 - [Security center](./SECURITY-CENTER.md) — security posture overview
 - [Secrets management](./SECRETS-MANAGEMENT.md) — how secrets are generated, stored, rotated
-- [Backend security policy](../service.backend/SECURITY.md) — backend service security policy
+- [Data protection — encryption at rest](./security/data-protection.md) — application-side encryption strategy
+- [Container image signing](./security/image-signing.md) — Cosign / Sigstore image-signing pipeline
+- [Internal gRPC trust model](./security/internal-grpc-trust.md) — service-to-service authentication
+- [Webhook replay protection](./security/webhook-replay-protection.md) — email-delivery webhook signature checks
 
 ## Documentation conventions
 
