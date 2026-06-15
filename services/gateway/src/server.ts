@@ -539,6 +539,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     await registerGdprRoutes(server, {
       nats: opts.nats,
       auditClient: opts.auditClient,
+      authClient: opts.authClient,
       redis: rateLimitRedis,
     });
   }

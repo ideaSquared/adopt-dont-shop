@@ -8,6 +8,7 @@ import { status as grpcStatus } from '@grpc/grpc-js';
 import { GDPR_ERASURE_REQUESTED } from '@adopt-dont-shop/events';
 
 import type { AuditClient } from '../grpc-clients/audit-client.js';
+import type { AuthClient } from '../grpc-clients/auth-client.js';
 
 import { registerGdprRoutes, type ErasureStore } from './gdpr.js';
 
@@ -52,6 +53,10 @@ function fakeAuditClient(): { client: AuditClient; getGdpr: ReturnType<typeof vi
   const getGdpr = vi.fn();
   const client = { getGdprErasureRequest: getGdpr } as unknown as AuditClient;
   return { client, getGdpr };
+}
+
+function fakeAuthClient(getMe: ReturnType<typeof vi.fn>): AuthClient {
+  return { getMe } as unknown as AuthClient;
 }
 
 describe('POST /api/v1/users/me/erasure-request', () => {
@@ -326,5 +331,71 @@ describe('GET /api/v1/users/me/erasure-request/:correlationId', () => {
       headers: { 'x-user-id': 'usr-2' },
     });
     expect(res.statusCode).toBe(403);
+  });
+});
+
+describe('POST /api/v1/users/me/erasure-request — email resolution', () => {
+  let app: FastifyInstance;
+  let published: Array<{ subject: string; data: string }>;
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  const erasedEmail = (): string | undefined => {
+    const env = JSON.parse(published[0].data) as { payload: { email?: string } };
+    return env.payload.email;
+  };
+
+  it('resolves the email from auth.getMe and carries it on the payload', async () => {
+    app = Fastify({ logger: false });
+    const { nats, published: p } = fakeNats();
+    published = p;
+    const getMe = vi.fn().mockResolvedValue({ user: { email: 'erased@example.com' } });
+    await registerGdprRoutes(app, { nats, authClient: fakeAuthClient(getMe) });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: { 'x-user-id': 'usr-1' },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(202);
+    // The email is resolved against the requesting principal's metadata.
+    expect(getMe).toHaveBeenCalledTimes(1);
+    expect(erasedEmail()).toBe('erased@example.com');
+  });
+
+  it('publishes a userId-only event when the auth lookup fails (erasure not blocked)', async () => {
+    app = Fastify({ logger: false });
+    const { nats, published: p } = fakeNats();
+    published = p;
+    const getMe = vi.fn().mockRejectedValue(new Error('auth unavailable'));
+    await registerGdprRoutes(app, { nats, authClient: fakeAuthClient(getMe) });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: { 'x-user-id': 'usr-1' },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(202);
+    expect(erasedEmail()).toBeUndefined();
+  });
+
+  it('omits email when no authClient is wired', async () => {
+    app = Fastify({ logger: false });
+    const { nats, published: p } = fakeNats();
+    published = p;
+    await registerGdprRoutes(app, { nats });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: { 'x-user-id': 'usr-1' },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(202);
+    expect(erasedEmail()).toBeUndefined();
   });
 });
