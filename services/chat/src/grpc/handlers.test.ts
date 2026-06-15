@@ -187,6 +187,46 @@ describe('openChat', () => {
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.created');
   });
+
+  const insertChatParams = (mocks: ReturnType<typeof makeMocks>): unknown[] => {
+    const call = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(([sql]) =>
+      sql.includes('INSERT INTO chats')
+    );
+    if (!call) {
+      throw new Error('no INSERT INTO chats call recorded');
+    }
+    return call[1];
+  };
+
+  it('persists the rescueId from the request on the new chat row', async () => {
+    mocks.poolScript.push({ rows: [] });
+    mocks.clientScript.push({
+      rows: [chatRowFixture({ chat_id: 'new-chat', rescue_id: 'rsc-1' })],
+    });
+    mocks.clientScript.push({ rows: [] });
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+
+    await openChat(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE_OPEN, rescueId: 'rsc-1' });
+
+    expect(insertChatParams(mocks)).toContain('rsc-1');
+  });
+
+  it('falls back to the null-UUID placeholder when no rescueId is supplied', async () => {
+    mocks.poolScript.push({ rows: [] });
+    mocks.clientScript.push({ rows: [chatRowFixture({ chat_id: 'new-chat' })] });
+    mocks.clientScript.push({ rows: [] });
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+
+    await openChat(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE_OPEN, rescueId: '' });
+
+    expect(insertChatParams(mocks)).toContain('00000000-0000-0000-0000-000000000000');
+  });
 });
 
 // --- SendMessage ----------------------------------------------------

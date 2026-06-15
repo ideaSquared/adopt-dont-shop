@@ -130,6 +130,11 @@ message OpenChatRequest {
   string application_id = 1;
   // Other participant — the calling principal is the first.
   string other_user_id = 2;
+  // Rescue the chat logically belongs to. The gateway populates this from
+  // the calling principal's rescue context so the chat row records its
+  // owning rescue — rescue-scoped chat search can then match gRPC-created
+  // chats instead of the previous null-UUID placeholder.
+  string rescue_id = 3;
 }
 
 message OpenChatResponse {
