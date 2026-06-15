@@ -18,6 +18,7 @@ import type { NatsConnection } from 'nats';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import type { AuditClient } from '../grpc-clients/audit-client.js';
+import type { AuthClient } from '../grpc-clients/auth-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 
@@ -32,6 +33,11 @@ export type GdprRoutesOptions = {
   nats: NatsConnection;
   // Optional — when wired, the GET status endpoint is registered.
   auditClient?: AuditClient;
+  // When wired, the erasure event carries the user's email (resolved from
+  // auth) so consumers can erase email-keyed rows that have no user_id —
+  // e.g. rescue pending invitations. Best-effort: a failed lookup still
+  // publishes the userId-only event rather than blocking erasure.
+  authClient?: AuthClient;
   // When wired, used for per-user idempotency: a second POST within
   // ERASURE_IDEMPOTENCY_TTL_SECONDS returns the original correlationId.
   redis?: ErasureStore;
@@ -58,7 +64,7 @@ export const registerGdprRoutes = async (
   app: FastifyInstance,
   opts: GdprRoutesOptions
 ): Promise<void> => {
-  const { nats, auditClient, redis } = opts;
+  const { nats, auditClient, authClient, redis } = opts;
 
   app.post(
     '/api/v1/users/me/erasure-request',
@@ -90,10 +96,17 @@ export const registerGdprRoutes = async (
         }
       }
 
+      // Resolve the user's email so consumers can erase email-keyed rows
+      // that carry no user_id (e.g. rescue pending invitations). Best-
+      // effort: a failed lookup must not block the erasure saga, so we
+      // fall through to a userId-only event.
+      const email = authClient ? await resolveEmail(authClient, req) : undefined;
+
       const correlationId = randomUUID();
       const requestedAt = new Date().toISOString();
       const payload: GdprErasureRequestedPayload = {
         userId,
+        email,
         correlationId,
         requestedAt,
         reason,
@@ -184,4 +197,20 @@ function principalUserId(req: FastifyRequest): string | null {
   const headers = req.headers as Record<string, string | string[] | undefined>;
   const raw = headers['x-user-id'];
   return typeof raw === 'string' && raw.length > 0 ? raw : null;
+}
+
+// Resolve the requesting user's email via auth.GetMe (identified by the
+// x-user-id metadata buildMetadata forwards). Returns undefined on any
+// failure or missing email — erasure must proceed regardless.
+async function resolveEmail(
+  authClient: AuthClient,
+  req: FastifyRequest
+): Promise<string | undefined> {
+  try {
+    const res = await authClient.getMe({}, buildMetadata(req));
+    const email = res.user?.email;
+    return typeof email === 'string' && email.length > 0 ? email : undefined;
+  } catch {
+    return undefined;
+  }
 }
