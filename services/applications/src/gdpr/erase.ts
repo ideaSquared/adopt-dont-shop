@@ -30,6 +30,36 @@ export async function eraseApplications(
   );
   total += appsRes.rowCount ?? 0;
 
+  // The read path (Get/List/timeline) folds the EVENT STREAM, not the
+  // read-model blob above — so scrubbing only `applications` leaves the
+  // adopter's answers, references and free-text reason/notes in
+  // application_events.event_data, where the next Get re-folds and
+  // resurfaces them. We must anonymise the event payloads too.
+  //
+  // application_events is append-only (migration 001 installs a trigger
+  // that rejects UPDATE/DELETE). The trigger honours one sanctioned
+  // escape hatch: the `applications.allow_event_mutation` GUC. SET LOCAL
+  // scopes it to THIS transaction only, so it can't leak across the
+  // pooled connection. We strip the PII-bearing keys from each payload
+  // (answers, references, notes, note, reason) while preserving the
+  // forensic skeleton (type, ids, timestamps, status transitions, the
+  // rescue actor who acted) so the timeline still reconstructs.
+  await client.query(`SET LOCAL applications.allow_event_mutation = 'on'`);
+  await client.query(
+    `UPDATE applications.application_events e
+        SET event_data = e.event_data
+              - 'answers'
+              - 'answersPatch'
+              - 'references'
+              - 'notes'
+              - 'note'
+              - 'reason'
+       FROM applications.applications a
+      WHERE e.aggregate_id = a.application_id
+        AND a.user_id = $1`,
+    [payload.userId]
+  );
+
   // Documents the user uploaded: hard-delete the metadata rows (the bytes
   // sitting in storage are erased by a separate retention sweep — see
   // gateway uploads route).

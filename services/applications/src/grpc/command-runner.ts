@@ -81,13 +81,31 @@ export async function runCommand(
 
     await projectReadModel(client, nextState);
 
-    const evt = publishFor(nextState);
-    if (evt !== null) {
-      publish(evt);
-    }
+    publishWithVersionedId(publish, publishFor, nextState);
 
     return nextState;
   });
+}
+
+// The envelope `id` becomes the JetStream Nats-Msg-Id used for
+// broker-side de-dup. Handlers pass the aggregate id as the base, but a
+// bare aggregate id collides across EVERY event of the same aggregate —
+// JetStream would drop the second and later events (submitted after
+// draftCreated, etc.) as duplicates inside the dedup window. The HEAD
+// version makes the key deterministic AND unique per event:
+// `<aggregateId>:<version>`. Deterministic (not Date.now()) so a
+// publish retry after a transient failure re-uses the same id and is
+// correctly de-duped rather than re-delivered.
+function publishWithVersionedId(
+  publish: (evt: PublishEnvelope) => void,
+  publishFor: (state: ApplicationState) => PublishEnvelope | null,
+  state: ApplicationState
+): void {
+  const evt = publishFor(state);
+  if (evt === null) {
+    return;
+  }
+  publish({ ...evt, id: `${evt.id}:${state.version}` });
 }
 
 // Create-flow counterpart to runCommand. StartDraft is the one command
@@ -125,10 +143,7 @@ export async function runCreateCommand(
 
     await projectReadModel(client, nextState);
 
-    const evt = publishFor(nextState);
-    if (evt !== null) {
-      publish(evt);
-    }
+    publishWithVersionedId(publish, publishFor, nextState);
 
     return nextState;
   });
