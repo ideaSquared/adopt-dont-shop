@@ -86,12 +86,37 @@ ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["sh", "-c", "pnpm run --if-present db:migrate && pnpm run --if-present db:seed && pnpm run dev"]
 
 # ---------------------------------------------------------------------------
+# prod-deps — re-resolve node_modules with ONLY production dependencies.
+# The build stage installs the full dependency set (dev tooling: tsx, esbuild,
+# vitest, typescript, turbo, eslint) to compile the service; none of it is
+# needed at runtime now that the workspace packages expose their compiled
+# dist via the "production" export condition (resolved via NODE_OPTIONS in the
+# production stage below). Re-running the install with --prod strips those
+# dev-only packages, shrinking the image and removing them from the Trivy CVE
+# surface. Workspace packages stay symlinked to /app/packages/* (their dist is
+# built in the build stage), so this only prunes node_modules. `development`
+# extends `build` — not this stage — so HMR keeps its dev deps.
+# confirmModulesPurge=false: pnpm otherwise prompts before removing the dev
+# packages, which aborts in a non-TTY build.
+# ---------------------------------------------------------------------------
+FROM build AS prod-deps
+ARG SERVICE
+RUN --mount=type=cache,id=pnpm-${SERVICE},target=/pnpm/store \
+    pnpm install --prod --frozen-lockfile --prefer-offline \
+      --store-dir=/pnpm/store --config.confirmModulesPurge=false
+
+# ---------------------------------------------------------------------------
 # production — compiled dist run with node
 # ---------------------------------------------------------------------------
 FROM base AS production
 ARG SERVICE_DIR
 ENV NODE_ENV=production
-COPY --from=build --chown=svcuser:nodejs /app ./
+# Backend workspace packages expose their TypeScript source by default (for
+# tsx-based dev HMR) and their compiled dist via a "production" export
+# condition. Activating it lets plain `node` resolve @adopt-dont-shop/* to
+# dist/ at runtime, so the production image needs no tsx/esbuild loader.
+ENV NODE_OPTIONS="--conditions=production"
+COPY --from=prod-deps --chown=svcuser:nodejs /app ./
 # Pre-create the uploads mount point owned by svcuser so a *fresh* named
 # volume (uploads:/app/uploads in docker-compose.prod/staging.yml) is
 # initialised writable by the runtime user. [ADS-771]
@@ -110,4 +135,10 @@ WORKDIR /app/${SERVICE_DIR}
 # [ADS-771]
 USER svcuser
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["sh", "-c", "pnpm run --if-present db:migrate && pnpm run start"]
+# Run the COMPILED migrations with node (workspace deps resolve to dist via the
+# production export condition in NODE_OPTIONS above) instead of the dev
+# `db:migrate` script, which uses tsx — keeping tsx/esbuild out of the image.
+# The `[ -f ]` guard skips services without a schema (the gateway has no
+# migrate.js), mirroring the old `--if-present`. `pnpm run start` then launches
+# the compiled service (its `start` is `node … dist/index.js`).
+CMD ["sh", "-c", "if [ -f dist/db/migrate.js ]; then node dist/db/migrate.js; fi && pnpm run start"]

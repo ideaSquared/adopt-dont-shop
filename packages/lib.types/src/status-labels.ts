@@ -1,4 +1,4 @@
-import type { ApplicationStatus, ApplicationStage, RescueStatus } from './types/domain-status';
+import type { ApplicationStatus, ApplicationStage, RescueStatus } from './types/domain-status.js';
 
 // ── Applications ──────────────────────────────────────────────────────────────
 

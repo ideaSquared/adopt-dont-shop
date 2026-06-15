@@ -9,8 +9,8 @@
  * i.e., the Sequelize model's `toJSON()` output. All four models (Users,
  * Rescues, Pets, Applications) now emit camelCase.
  */
-import type { FieldAccessLevel, FieldPermissionConfig } from '../types/field-permissions';
-import type { UserRole } from '../types';
+import type { FieldAccessLevel, FieldPermissionConfig } from '../types/field-permissions.js';
+import type { UserRole } from '../types/index.js';
 
 /**
  * Sentinel value indicating that all unlisted fields default to this level.

@@ -4,7 +4,7 @@
  * Field permissions extend the existing RBAC system to control
  * which fields on a resource can be read or written by each role.
  */
-import type { UserRole } from './index';
+import type { UserRole } from './index.js';
 
 /**
  * Access level for a specific field
