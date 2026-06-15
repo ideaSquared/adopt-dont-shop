@@ -252,6 +252,26 @@ describe('UserActionsMenu', () => {
     });
   });
 
+  describe('action failure handling', () => {
+    it('keeps the modal open and surfaces an error when the action rejects', async () => {
+      const handlers = {
+        ...defaultHandlers,
+        onDelete: vi.fn().mockRejectedValue(new Error('Server unavailable')),
+      };
+      renderWithProviders(<UserActionsMenu user={activeUser} {...handlers} />);
+      const user = await openMenu();
+
+      await user.click(screen.getByRole('menuitem', { name: /delete user/i }));
+      await user.click(screen.getByRole('button', { name: /delete user/i }));
+
+      // The failure is surfaced in an alert and the dialog stays open.
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Server unavailable');
+      });
+      expect(screen.getByText(/are you sure you want to delete this user/i)).toBeInTheDocument();
+    });
+  });
+
   describe('cancel actions', () => {
     it('does not call the action handler when cancel is clicked', async () => {
       renderWithProviders(<UserActionsMenu user={activeUser} {...defaultHandlers} />);
