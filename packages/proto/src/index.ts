@@ -188,6 +188,8 @@ export type {
   DeletePetResponse,
   GetPetStatsRequest,
   GetPetStatsResponse,
+  ListPetFavoritersRequest,
+  ListPetFavoritersResponse,
   PetServiceServer,
   PetServiceClient,
 } from './generated/proto/adopt_dont_shop/pets/v1/pet.js';

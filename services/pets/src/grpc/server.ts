@@ -22,6 +22,7 @@ import {
   deletePet,
   getPet,
   getPetStats,
+  listFavoriters,
   listPets,
   updatePet,
   updatePetStatus,
@@ -49,10 +50,20 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     updateStatus: adapt(updatePetStatus, { deps, logger }),
     delete: adapt(deletePet, { deps, logger }),
     getStats: adapt(getPetStats, { deps, logger }),
+    listFavoriters: adapt(listFavoriters, { deps, logger }),
   });
 
   logger.info('gRPC PetService registered', {
-    methods: ['create', 'get', 'list', 'update', 'updateStatus', 'delete', 'getStats'],
+    methods: [
+      'create',
+      'get',
+      'list',
+      'update',
+      'updateStatus',
+      'delete',
+      'getStats',
+      'listFavoriters',
+    ],
     grpcPort: config.grpcPort,
   });
 

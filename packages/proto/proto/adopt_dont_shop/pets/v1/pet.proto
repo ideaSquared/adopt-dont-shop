@@ -52,6 +52,13 @@ service PetService {
   // average-time-to-adoption. Drives the rescue dashboard widget.
   // Self-scoped to the caller's rescue unless they hold pets.read:any.
   rpc GetStats(GetPetStatsRequest) returns (GetPetStatsResponse);
+
+  // List the user_ids of every adopter who has FAVOURITED a pet. A
+  // service-to-service read for recipient discovery — service.notifications
+  // fans `pets.statusChanged` out to these users. Caller MUST have
+  // `pets.read`. Returns an empty list (not NOT_FOUND) when the pet has
+  // no favouriters or does not exist.
+  rpc ListFavoriters(ListPetFavoritersRequest) returns (ListPetFavoritersResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -302,4 +309,14 @@ message GetPetStatsResponse {
   // Mean days between created_at and adopted_at across the most recent
   // 50 adoptions in scope. Zero when no adoptions have been recorded.
   uint32 average_days_to_adoption = 11;
+}
+
+// --- ListFavoriters --------------------------------------------------
+
+message ListPetFavoritersRequest {
+  string pet_id = 1;
+}
+
+message ListPetFavoritersResponse {
+  repeated string user_ids = 1;
 }

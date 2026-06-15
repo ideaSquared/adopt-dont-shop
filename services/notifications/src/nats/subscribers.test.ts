@@ -16,6 +16,9 @@ import {
   buildAuthRoleAssignedCreate,
   buildAuthUserLoggedInCreate,
   buildChatMessageReceivedCreate,
+  buildPetStatusChangedCreate,
+  buildRescueRejectedCreate,
+  buildRescueVerifiedCreate,
   registerSubscribers,
 } from './subscribers.js';
 
@@ -255,6 +258,104 @@ describe('event → CreateNotificationRequest translation', () => {
       // 139 chars of body + the ellipsis terminator = 140 total preview.
       expect(req.message.length).toBe(140);
       expect(req.message.endsWith('…')).toBe(true);
+    });
+  });
+
+  describe('buildPetStatusChangedCreate', () => {
+    it('targets the favouriter with an in-app PET_UPDATE row at NORMAL priority', () => {
+      const req = buildPetStatusChangedCreate(
+        {
+          petId: 'pet-1',
+          rescueId: 'res-1',
+          fromStatus: 'available',
+          toStatus: 'adopted',
+          reason: null,
+        },
+        'usr-fav'
+      );
+
+      expect(req.userId).toBe('usr-fav');
+      expect(req.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_PET_UPDATE);
+      expect(req.channel).toBe(NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP);
+      expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL);
+      expect(req.relatedEntityType).toBe(
+        NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_PET
+      );
+      expect(req.relatedEntityId).toBe('pet-1');
+
+      // The raw status enum stays out of the body, but rides in data_json.
+      expect(req.message).not.toContain('adopted');
+      const data = JSON.parse(req.dataJson) as Record<string, unknown>;
+      expect(data).toEqual({
+        petId: 'pet-1',
+        rescueId: 'res-1',
+        fromStatus: 'available',
+        toStatus: 'adopted',
+      });
+    });
+  });
+
+  describe('buildRescueVerifiedCreate', () => {
+    it('produces a HIGH-priority SYSTEM_ANNOUNCEMENT to the staff member with the rescue name', () => {
+      const req = buildRescueVerifiedCreate(
+        { rescueId: 'res-1', fromStatus: 'pending', toStatus: 'verified', reason: null },
+        'Happy Tails',
+        'usr-staff'
+      );
+
+      expect(req.userId).toBe('usr-staff');
+      expect(req.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT);
+      expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH);
+      expect(req.message).toContain('Happy Tails');
+      expect(req.relatedEntityType).toBe(
+        NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE
+      );
+      expect(req.relatedEntityId).toBe('res-1');
+    });
+
+    it('falls back to a generic body when the rescue name is unavailable', () => {
+      const req = buildRescueVerifiedCreate(
+        { rescueId: 'res-1', fromStatus: 'pending', toStatus: 'verified', reason: null },
+        null,
+        'usr-staff'
+      );
+      expect(req.message).not.toContain('null');
+      expect(req.message).toMatch(/verified/i);
+    });
+  });
+
+  describe('buildRescueRejectedCreate', () => {
+    it('surfaces the rejection reason when present', () => {
+      const req = buildRescueRejectedCreate(
+        {
+          rescueId: 'res-1',
+          fromStatus: 'pending',
+          toStatus: 'rejected',
+          reason: 'incomplete charity registration',
+        },
+        'Happy Tails',
+        'usr-staff'
+      );
+
+      expect(req.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT);
+      expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_NORMAL);
+      expect(req.message).toContain('incomplete charity registration');
+      expect(req.relatedEntityType).toBe(
+        NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE
+      );
+      const data = JSON.parse(req.dataJson) as Record<string, unknown>;
+      expect(data.reason).toBe('incomplete charity registration');
+    });
+
+    it('falls back to a generic body when no reason is supplied', () => {
+      const req = buildRescueRejectedCreate(
+        { rescueId: 'res-1', fromStatus: 'pending', toStatus: 'rejected', reason: null },
+        'Happy Tails',
+        'usr-staff'
+      );
+      expect(req.message).not.toContain('Reason:');
+      const data = JSON.parse(req.dataJson) as Record<string, unknown>;
+      expect(data.reason).toBeNull();
     });
   });
 });
@@ -507,5 +608,87 @@ describe('registerSubscribers idempotency wiring', () => {
 
     expect(mockedCreate).toHaveBeenCalledTimes(1);
     expect(mockedCreate.mock.calls[0][3]).toBeUndefined();
+  });
+
+  it('fans pets.statusChanged out to every favouriter with a per-recipient dedup key', async () => {
+    const nats = makeYieldingNats({
+      'pets.statusChanged': [
+        {
+          id: 'evt-1',
+          payload: {
+            petId: 'pet-1',
+            rescueId: 'res-1',
+            fromStatus: 'available',
+            toStatus: 'adopted',
+            reason: null,
+          },
+        },
+      ],
+    });
+    const petsClient = {
+      listFavoriters: vi.fn(async () => ['usr-f1', 'usr-f2']),
+      close: vi.fn(),
+    };
+
+    registerSubscribers({ nats, deps, logger, petsClient });
+    await flush();
+
+    expect(petsClient.listFavoriters).toHaveBeenCalledWith('pet-1');
+    expect(mockedCreate.mock.calls.map(c => [c[2].userId, c[3]?.dedup])).toEqual([
+      ['usr-f1', { consumer: 'pets.statusChanged', eventId: 'evt-1:usr-f1' }],
+      ['usr-f2', { consumer: 'pets.statusChanged', eventId: 'evt-1:usr-f2' }],
+    ]);
+  });
+
+  it('no-ops the pets.statusChanged fan-out when no pets client is configured', async () => {
+    const nats = makeYieldingNats({
+      'pets.statusChanged': [
+        {
+          id: 'evt-1',
+          payload: {
+            petId: 'pet-1',
+            rescueId: 'res-1',
+            fromStatus: 'available',
+            toStatus: 'adopted',
+            reason: null,
+          },
+        },
+      ],
+    });
+
+    registerSubscribers({ nats, deps, logger });
+    await flush();
+
+    expect(mockedCreate).not.toHaveBeenCalled();
+  });
+
+  it('fans rescue.verified out to every staff member with a per-recipient dedup key', async () => {
+    const nats = makeYieldingNats({
+      'rescue.verified': [
+        {
+          id: 'evt-r',
+          payload: {
+            rescueId: 'res-1',
+            fromStatus: 'pending',
+            toStatus: 'verified',
+            reason: null,
+          },
+        },
+      ],
+    });
+    const rescueClient = {
+      listStaffMembers: vi.fn(async () => ['usr-s1', 'usr-s2']),
+      getRescueName: vi.fn(async () => 'Happy Tails'),
+      close: vi.fn(),
+    };
+
+    registerSubscribers({ nats, deps, logger, rescueClient });
+    await flush();
+
+    expect(rescueClient.listStaffMembers).toHaveBeenCalledWith('res-1');
+    expect(mockedCreate.mock.calls.map(c => [c[2].userId, c[3]?.dedup])).toEqual([
+      ['usr-s1', { consumer: 'rescue.verified', eventId: 'evt-r:usr-s1' }],
+      ['usr-s2', { consumer: 'rescue.verified', eventId: 'evt-r:usr-s2' }],
+    ]);
   });
 });

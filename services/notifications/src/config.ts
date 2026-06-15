@@ -24,6 +24,14 @@ export type NotificationsConfig = {
   // concrete user_ids. Optional in tests / migrations smokes; Broadcast
   // returns INTERNAL when unset.
   authGrpcUrl?: string;
+  // service.pets gRPC URL — needed by the pets.statusChanged fan-out
+  // (PetService.ListFavoriters discovers who favourited the pet). Optional;
+  // when unset the fan-out no-ops gracefully, like Broadcast without auth.
+  petsGrpcUrl?: string;
+  // service.rescue gRPC URL — needed by the rescue.verified / rescue.rejected
+  // fan-out (RescueService.ListStaffMembers + Get discover the rescue's
+  // staff). Optional; when unset the fan-out no-ops gracefully.
+  rescueGrpcUrl?: string;
   // Environment label, surfaced in health responses and on log lines.
   environment: string;
   // Postgres connection string. Required for migrations + the runtime
@@ -85,6 +93,8 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): NotificationsC
     port,
     grpcPort,
     authGrpcUrl: env.AUTH_GRPC_URL?.trim() || undefined,
+    petsGrpcUrl: env.PETS_GRPC_URL?.trim() || undefined,
+    rescueGrpcUrl: env.RESCUE_GRPC_URL?.trim() || undefined,
     host: env.NOTIFICATIONS_HOST?.trim() || DEFAULT_HOST,
     environment: env.NODE_ENV?.trim() || 'development',
     databaseUrl,

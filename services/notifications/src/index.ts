@@ -6,6 +6,8 @@ import { runServiceShutdown } from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from './config.js';
 import { createAuthCohortClient } from './grpc/auth-client.js';
+import { createPetsClient } from './grpc/pets-client.js';
+import { createRescueClient } from './grpc/rescue-client.js';
 import { validateAuthPrincipal } from './grpc/validate-auth-principal.js';
 import {
   startEmailChannelWorker,
@@ -67,13 +69,25 @@ const main = async (): Promise<void> => {
       await validateAuthPrincipal(authClient, logger);
     }
 
+    // Cross-service clients for the cross-service event fan-out:
+    //   - pets → pets.statusChanged (notify favouriters)
+    //   - rescue → rescue.verified / rescue.rejected (notify staff)
+    // Only created when their gRPC URL is set; without it the matching
+    // fan-out no-ops gracefully (same degradation as Broadcast without auth).
+    const petsClient = config.petsGrpcUrl
+      ? createPetsClient({ address: config.petsGrpcUrl })
+      : undefined;
+    const rescueClient = config.rescueGrpcUrl
+      ? createRescueClient({ address: config.rescueGrpcUrl })
+      : undefined;
+
     grpc = await startGrpcServer({ config, pool, nats, logger, authClient });
     grpcReady = true;
     // NATS subscribers register AFTER gRPC so a fast event arriving on
     // applications.submitted before we're ready to handle gRPC calls
     // can't race against partially-constructed deps. Shutdown drains the
     // whole NATS connection later, which transparently cancels these.
-    registerSubscribers({ nats, deps: { pool, nats }, logger });
+    registerSubscribers({ nats, deps: { pool, nats }, logger, petsClient, rescueClient });
 
     // GDPR erasure subscriber — drops the user's notifications + prefs
     // + device tokens. Reported back via gdpr.erasureCompleted.
