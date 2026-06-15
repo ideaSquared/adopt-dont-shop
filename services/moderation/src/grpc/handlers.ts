@@ -11,8 +11,10 @@
 //   - State-changing writes wrap @adopt-dont-shop/events.withTransaction
 //     so NATS events only fire after the row writes commit.
 //   - Authz: FileReport is open to any authenticated principal
-//     (any user can file a report). The rest gate on ADMIN_DASHBOARD
-//     as a placeholder until lib.types ships a MODERATION_* namespace.
+//     (any user can file a report). Reads (GetReport/ListReports) gate
+//     on MODERATION_REPORTS_VIEW, with a reporter self-read path: a
+//     caller reading their OWN report needs no permission. Writes
+//     (AssignReport/ResolveReport) gate on MODERATION_REPORTS_MANAGE.
 //   - SQL parameters use $-indexed placeholders, never string-spliced
 //     values. The mapper from #912 handles row → proto translation.
 
@@ -20,7 +22,7 @@ import { randomUUID } from 'node:crypto';
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-import { ADMIN_DASHBOARD } from '@adopt-dont-shop/lib.types';
+import { MODERATION_REPORTS_MANAGE, MODERATION_REPORTS_VIEW } from '@adopt-dont-shop/lib.types';
 import type {
   AssignReportRequest,
   AssignReportResponse,
@@ -56,9 +58,9 @@ function clampLimit(raw: number): number {
   return Math.min(Math.trunc(raw), MAX_LIMIT);
 }
 
-function ensureModerationPermission(principal: Principal): void {
-  if (!requirePermission(principal, ADMIN_DASHBOARD)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_DASHBOARD}' required`);
+function ensureReportsManagePermission(principal: Principal): void {
+  if (!requirePermission(principal, MODERATION_REPORTS_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_REPORTS_MANAGE}' required`);
   }
 }
 
@@ -155,8 +157,6 @@ export async function getReport(
   principal: Principal,
   req: GetReportRequest
 ): Promise<GetReportResponse> {
-  ensureModerationPermission(principal);
-
   if (req.reportId === undefined || req.reportId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'report_id is required');
   }
@@ -174,6 +174,13 @@ export async function getReport(
 
   if (rows.length === 0) {
     throw new HandlerError('NOT_FOUND', `report ${req.reportId} not found`);
+  }
+
+  // A reporter can always read their OWN report without a moderation
+  // permission; everyone else needs MODERATION_REPORTS_VIEW.
+  const isReporter = rows[0].reporter_id === principal.userId;
+  if (!isReporter && !requirePermission(principal, MODERATION_REPORTS_VIEW)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_REPORTS_VIEW}' required`);
   }
 
   const response: GetReportResponse = {
@@ -203,13 +210,19 @@ export async function listReports(
   principal: Principal,
   req: ListReportsRequest
 ): Promise<ListReportsResponse> {
-  ensureModerationPermission(principal);
-
   const limit = clampLimit(req.limit);
 
   const where: string[] = [];
   const params: unknown[] = [];
   let p = 1;
+
+  // Callers without MODERATION_REPORTS_VIEW are strictly self-scoped:
+  // they only ever see reports they filed. Moderators with the
+  // permission see all reports.
+  if (!requirePermission(principal, MODERATION_REPORTS_VIEW)) {
+    where.push(`reporter_id = $${p++}`);
+    params.push(principal.userId);
+  }
 
   if (req.status !== undefined && req.status !== 0) {
     where.push(`status = $${p++}`);
@@ -286,7 +299,7 @@ export async function assignReport(
   principal: Principal,
   req: AssignReportRequest
 ): Promise<AssignReportResponse> {
-  ensureModerationPermission(principal);
+  ensureReportsManagePermission(principal);
 
   if (req.reportId === undefined || req.reportId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'report_id is required');
@@ -379,7 +392,7 @@ export async function resolveReport(
   principal: Principal,
   req: ResolveReportRequest
 ): Promise<ResolveReportResponse> {
-  ensureModerationPermission(principal);
+  ensureReportsManagePermission(principal);
 
   if (req.reportId === undefined || req.reportId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'report_id is required');

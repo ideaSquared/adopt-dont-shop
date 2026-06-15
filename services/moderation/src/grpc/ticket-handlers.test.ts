@@ -22,7 +22,7 @@ function makePrincipal(
   return {
     userId: overrides.userId ?? 'staff-1',
     roles: overrides.roles ?? ['admin'],
-    permissions: overrides.permissions ?? ['admin.dashboard'],
+    permissions: overrides.permissions ?? ['moderation.tickets.manage'],
     rescueId: undefined,
   } as unknown as Parameters<typeof openSupportTicket>[1];
 }
@@ -164,7 +164,7 @@ describe('getSupportTicket', () => {
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('allows the ticket owner to read their own ticket without admin.dashboard', async () => {
+  it('allows the ticket owner to read their own ticket without moderation.tickets.manage', async () => {
     const { deps } = makeDeps([{ rows: [ticketRow({ user_id: 'usr-1' })] }]);
     const res = await getSupportTicket(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
       ticketId: 'tkt-1',

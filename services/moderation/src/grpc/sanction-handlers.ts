@@ -5,15 +5,15 @@
 // #924; moderator actions + evidence in #925; support tickets follow
 // in the final batch.
 //
-// Same discipline: withTransaction for writes, gate on ADMIN_DASHBOARD
-// (placeholder until lib.types ships MODERATION_*), $-indexed SQL
-// params, sanction mapper from #914 for row → proto.
+// Same discipline: withTransaction for writes, gate on
+// MODERATION_SANCTIONS_MANAGE, $-indexed SQL params, sanction mapper
+// from #914 for row → proto.
 
 import { randomUUID } from 'node:crypto';
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-import { ADMIN_DASHBOARD } from '@adopt-dont-shop/lib.types';
+import { MODERATION_SANCTIONS_MANAGE } from '@adopt-dont-shop/lib.types';
 import type {
   AppealSanctionRequest,
   AppealSanctionResponse,
@@ -35,8 +35,8 @@ const SANCTION_SELECT = `
 `;
 
 function ensureModerationPermission(principal: Principal): void {
-  if (!requirePermission(principal, ADMIN_DASHBOARD)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_DASHBOARD}' required`);
+  if (!requirePermission(principal, MODERATION_SANCTIONS_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_SANCTIONS_MANAGE}' required`);
   }
 }
 
@@ -144,7 +144,10 @@ export async function listUserSanctions(
   if (req.userId === undefined || req.userId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
   }
-  if (req.userId !== principal.userId && !requirePermission(principal, ADMIN_DASHBOARD)) {
+  if (
+    req.userId !== principal.userId &&
+    !requirePermission(principal, MODERATION_SANCTIONS_MANAGE)
+  ) {
     throw new HandlerError('PERMISSION_DENIED', 'can only list your own sanctions');
   }
 

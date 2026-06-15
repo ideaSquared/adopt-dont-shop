@@ -17,7 +17,7 @@ function makePrincipal(
   return {
     userId: overrides.userId ?? 'mod-1',
     roles: overrides.roles ?? ['moderator'],
-    permissions: overrides.permissions ?? ['admin.dashboard'],
+    permissions: overrides.permissions ?? ['moderation.actions.manage'],
     rescueId: undefined,
   } as unknown as Parameters<typeof addEvidence>[1];
 }
@@ -101,7 +101,7 @@ const VALID_LOG_REQ: LogModeratorActionRequest = {
 };
 
 describe('logModeratorAction', () => {
-  it('throws PERMISSION_DENIED without admin.dashboard', async () => {
+  it('throws PERMISSION_DENIED without moderation.actions.manage', async () => {
     const { deps } = makeDeps([]);
     await expect(
       logModeratorAction(deps, makePrincipal({ permissions: [] }), VALID_LOG_REQ)
@@ -148,7 +148,7 @@ describe('logModeratorAction', () => {
 });
 
 describe('listModeratorActions', () => {
-  it('throws PERMISSION_DENIED without admin.dashboard', async () => {
+  it('throws PERMISSION_DENIED without moderation.actions.manage', async () => {
     const { deps } = makeDeps([]);
     await expect(
       listModeratorActions(
@@ -195,7 +195,7 @@ describe('listModeratorActions', () => {
 });
 
 describe('addEvidence', () => {
-  it('throws PERMISSION_DENIED without admin.dashboard', async () => {
+  it('throws PERMISSION_DENIED without moderation.actions.manage', async () => {
     const { deps } = makeDeps([]);
     await expect(
       addEvidence(deps, makePrincipal({ permissions: [] }), {

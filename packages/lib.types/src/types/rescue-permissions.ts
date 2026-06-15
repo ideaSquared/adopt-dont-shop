@@ -67,6 +67,19 @@ export const NOTIFICATIONS_CREATE = 'notifications.create' satisfies Permission;
 export const NOTIFICATIONS_UPDATE = 'notifications.update' satisfies Permission;
 
 /**
+ * Moderation Permissions
+ *
+ * Grouped, dedicated permissions for the moderation service. These replace
+ * the ADMIN_DASHBOARD placeholder the moderation handlers previously gated on.
+ * "view" is read-only; "manage" covers acting on / mutating the resource.
+ */
+export const MODERATION_REPORTS_VIEW = 'moderation.reports.view' satisfies Permission;
+export const MODERATION_REPORTS_MANAGE = 'moderation.reports.manage' satisfies Permission;
+export const MODERATION_SANCTIONS_MANAGE = 'moderation.sanctions.manage' satisfies Permission;
+export const MODERATION_TICKETS_MANAGE = 'moderation.tickets.manage' satisfies Permission;
+export const MODERATION_ACTIONS_MANAGE = 'moderation.actions.manage' satisfies Permission;
+
+/**
  * Admin Permissions
  */
 export const ADMIN_DASHBOARD = 'admin.dashboard' satisfies Permission;
@@ -125,6 +138,13 @@ export const RescuePermissions = {
   NOTIFICATIONS_VIEW,
   NOTIFICATIONS_CREATE,
   NOTIFICATIONS_UPDATE,
+
+  // Moderation
+  MODERATION_REPORTS_VIEW,
+  MODERATION_REPORTS_MANAGE,
+  MODERATION_SANCTIONS_MANAGE,
+  MODERATION_TICKETS_MANAGE,
+  MODERATION_ACTIONS_MANAGE,
 
   // Admin
   ADMIN_DASHBOARD,

@@ -7,14 +7,14 @@
 // tickets follow in the next batch.
 //
 // Same discipline as handlers.ts: withTransaction for writes, gate on
-// ADMIN_DASHBOARD (placeholder until lib.types ships MODERATION_*),
-// $-indexed SQL params, mappers from #913 for row → proto.
+// MODERATION_ACTIONS_MANAGE, $-indexed SQL params, mappers from #913
+// for row → proto.
 
 import { randomUUID } from 'node:crypto';
 
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
-import { ADMIN_DASHBOARD } from '@adopt-dont-shop/lib.types';
+import { MODERATION_ACTIONS_MANAGE } from '@adopt-dont-shop/lib.types';
 import type {
   AddEvidenceRequest,
   AddEvidenceResponse,
@@ -51,8 +51,8 @@ function clampLimit(raw: number): number {
 }
 
 function ensureModerationPermission(principal: Principal): void {
-  if (!requirePermission(principal, ADMIN_DASHBOARD)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_DASHBOARD}' required`);
+  if (!requirePermission(principal, MODERATION_ACTIONS_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_ACTIONS_MANAGE}' required`);
   }
 }
 
