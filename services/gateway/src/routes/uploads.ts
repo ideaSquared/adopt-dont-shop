@@ -43,6 +43,11 @@ export type UploadsRoutesOptions = {
 // bypass have shipped before).
 const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
 
+// Extension allowlist — second check so a lying Content-Type can't smuggle a
+// disallowed file past the MIME check alone (mirrors the document upload
+// route's defence-in-depth).
+const ALLOWED_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+
 // MIME → extension lookup for streamed responses. Matches the monolith's
 // streamFile table.
 const MIME_BY_EXT: Record<string, string> = {
@@ -113,6 +118,11 @@ export const registerUploadsRoutes = async (
 
       if (!ALLOWED_IMAGE_MIME.has(mimetype)) {
         return reply.code(400).send({ error: `File type ${mimetype} is not allowed` });
+      }
+
+      const ext = path.extname(originalName).toLowerCase();
+      if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) {
+        return reply.code(400).send({ error: `File extension ${ext || '(none)'} is not allowed` });
       }
 
       let upload;

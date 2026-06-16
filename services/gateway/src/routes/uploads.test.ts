@@ -94,6 +94,22 @@ describe('POST /api/v1/uploads/images', () => {
     expect(res.json()).toMatchObject({ error: expect.stringContaining('image/svg+xml') });
   });
 
+  it('rejects a disallowed extension even when the MIME is allowed', async () => {
+    const boundary = 'b2e';
+    // A lying Content-Type (image/png) carrying an executable extension.
+    const body = multipartBody(boundary, Buffer.from('MZ'), 'payload.exe', 'image/png');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ error: expect.stringContaining('.exe') });
+  });
+
   it('returns 400 when no file part is present', async () => {
     const boundary = 'b3';
     const body = Buffer.from(`--${boundary}--\r\n`, 'utf8');
