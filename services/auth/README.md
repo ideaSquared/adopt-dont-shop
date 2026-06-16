@@ -180,3 +180,84 @@ pnpm dev
 pnpm build
 pnpm start
 ```
+
+---
+
+## Canonical reference (ADS-817)
+
+### Responsibility
+
+Owns identity and access control: account lifecycle (register, verify, password
+reset/change, account update), JWT auth with refresh-token rotation +
+revocation, roles + permissions, sessions (per-device refresh chains), privacy
+preferences, field-permission overrides, and admin user management. Maintains
+the denormalised Principal (user + roles + permissions + optional rescue) that
+the gateway validates on every request. Schema: `auth`.
+
+### Schema (`auth`)
+
+| Table | Purpose |
+| --- | --- |
+| `users` | Core user row — email, password hash, status, type, profile, login throttling. |
+| `roles` / `permissions` | Reference data. |
+| `role_permissions` / `user_roles` | Role↔permission and user↔role junctions. |
+| `refresh_tokens` | Per-device refresh tokens (rotation chains). |
+| `revoked_tokens` | JTI denylist for access + old refresh tokens. |
+| `user_privacy_prefs` | Per-user privacy preferences. |
+| `field_permissions` | Overrides to the default field-level access matrix. |
+
+Migrations: `services/auth/src/migrations/001`–`015`.
+
+### gRPC RPCs
+
+`AuthService`. `super_admin` bypasses permission checks.
+
+**Public (no principal):** `Login`, `RefreshToken`, `ValidateToken`,
+`Register`, `VerifyEmail`, `ResendVerification`, `ForgotPassword`,
+`ResetPassword`.
+
+**Authenticated (self):** `Logout`, `GetMe`, `ChangePassword`, `UpdateAccount`,
+`ListSessions`, `RevokeSession`, `GetPrivacyPreferences` /
+`UpdatePrivacyPreferences` / `ResetPrivacyPreferences` (self; `privacy-prefs:*:any`
+for others).
+
+**Admin-gated:**
+
+| RPC | Permission |
+| --- | --- |
+| `AssignRole` | `admin.security.manage` |
+| `SearchUsers` | `admin.users.search` |
+| `AdminGetUser` / `GetUserStatistics` / `GetUserPermissions` | `admin.users.read` |
+| `AdminUpdateUser` | `admin.users.update` |
+| `DeactivateUser` | `admin.users.deactivate` |
+| `ReactivateUser` | `admin.users.reactivate` |
+| `BulkUpdateUsers` | `admin.users.bulk_update` |
+| `ListUserIdsByCohort` | `admin.users.broadcast` |
+| `GetFieldPermissionDefaults` / `GetFieldPermissionDefaultsForRole` / `ListFieldPermissionOverrides` / `ListFieldPermissionOverridesForRole` | `admin.field_permissions.read` |
+| `UpsertFieldPermission` / `BulkUpsertFieldPermissions` | `admin.field_permissions.write` |
+| `DeleteFieldPermission` | (gated at the gateway; reverts a field to the default) |
+
+### NATS subjects
+
+**Emits** (publish-after-commit): `auth.userLoggedIn`, `auth.tokenRevoked`,
+`auth.tokenRefreshed`, `auth.roleAssigned`, `auth.userRegistered`,
+`auth.emailVerified`, `auth.passwordResetRequested`, `auth.passwordChanged`,
+`auth.sessionRevoked`, `auth.privacyPrefsReset`, `auth.userDeactivated`,
+`auth.userReactivated`, `auth.userUpdatedByAdmin`. Plus `gdpr.erasureCompleted`
+as a saga participant.
+
+**Consumes:** `gdpr.erasureRequested` (durable `gdpr-auth`).
+
+### Dependencies
+
+`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
+proto, service-bootstrap}`. No cross-service gRPC calls (it is the identity
+layer everyone else calls).
+
+### Testing strategy
+
+Vitest. Pure handlers `(deps, principal, request) → response` with bcrypt/JWT
+adapters injected (so tests don't pay real crypto cost) — assert every
+INVALID_ARGUMENT / UNAUTHENTICATED / PERMISSION_DENIED / NOT_FOUND path, token
+rotation + denylist + idempotency, enumeration-safe register/forgot flows,
+`super_admin` bypass, and publish-after-commit ordering.

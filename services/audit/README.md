@@ -57,3 +57,82 @@ pattern). Owns the `audit.*` schema. Replaces the monolith's
 | `DATABASE_URL`    | —                  | ✅       | Postgres connection string.     |
 | `NATS_URL`        | `nats://nats:4222` |          | NATS bus URL.                   |
 | `NODE_ENV`        | `development`      |          | Surfaces in health + logs.      |
+
+---
+
+## Canonical reference (ADS-817)
+
+### Responsibility
+
+The forensic audit log + GDPR saga coordinator. Consumes state-changing domain
+events (`*.actionTaken`) from every service and persists them to an append-only,
+tamper-resistant store (a DB trigger blocks UPDATE/DELETE). Exposes read-only
+gRPC queries for admins, manages saved report templates, and **coordinates the
+GDPR erasure saga** — tracking each request until every expected service acks,
+timing out / retrying stuck sagas, and exporting saga-state metrics. Schema:
+`audit`.
+
+### Schema (`audit`)
+
+| Table | Purpose |
+| --- | --- |
+| `audit_events` | Append-only audit log (PK on `event_id` for idempotency). |
+| `gdpr_erasure_requests` | GDPR saga state per `correlation_id` (completions JSONB, `completed_at` / `failed_at` / `timed_out_at`, `retry_count`). |
+| `saved_reports` | User-created custom audit-report definitions. |
+| `report_templates` | Seed/migration-owned report template library. |
+
+Migrations: `services/audit/src/migrations/001`–`006`.
+
+### gRPC RPCs
+
+`AuditService` — **read-only** (no write RPCs; writes happen via NATS
+consumers). `super_admin` bypasses.
+
+| RPC | Permission |
+| --- | --- |
+| `Query` | `admin.audit_logs` |
+| `GetByTarget` | `admin.audit_logs` |
+| `ListSavedReports` | `reports.read` (`reports.read` scoping for own) |
+| `GetSavedReport` | `reports.read` |
+| `CreateSavedReport` | `reports.create` |
+| `UpdateSavedReport` | `reports.update` |
+| `DeleteSavedReport` | `reports.delete` |
+| `ListReportTemplates` | read-only (template library) |
+| `GetGdprErasureRequest` | `admin.gdpr.read` (or the subject reading their own saga) |
+
+### NATS subjects
+
+**Consumes:**
+
+| Subject | Effect |
+| --- | --- |
+| `*.actionTaken` | Persist an immutable audit event (idempotent on `event_id`). |
+| `gdpr.erasureRequested` | INSERT/UPSERT the saga row (durable `audit-workers-gdpr-request`). |
+| `gdpr.erasureCompleted` | Merge each service's completion; stamp `completed_at` once all 9 expected services ack, `failed_at` on an errored ack (durable `audit-workers-gdpr-completion`). |
+
+**Emits:** `gdpr.erasureRequested` — **re-published by the saga sweep** to retry
+a failed saga (same `correlationId`, distinct msgID; up to `GDPR_SAGA_MAX_RETRIES`).
+Audit publishes no other domain events.
+
+**Metrics:** exports the `gdpr_sagas{state}` gauge
+(`in_progress`/`completed`/`failed`/`timed_out`) — see
+[`docs/slo.md`](../../docs/slo.md) and the
+[GDPR erasure runbook](../../docs/runbooks/gdpr-erasure-incident.md).
+
+### Dependencies
+
+`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
+proto, service-bootstrap}`. No cross-service gRPC calls.
+
+### Configuration extras
+
+Beyond the standard vars: `GDPR_SAGA_DEADLINE_MS` (default 30 min — timeout
+horizon) and `GDPR_SAGA_MAX_RETRIES` (default 3) tune the sweep scheduler.
+
+### Testing strategy
+
+Vitest. The query handlers, the GDPR subscribers (request/completion UPSERT
+SQL), and the sweep scheduler (timeout + retry passes) are tested directly with
+an injected pool + NATS — assert idempotent event persistence, the saga
+completion/failure/timeout state machine, retry re-publish behaviour, and the
+`gdpr_sagas` gauge values.

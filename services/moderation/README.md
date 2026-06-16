@@ -57,3 +57,77 @@ gRPC; consumes events (`chat.messageCreated`, `pets.created`,
 | `DATABASE_URL`         | —                  | ✅       | Postgres connection string.     |
 | `NATS_URL`             | `nats://nats:4222` |          | NATS bus URL.                   |
 | `NODE_ENV`             | `development`      |          | Surfaces in health + logs.      |
+
+---
+
+## Canonical reference (ADS-817)
+
+### Responsibility
+
+Owns content moderation and user discipline: report filing, moderator
+assignment / resolution, logged moderator actions + evidence, user sanctions
+(warnings, restrictions, bans) + appeals, and support tickets. Subscribes to
+content events from other services to auto-scan and auto-file reports as the
+system user. Schema: `moderation`.
+
+### Schema (`moderation`)
+
+| Table | Purpose |
+| --- | --- |
+| `reports` | User/staff/system-filed reports of violations. |
+| `report_status_transitions` | Report state-change audit. |
+| `moderator_actions` | Logged actions (warn, remove, suspend, ban, restrict). |
+| `moderation_evidence` | Polymorphic evidence attached to reports/actions. |
+| `user_sanctions` | Sanctions — warning / restriction / temporary or permanent ban. |
+| `support_tickets` | User support requests. |
+| `support_ticket_responses` | Staff + user responses on a ticket. |
+
+Migrations: `services/moderation/src/migrations/001`–`010` (003 installs a
+status-propagation trigger).
+
+### gRPC RPCs
+
+`ModerationService`. `super_admin` / admin bypass.
+
+| RPC | Permission |
+| --- | --- |
+| `FileReport` | authenticated (any user) |
+| `GetReport` | `moderation.reports.view` (reporter may read own) |
+| `ListReports` | `moderation.reports.view` |
+| `AssignReport` | `moderation.reports.manage` |
+| `ResolveReport` | `moderation.reports.manage` |
+| `LogModeratorAction` | `moderation.actions.manage` |
+| `ListModeratorActions` | `moderation.actions.manage` |
+| `AddEvidence` | `moderation.actions.manage` |
+| `IssueSanction` | `moderation.sanctions.manage` |
+| `ListUserSanctions` | self-scoped; `moderation.sanctions.manage` for others |
+| `AppealSanction` | self-scoped (the sanctioned user) |
+| `OpenSupportTicket` | authenticated (any user) |
+| `GetSupportTicket` | owner, or `moderation.tickets.manage` |
+| `ListSupportTickets` | self-scoped; `moderation.tickets.manage` for all |
+| `RespondToTicket` | owner, or `moderation.tickets.manage` |
+
+### NATS subjects
+
+**Emits** (publish-after-commit): `moderation.reportFiled`,
+`moderation.reportAssigned`, `moderation.reportResolved`,
+`moderation.actionLogged`, `moderation.sanctionIssued`,
+`moderation.sanctionAppealed`, `moderation.ticketOpened`. Plus
+`gdpr.erasureCompleted` as a saga participant.
+
+**Consumes:** `chat.messageCreated`, `pets.created`, `applications.submitted`
+(content scanning → auto-report), and `gdpr.erasureRequested` (durable
+`gdpr-moderation`).
+
+### Dependencies
+
+`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
+proto, service-bootstrap}`. No cross-service gRPC calls (composition done at the
+gateway).
+
+### Testing strategy
+
+Vitest. Pure handlers split per surface (reports / actions+evidence / sanctions
+/ tickets) with pool + NATS injected — assert each permission gate + self-scope
+exception, the report/sanction state machines, the content-scanner auto-report
+path, and publish-after-commit ordering.

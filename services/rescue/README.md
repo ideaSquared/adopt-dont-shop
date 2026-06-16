@@ -149,3 +149,71 @@ pnpm dev
 pnpm build
 pnpm start
 ```
+
+---
+
+## Canonical reference (ADS-817)
+
+### Responsibility
+
+Owns rescue organisations and their operational infrastructure: rescue CRUD, a
+verification state machine (`pending` → `verified`/`rejected`/`suspended`/
+`inactive`, admin-gated), staff invitations (one-time-readable token) + staff
+membership, custom application questions, and foster placements. Validates
+foster pet ownership via a gRPC call to service.pets. Schema: `rescue`.
+
+### Schema (`rescue`)
+
+| Table | Purpose |
+| --- | --- |
+| `rescues` | Core org row — identity, contact, registration numbers, status, verification metadata. |
+| `rescue_settings` | Per-rescue typed settings. |
+| `staff_members` | Staff membership — `user_id` + `rescue_id`, title, verified flag. |
+| `invitations` | Pending staff invitations — email, token, expiry, used flag. |
+| `foster_placements` | Foster assignments — rescue, pet, foster user, dates, status. |
+| `application_questions` | Custom adoption-application questions a rescue defines. |
+
+Migrations: `services/rescue/src/migrations/001`–`007`.
+
+### gRPC RPCs
+
+`RescueService`. Permission scope is the `rescue_id`; admin / `super_admin`
+bypass scope.
+
+| RPC | Permission |
+| --- | --- |
+| `Create` | `rescues.create` |
+| `Get` | `rescues.read` |
+| `List` | `rescues.read` (defaults to verified-only; name + geo filters) |
+| `Update` | `rescues.update` (scoped; does not change status) |
+| `Verify` | `admin.security.manage` (admin-only status transition) |
+| `InviteStaff` | `staff.create` (scoped; mints token, returned once) |
+| `GetMyStaffMembership` | authenticated (self-scoped) |
+| `ListStaffMembers` | `staff.read` |
+| `CreateFosterPlacement` | `foster.create` (scoped; validates pet via pets gRPC) |
+| `ListFosterPlacements` | `foster.read` (scoped; `foster.read:any` for admin) |
+| `GetFosterPlacement` | `foster.read` (scoped) |
+| `EndFosterPlacement` | `foster.update` (scoped; idempotent) |
+| `GetInvitationByToken` | none (the token is the credential) |
+
+### NATS subjects
+
+**Emits** (publish-after-commit): `rescue.created`, `rescue.updated`,
+`rescue.verified` / `rescue.rejected` (Verify), `rescue.staffInvited`,
+`rescue.fosterPlacementCreated`, `rescue.fosterPlacementEnded`. Plus
+`gdpr.erasureCompleted` as a saga participant.
+
+**Consumes:** `gdpr.erasureRequested` (durable `gdpr-rescue`).
+
+### Dependencies
+
+`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
+proto, service-bootstrap}`. Cross-service gRPC: calls **service.pets**
+(`PETS_GRPC_URL`) in `CreateFosterPlacement` to validate the pet.
+
+### Testing strategy
+
+Vitest. Pure handlers with pool + NATS (+ a stub pets client) injected — assert
+each permission/scope path, the verification state machine, one-time invitation
+token behaviour, foster-placement validation against the pets client, and
+publish-after-commit ordering.

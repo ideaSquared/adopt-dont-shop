@@ -44,3 +44,64 @@ discovery + search + swipe modules.
 | `DATABASE_URL`       | —                  | ✅       | Postgres connection string.     |
 | `NATS_URL`           | `nats://nats:4222` |          | NATS bus URL.                   |
 | `NODE_ENV`           | `development`      |          | Surfaces in health + logs.      |
+
+---
+
+## Canonical reference (ADS-817)
+
+### Responsibility
+
+A stateless recommender powering swipe-based pet discovery. Records swipe
+sessions + a behavioural swipe log, holds adopter match profiles, and returns
+ranked candidates via a pure scoring function. Reads live pet candidates from
+service.pets on demand (no denormalised projection). Schema: `matching`.
+
+### Schema (`matching`)
+
+| Table | Purpose |
+| --- | --- |
+| `swipe_sessions` | Browsing sessions with filter context + counters. |
+| `swipe_actions` | Append-only behavioural log (swipe / like / pass / super-like). |
+| `adopter_match_profiles` | Adopter preferences (types, sizes, energy, lifestyle, allergies). |
+
+Migrations: `services/matching/src/migrations/001`–`004`.
+
+### gRPC RPCs
+
+`MatchingService`. Most actions require `pets.view` (discovery reads the pets
+catalogue) plus session ownership where applicable; profile RPCs are self-
+scoped. `super_admin` bypasses.
+
+| RPC | Permission |
+| --- | --- |
+| `StartSession` | `pets.view` |
+| `EndSession` | `pets.view` + session owner |
+| `RecordSwipe` | `pets.view` + session owner |
+| `ListSwipeHistory` | `pets.view` |
+| `Recommend` | `pets.view` (reads candidates via pets gRPC) |
+| `SearchPets` | `pets.view` (reads candidates via pets gRPC) |
+| `GetMatchProfile` | self-scoped (reads own profile) |
+| `UpsertMatchProfile` | self-scoped (writes own profile) |
+| `GetUserSwipeStats` | self-scoped; `matching.swipes.read:any` for other users |
+| `GetSessionStats` | session owner |
+
+### NATS subjects
+
+**Emits** (publish-after-commit): `matching.sessionStarted`,
+`matching.sessionEnded`, `matching.swipeRecorded`. Plus `gdpr.erasureCompleted`
+as a saga participant.
+
+**Consumes:** `gdpr.erasureRequested` (durable `gdpr-matching`).
+
+### Dependencies
+
+`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
+proto, service-bootstrap}`. Cross-service gRPC: calls **service.pets**
+(`PETS_GRPC_URL`) in `Recommend` / `SearchPets` to fetch candidate pets.
+
+### Testing strategy
+
+Vitest. The scoring/ranking function is pure and tested directly against fixture
+candidates; handlers are tested with pool + NATS (+ a stub pets client)
+injected — assert permission / ownership gates, swipe-log append, profile
+upsert, and publish-after-commit ordering.
