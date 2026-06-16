@@ -69,8 +69,6 @@ vi.mock('@/services/exportService', () => ({
 
 vi.mock('../components/modals', () => ({
   AddUserModal: () => null,
-  UserDetailModal: () => null,
-  EditUserModal: () => null,
   CreateSupportTicketModal: () => null,
   UserActionsMenu: ({ user }: { user: AdminUser }) => (
     <button data-testid={`actions-${user.userId}`}>Actions</button>
