@@ -3,8 +3,6 @@ export { RescueVerificationModal } from './RescueVerificationModal';
 export { SendEmailModal } from './SendEmailModal';
 
 // User modals
-export { UserDetailModal } from './UserDetailModal';
-export { EditUserModal } from './EditUserModal';
 export { AddUserModal } from './AddUserModal';
 export { CreateSupportTicketModal } from './CreateSupportTicketModal';
 export { UserActionsMenu } from './UserActionsMenu';

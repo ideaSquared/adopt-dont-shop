@@ -51,8 +51,6 @@ vi.mock('../services/libraryServices', () => ({
 
 vi.mock('../components/modals', () => ({
   AddUserModal: () => null,
-  UserDetailModal: () => null,
-  EditUserModal: () => null,
   CreateSupportTicketModal: () => null,
   UserActionsMenu: () => null,
   BulkConfirmationModal: () => null,
