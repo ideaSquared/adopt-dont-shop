@@ -1,15 +1,18 @@
 import { Metadata } from '@grpc/grpc-js';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   PRINCIPAL_TOKEN_HEADER,
   PrincipalTokenError,
+  resetDefaultPrincipalSigningKeyForTests,
   signPrincipalToken,
   verifyPrincipalToken,
 } from './principal-token.js';
 import {
+  assertPrincipalVerificationConfig,
   extractPrincipal,
   extractPrincipalOptional,
+  InsecurePrincipalConfigError,
   MissingPrincipalError,
   principalToMetadata,
 } from './principal.js';
@@ -196,5 +199,54 @@ describe('extractPrincipalOptional', () => {
     );
     expect(p).not.toBeNull();
     expect(p?.userId).toBe('usr-2');
+  });
+});
+
+describe('assertPrincipalVerificationConfig', () => {
+  const origKey = process.env.PRINCIPAL_SIGNING_KEY;
+
+  afterEach(() => {
+    if (origKey === undefined) {
+      delete process.env.PRINCIPAL_SIGNING_KEY;
+    } else {
+      process.env.PRINCIPAL_SIGNING_KEY = origKey;
+    }
+    resetDefaultPrincipalSigningKeyForTests();
+  });
+
+  const withKey = (key: string | undefined): void => {
+    if (key === undefined) {
+      delete process.env.PRINCIPAL_SIGNING_KEY;
+    } else {
+      process.env.PRINCIPAL_SIGNING_KEY = key;
+    }
+    resetDefaultPrincipalSigningKeyForTests();
+  };
+
+  it('does not throw when a signing key is configured (even in production)', () => {
+    withKey('signing-key');
+    expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'production' })).not.toThrow();
+  });
+
+  it('throws in production when no key is set and no escape hatch', () => {
+    withKey(undefined);
+    expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'production' })).toThrow(
+      InsecurePrincipalConfigError
+    );
+  });
+
+  it('allows production header-trust only with the explicit ALLOW_UNSIGNED_PRINCIPAL opt-in', () => {
+    withKey(undefined);
+    expect(() =>
+      assertPrincipalVerificationConfig({
+        NODE_ENV: 'production',
+        ALLOW_UNSIGNED_PRINCIPAL: 'true',
+      })
+    ).not.toThrow();
+  });
+
+  it('does not throw outside production when no key is set (dev / phased rollout)', () => {
+    withKey(undefined);
+    expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'development' })).not.toThrow();
   });
 });
