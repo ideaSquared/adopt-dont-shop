@@ -21,6 +21,8 @@
 import winston, { type Logger } from 'winston';
 import LokiTransport from 'winston-loki';
 
+import { redactSecretFields, REDACTED, SECRET_KEY_PATTERN } from './redact.js';
+
 const VALID_LOG_LEVELS = ['error', 'warn', 'info', 'http', 'debug', 'silly'] as const;
 type LogLevel = (typeof VALID_LOG_LEVELS)[number];
 
@@ -33,6 +35,20 @@ export type LoggerOptions = {
   // in development / `info` everywhere else.
   logLevel?: LogLevel;
 };
+
+// Redact secret/PII-shaped fields from every log line BEFORE it reaches
+// any transport (console + Loki). Runs as a logger-level format so it
+// applies ahead of the per-transport json/printf formats. Mutates the
+// info object's own string keys in place to preserve Winston's Symbol
+// properties (level/message), recursing into nested meta via
+// redactSecretFields.
+const redactingFormat = winston.format(info => {
+  const record = info as Record<string, unknown>;
+  for (const key of Object.keys(record)) {
+    record[key] = SECRET_KEY_PATTERN.test(key) ? REDACTED : redactSecretFields(record[key]);
+  }
+  return info;
+});
 
 const resolveLogLevel = (override?: LogLevel): LogLevel => {
   if (override) {
@@ -93,6 +109,8 @@ export const createLogger = (opts: LoggerOptions): Logger => {
   return winston.createLogger({
     level,
     defaultMeta: { service: opts.serviceName },
+    // Redaction runs first, then each transport's own format.
+    format: redactingFormat(),
     transports,
   });
 };
