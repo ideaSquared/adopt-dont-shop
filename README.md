@@ -39,7 +39,7 @@ That's it. `pnpm setup` is the one-shot bootstrap and it will:
 
 Skip the Playwright step with `pnpm setup -- --skip-playwright` if you don't plan to run E2E tests locally; install them later with `pnpm test:e2e:install`.
 
-Pass `--no-start` to skip the stack-start prompt (default when stdin is not a TTY, e.g. CI sandboxes), or `--start` to force it without prompting. After setup, set `POSTGRES_PASSWORD` and any third-party API keys in `.env` — if you accepted the prompt, the stack is already running on the URLs printed above.
+Pass `--no-start` to skip the stack-start prompt (default when stdin is not a TTY, e.g. CI sandboxes), or `--start` to force it without prompting. All secrets — including `POSTGRES_PASSWORD` and `REDIS_PASSWORD` — are generated for you; you only need to add any third-party API keys you want in `.env`. If you accepted the prompt, the stack is already running on the URLs printed above.
 
 ### Run (Docker — recommended)
 

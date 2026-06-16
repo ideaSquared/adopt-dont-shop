@@ -300,9 +300,20 @@ function buildDevImage() {
 }
 
 // --- bring the stack up ----------------------------------------------------
+// A single frontend profile (client/admin/rescue) must also enable the
+// `services` profile — otherwise the app boots without the gateway and every
+// /api call 502s through the Vite proxy. `full` already includes everything.
+function resolveProfiles(profile) {
+  return ['client', 'admin', 'rescue'].includes(profile)
+    ? [profile, 'services']
+    : [profile];
+}
+
 function up() {
-  step(`Starting stack (profile: ${PROFILE}${DETACH ? ', detached' : ''})`);
-  const parts = ['docker compose', ...COMPOSE, '--profile', PROFILE, 'up'];
+  const profiles = resolveProfiles(PROFILE);
+  step(`Starting stack (profile: ${profiles.join(', ')}${DETACH ? ', detached' : ''})`);
+  const profileArgs = profiles.flatMap(p => ['--profile', p]);
+  const parts = ['docker compose', ...COMPOSE, ...profileArgs, 'up'];
   if (DETACH) parts.push('-d');
   run(parts.join(' '));
 }

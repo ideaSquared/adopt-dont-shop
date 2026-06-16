@@ -181,7 +181,7 @@ app.{name}:
   ports:
     - '300X:3000' # Choose available port
   environment:
-    - VITE_API_BASE_URL=http://api.localhost:5000
+    - VITE_API_BASE_URL=http://api.localhost
 ```
 
 ### 4. Update nginx Configuration
