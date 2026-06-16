@@ -23,6 +23,7 @@ import { subscribe, type SubscriptionHandle } from '@adopt-dont-shop/events';
 
 import { loadNotificationPrefs, shouldDeliver } from '../preferences-gate.js';
 
+import { escapeHtml } from './escape-html.js';
 import { insertEmail } from './queue.js';
 
 const DURABLE = 'notifications-email-channel';
@@ -68,9 +69,6 @@ export type EmailChannelWorkerOptions = {
 };
 
 export type RunningEmailChannelWorker = { stop: () => Promise<void> };
-
-const escapeHtml = (s: string): string =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 const renderHtml = (title: string, message: string): string =>
   `<h1>${escapeHtml(title)}</h1><p>${escapeHtml(message)}</p>`;
