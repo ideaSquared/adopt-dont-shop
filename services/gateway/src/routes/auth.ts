@@ -20,7 +20,7 @@
 // need them (they mint a fresh principal); the middleware passes
 // requests with no Authorization header through to the route.
 
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest, RouteShorthandOptions } from 'fastify';
 
 import {
   AuthV1,
@@ -34,8 +34,16 @@ import type { AuthClient } from '../grpc-clients/auth-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 
+import { normalizeEmail, type EmailRateLimiter } from './email-rate-limiter.js';
+
 export type AuthRoutesOptions = {
   client: AuthClient;
+  // Per-email rate limiter (ADS-844). When supplied, the email-bearing
+  // unauthenticated routes (register / forgot-password / reset-password /
+  // resend-verification) get a per-email cap layered on top of the per-IP
+  // @fastify/rate-limit cap. Optional so tests / dev that don't wire it keep
+  // the per-IP-only behaviour.
+  emailRateLimiter?: EmailRateLimiter;
 };
 
 // Body shapes accepted by the REST surface. Kept narrow + explicit
@@ -87,7 +95,30 @@ export const registerAuthRoutes = async (
   app: FastifyInstance,
   opts: AuthRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, emailRateLimiter } = opts;
+
+  // Build a preHandler that caps attempts per normalized email (ADS-844).
+  // `extractEmail` pulls the email out of the (already-parsed) body. When no
+  // limiter is wired, or the body carries no email, the handler is a no-op so
+  // behaviour is unchanged. A throttled request gets 429 before reaching the
+  // gRPC call.
+  const emailRateLimit = (
+    extractEmail: (body: Record<string, unknown>) => unknown
+  ): RouteShorthandOptions['preHandler'] => {
+    if (!emailRateLimiter) {
+      return undefined;
+    }
+    return async (req: FastifyRequest, reply: FastifyReply) => {
+      const email = normalizeEmail(extractEmail((req.body ?? {}) as Record<string, unknown>));
+      if (email === undefined) {
+        return;
+      }
+      const allowed = await emailRateLimiter.consume(email);
+      if (!allowed) {
+        return reply.code(429).send({ error: 'Too many requests for this email' });
+      }
+    };
+  };
 
   // Per-route rate limits use config.rateLimit to override the global
   // limit registered in server.ts. No need to re-register the plugin
@@ -213,7 +244,10 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/register',
-    { config: { rateLimit: AUTH_RATE_LIMITS.register } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.register },
+      preHandler: emailRateLimit(b => b.email ?? b.email_address),
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       try {
@@ -267,7 +301,10 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/resend-verification',
-    { config: { rateLimit: AUTH_RATE_LIMITS.resendVerification } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.resendVerification },
+      preHandler: emailRateLimit(b => b.email),
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       try {
@@ -284,7 +321,10 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/forgot-password',
-    { config: { rateLimit: AUTH_RATE_LIMITS.forgotPassword } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.forgotPassword },
+      preHandler: emailRateLimit(b => b.email),
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       try {
@@ -301,7 +341,12 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/reset-password',
-    { config: { rateLimit: AUTH_RATE_LIMITS.resetPassword } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.resetPassword },
+      // reset-password carries no email — key the per-target cap on the reset
+      // token instead, so a flood against one token (across IPs) is throttled.
+      preHandler: emailRateLimit(b => b.resetToken ?? b.reset_token),
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       try {

@@ -48,6 +48,7 @@ import type { NotificationsClient } from './grpc-clients/notifications-client.js
 import type { PetsClient } from './grpc-clients/pets-client.js';
 import type { RescueClient } from './grpc-clients/rescue-client.js';
 import { registerAuthenticate } from './middleware/authenticate.js';
+import { createEmailRateLimiter } from './routes/email-rate-limiter.js';
 import { registerApplicationDocumentsRoutes } from './routes/application-documents.js';
 import { registerAnalyticsRoutes } from './routes/analytics.js';
 import { registerApplicationsRoutes } from './routes/applications.js';
@@ -390,9 +391,19 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // (ADR 0002). NOTE: the authenticate middleware above is independent
   // of cutover.auth and always runs; only the /api/v1/auth/* ROUTES are
   // gated here.
+  // Per-email rate limiter for the auth surface (ADS-844). Layered on top of
+  // the per-IP @fastify/rate-limit cap to throttle an email-flood spread across
+  // many IPs. Reuses the rate-limit Redis store when available so the cap is
+  // N-replica-safe; otherwise an in-memory per-replica counter. ~5/min/email.
+  const emailRateLimiter = createEmailRateLimiter({
+    max: 5,
+    windowMs: 60_000,
+    redis: rateLimitRedis,
+  });
+
   const { cutover } = config;
   if (opts.authClient && cutover.auth) {
-    await registerAuthRoutes(server, { client: opts.authClient });
+    await registerAuthRoutes(server, { client: opts.authClient, emailRateLimiter });
     // /api/v1/sessions/* — list/revoke. Shares the auth cutover flag
     // because it's the same identity surface from the SPA's POV.
     await registerSessionsRoutes(server, { client: opts.authClient });

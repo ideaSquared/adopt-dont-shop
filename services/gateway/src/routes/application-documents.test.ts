@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { status as grpcStatus } from '@grpc/grpc-js';
 import Fastify, { type FastifyInstance } from 'fastify';
+import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
@@ -278,6 +279,64 @@ describe('application document routes', () => {
     expect(res.statusCode).toBe(400);
     expect((res.json() as { error: string }).error).toMatch(/not allowed/);
     expect(mocks.addDocument).not.toHaveBeenCalled();
+  });
+
+  it('POST → 400 when magic bytes contradict the declared MIME (ADS-848)', async () => {
+    // A real PDF body uploaded while CLAIMING to be a PNG (allowed name +
+    // Content-Type). The byte-level sniff must catch the mismatch.
+    const boundary = 'b-sniff-mismatch';
+    const pdf = Buffer.from('%PDF-1.4\n%âãÏÓ\n1 0 obj<<>>endobj\n', 'binary');
+    const body = multipartBody(boundary, pdf, 'fake.png', 'id_verification', 'image/png');
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { error: string }).error).toMatch(/content does not match/i);
+    expect(mocks.addDocument).not.toHaveBeenCalled();
+  });
+
+  it('POST → 400 when an image exceeds the dimension bomb-guard cap (ADS-848)', async () => {
+    const boundary = 'b-image-bomb';
+    // 8000x8000 = 64 MP > the 50 MP default cap; a flat-colour JPEG is small.
+    const big = await sharp({
+      create: { width: 8000, height: 8000, channels: 3, background: { r: 7, g: 7, b: 7 } },
+    })
+      .jpeg()
+      .toBuffer();
+    const body = multipartBody(boundary, big, 'huge.jpg', 'id_verification', 'image/jpeg');
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { error: string }).error).toMatch(/dimensions/i);
+    expect(mocks.addDocument).not.toHaveBeenCalled();
+  });
+
+  it('POST uploads a genuine image whose bytes match the declared type (ADS-848)', async () => {
+    mocks.addDocument.mockResolvedValue({
+      document: { ...DOC, filename: 'real.jpg', mimeType: 'image/jpeg' },
+    });
+    const boundary = 'b-genuine-image';
+    const jpeg = await sharp({
+      create: { width: 8, height: 8, channels: 3, background: { r: 7, g: 7, b: 7 } },
+    })
+      .jpeg()
+      .toBuffer();
+    const body = multipartBody(boundary, jpeg, 'real.jpg', 'id_verification', 'image/jpeg');
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(201);
+    expect(mocks.addDocument).toHaveBeenCalledTimes(1);
   });
 
   it('ALLOWED_DOCUMENT_MIME export includes pdf and common image types', () => {

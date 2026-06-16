@@ -14,6 +14,7 @@ import {
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 
 import { registerAuthRoutes } from './auth.js';
+import { createEmailRateLimiter } from './email-rate-limiter.js';
 
 function makeClient(): {
   client: AuthClient;
@@ -514,6 +515,100 @@ describe('auth account-lifecycle routes', () => {
       const res = await app.inject({ method: 'GET', url: '/api/v1/users/account' });
       expect(res.statusCode).toBe(200);
       expect(m.getMeMock).toHaveBeenCalledOnce();
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('auth rate limiting (ADS-844)', () => {
+  it('throttles a per-EMAIL flood spread across many IPs', async () => {
+    const m = makeClient();
+    m.forgotPasswordMock.mockResolvedValue({ ok: true });
+    const app = Fastify({ logger: false, trustProxy: true });
+    // ~3/min/email cap for the test. The per-IP plugin is intentionally NOT
+    // registered here so only the per-email preHandler can produce a 429.
+    const emailRateLimiter = createEmailRateLimiter({ max: 3, windowMs: 60_000 });
+    await registerAuthRoutes(app, { client: m.client, emailRateLimiter });
+    try {
+      const hit = (ip: string) =>
+        app.inject({
+          method: 'POST',
+          url: '/api/v1/auth/forgot-password',
+          // Vary the client IP each call — the per-IP cap would never fire.
+          headers: { 'x-forwarded-for': ip },
+          payload: { email: 'victim@example.com' },
+        });
+
+      const statuses = [
+        (await hit('1.1.1.1')).statusCode,
+        (await hit('2.2.2.2')).statusCode,
+        (await hit('3.3.3.3')).statusCode,
+        (await hit('4.4.4.4')).statusCode,
+      ];
+
+      // First 3 (the cap) pass; the 4th — same email, different IP — is 429.
+      expect(statuses.slice(0, 3)).toEqual([200, 200, 200]);
+      expect(statuses[3]).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('case/whitespace variants of the same email share the cap', async () => {
+    const m = makeClient();
+    m.forgotPasswordMock.mockResolvedValue({ ok: true });
+    const app = Fastify({ logger: false, trustProxy: true });
+    const emailRateLimiter = createEmailRateLimiter({ max: 1, windowMs: 60_000 });
+    await registerAuthRoutes(app, { client: m.client, emailRateLimiter });
+    try {
+      const first = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/forgot-password',
+        payload: { email: 'Victim@Example.com' },
+      });
+      const second = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/forgot-password',
+        payload: { email: '  victim@example.COM ' },
+      });
+      expect(first.statusCode).toBe(200);
+      expect(second.statusCode).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('throttles a per-IP flood (per-IP @fastify/rate-limit still applies)', async () => {
+    const m = makeClient();
+    m.forgotPasswordMock.mockResolvedValue({ ok: true });
+    const app = Fastify({ logger: false, trustProxy: true });
+    const { default: rateLimit } = await import('@fastify/rate-limit');
+    await app.register(rateLimit, {
+      global: true,
+      max: 100,
+      timeWindow: '1 minute',
+      keyGenerator: req => req.ip,
+    });
+    // No per-email limiter wired — only the per-IP plugin gates. The route's
+    // own config.rateLimit (forgot-password = 5/min/IP) is the effective cap.
+    await registerAuthRoutes(app, { client: m.client });
+    try {
+      const sameIp = { 'x-forwarded-for': '9.9.9.9' };
+      const statuses: number[] = [];
+      // Vary the email each call so it's unambiguously the per-IP cap firing.
+      for (let i = 0; i < 6; i += 1) {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/api/v1/auth/forgot-password',
+          headers: sameIp,
+          payload: { email: `flood-${i}@example.com` },
+        });
+        statuses.push(res.statusCode);
+      }
+      // 5 within the per-IP cap pass; the 6th from the same IP is 429.
+      expect(statuses.slice(0, 5)).toEqual([200, 200, 200, 200, 200]);
+      expect(statuses[5]).toBe(429);
     } finally {
       await app.close();
     }
