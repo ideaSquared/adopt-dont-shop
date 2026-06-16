@@ -141,7 +141,25 @@ async function dispatch<T>(
     // Handler failed — could be transient (DB blip) so nak() for redelivery.
     // Handlers are idempotent on the event id, so a redelivery of an event
     // that actually half-succeeded is a clean skip on the next attempt.
+    //
+    // Back off redelivery (exponential on the redelivery count, capped) so a
+    // persistently-failing but PARSEABLE message can't hot-loop the consumer
+    // — only JSON-parse failures term() immediately. The first retry is still
+    // fast (covers a transient blip); repeated failures slow down.
+    // (A hard max_deliver + dead-letter subject is a separate, deliberate
+    // decision — see the events review notes.)
     opts.onError?.(err, { subject: msg.subject, raw });
-    msg.nak();
+    const info = (msg as { info?: { redeliveryCount?: number } }).info;
+    const attempt = info?.redeliveryCount ?? (msg.redelivered ? 2 : 1);
+    msg.nak(nakBackoffMs(attempt));
   }
+}
+
+// Exponential redelivery backoff in milliseconds, keyed on the 1-based
+// redelivery attempt and capped. Exported for unit testing the curve.
+const NAK_BASE_DELAY_MS = 1_000;
+const NAK_MAX_DELAY_MS = 30_000;
+
+export function nakBackoffMs(attempt: number): number {
+  return Math.min(NAK_MAX_DELAY_MS, NAK_BASE_DELAY_MS * 2 ** Math.max(0, attempt - 1));
 }

@@ -49,6 +49,23 @@ describe('createDbClient', () => {
     });
   });
 
+  describe('schema validation', () => {
+    it('throws on a schema name that is not a plain SQL identifier', () => {
+      expect(() =>
+        createDbClient({ schema: 'bad"; DROP', connectionString: 'postgres://localhost/test' })
+      ).toThrow(/invalid schema name/);
+    });
+
+    it('accepts a normal schema name', () => {
+      const pool = createDbClient({
+        schema: 'auth',
+        connectionString: 'postgres://localhost/test',
+      });
+      expect(pool).toBeDefined();
+      void pool.end();
+    });
+  });
+
   describe('connection behaviour', () => {
     it('rejects within ~connectionTimeoutMillis when connecting to a non-routable address', async () => {
       const startMs = Date.now();

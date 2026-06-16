@@ -1,6 +1,11 @@
+import { Writable } from 'node:stream';
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import winston from 'winston';
 
 import { createLogger } from './logger.js';
+
+const flush = () => new Promise(resolve => setImmediate(resolve));
 
 const ENV_KEYS = ['LOG_LEVEL', 'LOKI_URL', 'NODE_ENV'] as const;
 
@@ -82,5 +87,40 @@ describe('createLogger', () => {
   it('actually emits log lines through the configured transport without throwing', () => {
     const logger = createLogger({ serviceName: 'svc' });
     expect(() => logger.info('hello', { context: 'smoke' })).not.toThrow();
+  });
+
+  it('redacts secret-shaped fields before they reach a transport', async () => {
+    const chunks: string[] = [];
+    const sink = new Writable({
+      write(chunk, _enc, cb) {
+        chunks.push(chunk.toString());
+        cb();
+      },
+    });
+    const logger = createLogger({ serviceName: 'svc' });
+    // Capture the redacted info as JSON (logger-level redaction runs before
+    // this transport's json format).
+    logger.add(new winston.transports.Stream({ stream: sink, format: winston.format.json() }));
+
+    logger.info('user login', {
+      userId: 'u1',
+      password: 'hunter2',
+      auth: { accessToken: 'jwt', nested: { 'x-api-key': 'k' } },
+      tokens: ['secret-a', 'secret-b'],
+    });
+    await flush();
+
+    const line = JSON.parse(chunks.join('')) as Record<string, unknown>;
+    // Non-secret fields survive.
+    expect(line.userId).toBe('u1');
+    expect(line.message).toBe('user login');
+    // Secret-shaped keys are redacted, recursively.
+    expect(line.password).toBe('[REDACTED]');
+    expect((line.auth as Record<string, unknown>).accessToken).toBe('[REDACTED]');
+    expect(
+      ((line.auth as Record<string, unknown>).nested as Record<string, unknown>)['x-api-key']
+    ).toBe('[REDACTED]');
+    // A key named `tokens` matches the `token` substring → value redacted wholesale.
+    expect(line.tokens).toBe('[REDACTED]');
   });
 });
