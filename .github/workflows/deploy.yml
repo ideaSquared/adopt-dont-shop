@@ -461,9 +461,15 @@ jobs:
       # characters. This runs on the Actions runner, not the deploy host.
       - name: Validate tag_overrides input
         if: ${{ github.event.inputs.tag_overrides != '' }}
+        # Pass the free-text input via the environment, never interpolated
+        # into the shell text — otherwise a value containing a single quote
+        # closes the assignment and executes arbitrary commands BEFORE the
+        # regex validation below ever runs.
+        env:
+          TAG_OVERRIDES: ${{ github.event.inputs.tag_overrides }}
         run: |
           set -euo pipefail
-          overrides='${{ github.event.inputs.tag_overrides }}'
+          overrides="$TAG_OVERRIDES"
           echo "$overrides" | tr ',' '\n' | while IFS= read -r pair; do
             pair="$(echo "$pair" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
             [ -z "$pair" ] && continue
@@ -497,13 +503,16 @@ jobs:
           SECRET_UPLOAD_SIGNING_SECRET: ${{ secrets.UPLOAD_SIGNING_SECRET }}
           SECRET_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           SECRET_PRINCIPAL_SIGNING_KEY: ${{ secrets.PRINCIPAL_SIGNING_KEY }}
+          # Forwarded via `envs:` so the server script reads it as a shell
+          # variable — never interpolated into the script text (injection-safe).
+          TAG_OVERRIDES: ${{ github.event.inputs.tag_overrides }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY
+          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,TAG_OVERRIDES
           script: |
             set -euo pipefail
             ENV="${{ github.event.inputs.environment }}"
@@ -529,11 +538,12 @@ jobs:
             sed -i "s/^DEPLOY_SHA=.*/DEPLOY_SHA=$SHA/" .env || echo "DEPLOY_SHA=$SHA" >> .env
 
             # ADS-824: inject per-service tag overrides into .env.
-            # TAG_OVERRIDES is passed from the workflow input (comma- or
-            # newline-separated KEY=VALUE pairs). Validation is done in the
-            # runner step above; here we only write the already-validated pairs.
-            TAG_OVERRIDES='${{ github.event.inputs.tag_overrides }}'
-            if [ -n "$TAG_OVERRIDES" ]; then
+            # TAG_OVERRIDES is forwarded from the workflow input as a shell
+            # env var via the step's `envs:` list (comma- or newline-separated
+            # KEY=VALUE pairs) — NOT interpolated into this script text, so a
+            # quote in the value can't break out. Validation runs in the runner
+            # step above; here we re-validate and write the pairs.
+            if [ -n "${TAG_OVERRIDES:-}" ]; then
               # Normalise commas to newlines, strip blank lines
               echo "$TAG_OVERRIDES" | tr ',' '\n' | while IFS= read -r pair; do
                 pair="$(echo "$pair" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
