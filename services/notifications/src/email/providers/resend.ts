@@ -57,8 +57,17 @@ export const createResendProvider = (deps: ResendProviderDeps): EmailProvider =>
         ...(deps.config.replyTo ? { replyTo: deps.config.replyTo } : {}),
       };
 
+      // Stable idempotency key so a retry after a post-send bookkeeping
+      // failure (provider succeeded, then markSent threw and the row was
+      // re-queued) does NOT deliver the email twice — Resend dedupes on the
+      // Idempotency-Key header. emailId is stable across retries of the row.
+      const idempotencyKey = email.idempotencyKey ?? email.emailId;
+
       try {
-        const result = await withTimeout(client.emails.send(payload), RESEND_SEND_TIMEOUT_MS);
+        const result = await withTimeout(
+          client.emails.send(payload, { idempotencyKey }),
+          RESEND_SEND_TIMEOUT_MS
+        );
         if (result.error !== null) {
           deps.logger.error('email.resend.send_failed', {
             to: sanitized.to,

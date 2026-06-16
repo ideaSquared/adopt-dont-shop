@@ -325,6 +325,17 @@ export async function resetPassword(
       throw new HandlerError('INVALID_ARGUMENT', 'invalid or expired reset token');
     }
     const user = res.rows[0];
+    // Revoke every existing session: a password reset is a security event
+    // (often a compromised-account recovery), so all refresh tokens must
+    // stop working. Sets both revocation columns so refresh AND ListSessions
+    // agree. Access tokens are short-lived JWTs that can no longer be
+    // refreshed once their session is gone.
+    await client.query(
+      `UPDATE auth.refresh_tokens
+          SET revoked_at = now(), is_revoked = true, updated_at = now()
+        WHERE user_id = $1 AND revoked_at IS NULL AND is_revoked = false`,
+      [user.user_id]
+    );
     publish({
       type: 'auth.passwordChanged',
       id: `auth.passwordChanged.${user.user_id}.reset.${Date.now()}`,
@@ -366,6 +377,14 @@ export async function changePassword(
     await client.query(
       `UPDATE auth.users SET password = $1, updated_at = now() WHERE user_id = $2`,
       [newHash, principal.userId]
+    );
+    // Changing the password ends all other sessions: revoke every refresh
+    // token for the user (both columns, so refresh + ListSessions agree).
+    await client.query(
+      `UPDATE auth.refresh_tokens
+          SET revoked_at = now(), is_revoked = true, updated_at = now()
+        WHERE user_id = $1 AND revoked_at IS NULL AND is_revoked = false`,
+      [principal.userId]
     );
     publish({
       type: 'auth.passwordChanged',

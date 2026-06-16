@@ -16,7 +16,7 @@ function makePrincipal(
   return {
     userId: overrides.userId ?? 'usr-1',
     roles: overrides.roles ?? ['adopter'],
-    permissions: overrides.permissions ?? [],
+    permissions: overrides.permissions ?? ['pets.read'],
     rescueId: undefined,
   } as unknown as Parameters<typeof getMatchProfile>[1];
 }
@@ -74,6 +74,13 @@ describe('getMatchProfile', () => {
     expect(res.profile?.lifestyleJson).toBe('{}');
     expect(res.profile?.notifyNewMatches).toBe(true);
   });
+
+  it('denies a caller without pets.view', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      getMatchProfile(deps, makePrincipal({ permissions: [] }), {})
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
 });
 
 // --- UpsertMatchProfile ----------------------------------------------
@@ -124,6 +131,17 @@ describe('upsertMatchProfile', () => {
         setPreferredSizes: true,
       })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('denies a caller without pets.view', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      upsertMatchProfile(deps, makePrincipal({ permissions: [] }), {
+        ...base,
+        preferredTypesJson: '["cat"]',
+        setPreferredTypes: true,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 });
 
@@ -211,6 +229,15 @@ describe('getSessionStats', () => {
     const { deps } = makeDeps([{ rows: [{ user_id: 'usr-1' }] }, { rows: [statsRow] }]);
     const res = await getSessionStats(deps, makePrincipal(), { sessionId: 'sess-1' });
     expect(res.stats?.likes).toBe(6);
+  });
+
+  it('dedupes re-swipes within the session (latest action per pet wins)', async () => {
+    const { deps, query } = makeDeps([{ rows: [{ user_id: 'usr-1' }] }, { rows: [statsRow] }]);
+    await getSessionStats(deps, makePrincipal(), { sessionId: 'sess-1' });
+    // The stats query (2nd call) must collapse re-swipes via DISTINCT ON (pet_id).
+    const sql = query.mock.calls[1][0] as string;
+    expect(sql).toMatch(/DISTINCT ON \(pet_id\)/);
+    expect(sql).toMatch(/session_id =/);
   });
 
   it('allows anonymous (null-owner) sessions to be read', async () => {
