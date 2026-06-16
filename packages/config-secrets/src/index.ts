@@ -62,12 +62,16 @@ export const readSecret = (
  * Pass `opts.minBytes` to additionally reject a present-but-too-short secret
  * — used for HMAC signing keys where a weak secret is offline-brute-forceable
  * and would let an attacker forge tokens platform-wide.
+ *
+ * Pass `opts.pattern` to additionally reject a present value whose shape is
+ * wrong — e.g. a hex key that must be exactly 64 lower-case hex chars. The
+ * pattern is matched against the trimmed value; a mismatch throws.
  */
 export const requireSecret = (
   name: string,
   env: NodeJS.ProcessEnv = process.env,
   description?: string,
-  opts?: { minBytes?: number }
+  opts?: { minBytes?: number; pattern?: RegExp }
 ): string => {
   const value = readSecret(name, env)?.trim();
   if (!value) {
@@ -76,6 +80,35 @@ export const requireSecret = (
   }
   if (opts?.minBytes !== undefined && Buffer.byteLength(value, 'utf8') < opts.minBytes) {
     throw new Error(`${name} must be at least ${opts.minBytes} bytes`);
+  }
+  if (opts?.pattern !== undefined && !opts.pattern.test(value)) {
+    throw new Error(`${name} does not match the required format`);
+  }
+  return value;
+};
+
+/**
+ * Convenience wrapper over {@link requireSecret} for hex-encoded secrets such
+ * as a 32-byte ENCRYPTION_KEY supplied as 64 hex chars. Lower-cases the value
+ * before validating (so an upper-case hex key is accepted + normalised) and
+ * requires exactly `bytes` bytes' worth of hex (`bytes * 2` chars). Defaults
+ * to 32 bytes. A missing/blank secret throws the same `${name} is required`
+ * error as {@link requireSecret}.
+ */
+export const requireHexSecret = (
+  name: string,
+  env: NodeJS.ProcessEnv = process.env,
+  opts?: { bytes?: number; description?: string }
+): string => {
+  const bytes = opts?.bytes ?? 32;
+  const raw = readSecret(name, env)?.trim();
+  if (!raw) {
+    const detail = opts?.description !== undefined ? ` (${opts.description})` : '';
+    throw new Error(`${name} is required${detail}`);
+  }
+  const value = raw.toLowerCase();
+  if (!new RegExp(`^[0-9a-f]{${bytes * 2}}$`).test(value)) {
+    throw new Error(`${name} does not match the required format`);
   }
   return value;
 };

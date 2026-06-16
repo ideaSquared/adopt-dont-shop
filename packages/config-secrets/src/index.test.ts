@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { parsePort, readSecret, requireSecret } from './index.js';
+import { parsePort, readSecret, requireHexSecret, requireSecret } from './index.js';
 
 describe('readSecret', () => {
   let tmp: string;
@@ -114,6 +114,23 @@ describe('requireSecret', () => {
     );
   });
 
+  it('throws when a present value does not match the supplied pattern', () => {
+    expect(() =>
+      requireSecret('ENCRYPTION_KEY', { ENCRYPTION_KEY: 'not-hex!' }, undefined, {
+        pattern: /^[0-9a-f]{64}$/,
+      })
+    ).toThrow(/ENCRYPTION_KEY does not match the required format/);
+  });
+
+  it('accepts a value that matches the supplied pattern', () => {
+    const value = 'a'.repeat(64);
+    expect(
+      requireSecret('ENCRYPTION_KEY', { ENCRYPTION_KEY: value }, undefined, {
+        pattern: /^[0-9a-f]{64}$/,
+      })
+    ).toBe(value);
+  });
+
   it('refuses to guess when both NAME and NAME_FILE are set (delegates to readSecret)', () => {
     const file = join(tmp, 'jwt');
     writeFileSync(file, 'file-value');
@@ -121,6 +138,42 @@ describe('requireSecret', () => {
     expect(() =>
       requireSecret('JWT_SECRET', { JWT_SECRET: 'env-value', JWT_SECRET_FILE: file })
     ).toThrow(/JWT_SECRET and JWT_SECRET_FILE are both set/);
+  });
+});
+
+describe('requireHexSecret', () => {
+  it('returns a 64-hex value unchanged', () => {
+    const value = '0'.repeat(64);
+    expect(requireHexSecret('ENCRYPTION_KEY', { ENCRYPTION_KEY: value })).toBe(value);
+  });
+
+  it('lower-cases an upper-case hex value before validating + returning', () => {
+    const value = 'A'.repeat(64);
+    expect(requireHexSecret('ENCRYPTION_KEY', { ENCRYPTION_KEY: value })).toBe('a'.repeat(64));
+  });
+
+  it('throws when the value is not hex', () => {
+    expect(() => requireHexSecret('ENCRYPTION_KEY', { ENCRYPTION_KEY: 'zz' })).toThrow(
+      /ENCRYPTION_KEY does not match the required format/
+    );
+  });
+
+  it('throws when the hex length is wrong for the requested byte count', () => {
+    // 32 hex chars = 16 bytes, but we ask for the default 32 bytes (64 hex).
+    expect(() => requireHexSecret('ENCRYPTION_KEY', { ENCRYPTION_KEY: 'a'.repeat(32) })).toThrow(
+      /ENCRYPTION_KEY does not match the required format/
+    );
+  });
+
+  it('honours a custom byte length', () => {
+    const value = 'a'.repeat(32);
+    expect(requireHexSecret('ENCRYPTION_KEY', { ENCRYPTION_KEY: value }, { bytes: 16 })).toBe(
+      value
+    );
+  });
+
+  it('throws when the secret is missing', () => {
+    expect(() => requireHexSecret('ENCRYPTION_KEY', {})).toThrow(/ENCRYPTION_KEY is required/);
   });
 });
 

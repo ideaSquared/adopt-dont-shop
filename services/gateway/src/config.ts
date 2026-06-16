@@ -189,7 +189,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     config: {
       publicEnabled: env.GATEWAY_CONFIG_ENABLED?.trim().toLowerCase() !== 'false',
     },
-    principalSigningKey: readSecret('PRINCIPAL_SIGNING_KEY', env)?.trim() || undefined,
+    principalSigningKey: readOptionalSecret('PRINCIPAL_SIGNING_KEY', env, 32),
     cors: buildCorsConfig(env),
     rateLimit: buildRateLimitConfig(env),
   };
@@ -257,6 +257,25 @@ function buildStorageConfig(env: NodeJS.ProcessEnv): GatewayConfig['storage'] {
     // Multipart body limit — 10 MiB default. Override with MAX_FILE_SIZE
     // if larger PDFs are expected.
     maxFileSize: Number.parseInt(env.MAX_FILE_SIZE?.trim() || '10485760', 10),
-    signingSecret: readSecret('UPLOAD_SIGNING_SECRET', env)?.trim() || undefined,
+    signingSecret: readOptionalSecret('UPLOAD_SIGNING_SECRET', env, 32),
   };
+}
+
+// Read an OPTIONAL secret that, when present, must clear a byte-length floor.
+// Absence is fine (returns undefined — the consuming route degrades safely);
+// a present-but-too-short value fails boot, because a weak HMAC secret is
+// offline-brute-forceable and would let an attacker forge signatures (ADS-845).
+function readOptionalSecret(
+  name: string,
+  env: NodeJS.ProcessEnv,
+  minBytes: number
+): string | undefined {
+  const value = readSecret(name, env)?.trim();
+  if (!value) {
+    return undefined;
+  }
+  if (Buffer.byteLength(value, 'utf8') < minBytes) {
+    throw new Error(`${name} must be at least ${minBytes} bytes`);
+  }
+  return value;
 }

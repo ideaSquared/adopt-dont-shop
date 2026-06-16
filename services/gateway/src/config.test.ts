@@ -106,19 +106,50 @@ describe('loadConfig', () => {
 });
 
 describe('loadConfig — principal signing key (ADS-800)', () => {
+  const VALID_KEY = 'a-principal-signing-key-of-at-least-32-bytes';
+
   it('is undefined when PRINCIPAL_SIGNING_KEY is unset', () => {
     const config = loadConfig({});
     expect(config.principalSigningKey).toBeUndefined();
   });
 
   it('reads PRINCIPAL_SIGNING_KEY from the environment', () => {
-    const config = loadConfig({ PRINCIPAL_SIGNING_KEY: 'dev-signing-key' });
-    expect(config.principalSigningKey).toBe('dev-signing-key');
+    const config = loadConfig({ PRINCIPAL_SIGNING_KEY: VALID_KEY });
+    expect(config.principalSigningKey).toBe(VALID_KEY);
   });
 
   it('treats a blank PRINCIPAL_SIGNING_KEY as unset', () => {
     const config = loadConfig({ PRINCIPAL_SIGNING_KEY: '   ' });
     expect(config.principalSigningKey).toBeUndefined();
+  });
+
+  // ADS-845 — a present-but-weak signing key is offline-brute-forceable, so a
+  // value below the 32-byte floor must fail boot rather than ship a forgeable
+  // principal signer.
+  it('rejects a present-but-too-short PRINCIPAL_SIGNING_KEY (ADS-845)', () => {
+    expect(() => loadConfig({ PRINCIPAL_SIGNING_KEY: 'too-short' })).toThrow(
+      /PRINCIPAL_SIGNING_KEY must be at least 32 bytes/
+    );
+  });
+});
+
+describe('loadConfig — upload signing secret (ADS-845)', () => {
+  const VALID_SECRET = 'an-upload-signing-secret-of-at-least-32-bytes';
+
+  it('is undefined when UPLOAD_SIGNING_SECRET is unset', () => {
+    const config = loadConfig({});
+    expect(config.storage.signingSecret).toBeUndefined();
+  });
+
+  it('reads UPLOAD_SIGNING_SECRET from the environment when long enough', () => {
+    const config = loadConfig({ UPLOAD_SIGNING_SECRET: VALID_SECRET });
+    expect(config.storage.signingSecret).toBe(VALID_SECRET);
+  });
+
+  it('rejects a present-but-too-short UPLOAD_SIGNING_SECRET', () => {
+    expect(() => loadConfig({ UPLOAD_SIGNING_SECRET: 'short' })).toThrow(
+      /UPLOAD_SIGNING_SECRET must be at least 32 bytes/
+    );
   });
 });
 
