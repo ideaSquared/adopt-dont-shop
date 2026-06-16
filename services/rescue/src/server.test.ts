@@ -20,6 +20,7 @@ const baseConfig: RescueConfig = {
   databaseUrl: 'postgres://test',
   schema: 'rescue',
   natsUrl: 'nats://localhost:4222',
+  petsGrpcUrl: 'service-pets:6003',
 };
 
 describe('createServer — health endpoint', () => {

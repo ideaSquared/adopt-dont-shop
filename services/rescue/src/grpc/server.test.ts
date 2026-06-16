@@ -24,14 +24,18 @@ const config: RescueConfig = {
   databaseUrl: 'postgres://test',
   schema: 'rescue',
   natsUrl: 'nats://localhost:4222',
+  petsGrpcUrl: 'service-pets:6003',
 };
 
 const pool = {} as unknown as Pool;
 const nats = {} as unknown as NatsConnection;
+const petsClient = { getPet: async () => ({}), close: () => undefined } as unknown as Parameters<
+  typeof createGrpcServer
+>[0]['petsClient'];
 
 describe('createGrpcServer', () => {
   it('registers all six RescueService methods on the grpc.Server', () => {
-    const server = createGrpcServer({ config, pool, nats, logger: quietLogger });
+    const server = createGrpcServer({ config, pool, nats, logger: quietLogger, petsClient });
     const handlers = (server as unknown as { handlers: Map<string, unknown> }).handlers;
 
     expect(handlers.has('/adopt_dont_shop.rescue.v1.RescueService/Create')).toBe(true);
@@ -46,7 +50,7 @@ describe('createGrpcServer', () => {
     const definition = RescueV1.RescueServiceService;
     const expectedPaths = Object.values(definition).map(d => (d as { path: string }).path);
 
-    const server = createGrpcServer({ config, pool, nats, logger: quietLogger });
+    const server = createGrpcServer({ config, pool, nats, logger: quietLogger, petsClient });
     const handlers = (server as unknown as { handlers: Map<string, unknown> }).handlers;
 
     for (const p of expectedPaths) {

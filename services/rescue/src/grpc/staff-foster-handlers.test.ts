@@ -7,14 +7,15 @@ import type { Permission, RescueId, UserId } from '@adopt-dont-shop/lib.types';
 import { RescueV1 } from '@adopt-dont-shop/proto';
 
 import type { HandlerDeps } from './handlers.js';
+import type { PetsClient } from './pets-client.js';
 import {
-  createFosterPlacement,
   endFosterPlacement,
   getFosterPlacement,
   getInvitationByToken,
   getMyStaffMembership,
   listFosterPlacements,
   listStaffMembers,
+  makeCreateFosterPlacement,
 } from './staff-foster-handlers.js';
 
 const RESCUE_ID = 'rsc-1';
@@ -174,8 +175,17 @@ describe('listStaffMembers', () => {
 
 describe('createFosterPlacement', () => {
   let mocks: ReturnType<typeof makeMocks>;
+  let petsStub: { getPet: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn> };
+  let createFosterPlacement: ReturnType<typeof makeCreateFosterPlacement>;
+
   beforeEach(() => {
     mocks = makeMocks();
+    // Default: the pet belongs to the placement's rescue.
+    petsStub = {
+      getPet: vi.fn(async () => ({ pet: { petId: 'pet-1', rescueId: RESCUE_ID } })),
+      close: vi.fn(),
+    };
+    createFosterPlacement = makeCreateFosterPlacement(petsStub as unknown as PetsClient);
   });
 
   const baseReq = {
@@ -195,11 +205,36 @@ describe('createFosterPlacement', () => {
     await expect(createFosterPlacement(mocks.deps, UNPRIVILEGED, baseReq)).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
+    expect(petsStub.getPet).not.toHaveBeenCalled();
+  });
+
+  it('rejects a pet that belongs to another rescue', async () => {
+    petsStub.getPet.mockResolvedValueOnce({ pet: { petId: 'pet-1', rescueId: 'rsc-2' } });
+    await expect(createFosterPlacement(mocks.deps, STAFF, baseReq)).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+    // No insert / publish on a rejected pet.
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('rejects a pet the caller cannot read (pets NOT_FOUND)', async () => {
+    petsStub.getPet.mockRejectedValueOnce({ code: 5 });
+    await expect(createFosterPlacement(mocks.deps, STAFF, baseReq)).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('surfaces an unexpected pets error as INTERNAL', async () => {
+    petsStub.getPet.mockRejectedValueOnce({ code: 13 });
+    await expect(createFosterPlacement(mocks.deps, STAFF, baseReq)).rejects.toMatchObject({
+      code: 'INTERNAL',
+    });
   });
 
   it('inserts the placement + publishes rescue.fosterPlacementCreated', async () => {
     mocks.clientScript([fosterRow()]);
     const res = await createFosterPlacement(mocks.deps, STAFF, baseReq);
+    expect(petsStub.getPet).toHaveBeenCalledTimes(1);
     expect(res.placement?.placementId).toBe('fp-1');
     expect(res.placement?.status).toBe(
       RescueV1.FosterPlacementStatus.FOSTER_PLACEMENT_STATUS_ACTIVE
