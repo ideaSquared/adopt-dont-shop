@@ -229,6 +229,21 @@ function rowToContent(row: ContentRow): CmsContentProto {
   };
 }
 
+// Public projection of a content row. Anonymous visitors only need the
+// published content itself, so we drop the full edit history (versions),
+// the internal author / last-editor IDs, and the scheduling timestamps that
+// would otherwise leak when/how the page is managed.
+function rowToPublicContent(row: ContentRow): CmsContentProto {
+  return {
+    ...rowToContent(row),
+    versionsJson: '[]',
+    authorId: '',
+    lastModifiedBy: undefined,
+    scheduledPublishAt: undefined,
+    scheduledUnpublishAt: undefined,
+  };
+}
+
 function rowToMenu(row: MenuRow): CmsMenuProto {
   return {
     menuId: row.menu_id,
@@ -295,7 +310,7 @@ export async function listPublicContent(
     [...params, limit, offset]
   );
   return {
-    items: result.rows.map(rowToContent),
+    items: result.rows.map(rowToPublicContent),
     total,
     page,
     totalPages: Math.max(1, Math.ceil(total / limit)),
@@ -320,7 +335,7 @@ export async function getPublicContentBySlug(
   if (!row) {
     throw new HandlerError('NOT_FOUND', `content "${slug}" not found`);
   }
-  return { content: rowToContent(row) };
+  return { content: rowToPublicContent(row) };
 }
 
 // --- Admin content reads --------------------------------------------

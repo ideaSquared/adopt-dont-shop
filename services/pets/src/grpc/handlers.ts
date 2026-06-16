@@ -131,15 +131,18 @@ type PetRow = {
   version: number;
 };
 
-function rowToProto(row: PetRow): Pet {
+function rowToProto(row: PetRow, includeInternalNotes = true): Pet {
   const extra = {
     color: row.color,
     goodWithChildren: row.good_with_children,
     goodWithDogs: row.good_with_dogs,
     goodWithCats: row.good_with_cats,
     goodWithSmallAnimals: row.good_with_small_animals,
-    medicalNotes: row.medical_notes,
-    behavioralNotes: row.behavioral_notes,
+    // Internal staff-only fields — omitted for public / adopter readers so
+    // a rescue's medical / behavioural notes never reach the browse path.
+    ...(includeInternalNotes
+      ? { medicalNotes: row.medical_notes, behavioralNotes: row.behavioral_notes }
+      : {}),
   };
   return {
     petId: row.pet_id,
@@ -192,6 +195,20 @@ const PETS_CREATE: Permission = 'pets.create' as Permission;
 const PETS_READ: Permission = 'pets.read' as Permission;
 const PETS_UPDATE: Permission = 'pets.update' as Permission;
 const PETS_DELETE: Permission = 'pets.delete' as Permission;
+
+// Statuses a pet can hold that a public / adopter browse must NOT surface.
+// Terminal or off-market states — archived pets are hidden separately.
+const PUBLIC_HIDDEN_STATUSES = ['adopted', 'deceased', 'not_available'];
+
+// A reader is "privileged" for a pet when they may see its internal notes
+// and non-public statuses: platform admins (pets.read:any) and rescue staff
+// viewing their OWN rescue's pet. Everyone else gets the public projection.
+function isPrivilegedReader(principal: Principal, rescueId: string | null): boolean {
+  if (hasPermission(principal, PETS_READ_ANY)) {
+    return true;
+  }
+  return rescueId !== null && principal.rescueId === rescueId;
+}
 
 // --- Create ----------------------------------------------------------
 
@@ -295,7 +312,15 @@ export async function getPet(
   if (!row) {
     throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
   }
-  return { pet: rowToProto(row) };
+
+  // Non-privileged readers (public / adopter, or staff of another rescue)
+  // can't see a pet in a hidden status or one that's archived — treat it as
+  // not found rather than leaking its existence, and strip internal notes.
+  const privileged = isPrivilegedReader(principal, row.rescue_id);
+  if (!privileged && (PUBLIC_HIDDEN_STATUSES.includes(row.status) || row.archived)) {
+    throw new HandlerError('NOT_FOUND', `pet ${req.petId} not found`);
+  }
+  return { pet: rowToProto(row, privileged) };
 }
 
 // --- List ------------------------------------------------------------
@@ -325,6 +350,11 @@ export async function listPets(
   } else {
     rescueScope = req.rescueIdFilter ? req.rescueIdFilter : undefined;
   }
+
+  // Privileged readers (admins / rescue staff, pinned above to their own
+  // rescue) see every status; public / adopter browse hides terminal and
+  // archived pets and never receives internal notes.
+  const privileged = hasPermission(principal, PETS_READ_ANY) || principal.rescueId !== undefined;
 
   const limit = clampLimit(req.limit);
   const cursor = req.cursor ? parseCursor(req.cursor) : undefined;
@@ -356,6 +386,12 @@ export async function listPets(
     params.push(rescueScope);
     n++;
   }
+  if (!privileged) {
+    const placeholders = PUBLIC_HIDDEN_STATUSES.map(() => `$${n++}`).join(', ');
+    where.push(`status NOT IN (${placeholders})`);
+    params.push(...PUBLIC_HIDDEN_STATUSES);
+    where.push('archived = false');
+  }
   if (cursor) {
     where.push(`(created_at, pet_id) < ($${n}, $${n + 1})`);
     params.push(new Date(cursor.createdAt));
@@ -381,7 +417,7 @@ export async function listPets(
       ? encodeCursor({ createdAt: last.created_at.toISOString(), petId: last.pet_id })
       : undefined;
 
-  return { pets: page.map(rowToProto), nextCursor };
+  return { pets: page.map(row => rowToProto(row, privileged)), nextCursor };
 }
 
 // --- Update ----------------------------------------------------------
