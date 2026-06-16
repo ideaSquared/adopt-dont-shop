@@ -644,6 +644,44 @@ describe('validateToken', () => {
       code: 'UNAUTHENTICATED',
     });
   });
+
+  it('UNAUTHENTICATED when the token predates the revocation watermark', async () => {
+    mocks.issuerMock.verifyAccess.mockResolvedValueOnce({
+      sub: 'usr-1',
+      jti: 'j',
+      iat: 1_000, // issued at second 1000
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      // watermark is AFTER the token's iat → token revoked
+      .mockResolvedValueOnce({
+        rows: [{ status: 'active', tokens_valid_from: new Date(2_000_000) }],
+      });
+    await expect(validateToken(mocks.deps, null, { accessToken: 'tok' })).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+  });
+
+  it('accepts a token issued at/after the revocation watermark', async () => {
+    mocks.issuerMock.verifyAccess.mockResolvedValueOnce({
+      sub: 'usr-1',
+      jti: 'j',
+      iat: 5_000, // issued at second 5000
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      // watermark (2000s) is before the token's iat (5000s) → still valid
+      .mockResolvedValueOnce({
+        rows: [{ status: 'active', tokens_valid_from: new Date(2_000_000) }],
+      })
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }) // primary role
+      .mockResolvedValueOnce({ rows: [] }) // extra roles
+      .mockResolvedValueOnce({ rows: [] }); // permissions
+    const res = await validateToken(mocks.deps, null, { accessToken: 'tok' });
+    expect(res.principal.userId).toBe('usr-1');
+  });
 });
 
 // --- getMe -----------------------------------------------------------

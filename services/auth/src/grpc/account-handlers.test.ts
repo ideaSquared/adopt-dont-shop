@@ -284,6 +284,8 @@ describe('resetPassword', () => {
     const sql = realQueries(mocks.clientMock.query)[0][0] as string;
     expect(sql).toContain('locked_until = NULL');
     expect(sql).toContain('login_attempts = 0');
+    // Stamps the access-token revocation watermark.
+    expect(sql).toContain('tokens_valid_from = now()');
   });
 
   it('revokes all of the user’s refresh tokens (sessions) on reset', async () => {
@@ -332,6 +334,10 @@ describe('changePassword', () => {
     });
     expect(res.ok).toBe(true);
     expect(realQueries(mocks.clientMock.query)[0][1]).toContain('new-hash');
+    // Stamps the access-token revocation watermark.
+    expect(String(realQueries(mocks.clientMock.query)[0][0])).toContain(
+      'tokens_valid_from = now()'
+    );
   });
 
   it('revokes all of the user’s refresh tokens (sessions) on change', async () => {

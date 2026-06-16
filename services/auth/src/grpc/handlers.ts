@@ -233,18 +233,37 @@ export async function loadPrincipal(
 // otherwise keep access — and could refresh indefinitely — until the
 // token's own expiry. ValidateToken (every gateway request) and
 // RefreshToken both gate on this. A single indexed point-read on the PK.
-async function assertActiveUser(deps: HandlerDeps, userId: string): Promise<void> {
-  const res = await deps.pool.query<{ status: UserStatusDb }>(
-    `SELECT status FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
+async function assertActiveUser(
+  deps: HandlerDeps,
+  userId: string,
+  // When provided (the access-token path), also enforce the per-user
+  // revocation watermark: an access token issued before `tokens_valid_from`
+  // is rejected. Omitted on the refresh path, which is gated by row-level
+  // refresh-token revocation instead.
+  accessIssuedAtSeconds?: number
+): Promise<void> {
+  const res = await deps.pool.query<{ status: UserStatusDb; tokens_valid_from: Date | null }>(
+    `SELECT status, tokens_valid_from FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
     [userId]
   );
-  const status = res.rows[0]?.status;
+  const row = res.rows[0];
   // Mirror Login's policy exactly: reject suspended/deactivated (and a
   // missing row = deleted). `inactive` / `pending_verification` are NOT
   // blocked here because Login lets them authenticate. We do NOT
   // distinguish cases in the error — the caller only needs "not allowed".
-  if (status === undefined || status === 'suspended' || status === 'deactivated') {
+  if (row === undefined || row.status === 'suspended' || row.status === 'deactivated') {
     throw new HandlerError('UNAUTHENTICATED', 'account is not active');
+  }
+  // Access-token revocation watermark. Compare at second granularity (the
+  // JWT `iat` is whole seconds) so a token minted in the same second as a
+  // revoke isn't spuriously rejected.
+  const validFrom = row.tokens_valid_from;
+  if (
+    accessIssuedAtSeconds !== undefined &&
+    validFrom instanceof Date &&
+    accessIssuedAtSeconds < Math.floor(validFrom.getTime() / 1000)
+  ) {
+    throw new HandlerError('UNAUTHENTICATED', 'access token revoked');
   }
 }
 
@@ -574,10 +593,11 @@ export async function validateToken(
   }
 
   // Reject the token if the user is no longer allowed to authenticate
-  // (suspended/deactivated/deleted) — a still-valid access token must not
-  // outlive an admin action. Checked BEFORE hydrating the principal so a
-  // blocked user never gets roles/permissions surfaced.
-  await assertActiveUser(deps, claims.sub);
+  // (suspended/deactivated/deleted) OR if it predates the user's revocation
+  // watermark (session revoke / password reset / change) — a still-valid
+  // access token must not outlive those actions. Checked BEFORE hydrating
+  // the principal so a blocked user never gets roles/permissions surfaced.
+  await assertActiveUser(deps, claims.sub, claims.iat);
 
   // Now (and only now) hydrate the principal. Single user_id read +
   // role/permission joins — same query loadPrincipal uses.

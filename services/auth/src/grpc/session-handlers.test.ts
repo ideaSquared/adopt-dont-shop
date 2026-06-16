@@ -131,7 +131,9 @@ describe('revokeSession', () => {
 
     const res = await revokeSession(mocks.deps, PRINCIPAL, { sessionId: 'tok-1' });
     expect(res.sessionId).toBe('tok-1');
-    expect(realQueries(mocks.clientMock.query)).toEqual(['UPDATE']);
+    // Two UPDATEs: the refresh-token family, plus the user's access-token
+    // revocation watermark.
+    expect(realQueries(mocks.clientMock.query)).toEqual(['UPDATE', 'UPDATE']);
     expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.sessionRevoked');
     // UPDATE targets the family, not just the single token.
@@ -144,5 +146,12 @@ describe('revokeSession', () => {
     // revoked_at) also rejects a revoked session's tokens.
     expect(String(updateCall?.[0])).toMatch(/revoked_at = now\(\)/);
     expect(String(updateCall?.[0])).toMatch(/is_revoked = true/);
+    // Stamps the access-token watermark on the user.
+    const watermarkCall = mocks.clientMock.query.mock.calls.find(c => {
+      const sql = String(c[0]);
+      return sql.includes('UPDATE') && sql.includes('auth.users');
+    });
+    expect(watermarkCall?.[1]).toEqual(['usr-1']);
+    expect(String(watermarkCall?.[0])).toMatch(/tokens_valid_from = now\(\)/);
   });
 });

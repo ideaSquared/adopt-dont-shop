@@ -129,6 +129,15 @@ export async function revokeSession(
       [family_id]
     );
 
+    // Stamp the access-token revocation watermark so the revoked session's
+    // already-issued access token stops working immediately (ValidateToken
+    // rejects tokens issued before this). Other live sessions transparently
+    // re-mint a newer access token on their next refresh.
+    await client.query(
+      `UPDATE auth.users SET tokens_valid_from = now(), updated_at = now() WHERE user_id = $1`,
+      [principal.userId]
+    );
+
     publish({
       type: 'auth.sessionRevoked',
       id: `auth.sessionRevoked.${req.sessionId}`,
