@@ -11,7 +11,14 @@
 // No domain-specific metrics here. Services annotate their own hot
 // paths in a follow-up PR.
 
-import { Counter, Histogram, Registry, collectDefaultMetrics, type LabelValues } from 'prom-client';
+import {
+  Counter,
+  Gauge,
+  Histogram,
+  Registry,
+  collectDefaultMetrics,
+  type LabelValues,
+} from 'prom-client';
 import type { FastifyInstance } from 'fastify';
 
 // Single shared registry — every service mounts this on /metrics. A
@@ -130,4 +137,4 @@ export const __resetMetricsForTest = (): void => {
   defaultsCollected = false;
 };
 
-export { Counter, Histogram, Registry };
+export { Counter, Gauge, Histogram, Registry };

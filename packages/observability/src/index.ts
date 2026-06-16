@@ -10,6 +10,10 @@ export type { LoggerOptions } from './logger.js';
 export { redactSecretFields, REDACTED, SECRET_KEY_PATTERN } from './redact.js';
 
 export {
+  Counter,
+  Gauge,
+  Histogram,
+  Registry,
   getMetricsRegistry,
   recordGrpcDuration,
   registerMetrics,

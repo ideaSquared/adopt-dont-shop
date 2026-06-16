@@ -52,6 +52,7 @@ import {
   type UserRoleDb,
   type UserStatusDb,
 } from './enum-map.js';
+import { createAuthMetrics } from './auth-metrics.js';
 
 // --- Errors ----------------------------------------------------------
 
@@ -307,6 +308,8 @@ export async function login(
   _principal: Principal | null,
   req: LoginRequest
 ): Promise<LoginResponse> {
+  const { loginCounter } = createAuthMetrics();
+
   if (!req.email) {
     throw new HandlerError('INVALID_ARGUMENT', 'email is required');
   }
@@ -327,6 +330,7 @@ export async function login(
     // costs the same wall-clock time as a wrong password — otherwise the
     // early return is a user-enumeration timing oracle.
     await deps.passwordHasher.compare(req.password, DUMMY_PASSWORD_HASH);
+    loginCounter.inc({ outcome: 'invalid_credentials' });
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
   const user = userRes.rows[0];
@@ -334,9 +338,11 @@ export async function login(
   // Block locked accounts BEFORE comparing the password — even a
   // correct password shouldn't reveal the account is back online.
   if (user.locked_until && user.locked_until > new Date()) {
+    loginCounter.inc({ outcome: 'account_locked' });
     throw new HandlerError('PERMISSION_DENIED', 'account is temporarily locked');
   }
   if (user.status === 'suspended' || user.status === 'deactivated') {
+    loginCounter.inc({ outcome: 'account_suspended' });
     throw new HandlerError('PERMISSION_DENIED', `account is ${user.status}`);
   }
 
@@ -364,6 +370,7 @@ export async function login(
         WHERE user_id = $1`,
       [user.user_id, LOGIN_LOCK_THRESHOLD, LOGIN_LOCK_BASE_SECONDS, LOGIN_LOCK_MAX_SECONDS]
     );
+    loginCounter.inc({ outcome: 'invalid_credentials' });
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
 
@@ -397,6 +404,7 @@ export async function login(
   // and avoids muddying the transaction with read concerns.
   const principal = await loadPrincipal(deps, user.user_id);
 
+  loginCounter.inc({ outcome: 'success' });
   return {
     user: rowToProtoUser(user),
     tokens: minted.pair,
@@ -465,6 +473,8 @@ export async function refreshToken(
   _principal: Principal | null,
   req: RefreshTokenRequest
 ): Promise<RefreshTokenResponse> {
+  const { tokenRefreshCounter } = createAuthMetrics();
+
   if (!req.refreshToken) {
     throw new HandlerError('INVALID_ARGUMENT', 'refresh_token is required');
   }
@@ -473,6 +483,7 @@ export async function refreshToken(
   try {
     claims = await deps.tokenIssuer.verifyRefresh(req.refreshToken);
   } catch {
+    tokenRefreshCounter.inc({ outcome: 'invalid_token' });
     throw new HandlerError('UNAUTHENTICATED', 'invalid or expired refresh token');
   }
 
@@ -482,6 +493,7 @@ export async function refreshToken(
     [claims.jti]
   );
   if (denied.rows.length > 0) {
+    tokenRefreshCounter.inc({ outcome: 'token_revoked' });
     throw new HandlerError('UNAUTHENTICATED', 'refresh token revoked');
   }
 
@@ -496,6 +508,7 @@ export async function refreshToken(
     [req.refreshToken]
   );
   if (stored.rows.length === 0 || stored.rows[0].revoked_at !== null || stored.rows[0].is_revoked) {
+    tokenRefreshCounter.inc({ outcome: 'token_revoked' });
     throw new HandlerError('UNAUTHENTICATED', 'refresh token revoked');
   }
   const familyId = stored.rows[0].family_id;
@@ -527,6 +540,7 @@ export async function refreshToken(
     if (revoke.rowCount === 0) {
       // The token was already rotated/revoked between our read and this
       // write — concurrent reuse. Deny without issuing new tokens.
+      tokenRefreshCounter.inc({ outcome: 'concurrent_reuse' });
       return false;
     }
 
@@ -562,6 +576,7 @@ export async function refreshToken(
     throw new HandlerError('UNAUTHENTICATED', 'refresh token revoked');
   }
 
+  tokenRefreshCounter.inc({ outcome: 'success' });
   return { tokens: minted.pair };
 }
 

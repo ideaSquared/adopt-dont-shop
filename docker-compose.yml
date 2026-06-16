@@ -297,6 +297,26 @@ services:
       retries: 3
       start_period: 30s
 
+  prometheus:
+    profiles: ["observability", "full"]
+    image: prom/prometheus:v3.1.0
+    ports:
+      - '127.0.0.1:9090:9090'
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:9090/-/ready || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
   grafana:
     profiles: ["observability", "full"]
     image: grafana/grafana:11.3.0
@@ -311,6 +331,8 @@ services:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       loki:
+        condition: service_healthy
+      prometheus:
         condition: service_healthy
     restart: unless-stopped
 
@@ -561,6 +583,7 @@ volumes:
   lib_types_node_modules:
   loki_data:
   grafana_data:
+  prometheus_data:
 
 # ============================================================================
 # NETWORKS
