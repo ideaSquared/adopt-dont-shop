@@ -54,9 +54,10 @@ const dispatchOne = async (
   email: QueuedEmail,
   logger: Logger
 ): Promise<void> => {
-  // Preference check (when tied to a user).
+  // Preference check (when tied to a user). Honours the channel toggles AND
+  // the per-type opt-out for this email's type.
   if (email.userId) {
-    const open = await isEmailChannelOpen(pool, email.userId);
+    const open = await isEmailChannelOpen(pool, email.userId, email.type);
     if (!open) {
       // Re-using `markFailed` with retriable=false would terminate as
       // 'failed' which mis-categorises an opt-out. The DB transition

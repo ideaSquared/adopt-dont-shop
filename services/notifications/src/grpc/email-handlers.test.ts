@@ -174,6 +174,27 @@ describe('sendEmail', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
+  it("rejects a 'marketing' email with no user_id (opt-outs would be bypassed)", async () => {
+    await expect(
+      sendEmail(mocks.deps, SYSTEM_PRINCIPAL, {
+        ...BASE_SEND_REQ,
+        type: NotificationsV1.EmailType.EMAIL_TYPE_MARKETING,
+        userId: '',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it("accepts a 'marketing' email when user_id is supplied", async () => {
+    mocks.clientScript.push({ rows: [{ email_id: 'queued-mkt' }] }); // INSERT
+    const res = await sendEmail(mocks.deps, SYSTEM_PRINCIPAL, {
+      ...BASE_SEND_REQ,
+      type: NotificationsV1.EmailType.EMAIL_TYPE_MARKETING,
+      userId: 'usr-adopter',
+    });
+    expect(res.emailId).toBeTruthy();
+    expect(res.alreadyQueued).toBe(false);
+  });
+
   it('rejects when template_data_json is not a JSON object', async () => {
     await expect(
       sendEmail(mocks.deps, SYSTEM_PRINCIPAL, {

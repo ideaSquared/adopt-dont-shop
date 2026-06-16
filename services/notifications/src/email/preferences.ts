@@ -8,6 +8,7 @@
 import { randomUUID } from 'node:crypto';
 
 import type { DbConn } from './queue.js';
+import type { EmailType } from './types.js';
 
 export type EmailPreferencesRow = {
   preference_id: string;
@@ -126,16 +127,33 @@ export const updatePreferences = async (
 //   - blacklisted (hard suppression — bounce / abuse)
 //   - global unsubscribe (user clicked unsubscribe-all)
 //   - email channel disabled
-// Per-type opt-outs in `preferences[]` are checked by the caller when
-// it knows the email's type — the worker doesn't.
-export const isEmailChannelOpen = async (conn: DbConn, userId: string): Promise<boolean> => {
+//   - the user has opted out of this specific email `type` (when provided)
+//
+// Per-type opt-outs live in the `preferences[]` JSONB array as entries of the
+// shape `{ type: EmailType, optedOut: true }`. Malformed/unknown entries are
+// ignored (fail-open to "allowed") so a bad row can't silently suppress
+// transactional mail.
+export const isEmailTypeOptedOut = (
+  preferences: Array<Record<string, unknown>>,
+  type: EmailType
+): boolean =>
+  preferences.some(
+    e => e !== null && typeof e === 'object' && e.type === type && e.optedOut === true
+  );
+
+export const isEmailChannelOpen = async (
+  conn: DbConn,
+  userId: string,
+  type?: EmailType
+): Promise<boolean> => {
   const res = await conn.query<{
     is_email_enabled: boolean;
     global_unsubscribe: boolean;
     is_blacklisted: boolean;
+    preferences: Array<Record<string, unknown>>;
   }>(
     `
-    SELECT is_email_enabled, global_unsubscribe, is_blacklisted
+    SELECT is_email_enabled, global_unsubscribe, is_blacklisted, preferences
     FROM email_preferences
     WHERE user_id = $1
     LIMIT 1
@@ -147,5 +165,11 @@ export const isEmailChannelOpen = async (conn: DbConn, userId: string): Promise<
   if (!row) {
     return true;
   }
-  return row.is_email_enabled && !row.global_unsubscribe && !row.is_blacklisted;
+  if (!row.is_email_enabled || row.global_unsubscribe || row.is_blacklisted) {
+    return false;
+  }
+  if (type !== undefined && isEmailTypeOptedOut(row.preferences ?? [], type)) {
+    return false;
+  }
+  return true;
 };

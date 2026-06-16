@@ -186,6 +186,16 @@ export async function sendEmail(
   const type = protoTypeToDb[req.type] ?? 'system';
   const priority = protoPriorityToDb[req.priority] ?? 'normal';
 
+  // Marketing mail must carry a userId so the worker can honour the
+  // recipient's opt-out before sending — email_preferences is user-keyed, so
+  // a userId-less marketing send would bypass suppression entirely.
+  if (type === 'marketing' && !req.userId) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      "user_id is required for 'marketing' email so recipient opt-outs are honoured"
+    );
+  }
+
   // Resolve subject / html / text — template wins when present.
   let subject: string;
   let htmlContent: string;

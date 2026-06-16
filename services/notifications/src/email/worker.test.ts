@@ -167,6 +167,72 @@ describe('email worker', () => {
       await worker.stop();
     }
   });
+
+  it('suppresses a marketing email when the user opted out of that type', async () => {
+    const claimed = [queuedFixture({ emailId: 'em-M', userId: 'usr-1', type: 'marketing' })];
+    const { pool, queries } = makePool([
+      { rows: claimed.map(toRow) }, // claimDueEmails
+      // Channel toggles are all open, but preferences[] opts out of marketing.
+      {
+        rows: [
+          {
+            is_email_enabled: true,
+            global_unsubscribe: false,
+            is_blacklisted: false,
+            preferences: [{ type: 'marketing', optedOut: true }],
+          },
+        ],
+      },
+      { rows: [] }, // UPDATE → unsubscribed
+    ]);
+    const provider = makeProvider({ success: true });
+    const worker = startEmailWorker({
+      pool,
+      nats: {} as never,
+      provider,
+      logger: quietLogger(),
+      pollIntervalMs: 60_000,
+    });
+    try {
+      await worker.tick();
+      expect(provider.send).not.toHaveBeenCalled();
+      expect(queries[2].sql).toContain("SET status = 'unsubscribed'");
+    } finally {
+      await worker.stop();
+    }
+  });
+
+  it('still sends a transactional email when only marketing is opted out', async () => {
+    const claimed = [queuedFixture({ emailId: 'em-T', userId: 'usr-1', type: 'transactional' })];
+    const { pool } = makePool([
+      { rows: claimed.map(toRow) }, // claimDueEmails
+      {
+        rows: [
+          {
+            is_email_enabled: true,
+            global_unsubscribe: false,
+            is_blacklisted: false,
+            preferences: [{ type: 'marketing', optedOut: true }],
+          },
+        ],
+      },
+      { rows: [] }, // markSent
+    ]);
+    const provider = makeProvider({ success: true, messageId: 'm' });
+    const worker = startEmailWorker({
+      pool,
+      nats: {} as never,
+      provider,
+      logger: quietLogger(),
+      pollIntervalMs: 60_000,
+    });
+    try {
+      await worker.tick();
+      expect(provider.send).toHaveBeenCalledTimes(1);
+    } finally {
+      await worker.stop();
+    }
+  });
 });
 
 // Map QueuedEmail back to a flat row matching what claimDueEmails returns.
