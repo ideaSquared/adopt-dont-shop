@@ -270,6 +270,23 @@ export async function createSavedReport(
   }
   const config = parseConfig(req.configJson);
 
+  // Reject a reference to a template that doesn't exist (or was soft-deleted)
+  // with a clear validation error, rather than relying solely on the FK to
+  // raise an opaque constraint violation (ADS-785). The FK still backstops
+  // a TOCTOU race where the template is deleted between this check and the
+  // INSERT — but the common case gets a readable message.
+  const templateId = req.templateId ?? null;
+  if (templateId !== null) {
+    const exists = await deps.pool.query<{ template_id: string }>(
+      `SELECT template_id FROM report_templates
+         WHERE template_id = $1 AND deleted_at IS NULL`,
+      [templateId]
+    );
+    if (exists.rows.length === 0) {
+      throw new HandlerError('INVALID_ARGUMENT', `template ${templateId} does not exist`);
+    }
+  }
+
   const result = await deps.pool.query<SavedReportRow>(
     `INSERT INTO saved_reports
        (user_id, rescue_id, template_id, name, description, config)
@@ -278,7 +295,7 @@ export async function createSavedReport(
     [
       principal.userId,
       req.rescueId ?? null,
-      req.templateId ?? null,
+      templateId,
       name,
       req.description ?? null,
       JSON.stringify(config),

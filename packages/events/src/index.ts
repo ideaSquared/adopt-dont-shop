@@ -7,6 +7,7 @@ export type { DomainSubject } from './stream.js';
 export {
   GDPR_ERASURE_REQUESTED,
   GDPR_ERASURE_COMPLETED,
+  EXPECTED_GDPR_SERVICES,
   type GdprErasureRequestedPayload,
   type GdprErasureCompletedPayload,
 } from './gdpr.js';

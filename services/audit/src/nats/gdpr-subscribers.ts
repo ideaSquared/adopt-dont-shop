@@ -16,6 +16,7 @@ import type { Pool } from 'pg';
 import type { Logger } from 'winston';
 
 import {
+  EXPECTED_GDPR_SERVICES,
   GDPR_ERASURE_COMPLETED,
   GDPR_ERASURE_REQUESTED,
   subscribe,
@@ -26,21 +27,10 @@ import {
 
 // The set of services we expect to ack each request. Once every one of
 // these has an error-free completion entry, the request flips to
-// completed_at = now().
-// Keep this in sync with services/{auth,notifications,pets,chat,
-// applications,matching,moderation,cms,rescue}/src/index.ts subscriber
-// wiring.
-export const EXPECTED_SERVICES = [
-  'auth',
-  'notifications',
-  'pets',
-  'chat',
-  'applications',
-  'matching',
-  'moderation',
-  'cms',
-  'rescue',
-] as const;
+// completed_at = now(). Sourced from @adopt-dont-shop/events so it stays
+// in lockstep with the saga participant list (ADS-785) — a drift assertion
+// there guards against a service being added/removed without updating it.
+export const EXPECTED_SERVICES = EXPECTED_GDPR_SERVICES;
 
 // Durable consumer names — all audit replicas bind the same durables so the
 // saga-tracking work is load-shared. Distinct durables per subject keep each

@@ -177,6 +177,40 @@ describe('createSavedReport', () => {
     expect(params[0]).toBe('usr-1'); // user_id
     expect(params[3]).toBe('My Report');
   });
+
+  it('rejects a non-existent template_id with INVALID_ARGUMENT (ADS-785)', async () => {
+    // Existence check returns no row → the template doesn't exist.
+    const q = vi.fn().mockResolvedValue({ rows: [], rowCount: 0 });
+    const { deps } = makeDeps(q);
+    await expect(
+      createSavedReport(deps, makePrincipal({ permissions: ['reports.create'] }), {
+        name: 'My Report',
+        configJson: '{"widgets":[]}',
+        templateId: 'missing-template',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    // The orphan check runs before the INSERT — no row was written.
+    const sqls = q.mock.calls.map(c => String(c[0]));
+    expect(sqls.some(s => s.includes('INSERT INTO saved_reports'))).toBe(false);
+  });
+
+  it('inserts when the referenced template exists', async () => {
+    const q = vi
+      .fn()
+      // Existence check finds the template …
+      .mockResolvedValueOnce({ rows: [{ template_id: 't-1' }], rowCount: 1 })
+      // … then the INSERT returns the new row.
+      .mockResolvedValueOnce({ rows: [makeRow({ template_id: 't-1' })], rowCount: 1 });
+    const { deps } = makeDeps(q);
+    const res = await createSavedReport(deps, makePrincipal({ permissions: ['reports.create'] }), {
+      name: 'My Report',
+      configJson: '{"widgets":[]}',
+      templateId: 't-1',
+    });
+    expect(res.report?.templateId).toBe('t-1');
+    const insertParams = q.mock.calls[1][1] as unknown[];
+    expect(insertParams[2]).toBe('t-1'); // template_id passed through
+  });
 });
 
 describe('updateSavedReport', () => {

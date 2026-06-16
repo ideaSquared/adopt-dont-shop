@@ -44,6 +44,8 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 
 - [ADR 0001 — entity detail pattern](./adr/0001-entity-detail-pattern.md) — canonical pattern for entity detail pages
 - [ADR 0002 — applications strangler cutover](./adr/0002-applications-strangler-cutover.md) — plan to move `/api/v1/applications/*` to the microservice
+- [ADR 0003 — idempotent event consumers](./adr/0003-idempotent-event-consumers.md) — at-least-once delivery + idempotent-consumer convention
+- [ADR 0004 — Postgres read-replica routing](./adr/0004-postgres-read-replica-routing.md) — optional read-replica pool in `@adopt-dont-shop/db`
 - [ADR — sticky sessions for Socket.IO](./architecture/adr-socket-sticky-sessions.md) — connection-cap mitigation for the WebSocket edge
 - [Frontend technical architecture](./frontend/technical-architecture.md) — app shells, routing, state, styling
 - [Backend implementation guide](./backend/implementation-guide.md) — gateway routes → gRPC handlers → services wiring

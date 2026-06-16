@@ -17,6 +17,27 @@
 export const GDPR_ERASURE_REQUESTED = 'gdpr.erasureRequested';
 export const GDPR_ERASURE_COMPLETED = 'gdpr.erasureCompleted';
 
+// Single source of truth for the services that participate in the GDPR
+// erasure saga (ADS-785). Each one subscribes to gdpr.erasureRequested,
+// erases its slice, and publishes gdpr.erasureCompleted. service.audit's
+// completion detection flips a request to completed_at = now() only once
+// every service below has acked error-free, so this count must match the
+// fleet exactly — too few marks the saga complete early, too many means it
+// never completes. Centralised here (not hand-maintained in the audit
+// subscriber) so adding/removing a participant is a one-line change with a
+// drift assertion guarding it.
+export const EXPECTED_GDPR_SERVICES = [
+  'auth',
+  'notifications',
+  'pets',
+  'chat',
+  'applications',
+  'matching',
+  'moderation',
+  'cms',
+  'rescue',
+] as const;
+
 export type GdprErasureRequestedPayload = {
   // The user being erased — primary key in auth.users.
   userId: string;

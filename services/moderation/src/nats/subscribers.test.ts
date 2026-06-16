@@ -137,4 +137,44 @@ describe('registerSubscribers', () => {
 
     expect(fileReportMock).not.toHaveBeenCalled();
   });
+
+  // Redelivery (ADS-808): JetStream is at-least-once, so the same
+  // chat.messageCreated can arrive twice. The auto-report is made idempotent
+  // by FileReport's UNIQUE (reported_entity_type, reported_entity_id) WHERE
+  // reporter_id = SYSTEM index, which UPSERTs the existing row and only
+  // publishes for a genuinely new insert. Model that constraint here and
+  // assert that a redelivery produces a SINGLE stored effect — the subscriber
+  // forwards the same deterministic (entity_type, entity_id) both times, so
+  // the downstream UPSERT collapses them.
+  it('produces a single effect when the same event is delivered twice (idempotent on entity)', async () => {
+    const storedReports = new Set<string>();
+    let insertCount = 0;
+    fileReportMock.mockImplementation(async (...args: unknown[]) => {
+      const req = args[2] as FileReportRequest;
+      const key = `${req.reportedEntityType}:${req.reportedEntityId}`;
+      // The UNIQUE index: a second file for the same entity is a no-op insert.
+      if (!storedReports.has(key)) {
+        storedReports.add(key);
+        insertCount += 1;
+      }
+      return { report: undefined };
+    });
+
+    registerSubscribers({ nats, deps, logger });
+    const event = {
+      messageId: 'msg-dup',
+      chatId: 'chat-1',
+      senderId: 'usr-sender',
+      content: 'go kill yourself',
+    };
+
+    await handlerFor('chat.messageCreated')(event);
+    await handlerFor('chat.messageCreated')(event);
+
+    // Handler ran for both deliveries (no in-handler dedup) …
+    expect(fileReportMock).toHaveBeenCalledTimes(2);
+    // … but both targeted the same entity, so only one report is stored.
+    expect(insertCount).toBe(1);
+    expect(storedReports.size).toBe(1);
+  });
 });
