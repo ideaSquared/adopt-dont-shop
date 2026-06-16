@@ -87,4 +87,62 @@ describe('createDbClient', () => {
       void pool.end();
     }, 3_000); // Test-level timeout: well above the pool timeout, below the default 5s
   });
+
+  describe('read-replica routing (ADS-815)', () => {
+    it('aliases .read to the primary when no readUrl is configured (single-instance fallback)', () => {
+      const pool = createDbClient({
+        schema: 'pets',
+        connectionString: 'postgres://localhost/primary',
+      });
+
+      // Read-only call sites use pool.read unconditionally; with no replica it
+      // is the very same primary pool.
+      expect(pool.read).toBe(pool);
+
+      void pool.end();
+    });
+
+    it('treats an empty readUrl as no replica', () => {
+      const pool = createDbClient({
+        schema: 'pets',
+        connectionString: 'postgres://localhost/primary',
+        readUrl: '',
+      });
+
+      expect(pool.read).toBe(pool);
+
+      void pool.end();
+    });
+
+    it('opens a distinct read pool against readUrl when configured', () => {
+      const pool = createDbClient({
+        schema: 'pets',
+        connectionString: 'postgres://localhost/primary',
+        readUrl: 'postgres://replica.example.com/pets',
+      });
+
+      // A separate pool is created for reads …
+      expect(pool.read).not.toBe(pool);
+      // … pointed at the replica, not the primary.
+      expect(pool.read.options.connectionString).toBe('postgres://replica.example.com/pets');
+      expect(pool.options.connectionString).toBe('postgres://localhost/primary');
+
+      void pool.read.end();
+      void pool.end();
+    });
+
+    it('applies the same timeout defaults to the read pool', () => {
+      const pool = createDbClient({
+        schema: 'pets',
+        connectionString: 'postgres://localhost/primary',
+        readUrl: 'postgres://replica.example.com/pets',
+      });
+
+      expect(pool.read.options.connectionTimeoutMillis).toBe(10_000);
+      expect(pool.read.options.statement_timeout).toBe(30_000);
+
+      void pool.read.end();
+      void pool.end();
+    });
+  });
 });
