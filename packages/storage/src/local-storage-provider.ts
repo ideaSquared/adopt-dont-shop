@@ -2,7 +2,13 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import fs from 'fs-extra';
 import sharp from 'sharp';
-import type { FileInfo, StorageCategory, StorageProvider, UploadResult } from './base-provider.js';
+import {
+  assertSafePathSegment,
+  type FileInfo,
+  type StorageCategory,
+  type StorageProvider,
+  type UploadResult,
+} from './base-provider.js';
 import { type LocalStorageConfig, type StorageLogger, resolveLogger } from './config.js';
 
 // Cap decoded pixels so a small-on-disk image declaring extreme header
@@ -98,6 +104,9 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async deleteFile(filename: string, category: string = 'documents'): Promise<void> {
+    // Guard BEFORE the try so traversal can't be masked by the catch.
+    assertSafePathSegment(category, 'category');
+    assertSafePathSegment(filename, 'filename');
     try {
       const filePath = path.join(this.uploadDir, category, filename);
       await fs.remove(filePath);
@@ -109,6 +118,10 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async getFileInfo(filename: string, category: string = 'documents'): Promise<FileInfo> {
+    // Guard BEFORE the try — getFileInfo's catch maps errors to {exists:false},
+    // which would otherwise silently swallow a traversal attempt.
+    assertSafePathSegment(category, 'category');
+    assertSafePathSegment(filename, 'filename');
     try {
       const filePath = path.join(this.uploadDir, category, filename);
       const stats = await fs.stat(filePath);
