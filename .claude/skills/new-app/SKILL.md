@@ -130,7 +130,7 @@ app-<name>:
     NODE_ENV: ${NODE_ENV:-development}
     DOCKER_ENV: 'true'
     VITE_API_BASE_URL: ''    # Empty — requests go through Vite proxy
-    VITE_WS_BASE_URL: ws://localhost:5000
+    VITE_WS_BASE_URL: ws://localhost:4000
     CHOKIDAR_USEPOLLING: true
     CHOKIDAR_INTERVAL: 1000
     CHOKIDAR_AWAITWRITEFINISH: 2000

@@ -52,7 +52,7 @@ const customResult = await customService.exampleMethod({ custom: 'data' });
 
 ```bash
 # API Configuration (Vite apps use VITE_ prefix)
-VITE_API_BASE_URL=http://localhost:5000
+VITE_API_BASE_URL=http://localhost:4000
 
 # Development
 NODE_ENV=development
