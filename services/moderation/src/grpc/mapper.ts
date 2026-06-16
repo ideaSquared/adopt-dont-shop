@@ -48,7 +48,11 @@ export type ReportRow = {
   updated_at: Date;
 };
 
-export function reportRowToProto(row: ReportRow): Report {
+// `forReporter` returns the reporter-safe projection: a user reading their
+// OWN report (no MODERATION_REPORTS_VIEW) keeps the report content, its
+// status and final outcome, but must NOT see internal moderation workflow —
+// who is handling it, private resolution notes, or escalation reasoning.
+export function reportRowToProto(row: ReportRow, forReporter = false): Report {
   const report: Report = {
     reportId: row.report_id,
     reporterId: row.reporter_id,
@@ -64,9 +68,22 @@ export function reportRowToProto(row: ReportRow): Report {
     updatedAt: row.updated_at.toISOString(),
   };
 
+  // Reporter-visible optional fields — the report's subject and its outcome.
   if (row.reported_user_id !== null) {
     report.reportedUserId = row.reported_user_id;
   }
+  if (row.resolution !== null) {
+    report.resolution = row.resolution;
+  }
+  if (row.resolved_at !== null) {
+    report.resolvedAt = row.resolved_at.toISOString();
+  }
+
+  if (forReporter) {
+    return report;
+  }
+
+  // Internal moderation-workflow fields — moderators only.
   if (row.assigned_moderator !== null) {
     report.assignedModerator = row.assigned_moderator;
   }
@@ -75,12 +92,6 @@ export function reportRowToProto(row: ReportRow): Report {
   }
   if (row.resolved_by !== null) {
     report.resolvedBy = row.resolved_by;
-  }
-  if (row.resolved_at !== null) {
-    report.resolvedAt = row.resolved_at.toISOString();
-  }
-  if (row.resolution !== null) {
-    report.resolution = row.resolution;
   }
   if (row.resolution_notes !== null) {
     report.resolutionNotes = row.resolution_notes;
@@ -114,7 +125,12 @@ export type ReportStatusTransitionRow = {
   reason: string | null;
 };
 
-export function transitionRowToProto(row: ReportStatusTransitionRow): ReportStatusTransition {
+// `forReporter` omits the moderator identity (`transitionedBy`) and the
+// free-text `reason`, leaving the reporter only the status timeline.
+export function transitionRowToProto(
+  row: ReportStatusTransitionRow,
+  forReporter = false
+): ReportStatusTransition {
   const transition: ReportStatusTransition = {
     transitionId: row.transition_id,
     reportId: row.report_id,
@@ -125,6 +141,11 @@ export function transitionRowToProto(row: ReportStatusTransitionRow): ReportStat
   if (row.from_status !== null) {
     transition.fromStatus = reportStatusFromDb(row.from_status);
   }
+
+  if (forReporter) {
+    return transition;
+  }
+
   if (row.transitioned_by !== null) {
     transition.transitionedBy = row.transitioned_by;
   }
