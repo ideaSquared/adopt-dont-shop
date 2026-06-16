@@ -1,0 +1,58 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alerting rules — committed in infra/prometheus/rules/ (ADS-806).
+# rule_files:
+#   - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # Gateway — the single REST edge and the /metrics aggregation point
+  # for the gateway's own HTTP + rate-limit metrics.
+  - job_name: service-gateway
+    static_configs:
+      - targets: ['service-gateway:4000']
+    metrics_path: /metrics
+
+  # Microservices — each exposes /metrics on its HTTP health port
+  # (distinct from its gRPC port). service.auth is the canonical example;
+  # the other services follow the same createMicroserviceServer() pattern.
+  - job_name: service-auth
+    static_configs:
+      - targets: ['service-auth:5002']
+    metrics_path: /metrics
+
+  - job_name: service-notifications
+    static_configs:
+      - targets: ['service-notifications:5001']
+    metrics_path: /metrics
+
+  - job_name: service-pets
+    static_configs:
+      - targets: ['service-pets:5003']
+    metrics_path: /metrics
+
+  - job_name: service-rescue
+    static_configs:
+      - targets: ['service-rescue:5004']
+    metrics_path: /metrics
+
+  - job_name: service-applications
+    static_configs:
+      - targets: ['service-applications:5005']
+    metrics_path: /metrics
+
+  - job_name: service-moderation
+    static_configs:
+      - targets: ['service-moderation:5007']
+    metrics_path: /metrics
+
+  - job_name: service-matching
+    static_configs:
+      - targets: ['service-matching:5008']
+    metrics_path: /metrics
+
+  - job_name: service-audit
+    static_configs:
+      - targets: ['service-audit:5009']
+    metrics_path: /metrics

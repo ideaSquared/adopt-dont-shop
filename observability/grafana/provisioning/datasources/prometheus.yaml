@@ -1,0 +1,14 @@
+apiVersion: 1
+
+# Auto-provisioned Prometheus datasource. Grafana picks this up on boot via
+# the bind-mount in docker-compose.yml (grafana service, observability profile).
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    jsonData:
+      timeInterval: '15s'
+      queryTimeout: '60s'
+      httpMethod: POST

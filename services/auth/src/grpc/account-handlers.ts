@@ -38,6 +38,7 @@ import type {
 } from '@adopt-dont-shop/proto';
 
 import { roleToDb } from './enum-map.js';
+import { createAuthMetrics } from './auth-metrics.js';
 import { HandlerError, rowToProtoUser, type HandlerDeps, type UserRow } from './handlers.js';
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h
@@ -73,12 +74,21 @@ export async function register(
   _principal: Principal | null,
   req: RegisterRequest
 ): Promise<RegisterResponse> {
-  assertEmail(req.email);
-  assertPassword(req.password);
+  const { registrationCounter } = createAuthMetrics();
+
+  try {
+    assertEmail(req.email);
+    assertPassword(req.password);
+  } catch (err) {
+    registrationCounter.inc({ outcome: 'invalid_input' });
+    throw err;
+  }
   if (!req.firstName || !req.lastName) {
+    registrationCounter.inc({ outcome: 'invalid_input' });
     throw new HandlerError('INVALID_ARGUMENT', 'first_name and last_name are required');
   }
   if (!req.termsAccepted || !req.privacyPolicyAccepted) {
+    registrationCounter.inc({ outcome: 'invalid_input' });
     throw new HandlerError('INVALID_ARGUMENT', 'terms and privacy policy must be accepted');
   }
 
@@ -96,6 +106,7 @@ export async function register(
     [req.email]
   );
   if (existing.rows.length > 0) {
+    registrationCounter.inc({ outcome: 'duplicate_email' });
     return REGISTERED_RESPONSE;
   }
 
@@ -155,6 +166,7 @@ export async function register(
     // the pre-check and the INSERT. Treat it exactly like the existing-email
     // case — same uniform response, no leak.
     if ((err as { code?: string }).code === '23505') {
+      registrationCounter.inc({ outcome: 'duplicate_email' });
       return REGISTERED_RESPONSE;
     }
     throw err;
@@ -162,6 +174,7 @@ export async function register(
 
   // Verification-first: NO tokens are issued here. The user verifies their
   // email (which flips status → active), then signs in via Login.
+  registrationCounter.inc({ outcome: 'success' });
   return REGISTERED_RESPONSE;
 }
 
