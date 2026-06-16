@@ -14,7 +14,7 @@ import {
   updateAccount,
   verifyEmail,
 } from './account-handlers.js';
-import { HandlerError, type HandlerDeps, type MintedTokens } from './handlers.js';
+import { HandlerError, type HandlerDeps } from './handlers.js';
 
 function userRowFixture(overrides: Record<string, unknown> = {}) {
   return {
@@ -40,21 +40,6 @@ function userRowFixture(overrides: Record<string, unknown> = {}) {
     created_at: new Date('2026-01-01T00:00:00Z'),
     updated_at: new Date('2026-01-01T00:00:00Z'),
     ...overrides,
-  };
-}
-
-function mintedFixture(): MintedTokens {
-  return {
-    pair: {
-      accessToken: 'access',
-      refreshToken: 'refresh',
-      accessExpiresAt: '2026-06-05T17:30:00Z',
-      refreshExpiresAt: '2026-07-05T17:00:00Z',
-    },
-    accessJti: 'a-jti',
-    accessExpiresAt: new Date('2026-06-05T17:30:00Z'),
-    refreshJti: 'r-jti',
-    refreshExpiresAt: new Date('2026-07-05T17:00:00Z'),
   };
 }
 
@@ -98,6 +83,7 @@ function makeMocks() {
     clientScript: c.script,
     hasherMock: passwordHasher,
     issuerMock: tokenIssuer,
+    natsMock: nats,
   };
 }
 
@@ -155,33 +141,53 @@ describe('register', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
-  it('rejects ALREADY_EXISTS when email is taken', async () => {
+  it('does NOT leak that an email is already registered (enumeration-safe)', async () => {
+    // Existing-email pre-check returns a row.
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ '?column?': 1 }] });
-    await expect(register(mocks.deps, null, REGISTER_REQ)).rejects.toMatchObject({
-      code: 'ALREADY_EXISTS',
-    });
+
+    const res = await register(mocks.deps, null, REGISTER_REQ);
+
+    // Uniform response — no error, no tokens, no user. Identical to a fresh
+    // signup, so the caller can't tell the email exists.
+    expect(res).toEqual({ permissions: [] });
+    // Still hashes (uniform timing) but never inserts or mints tokens.
+    expect(mocks.hasherMock.hash).toHaveBeenCalled();
+    expect(realQueries(mocks.clientMock.query)).toEqual([]);
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
-  it('hashes the password, inserts the user, mints tokens, publishes', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // uniqueness check
+  it('creates a pending-verification user, publishes, and issues NO tokens', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // uniqueness check — free
     mocks.hasherMock.hash.mockResolvedValueOnce('$2b$12$new-hash');
     const created = userRowFixture({ user_id: 'usr-new', email: 'new@example.com' });
     mocks.clientScript([created]); // INSERT
-    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
-    // After commit: refresh-token insert + loadPrincipal queries
-    // (user_type, extra roles, permissions, optional rescue lookup).
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // refresh-token insert
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] }); // primary role
-    mocks.poolMock.query.mockResolvedValue({ rows: [] }); // remaining loadPrincipal queries
 
     const res = await register(mocks.deps, null, REGISTER_REQ);
+
+    // Verification-first: uniform response, no tokens, no auto-login.
+    expect(res).toEqual({ permissions: [] });
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
 
     expect(mocks.hasherMock.hash).toHaveBeenCalledWith('hunter22');
     const insertCall = realQueries(mocks.clientMock.query)[0];
     expect(insertCall[0]).toContain('INSERT INTO auth.users');
+    expect(insertCall[0]).toContain("'pending_verification'");
     expect(insertCall[1]).toContain('$2b$12$new-hash');
-    expect(res.user.userId).toBe('usr-new');
-    expect(res.tokens.accessToken).toBe('access');
+    // Publishes the verification event so the email is sent.
+    expect(mocks.natsMock.publish).toHaveBeenCalled();
+  });
+
+  it('returns the uniform response on a unique-violation race (no leak)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // pre-check: free
+    // INSERT races a concurrent register → Postgres unique violation.
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') return { rows: [] };
+      throw Object.assign(new Error('duplicate key'), { code: '23505' });
+    });
+
+    const res = await register(mocks.deps, null, REGISTER_REQ);
+    expect(res).toEqual({ permissions: [] });
   });
 });
 

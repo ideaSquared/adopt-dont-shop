@@ -38,13 +38,7 @@ import type {
 } from '@adopt-dont-shop/proto';
 
 import { roleToDb } from './enum-map.js';
-import {
-  HandlerError,
-  loadPrincipal,
-  rowToProtoUser,
-  type HandlerDeps,
-  type UserRow,
-} from './handlers.js';
+import { HandlerError, rowToProtoUser, type HandlerDeps, type UserRow } from './handlers.js';
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1h
@@ -88,85 +82,93 @@ export async function register(
     throw new HandlerError('INVALID_ARGUMENT', 'terms and privacy policy must be accepted');
   }
 
-  // Uniqueness pre-check (citext makes the comparison case-insensitive).
+  // Hash up front so the response takes the same time whether or not the email
+  // is already taken — no fast path that would leak account existence via
+  // response timing.
+  const password = await deps.passwordHasher.hash(req.password);
+
+  // Enumeration-safe: never reveal whether the email is already registered.
+  // An existing email returns the SAME uniform response as a fresh signup —
+  // no error, no tokens. (A duplicate INSERT racing this check is caught
+  // below and handled identically.)
   const existing = await deps.pool.query(
     `SELECT 1 FROM auth.users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
     [req.email]
   );
   if (existing.rows.length > 0) {
-    throw new HandlerError('ALREADY_EXISTS', 'email already registered');
+    return REGISTERED_RESPONSE;
   }
 
-  const password = await deps.passwordHasher.hash(req.password);
   const verificationToken = mintToken();
   const verificationExpires = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
   // Adopters self-register; everything else is invitation-based.
   const userType = 'adopter' as const;
   void roleToDb; // satisfy import — the proto user_type is ignored on Register
 
-  const inserted = await withTransaction(deps, async ({ client, publish }) => {
-    const insertRes = await client.query<UserRow>(
-      `
-      INSERT INTO auth.users (
-        user_id, email, password, first_name, last_name, phone_number,
-        verification_token, verification_token_expires_at,
-        status, user_type, email_verified, phone_verified,
-        two_factor_enabled, terms_accepted_at, privacy_policy_accepted_at,
-        login_attempts, created_at, updated_at
-      )
-      VALUES (
-        gen_random_uuid(), $1, $2, $3, $4, $5,
-        $6, $7,
-        'pending_verification', $8, false, false,
-        false, now(), now(),
-        0, now(), now()
-      )
-      RETURNING *
-      `,
-      [
-        req.email,
-        password,
-        req.firstName,
-        req.lastName,
-        req.phoneNumber ?? null,
-        verificationToken,
-        verificationExpires,
-        userType,
-      ]
-    );
-    const user = insertRes.rows[0];
+  try {
+    await withTransaction(deps, async ({ client, publish }) => {
+      const insertRes = await client.query<UserRow>(
+        `
+        INSERT INTO auth.users (
+          user_id, email, password, first_name, last_name, phone_number,
+          verification_token, verification_token_expires_at,
+          status, user_type, email_verified, phone_verified,
+          two_factor_enabled, terms_accepted_at, privacy_policy_accepted_at,
+          login_attempts, created_at, updated_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, $5,
+          $6, $7,
+          'pending_verification', $8, false, false,
+          false, now(), now(),
+          0, now(), now()
+        )
+        RETURNING *
+        `,
+        [
+          req.email,
+          password,
+          req.firstName,
+          req.lastName,
+          req.phoneNumber ?? null,
+          verificationToken,
+          verificationExpires,
+          userType,
+        ]
+      );
+      const user = insertRes.rows[0];
 
-    publish({
-      type: 'auth.userRegistered',
-      id: `auth.userRegistered.${user.user_id}`,
-      payload: {
-        userId: user.user_id,
-        email: user.email,
-        firstName: user.first_name,
-        verificationToken,
-        verificationExpiresAt: verificationExpires.toISOString(),
-      },
+      publish({
+        type: 'auth.userRegistered',
+        id: `auth.userRegistered.${user.user_id}`,
+        payload: {
+          userId: user.user_id,
+          email: user.email,
+          firstName: user.first_name,
+          verificationToken,
+          verificationExpiresAt: verificationExpires.toISOString(),
+        },
+      });
     });
+  } catch (err) {
+    // Unique-violation race: a concurrent register created the row between
+    // the pre-check and the INSERT. Treat it exactly like the existing-email
+    // case — same uniform response, no leak.
+    if ((err as { code?: string }).code === '23505') {
+      return REGISTERED_RESPONSE;
+    }
+    throw err;
+  }
 
-    return user;
-  });
-
-  const tokens = await deps.tokenIssuer.mint(inserted.user_id);
-  await deps.pool.query(
-    `
-    INSERT INTO auth.refresh_tokens (token, user_id, expires_at, revoked_at, created_at, updated_at)
-    VALUES ($1, $2, $3, NULL, now(), now())
-    `,
-    [tokens.pair.refreshToken, inserted.user_id, tokens.refreshExpiresAt]
-  );
-  const principal = await loadPrincipal(deps, inserted.user_id);
-
-  return {
-    user: rowToProtoUser(inserted),
-    tokens: tokens.pair,
-    permissions: principal.permissions,
-  };
+  // Verification-first: NO tokens are issued here. The user verifies their
+  // email (which flips status → active), then signs in via Login.
+  return REGISTERED_RESPONSE;
 }
+
+// Uniform Register response — identical for a fresh signup and an
+// already-registered email, so the response can't probe account existence.
+// `permissions` is the only required proto field; user/tokens are omitted.
+const REGISTERED_RESPONSE: RegisterResponse = { permissions: [] };
 
 // --- VerifyEmail -----------------------------------------------------
 
