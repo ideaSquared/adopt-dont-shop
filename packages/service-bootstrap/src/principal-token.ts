@@ -150,6 +150,12 @@ function mac(encodedPayload: string, key: string): string {
 let cachedDefaultKey: string | undefined;
 let defaultKeyResolved = false;
 
+// HS256 signing key floor — a short key is offline-brute-forceable and would
+// let an attacker forge principal tokens trusted by every service. Enforced at
+// boot by assertPrincipalVerificationConfig (not here) so this stays a pure,
+// hot-path getter and explicit-key signing in tests is unaffected.
+export const MIN_SIGNING_KEY_BYTES = 32;
+
 export function getDefaultPrincipalSigningKey(): string | undefined {
   if (!defaultKeyResolved) {
     cachedDefaultKey = readSecret('PRINCIPAL_SIGNING_KEY')?.trim() || undefined;

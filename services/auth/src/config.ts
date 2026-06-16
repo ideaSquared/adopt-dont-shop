@@ -42,8 +42,17 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuthConfig => 
   const grpcPort = parsePort(env.AUTH_GRPC_PORT, DEFAULT_GRPC_PORT, 'AUTH_GRPC_PORT');
 
   const databaseUrl = requireSecret('DATABASE_URL', env, 'Postgres connection string');
-  const jwtSecret = requireSecret('JWT_SECRET', env, 'access-token signing secret');
-  const jwtRefreshSecret = requireSecret('JWT_REFRESH_SECRET', env, 'refresh-token signing secret');
+  // HS256 signing secrets — enforce a 32-byte floor so a weak secret can't be
+  // brute-forced offline to forge access/refresh tokens.
+  const jwtSecret = requireSecret('JWT_SECRET', env, 'access-token signing secret', {
+    minBytes: 32,
+  });
+  const jwtRefreshSecret = requireSecret(
+    'JWT_REFRESH_SECRET',
+    env,
+    'refresh-token signing secret',
+    { minBytes: 32 }
+  );
 
   return {
     port,

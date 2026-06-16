@@ -313,6 +313,7 @@ export async function resetPassword(
           reset_token_force_flag = false,
           locked_until = NULL,
           login_attempts = 0,
+          tokens_valid_from = now(),
           updated_at = now()
       WHERE reset_token = $2
         AND (reset_token_expiration IS NULL OR reset_token_expiration > now())
@@ -328,8 +329,9 @@ export async function resetPassword(
     // Revoke every existing session: a password reset is a security event
     // (often a compromised-account recovery), so all refresh tokens must
     // stop working. Sets both revocation columns so refresh AND ListSessions
-    // agree. Access tokens are short-lived JWTs that can no longer be
-    // refreshed once their session is gone.
+    // agree. Already-issued access tokens are invalidated immediately by the
+    // tokens_valid_from watermark stamped above (ValidateToken rejects any
+    // access token issued before it).
     await client.query(
       `UPDATE auth.refresh_tokens
           SET revoked_at = now(), is_revoked = true, updated_at = now()
@@ -375,7 +377,9 @@ export async function changePassword(
 
   await withTransaction(deps, async ({ client, publish }) => {
     await client.query(
-      `UPDATE auth.users SET password = $1, updated_at = now() WHERE user_id = $2`,
+      `UPDATE auth.users
+          SET password = $1, tokens_valid_from = now(), updated_at = now()
+        WHERE user_id = $2`,
       [newHash, principal.userId]
     );
     // Changing the password ends all other sessions: revoke every refresh

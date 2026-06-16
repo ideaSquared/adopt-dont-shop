@@ -101,6 +101,19 @@ describe('requireSecret', () => {
     );
   });
 
+  it('throws when a present value is shorter than minBytes', () => {
+    expect(() =>
+      requireSecret('JWT_SECRET', { JWT_SECRET: 'short' }, undefined, { minBytes: 32 })
+    ).toThrow(/JWT_SECRET must be at least 32 bytes/);
+  });
+
+  it('accepts a value that meets minBytes', () => {
+    const value = 'a-signing-secret-that-is-at-least-32-bytes';
+    expect(requireSecret('JWT_SECRET', { JWT_SECRET: value }, undefined, { minBytes: 32 })).toBe(
+      value
+    );
+  });
+
   it('refuses to guess when both NAME and NAME_FILE are set (delegates to readSecret)', () => {
     const file = join(tmp, 'jwt');
     writeFileSync(file, 'file-value');
