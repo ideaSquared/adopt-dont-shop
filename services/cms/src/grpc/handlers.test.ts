@@ -178,6 +178,60 @@ describe('public reads', () => {
     expect(res.content?.slug).toBe('hello');
   });
 
+  it('getPublicContentBySlug: strips edit history, author IDs and scheduling', async () => {
+    mocks.poolScript.push({
+      rows: [
+        contentRow({
+          status: 'published',
+          versions: [
+            {
+              version: 1,
+              title: 'old',
+              content: 'x',
+              changedBy: 'usr-admin',
+              createdAt: '2026-06-01T00:00:00Z',
+            },
+          ],
+          author_id: 'usr-admin',
+          last_modified_by: 'usr-editor',
+          scheduled_publish_at: new Date('2026-07-01T00:00:00Z'),
+          scheduled_unpublish_at: new Date('2026-08-01T00:00:00Z'),
+        }),
+      ],
+    });
+    const res = await getPublicContentBySlug(mocks.deps, null, { slug: 'hello' });
+    expect(res.content?.versionsJson).toBe('[]');
+    expect(res.content?.authorId).toBe('');
+    expect(res.content?.lastModifiedBy).toBeUndefined();
+    expect(res.content?.scheduledPublishAt).toBeUndefined();
+    expect(res.content?.scheduledUnpublishAt).toBeUndefined();
+  });
+
+  it('listPublicContent: strips edit history and author IDs from each item', async () => {
+    mocks.poolScript.push({ rows: [{ count: '1' }] });
+    mocks.poolScript.push({
+      rows: [
+        contentRow({
+          status: 'published',
+          versions: [
+            {
+              version: 1,
+              title: 't',
+              content: 'c',
+              changedBy: 'usr-admin',
+              createdAt: '2026-06-01T00:00:00Z',
+            },
+          ],
+          last_modified_by: 'usr-editor',
+        }),
+      ],
+    });
+    const res = await listPublicContent(mocks.deps, null, { contentType: 0, page: 1, limit: 10 });
+    expect(res.items[0].versionsJson).toBe('[]');
+    expect(res.items[0].authorId).toBe('');
+    expect(res.items[0].lastModifiedBy).toBeUndefined();
+  });
+
   it('getPublicContentBySlug: rejects empty slug with INVALID_ARGUMENT', async () => {
     await expect(getPublicContentBySlug(mocks.deps, null, { slug: '' })).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
