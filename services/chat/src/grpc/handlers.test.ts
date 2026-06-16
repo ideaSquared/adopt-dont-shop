@@ -856,6 +856,8 @@ describe('deleteMessage', () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [messageRowFixture({ sender_id: 'usr-adopter' })],
     });
+    // ensureChatWritable → active chat
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ status: 'active', deleted_at: null }] });
     // Inside withTransaction: UPDATE returning, SELECT participants
     mocks.clientScript.push({ rows: [messageRowFixture({ deleted_at: new Date() })] });
     mocks.clientScript.push({
@@ -865,6 +867,41 @@ describe('deleteMessage', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
 
     const res = await deleteMessage(mocks.deps, ADOPTER_PRINCIPAL, { messageId: 'msg-1' });
+    expect(res.message?.deletedAt).toBeDefined();
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.messageDeleted');
+  });
+
+  it('rejects a sender deleting their message in a closed (archived) chat', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [messageRowFixture({ sender_id: 'usr-adopter' })],
+    });
+    // ensureChatWritable → archived chat
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ status: 'archived', deleted_at: null }],
+    });
+
+    await expect(
+      deleteMessage(mocks.deps, ADOPTER_PRINCIPAL, { messageId: 'msg-1' })
+    ).rejects.toMatchObject({ code: 'FAILED_PRECONDITION' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('lets a delete:any moderator delete a message in a closed chat', async () => {
+    const moderator: Principal = {
+      userId: 'usr-mod' as UserId,
+      roles: ['moderator'],
+      permissions: ['chat.message.delete:any' as Permission],
+    };
+    // existing row → owned by someone else, not yet deleted
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [messageRowFixture({ sender_id: 'usr-adopter' })],
+    });
+    // No ensureChatWritable lookup happens for delete:any — straight to tx.
+    mocks.clientScript.push({ rows: [messageRowFixture({ deleted_at: new Date() })] });
+    mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // reactions
+
+    const res = await deleteMessage(mocks.deps, moderator, { messageId: 'msg-1' });
     expect(res.message?.deletedAt).toBeDefined();
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('chat.messageDeleted');
   });
