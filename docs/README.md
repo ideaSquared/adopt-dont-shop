@@ -74,6 +74,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 ## Backend development
 
 - [API endpoints](./backend/api-endpoints.md) — REST endpoints reference
+- [API versioning & deprecation](./api-versioning.md) — `/api/v<N>/` scheme, breaking-change definition, deprecation lifecycle
 - [Database schema](./backend/database-schema.md) — service-owned schemas and relationships
 - [Implementation guide](./backend/implementation-guide.md) — patterns for gateway routes, gRPC handlers, services
 - [Testing](./backend/testing.md) — backend test strategy and Vitest setup
