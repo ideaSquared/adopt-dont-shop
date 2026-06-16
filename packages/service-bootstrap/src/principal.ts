@@ -2,6 +2,7 @@ import { Metadata } from '@grpc/grpc-js';
 
 import {
   getDefaultPrincipalSigningKey,
+  MIN_SIGNING_KEY_BYTES,
   PRINCIPAL_TOKEN_HEADER,
   signPrincipalToken,
   verifyPrincipalToken,
@@ -33,8 +34,17 @@ export class InsecurePrincipalConfigError extends Error {
 // real cross-service authz boundary). Fail closed in production unless the
 // operator explicitly opts into header-trust via ALLOW_UNSIGNED_PRINCIPAL.
 export function assertPrincipalVerificationConfig(env: NodeJS.ProcessEnv = process.env): void {
-  if (getDefaultPrincipalSigningKey()) {
-    return; // signed-token verification enabled — the secure path.
+  const key = getDefaultPrincipalSigningKey();
+  if (key) {
+    // Signed-token verification enabled — the secure path. Reject a weak key:
+    // a short HMAC secret is offline-brute-forceable and would let an attacker
+    // forge principal tokens trusted by every service.
+    if (Buffer.byteLength(key, 'utf8') < MIN_SIGNING_KEY_BYTES) {
+      throw new InsecurePrincipalConfigError(
+        `PRINCIPAL_SIGNING_KEY must be at least ${MIN_SIGNING_KEY_BYTES} bytes`
+      );
+    }
+    return;
   }
   const isProduction = env.NODE_ENV === 'production';
   const allowUnsigned = env.ALLOW_UNSIGNED_PRINCIPAL === 'true';

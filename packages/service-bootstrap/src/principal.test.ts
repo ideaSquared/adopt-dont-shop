@@ -224,8 +224,15 @@ describe('assertPrincipalVerificationConfig', () => {
   };
 
   it('does not throw when a signing key is configured (even in production)', () => {
-    withKey('signing-key');
+    withKey('a-signing-key-that-is-at-least-32-bytes');
     expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'production' })).not.toThrow();
+  });
+
+  it('throws when the signing key is shorter than 32 bytes', () => {
+    withKey('too-short-key');
+    expect(() => assertPrincipalVerificationConfig({ NODE_ENV: 'production' })).toThrow(
+      InsecurePrincipalConfigError
+    );
   });
 
   it('throws in production when no key is set and no escape hatch', () => {

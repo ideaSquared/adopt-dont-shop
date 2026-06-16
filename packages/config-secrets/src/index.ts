@@ -58,16 +58,24 @@ export const readSecret = (
  * The optional `description` is appended to the error message to match the
  * per-service phrasing: `"${name} is required (${description})"`.
  * When omitted the message is `"${name} is required"`.
+ *
+ * Pass `opts.minBytes` to additionally reject a present-but-too-short secret
+ * — used for HMAC signing keys where a weak secret is offline-brute-forceable
+ * and would let an attacker forge tokens platform-wide.
  */
 export const requireSecret = (
   name: string,
   env: NodeJS.ProcessEnv = process.env,
-  description?: string
+  description?: string,
+  opts?: { minBytes?: number }
 ): string => {
   const value = readSecret(name, env)?.trim();
   if (!value) {
     const detail = description !== undefined ? ` (${description})` : '';
     throw new Error(`${name} is required${detail}`);
+  }
+  if (opts?.minBytes !== undefined && Buffer.byteLength(value, 'utf8') < opts.minBytes) {
+    throw new Error(`${name} must be at least ${opts.minBytes} bytes`);
   }
   return value;
 };
