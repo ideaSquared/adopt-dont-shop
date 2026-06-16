@@ -1,8 +1,8 @@
 import type { NatsConnection } from 'nats';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { nakBackoffMs, subscribe } from './subscribe.js';
-import { DOMAIN_STREAM } from './stream.js';
+import { deadLetter, handleFailure, MAX_DELIVER, nakBackoffMs, subscribe } from './subscribe.js';
+import { DLQ_SUBJECT_PREFIX, DOMAIN_STREAM } from './stream.js';
 
 // A minimal in-memory JetStream stand-in. It models the one property that
 // matters for this migration: messages live in the STREAM (not in a live
@@ -144,6 +144,17 @@ describe('subscribe (durable JetStream consumer)', () => {
     );
   });
 
+  it('caps redeliveries via max_deliver so poison messages eventually dead-letter', async () => {
+    const bus = makeBus();
+    subscribe(bus.nc, { subject: 'pets.created', durable: 'pets-workers' }, async () => undefined);
+    await flush();
+
+    expect(bus.jsmAdd).toHaveBeenCalledWith(
+      DOMAIN_STREAM,
+      expect.objectContaining({ max_deliver: MAX_DELIVER })
+    );
+  });
+
   it('delivers an event that was published WHILE the subscriber was down', async () => {
     const bus = makeBus();
     // Event fires first — no consumer exists yet (subscriber is "down").
@@ -278,5 +289,53 @@ describe('nakBackoffMs', () => {
 
   it('never returns a negative delay for a degenerate attempt count', () => {
     expect(nakBackoffMs(0)).toBe(1_000);
+  });
+});
+
+describe('handleFailure / deadLetter', () => {
+  function makeNc() {
+    const publish = vi.fn(async () => ({ seq: 1 }));
+    const nc = { jetstream: vi.fn(() => ({ publish })) } as unknown as NatsConnection;
+    return { nc, publish };
+  }
+
+  function fakeMsg(redeliveryCount: number) {
+    return {
+      subject: 'pets.created',
+      info: { redeliveryCount },
+      nak: vi.fn(),
+      term: vi.fn(),
+    };
+  }
+
+  it('backs off and redelivers while within the retry budget', async () => {
+    const { nc, publish } = makeNc();
+    const msg = fakeMsg(2);
+    await handleFailure(nc, msg, '{"id":"e1"}', new Error('blip'));
+    expect(msg.nak).toHaveBeenCalledWith(nakBackoffMs(2));
+    expect(msg.term).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('dead-letters and term()s once the retry budget is exhausted', async () => {
+    const { nc, publish } = makeNc();
+    const msg = fakeMsg(MAX_DELIVER);
+    await handleFailure(nc, msg, '{"id":"e1"}', new Error('still broken'));
+    expect(msg.nak).not.toHaveBeenCalled();
+    expect(msg.term).toHaveBeenCalledTimes(1);
+    expect(publish).toHaveBeenCalledTimes(1);
+    // Published to dlq.<original-subject>.
+    expect(publish.mock.calls[0][0]).toBe(`${DLQ_SUBJECT_PREFIX}pets.created`);
+  });
+
+  it('deadLetter preserves the raw payload and stamps triage headers', async () => {
+    const { nc, publish } = makeNc();
+    await deadLetter(nc, 'pets.created', '{"id":"e1"}', new Error('boom'));
+    const [subject, data, opts] = publish.mock.calls[0];
+    expect(subject).toBe('dlq.pets.created');
+    expect(new TextDecoder().decode(data as Uint8Array)).toBe('{"id":"e1"}');
+    const headers = (opts as { headers: { get: (k: string) => string } }).headers;
+    expect(headers.get('dlq-original-subject')).toBe('pets.created');
+    expect(headers.get('dlq-error')).toBe('boom');
   });
 });

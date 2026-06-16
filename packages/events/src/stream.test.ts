@@ -8,7 +8,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { NatsConnection } from 'nats';
 
-import { DOMAIN_STREAM, DOMAIN_SUBJECTS, ensureStream } from './stream.js';
+import {
+  DLQ_STREAM,
+  DLQ_SUBJECT_PREFIX,
+  DOMAIN_STREAM,
+  DOMAIN_SUBJECTS,
+  ensureStream,
+} from './stream.js';
 
 // Token-aware matcher mirroring NATS semantics: `*` matches exactly one
 // token (including `$JS`), `>` matches one or more trailing tokens.
@@ -101,6 +107,16 @@ describe('ensureStream', () => {
     expect(update).toHaveBeenCalledWith(
       DOMAIN_STREAM,
       expect.objectContaining({ subjects: [...DOMAIN_SUBJECTS] })
+    );
+  });
+
+  it('also creates the dead-letter stream capturing dlq.>', async () => {
+    const { nc, add } = makeNc(async () => ({}));
+
+    await ensureStream(nc);
+
+    expect(add).toHaveBeenCalledWith(
+      expect.objectContaining({ name: DLQ_STREAM, subjects: [`${DLQ_SUBJECT_PREFIX}>`] })
     );
   });
 });

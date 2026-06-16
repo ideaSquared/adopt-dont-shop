@@ -1,12 +1,13 @@
 import {
   AckPolicy,
   DeliverPolicy,
+  headers,
   type ConsumerMessages,
   type JsMsg,
   type NatsConnection,
 } from 'nats';
 
-import { DOMAIN_STREAM } from './stream.js';
+import { DLQ_SUBJECT_PREFIX, DOMAIN_STREAM } from './stream.js';
 
 export type SubscribeOptions = {
   // NATS subject pattern (e.g. `pets.unit.statusChanged`). Wildcards (`*`,
@@ -88,11 +89,21 @@ export function subscribe<T = unknown>(
     // already exists (from a previous boot) is reused with its saved
     // position, so the backlog accumulated while this subscriber was down is
     // delivered now.
+    //
+    // NOTE: JetStream does NOT apply a changed deliver_policy / filter_subject
+    // to an already-existing durable on re-add — those are fixed at creation.
+    // Changing them in code requires deleting and recreating the consumer (a
+    // deliberate ops step), so a flipped `deliverNew` won't take effect on an
+    // existing durable until it's recreated.
     await jsm.consumers.add(DOMAIN_STREAM, {
       durable_name: opts.durable,
       filter_subject: opts.subject,
       ack_policy: AckPolicy.Explicit,
       deliver_policy: opts.deliverNew ? DeliverPolicy.New : DeliverPolicy.All,
+      // Cap redeliveries — after MAX_DELIVER attempts handleFailure() dead-
+      // letters the message instead of retrying forever (backstop for the
+      // app-level term() in case a crash skips it).
+      max_deliver: MAX_DELIVER,
     });
 
     const js = nc.jetstream();
@@ -103,7 +114,7 @@ export function subscribe<T = unknown>(
     messages = await consumer.consume();
     const decoder = new TextDecoder();
     for await (const msg of messages) {
-      await dispatch<T>(msg, decoder, opts, handler);
+      await dispatch<T>(nc, msg, decoder, opts, handler);
     }
   })();
 
@@ -116,6 +127,7 @@ export function subscribe<T = unknown>(
 }
 
 async function dispatch<T>(
+  nc: NatsConnection,
   msg: JsMsg,
   decoder: TextDecoder,
   opts: SubscribeOptions,
@@ -138,20 +150,12 @@ async function dispatch<T>(
     await handler(envelope.payload, { subject: msg.subject, id: envelope.id, occurredAt });
     msg.ack();
   } catch (err) {
-    // Handler failed — could be transient (DB blip) so nak() for redelivery.
-    // Handlers are idempotent on the event id, so a redelivery of an event
-    // that actually half-succeeded is a clean skip on the next attempt.
-    //
-    // Back off redelivery (exponential on the redelivery count, capped) so a
-    // persistently-failing but PARSEABLE message can't hot-loop the consumer
-    // — only JSON-parse failures term() immediately. The first retry is still
-    // fast (covers a transient blip); repeated failures slow down.
-    // (A hard max_deliver + dead-letter subject is a separate, deliberate
-    // decision — see the events review notes.)
+    // Handler failed — could be transient (DB blip) so back off + redeliver;
+    // a persistently-failing message is dead-lettered once it exhausts the
+    // retry budget. Handlers are idempotent on the event id, so a redelivery
+    // of an event that half-succeeded is a clean skip on the next attempt.
     opts.onError?.(err, { subject: msg.subject, raw });
-    const info = (msg as { info?: { redeliveryCount?: number } }).info;
-    const attempt = info?.redeliveryCount ?? (msg.redelivered ? 2 : 1);
-    msg.nak(nakBackoffMs(attempt));
+    await handleFailure(nc, msg, raw, err);
   }
 }
 
@@ -162,4 +166,48 @@ const NAK_MAX_DELAY_MS = 30_000;
 
 export function nakBackoffMs(attempt: number): number {
   return Math.min(NAK_MAX_DELAY_MS, NAK_BASE_DELAY_MS * 2 ** Math.max(0, attempt - 1));
+}
+
+// After this many delivery attempts a persistently-failing (but parseable)
+// message is dead-lettered rather than retried forever.
+export const MAX_DELIVER = 7;
+
+// A handler failure either backs off for redelivery, or — once the retry
+// budget is exhausted — parks the message in the dead-letter stream and
+// term()s it so the consumer stops looping. Exported for unit testing.
+export async function handleFailure(
+  nc: NatsConnection,
+  msg: Pick<JsMsg, 'subject' | 'nak' | 'term'> & {
+    info?: { redeliveryCount?: number };
+    redelivered?: boolean;
+  },
+  raw: string,
+  err: unknown
+): Promise<void> {
+  const attempt = msg.info?.redeliveryCount ?? (msg.redelivered ? 2 : 1);
+  if (attempt >= MAX_DELIVER) {
+    await deadLetter(nc, msg.subject, raw, err);
+    msg.term();
+    return;
+  }
+  msg.nak(nakBackoffMs(attempt));
+}
+
+// Publish a failed message to the dead-letter stream on
+// `dlq.<original-subject>`, preserving the raw payload and stamping the
+// original subject + error message for triage. Exported for unit testing.
+export async function deadLetter(
+  nc: NatsConnection,
+  originalSubject: string,
+  raw: string,
+  err: unknown
+): Promise<void> {
+  const h = headers();
+  h.set('dlq-original-subject', originalSubject);
+  h.set('dlq-error', err instanceof Error ? err.message : String(err));
+  await nc
+    .jetstream()
+    .publish(`${DLQ_SUBJECT_PREFIX}${originalSubject}`, new TextEncoder().encode(raw), {
+      headers: h,
+    });
 }

@@ -21,10 +21,22 @@
 // coverage test in stream.test.ts). An unused prefix costs nothing; a
 // missing one means that domain's events have no durable stream.
 
-import { type NatsConnection, RetentionPolicy, StorageType } from 'nats';
+import {
+  type JetStreamManager,
+  type NatsConnection,
+  RetentionPolicy,
+  type StreamConfig,
+  StorageType,
+} from 'nats';
 
 // The one stream every service publishes to and consumes from.
 export const DOMAIN_STREAM = 'DOMAIN_EVENTS';
+
+// Dead-letter stream + subject prefix. A message that exhausts its consumer
+// redelivery budget (subscribe.ts MAX_DELIVER) is republished here on
+// `dlq.<original-subject>` for triage rather than being dropped or looped.
+export const DLQ_STREAM = 'DOMAIN_EVENTS_DLQ';
+export const DLQ_SUBJECT_PREFIX = 'dlq.';
 
 // One `<prefix>.>` filter per service domain (plus the cross-service gdpr
 // saga subjects). Explicit on purpose — see the header comment.
@@ -58,23 +70,39 @@ export type DomainSubject = (typeof DOMAIN_SUBJECTS)[number];
 // when the same event id is published twice within the window.
 export async function ensureStream(nc: NatsConnection): Promise<void> {
   const jsm = await nc.jetstreamManager();
-  const config = {
+
+  await addOrUpdateStream(jsm, {
     name: DOMAIN_STREAM,
     subjects: [...DOMAIN_SUBJECTS],
     retention: RetentionPolicy.Limits,
     storage: StorageType.File,
     max_age: 7 * 24 * 60 * 60 * 1_000_000_000, // 7 days in nanoseconds
     duplicate_window: 2 * 60 * 1_000_000_000, // 2 minutes in nanoseconds
-  };
+  });
 
+  // Dead-letter stream — messages that exhausted their redelivery budget land
+  // here on `dlq.<original-subject>`. Retained longer than the main stream so
+  // there's time to triage. Subjects don't overlap DOMAIN_SUBJECTS.
+  await addOrUpdateStream(jsm, {
+    name: DLQ_STREAM,
+    subjects: [`${DLQ_SUBJECT_PREFIX}>`],
+    retention: RetentionPolicy.Limits,
+    storage: StorageType.File,
+    max_age: 14 * 24 * 60 * 60 * 1_000_000_000, // 14 days in nanoseconds
+  });
+}
+
+// add-or-update a stream: `streams.add` throws when the stream already exists
+// (from a prior boot), so fall through to an update rather than crashing.
+async function addOrUpdateStream(
+  jsm: JetStreamManager,
+  config: Partial<StreamConfig> & { name: string }
+): Promise<void> {
   try {
     await jsm.streams.add(config);
   } catch (err) {
-    // Already exists — reconcile to the desired config. `streams.add`
-    // throws when the stream exists, so we fall through to an update
-    // rather than crashing the boot.
     if (isStreamAlreadyExists(err)) {
-      await jsm.streams.update(DOMAIN_STREAM, config);
+      await jsm.streams.update(config.name, config);
       return;
     }
     throw err;
