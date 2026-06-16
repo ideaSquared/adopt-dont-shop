@@ -58,6 +58,13 @@ export type ApplicationDocumentsRoutesOptions = {
   storage: StorageConfig;
 };
 
+// Per-route rate limit (ADS-848). The upload POST reads the multipart body
+// into memory, writes the bytes to storage and then calls the applications
+// service, so cap it explicitly at the route — the same defence-in-depth the
+// image upload route applies — rather than relying solely on the global
+// limiter registered in server.ts.
+const DOCUMENT_UPLOAD_RATE_LIMIT = { max: 20, timeWindow: '1 minute' } as const;
+
 export const registerApplicationDocumentsRoutes = async (
   app: FastifyInstance,
   opts: ApplicationDocumentsRoutesOptions
@@ -68,87 +75,91 @@ export const registerApplicationDocumentsRoutes = async (
   // POST /:id/documents — multipart upload. Stores bytes, then registers
   // metadata via AddDocument. `file` is the file part; `type` is a text
   // field carrying the document category (e.g. "id_verification").
-  app.post<{ Params: { id: string } }>('/api/v1/applications/:id/documents', async (req, reply) => {
-    if (typeof (req as { isMultipart?: () => boolean }).isMultipart !== 'function') {
-      return reply.code(500).send({ error: 'multipart support not registered' });
-    }
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/applications/:id/documents',
+    { config: { rateLimit: DOCUMENT_UPLOAD_RATE_LIMIT } },
+    async (req, reply) => {
+      if (typeof (req as { isMultipart?: () => boolean }).isMultipart !== 'function') {
+        return reply.code(500).send({ error: 'multipart support not registered' });
+      }
 
-    let filename = '';
-    let mimetype = '';
-    let buffer: Buffer | null = null;
-    let docType = '';
+      let filename = '';
+      let mimetype = '';
+      let buffer: Buffer | null = null;
+      let docType = '';
 
-    try {
-      const parts = (req as unknown as { parts: () => AsyncIterable<MultipartPart> }).parts();
-      for await (const part of parts) {
-        if (part.type === 'file') {
-          filename = part.filename ?? '';
-          mimetype = part.mimetype ?? 'application/octet-stream';
-          buffer = await part.toBuffer();
-        } else if (part.type === 'field' && part.fieldname === 'type') {
-          docType = typeof part.value === 'string' ? part.value : '';
+      try {
+        const parts = (req as unknown as { parts: () => AsyncIterable<MultipartPart> }).parts();
+        for await (const part of parts) {
+          if (part.type === 'file') {
+            filename = part.filename ?? '';
+            mimetype = part.mimetype ?? 'application/octet-stream';
+            buffer = await part.toBuffer();
+          } else if (part.type === 'field' && part.fieldname === 'type') {
+            docType = typeof part.value === 'string' ? part.value : '';
+          }
         }
+      } catch (err) {
+        return reply.code(400).send({ error: `multipart parse failed: ${(err as Error).message}` });
       }
-    } catch (err) {
-      return reply.code(400).send({ error: `multipart parse failed: ${(err as Error).message}` });
-    }
 
-    if (buffer === null || filename === '') {
-      return reply.code(400).send({ error: 'a file part is required' });
-    }
-    if (docType === '') {
-      return reply.code(400).send({ error: 'a `type` field is required' });
-    }
-
-    if (!ALLOWED_DOCUMENT_MIME.has(mimetype)) {
-      return reply.code(400).send({ error: `File type ${mimetype} is not allowed` });
-    }
-
-    const ext = extname(filename).toLowerCase();
-    if (!ALLOWED_EXTENSIONS.has(ext)) {
-      return reply.code(400).send({ error: `File extension ${ext || '(none)'} is not allowed` });
-    }
-
-    // Magic-byte + image-bomb verification (ADS-848). Runs against the actual
-    // bytes, so a spoofed Content-Type / extension can't smuggle a mismatched
-    // file (or a decompression bomb) past the allowlists above.
-    const verification = await verifyUploadContent({
-      buffer,
-      declaredMime: mimetype,
-      extension: ext,
-      allowedMimes: ALLOWED_DOCUMENT_MIME,
-    });
-    if (!verification.ok) {
-      return reply.code(400).send({ error: verification.error });
-    }
-
-    let upload;
-    try {
-      upload = await provider.uploadFile(buffer, filename, mimetype, 'documents');
-    } catch (err) {
-      return reply.code(500).send({ error: `storage write failed: ${(err as Error).message}` });
-    }
-
-    try {
-      const res = await client.addDocument(
-        {
-          applicationId: req.params.id,
-          type: docType,
-          filename: upload.filename,
-          url: upload.url,
-          size: upload.size,
-          mimeType: mimetype,
-        },
-        buildMetadata(req)
-      );
-      if (res.document === undefined) {
-        return reply.code(500).send({ error: 'addDocument returned no document' });
+      if (buffer === null || filename === '') {
+        return reply.code(400).send({ error: 'a file part is required' });
       }
-      return reply.code(201).send({ data: documentToView(res.document) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+      if (docType === '') {
+        return reply.code(400).send({ error: 'a `type` field is required' });
+      }
+
+      if (!ALLOWED_DOCUMENT_MIME.has(mimetype)) {
+        return reply.code(400).send({ error: `File type ${mimetype} is not allowed` });
+      }
+
+      const ext = extname(filename).toLowerCase();
+      if (!ALLOWED_EXTENSIONS.has(ext)) {
+        return reply.code(400).send({ error: `File extension ${ext || '(none)'} is not allowed` });
+      }
+
+      // Magic-byte + image-bomb verification (ADS-848). Runs against the actual
+      // bytes, so a spoofed Content-Type / extension can't smuggle a mismatched
+      // file (or a decompression bomb) past the allowlists above.
+      const verification = await verifyUploadContent({
+        buffer,
+        declaredMime: mimetype,
+        extension: ext,
+        allowedMimes: ALLOWED_DOCUMENT_MIME,
+      });
+      if (!verification.ok) {
+        return reply.code(400).send({ error: verification.error });
+      }
+
+      let upload;
+      try {
+        upload = await provider.uploadFile(buffer, filename, mimetype, 'documents');
+      } catch (err) {
+        return reply.code(500).send({ error: `storage write failed: ${(err as Error).message}` });
+      }
+
+      try {
+        const res = await client.addDocument(
+          {
+            applicationId: req.params.id,
+            type: docType,
+            filename: upload.filename,
+            url: upload.url,
+            size: upload.size,
+            mimeType: mimetype,
+          },
+          buildMetadata(req)
+        );
+        if (res.document === undefined) {
+          return reply.code(500).send({ error: 'addDocument returned no document' });
+        }
+        return reply.code(201).send({ data: documentToView(res.document) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // GET /:id/documents → { data: Document[] }. The frontend's getDocuments
   // helper unwraps `data` (defaulting to [] if absent).
