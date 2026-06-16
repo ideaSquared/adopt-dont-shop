@@ -72,6 +72,16 @@ const EXPECTED_SCRIPT_BODIES = {
   test: ['vitest run'],
 };
 
+// ADS-793: the canonical Prettier glob for lib.* packages. Unlike the bodies
+// above (warnings on drift), format/format:check drift is a HARD failure for
+// lib.* so the standardised glob can't silently regress. Apps use a wider glob
+// (they ship .js/.jsx config), so this guard is lib-only — keep it out of
+// EXPECTED_SCRIPT_BODIES, which is checked for both families.
+const EXPECTED_LIB_FORMAT_BODIES = {
+  format: 'prettier --write "src/**/*.{ts,tsx,json}"',
+  'format:check': 'prettier --check "src/**/*.{ts,tsx,json}"',
+};
+
 const EXPECTED_LINT_BODIES = ['eslint .', 'eslint src'];
 
 // After the Phase 0 restructure (apps/ + packages/lib.* + services/), libs
@@ -123,6 +133,20 @@ function checkScriptBodyDrift(workspace, scripts) {
     warnings.push({ workspace, script: 'lint', actual: lintBody, expected: EXPECTED_LINT_BODIES });
   }
   return warnings;
+}
+
+// ADS-793: fatal lib-only check that format/format:check use the canonical glob.
+function checkLibFormatBodies(lib, scripts) {
+  const failures = [];
+  for (const [name, expected] of Object.entries(EXPECTED_LIB_FORMAT_BODIES)) {
+    const body = scripts[name];
+    if (body && body !== expected) {
+      failures.push(
+        `[${lib}] '${name}' body is '${body}', expected '${expected}' (ADS-793 canonical format glob)`
+      );
+    }
+  }
+  return failures;
 }
 
 function checkVitestWorkspace(libs) {
@@ -344,6 +368,7 @@ function main() {
       failures.push(`[${lib}] missing scripts: ${missing.join(', ')}`);
     }
     warnings.push(...checkScriptBodyDrift(lib, scripts));
+    failures.push(...checkLibFormatBodies(lib, scripts));
   }
   for (const app of apps) {
     const { scripts, missing } = checkRequiredScripts(app, REQUIRED_APP_SCRIPTS);

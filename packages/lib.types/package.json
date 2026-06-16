@@ -26,8 +26,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css.ts}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css.ts}\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json}\"",
     "type-check": "tsc --noEmit",
     "prepublishOnly": "pnpm clean && pnpm build"
   },

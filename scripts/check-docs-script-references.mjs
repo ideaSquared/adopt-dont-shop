@@ -1,0 +1,126 @@
+#!/usr/bin/env node
+/**
+ * Docs ↔ scripts reference guard (ADS-795).
+ *
+ * Fails CI when a Markdown file references a package script that no longer
+ * exists. Catches the recurring doc-drift where README / CONTRIBUTING /
+ * CLAUDE.md keep naming `pnpm <foo>` long after `<foo>` was renamed or removed.
+ *
+ * What it checks: occurrences of the explicit `pnpm run <name>` / `npm run
+ * <name>` form. A reference is valid if `<name>` is a script in the root
+ * package.json OR any workspace package.json. The bare `pnpm <name>` form is
+ * deliberately NOT matched — it collides with prose ("pnpm is…"), pnpm
+ * subcommands, and scripts that only exist inside service containers
+ * (`docker compose exec service-x pnpm db:migrate`), which would produce false
+ * positives across docs this guard does not own. The `run` keyword is the
+ * unambiguous signal that an actual package script is being invoked.
+ *
+ * Mirrors the no-dependency single-file style of scripts/check-*.mjs.
+ */
+import { readdirSync, readFileSync, statSync } from 'fs';
+import { join, dirname, relative } from 'path';
+import { fileURLToPath } from 'url';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+function collectScriptNames() {
+  const names = new Set();
+  const rootPkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  for (const name of Object.keys(rootPkg.scripts || {})) names.add(name);
+
+  const families = ['apps', 'packages', 'services'];
+  for (const family of families) {
+    let entries;
+    try {
+      entries = readdirSync(join(ROOT, family), { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const pkgPath = join(ROOT, family, entry.name, 'package.json');
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+        for (const name of Object.keys(pkg.scripts || {})) names.add(name);
+      } catch {
+        // No package.json — skip.
+      }
+    }
+  }
+  const e2ePkg = join(ROOT, 'e2e', 'package.json');
+  try {
+    const pkg = JSON.parse(readFileSync(e2ePkg, 'utf8'));
+    for (const name of Object.keys(pkg.scripts || {})) names.add(name);
+  } catch {
+    // e2e absent — skip.
+  }
+  return names;
+}
+
+function listMarkdown(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === 'dist') continue;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...listMarkdown(full));
+      continue;
+    }
+    if (entry.name.endsWith('.md')) out.push(full);
+  }
+  return out;
+}
+
+// Matches the explicit `pnpm run foo` / `npm run foo` form only. The script
+// name is a single token of [a-z][a-z0-9:_-]*.
+const REF_RE = /\b(?:pnpm|npm) run\s+([a-z][a-z0-9:_-]*)/g;
+
+function findBadRefs(file, known) {
+  const contents = readFileSync(file, 'utf8');
+  const bad = [];
+  let m;
+  while ((m = REF_RE.exec(contents)) !== null) {
+    const name = m[1];
+    if (known.has(name)) continue;
+    bad.push(name);
+  }
+  return [...new Set(bad)];
+}
+
+function main() {
+  const known = collectScriptNames();
+  const docsToScan = [
+    join(ROOT, 'README.md'),
+    join(ROOT, 'CONTRIBUTING.md'),
+    join(ROOT, '.claude', 'CLAUDE.md'),
+    ...listMarkdown(join(ROOT, 'docs')),
+  ].filter(p => {
+    try {
+      statSync(p);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+  const failures = [];
+  for (const file of docsToScan) {
+    const bad = findBadRefs(file, known);
+    for (const name of bad) {
+      failures.push(`${relative(ROOT, file)}: references 'pnpm ${name}' but no package defines a '${name}' script`);
+    }
+  }
+
+  if (failures.length === 0) {
+    console.log('OK — every documented pnpm script reference resolves to a real script.');
+    return;
+  }
+
+  console.error('Docs reference scripts that do not exist:');
+  for (const f of failures) console.error(`  - ${f}`);
+  console.error('');
+  console.error('Fix the doc (rename/remove the stale reference) or add the missing script.');
+  process.exit(1);
+}
+
+main();
