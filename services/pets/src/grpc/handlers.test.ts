@@ -208,6 +208,54 @@ describe('getPet', () => {
       code: 'NOT_FOUND',
     });
   });
+
+  it('strips internal notes for a non-staff reader', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [petRow({ medical_notes: 'allergic to chicken', behavioral_notes: 'shy' })],
+    });
+    const res = await getPet(mocks.deps, ADOPTER, { petId: 'pet-1' });
+    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    expect(extra.medicalNotes).toBeUndefined();
+    expect(extra.behavioralNotes).toBeUndefined();
+  });
+
+  it('keeps internal notes for rescue staff of the pet rescue', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [petRow({ medical_notes: 'allergic to chicken', behavioral_notes: 'shy' })],
+    });
+    const res = await getPet(mocks.deps, STAFF, { petId: 'pet-1' });
+    const extra = JSON.parse(res.pet.extraJson) as Record<string, unknown>;
+    expect(extra.medicalNotes).toBe('allergic to chicken');
+    expect(extra.behavioralNotes).toBe('shy');
+  });
+
+  it('NOT_FOUND for a non-staff reader on a terminal-status pet', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'adopted' })] });
+    await expect(getPet(mocks.deps, ADOPTER, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('NOT_FOUND for a non-staff reader on an archived pet', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ archived: true })] });
+    await expect(getPet(mocks.deps, ADOPTER, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('lets rescue staff of the pet rescue view a terminal-status pet', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'adopted' })] });
+    const res = await getPet(mocks.deps, STAFF, { petId: 'pet-1' });
+    expect(res.pet.status).toBe(PetsV1.PetStatus.PET_STATUS_ADOPTED);
+  });
+
+  it('hides another rescue staff’s terminal pet (treats them as non-privileged)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow({ status: 'adopted' })] });
+    // OTHER_STAFF is scoped to rsc-2; the pet belongs to rsc-1.
+    await expect(getPet(mocks.deps, OTHER_STAFF, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
 });
 
 // --- listPets --------------------------------------------------------
@@ -298,6 +346,34 @@ describe('listPets', () => {
     const sql = mocks.poolMock.query.mock.calls[0][0] as string;
     // No rescue_id predicate is forced on a public browse.
     expect(sql).not.toMatch(/rescue_id =/);
+  });
+
+  it('hides terminal + archived pets from a public browse', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listPets(mocks.deps, ADOPTER, { limit: 0 } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(sql).toMatch(/status NOT IN/);
+    expect(sql).toMatch(/archived = false/);
+    expect(params).toEqual(expect.arrayContaining(['adopted', 'deceased', 'not_available']));
+  });
+
+  it('does not hide statuses from rescue staff (own-rescue view)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listPets(mocks.deps, STAFF, { limit: 0 } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    expect(sql).not.toMatch(/status NOT IN/);
+    expect(sql).not.toMatch(/archived = false/);
+  });
+
+  it('strips internal notes from public browse results', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [petRow({ medical_notes: 'sensitive', behavioral_notes: 'sensitive' })],
+    });
+    const res = await listPets(mocks.deps, ADOPTER, { limit: 2 } as never);
+    const extra = JSON.parse(res.pets[0].extraJson) as Record<string, unknown>;
+    expect(extra.medicalNotes).toBeUndefined();
+    expect(extra.behavioralNotes).toBeUndefined();
   });
 });
 
