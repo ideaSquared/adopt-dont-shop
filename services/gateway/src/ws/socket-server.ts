@@ -100,19 +100,16 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
   const { httpServer, registry, logger, config, authClient, allowUnauthenticated = false } = opts;
 
   const io = new IOServer(httpServer, {
-    // Origin allowlist (ADS-843): the handshake's Origin must be in
-    // config.cors.origins. nginx applies its own origin check at the edge,
-    // but the gateway can be hit directly (internal LB, debug runs without
-    // nginx) so this is defence-in-depth. originAllowed() fails closed when
-    // the allowlist is empty (rejects every cross-origin handshake).
+    // Origin allowlist (ADS-843): the CORS layer is configured with the static
+    // config.cors.origins allowlist — never a reflected wildcard — so a
+    // credentialed handshake response can't echo an arbitrary origin. cors on
+    // its own only omits the Access-Control-Allow-Origin header for an unlisted
+    // origin (which a non-browser client ignores), so the HARD rejection lives
+    // in the io.use handshake guard below. nginx applies its own origin check
+    // at the edge, but the gateway can be hit directly (internal LB, debug runs
+    // without nginx) so this is defence-in-depth.
     cors: {
-      origin: (origin, callback) => {
-        if (originAllowed(origin, config.cors.origins)) {
-          callback(null, true);
-          return;
-        }
-        callback(new Error('origin not allowed'), false);
-      },
+      origin: config.cors.origins,
       credentials: true,
     },
     // The same /socket.io path the existing app uses, so the React
@@ -133,6 +130,17 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
   }
 
   io.use((socket, next) => {
+    // Origin allowlist (ADS-843). A browser always sends an Origin on the WS
+    // upgrade — reject one that isn't in config.cors.origins so a cross-origin
+    // page can't open an authenticated socket. A request without an Origin
+    // (non-browser / same-origin) is not subject to this check. An empty
+    // allowlist therefore rejects every cross-origin handshake (fail closed).
+    const origin = socket.handshake.headers.origin;
+    if (origin !== undefined && origin !== '' && !config.cors.origins.includes(origin)) {
+      next(new Error('origin not allowed'));
+      return;
+    }
+
     void authenticateHandshake(socket, { authClient, allowUnauthenticated, logger })
       .then(userId => {
         if (!userId) {
@@ -188,19 +196,6 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
 export const emitToUser = (io: IOServer, userId: string, event: string, payload: unknown): void => {
   io.to(userId).emit(event, payload);
 };
-
-// True when the handshake origin is permitted. A same-origin / non-browser
-// request (no Origin header) is always allowed. A cross-origin request must
-// be in the configured allowlist exactly. An empty allowlist therefore
-// rejects every cross-origin handshake (fail closed) — which is the desired
-// behaviour for a production deploy that forgot to set CORS_ORIGIN, since dev
-// gets sensible localhost defaults from loadConfig().
-function originAllowed(origin: string | undefined, allowedOrigins: string[]): boolean {
-  if (origin === undefined || origin === '') {
-    return true;
-  }
-  return allowedOrigins.includes(origin);
-}
 
 type AuthenticateHandshakeDeps = {
   authClient?: SocketAuthClient;
