@@ -1,0 +1,57 @@
+# GDPR erasure saga rules (ADS-806).
+#
+# The audit service exports a single gauge tracking saga state:
+#   gdpr_sagas{state="in_progress"|"completed"|"failed"|"timed_out"}
+# (services/audit/src/nats/gdpr-metrics.ts). The sweep scheduler flips a saga
+# that misses its deadline (GDPR_SAGA_DEADLINE_MS, default 30 min) to
+# "timed_out". A single stuck saga is a legal/correctness breach — there is no
+# tolerable rate (see docs/slo.md).
+groups:
+  - name: ads-gdpr-saga
+    interval: 30s
+    rules:
+      # A service acked an erasure with an error; failed_at is stamped and the
+      # saga will not complete until an operator resolves + re-runs it.
+      - alert: GdprSagaFailed
+        expr: gdpr_sagas{state="failed"} > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $value }} GDPR erasure saga(s) in failed state'
+          description: >-
+            At least one service acked a GDPR erasure with an error. The saga is
+            stuck; the erasure obligation is unmet until resolved.
+          runbook: docs/runbooks/gdpr-erasure-incident.md
+
+      # A saga passed its deadline with services that never acked. The sweep
+      # has already error-logged the missing services.
+      - alert: GdprSagaTimedOut
+        expr: gdpr_sagas{state="timed_out"} > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $value }} GDPR erasure saga(s) timed out'
+          description: >-
+            One or more erasure sagas passed the saga deadline without every
+            expected service acking. The audit sweep logged the missing services.
+          runbook: docs/runbooks/gdpr-erasure-incident.md
+
+      # Early-warning: erasureRequested that has not reached completed. The
+      # gauge is a snapshot, so we alert when the in_progress backlog persists
+      # longer than the saga deadline + sweep margin (40m > the 30m deadline),
+      # i.e. requests that should have completed or timed-out but haven't.
+      - alert: GdprErasureRequestedNotCompleted
+        expr: gdpr_sagas{state="in_progress"} > 0
+        for: 40m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'GDPR erasure saga in_progress beyond the 30m deadline'
+          description: >-
+            {{ $value }} erasure saga(s) have been in_progress for over 40
+            minutes — past the 30-minute saga deadline plus sweep margin. They
+            should have flipped to completed or timed_out; investigate the sweep
+            scheduler and per-service erasure subscribers.
+          runbook: docs/runbooks/gdpr-erasure-incident.md

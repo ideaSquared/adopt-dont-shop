@@ -1,0 +1,59 @@
+# Error-rate rules (ADS-806).
+#
+# There is NO http_requests_total counter in this stack. Request and error
+# rates are derived from the histogram COUNT series:
+#   http_request_duration_seconds_count{method,route,status_code}
+#   grpc_handler_duration_seconds_count{service,method,code,direction}
+#
+# Service identity for HTTP comes from the scrape `job` label (the HTTP
+# histogram carries no service label). gRPC errors use grpc-js numeric status
+# codes as strings: code="0" is OK; anything else is an error.
+groups:
+  - name: ads-error-rate
+    interval: 30s
+    rules:
+      # HTTP 5xx fraction per service (job). 1% over 5m -> warning.
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum by (job) (
+              rate(http_request_duration_seconds_count{status_code=~"5.."}[5m])
+            )
+            /
+            sum by (job) (
+              rate(http_request_duration_seconds_count[5m])
+            )
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.job }} HTTP 5xx rate >1% (5m)'
+          description: >-
+            More than 1% of HTTP responses from {{ $labels.job }} were 5xx over
+            the last 5 minutes. Eating into the availability error budget
+            (see docs/slo.md).
+          runbook: docs/runbooks/5xx-spike.md
+
+      # gRPC server-side non-OK fraction per gRPC service. direction="in" is
+      # the inbound (server) side; "out" is the gateway's outbound clients.
+      - alert: HighGrpcErrorRate
+        expr: |
+          (
+            sum by (service) (
+              rate(grpc_handler_duration_seconds_count{direction="in", code!="0"}[5m])
+            )
+            /
+            sum by (service) (
+              rate(grpc_handler_duration_seconds_count{direction="in"}[5m])
+            )
+          ) > 0.02
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.service }} gRPC error rate >2% (5m)'
+          description: >-
+            More than 2% of inbound gRPC handler calls to {{ $labels.service }}
+            returned a non-OK status over the last 5 minutes.
+          runbook: docs/runbooks/5xx-spike.md

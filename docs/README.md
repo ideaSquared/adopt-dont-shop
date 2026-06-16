@@ -159,7 +159,8 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Per-service rollback](./deploy/per-service-rollback.md) — hotfix and rollback a single service
 - [Distributed tracing](./observability/tracing.md) — OpenTelemetry setup and conventions
 - [DB backup runbook](./db-backup-runbook.md) — taking and restoring backups
-- [Observability and alerting](./observability-alerting.md) — metrics, logs, alert routing
+- [Service level objectives & alerting](./slo.md) — per-service SLOs, error budgets, and the Prometheus rules under `infra/prometheus/rules/`
+- [Observability and alerting](./observability-alerting.md) — metrics, logs, alert routing (legacy — superseded by `slo.md`)
 - [Runbooks index](./runbooks/README.md) — runbook catalogue
 - [5xx spike runbook](./runbooks/5xx-spike.md) — diagnose elevated server errors
 - [Applications cutover runbook](./runbooks/applications-cutover.md) — route applications traffic to the microservice
