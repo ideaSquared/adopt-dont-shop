@@ -10,6 +10,8 @@
   "[json]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
+  "vitest.workspaceConfig": "./vitest.workspace.ts",
+  "vitest.maximumConfigs": 30,
   "eslint.workingDirectories": [
     { "pattern": "apps/*" },
     { "pattern": "packages/*" },
