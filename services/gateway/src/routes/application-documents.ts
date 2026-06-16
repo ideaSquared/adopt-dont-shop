@@ -11,9 +11,36 @@
 // storage provider. Wire an AV step in front of `uploadFile` when the
 // scanner is extracted.
 
+import { extname } from 'node:path';
+
 import type { FastifyInstance } from 'fastify';
 
 import { createStorageProvider, type StorageConfig } from '@adopt-dont-shop/storage';
+
+// Allowed MIME types for application documents. Narrower than image
+// uploads: PDF, common images (ID photos), and Word docs cover all
+// legitimate use cases without admitting executables, HTML (XSS risk),
+// archives, or polyglot files. Exported so any downstream serve route
+// can enforce the same allowlist on Content-Type rather than
+// re-specifying it.
+export const ALLOWED_DOCUMENT_MIME = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+
+// Extension → allowed MIME. Second check so a lying Content-Type can't
+// smuggle a disallowed file through the MIME check alone.
+const ALLOWED_EXTENSIONS = new Map([
+  ['.pdf', 'application/pdf'],
+  ['.jpg', 'image/jpeg'],
+  ['.jpeg', 'image/jpeg'],
+  ['.png', 'image/png'],
+  ['.doc', 'application/msword'],
+  ['.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+]);
 
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
 
@@ -66,6 +93,15 @@ export const registerApplicationDocumentsRoutes = async (
     }
     if (docType === '') {
       return reply.code(400).send({ error: 'a `type` field is required' });
+    }
+
+    if (!ALLOWED_DOCUMENT_MIME.has(mimetype)) {
+      return reply.code(400).send({ error: `File type ${mimetype} is not allowed` });
+    }
+
+    const ext = extname(filename).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return reply.code(400).send({ error: `File extension ${ext || '(none)'} is not allowed` });
     }
 
     let upload;

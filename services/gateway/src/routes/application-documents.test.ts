@@ -8,7 +8,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
 
-import { registerApplicationDocumentsRoutes } from './application-documents.js';
+import {
+  ALLOWED_DOCUMENT_MIME,
+  registerApplicationDocumentsRoutes,
+} from './application-documents.js';
 
 function makeClient(): {
   client: ApplicationsClient;
@@ -74,13 +77,19 @@ describe('application document routes', () => {
     rmSync(tmp, { recursive: true, force: true });
   });
 
-  function multipartBody(boundary: string, file: Buffer, filename: string, type: string): Buffer {
+  function multipartBody(
+    boundary: string,
+    file: Buffer,
+    filename: string,
+    type: string,
+    mimeType = 'application/pdf'
+  ): Buffer {
     const enc = (s: string): Buffer => Buffer.from(s, 'utf8');
     return Buffer.concat([
       enc(
         `--${boundary}\r\nContent-Disposition: form-data; name="type"\r\n\r\n${type}\r\n` +
           `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
-          `Content-Type: application/pdf\r\n\r\n`
+          `Content-Type: ${mimeType}\r\n\r\n`
       ),
       file,
       enc(`\r\n--${boundary}--\r\n`),
@@ -208,5 +217,74 @@ describe('application document routes', () => {
       headers: ADOPTER,
     });
     expect(res.statusCode).toBe(403);
+  });
+
+  it('POST → 400 when the MIME type is outside the allowlist (text/html)', async () => {
+    const boundary = 'b-mime-reject';
+    const body = multipartBody(
+      boundary,
+      Buffer.from('<html><script>alert(1)</script></html>'),
+      'evil.html',
+      'id_verification',
+      'text/html'
+    );
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { error: string }).error).toMatch(/not allowed/);
+    expect(mocks.addDocument).not.toHaveBeenCalled();
+  });
+
+  it('POST → 400 when the MIME type is outside the allowlist (application/octet-stream)', async () => {
+    const boundary = 'b-exe-reject';
+    const body = multipartBody(
+      boundary,
+      Buffer.from('MZ\x90\x00'),
+      'malware.exe',
+      'id_verification',
+      'application/octet-stream'
+    );
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { error: string }).error).toMatch(/not allowed/);
+    expect(mocks.addDocument).not.toHaveBeenCalled();
+  });
+
+  it('POST → 400 when the extension is disallowed even if MIME claims application/pdf', async () => {
+    // Defence-in-depth: a lying Content-Type must not bypass the extension check.
+    const boundary = 'b-ext-reject';
+    const body = multipartBody(
+      boundary,
+      Buffer.from('MZ\x90\x00'),
+      'malware.exe',
+      'id_verification',
+      'application/pdf'
+    );
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/applications/app-1/documents',
+      headers: { ...ADOPTER, 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { error: string }).error).toMatch(/not allowed/);
+    expect(mocks.addDocument).not.toHaveBeenCalled();
+  });
+
+  it('ALLOWED_DOCUMENT_MIME export includes pdf and common image types', () => {
+    expect(ALLOWED_DOCUMENT_MIME.has('application/pdf')).toBe(true);
+    expect(ALLOWED_DOCUMENT_MIME.has('image/jpeg')).toBe(true);
+    expect(ALLOWED_DOCUMENT_MIME.has('image/png')).toBe(true);
+    expect(ALLOWED_DOCUMENT_MIME.has('text/html')).toBe(false);
+    expect(ALLOWED_DOCUMENT_MIME.has('application/octet-stream')).toBe(false);
   });
 });
