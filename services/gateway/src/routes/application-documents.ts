@@ -6,16 +6,21 @@
 // (lib.applications) sends multipart/form-data with a `file` part + a
 // `type` text part; reads are { data: Document[] } / 204 on delete.
 //
-// AV scanning is OUT OF SCOPE here — the storage package documented this
-// as a follow-up; the gateway uploads bytes straight to the configured
-// storage provider. Wire an AV step in front of `uploadFile` when the
-// scanner is extracted.
+// Content verification (ADS-848): beyond the client-supplied MIME +
+// extension allowlists, every document is magic-byte sniffed (rejecting a
+// type that contradicts the declared one) and any image is dimension-capped
+// (image-bomb guard) before the bytes are written to storage. See
+// verifyUploadContent in upload-content-checks.ts.
+// TODO(ADS-848 step 3): AV scanning — wire a scanBytes() chokepoint in front
+// of provider.uploadFile once the clamd-backed lib.av-scan package lands.
 
 import { extname } from 'node:path';
 
 import type { FastifyInstance } from 'fastify';
 
 import { createStorageProvider, type StorageConfig } from '@adopt-dont-shop/storage';
+
+import { verifyUploadContent } from './upload-content-checks.js';
 
 // Allowed MIME types for application documents. Narrower than image
 // uploads: PDF, common images (ID photos), and Word docs cover all
@@ -102,6 +107,19 @@ export const registerApplicationDocumentsRoutes = async (
     const ext = extname(filename).toLowerCase();
     if (!ALLOWED_EXTENSIONS.has(ext)) {
       return reply.code(400).send({ error: `File extension ${ext || '(none)'} is not allowed` });
+    }
+
+    // Magic-byte + image-bomb verification (ADS-848). Runs against the actual
+    // bytes, so a spoofed Content-Type / extension can't smuggle a mismatched
+    // file (or a decompression bomb) past the allowlists above.
+    const verification = await verifyUploadContent({
+      buffer,
+      declaredMime: mimetype,
+      extension: ext,
+      allowedMimes: ALLOWED_DOCUMENT_MIME,
+    });
+    if (!verification.ok) {
+      return reply.code(400).send({ error: verification.error });
     }
 
     let upload;

@@ -4,10 +4,13 @@
 // GET /uploads-signed/:expiresAt/:signature/*filepath shape. The bytes
 // flow straight through @adopt-dont-shop/storage; no DB row is written
 // here — staged images are referenced by URL in a follow-up create-pet
-// payload, same as the monolith. AV scanning, image bomb guards and
-// magic-byte verification stay TODO: today we trust the multer-equivalent
-// MIME filter + max-file-size limit, identical to the monolith's first
-// pass before its sharp/AV pipeline runs.
+// payload, same as the monolith. Content verification (ADS-848): beyond the
+// client-supplied MIME + extension allowlists, every upload is magic-byte
+// sniffed (rejecting a type that contradicts the declared one) and images
+// are dimension-capped (image-bomb guard) before being written to storage.
+// See verifyUploadContent in upload-content-checks.ts.
+// TODO(ADS-848 step 3): AV scanning — wire a scanBytes() chokepoint in front
+// of provider.uploadFile once the clamd-backed lib.av-scan package lands.
 //
 // The signed-serve route is unauthenticated by design — the HMAC over
 // `(filepath, expiresAt)` IS the proof of authorisation. The signing
@@ -26,6 +29,8 @@ import {
   type StorageConfig,
   type StorageProvider,
 } from '@adopt-dont-shop/storage';
+
+import { verifyUploadContent } from './upload-content-checks.js';
 
 export type UploadsRoutesOptions = {
   storage: StorageConfig;
@@ -123,6 +128,19 @@ export const registerUploadsRoutes = async (
       const ext = path.extname(originalName).toLowerCase();
       if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) {
         return reply.code(400).send({ error: `File extension ${ext || '(none)'} is not allowed` });
+      }
+
+      // Magic-byte + image-bomb verification (ADS-848). Runs against the
+      // actual bytes, so a spoofed Content-Type / extension can't smuggle a
+      // non-image (or a decompression bomb) past the allowlists above.
+      const verification = await verifyUploadContent({
+        buffer,
+        declaredMime: mimetype,
+        extension: ext,
+        allowedMimes: ALLOWED_IMAGE_MIME,
+      });
+      if (!verification.ok) {
+        return reply.code(400).send({ error: verification.error });
       }
 
       let upload;

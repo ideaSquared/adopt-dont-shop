@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import Fastify, { type FastifyInstance } from 'fastify';
+import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -12,6 +13,13 @@ import {
 } from './uploads.js';
 
 const SECRET = 'test-secret-12345';
+
+// Genuine image bytes so the ADS-848 magic-byte + dimension checks run
+// against real content rather than fabricated headers.
+const makeJpeg = (width = 8, height = 8): Promise<Buffer> =>
+  sharp({ create: { width, height, channels: 3, background: { r: 9, g: 9, b: 9 } } })
+    .jpeg()
+    .toBuffer();
 
 async function buildApp(tmp: string, secret?: string): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
@@ -56,12 +64,7 @@ describe('POST /api/v1/uploads/images', () => {
 
   it('returns the monolith response shape on a valid JPEG upload', async () => {
     const boundary = 'b1';
-    const body = multipartBody(
-      boundary,
-      Buffer.from('\xff\xd8\xffjpegbytes'),
-      'cat.jpg',
-      'image/jpeg'
-    );
+    const body = multipartBody(boundary, await makeJpeg(), 'cat.jpg', 'image/jpeg');
 
     const res = await app.inject({
       method: 'POST',
@@ -129,7 +132,7 @@ describe('POST /api/v1/uploads/images', () => {
     const boundary = 'b4';
     const body = multipartBody(
       boundary,
-      Buffer.from('\xff\xd8\xffx'),
+      await makeJpeg(),
       'Jane_Doe_Passport_123456.jpg',
       'image/jpeg'
     );
@@ -143,6 +146,42 @@ describe('POST /api/v1/uploads/images', () => {
 
     expect(res.statusCode).toBe(200);
     expect((res.json() as Record<string, unknown>).original_filename).toBe('file.jpg');
+  });
+
+  it('rejects content whose magic bytes contradict the declared image type (ADS-848)', async () => {
+    const boundary = 'b5';
+    // A real PDF body, uploaded with a .png name + image/png Content-Type.
+    const pdf = Buffer.from('%PDF-1.4\n%âãÏÓ\n1 0 obj<<>>endobj\n', 'binary');
+    const body = multipartBody(boundary, pdf, 'not-really.png', 'image/png');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { error: string }).error).toMatch(/content does not match/i);
+  });
+
+  it('rejects an image whose dimensions exceed the bomb-guard cap (ADS-848)', async () => {
+    const boundary = 'b6';
+    // 8000x8000 = 64 MP > the 50 MP default cap. A flat-colour JPEG of these
+    // dimensions is only a few hundred KB, so it clears the multipart size
+    // limit and the rejection is purely the dimension guard.
+    const big = await makeJpeg(8000, 8000);
+    const body = multipartBody(boundary, big, 'huge.jpg', 'image/jpeg');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/uploads/images',
+      headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { error: string }).error).toMatch(/dimensions/i);
   });
 });
 
