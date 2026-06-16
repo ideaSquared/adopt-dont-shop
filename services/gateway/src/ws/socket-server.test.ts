@@ -8,10 +8,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ValidateTokenResponse } from '@adopt-dont-shop/proto';
 
+import type { GatewayConfig } from '../config.js';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 
 import { SocketRegistry } from './socket-registry.js';
-import { attachSocketServer, type AttachSocketServerOptions } from './socket-server.js';
+import {
+  attachSocketServer,
+  emitToUser,
+  type AttachSocketServerOptions,
+  type RedisAdapterClient,
+} from './socket-server.js';
 
 function quietLogger(): Logger {
   return {
@@ -21,6 +27,85 @@ function quietLogger(): Logger {
     debug: vi.fn(),
     silly: vi.fn(),
   } as unknown as Logger;
+}
+
+// Minimal config slice the socket server reads (cors + environment). Tests
+// that don't care about origin policy use this permissive dev default.
+function devConfig(overrides?: Partial<GatewayConfig>): GatewayConfig {
+  return {
+    environment: 'development',
+    cors: { origins: ['http://localhost:3000'] },
+    ...overrides,
+  } as GatewayConfig;
+}
+
+// In-memory stand-in for the gateway's Redis pub/sub, faithful to the subset
+// of the ioredis surface the @socket.io/redis-adapter broadcast path uses:
+//   - psubscribe(pattern) + on('pmessageBuffer', (pattern, channel, msg))
+//   - subscribe([channels]) + on('messageBuffer', (channel, msg))
+//   - publish(channel, msg) fans to matching pattern + exact subscribers on
+//     EVERY client sharing the bus (modelling cross-replica Redis pub/sub).
+// Lets two adapter-backed Socket.IO instances coordinate without a real Redis.
+type PatternSub = { prefix: string };
+type BusClient = RedisAdapterClient & {
+  __patterns: PatternSub[];
+  __channels: Set<string>;
+  __emit: (event: string, ...args: unknown[]) => void;
+};
+
+function createInMemoryRedisBus(): { client: () => RedisAdapterClient } {
+  const members: BusClient[] = [];
+
+  const deliver = (channel: string, msg: string | Buffer): void => {
+    const buf = typeof msg === 'string' ? Buffer.from(msg) : msg;
+    for (const m of members) {
+      for (const p of m.__patterns) {
+        if (channel.startsWith(p.prefix)) {
+          m.__emit('pmessageBuffer', `${p.prefix}*`, channel, buf);
+        }
+      }
+      if (m.__channels.has(channel)) {
+        m.__emit('messageBuffer', channel, buf);
+      }
+    }
+  };
+
+  const makeClient = (): RedisAdapterClient => {
+    const listeners = new Map<string, Array<(...args: unknown[]) => void>>();
+    const client: BusClient = {
+      __patterns: [],
+      __channels: new Set<string>(),
+      __emit: (event, ...args) => {
+        for (const fn of listeners.get(event) ?? []) {
+          fn(...args);
+        }
+      },
+      on(event, handler) {
+        const list = listeners.get(event) ?? [];
+        list.push(handler);
+        listeners.set(event, list);
+        return client;
+      },
+      psubscribe(pattern) {
+        client.__patterns.push({ prefix: pattern.replace(/\*$/, '') });
+        return Promise.resolve(1);
+      },
+      subscribe(channels) {
+        for (const c of channels) {
+          client.__channels.add(c);
+        }
+        return Promise.resolve(channels.length);
+      },
+      publish(channel, message) {
+        deliver(channel, message);
+        return Promise.resolve(members.length);
+      },
+    };
+    members.push(client);
+    return client;
+  };
+
+  return { client: makeClient };
 }
 
 // One-method auth client stub — mirrors authenticate.test.ts. The full
@@ -41,11 +126,12 @@ const harnesses: Harness[] = [];
 const clients: ClientSocket[] = [];
 
 async function startServer(
-  opts: Omit<AttachSocketServerOptions, 'httpServer' | 'registry'>
+  opts: Omit<AttachSocketServerOptions, 'httpServer' | 'registry' | 'config'> &
+    Partial<Pick<AttachSocketServerOptions, 'config'>>
 ): Promise<Harness> {
   const httpServer = createServer();
   const registry = new SocketRegistry();
-  const io = attachSocketServer({ httpServer, registry, ...opts });
+  const io = attachSocketServer({ config: devConfig(), httpServer, registry, ...opts });
   await new Promise<void>(resolve => httpServer.listen(0, resolve));
   const port = (httpServer.address() as AddressInfo).port;
   const harness: Harness = { httpServer, io, registry, url: `http://127.0.0.1:${port}` };
@@ -168,5 +254,94 @@ describe('attachSocketServer — handshake authentication', () => {
 
     expect(connected).toBe(true);
     expect(registry.socketsFor('usr-dev')).toHaveLength(1);
+  });
+});
+
+describe('attachSocketServer — origin allowlist (ADS-843)', () => {
+  it('accepts a handshake from an allowed origin', async () => {
+    const { url } = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+      config: devConfig({ cors: { origins: ['http://allowed.example'] } }),
+    });
+
+    const client = ioClient(url, {
+      path: '/socket.io',
+      transports: ['websocket'],
+      reconnection: false,
+      auth: { userId: 'usr-dev' },
+      extraHeaders: { Origin: 'http://allowed.example' },
+    });
+    clients.push(client);
+    expect(await awaitConnectOutcome(client)).toBe(true);
+  });
+
+  it('rejects a handshake from a disallowed origin', async () => {
+    const { url } = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+      config: devConfig({ cors: { origins: ['http://allowed.example'] } }),
+    });
+
+    const client = ioClient(url, {
+      path: '/socket.io',
+      transports: ['websocket'],
+      reconnection: false,
+      auth: { userId: 'usr-dev' },
+      extraHeaders: { Origin: 'http://evil.example' },
+    });
+    clients.push(client);
+    expect(await awaitConnectOutcome(client)).toBe(false);
+  });
+
+  it('rejects every cross-origin handshake in production when no origins are configured (fails closed)', async () => {
+    const { url } = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+      config: devConfig({ environment: 'production', cors: { origins: [] } }),
+    });
+
+    const client = ioClient(url, {
+      path: '/socket.io',
+      transports: ['websocket'],
+      reconnection: false,
+      auth: { userId: 'usr-dev' },
+      extraHeaders: { Origin: 'http://anything.example' },
+    });
+    clients.push(client);
+    expect(await awaitConnectOutcome(client)).toBe(false);
+  });
+});
+
+describe('emitToUser — adapter-backed cross-instance fan-out (ADS-818)', () => {
+  it('delivers an event to a user connected on a DIFFERENT adapter-backed instance', async () => {
+    const bus = createInMemoryRedisBus();
+
+    // Instance A: no client connected here — it only PUBLISHES.
+    const a = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+      redisAdapter: { pubClient: bus.client(), subClient: bus.client() },
+    });
+
+    // Instance B: the target user's socket lives here.
+    const b = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+      redisAdapter: { pubClient: bus.client(), subClient: bus.client() },
+    });
+
+    const client = connectClient(b.url, { auth: { userId: 'usr-cross' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    const received = new Promise<Record<string, unknown>>(resolve => {
+      client.on('ping:cross', (payload: Record<string, unknown>) => resolve(payload));
+    });
+
+    // Emit from instance A — the adapter must route it over the shared bus
+    // to instance B where the socket actually lives.
+    emitToUser(a.io, 'usr-cross', 'ping:cross', { hello: 'world' });
+
+    expect(await received).toEqual({ hello: 'world' });
   });
 });

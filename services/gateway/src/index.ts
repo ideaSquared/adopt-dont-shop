@@ -1,3 +1,4 @@
+import Redis from 'ioredis';
 import { connect, type NatsConnection } from 'nats';
 import type { Server as IOServer } from 'socket.io';
 
@@ -25,6 +26,11 @@ const main = async (): Promise<void> => {
 
   let nats: NatsConnection | undefined;
   let io: IOServer | undefined;
+  // Dedicated Redis pub/sub pair for the Socket.IO redis-adapter (ADS-818).
+  // Separate from the rate-limit Redis client because the subscriber
+  // connection enters subscribe mode and can't run other commands.
+  let socketAdapterPub: Redis | undefined;
+  let socketAdapterSub: Redis | undefined;
   let notificationsClient: ReturnType<typeof createNotificationsClient> | undefined;
   let authClient: ReturnType<typeof createAuthClient> | undefined;
   let petsClient: ReturnType<typeof createPetsClient> | undefined;
@@ -85,7 +91,29 @@ const main = async (): Promise<void> => {
 
     await server.listen({ port: config.port, host: config.host });
     const registry = new SocketRegistry();
-    io = attachSocketServer({ httpServer: server.server, registry, logger, authClient });
+    // Bind the Socket.IO redis-adapter when a Redis URL is configured so
+    // emitToUser() fans out across replicas (ADS-818). Without it the server
+    // runs single-replica with the default in-process adapter.
+    let redisAdapter: { pubClient: Redis; subClient: Redis } | undefined;
+    if (config.rateLimit.redisUrl) {
+      socketAdapterPub = new Redis(config.rateLimit.redisUrl, { lazyConnect: false });
+      socketAdapterSub = socketAdapterPub.duplicate();
+      socketAdapterPub.on('error', (err: Error) =>
+        logger.warn('socket adapter Redis (pub) error', { message: err.message })
+      );
+      socketAdapterSub.on('error', (err: Error) =>
+        logger.warn('socket adapter Redis (sub) error', { message: err.message })
+      );
+      redisAdapter = { pubClient: socketAdapterPub, subClient: socketAdapterSub };
+    }
+    io = attachSocketServer({
+      httpServer: server.server,
+      registry,
+      logger,
+      config,
+      authClient,
+      redisAdapter,
+    });
     registerNotificationSubscribers({ nats, registry, logger });
     registerChatSubscribers({ nats, registry, logger });
 
@@ -113,6 +141,12 @@ const main = async (): Promise<void> => {
         }
       } catch (err) {
         logger.error('socket.io close error', { err });
+      }
+      try {
+        socketAdapterPub?.disconnect();
+        socketAdapterSub?.disconnect();
+      } catch (err) {
+        logger.error('socket adapter redis close error', { err });
       }
       try {
         await server.close();
@@ -185,6 +219,12 @@ const main = async (): Promise<void> => {
       await nats?.drain();
     } catch {
       // Swallow — already on the failure path.
+    }
+    try {
+      socketAdapterPub?.disconnect();
+      socketAdapterSub?.disconnect();
+    } catch {
+      // Same.
     }
     try {
       notificationsClient?.close();
