@@ -153,6 +153,19 @@ describe('saveDraftAnswers', () => {
     const refs = JSON.parse(res.application.referencesJson) as Array<Record<string, string>>;
     expect(refs[0]).toMatchObject({ name: 'Jane', email: 'j@e.com', relationship: 'friend' });
   });
+
+  it('denies a different adopter editing another user’s draft', async () => {
+    // Draft is owned by usr-1; usr-2 holds applications.update but is not
+    // the owner and belongs to no rescue.
+    const { deps } = makeDeps([draftCreatedRow('app-1', 'usr-1')]);
+    await expect(
+      saveDraftAnswers(deps, makePrincipal({ userId: 'usr-2' }), {
+        applicationId: 'app-1',
+        expectedVersion: 1,
+        answersPatchJson: '{"hasYard":true}',
+      } as SaveDraftAnswersRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
 });
 
 describe('makeStartDraft', () => {
@@ -252,6 +265,16 @@ describe('submitDraft', () => {
       type: 'applications.submitted',
       id: 'app-1:2',
     });
+  });
+
+  it('denies a different adopter submitting another user’s draft', async () => {
+    const { deps } = makeDeps([draftCreatedRow('app-1', 'usr-1')]);
+    await expect(
+      submitDraft(deps, makePrincipal({ userId: 'usr-2' }), {
+        applicationId: 'app-1',
+        expectedVersion: 1,
+      } as SubmitDraftRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
   it('surfaces a domain ILLEGAL_TRANSITION as INVALID_ARGUMENT (double submit)', async () => {

@@ -9,12 +9,14 @@
 // single INSERT / SELECT / UPDATE each.
 //
 // Authz:
-//   - addDocument / removeDocument: gate APPLICATIONS_UPDATE (same plain
-//     gate the write handlers use; the rescue owns the application).
+//   - addDocument / removeDocument: APPLICATIONS_UPDATE scoped to the
+//     application's owner / rescue — read the application's user_id /
+//     rescue_id from the read model first (404 if it doesn't exist), then
+//     adopter-owns OR rescue-staff-of-this-rescue OR admin. A bare
+//     permission check would let any rescue attach to / delete another
+//     rescue's application documents.
 //   - listDocuments: gate APPLICATIONS_VIEW with the SAME owner / rescue /
-//     admin scoping as getApplication — read the application's user_id /
-//     rescue_id from the read model, then adopter-owns OR rescue-staff-of-
-//     this-rescue OR admin.
+//     admin scoping as getApplication.
 
 import { randomUUID } from 'node:crypto';
 
@@ -22,6 +24,7 @@ import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import {
   APPLICATIONS_UPDATE,
   APPLICATIONS_VIEW,
+  type Permission,
   type RescueId,
   type UserId,
 } from '@adopt-dont-shop/lib.types';
@@ -74,6 +77,31 @@ function rowToProto(row: DocumentRow): Document {
   return doc;
 }
 
+// Load the application's owner / rescue, 404 if it doesn't exist. Shared by
+// every document handler so a write can't target an application that isn't
+// there (and can't skip the scope check below).
+async function loadOwnerOrThrow(deps: HandlerDeps, applicationId: string): Promise<OwnerRow> {
+  const { rows } = await deps.pool.query<OwnerRow>(
+    `SELECT user_id, rescue_id FROM applications WHERE application_id = $1 AND deleted_at IS NULL`,
+    [applicationId]
+  );
+  if (rows.length === 0) {
+    throw new HandlerError('NOT_FOUND', 'application not found');
+  }
+  return rows[0];
+}
+
+// adopter-owns OR rescue-staff-of-this-rescue OR admin — the same OR-scope
+// getApplication uses, applied to a document read/write.
+function assertOwnerOrRescue(principal: Principal, owner: OwnerRow, permission: Permission): void {
+  const ok =
+    requirePermission(principal, permission, { userId: owner.user_id as UserId }) ||
+    requirePermission(principal, permission, { rescueId: owner.rescue_id as RescueId });
+  if (!ok) {
+    throw new HandlerError('PERMISSION_DENIED', `'${permission}' required`);
+  }
+}
+
 // --- AddDocument -----------------------------------------------------
 
 export async function addDocument(
@@ -81,12 +109,11 @@ export async function addDocument(
   principal: Principal,
   req: AddDocumentRequest
 ): Promise<AddDocumentResponse> {
-  if (!requirePermission(principal, APPLICATIONS_UPDATE)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${APPLICATIONS_UPDATE}' required`);
-  }
   if (req.applicationId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'application_id is required');
   }
+  const owner = await loadOwnerOrThrow(deps, req.applicationId);
+  assertOwnerOrRescue(principal, owner, APPLICATIONS_UPDATE);
 
   const sql = `
     INSERT INTO application_documents
@@ -122,21 +149,8 @@ export async function listDocuments(
   }
 
   // Scope from the application's owner / rescue — the read model row.
-  const owner = await deps.pool.query<OwnerRow>(
-    `SELECT user_id, rescue_id FROM applications WHERE application_id = $1 AND deleted_at IS NULL`,
-    [req.applicationId]
-  );
-  if (owner.rows.length === 0) {
-    throw new HandlerError('NOT_FOUND', 'application not found');
-  }
-
-  const { user_id, rescue_id } = owner.rows[0];
-  const canRead =
-    requirePermission(principal, APPLICATIONS_VIEW, { userId: user_id as UserId }) ||
-    requirePermission(principal, APPLICATIONS_VIEW, { rescueId: rescue_id as RescueId });
-  if (!canRead) {
-    throw new HandlerError('PERMISSION_DENIED', `'${APPLICATIONS_VIEW}' required`);
-  }
+  const owner = await loadOwnerOrThrow(deps, req.applicationId);
+  assertOwnerOrRescue(principal, owner, APPLICATIONS_VIEW);
 
   const { rows } = await deps.pool.query<DocumentRow>(
     `SELECT document_id, application_id, type, filename, url, size, mime_type, created_at
@@ -156,15 +170,14 @@ export async function removeDocument(
   principal: Principal,
   req: RemoveDocumentRequest
 ): Promise<RemoveDocumentResponse> {
-  if (!requirePermission(principal, APPLICATIONS_UPDATE)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${APPLICATIONS_UPDATE}' required`);
-  }
   if (req.applicationId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'application_id is required');
   }
   if (req.documentId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'document_id is required');
   }
+  const owner = await loadOwnerOrThrow(deps, req.applicationId);
+  assertOwnerOrRescue(principal, owner, APPLICATIONS_UPDATE);
 
   const { rowCount } = await deps.pool.query(
     `UPDATE application_documents
