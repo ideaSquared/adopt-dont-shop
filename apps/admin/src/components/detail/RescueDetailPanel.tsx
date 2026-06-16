@@ -238,5 +238,3 @@ export const RescueDetailPanel: React.FC<RescueDetailPanelProps> = ({
     />
   );
 };
-
-export default RescueDetailPanel;

@@ -21,7 +21,7 @@ type Condition = {
   defaultWhenHidden?: unknown;
 };
 
-export const CONDITIONAL_QUESTIONS: Readonly<Record<string, Condition>> = {
+const CONDITIONAL_QUESTIONS: Readonly<Record<string, Condition>> = {
   // "If you rent, do you have your landlord's permission?" — only shown when
   // the applicant rents. For owners / living-with-family, default to No.
   landlord_permission: {
@@ -42,9 +42,6 @@ export const CONDITIONAL_QUESTIONS: Readonly<Record<string, Condition>> = {
     showWhen: true,
   },
 };
-
-export const isConditionalQuestion = (questionKey: string): boolean =>
-  Object.prototype.hasOwnProperty.call(CONDITIONAL_QUESTIONS, questionKey);
 
 export const shouldShowQuestion = (
   question: Pick<Question, 'questionKey'>,

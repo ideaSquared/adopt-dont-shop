@@ -140,5 +140,3 @@ export const PetDetailPanel: React.FC<PetDetailPanelProps> = ({ pet, onClose }) 
     />
   );
 };
-
-export default PetDetailPanel;

@@ -154,4 +154,3 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
 
 export { useFavorites };
 export type { FavoritesContextType };
-export default FavoritesContext;

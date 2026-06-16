@@ -68,7 +68,7 @@ type MatchAcknowledgementContextValue = {
   refresh: () => Promise<void>;
 };
 
-const [MatchAcknowledgementContext, useMatchAcknowledgement] =
+const [MatchAcknowledgementContext] =
   createAppContext<MatchAcknowledgementContextValue>('MatchAcknowledgement');
 
 const pickPrimaryImage = (pet: Pet | undefined): string | undefined => {
@@ -249,5 +249,4 @@ export const __resetMatchAcknowledgementStorage = (): void => {
   }
 };
 
-export { useMatchAcknowledgement };
 export type { MatchAcknowledgementContextValue, QueuedMatch };

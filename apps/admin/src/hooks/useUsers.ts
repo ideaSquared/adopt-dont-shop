@@ -18,17 +18,6 @@ export const useUsers = (filters: Parameters<typeof userManagementService.getUse
 };
 
 /**
- * Hook to fetch a single user by ID
- */
-export const useUser = (userId: string) => {
-  return useQuery({
-    queryKey: ['user', userId],
-    queryFn: () => userManagementService.getUserById(userId),
-    enabled: !!userId,
-  });
-};
-
-/**
  * Hook to create a new user
  */
 export const useCreateUser = () => {
@@ -39,27 +28,6 @@ export const useCreateUser = () => {
       userManagementService.createUser(userData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-    },
-  });
-};
-
-/**
- * Hook to update a user
- */
-export const useUpdateUser = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      userId,
-      userData,
-    }: {
-      userId: string;
-      userData: Parameters<typeof userManagementService.updateUser>[1];
-    }) => userManagementService.updateUser(userId, userData),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user', variables.userId] });
     },
   });
 };
@@ -83,41 +51,6 @@ export const useDeleteUser = () => {
 };
 
 /**
- * Hook to reset user password
- */
-export const useResetUserPassword = () => {
-  return useMutation({
-    mutationFn: (userId: string) => userManagementService.resetUserPassword(userId),
-  });
-};
-
-/**
- * Hook to search users
- */
-export const useSearchUsers = (
-  query: string,
-  filters: Parameters<typeof userManagementService.searchUsers>[1] = {}
-) => {
-  return useQuery({
-    queryKey: ['users-search', query, filters],
-    queryFn: () => userManagementService.searchUsers(query, filters),
-    enabled: !!query,
-    placeholderData: keepPreviousData,
-  });
-};
-
-/**
- * Hook to fetch user statistics
- */
-export const useUserStats = () => {
-  return useQuery({
-    queryKey: ['user-stats'],
-    queryFn: () => userManagementService.getUserStats(),
-    staleTime: 60000, // 1 minute
-  });
-};
-
-/**
  * Hook to bulk update users
  */
 export const useBulkUpdateUsers = () => {
@@ -136,43 +69,6 @@ export const useBulkUpdateUsers = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
-  });
-};
-
-/**
- * Hook to send notification to user
- */
-export const useSendUserNotification = () => {
-  return useMutation({
-    mutationFn: ({
-      userId,
-      notification,
-    }: {
-      userId: string;
-      notification: Parameters<typeof userManagementService.sendNotification>[1];
-    }) => userManagementService.sendNotification(userId, notification),
-  });
-};
-
-/**
- * Hook to fetch user's rescues
- */
-export const useUserRescues = (userId: string) => {
-  return useQuery({
-    queryKey: ['user-rescues', userId],
-    queryFn: () => userManagementService.getUserRescues(userId),
-    enabled: !!userId,
-  });
-};
-
-/**
- * Hook to fetch user's applications
- */
-export const useUserApplications = (userId: string) => {
-  return useQuery({
-    queryKey: ['user-applications', userId],
-    queryFn: () => userManagementService.getUserApplications(userId),
-    enabled: !!userId,
   });
 };
 

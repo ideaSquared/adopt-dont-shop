@@ -5,7 +5,6 @@ import type {
   ApplicationListItem,
   ApplicationFilter,
   ApplicationSort,
-  ApplicationStats,
   ReferenceCheck,
   HomeVisit,
   ApplicationTimeline,
@@ -332,41 +331,5 @@ export const useApplicationDetails = (applicationId: string | null) => {
     addTimelineEvent,
     transitionStage,
     refetch: fetchApplicationDetails,
-  };
-};
-
-export const useApplicationStats = () => {
-  const [stats, setStats] = useState<ApplicationStats | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchStats = useCallback(async (cancelled?: { value: boolean }) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const statsData = await applicationServiceInstance.getApplicationStats();
-      if (cancelled?.value) return;
-      setStats(statsData);
-    } catch (err) {
-      if (cancelled?.value) return;
-      setError(err instanceof Error ? err.message : 'Failed to fetch application stats');
-    } finally {
-      if (!cancelled?.value) setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const cancelled = { value: false };
-    fetchStats(cancelled);
-    return () => {
-      cancelled.value = true;
-    };
-  }, [fetchStats]);
-
-  return {
-    stats,
-    loading,
-    error,
-    refetch: fetchStats,
   };
 };

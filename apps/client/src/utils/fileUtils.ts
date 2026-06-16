@@ -57,22 +57,3 @@ export const resolveFileUrl = (url: string | undefined): string | undefined => {
   // For other relative paths, also prepend the base URL with a '/'
   return `${backendBaseUrl}/${url}`;
 };
-
-/**
- * Validates if a URL is accessible (basic format check)
- * @param url - The URL to validate
- * @returns True if the URL appears to be valid
- */
-export const isValidFileUrl = (url: string | undefined): boolean => {
-  if (!url) {
-    return false;
-  }
-
-  // Check if it's a valid HTTP/HTTPS URL or a relative path
-  return (
-    url.startsWith('http://') ||
-    url.startsWith('https://') ||
-    url.startsWith('/') ||
-    (!url.includes('://') && url.length > 0)
-  );
-};

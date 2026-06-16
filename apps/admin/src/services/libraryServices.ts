@@ -12,9 +12,7 @@ apiService.updateConfig({
 });
 
 // Export the configured API service
-export const globalApiService = apiService;
 export { apiService };
-export const api = apiService;
 
 // PermissionsService backs the PermissionsProvider in App.tsx so route
 // guards and PermissionGate can read the signed-in admin's permissions.

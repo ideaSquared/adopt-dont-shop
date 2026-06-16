@@ -2,7 +2,7 @@ import React from 'react';
 import { Skeleton } from '@adopt-dont-shop/lib.components';
 import * as styles from './ApplicationCardSkeleton.css';
 
-export const ApplicationCardSkeleton: React.FC = () => (
+const ApplicationCardSkeleton: React.FC = () => (
   <div className={styles.card} aria-hidden='true'>
     <Skeleton className={styles.imageBlock} height='auto' />
     <div className={styles.content}>

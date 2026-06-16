@@ -5,7 +5,6 @@ export { SendEmailModal } from './SendEmailModal';
 // User modals
 export { AddUserModal } from './AddUserModal';
 export { CreateSupportTicketModal } from './CreateSupportTicketModal';
-export { UserActionsMenu } from './UserActionsMenu';
 
 // Chat modals
 export { ChatDetailModal } from './ChatDetailModal/index';

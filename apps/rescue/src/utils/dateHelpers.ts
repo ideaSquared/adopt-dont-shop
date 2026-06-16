@@ -37,38 +37,3 @@ export function safeFormatDistanceToNow(
     return fallback;
   }
 }
-
-/**
- * Safely parse a date string to a Date object
- * @param dateString - The date string to parse
- * @returns Valid Date object or null if invalid
- */
-export function safeParseDate(dateString: string | null | undefined): Date | null {
-  if (!dateString) {
-    return null;
-  }
-
-  try {
-    let date: Date;
-
-    if (typeof dateString === 'string' && dateString.includes('T')) {
-      date = parseISO(dateString);
-    } else {
-      date = new Date(dateString);
-    }
-
-    return isValid(date) ? date : null;
-  } catch (error) {
-    console.warn('Error parsing date:', dateString, error);
-    return null;
-  }
-}
-
-/**
- * Check if a date string is valid
- * @param dateString - The date string to check
- * @returns True if the date is valid
- */
-export function isValidDateString(dateString: string | null | undefined): boolean {
-  return safeParseDate(dateString) !== null;
-}

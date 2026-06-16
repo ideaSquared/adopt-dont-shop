@@ -1,5 +1,5 @@
 // Export all services for the admin app
-export { api, apiService } from './libraryServices';
+export { apiService } from './libraryServices';
 export { userManagementService } from './userManagementService';
 export { rescueService } from './rescueService';
 export { petService } from './petService';

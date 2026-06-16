@@ -179,27 +179,3 @@ export const STAGE_CONFIG = {
     description: 'Application completed with final outcome',
   },
 };
-
-// Outcome display configuration
-export const OUTCOME_CONFIG = {
-  APPROVED: {
-    label: 'Approved',
-    color: '#10B981',
-    emoji: '✅',
-  },
-  CONDITIONAL: {
-    label: 'Conditionally Approved',
-    color: '#F59E0B',
-    emoji: '⚠️',
-  },
-  REJECTED: {
-    label: 'Rejected',
-    color: '#EF4444',
-    emoji: '❌',
-  },
-  WITHDRAWN: {
-    label: 'Withdrawn',
-    color: '#6B7280',
-    emoji: '↩️',
-  },
-};

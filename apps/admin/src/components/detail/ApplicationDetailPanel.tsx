@@ -194,5 +194,3 @@ export const ApplicationDetailPanel: React.FC<ApplicationDetailPanelProps> = ({
     />
   );
 };
-
-export default ApplicationDetailPanel;
