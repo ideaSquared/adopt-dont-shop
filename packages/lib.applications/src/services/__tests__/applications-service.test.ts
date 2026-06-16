@@ -442,5 +442,231 @@ describe('ApplicationsService', () => {
 
       expect(mockApiService.updateConfig).toHaveBeenCalledWith({ apiUrl: 'http://newapi.com' });
     });
+
+    it('does not touch the api client when no apiUrl is supplied', () => {
+      applicationsService.updateConfig({ debug: true });
+
+      expect(mockApiService.updateConfig).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getApplicationByPetId', () => {
+    // Behaviour: looking up an adopter's application for a pet must never break
+    // the pet detail page. Any backend failure is swallowed and reported as
+    // "no application", letting the page render an Apply button instead of error.
+    it('returns null when the lookup request fails', async () => {
+      mockApiService.get.mockRejectedValue(new Error('network down'));
+
+      const result = await applicationsService.getApplicationByPetId('pet-123');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when the response envelope omits the inner data', async () => {
+      mockApiService.get.mockResolvedValue({ data: {} });
+
+      const result = await applicationsService.getApplicationByPetId('pet-123');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getUserApplications', () => {
+    it('returns an empty list when the backend omits the data envelope', async () => {
+      mockApiService.get.mockResolvedValue({});
+
+      const result = await applicationsService.getUserApplications('user-123');
+
+      expect(result).toEqual([]);
+    });
+
+    it('propagates errors so the dashboard can show a load failure', async () => {
+      mockApiService.get.mockRejectedValue(new Error('boom'));
+
+      await expect(applicationsService.getUserApplications()).rejects.toThrow('boom');
+    });
+  });
+
+  describe('updateApplicationStatus', () => {
+    it('sends an undefined notes value when none is supplied', async () => {
+      mockApiService.patch.mockResolvedValue({ data: mockApplication });
+
+      await applicationsService.updateApplicationStatus('app-123', 'rejected');
+
+      expect(mockApiService.patch).toHaveBeenCalledWith('/api/v1/applications/app-123/status', {
+        status: 'rejected',
+        notes: undefined,
+      });
+    });
+  });
+
+  describe('withdrawApplication', () => {
+    it('withdraws without a reason when none is given', async () => {
+      mockApiService.put.mockResolvedValue({});
+
+      await applicationsService.withdrawApplication('app-123');
+
+      expect(mockApiService.put).toHaveBeenCalledWith('/api/v1/applications/app-123/withdraw', {
+        reason: undefined,
+      });
+    });
+
+    it('surfaces withdrawal failures to the caller', async () => {
+      mockApiService.put.mockRejectedValue(new Error('cannot withdraw'));
+
+      await expect(applicationsService.withdrawApplication('app-123')).rejects.toThrow(
+        'cannot withdraw'
+      );
+    });
+  });
+
+  describe('getRescueApplications', () => {
+    const rescueResponse = {
+      success: true,
+      data: [mockApplication],
+      meta: { total: 1, page: 1, totalPages: 1, hasNext: false, hasPrev: false },
+    };
+
+    it('fetches a rescue queue with no filters', async () => {
+      mockApiService.get.mockResolvedValue(rescueResponse);
+
+      const result = await applicationsService.getRescueApplications();
+
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/applications');
+      expect(result).toEqual([mockApplication]);
+    });
+
+    it('builds a query string from every supplied filter', async () => {
+      mockApiService.get.mockResolvedValue(rescueResponse);
+
+      await applicationsService.getRescueApplications('rescue-123', {
+        status: 'submitted',
+        search: 'buddy',
+        limit: 10,
+        offset: 20,
+      });
+
+      expect(mockApiService.get).toHaveBeenCalledWith(
+        '/api/v1/applications?rescueId=rescue-123&status=submitted&search=buddy&limit=10&offset=20'
+      );
+    });
+
+    it('includes only the rescueId when other filters are absent', async () => {
+      mockApiService.get.mockResolvedValue(rescueResponse);
+
+      await applicationsService.getRescueApplications('rescue-123');
+
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/applications?rescueId=rescue-123');
+    });
+
+    it('propagates errors from the rescue queue request', async () => {
+      mockApiService.get.mockRejectedValue(new Error('forbidden'));
+
+      await expect(applicationsService.getRescueApplications('rescue-123')).rejects.toThrow(
+        'forbidden'
+      );
+    });
+  });
+
+  describe('getApplicationStats', () => {
+    const stats = {
+      total: 5,
+      submitted: 2,
+      underReview: 1,
+      approved: 1,
+      rejected: 1,
+      pendingReferences: 0,
+    };
+
+    it('fetches global stats when no rescue is scoped', async () => {
+      mockApiService.get.mockResolvedValue({ data: stats });
+
+      const result = await applicationsService.getApplicationStats();
+
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/applications/stats');
+      expect(result).toEqual(stats);
+    });
+
+    it('scopes stats to a rescue via query string', async () => {
+      mockApiService.get.mockResolvedValue({ data: stats });
+
+      await applicationsService.getApplicationStats('rescue-123');
+
+      expect(mockApiService.get).toHaveBeenCalledWith(
+        '/api/v1/applications/stats?rescueId=rescue-123'
+      );
+    });
+
+    it('defaults every counter to zero when the backend returns no data', async () => {
+      mockApiService.get.mockResolvedValue({});
+
+      const result = await applicationsService.getApplicationStats();
+
+      expect(result).toEqual({
+        total: 0,
+        submitted: 0,
+        underReview: 0,
+        approved: 0,
+        rejected: 0,
+        pendingReferences: 0,
+      });
+    });
+
+    it('propagates errors from the stats request', async () => {
+      mockApiService.get.mockRejectedValue(new Error('stats unavailable'));
+
+      await expect(applicationsService.getApplicationStats()).rejects.toThrow('stats unavailable');
+    });
+  });
+
+  describe('debug logging', () => {
+    // When debug is enabled, failures are logged to the console before being
+    // rethrown. Observable behaviour: the error still propagates AND a log is
+    // written, so operators get a breadcrumb without changing control flow.
+    it('logs the failure when debug mode is on, then rethrows', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const debugService = new ApplicationsService(mockApiService, { debug: true });
+      mockApiService.post.mockRejectedValue(new Error('debug failure'));
+
+      await expect(debugService.submitApplication(mockApplicationData)).rejects.toThrow(
+        'debug failure'
+      );
+      expect(consoleError).toHaveBeenCalled();
+
+      consoleError.mockRestore();
+    });
+
+    // Every public method shares the same debug-logging contract: on failure it
+    // writes one console.error breadcrumb. Drive each one through its catch so
+    // the contract is documented uniformly rather than per-method.
+    it('logs a breadcrumb for every failing operation in debug mode', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const debugService = new ApplicationsService(mockApiService, { debug: true });
+      const failure = new Error('downstream failure');
+      mockApiService.get.mockRejectedValue(failure);
+      mockApiService.post.mockRejectedValue(failure);
+      mockApiService.put.mockRejectedValue(failure);
+      mockApiService.patch.mockRejectedValue(failure);
+      mockApiService.delete.mockRejectedValue(failure);
+
+      const file = new File(['x'], 'id.pdf', { type: 'application/pdf' });
+
+      await expect(debugService.updateApplication('app-1', {})).rejects.toThrow();
+      await expect(debugService.getApplicationById('app-1')).rejects.toThrow();
+      await expect(debugService.getUserApplications()).rejects.toThrow();
+      await expect(debugService.updateApplicationStatus('app-1', 'approved')).rejects.toThrow();
+      await expect(debugService.withdrawApplication('app-1')).rejects.toThrow();
+      await expect(debugService.uploadDocument('app-1', file, 'id')).rejects.toThrow();
+      await expect(debugService.removeDocument('app-1', 'doc-1')).rejects.toThrow();
+      await expect(debugService.getDocuments('app-1')).rejects.toThrow();
+      await expect(debugService.getRescueApplications()).rejects.toThrow();
+      await expect(debugService.getApplicationStats()).rejects.toThrow();
+      // getApplicationByPetId swallows the error and returns null, but still logs.
+      await expect(debugService.getApplicationByPetId('pet-1')).resolves.toBeNull();
+
+      expect(consoleError).toHaveBeenCalledTimes(11);
+
+      consoleError.mockRestore();
+    });
   });
 });

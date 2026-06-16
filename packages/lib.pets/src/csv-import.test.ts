@@ -34,6 +34,30 @@ describe('parseCsv', () => {
     const result = parseCsv(csv);
     expect(result.rows.map((r) => r.name)).toEqual(['Fido', 'Whiskers']);
   });
+
+  it('strips a UTF-8 BOM from the start of the file', () => {
+    const csv = '﻿name,type\nFido,dog\n';
+    const result = parseCsv(csv);
+    expect(result.headers).toEqual(['name', 'type']);
+    expect(result.rows[0]).toEqual({ name: 'Fido', type: 'dog' });
+  });
+
+  it('preserves newlines embedded inside quoted fields', () => {
+    const csv = 'name,bio\n"Fido","line one\nline two"';
+    const result = parseCsv(csv);
+    expect(result.rows[0].bio).toBe('line one\nline two');
+  });
+
+  it('parses the final row when there is no trailing newline', () => {
+    const csv = 'name,type\nFido,dog';
+    const result = parseCsv(csv);
+    expect(result.rows).toEqual([{ name: 'Fido', type: 'dog' }]);
+  });
+
+  it('returns empty headers and rows for empty input', () => {
+    const result = parseCsv('');
+    expect(result).toEqual({ headers: [], rows: [] });
+  });
 });
 
 describe('autoMapColumns', () => {
@@ -135,6 +159,77 @@ describe('validateMappedRow', () => {
         true
       );
     }
+  });
+
+  it('parses falsey booleans (no/0) to false and rejects unrecognised booleans', () => {
+    const passes = validateMappedRow(
+      { ...fullRow, good_with_children: 'no' },
+      fullMapping,
+      0,
+      RESCUE_ID
+    );
+    expect(passes.ok).toBe(true);
+    if (passes.ok) {
+      expect(passes.data.goodWithChildren).toBe(false);
+    }
+
+    const fails = validateMappedRow(
+      { ...fullRow, good_with_children: 'maybe' },
+      fullMapping,
+      1,
+      RESCUE_ID
+    );
+    expect(fails.ok).toBe(false);
+    if (!fails.ok) {
+      expect(fails.errors.some((e) => e.includes('valid boolean'))).toBe(true);
+    }
+  });
+
+  it('reports a non-integer age value', () => {
+    const result = validateMappedRow({ ...fullRow, age_years: 'three' }, fullMapping, 0, RESCUE_ID);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.some((e) => e.includes('valid integer'))).toBe(true);
+    }
+  });
+
+  it('surfaces schema-level errors when a field-handled value still fails PetCreateDataSchema', () => {
+    // adoptionFee is string-handled (so it passes per-field parsing) but the
+    // schema rejects non-numeric fee strings, exercising the final safeParse branch.
+    const result = validateMappedRow(
+      { ...fullRow, fee: '£150' },
+      { ...fullMapping, adoptionFee: 'fee' },
+      9,
+      RESCUE_ID
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.rowIndex).toBe(9);
+      expect(result.errors.some((e) => e.includes('adoptionFee'))).toBe(true);
+    }
+  });
+
+  it('ignores optional unmapped fields without error', () => {
+    const minimalMapping: ColumnMapping = {
+      name: 'name',
+      type: 'type',
+      breed: 'breed',
+      gender: 'gender',
+      size: 'size',
+      color: 'color',
+    };
+    const result = validateMappedRow(fullRow, minimalMapping, 0, RESCUE_ID);
+    expect(result.ok).toBe(true);
+  });
+
+  it('treats a blank external_id cell as null', () => {
+    const result = validateMappedRow(
+      { ...fullRow, ext: '   ' },
+      { ...fullMapping, externalId: 'ext' },
+      0,
+      RESCUE_ID
+    );
+    expect(result.externalId).toBeNull();
   });
 
   it('captures external_id when mapped, for idempotency keying', () => {

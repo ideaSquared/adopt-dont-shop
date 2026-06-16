@@ -571,3 +571,405 @@ describe('AuthProvider session-expiry toast [C2-5]', () => {
     expect(mockToastError).not.toHaveBeenCalled();
   });
 });
+
+// Probe child that exposes the full auth context so tests can drive any
+// method imperatively and read back the resulting user state.
+type ContextProbeProps = {
+  onReady: (ctx: ReturnType<typeof useAuth>) => void;
+};
+
+const ContextProbe = ({ onReady }: ContextProbeProps) => {
+  const ctx = useAuth();
+  React.useEffect(() => {
+    onReady(ctx);
+  }, [ctx, onReady]);
+  return null;
+};
+
+const rescueStaffUser: User = {
+  ...adopterUser,
+  userId: 'staff-789',
+  email: 'staff@example.com',
+  userType: 'rescue_staff',
+};
+
+describe('AuthProvider login app-type enforcement', () => {
+  beforeEach(() => {
+    mockAuthService.getCurrentUser.mockReturnValue(null);
+    mockAuthService.isAuthenticated.mockReturnValue(false);
+    mockAuthService.getProfile.mockResolvedValue(null);
+    mockAuthService.logout.mockResolvedValue(undefined);
+    mockToastError.mockClear();
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('rejects a user whose type is not allowed in this app and logs them out', async () => {
+    mockAuthService.login.mockResolvedValue(buildAuthResponse(rescueStaffUser));
+    const onAuthEvent = vi.fn();
+
+    let triggerLogin: (() => Promise<void>) | undefined;
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client" onAuthEvent={onAuthEvent}>
+        <LoginTrigger
+          credentials={{ email: rescueStaffUser.email, password: 'pw' }}
+          onReady={(fn) => {
+            triggerLogin = fn;
+          }}
+        />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(triggerLogin).toBeDefined();
+    });
+
+    await act(async () => {
+      await expect(triggerLogin?.()).rejects.toThrow(/please use the Rescue App/i);
+    });
+
+    expect(mockAuthService.logout).toHaveBeenCalled();
+    expect(onAuthEvent).toHaveBeenCalledWith(
+      'auth_wrong_app_access',
+      expect.objectContaining({ user_type: 'rescue_staff', expected_app: 'client' })
+    );
+    expect(onAuthEvent).toHaveBeenCalledWith(
+      'auth_login_failed',
+      expect.objectContaining({ email: rescueStaffUser.email })
+    );
+  });
+
+  it('emits a login_failed event and rethrows when the credentials are rejected', async () => {
+    mockAuthService.login.mockRejectedValue(new Error('Invalid credentials'));
+    const onAuthEvent = vi.fn();
+
+    let triggerLogin: (() => Promise<void>) | undefined;
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client" onAuthEvent={onAuthEvent}>
+        <LoginTrigger
+          credentials={{ email: adopterUser.email, password: 'wrong' }}
+          onReady={(fn) => {
+            triggerLogin = fn;
+          }}
+        />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(triggerLogin).toBeDefined();
+    });
+
+    await act(async () => {
+      await expect(triggerLogin?.()).rejects.toThrow('Invalid credentials');
+    });
+
+    expect(onAuthEvent).toHaveBeenCalledWith(
+      'auth_login_failed',
+      expect.objectContaining({ email: adopterUser.email, error_message: 'Invalid credentials' })
+    );
+  });
+});
+
+describe('AuthProvider register', () => {
+  beforeEach(() => {
+    mockAuthService.getCurrentUser.mockReturnValue(null);
+    mockAuthService.isAuthenticated.mockReturnValue(false);
+    mockAuthService.getProfile.mockResolvedValue(null);
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('registers without signing the user in and emits a success event with the app default user type', async () => {
+    mockAuthService.register.mockResolvedValue({ user: adopterUser, message: 'check your email' });
+    const onAuthEvent = vi.fn();
+    const states: Array<User | null> = [];
+
+    let ctx: ReturnType<typeof useAuth> | undefined;
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client" onAuthEvent={onAuthEvent}>
+        <ContextProbe
+          onReady={(c) => {
+            ctx = c;
+          }}
+        />
+        <AuthProbe onState={(u) => states.push(u)} />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(ctx).toBeDefined());
+
+    await act(async () => {
+      await ctx?.register({
+        email: 'new@example.com',
+        password: 'pw',
+        firstName: 'New',
+        lastName: 'User',
+      });
+    });
+
+    expect(mockAuthService.register).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'new@example.com', userType: 'adopter' })
+    );
+    // ADS-538: register must NOT sign the user in.
+    expect(states[states.length - 1]).toBeNull();
+    expect(onAuthEvent).toHaveBeenCalledWith(
+      'auth_registration_successful',
+      expect.objectContaining({ email: 'new@example.com', user_type: 'adopter' })
+    );
+  });
+
+  it('emits a registration_failed event and rethrows when registration fails', async () => {
+    mockAuthService.register.mockRejectedValue(new Error('Email already in use'));
+    const onAuthEvent = vi.fn();
+
+    let ctx: ReturnType<typeof useAuth> | undefined;
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client" onAuthEvent={onAuthEvent}>
+        <ContextProbe
+          onReady={(c) => {
+            ctx = c;
+          }}
+        />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(ctx).toBeDefined());
+
+    await act(async () => {
+      await expect(
+        ctx?.register({
+          email: 'dupe@example.com',
+          password: 'pw',
+          firstName: 'A',
+          lastName: 'B',
+        })
+      ).rejects.toThrow('Email already in use');
+    });
+
+    expect(onAuthEvent).toHaveBeenCalledWith(
+      'auth_registration_failed',
+      expect.objectContaining({ email: 'dupe@example.com', error_message: 'Email already in use' })
+    );
+  });
+});
+
+describe('AuthProvider updateProfile', () => {
+  beforeEach(() => {
+    mockAuthService.getCurrentUser.mockReturnValue(adopterUser);
+    mockAuthService.isAuthenticated.mockReturnValue(true);
+    mockAuthService.getProfile.mockResolvedValue(adopterUser);
+    mockAuthService.updateProfile.mockReset();
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('persists the updated user returned by the service', async () => {
+    const updated = { ...adopterUser, firstName: 'Grace' };
+    mockAuthService.updateProfile.mockResolvedValue(updated);
+    const states: Array<User | null> = [];
+
+    let ctx: ReturnType<typeof useAuth> | undefined;
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <ContextProbe
+          onReady={(c) => {
+            ctx = c;
+          }}
+        />
+        <AuthProbe onState={(u) => states.push(u)} />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(states[states.length - 1]?.userId).toBe(adopterUser.userId));
+
+    await act(async () => {
+      await ctx?.updateProfile({ firstName: 'Grace' });
+    });
+
+    expect(mockAuthService.updateProfile).toHaveBeenCalledWith({ firstName: 'Grace' });
+    await waitFor(() => expect(states[states.length - 1]?.firstName).toBe('Grace'));
+  });
+
+  it('throws when no user is logged in', async () => {
+    mockAuthService.getCurrentUser.mockReturnValue(null);
+    mockAuthService.isAuthenticated.mockReturnValue(false);
+    mockAuthService.getProfile.mockResolvedValue(null);
+
+    let ctx: ReturnType<typeof useAuth> | undefined;
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <ContextProbe
+          onReady={(c) => {
+            ctx = c;
+          }}
+        />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(ctx).toBeDefined());
+
+    await act(async () => {
+      await expect(ctx?.updateProfile({ firstName: 'Grace' })).rejects.toThrow('No user logged in');
+    });
+
+    expect(mockAuthService.updateProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe('AuthProvider refreshUser', () => {
+  beforeEach(() => {
+    mockAuthService.getCurrentUser.mockReturnValue(adopterUser);
+    mockAuthService.isAuthenticated.mockReturnValue(true);
+    mockAuthService.getProfile.mockResolvedValue(adopterUser);
+    mockAuthService.logout.mockResolvedValue(undefined);
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('updates the user with fresh data from the API', async () => {
+    const states: Array<User | null> = [];
+    let ctx: ReturnType<typeof useAuth> | undefined;
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <ContextProbe
+          onReady={(c) => {
+            ctx = c;
+          }}
+        />
+        <AuthProbe onState={(u) => states.push(u)} />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(states[states.length - 1]?.userId).toBe(adopterUser.userId));
+
+    const refreshed = { ...adopterUser, lastName: 'Hopper' };
+    mockAuthService.getProfile.mockResolvedValue(refreshed);
+
+    await act(async () => {
+      await ctx?.refreshUser();
+    });
+
+    await waitFor(() => expect(states[states.length - 1]?.lastName).toBe('Hopper'));
+  });
+
+  it('does nothing when there is no authenticated session', async () => {
+    mockAuthService.getCurrentUser.mockReturnValue(null);
+    mockAuthService.isAuthenticated.mockReturnValue(false);
+    mockAuthService.getProfile.mockResolvedValue(null);
+
+    let ctx: ReturnType<typeof useAuth> | undefined;
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <ContextProbe
+          onReady={(c) => {
+            ctx = c;
+          }}
+        />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(ctx).toBeDefined());
+
+    mockAuthService.getProfile.mockClear();
+
+    await act(async () => {
+      await ctx?.refreshUser();
+    });
+
+    // isAuthenticated() short-circuits before any profile fetch.
+    expect(mockAuthService.getProfile).not.toHaveBeenCalled();
+  });
+
+  it('logs the user out when the refreshed profile is no longer an allowed type', async () => {
+    const states: Array<User | null> = [];
+    let ctx: ReturnType<typeof useAuth> | undefined;
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <ContextProbe
+          onReady={(c) => {
+            ctx = c;
+          }}
+        />
+        <AuthProbe onState={(u) => states.push(u)} />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(states[states.length - 1]?.userId).toBe(adopterUser.userId));
+
+    mockAuthService.getProfile.mockResolvedValue(rescueStaffUser);
+
+    await act(async () => {
+      await ctx?.refreshUser();
+    });
+
+    expect(mockAuthService.logout).toHaveBeenCalled();
+    await waitFor(() => expect(states[states.length - 1]).toBeNull());
+  });
+
+  it('logs the user out when the refresh request fails', async () => {
+    let ctx: ReturnType<typeof useAuth> | undefined;
+    const states: Array<User | null> = [];
+
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <ContextProbe
+          onReady={(c) => {
+            ctx = c;
+          }}
+        />
+        <AuthProbe onState={(u) => states.push(u)} />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(states[states.length - 1]?.userId).toBe(adopterUser.userId));
+
+    mockAuthService.getProfile.mockRejectedValue(new Error('network error'));
+
+    await act(async () => {
+      await ctx?.refreshUser();
+    });
+
+    expect(mockAuthService.logout).toHaveBeenCalled();
+  });
+});
+
+describe('AuthProvider mount rehydration with disallowed user type', () => {
+  beforeEach(() => {
+    mockAuthService.logout.mockResolvedValue(undefined);
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('logs out a rehydrated user whose type is not allowed in this app', async () => {
+    mockAuthService.getCurrentUser.mockReturnValue(rescueStaffUser);
+    mockAuthService.isAuthenticated.mockReturnValue(true);
+    mockAuthService.getProfile.mockResolvedValue(rescueStaffUser);
+
+    const states: Array<User | null> = [];
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <AuthProbe onState={(u) => states.push(u)} />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(mockAuthService.logout).toHaveBeenCalled());
+    expect(states[states.length - 1]).toBeNull();
+  });
+});

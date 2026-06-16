@@ -354,4 +354,227 @@ describe('AuthService', () => {
       expect(result).toEqual(mockResponse);
     });
   });
+
+  describe('getProfile', () => {
+    it('should fetch the current user profile from the API', async () => {
+      (apiService.get as ReturnType<typeof vi.fn>).mockResolvedValue(mockUser);
+
+      const result = await authService.getProfile();
+
+      expect(apiService.get).toHaveBeenCalledWith('/api/v1/auth/me');
+      expect(result).toEqual(mockUser);
+    });
+
+    it('should propagate an API failure', async () => {
+      (apiService.get as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Unauthorized'));
+
+      await expect(authService.getProfile()).rejects.toThrow('Unauthorized');
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('should update the profile and persist the returned user to localStorage', async () => {
+      const updatedUser = { ...mockUser, firstName: 'Jane' };
+      (apiService.put as ReturnType<typeof vi.fn>).mockResolvedValue(updatedUser);
+
+      const result = await authService.updateProfile({ firstName: 'Jane' });
+
+      expect(apiService.put).toHaveBeenCalledWith('/api/v1/auth/me', { firstName: 'Jane' });
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        STORAGE_KEYS.USER,
+        JSON.stringify(updatedUser)
+      );
+      expect(result).toEqual(updatedUser);
+    });
+
+    it('should not write to localStorage when the update fails', async () => {
+      (apiService.put as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Validation error'));
+
+      await expect(authService.updateProfile({ firstName: '' })).rejects.toThrow(
+        'Validation error'
+      );
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should request a password reset email for the given address', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await authService.forgotPassword('test@example.com');
+
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/forgot-password', {
+        email: 'test@example.com',
+      });
+    });
+
+    it('should propagate an API failure', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Rate limited'));
+
+      await expect(authService.forgotPassword('test@example.com')).rejects.toThrow('Rate limited');
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should reset the password using the supplied token', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await authService.resetPassword('reset-token', 'newPassword123');
+
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/reset-password', {
+        token: 'reset-token',
+        newPassword: 'newPassword123',
+      });
+    });
+
+    it('should propagate an error when the token is invalid or expired', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Invalid or expired token')
+      );
+
+      await expect(authService.resetPassword('bad-token', 'newPassword123')).rejects.toThrow(
+        'Invalid or expired token'
+      );
+    });
+  });
+
+  describe('changePassword', () => {
+    it('should send the current and new password to the change-password endpoint', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await authService.changePassword({
+        currentPassword: 'oldPassword123',
+        newPassword: 'newPassword123',
+      });
+
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/change-password', {
+        currentPassword: 'oldPassword123',
+        newPassword: 'newPassword123',
+      });
+    });
+
+    it('should propagate an error when the current password is wrong', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Current password is incorrect')
+      );
+
+      await expect(
+        authService.changePassword({
+          currentPassword: 'wrong',
+          newPassword: 'newPassword123',
+        })
+      ).rejects.toThrow('Current password is incorrect');
+    });
+  });
+
+  describe('verifyEmail', () => {
+    it('should verify the email using the supplied token', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await authService.verifyEmail('verify-token');
+
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/verify-email', {
+        token: 'verify-token',
+      });
+    });
+
+    it('should propagate an error when the verification token is invalid', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Invalid verification token')
+      );
+
+      await expect(authService.verifyEmail('bad-token')).rejects.toThrow(
+        'Invalid verification token'
+      );
+    });
+  });
+
+  describe('resendVerificationEmail', () => {
+    it('should resend verification to the current user email', async () => {
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(mockUser));
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await authService.resendVerificationEmail();
+
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/resend-verification', {
+        email: mockUser.email,
+      });
+    });
+
+    it('should throw and not call the API when no user is stored', async () => {
+      mockLocalStorage.getItem.mockReturnValue(null);
+
+      await expect(authService.resendVerificationEmail()).rejects.toThrow('No user email found');
+      expect(apiService.post).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('twoFactorEnable without a stored user', () => {
+    it('should still return the API response when no user is in localStorage', async () => {
+      const mockResponse = { success: true, backupCodes: ['a', 'b'] };
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+      mockLocalStorage.getItem.mockReturnValue(null);
+
+      const result = await authService.twoFactorEnable('SECRET', '123456');
+
+      expect(result).toEqual(mockResponse);
+      // No user to update, so nothing is written back to storage
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('twoFactorDisable without a stored user', () => {
+    it('should still return the API response when no user is in localStorage', async () => {
+      const mockResponse = { success: true, message: 'disabled' };
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
+      mockLocalStorage.getItem.mockReturnValue(null);
+
+      const result = await authService.twoFactorDisable('123456');
+
+      expect(result).toEqual(mockResponse);
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteAccount', () => {
+    it('should send only the password when no options are supplied and clear stored user', async () => {
+      (apiService.fetchWithAuth as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await authService.deleteAccount('myPassword');
+
+      expect(apiService.fetchWithAuth).toHaveBeenCalledWith('/api/v1/users/account', {
+        method: 'DELETE',
+        body: { password: 'myPassword' },
+      });
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
+    });
+
+    it('should include the 2FA token and reason when provided', async () => {
+      (apiService.fetchWithAuth as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await authService.deleteAccount('myPassword', {
+        twoFactorToken: '654321',
+        reason: 'No longer needed',
+      });
+
+      expect(apiService.fetchWithAuth).toHaveBeenCalledWith('/api/v1/users/account', {
+        method: 'DELETE',
+        body: {
+          password: 'myPassword',
+          twoFactorToken: '654321',
+          reason: 'No longer needed',
+        },
+      });
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
+    });
+
+    it('should not clear stored user when the deletion request fails', async () => {
+      (apiService.fetchWithAuth as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Incorrect password')
+      );
+
+      await expect(authService.deleteAccount('wrong')).rejects.toThrow('Incorrect password');
+      expect(mockLocalStorage.removeItem).not.toHaveBeenCalled();
+    });
+  });
 });

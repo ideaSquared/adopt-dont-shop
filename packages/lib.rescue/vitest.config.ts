@@ -12,13 +12,13 @@ export default defineLibConfig({
         'src/test-utils/**',
         'src/index.ts',
       ],
-      // ADS-717: ratcheted to measured baseline (2026-05-29).
-      // Measured: statements=60.2 branches=60.15 functions=42.3 lines=60.2
+      // ADS-717: ratcheted to measured baseline (2026-06-16).
+      // Measured: statements=91.75 branches=86.25 functions=100 lines=91.75
       thresholds: {
-        statements: 59,
-        branches: 59,
-        functions: 41,
-        lines: 59,
+        statements: 90,
+        branches: 85,
+        functions: 99,
+        lines: 90,
       },
     },
   },
