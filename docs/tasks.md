@@ -59,8 +59,10 @@ the repo root with `pnpm <script>`.
 | `pnpm check:lib-tests` | `node scripts/check-lib-tests.mjs` |
 | `pnpm check:workflow-paths` | `node scripts/check-workflow-paths.mjs` |
 | `pnpm check:workspaces` | `node scripts/check-workspace-consistency.mjs` |
-| `pnpm format` | `prettier --write "**/*.{ts,tsx,js,jsx,json,md}" --ignore-path .prettierignore` |
-| `pnpm format:check` | `prettier --check "**/*.{ts,tsx,js,jsx,json,md}" --ignore-path .prettierignore` |
+| `pnpm format` | `turbo run format && pnpm format:root` |
+| `pnpm format:check` | `turbo run format:check && pnpm format:root:check` |
+| `pnpm format:root` | `prettier --cache --write "*.{ts,tsx,js,jsx,json,md}" "scripts/**/*.{ts,js,jsx,json,md}" "docs/**/*.md" ".github/**/*.md" --ignore-path .prettierignore` |
+| `pnpm format:root:check` | `prettier --cache --check "*.{ts,tsx,js,jsx,json,md}" "scripts/**/*.{ts,js,jsx,json,md}" "docs/**/*.md" ".github/**/*.md" --ignore-path .prettierignore` |
 | `pnpm graph` | `turbo run build --graph=docs/dependency-graph.html` |
 | `pnpm graph:tasks` | `turbo run build --graph` |
 | `pnpm lint` | `turbo run lint` |
@@ -112,6 +114,7 @@ the repo root with `pnpm <script>`.
 
 | Script | Command |
 | --- | --- |
+| `pnpm cache:status` | `node -e "const fs=require('fs');const f='.turbo/config.json';if(!fs.existsSync(f)){console.log('Turbo remote cache: NOT linked. Run: npx turbo login then npx turbo link (see docs/infrastructure/turbo-cache.md).');process.exit(0)}const c=JSON.parse(fs.readFileSync(f,'utf8'));console.log('Turbo remote cache: linked (team '+(c.teamslug\|\|c.teamid\|\|'unknown')+'). Run: turbo run build --summarize for per-run cache hit rates.')"` |
 | `pnpm clean` | `turbo run clean && rm -rf node_modules` |
 | `pnpm db:seed` | `node scripts/seed.mjs` |
 | `pnpm tasks` | `node scripts/generate-task-index.mjs --print` |

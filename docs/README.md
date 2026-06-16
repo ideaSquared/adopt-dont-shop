@@ -142,6 +142,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 
 - [Infrastructure overview](./infrastructure/INFRASTRUCTURE.md) — environments, components, networking
 - [Deployment plan](./infrastructure/DEPLOYMENT-PLAN.md) — phased deployment strategy
+- [Turbo remote caching](./infrastructure/turbo-cache.md) — opt in locally, self-host path, token rotation
 - [Docker setup (infrastructure)](./infrastructure/docker-setup.md) — Docker compose layout and overrides
 - [New app generator](./infrastructure/new-app-generator.md) — scaffolding a new workspace app
 - [Docker deep dive](./DOCKER.md) — root-level Docker reference and tips

@@ -3,7 +3,7 @@
   "remoteCache": {
     "enabled": true
   },
-  "globalDependencies": ["**/.env.*local"],
+  "globalDependencies": ["**/.env.*local", ".prettierrc", ".prettierignore", ".editorconfig"],
   "globalEnv": ["NODE_ENV", "CI", "DOCKER"],
   "tasks": {
     "build": {
@@ -37,6 +37,14 @@
     },
     "lint": {
       "outputs": []
+    },
+    "format": {
+      "outputs": [],
+      "inputs": ["src/**", "package.json"]
+    },
+    "format:check": {
+      "outputs": [],
+      "inputs": ["src/**", "package.json"]
     },
     "type-check": {
       "dependsOn": ["^build"],

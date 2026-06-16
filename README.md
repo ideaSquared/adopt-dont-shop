@@ -41,6 +41,18 @@ Skip the Playwright step with `pnpm setup -- --skip-playwright` if you don't pla
 
 Pass `--no-start` to skip the stack-start prompt (default when stdin is not a TTY, e.g. CI sandboxes), or `--start` to force it without prompting. All secrets — including `POSTGRES_PASSWORD` and `REDIS_PASSWORD` — are generated for you; you only need to add any third-party API keys you want in `.env`. If you accepted the prompt, the stack is already running on the URLs printed above.
 
+### Speed up your builds (Turbo remote cache)
+
+Turbo caches every task (`build`, `test`, `lint`, `type-check`, `format`) so a clean checkout can replay work someone else already ran instead of rebuilding all ~24 packages (5–10 min cold vs <30 s warm). Opt into the **shared** cache once per checkout:
+
+```bash
+npx turbo login          # authenticate (opens a browser)
+npx turbo link           # link this repo to your team's remote cache
+pnpm cache:status        # confirm the link
+```
+
+No Vercel account (Codespaces / OSS contributors)? Skip `login`/`link` — the **local** `.turbo/` cache still short-circuits repeated work — or point Turbo at a self-hosted cache. See [docs/infrastructure/turbo-cache.md](./docs/infrastructure/turbo-cache.md) for the no-Vercel path and token-rotation policy.
+
 ### Run (Docker — recommended)
 
 ```bash
