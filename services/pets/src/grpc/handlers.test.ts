@@ -257,6 +257,48 @@ describe('listPets', () => {
     expect(params).toContain('available');
     expect(params).toContain(RESCUE_ID);
   });
+
+  it('pins rescue staff to their own rescue, ignoring a foreign rescueIdFilter', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    // STAFF is scoped to rsc-1 but asks for rsc-2's pets.
+    await listPets(mocks.deps, STAFF, { limit: 0, rescueIdFilter: 'rsc-2' } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(sql).toMatch(/rescue_id = \$1/);
+    // Scoped to their own rescue — the foreign filter is not honoured.
+    expect(params).toContain(RESCUE_ID);
+    expect(params).not.toContain('rsc-2');
+  });
+
+  it('scopes rescue staff to their own rescue even with no filter', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listPets(mocks.deps, STAFF, { limit: 0 } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(sql).toMatch(/rescue_id = \$1/);
+    expect(params).toContain(RESCUE_ID);
+  });
+
+  it('lets a pets.read:any admin target any rescue', async () => {
+    const adminAny: Principal = {
+      userId: 'usr-admin' as UserId,
+      roles: ['admin'],
+      permissions: ['pets.read' as Permission, 'pets.read:any' as Permission],
+      rescueId: RESCUE_ID as RescueId,
+    };
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listPets(mocks.deps, adminAny, { limit: 0, rescueIdFilter: 'rsc-2' } as never);
+    const params = mocks.poolMock.query.mock.calls[0][1] as unknown[];
+    expect(params).toContain('rsc-2');
+  });
+
+  it('lets an adopter browse the catalogue across rescues (no rescue filter)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await listPets(mocks.deps, ADOPTER, { limit: 0 } as never);
+    const sql = mocks.poolMock.query.mock.calls[0][0] as string;
+    // No rescue_id predicate is forced on a public browse.
+    expect(sql).not.toMatch(/rescue_id =/);
+  });
 });
 
 // --- updatePet -------------------------------------------------------

@@ -314,6 +314,18 @@ export async function listPets(
     throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
   }
 
+  // Resolve rescue scope, mirroring getPetStats. Rescue-bound staff are
+  // pinned to their own rescue and CANNOT read another rescue's pets by
+  // passing rescueIdFilter. pets.read:any (admin) may target any rescue or
+  // all. Public / adopter callers (no rescueId, no :any) browse the
+  // catalogue and may optionally narrow to a single rescue.
+  let rescueScope: string | undefined;
+  if (!hasPermission(principal, PETS_READ_ANY) && principal.rescueId) {
+    rescueScope = principal.rescueId;
+  } else {
+    rescueScope = req.rescueIdFilter ? req.rescueIdFilter : undefined;
+  }
+
   const limit = clampLimit(req.limit);
   const cursor = req.cursor ? parseCursor(req.cursor) : undefined;
 
@@ -339,9 +351,9 @@ export async function listPets(
     params.push(sizeToDb(req.sizeFilter));
     n++;
   }
-  if (req.rescueIdFilter) {
+  if (rescueScope) {
     where.push(`rescue_id = $${n}`);
-    params.push(req.rescueIdFilter);
+    params.push(rescueScope);
     n++;
   }
   if (cursor) {

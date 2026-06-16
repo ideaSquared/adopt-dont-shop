@@ -254,6 +254,81 @@ describe('withdraw', () => {
   });
 });
 
+// The application stream is owned by rescue rsc-1 / adopter usr-1. A
+// principal that holds the permission but belongs to a DIFFERENT rescue
+// must not be able to drive another rescue's application lifecycle.
+describe('cross-rescue authorization', () => {
+  it('denies startReview from a staffer of another rescue', async () => {
+    const foreign = {
+      userId: 'staff-9',
+      roles: ['rescue_staff'],
+      permissions: [
+        'applications.review',
+        'applications.approve',
+        'applications.reject',
+        'applications.update',
+      ],
+      rescueId: 'rsc-2',
+    } as unknown as Parameters<typeof startReview>[1];
+    const { deps } = makeDeps(submittedStream());
+    await expect(startReview(deps, foreign, { applicationId: 'app-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('denies approve / reject / markAdopted from a foreign rescue', async () => {
+    const foreign = {
+      userId: 'staff-9',
+      roles: ['rescue_staff'],
+      permissions: [
+        'applications.review',
+        'applications.approve',
+        'applications.reject',
+        'applications.update',
+      ],
+      rescueId: 'rsc-2',
+    } as unknown as Parameters<typeof approve>[1];
+
+    const a = makeDeps(decidableStream());
+    await expect(approve(a.deps, foreign, { applicationId: 'app-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+
+    const r = makeDeps(decidableStream());
+    await expect(
+      reject(r.deps, foreign, { applicationId: 'app-1', reason: 'no' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+
+    const m = makeDeps([
+      ...decidableStream(),
+      ev('approved', 6, { actorUserId: 'staff-1', notes: null }),
+    ]);
+    await expect(markAdopted(m.deps, foreign, { applicationId: 'app-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('lets the owning adopter withdraw but denies an unrelated user', async () => {
+    const owner = {
+      userId: 'usr-1',
+      roles: ['adopter'],
+      permissions: ['applications.update'],
+    } as unknown as Parameters<typeof withdraw>[1];
+    const ok = makeDeps(submittedStream());
+    await expect(withdraw(ok.deps, owner, { applicationId: 'app-1' })).resolves.toBeDefined();
+
+    const stranger = {
+      userId: 'usr-2',
+      roles: ['adopter'],
+      permissions: ['applications.update'],
+    } as unknown as Parameters<typeof withdraw>[1];
+    const no = makeDeps(submittedStream());
+    await expect(withdraw(no.deps, stranger, { applicationId: 'app-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+});
+
 describe('markAdopted', () => {
   it('throws PERMISSION_DENIED without applications.approve', async () => {
     const { deps } = makeDeps([

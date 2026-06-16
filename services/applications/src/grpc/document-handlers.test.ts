@@ -25,6 +25,12 @@ function makeDeps(): { deps: HandlerDeps; query: ReturnType<typeof vi.fn> } {
   return { deps: { pool, nats: {} } as unknown as HandlerDeps, query };
 }
 
+// The owner-row lookup every document handler runs first to scope the call
+// to the application's adopter / rescue.
+function ownerRow(overrides: Partial<{ user_id: string; rescue_id: string }> = {}) {
+  return { user_id: overrides.user_id ?? 'usr-1', rescue_id: overrides.rescue_id ?? 'rsc-1' };
+}
+
 const documentRow = {
   document_id: 'doc-1',
   application_id: 'app-1',
@@ -38,7 +44,8 @@ const documentRow = {
 
 describe('addDocument', () => {
   it('throws PERMISSION_DENIED without applications.update', async () => {
-    const { deps } = makeDeps();
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1' })] });
     await expect(
       addDocument(deps, makePrincipal({ permissions: ['applications.read'] }), {
         applicationId: 'app-1',
@@ -50,7 +57,7 @@ describe('addDocument', () => {
   });
 
   it('throws INVALID_ARGUMENT when application_id is empty', async () => {
-    const { deps } = makeDeps();
+    const { deps, query } = makeDeps();
     await expect(
       addDocument(deps, makePrincipal(), {
         applicationId: '',
@@ -59,11 +66,61 @@ describe('addDocument', () => {
         url: 'https://files/ref.pdf',
       })
     ).rejects.toBeInstanceOf(HandlerError);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('throws NOT_FOUND when the application does not exist', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      addDocument(deps, makePrincipal(), {
+        applicationId: 'missing',
+        type: 'reference',
+        filename: 'ref.pdf',
+        url: 'https://files/ref.pdf',
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    // Never reaches the INSERT.
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('denies an adopter who is not the application owner', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'someone-else' })] });
+    await expect(
+      addDocument(deps, makePrincipal({ userId: 'usr-1' }), {
+        applicationId: 'app-1',
+        type: 'reference',
+        filename: 'ref.pdf',
+        url: 'https://files/ref.pdf',
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('denies rescue staff of a different rescue', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'other', rescue_id: 'rsc-9' })] });
+    await expect(
+      addDocument(
+        deps,
+        makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-1' }),
+        {
+          applicationId: 'app-1',
+          type: 'reference',
+          filename: 'ref.pdf',
+          url: 'https://files/ref.pdf',
+        }
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(query).toHaveBeenCalledTimes(1);
   });
 
   it('inserts the metadata row and returns the mapped Document', async () => {
     const { deps, query } = makeDeps();
-    query.mockResolvedValueOnce({ rows: [documentRow] });
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-9' })] })
+      .mockResolvedValueOnce({ rows: [documentRow] });
 
     const res = await addDocument(deps, makePrincipal({ userId: 'usr-9' }), {
       applicationId: 'app-1',
@@ -74,7 +131,7 @@ describe('addDocument', () => {
       mimeType: 'application/pdf',
     });
 
-    const params = query.mock.calls[0][1] as unknown[];
+    const params = query.mock.calls[1][1] as unknown[];
     // application_id, type, filename, url, size, mime_type, uploaded_by
     expect(params.slice(1)).toEqual([
       'app-1',
@@ -97,11 +154,31 @@ describe('addDocument', () => {
     });
   });
 
+  it('lets rescue staff of the application rescue add a document', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'other', rescue_id: 'rsc-9' })] })
+      .mockResolvedValueOnce({ rows: [documentRow] });
+
+    const res = await addDocument(
+      deps,
+      makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-9' }),
+      {
+        applicationId: 'app-1',
+        type: 'reference',
+        filename: 'ref.pdf',
+        url: 'https://files/ref.pdf',
+      }
+    );
+
+    expect(res.document?.documentId).toBe('doc-1');
+  });
+
   it('persists null for omitted size / mime_type', async () => {
     const { deps, query } = makeDeps();
-    query.mockResolvedValueOnce({
-      rows: [{ ...documentRow, size: null, mime_type: null }],
-    });
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1' })] })
+      .mockResolvedValueOnce({ rows: [{ ...documentRow, size: null, mime_type: null }] });
 
     const res = await addDocument(deps, makePrincipal(), {
       applicationId: 'app-1',
@@ -110,7 +187,7 @@ describe('addDocument', () => {
       url: 'https://files/ref.pdf',
     });
 
-    const params = query.mock.calls[0][1] as unknown[];
+    const params = query.mock.calls[1][1] as unknown[];
     expect(params[5]).toBeNull();
     expect(params[6]).toBeNull();
     expect(res.document?.size).toBeUndefined();
@@ -130,7 +207,7 @@ describe('listDocuments', () => {
 
   it('denies an adopter who is not the application owner', async () => {
     const { deps, query } = makeDeps();
-    query.mockResolvedValueOnce({ rows: [{ user_id: 'someone-else', rescue_id: 'rsc-1' }] });
+    query.mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'someone-else' })] });
 
     await expect(
       listDocuments(deps, makePrincipal({ userId: 'usr-1' }), { applicationId: 'app-1' })
@@ -140,7 +217,7 @@ describe('listDocuments', () => {
   it('lets the owning adopter list their documents', async () => {
     const { deps, query } = makeDeps();
     query
-      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1', rescue_id: 'rsc-1' }] })
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1' })] })
       .mockResolvedValueOnce({ rows: [documentRow] });
 
     const res = await listDocuments(deps, makePrincipal({ userId: 'usr-1' }), {
@@ -154,7 +231,7 @@ describe('listDocuments', () => {
   it('lets rescue staff of the application rescue list documents', async () => {
     const { deps, query } = makeDeps();
     query
-      .mockResolvedValueOnce({ rows: [{ user_id: 'other', rescue_id: 'rsc-9' }] })
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'other', rescue_id: 'rsc-9' })] })
       .mockResolvedValueOnce({ rows: [] });
 
     const res = await listDocuments(
@@ -169,7 +246,8 @@ describe('listDocuments', () => {
 
 describe('removeDocument', () => {
   it('throws PERMISSION_DENIED without applications.update', async () => {
-    const { deps } = makeDeps();
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1' })] });
     await expect(
       removeDocument(deps, makePrincipal({ permissions: ['applications.read'] }), {
         applicationId: 'app-1',
@@ -186,23 +264,40 @@ describe('removeDocument', () => {
     expect(query).not.toHaveBeenCalled();
   });
 
+  it('denies rescue staff of a different rescue', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'other', rescue_id: 'rsc-9' })] });
+    await expect(
+      removeDocument(
+        deps,
+        makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-1' }),
+        { applicationId: 'app-1', documentId: 'doc-1' }
+      )
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
   it('soft-deletes the document and returns an empty response', async () => {
     const { deps, query } = makeDeps();
-    query.mockResolvedValueOnce({ rowCount: 1 });
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1' })] })
+      .mockResolvedValueOnce({ rowCount: 1 });
 
     const res = await removeDocument(deps, makePrincipal(), {
       applicationId: 'app-1',
       documentId: 'doc-1',
     });
 
-    const params = query.mock.calls[0][1] as unknown[];
+    const params = query.mock.calls[1][1] as unknown[];
     expect(params).toEqual(['doc-1', 'app-1']);
     expect(res).toEqual({});
   });
 
   it('throws NOT_FOUND when no live document matches', async () => {
     const { deps, query } = makeDeps();
-    query.mockResolvedValueOnce({ rowCount: 0 });
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1' })] })
+      .mockResolvedValueOnce({ rowCount: 0 });
 
     await expect(
       removeDocument(deps, makePrincipal(), { applicationId: 'app-1', documentId: 'gone' })

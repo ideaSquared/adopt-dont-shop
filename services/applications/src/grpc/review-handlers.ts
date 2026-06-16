@@ -52,7 +52,7 @@ import {
 import type { ApplicationCommand, HomeVisitOutcome } from '../domain/index.js';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
-import { runCommand } from './command-runner.js';
+import { requireOwnerOrRescueScope, requireRescueScope, runCommand } from './command-runner.js';
 import { homeVisitOutcomeToDb } from './enum-map.js';
 import { stateToProto } from './state-mapper.js';
 
@@ -86,11 +86,18 @@ export async function startReview(
     at: new Date().toISOString(),
   };
 
-  const state = await runCommand(deps, id, command, principal.userId, s => ({
-    type: 'applications.reviewStarted',
+  const state = await runCommand(
+    deps,
     id,
-    payload: { applicationId: id, reviewerId: principal.userId, rescueId: s.rescueId },
-  }));
+    command,
+    principal.userId,
+    s => ({
+      type: 'applications.reviewStarted',
+      id,
+      payload: { applicationId: id, reviewerId: principal.userId, rescueId: s.rescueId },
+    }),
+    s => requireRescueScope(principal, APPLICATIONS_PROCESS, s)
+  );
 
   return { application: stateToProto(state) };
 }
@@ -116,16 +123,23 @@ export async function scheduleHomeVisit(
     at: new Date().toISOString(),
   };
 
-  const state = await runCommand(deps, id, command, principal.userId, s => ({
-    type: 'applications.homeVisitScheduled',
+  const state = await runCommand(
+    deps,
     id,
-    payload: {
-      applicationId: id,
-      adopterId: s.adopterId,
-      rescueId: s.rescueId,
-      scheduledAt: req.scheduledAt,
-    },
-  }));
+    command,
+    principal.userId,
+    s => ({
+      type: 'applications.homeVisitScheduled',
+      id,
+      payload: {
+        applicationId: id,
+        adopterId: s.adopterId,
+        rescueId: s.rescueId,
+        scheduledAt: req.scheduledAt,
+      },
+    }),
+    s => requireRescueScope(principal, APPLICATIONS_PROCESS, s)
+  );
 
   return { application: stateToProto(state) };
 }
@@ -156,11 +170,18 @@ export async function completeHomeVisit(
     at: new Date().toISOString(),
   };
 
-  const state = await runCommand(deps, id, command, principal.userId, s => ({
-    type: 'applications.homeVisitCompleted',
+  const state = await runCommand(
+    deps,
     id,
-    payload: { applicationId: id, adopterId: s.adopterId, rescueId: s.rescueId, outcome },
-  }));
+    command,
+    principal.userId,
+    s => ({
+      type: 'applications.homeVisitCompleted',
+      id,
+      payload: { applicationId: id, adopterId: s.adopterId, rescueId: s.rescueId, outcome },
+    }),
+    s => requireRescueScope(principal, APPLICATIONS_PROCESS, s)
+  );
 
   return { application: stateToProto(state) };
 }
@@ -182,17 +203,24 @@ export async function approve(
     at: new Date().toISOString(),
   };
 
-  const state = await runCommand(deps, id, command, principal.userId, s => ({
-    type: 'applications.approved',
+  const state = await runCommand(
+    deps,
     id,
-    payload: {
-      applicationId: id,
-      adopterId: s.adopterId,
-      petId: s.petId,
-      rescueId: s.rescueId,
-      approvedBy: principal.userId,
-    },
-  }));
+    command,
+    principal.userId,
+    s => ({
+      type: 'applications.approved',
+      id,
+      payload: {
+        applicationId: id,
+        adopterId: s.adopterId,
+        petId: s.petId,
+        rescueId: s.rescueId,
+        approvedBy: principal.userId,
+      },
+    }),
+    s => requireRescueScope(principal, APPLICATIONS_APPROVE, s)
+  );
 
   return { application: stateToProto(state) };
 }
@@ -217,18 +245,25 @@ export async function reject(
     at: new Date().toISOString(),
   };
 
-  const state = await runCommand(deps, id, command, principal.userId, s => ({
-    type: 'applications.rejected',
+  const state = await runCommand(
+    deps,
     id,
-    payload: {
-      applicationId: id,
-      adopterId: s.adopterId,
-      petId: s.petId,
-      rescueId: s.rescueId,
-      rejectedBy: principal.userId,
-      reason: req.reason,
-    },
-  }));
+    command,
+    principal.userId,
+    s => ({
+      type: 'applications.rejected',
+      id,
+      payload: {
+        applicationId: id,
+        adopterId: s.adopterId,
+        petId: s.petId,
+        rescueId: s.rescueId,
+        rejectedBy: principal.userId,
+        reason: req.reason,
+      },
+    }),
+    s => requireRescueScope(principal, APPLICATIONS_REJECT, s)
+  );
 
   return { application: stateToProto(state) };
 }
@@ -241,9 +276,10 @@ export async function withdraw(
   req: WithdrawRequest
 ): Promise<WithdrawResponse> {
   // Adopter-or-staff. An adopter withdraws their own application; staff
-  // can withdraw on their behalf. The basic APPLICATIONS_UPDATE gate
-  // covers both; ownership is enforced by the domain only knowing the
-  // adopter (the gateway scopes adopter requests to their own id).
+  // can withdraw on their behalf. The base APPLICATIONS_UPDATE gate is the
+  // cheap upfront check; the runCommand authorize hook then enforces that
+  // the principal is the owning adopter OR scoped to the owning rescue
+  // (the loaded aggregate carries both).
   ensure(principal, APPLICATIONS_UPDATE);
   const id = requireApplicationId(req.applicationId);
 
@@ -254,16 +290,23 @@ export async function withdraw(
     at: new Date().toISOString(),
   };
 
-  const state = await runCommand(deps, id, command, principal.userId, s => ({
-    type: 'applications.withdrawn',
+  const state = await runCommand(
+    deps,
     id,
-    payload: {
-      applicationId: id,
-      adopterId: s.adopterId,
-      rescueId: s.rescueId,
-      withdrawnBy: principal.userId,
-    },
-  }));
+    command,
+    principal.userId,
+    s => ({
+      type: 'applications.withdrawn',
+      id,
+      payload: {
+        applicationId: id,
+        adopterId: s.adopterId,
+        rescueId: s.rescueId,
+        withdrawnBy: principal.userId,
+      },
+    }),
+    s => requireOwnerOrRescueScope(principal, APPLICATIONS_UPDATE, s)
+  );
 
   return { application: stateToProto(state) };
 }
@@ -283,11 +326,18 @@ export async function markAdopted(
     at: new Date().toISOString(),
   };
 
-  const state = await runCommand(deps, id, command, principal.userId, s => ({
-    type: 'applications.adopted',
+  const state = await runCommand(
+    deps,
     id,
-    payload: { applicationId: id, adopterId: s.adopterId, petId: s.petId, rescueId: s.rescueId },
-  }));
+    command,
+    principal.userId,
+    s => ({
+      type: 'applications.adopted',
+      id,
+      payload: { applicationId: id, adopterId: s.adopterId, petId: s.petId, rescueId: s.rescueId },
+    }),
+    s => requireRescueScope(principal, APPLICATIONS_APPROVE, s)
+  );
 
   return { application: stateToProto(state) };
 }

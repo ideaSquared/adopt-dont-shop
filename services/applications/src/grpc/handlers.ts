@@ -37,7 +37,7 @@ import type {
 import type { ApplicationCommand, Reference } from '../domain/index.js';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
-import { runCommand, runCreateCommand } from './command-runner.js';
+import { requireOwnerOrRescueScope, runCommand, runCreateCommand } from './command-runner.js';
 import type { PetsClient } from './pets-client.js';
 import { principalToMetadata } from './principal.js';
 import { stateToProto } from './state-mapper.js';
@@ -157,11 +157,18 @@ export async function saveDraftAnswers(
     at: new Date().toISOString(),
   };
 
-  const state = await runCommand(deps, req.applicationId, command, principal.userId, () => ({
-    type: 'applications.draftUpdated',
-    id: req.applicationId,
-    payload: { applicationId: req.applicationId },
-  }));
+  const state = await runCommand(
+    deps,
+    req.applicationId,
+    command,
+    principal.userId,
+    () => ({
+      type: 'applications.draftUpdated',
+      id: req.applicationId,
+      payload: { applicationId: req.applicationId },
+    }),
+    s => requireOwnerOrRescueScope(principal, APPLICATIONS_UPDATE, s)
+  );
 
   return { application: stateToProto(state) };
 }
@@ -186,17 +193,24 @@ export async function submitDraft(
     at: new Date().toISOString(),
   };
 
-  const state = await runCommand(deps, req.applicationId, command, principal.userId, s => ({
-    type: 'applications.submitted',
-    id: req.applicationId,
-    payload: {
-      applicationId: req.applicationId,
-      adopterId: s.adopterId,
-      petId: s.petId,
-      rescueId: s.rescueId,
-      submittedAt: s.submittedAt,
-    },
-  }));
+  const state = await runCommand(
+    deps,
+    req.applicationId,
+    command,
+    principal.userId,
+    s => ({
+      type: 'applications.submitted',
+      id: req.applicationId,
+      payload: {
+        applicationId: req.applicationId,
+        adopterId: s.adopterId,
+        petId: s.petId,
+        rescueId: s.rescueId,
+        submittedAt: s.submittedAt,
+      },
+    }),
+    s => requireOwnerOrRescueScope(principal, APPLICATIONS_UPDATE, s)
+  );
 
   return { application: stateToProto(state) };
 }

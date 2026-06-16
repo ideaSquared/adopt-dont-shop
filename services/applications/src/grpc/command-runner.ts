@@ -8,7 +8,9 @@
 // withTransaction. DomainError + ConcurrencyError translate to
 // HandlerError codes here so individual handlers stay declarative.
 
+import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
+import type { Permission, RescueId, UserId } from '@adopt-dont-shop/lib.types';
 
 import {
   apply as applyEvent,
@@ -23,6 +25,41 @@ import { HandlerError, type HandlerDeps } from './adapter.js';
 import { appendEvents, ConcurrencyError, loadAggregate, projectReadModel } from './event-store.js';
 
 export type PublishEnvelope = { type: string; id: string; payload: unknown };
+
+// A command-authorization hook: runs against the loaded aggregate state
+// (after the empty/NOT_FOUND check) so a write can be denied based on the
+// target's owning rescue / adopter — not just the bare permission. Throws
+// HandlerError('PERMISSION_DENIED') to reject.
+export type Authorize = (state: ApplicationState) => void;
+
+// Rescue-staff write: the principal must hold `permission` AND be scoped to
+// the application's owning rescue. Mirrors the read side's rescue branch in
+// read-handlers.ts. super_admin bypasses the scope inside requirePermission.
+export function requireRescueScope(
+  principal: Principal,
+  permission: Permission,
+  state: ApplicationState
+): void {
+  if (!requirePermission(principal, permission, { rescueId: state.rescueId as RescueId })) {
+    throw new HandlerError('PERMISSION_DENIED', `'${permission}' required`);
+  }
+}
+
+// Adopter-or-staff write: allowed when the principal is the owning adopter
+// OR holds the permission scoped to the owning rescue. Same OR-scope the
+// read side (getApplication / listDocuments) uses.
+export function requireOwnerOrRescueScope(
+  principal: Principal,
+  permission: Permission,
+  state: ApplicationState
+): void {
+  const ok =
+    requirePermission(principal, permission, { userId: state.adopterId as UserId }) ||
+    requirePermission(principal, permission, { rescueId: state.rescueId as RescueId });
+  if (!ok) {
+    throw new HandlerError('PERMISSION_DENIED', `'${permission}' required`);
+  }
+}
 
 // Translate the pure domain's DomainError codes into HandlerError
 // codes. ILLEGAL_TRANSITION / INVALID_INPUT → INVALID_ARGUMENT;
@@ -51,10 +88,19 @@ export async function runCommand(
   aggregateId: string,
   command: ApplicationCommand,
   actorUserId: string,
-  publishFor: (state: ApplicationState) => PublishEnvelope | null
+  publishFor: (state: ApplicationState) => PublishEnvelope | null,
+  authorize?: Authorize
 ): Promise<ApplicationState> {
   return withTransaction(deps, async ({ client, publish }) => {
     const state = await loadAggregate(client, aggregateId);
+
+    // Tenant/ownership scope check on the loaded aggregate. Only meaningful
+    // once the aggregate exists (version > 0); a missing aggregate is
+    // INITIAL_STATE and falls through to handle(), which raises NOT_FOUND —
+    // so we never leak "exists" via PERMISSION_DENIED for unknown ids.
+    if (authorize !== undefined && state.version > 0) {
+      authorize(state);
+    }
 
     let events;
     try {
