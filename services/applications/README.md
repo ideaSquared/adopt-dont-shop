@@ -101,3 +101,77 @@ pnpm dev
 pnpm build
 pnpm start
 ```
+
+---
+
+## Canonical reference (ADS-817)
+
+### Responsibility
+
+Owns the event-sourced adoption-application lifecycle: draft → submit → review
+→ home visit → approve / reject / withdraw / mark-adopted, plus document
+attachments. Each application is an aggregate in a Postgres event store with a
+denormalised read-model projection; every state change publishes an
+`applications.*` event. Schema: `applications`.
+
+### Schema (`applications`)
+
+| Table | Purpose |
+| --- | --- |
+| `application_events` | Append-only event store (the source of truth). |
+| `applications` | Denormalised read-model projection. |
+| `application_status_transitions` | Status-change audit trail. |
+| `home_visits` | Home-visit scheduling + outcome. |
+| `home_visit_status_transitions` | Home-visit status audit. |
+| `application_drafts` | In-progress draft persistence. |
+| `application_documents` | Metadata for files attached to an application. |
+
+Migrations: `services/applications/src/migrations/001`–`008` (006 installs a
+status-propagation trigger).
+
+### gRPC RPCs
+
+`ApplicationService`. Scope is owner (adopter) or `rescue_id`; `super_admin`
+bypasses.
+
+| RPC | Permission |
+| --- | --- |
+| `StartDraft` | `applications.create` (resolves pet → rescue via pets gRPC) |
+| `SaveDraftAnswers` | `applications.update` (owner/rescue scope) |
+| `SubmitDraft` | `applications.update` (owner/rescue scope) |
+| `StartReview` | `applications.process` (rescue scope) |
+| `ScheduleHomeVisit` | `applications.process` (rescue scope) |
+| `CompleteHomeVisit` | `applications.process` (rescue scope) |
+| `Approve` | `applications.approve` (rescue scope) |
+| `Reject` | `applications.reject` (rescue scope) |
+| `Withdraw` | `applications.update` (owner/rescue scope) |
+| `MarkAdopted` | `applications.approve` (rescue scope) |
+| `Get` | `applications.view` (owner/rescue scope) |
+| `List` | `applications.view` (scope-pinned) |
+| `GetStats` | `applications.view` |
+| `AddDocument` | `applications.update` (rescue scope) |
+| `ListDocuments` | `applications.view` (owner/rescue scope) |
+| `RemoveDocument` | `applications.update` (rescue scope) |
+
+### NATS subjects
+
+**Emits** (publish-after-commit): `applications.draftCreated`,
+`applications.draftUpdated`, `applications.submitted`,
+`applications.reviewStarted`, `applications.homeVisitScheduled`,
+`applications.homeVisitCompleted`, `applications.approved`,
+`applications.rejected`, `applications.withdrawn`, `applications.adopted`. Plus
+`gdpr.erasureCompleted` as a saga participant.
+
+**Consumes:** `gdpr.erasureRequested` (durable `gdpr-applications`).
+
+### Dependencies
+
+`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
+proto, service-bootstrap}`. Cross-service gRPC: calls **service.pets**
+(`PETS_GRPC_URL`) in `StartDraft` to resolve a pet's owning rescue.
+
+### Testing strategy
+
+Vitest. Pure handlers over the event store + projection — assert each lifecycle
+transition (valid + invalid), permission/scope enforcement, the event-store →
+read-model projection, document add/remove, and publish-after-commit ordering.

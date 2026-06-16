@@ -167,3 +167,75 @@ to the monolith.
   as defence-in-depth, matching the CAD pattern).
 - A natural strangler-fig boundary — extracting any service is "add a
   route plugin to the gateway, delete the route from the monolith."
+
+---
+
+## Canonical reference (ADS-817)
+
+### Responsibility
+
+The single REST/WebSocket edge in front of the gRPC services. It authenticates
+every request (validates `Authorization: Bearer` via `service.auth.ValidateToken`
+and stamps server-derived `x-user-*` metadata, stripping any spoofed inbound
+headers), fans REST routes out to the right service over gRPC, terminates the
+Socket.IO connection and broadcasts NATS events to clients, enforces global rate
+limiting, and wraps each downstream client in a circuit breaker. A handful of
+small surfaces are served in-process (legal markdown, `/config`, analytics,
+dashboard composition, uploads, GDPR erasure kickoff). **No schema** — the
+gateway owns no Postgres tables.
+
+### Downstream gRPC clients
+
+`auth`, `notifications`, `pets`, `rescue`, `applications`, `chat`, `moderation`,
+`matching`, `audit`, `cms` — one client per service, addressed at
+`service-<name>:<grpcPort>` (`*_GRPC_URL` env vars).
+
+### Route groups (`/api/v1/*`)
+
+`auth`, `sessions`, `field-permissions`, `users` → auth; `notifications`,
+`devices`, `email`, `broadcast` → notifications; `pets` → pets; `rescue`,
+`rescues` (public), `staff`/`foster`/`invitations` → rescue; `applications`,
+`application-documents` → applications; `chats` → chat; `moderation`,
+`admin/moderation`, `support` → moderation; `matching` → matching; `audit`,
+`reports` → audit; `cms` → cms. Gateway-folded (in-process): `legal`, `config`,
+`analytics`, `dashboard`, `uploads`, and `users/me/erasure-request` (GDPR).
+There is **no catch-all monolith proxy** — unowned `/api/*` paths return 404.
+
+### gRPC RPCs
+
+None — the gateway is a gRPC **client**, not a server. It exposes the REST/WS
+surface above plus the health + `/metrics` endpoints.
+
+### NATS subjects
+
+**Emits:** `gdpr.erasureRequested` (from `POST /api/v1/users/me/erasure-request`,
+kicking off the erasure saga).
+
+**Consumes (for WebSocket fan-out):** `notifications.created`,
+`notifications.dismissed`, `chat.messageCreated`, `chat.messageRead`,
+`chat.reactionAdded`, `chat.reactionRemoved`. It also ensures the
+`DOMAIN_EVENTS` JetStream stream exists at boot.
+
+### Metrics (beyond the shared substrate)
+
+- `gateway_rate_limit_hits_total{route}` — counter, incremented on every 429
+  (`src/server.ts`).
+- `grpc_circuit_state{service}` — gauge, `0`=closed / `1`=half-open / `2`=open,
+  one per downstream service (`src/grpc-clients/resilience.ts`).
+
+Both feed the alerts in
+[`infra/prometheus/rules/gateway-resilience.yml`](../../infra/prometheus/rules/gateway-resilience.yml).
+
+### Dependencies
+
+`@adopt-dont-shop/{config-secrets, events, observability, proto,
+service-bootstrap, storage}` plus the generated clients for all ten services. No
+own database.
+
+### Testing strategy
+
+Vitest. Route handlers are tested against stubbed gRPC clients (the REST→gRPC
+translation + response adaptation), the authenticate middleware against a stub
+`ValidateToken`, the rate-limit + circuit-breaker behaviour directly, and the WS
+subscribers against a fake NATS — asserting header-stripping, 401/404 paths, and
+event→socket fan-out without a live transport.

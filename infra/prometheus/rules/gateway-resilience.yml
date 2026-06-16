@@ -1,0 +1,40 @@
+# Gateway resilience rules (ADS-806).
+#
+# Two gateway-only metrics:
+#   grpc_circuit_state{service}  gauge — 0=closed, 1=half-open, 2=open
+#     (services/gateway/src/grpc-clients/resilience.ts)
+#   gateway_rate_limit_hits_total{route}  counter — incremented on every 429
+#     (services/gateway/src/server.ts)
+groups:
+  - name: ads-gateway-resilience
+    interval: 30s
+    rules:
+      # A downstream circuit is open — the gateway is rejecting calls to that
+      # service fast. Indicates the dependency is unhealthy.
+      - alert: GatewayCircuitOpen
+        expr: grpc_circuit_state == 2
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Gateway circuit OPEN for {{ $labels.service }}'
+          description: >-
+            The gateway's circuit breaker for downstream {{ $labels.service }} is
+            open (2): calls are being rejected fast. The downstream is failing or
+            unreachable. Check that service's health and error rate.
+          runbook: docs/runbooks/5xx-spike.md
+
+      # Sustained rate-limiting on a route — abuse or under-provisioning.
+      - alert: GatewayRateLimitSpike
+        expr: |
+          sum by (route) (rate(gateway_rate_limit_hits_total[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Sustained 429s on {{ $labels.route }} (5m rate >1/s)'
+          description: >-
+            The gateway has been rate-limiting {{ $labels.route }} at more than
+            one rejection per second for 10 minutes. Either a client is abusing
+            the route or the limit is too tight for legitimate load.
+          runbook: docs/runbooks/maintenance-mode.md

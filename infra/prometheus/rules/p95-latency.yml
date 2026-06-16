@@ -1,0 +1,48 @@
+# p95 latency rules (ADS-806).
+#
+# histogram_quantile() over the _bucket series of the two shared histograms.
+# Bucket boundaries (le) are defined in packages/observability/src/metrics.ts:
+#   HTTP : 0.005 .. 10 s
+#   gRPC : 0.005 .. 5 s
+# HTTP latency is grouped by the scrape `job` (no service label on the metric);
+# gRPC latency is grouped by the metric's own `service` label.
+groups:
+  - name: ads-latency
+    interval: 30s
+    rules:
+      - alert: HttpP95LatencyHigh
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (job, le) (
+              rate(http_request_duration_seconds_bucket[5m])
+            )
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.job }} HTTP p95 latency >500ms (10m)'
+          description: >-
+            95th-percentile HTTP latency for {{ $labels.job }} has exceeded the
+            500ms SLO for 10 minutes (see docs/slo.md). Per-service targets vary;
+            this is the default edge threshold.
+          runbook: docs/runbooks/db-pool-exhaustion.md
+
+      - alert: GrpcP95LatencyHigh
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (service, le) (
+              rate(grpc_handler_duration_seconds_bucket{direction="in"}[5m])
+            )
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.service }} gRPC p95 latency >500ms (10m)'
+          description: >-
+            95th-percentile inbound gRPC handler latency for
+            {{ $labels.service }} has exceeded 500ms for 10 minutes.
+          runbook: docs/runbooks/db-pool-exhaustion.md

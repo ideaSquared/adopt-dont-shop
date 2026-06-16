@@ -81,3 +81,69 @@ pnpm dev
 pnpm build
 pnpm start
 ```
+
+---
+
+## Canonical reference (ADS-817)
+
+### Responsibility
+
+Owns application-scoped messaging between adopters and rescue staff: opening
+chats, sending / reading messages, reactions, read receipts, and full-text
+search. Real-time delivery is event-driven — the service publishes `chat.*`
+events on NATS that the gateway's WebSocket subscriber fans out to connected
+clients. Schema: `chat`.
+
+### Schema (`chat`)
+
+| Table | Purpose |
+| --- | --- |
+| `chats` | Chat rows, anchored to an application. |
+| `chat_participants` | Two-party participants with read watermarks. |
+| `messages` | Text messages (with a full-text search vector). |
+| `message_reactions` | Emoji reactions per message. |
+| `message_reads` | Read receipts (`message_id`, `user_id`, `read_at`). |
+
+Migrations: `services/chat/src/migrations/001`–`006` (004 installs the
+search-vector trigger).
+
+### gRPC RPCs
+
+`ChatService`. Most RPCs additionally require **participant membership** in the
+chat; `super_admin` bypasses the membership check.
+
+| RPC | Permission |
+| --- | --- |
+| `OpenChat` | `chat.create` |
+| `SendMessage` | `chat.send` + participant |
+| `ListMessages` | `chat.read` + participant |
+| `ListChats` | `chat.read` |
+| `MarkRead` | `chat.read` + participant |
+| `React` | `chat.send` + participant |
+| `SearchChats` | `chat.read` |
+| `GetChatUnreadCount` | `chat.read` + participant |
+| `DeleteMessage` | sender, or `chat.message.delete:any` |
+| `GetChat` | `chat.read` + participant |
+| `DeleteChat` | `chat.read` + participant |
+
+### NATS subjects
+
+**Emits** (publish-after-commit): `chat.created`, `chat.messageCreated`,
+`chat.messageRead`, `chat.reactionAdded`, `chat.reactionRemoved`,
+`chat.messageDeleted`, `chat.deleted`. Plus `gdpr.erasureCompleted` as a saga
+participant.
+
+**Consumes:** `gdpr.erasureRequested` (durable `gdpr-chat`).
+
+### Dependencies
+
+`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
+proto, service-bootstrap}`. No cross-service gRPC calls (reads participants from
+its own schema).
+
+### Testing strategy
+
+Vitest. Pure handlers with pool + NATS injected — assert permission +
+participant-membership gates, read-watermark / unread-count logic, sender-or-
+admin delete authorization, and publish-after-commit ordering for every
+`chat.*` event.

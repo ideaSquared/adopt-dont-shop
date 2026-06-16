@@ -1,0 +1,22 @@
+# Service availability — scrape-up rule (ADS-806).
+#
+# `up` is synthesised by Prometheus from scrape success; it is not exported by
+# the apps. One series per scrape target, keyed by the `job` label. The job
+# names below match the convention in docs/slo.md (service-<name>); adjust to
+# your scrape config if different.
+groups:
+  - name: ads-availability
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up{job=~"service-.+"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $labels.job }} is down (scrape failing for 2m)'
+          description: >-
+            Prometheus cannot scrape {{ $labels.job }} ({{ $labels.instance }}).
+            The /metrics endpoint is unreachable — the service is likely crashed,
+            unscheduled, or networkpartitioned.
+          runbook: docs/runbooks/5xx-spike.md

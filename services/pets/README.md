@@ -134,3 +134,66 @@ pnpm dev
 pnpm build
 pnpm start
 ```
+
+---
+
+## Canonical reference (ADS-817)
+
+### Responsibility
+
+Owns the pet listing catalogue: classical CRUD plus an event-sourced status
+state machine (`available` → `pending` → `adopted`, plus
+`foster`/`medical_hold`/`behavioral_hold`/`deceased`). Each status transition
+appends an audit row and publishes `pets.statusChanged`. Serves privilege-aware
+reads (internal notes + off-market statuses hidden from public readers),
+favourite/rating aggregates, and per-rescue stats. Schema: `pets`.
+
+### Schema (`pets`)
+
+| Table | Purpose |
+| --- | --- |
+| `breeds` | Reference lookup — species + breed name. |
+| `pets` | Main listing row — classification, status, fees, flags, counters, timestamps. |
+| `pet_media` | Images / videos attached to a listing. |
+| `pet_status_transitions` | Append-only status-change audit (`from`/`to`/`by`/`reason`). |
+| `ratings` | Adopter ratings / reviews. |
+| `user_favorites` | Adopter bookmarks (`user_id` + `pet_id`). |
+
+Migrations: `services/pets/src/migrations/001`–`007`.
+
+### gRPC RPCs
+
+`PetService`. Permission scope is the pet's `rescue_id`; admin / `super_admin`
+bypass the scope.
+
+| RPC | Permission |
+| --- | --- |
+| `Create` | `pets.create` (scoped to target rescue) |
+| `Get` | `pets.read` (public projection for non-privileged readers) |
+| `List` | `pets.read` (non-privileged → public pets only; staff pinned to own rescue) |
+| `Update` | `pets.update` (scoped to pet's rescue) |
+| `UpdateStatus` | `pets.update` (scoped; appends a status transition) |
+| `Delete` | `pets.delete` (scoped; soft-delete) |
+| `GetStats` | `pets.read` (self-scoped; `pets.read:any` to override rescue filter) |
+| `ListFavoriters` | `pets.read` (service-to-service read) |
+
+### NATS subjects
+
+**Emits:** `pets.created` (Create), `pets.updated` (Update),
+`pets.statusChanged` (UpdateStatus), `pets.deleted` (Delete) — all
+publish-after-commit. Plus `gdpr.erasureCompleted` as a saga participant.
+
+**Consumes:** `gdpr.erasureRequested` (durable `gdpr-pets`; erases the user's
+favourites/ratings in a transaction).
+
+### Dependencies
+
+`@adopt-dont-shop/{authz, config-secrets, db, events, lib.types, observability,
+proto, service-bootstrap}`. No cross-service gRPC calls.
+
+### Testing strategy
+
+Vitest. Pure handlers `(deps, principal, request) → response` with pool + NATS
+injected — assert each permission/validation path, the public-vs-privileged
+read projection, the status state-machine transitions + audit-row append, and
+publish-after-commit ordering.

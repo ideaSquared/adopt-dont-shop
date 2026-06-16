@@ -76,6 +76,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 ## Backend development
 
 - [API endpoints](./backend/api-endpoints.md) — REST endpoints reference
+- [API versioning & deprecation](./api-versioning.md) — `/api/v<N>/` scheme, breaking-change definition, deprecation lifecycle
 - [Database schema](./backend/database-schema.md) — service-owned schemas and relationships
 - [Implementation guide](./backend/implementation-guide.md) — patterns for gateway routes, gRPC handlers, services
 - [Testing](./backend/testing.md) — backend test strategy and Vitest setup
@@ -160,12 +161,15 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Per-service rollback](./deploy/per-service-rollback.md) — hotfix and rollback a single service
 - [Distributed tracing](./observability/tracing.md) — OpenTelemetry setup and conventions
 - [DB backup runbook](./db-backup-runbook.md) — taking and restoring backups
-- [Observability and alerting](./observability-alerting.md) — metrics, logs, alert routing
+- [Service level objectives & alerting](./slo.md) — per-service SLOs, error budgets, and the Prometheus rules under `infra/prometheus/rules/`
+- [Observability and alerting](./observability-alerting.md) — metrics, logs, alert routing (legacy — superseded by `slo.md`)
 - [Runbooks index](./runbooks/README.md) — runbook catalogue
 - [5xx spike runbook](./runbooks/5xx-spike.md) — diagnose elevated server errors
 - [Applications cutover runbook](./runbooks/applications-cutover.md) — route applications traffic to the microservice
 - [DB pool exhaustion runbook](./runbooks/db-pool-exhaustion.md) — recover from connection saturation
 - [Deploy rollback runbook](./runbooks/deploy-rollback.md) — roll back a bad release
+- [GDPR erasure incident runbook](./runbooks/gdpr-erasure-incident.md) — recover a failed / timed-out erasure saga
+- [JetStream backlog runbook](./runbooks/jetstream-backlog.md) — drain a stalled durable consumer / DLQ
 - [Maintenance mode runbook](./runbooks/maintenance-mode.md) — engage / disengage maintenance mode
 - [Migration failure runbook](./runbooks/migration-failure.md) — recover from a failed DB migration
 - [Redis outage runbook](./runbooks/redis-outage.md) — degrade gracefully when Redis is down
