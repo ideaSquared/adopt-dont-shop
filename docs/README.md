@@ -166,6 +166,8 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Applications cutover runbook](./runbooks/applications-cutover.md) — route applications traffic to the microservice
 - [DB pool exhaustion runbook](./runbooks/db-pool-exhaustion.md) — recover from connection saturation
 - [Deploy rollback runbook](./runbooks/deploy-rollback.md) — roll back a bad release
+- [GDPR erasure incident runbook](./runbooks/gdpr-erasure-incident.md) — recover a failed / timed-out erasure saga
+- [JetStream backlog runbook](./runbooks/jetstream-backlog.md) — drain a stalled durable consumer / DLQ
 - [Maintenance mode runbook](./runbooks/maintenance-mode.md) — engage / disengage maintenance mode
 - [Migration failure runbook](./runbooks/migration-failure.md) — recover from a failed DB migration
 - [Redis outage runbook](./runbooks/redis-outage.md) — degrade gracefully when Redis is down
