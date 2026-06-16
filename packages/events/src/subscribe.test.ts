@@ -1,7 +1,7 @@
 import type { NatsConnection } from 'nats';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { subscribe } from './subscribe.js';
+import { nakBackoffMs, subscribe } from './subscribe.js';
 import { DOMAIN_STREAM } from './stream.js';
 
 // A minimal in-memory JetStream stand-in. It models the one property that
@@ -262,5 +262,21 @@ describe('subscribe (durable JetStream consumer)', () => {
     await flush();
 
     expect(calls.map(c => c.meta.id)).toEqual(['1', '2']);
+  });
+});
+
+describe('nakBackoffMs', () => {
+  it('is fast on the first redelivery, grows exponentially, and caps', () => {
+    expect(nakBackoffMs(1)).toBe(1_000);
+    expect(nakBackoffMs(2)).toBe(2_000);
+    expect(nakBackoffMs(3)).toBe(4_000);
+    expect(nakBackoffMs(5)).toBe(16_000);
+    // Capped at 30s no matter how many redeliveries.
+    expect(nakBackoffMs(6)).toBe(30_000);
+    expect(nakBackoffMs(100)).toBe(30_000);
+  });
+
+  it('never returns a negative delay for a degenerate attempt count', () => {
+    expect(nakBackoffMs(0)).toBe(1_000);
   });
 });
