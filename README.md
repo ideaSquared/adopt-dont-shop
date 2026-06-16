@@ -173,16 +173,26 @@ All API endpoints live under `/api/v1/` (e.g. `/api/v1/auth/login`) and are serv
 
 ## Deployment
 
-Deploys are driven by the `Makefile` at the repo root, which dispatches the GitHub Actions workflows.
+Deploys are driven by the `Makefile` at the repo root. Each `make` target shells out to `gh workflow run …`, which dispatches a GitHub Actions workflow and **returns immediately** — it does not wait for the run to finish. Use `make watch` (or `gh run watch`) to follow it.
+
+> **Deploy prerequisites** — before your first deploy:
+>
+> - **GitHub CLI installed and authenticated.** Install [`gh`](https://cli.github.com/) and run `gh auth login`. On a fresh Codespace / devcontainer `gh` is pre-installed but **not** authenticated, so an unauthenticated `make staging` silently does nothing useful.
+> - **Deploy permission on the repo.** You need write access and membership of the team that's allowed to dispatch the deploy workflows — ask in your team channel if `make staging` reports a permissions error.
+> - **For production:** a reviewer with environment-approval rights must click **Approve and deploy** in the GitHub Actions UI before the prod deploy proceeds (the `production` environment is gated on required reviewers).
 
 ```bash
+make help                  # list every target with a description
 make staging               # deploy main to staging (runs immediately)
 make prod                  # deploy main to production (requires approval in the GitHub UI)
+make watch                 # follow the most recent deploy.yml run in the terminal
 make rollback env=production sha=abc1234   # roll the named environment back to a specific commit
 make history               # list recent commits to pick a rollback target
 ```
 
 > `make prod` triggers a real production deployment via the `deploy.yml` workflow. Do not confuse it with `pnpm prod:up`, which only spins up the production Docker stack locally for a smoke test and does not deploy anywhere.
+
+The full operator-side runbook (secret rotation, approval gates, migration recovery) lives in [docs/operations/deploy.md](./docs/operations/deploy.md).
 
 ## Documentation
 
