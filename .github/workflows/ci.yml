@@ -246,9 +246,18 @@ jobs:
           retention-days: 7
 
   # ============================================================================
-  # SERVICE TESTS — lint/test/type-check all service.* packages (ADS-822).
-  # Mirrors test-libs in structure. Services use `test` (not `test:coverage`)
-  # — that is the vitest run script every service package.json defines.
+  # SERVICE TESTS — lint/test:coverage/type-check all service.* packages
+  # (ADS-822, coverage added in ADS-831). Mirrors test-libs in structure.
+  # Every service defines `test:coverage` (vitest run --coverage).
+  #
+  # ADS-831: this job now COLLECTS coverage but does not yet GATE on it. No
+  # service vitest.config.ts declares coverage thresholds, so the effective floor
+  # is 0% — chosen deliberately so this change cannot break current CI (the
+  # cms/chat test gap that prompted the ticket is already closed). The next step
+  # is to ratchet a low, safely-passing floor per service via each service's
+  # vitest.config.ts (owned by the service teams), the same way lib.* packages
+  # ratchet against vitest.shared.config.ts (ADS-708 / ADS-717).
+  #
   # Gated on the `backend` path filter so a frontend-only PR skips this job
   # (ci-required treats skipped as pass — see aggregator comment below).
   # ============================================================================
@@ -272,8 +281,8 @@ jobs:
         with:
           name: lib-dist
 
-      - name: Lint, test and type-check all services
-        run: pnpm exec turbo run lint test type-check --filter='@adopt-dont-shop/service.*'
+      - name: Lint, test (with coverage) and type-check all services
+        run: pnpm exec turbo run lint test:coverage type-check --filter='@adopt-dont-shop/service.*'
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         if: always()
