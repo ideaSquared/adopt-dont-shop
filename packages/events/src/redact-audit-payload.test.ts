@@ -73,15 +73,52 @@ describe('redactAuditPayload', () => {
   it('preserves non-sensitive keys alongside sensitive ones', () => {
     const result = redactAuditPayload({
       userId: 'u-1',
-      email: 'x@example.com',
-      password: 'secret!',
       action: 'login',
+      password: 'secret!',
     }) as Record<string, unknown>;
 
     expect(result['userId']).toBe('u-1');
-    expect(result['email']).toBe('x@example.com');
     expect(result['action']).toBe('login');
     expect(result['password']).toBe('[REDACTED]');
+  });
+
+  // --- PII deny-list coverage ---
+
+  it.each([
+    ['email', 'x@example.com'],
+    ['userEmail', 'x@example.com'],
+    ['emailAddress', 'x@example.com'],
+    ['phone', '07700900000'],
+    ['phoneNumber', '07700900000'],
+    ['address', '1 High St'],
+    ['homeAddress', '1 High St'],
+    ['postcode', 'SW1A 1AA'],
+    ['postalCode', '90210'],
+    ['nationalInsurance', 'QQ123456C'],
+    ['passport', '123456789'],
+    ['dateOfBirth', '1990-01-01'],
+    ['creditCard', '4111111111111111'],
+    ['cardNumber', '4111111111111111'],
+    ['sortCode', '00-00-00'],
+    ['bankAccount', '12345678'],
+    ['iban', 'GB33BUKB20201555555555'],
+    ['ssn', '123-45-6789'],
+  ])('redacts PII key "%s"', (key, value) => {
+    const result = redactAuditPayload({ [key]: value }) as Record<string, unknown>;
+    expect(result[key]).toBe('[REDACTED]');
+  });
+
+  it('redacts PII nested inside objects and arrays', () => {
+    const result = redactAuditPayload({
+      applicant: { name: 'alice', email: 'a@e.com', phone: '07700900000' },
+      references: [{ name: 'bob', email: 'b@e.com' }],
+    }) as { applicant: Record<string, unknown>; references: Array<Record<string, unknown>> };
+
+    expect(result.applicant['name']).toBe('alice');
+    expect(result.applicant['email']).toBe('[REDACTED]');
+    expect(result.applicant['phone']).toBe('[REDACTED]');
+    expect(result.references[0]['email']).toBe('[REDACTED]');
+    expect(result.references[0]['name']).toBe('bob');
   });
 
   // --- recursive nesting ---
@@ -185,7 +222,7 @@ describe('redactAuditPayload', () => {
 
     expect(result.source).toBe('web');
     expect(result.ip).toBe('1.2.3.4');
-    expect(result.loginAttempt['email']).toBe('user@example.com');
+    expect(result.loginAttempt['email']).toBe('[REDACTED]');
     expect(result.loginAttempt['password']).toBe('[REDACTED]');
     expect(result.loginAttempt['otp']).toBe('[REDACTED]');
     expect((result.loginAttempt['deviceInfo'] as Record<string, unknown>)['browser']).toBe(

@@ -16,9 +16,18 @@
 //   - null / undefined / primitives pass through unchanged.
 //   - Arrays are walked element-by-element.
 //
-// Covered keys (must cover at least the keys listed in ADS-772):
-//   password, token, accessToken, refreshToken, otp, secret,
-//   authorization, cookie, apiKey
+// Covered keys fall into two families:
+//
+//   Secrets (credential-shaped):
+//     password, token, accessToken, refreshToken, otp, secret,
+//     authorization, cookie, apiKey
+//
+//   PII (personal data — redacted because `payload` is durable, admin-
+//   readable storage and the actor's own email is already captured in the
+//   `actor_email_snapshot` column, so it never needs to live in the blob):
+//     email, phone, address, postcode/postalCode, ssn, nationalInsurance,
+//     passport, dateOfBirth, creditCard/cardNumber, sortCode, bankAccount,
+//     iban
 //
 // The `token` substring covers accessToken and refreshToken, but they are
 // also listed explicitly for clarity. `apiKey` / `api_key` / `api-key`
@@ -32,6 +41,13 @@ const REDACTED = '[REDACTED]';
 // without needing an exhaustive list.
 const SECRET_KEY_PATTERN = /password|token|secret|otp|authorization|cookie|api[_\-]?key/i;
 
+// Known PII key names. Substring matching, so `emailAddress`, `userPhone`,
+// `homeAddress`, `dateOfBirth` all match. Kept to high-confidence PII keys
+// (multi-character, unlikely to false-match a forensic field) so the audit
+// trail keeps its "who did what" value while shedding personal data.
+const PII_KEY_PATTERN =
+  /email|phone|address|postcode|postalcode|nationalinsurance|passport|dateofbirth|creditcard|cardnumber|sortcode|bankaccount|iban|ssn/i;
+
 const redactValue = (value: unknown): unknown => {
   if (value === null || value === undefined) {
     return value;
@@ -41,7 +57,7 @@ const redactValue = (value: unknown): unknown => {
   }
   if (typeof value === 'object') {
     const entries = Object.entries(value as Record<string, unknown>).map(([k, v]) => {
-      if (SECRET_KEY_PATTERN.test(k)) {
+      if (SECRET_KEY_PATTERN.test(k) || PII_KEY_PATTERN.test(k)) {
         return [k, REDACTED] as const;
       }
       return [k, redactValue(v)] as const;
