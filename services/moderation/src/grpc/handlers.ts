@@ -188,14 +188,18 @@ export async function getReport(
   }
 
   // A reporter can always read their OWN report without a moderation
-  // permission; everyone else needs MODERATION_REPORTS_VIEW.
+  // permission; everyone else needs MODERATION_REPORTS_VIEW. A caller
+  // without that permission only ever reaches here on the self-report path,
+  // and gets the reporter-safe projection (no internal moderation workflow).
   const isReporter = rows[0].reporter_id === principal.userId;
-  if (!isReporter && !requirePermission(principal, MODERATION_REPORTS_VIEW)) {
+  const canViewInternal = requirePermission(principal, MODERATION_REPORTS_VIEW);
+  if (!isReporter && !canViewInternal) {
     throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_REPORTS_VIEW}' required`);
   }
+  const forReporter = !canViewInternal;
 
   const response: GetReportResponse = {
-    report: reportRowToProto(rows[0]),
+    report: reportRowToProto(rows[0], forReporter),
     transitions: [],
   };
 
@@ -208,7 +212,7 @@ export async function getReport(
        ORDER BY transitioned_at ASC`,
       [req.reportId]
     );
-    response.transitions = transitions.rows.map(transitionRowToProto);
+    response.transitions = transitions.rows.map(t => transitionRowToProto(t, forReporter));
   }
 
   return response;
@@ -228,9 +232,11 @@ export async function listReports(
   let p = 1;
 
   // Callers without MODERATION_REPORTS_VIEW are strictly self-scoped:
-  // they only ever see reports they filed. Moderators with the
-  // permission see all reports.
-  if (!requirePermission(principal, MODERATION_REPORTS_VIEW)) {
+  // they only ever see reports they filed, and get the reporter-safe
+  // projection (no internal moderation workflow). Moderators with the
+  // permission see all reports in full.
+  const canViewInternal = requirePermission(principal, MODERATION_REPORTS_VIEW);
+  if (!canViewInternal) {
     where.push(`reporter_id = $${p++}`);
     params.push(principal.userId);
   }
@@ -289,7 +295,7 @@ export async function listReports(
 
   const hasMore = rows.length > limit;
   const pageRows = hasMore ? rows.slice(0, limit) : rows;
-  const reports = pageRows.map(reportRowToProto);
+  const reports = pageRows.map(row => reportRowToProto(row, !canViewInternal));
 
   const response: ListReportsResponse = { reports };
   if (hasMore && pageRows.length > 0) {

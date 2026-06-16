@@ -37,6 +37,12 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './handlers.js';
+import type { PetsClient } from './pets-client.js';
+import { principalToMetadata } from './principal.js';
+
+// grpc-js status codes service.pets can return on Get.
+const PETS_GRPC_NOT_FOUND = 5;
+const PETS_GRPC_PERMISSION_DENIED = 7;
 
 // --- Permissions -----------------------------------------------------
 
@@ -238,27 +244,71 @@ export async function listStaffMembers(
 
 export type FosterDeps = WithTransactionDeps;
 
-export async function createFosterPlacement(
+// createFosterPlacement is a factory closing over the PetsClient so the gRPC
+// server boot injects the real client and tests inject a stub. It resolves
+// pet → rescue via service.pets and rejects a petId that doesn't belong to
+// the placement's rescue (a cross-schema FK we can't enforce in the DB).
+export function makeCreateFosterPlacement(
+  petsClient: PetsClient
+): (
   deps: FosterDeps,
   principal: Principal,
   req: CreateFosterPlacementRequest
-): Promise<CreateFosterPlacementResponse> {
-  if (!req.rescueId) {
-    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
-  }
-  if (!req.petId) {
-    throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
-  }
-  if (!req.fosterUserId) {
-    throw new HandlerError('INVALID_ARGUMENT', 'foster_user_id is required');
-  }
-  if (!req.startDate) {
-    throw new HandlerError('INVALID_ARGUMENT', 'start_date is required');
-  }
-  if (!requirePermission(principal, FOSTER_CREATE, { rescueId: req.rescueId as RescueId })) {
-    throw new HandlerError('PERMISSION_DENIED', `'${FOSTER_CREATE}' required for this rescue`);
-  }
+) => Promise<CreateFosterPlacementResponse> {
+  return async (deps, principal, req) => {
+    if (!req.rescueId) {
+      throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+    }
+    if (!req.petId) {
+      throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
+    }
+    if (!req.fosterUserId) {
+      throw new HandlerError('INVALID_ARGUMENT', 'foster_user_id is required');
+    }
+    if (!req.startDate) {
+      throw new HandlerError('INVALID_ARGUMENT', 'start_date is required');
+    }
+    if (!requirePermission(principal, FOSTER_CREATE, { rescueId: req.rescueId as RescueId })) {
+      throw new HandlerError('PERMISSION_DENIED', `'${FOSTER_CREATE}' required for this rescue`);
+    }
 
+    // The pet must belong to the placement's rescue — otherwise a staffer
+    // could fabricate a placement over another rescue's animal.
+    await assertPetBelongsToRescue(petsClient, principal, req.petId, req.rescueId);
+
+    return insertFosterPlacement(deps, req);
+  };
+}
+
+// Resolve the pet via service.pets (forwarding the caller's identity so pets
+// runs its own read gate) and confirm it belongs to `rescueId`. A pet the
+// caller can't read (NOT_FOUND / PERMISSION_DENIED) or one owned by a
+// different rescue is rejected as a bad pet_id.
+async function assertPetBelongsToRescue(
+  petsClient: PetsClient,
+  principal: Principal,
+  petId: string,
+  rescueId: string
+): Promise<void> {
+  let res;
+  try {
+    res = await petsClient.getPet({ petId }, principalToMetadata(principal));
+  } catch (err) {
+    const code = (err as { code?: number }).code;
+    if (code === PETS_GRPC_NOT_FOUND || code === PETS_GRPC_PERMISSION_DENIED) {
+      throw new HandlerError('INVALID_ARGUMENT', `pet ${petId} is not in rescue ${rescueId}`);
+    }
+    throw new HandlerError('INTERNAL', 'failed to resolve pet rescue');
+  }
+  if (res.pet?.rescueId !== rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', `pet ${petId} is not in rescue ${rescueId}`);
+  }
+}
+
+async function insertFosterPlacement(
+  deps: FosterDeps,
+  req: CreateFosterPlacementRequest
+): Promise<CreateFosterPlacementResponse> {
   const placementId = randomUUID();
   let inserted: FosterPlacementRow | undefined;
 

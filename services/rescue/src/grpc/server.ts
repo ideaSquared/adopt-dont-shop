@@ -26,20 +26,23 @@ import {
   verifyRescue,
 } from './handlers.js';
 import {
-  createFosterPlacement,
   endFosterPlacement,
   getFosterPlacement,
   getInvitationByToken,
   getMyStaffMembership,
   listFosterPlacements,
   listStaffMembers,
+  makeCreateFosterPlacement,
 } from './staff-foster-handlers.js';
+import { createPetsClient, type PetsClient } from './pets-client.js';
 
 export type CreateGrpcServerOptions = {
   config: RescueConfig;
   pool: Pool;
   nats: NatsConnection;
   logger: Logger;
+  // Injectable for tests; defaults to a real client at config.petsGrpcUrl.
+  petsClient?: PetsClient;
 };
 
 export type { RunningGrpcServer };
@@ -47,6 +50,7 @@ export type { RunningGrpcServer };
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger } = opts;
   const deps = { pool, nats };
+  const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
   const server = new Server();
 
   server.addService(RescueV1.RescueServiceService, {
@@ -58,7 +62,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     inviteStaff: adapt(inviteStaff, { deps, logger }),
     getMyStaffMembership: adapt(getMyStaffMembership, { deps, logger }),
     listStaffMembers: adapt(listStaffMembers, { deps, logger }),
-    createFosterPlacement: adapt(createFosterPlacement, { deps, logger }),
+    createFosterPlacement: adapt(makeCreateFosterPlacement(petsClient), { deps, logger }),
     listFosterPlacements: adapt(listFosterPlacements, { deps, logger }),
     getFosterPlacement: adapt(getFosterPlacement, { deps, logger }),
     endFosterPlacement: adapt(endFosterPlacement, { deps, logger }),
@@ -92,6 +96,26 @@ export const startGrpcServer = async (
   opts: CreateGrpcServerOptions
 ): Promise<RunningGrpcServer> => {
   const { config, logger } = opts;
-  const server = createGrpcServer(opts);
-  return startGrpcServerShared(server, config, logger);
+  // Build + own the pets client here so it's closed on shutdown.
+  const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
+  const server = createGrpcServer({ ...opts, petsClient });
+  const running = await startGrpcServerShared(server, config, logger);
+
+  return {
+    ...running,
+    shutdown: () =>
+      new Promise<void>(resolve => {
+        server.tryShutdown(err => {
+          if (err) {
+            logger.error('gRPC server shutdown error', { err });
+          }
+          try {
+            petsClient.close();
+          } catch (closeErr) {
+            logger.error('pets client close error', { err: closeErr });
+          }
+          resolve();
+        });
+      }),
+  };
 };

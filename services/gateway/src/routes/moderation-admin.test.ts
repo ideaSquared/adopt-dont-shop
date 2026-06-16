@@ -210,6 +210,20 @@ describe('moderation admin reports', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('bulk-update with too many ids → 400', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/moderation/reports/bulk-update',
+      headers: ADMIN,
+      payload: {
+        reportIds: Array.from({ length: 101 }, (_, i) => `rpt-${i}`),
+        action: 'resolve',
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ error: expect.stringContaining('maximum') });
+  });
+
   it('maps PERMISSION_DENIED → 403', async () => {
     mocks.listReports.mockRejectedValueOnce({
       code: grpcStatus.PERMISSION_DENIED,

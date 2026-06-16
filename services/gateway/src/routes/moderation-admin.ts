@@ -46,6 +46,10 @@ export type ModerationAdminRoutesOptions = {
 const RL_WRITE = { max: 30, timeWindow: '1 minute' } as const;
 const RL_READ = { max: 120, timeWindow: '1 minute' } as const;
 
+// Upper bound on a single bulk-update batch — each id is one sequential gRPC
+// call, so the array can't be unbounded.
+const MAX_BULK_REPORT_IDS = 100;
+
 export const registerModerationAdminRoutes = async (
   app: FastifyInstance,
   opts: ModerationAdminRoutesOptions
@@ -245,6 +249,13 @@ export const registerModerationAdminRoutes = async (
       const ids = Array.isArray(b.reportIds) ? b.reportIds : [];
       if (ids.length === 0) {
         return reply.code(400).send({ error: 'reportIds is required' });
+      }
+      // Bound the batch — each id is a sequential gRPC round trip, so an
+      // unbounded array would tie up a worker.
+      if (ids.length > MAX_BULK_REPORT_IDS) {
+        return reply
+          .code(400)
+          .send({ error: `reportIds exceeds the maximum of ${MAX_BULK_REPORT_IDS}` });
       }
       const meta = buildMetadata(req);
       const reports: ReturnType<typeof reportToView>[] = [];

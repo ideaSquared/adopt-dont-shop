@@ -977,6 +977,14 @@ export async function deleteMessage(
     };
   }
 
+  // A plain sender can only delete within a writable (active) chat — a
+  // closed / locked / archived chat is immutable. Moderators with
+  // delete:any bypass this so they can still remove content from a
+  // closed chat.
+  if (!hasPermission(principal, CHAT_MESSAGE_DELETE_ANY)) {
+    await ensureChatWritable(deps, row.chat_id);
+  }
+
   let updated: MessageRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
     const result = await client.query<MessageRow>(

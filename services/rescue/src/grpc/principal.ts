@@ -3,5 +3,6 @@
 export {
   extractPrincipal,
   extractPrincipalOptional,
+  principalToMetadata,
   MissingPrincipalError,
 } from '@adopt-dont-shop/service-bootstrap';

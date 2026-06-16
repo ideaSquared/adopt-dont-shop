@@ -214,6 +214,90 @@ describe('getReport', () => {
     expect(res.report.reportId).toBe('rpt-1');
   });
 
+  it('strips internal moderation fields from the reporter self-read', async () => {
+    const { deps } = makeDeps([
+      {
+        rows: [
+          reportRow({
+            reporter_id: 'usr-1',
+            assigned_moderator: 'mod-7',
+            assigned_at: new Date('2026-06-02T00:00:00.000Z'),
+            resolved_by: 'mod-7',
+            resolved_at: new Date('2026-06-03T00:00:00.000Z'),
+            resolution: 'action_taken',
+            resolution_notes: 'user suspended — internal',
+            escalated_to: 'mod-8',
+            escalated_at: new Date('2026-06-02T12:00:00.000Z'),
+            escalation_reason: 'needs senior review',
+          }),
+        ],
+      },
+    ]);
+    const res = await getReport(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+      reportId: 'rpt-1',
+    } as GetReportRequest);
+    // Internal workflow is hidden…
+    expect(res.report.assignedModerator).toBeUndefined();
+    expect(res.report.assignedAt).toBeUndefined();
+    expect(res.report.resolvedBy).toBeUndefined();
+    expect(res.report.resolutionNotes).toBeUndefined();
+    expect(res.report.escalatedTo).toBeUndefined();
+    expect(res.report.escalatedAt).toBeUndefined();
+    expect(res.report.escalationReason).toBeUndefined();
+    // …but the reporter still sees their report's status and outcome.
+    expect(res.report.status).toBeDefined();
+    expect(res.report.resolution).toBe('action_taken');
+    expect(res.report.resolvedAt).toBe('2026-06-03T00:00:00.000Z');
+  });
+
+  it('returns full internal fields to a moderator with reports-view', async () => {
+    const { deps } = makeDeps([
+      {
+        rows: [
+          reportRow({
+            reporter_id: 'someone-else',
+            assigned_moderator: 'mod-7',
+            resolution_notes: 'user suspended — internal',
+          }),
+        ],
+      },
+    ]);
+    const res = await getReport(
+      deps,
+      makePrincipal({ userId: 'mod-9', permissions: ['moderation.reports.view'] }),
+      { reportId: 'rpt-1' } as GetReportRequest
+    );
+    expect(res.report.assignedModerator).toBe('mod-7');
+    expect(res.report.resolutionNotes).toBe('user suspended — internal');
+  });
+
+  it('strips transition moderator identity and reason for a reporter', async () => {
+    const { deps } = makeDeps([
+      { rows: [reportRow({ reporter_id: 'usr-1' })] },
+      {
+        rows: [
+          {
+            transition_id: 't-1',
+            report_id: 'rpt-1',
+            from_status: 'pending',
+            to_status: 'resolved',
+            transitioned_at: new Date('2026-06-03T00:00:00.000Z'),
+            transitioned_by: 'mod-7',
+            reason: 'handled internally',
+          },
+        ],
+      },
+    ]);
+    const res = await getReport(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+      reportId: 'rpt-1',
+      includeTransitions: true,
+    });
+    expect(res.transitions).toHaveLength(1);
+    expect(res.transitions[0].toStatus).toBeDefined();
+    expect(res.transitions[0].transitionedBy).toBeUndefined();
+    expect(res.transitions[0].reason).toBeUndefined();
+  });
+
   it('throws NOT_FOUND when the report does not exist', async () => {
     const { deps } = makeDeps([{ rows: [] }]);
     await expect(
@@ -265,6 +349,27 @@ describe('listReports', () => {
     const params = query.mock.calls[0][1] as unknown[];
     expect(sql).toContain('reporter_id = $1');
     expect(params[0]).toBe('usr-1');
+  });
+
+  it('strips internal moderation fields from a reporter-scoped list', async () => {
+    const { deps } = makeDeps([
+      {
+        rows: [
+          reportRow({
+            reporter_id: 'usr-1',
+            assigned_moderator: 'mod-7',
+            resolution_notes: 'internal',
+            escalation_reason: 'why',
+          }),
+        ],
+      },
+    ]);
+    const res = await listReports(deps, makePrincipal({ userId: 'usr-1', permissions: [] }), {
+      limit: 10,
+    } as ListReportsRequest);
+    expect(res.reports[0].assignedModerator).toBeUndefined();
+    expect(res.reports[0].resolutionNotes).toBeUndefined();
+    expect(res.reports[0].escalationReason).toBeUndefined();
   });
 
   it('does NOT scope a moderator with moderation.reports.view to their own reports', async () => {
