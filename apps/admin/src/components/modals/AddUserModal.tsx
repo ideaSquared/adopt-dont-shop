@@ -157,5 +157,3 @@ export const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onC
     </Modal>
   );
 };
-
-export default AddUserModal;

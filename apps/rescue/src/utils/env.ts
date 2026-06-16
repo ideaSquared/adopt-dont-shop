@@ -13,7 +13,3 @@ export const isDevelopment = (): boolean => {
 export const getApiBaseUrl = (): string => {
   return import.meta.env.VITE_API_BASE_URL ?? '';
 };
-
-export const getEnvironmentVariable = (key: string, defaultValue?: string): string | undefined => {
-  return import.meta.env[key] || defaultValue;
-};

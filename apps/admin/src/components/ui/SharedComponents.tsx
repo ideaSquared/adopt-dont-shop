@@ -73,18 +73,6 @@ export const Select = ({ className, ...props }: React.SelectHTMLAttributes<HTMLS
   <select className={`${styles.select}${className ? ` ${className}` : ''}`} {...props} />
 );
 
-// Shared Action Button Components
-export const ActionButtons = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.actionButtons}${className ? ` ${className}` : ''}`} {...props} />
-);
-
-export const IconButton = ({
-  className,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-  <button className={`${styles.iconButton}${className ? ` ${className}` : ''}`} {...props} />
-);
-
 // Shared Page Layout Components
 export const PageContainer = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={`${styles.pageContainer}${className ? ` ${className}` : ''}`} {...props} />
@@ -96,10 +84,6 @@ export const PageHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDiv
 
 export const HeaderLeft = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={`${styles.headerLeft}${className ? ` ${className}` : ''}`} {...props} />
-);
-
-export const HeaderActions = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.headerActions}${className ? ` ${className}` : ''}`} {...props} />
 );
 
 // Shared Card Components
@@ -122,8 +106,4 @@ export const CardContent = ({ className, ...props }: React.HTMLAttributes<HTMLDi
 // Utility Components
 export const EmptyState = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={`${styles.emptyState}${className ? ` ${className}` : ''}`} {...props} />
-);
-
-export const EmptyStateIcon = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={`${styles.emptyStateIcon}${className ? ` ${className}` : ''}`} {...props} />
 );

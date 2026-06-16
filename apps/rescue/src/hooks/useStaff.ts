@@ -82,5 +82,3 @@ export const useStaff = () => {
     },
   };
 };
-
-export default useStaff;
