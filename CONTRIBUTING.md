@@ -79,11 +79,12 @@ pnpm ci:local         # full preflight (~3-5min): format + lint + type-check + t
 
 #### Opt-in pre-push hook (ADS-732)
 
-`.husky/pre-push` will run `ci:local:quick` automatically before every `git push`, but is **off by default** so it doesn't surprise existing contributors. Enable it once per checkout:
+`.husky/pre-push` will run `ci:local:quick` automatically before every `git push`, but is **off by default** so it doesn't surprise existing contributors. `pnpm setup` will offer to enable it during onboarding — answering yes is recommended for your first month. You can also toggle it manually once per checkout:
 
 ```bash
 pnpm hooks:enable    # creates .husky/.prepush-enabled (gitignored)
 pnpm hooks:disable   # removes the marker
+pnpm hooks:status    # show whether the hook is currently enabled
 ```
 
 One-off run without enabling: `ADS_PREPUSH=1 git push`. Emergency bypass when the hook is enabled: `git push --no-verify` (the same flag works for the existing pre-commit / commit-msg hooks). The hook is always skipped under `CI=true`.

@@ -10,6 +10,10 @@
  *   --start             Skip the interactive prompt and start the docker dev
  *                       stack at the end of setup.
  *   --no-start          Skip the interactive prompt and DO NOT start the stack.
+ *   --enable-prepush    Skip the interactive prompt and enable the opt-in
+ *                       pre-push hook (runs ci:local:quick before git push).
+ *   --no-enable-prepush Skip the interactive prompt and leave the hook disabled.
+ *                       Pass this in unattended setups (devcontainer, CI bots).
  */
 import { execSync } from 'child_process';
 import { existsSync, copyFileSync, readFileSync, writeFileSync, appendFileSync } from 'fs';
@@ -150,6 +154,13 @@ function dockerAvailable() {
   }
 }
 
+// Mirror of `pnpm hooks:enable` (ADS-797): create the gitignored marker file
+// that the .husky/pre-push hook checks for. Idempotent.
+function enablePrepushHook() {
+  const marker = join(ROOT, '.husky', '.prepush-enabled');
+  writeFileSync(marker, '');
+}
+
 function promptYesNo(question, defaultYes = true) {
   if (!process.stdin.isTTY) {
     return Promise.resolve(defaultYes);
@@ -183,7 +194,7 @@ async function waitForHealth(url, timeoutMs = 60000) {
 }
 
 async function startStack() {
-  logStep('8', 'Starting docker dev stack (docker compose up -d)...');
+  logStep('9', 'Starting docker dev stack (docker compose up -d)...');
   if (!dockerAvailable()) {
     logError('Docker is not running — skipping stack start. Run `pnpm docker:dev` once Docker is up.');
     return false;
@@ -238,6 +249,8 @@ async function setup() {
   const skipPlaywright = process.argv.includes('--skip-playwright');
   const forceStart = process.argv.includes('--start');
   const forceNoStart = process.argv.includes('--no-start');
+  const forceEnablePrepush = process.argv.includes('--enable-prepush');
+  const forceNoEnablePrepush = process.argv.includes('--no-enable-prepush');
 
   try {
     // Step 1: Check Node.js version
@@ -377,10 +390,37 @@ async function setup() {
     }
     log('', RESET);
 
+    // Step 8: Offer to enable the opt-in pre-push hook (ADS-797). Catches most
+    // CI failures locally by running ci:local:quick before every git push.
+    logStep('8', 'Pre-push hook (opt-in)...');
+    let enablePrepush;
+    if (forceEnablePrepush) {
+      enablePrepush = true;
+    } else if (forceNoEnablePrepush) {
+      enablePrepush = false;
+    } else if (!process.stdin.isTTY) {
+      // Unattended setup (devcontainer postCreate, CI bots) with no explicit
+      // flag: leave the hook disabled rather than silently enabling it.
+      enablePrepush = false;
+    } else {
+      enablePrepush = await promptYesNo(
+        'Enable the pre-push hook? Runs ~30s of lint + format + type-check before every git push and catches most CI failures locally. (Recommended for new contributors.)',
+        true
+      );
+    }
+
+    if (enablePrepush) {
+      enablePrepushHook();
+      logSuccess('Pre-push hook enabled — disable later with `pnpm hooks:disable`.');
+    } else {
+      logInfo('Pre-push hook left disabled — enable later with `pnpm hooks:enable`.');
+    }
+    log('', RESET);
+
     // Success message
     logHeader('Setup Complete! 🎉');
 
-    // Step 8: Offer to start the docker dev stack
+    // Step 9: Offer to start the docker dev stack
     let shouldStart;
     if (forceStart) {
       shouldStart = true;
