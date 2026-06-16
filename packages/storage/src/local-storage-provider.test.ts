@@ -75,6 +75,12 @@ describe('LocalStorageProvider', () => {
     expect(info.exists).toBe(false);
   });
 
+  it('rejects path-traversal in filename or category instead of escaping the upload dir', async () => {
+    await expect(provider.deleteFile('../../etc/passwd', 'documents')).rejects.toThrow(/unsafe/);
+    await expect(provider.getFileInfo('ok.txt', '../secrets')).rejects.toThrow(/unsafe/);
+    await expect(provider.getFileInfo('a/b.txt', 'documents')).rejects.toThrow(/unsafe/);
+  });
+
   it('identifies itself and does not support signed urls', async () => {
     expect(provider.getName()).toBe('local');
     expect(provider.supportsSignedUrls()).toBe(false);

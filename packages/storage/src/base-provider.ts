@@ -1,5 +1,16 @@
 export type StorageCategory = 'pets' | 'users' | 'documents';
 
+// Defence-in-depth path-segment guard. `filename`/`category` are normally
+// server-generated (UUID + a fixed category), but the provider methods are
+// public API — reject any segment that contains a path separator or `..` so a
+// caller can never escape the upload dir / bucket prefix even if the consumer
+// forgets to validate. A flat segment can't traverse.
+export function assertSafePathSegment(value: string, label: string): void {
+  if (value.length === 0 || value.includes('/') || value.includes('\\') || value.includes('..')) {
+    throw new Error(`storage: unsafe ${label} segment "${value}"`);
+  }
+}
+
 export type UploadResult = {
   url: string;
   filename: string;

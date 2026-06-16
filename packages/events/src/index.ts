@@ -13,5 +13,7 @@ export {
 export { registerGdprSubscriber } from './gdpr-saga.js';
 export type { GdprEraseFn, RegisterGdprSubscriberOptions } from './gdpr-saga.js';
 export { redactAuditPayload } from './redact-audit-payload.js';
+export { claimEvent } from './idempotency.js';
+export type { DedupConn } from './idempotency.js';
 export { CONSUMER_REGISTRY } from './consumer-registry.js';
 export type { ConsumerEntry, RegistryEntry, ZeroConsumerEntry } from './consumer-registry.js';

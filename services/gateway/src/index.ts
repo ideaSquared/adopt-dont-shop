@@ -2,6 +2,7 @@ import { connect, type NatsConnection } from 'nats';
 import type { Server as IOServer } from 'socket.io';
 
 import { createLogger } from '@adopt-dont-shop/observability';
+import { assertPrincipalVerificationConfig } from '@adopt-dont-shop/service-bootstrap';
 
 import { loadConfig } from './config.js';
 import { createApplicationsClient } from './grpc-clients/applications-client.js';
@@ -36,6 +37,11 @@ const main = async (): Promise<void> => {
 
   try {
     const config = loadConfig();
+
+    // Fail closed in production without PRINCIPAL_SIGNING_KEY: the gateway
+    // signs the principal tokens downstream services verify, so a prod
+    // gateway that can't sign would force every downstream into header-trust.
+    assertPrincipalVerificationConfig();
 
     // gRPC clients to extracted services come up before Fastify so the
     // route plugins / middleware can close over them. The channels are

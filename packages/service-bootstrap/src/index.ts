@@ -48,7 +48,9 @@ export {
   extractPrincipal,
   extractPrincipalOptional,
   principalToMetadata,
+  assertPrincipalVerificationConfig,
   MissingPrincipalError,
+  InsecurePrincipalConfigError,
 } from './principal.js';
 export type { PrincipalVerification, PrincipalSigning } from './principal.js';
 

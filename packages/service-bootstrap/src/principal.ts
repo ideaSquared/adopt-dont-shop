@@ -17,6 +17,37 @@ export class MissingPrincipalError extends Error {
   }
 }
 
+// Thrown at boot when a service would run in production without the ability
+// to verify signed principals (and without an explicit opt-in).
+export class InsecurePrincipalConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InsecurePrincipalConfigError';
+  }
+}
+
+// Boot-time guard (ADS-800 hardening). Without PRINCIPAL_SIGNING_KEY,
+// extractPrincipal falls back to trusting unsigned x-user-* headers — fine
+// for dev and the phased-rollout window, but in production a missing key
+// would silently let anything that can reach the service forge identity (the
+// real cross-service authz boundary). Fail closed in production unless the
+// operator explicitly opts into header-trust via ALLOW_UNSIGNED_PRINCIPAL.
+export function assertPrincipalVerificationConfig(env: NodeJS.ProcessEnv = process.env): void {
+  if (getDefaultPrincipalSigningKey()) {
+    return; // signed-token verification enabled — the secure path.
+  }
+  const isProduction = env.NODE_ENV === 'production';
+  const allowUnsigned = env.ALLOW_UNSIGNED_PRINCIPAL === 'true';
+  if (isProduction && !allowUnsigned) {
+    throw new InsecurePrincipalConfigError(
+      'PRINCIPAL_SIGNING_KEY is required in production: without it the service trusts ' +
+        'unsigned x-user-* headers, which any client that can reach it could forge. ' +
+        'Set PRINCIPAL_SIGNING_KEY, or set ALLOW_UNSIGNED_PRINCIPAL=true to explicitly ' +
+        'accept header-trust (phased-rollout only).'
+    );
+  }
+}
+
 // Verification config (ADS-800). When a signing key is present the
 // service REQUIRES a valid x-principal-token and takes the principal
 // from the token payload — the x-user-* headers become informational,

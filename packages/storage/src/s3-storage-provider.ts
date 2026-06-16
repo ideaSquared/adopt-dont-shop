@@ -8,7 +8,13 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import type { FileInfo, StorageCategory, StorageProvider, UploadResult } from './base-provider.js';
+import {
+  assertSafePathSegment,
+  type FileInfo,
+  type StorageCategory,
+  type StorageProvider,
+  type UploadResult,
+} from './base-provider.js';
 import { type S3StorageConfig, type StorageLogger, resolveLogger } from './config.js';
 
 type ValidatedS3Config = {
@@ -86,7 +92,7 @@ export class S3StorageProvider implements StorageProvider {
     const { bucket } = this.requireConfig();
     const ext = path.extname(originalName);
     const filename = `${randomUUID()}${ext}`;
-    const key = `${category}/${filename}`;
+    const key = this.objectKey(category, filename);
 
     // Non-image uploads land with Content-Disposition: attachment so a browser
     // never renders an HTML/PDF polyglot inline from the CDN origin. Images use
@@ -121,7 +127,7 @@ export class S3StorageProvider implements StorageProvider {
 
   async deleteFile(filename: string, category: string = 'documents'): Promise<void> {
     const { bucket } = this.requireConfig();
-    const key = `${category}/${filename}`;
+    const key = this.objectKey(category, filename);
     try {
       await this.client.send(
         new DeleteObjectCommand({
@@ -138,7 +144,7 @@ export class S3StorageProvider implements StorageProvider {
 
   async getFileInfo(filename: string, category: string = 'documents'): Promise<FileInfo> {
     const { bucket } = this.requireConfig();
-    const key = `${category}/${filename}`;
+    const key = this.objectKey(category, filename);
     try {
       const response = await this.client.send(
         new HeadObjectCommand({
@@ -161,6 +167,13 @@ export class S3StorageProvider implements StorageProvider {
       this.logger.error('S3 HeadObject failed:', error);
       throw error;
     }
+  }
+
+  // Build the S3 object key, rejecting any traversal in the segments.
+  private objectKey(category: string, filename: string): string {
+    assertSafePathSegment(category, 'category');
+    assertSafePathSegment(filename, 'filename');
+    return `${category}/${filename}`;
   }
 
   private static isNotFoundError(error: unknown): boolean {
@@ -199,7 +212,7 @@ export class S3StorageProvider implements StorageProvider {
     expiresInSeconds: number = DEFAULT_SIGNED_URL_TTL_SECONDS
   ): Promise<string> {
     const { bucket } = this.requireConfig();
-    const key = `${category}/${filename}`;
+    const key = this.objectKey(category, filename);
     const command = new GetObjectCommand({ Bucket: bucket, Key: key });
     return getSignedUrl(this.client, command, { expiresIn: expiresInSeconds });
   }

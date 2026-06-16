@@ -37,3 +37,18 @@ recommendations rather than changed.
 | infra | Dev-only notes: Grafana anonymous-Admin (bound to `127.0.0.1` in the observability profile — keep it out of any prod compose); `GRANT CREATE ON SCHEMA public TO PUBLIC` in `init-postgis.sql`; and `service-chat`/`service-cms` appear in prod/staging compose but not the base/dev compose while the e2e `.env` sets `CUTOVER_CHAT/CMS=true` (topology gap to confirm). |
 
 **Verification:** all changed packages green; `turbo build` for all packages (32 tasks) and `turbo test type-check` for all services (31 tasks) pass — the shared logger change is safe across the backend.
+
+## Follow-ups — resolved (per product decision)
+
+The recommendations above were actioned:
+
+| Area | Resolution | Decision |
+|---|---|---|
+| service-bootstrap | `assertPrincipalVerificationConfig()` now **fails closed at boot in production** when `PRINCIPAL_SIGNING_KEY` is unset (so a service can't silently trust forgeable `x-user-*` headers), unless `ALLOW_UNSIGNED_PRINCIPAL=true` is an explicit opt-in for the phased rollout. Wired into `startGrpcServer` (all gRPC services) and the gateway boot (the token signer). | Fail closed + escape hatch |
+| events | After the `nak()` backoff, consumers now set **`max_deliver=7`** and dead-letter exhausted messages to a new `DOMAIN_EVENTS_DLQ` stream (`dlq.<original-subject>`, 14-day retention) with triage headers, then `term()` — parked for inspection, not dropped or looped. | max_deliver + dead-letter |
+| events | `claimEvent` promoted to a **shared idempotency primitive** in `@adopt-dont-shop/events` (schema-agnostic via search_path). notifications re-exports it; new consumers adopt it via the `processed_events` migration. Naturally idempotent consumers (GDPR erase, ON CONFLICT inserts, deterministic completion ids) were intentionally left unchanged rather than gold-plated. | Build shared dedup helper |
+| events | Documented that a durable consumer's `deliver_policy`/`filter_subject` can't change on re-add (requires recreate). | — |
+| storage | Provider methods now reject any `filename`/`category` segment containing a path separator or `..` (guard runs before the catch so `getFileInfo` can't mask it). | — |
+| infra | The `service-chat`/`service-cms` "topology gap" was investigated and is a **non-issue**: `cutover.chat/cms` default to `false`, so the gateway doesn't route to those services unless explicitly enabled (prod/staging, where the containers exist); the dev/base omission is correct. The Grafana anon-admin and `init-postgis` GRANT remain documented dev-only notes. | — |
+
+**Verification:** `turbo build` (all packages) + `turbo test type-check lint` (all services + changed packages) — 57/57 tasks pass.
