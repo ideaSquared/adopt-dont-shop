@@ -363,15 +363,27 @@ describe('AuthService', () => {
   describe('getProfile', () => {
     it('should fetch the current user profile from the API', async () => {
       const getMock = vi.mocked(apiService.get);
-      // Reset first to drain any queued/leaked implementation, then queue the
-      // value for getProfile's single get() call explicitly. This makes the
-      // test independent of any prior mock state on the shared apiService.
       getMock.mockReset();
-      getMock.mockResolvedValueOnce(mockUser);
+      getMock.mockResolvedValue(mockUser);
 
       const result = await authService.getProfile();
 
-      expect(getMock).toHaveBeenCalledWith('/api/v1/auth/me');
+      // DIAGNOSTIC (temporary): surface CI-only state in the failure diff so we
+      // can see whether the source called the same mock instance we configured.
+      const diag = {
+        isMock: vi.isMockFunction(apiService.get),
+        configuredCallCount: getMock.mock.calls.length,
+        configuredCalls: getMock.mock.calls,
+        resultType: typeof result,
+        resultIsUndefined: result === undefined,
+      };
+      expect(diag).toEqual({
+        isMock: true,
+        configuredCallCount: 1,
+        configuredCalls: [['/api/v1/auth/me']],
+        resultType: 'object',
+        resultIsUndefined: false,
+      });
       expect(result).toEqual(mockUser);
     });
 
