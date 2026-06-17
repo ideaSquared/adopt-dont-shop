@@ -49,7 +49,12 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     authService = new AuthService();
-    vi.clearAllMocks();
+    // resetAllMocks (not clearAllMocks) so any leaked mock implementation or
+    // queued `...Once` value is fully drained between tests. Under reduced
+    // test isolation (e.g. CI's pool), a stale resolved/rejected value on the
+    // shared apiService mock could otherwise bleed into a later test — this is
+    // what made `getProfile` intermittently receive `undefined` in CI.
+    vi.resetAllMocks();
     mockLocalStorage.clear.mockClear();
     mockLocalStorage.getItem.mockClear();
     mockLocalStorage.setItem.mockClear();
