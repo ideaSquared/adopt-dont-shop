@@ -4,7 +4,13 @@ Behaviour-focused end-to-end tests for the adopt-dont-shop monorepo, driven by [
 
 The suite exercises real user journeys across the three React apps (`app.client`, `app.rescue`, `app.admin`) and the gateway API. Tests assert on **user-observable outcomes** (visible text, route changes, API responses) rather than on component internals — those concerns are covered by the per-package Vitest suites.
 
-> **Phase 11 status (post-monolith).** The legacy app-driven projects (`client`, `rescue`, `admin`) are temporarily parked in `playwright.config.ts` via `testIgnore`. The deleted monolith's CSRF + httpOnly-cookie auth contract is gone; the Fastify gateway returns `{ user, tokens: { accessToken, refreshToken } }` in the JSON body. Until `lib.auth` is reworked against that contract, only the `gateway-smoke` project runs — it probes the gateway health endpoint and asserts each seeded persona logs in cleanly via `POST /api/v1/auth/login`. Re-enable the parked projects (and re-add `test-e2e` to `ci-required`) once the auth rework lands.
+> **Phase 11 status (post-monolith) — incremental un-park.** The auth rework landed in #1076: the gateway↔SPA contract (Bearer tokens, the `/me` envelope, and proto-enum casing) is aligned, so `global-setup` can drive a real UI login per role and snapshot storageState. The legacy app-driven projects are now being **un-parked one journey at a time** rather than all at once — each spec is validated in CI (the `run-e2e` PR label, and the full suite on push to `main`) before being added to the `UNPARKED` allowlist in `playwright.config.ts`, so `main` gates on real coverage without going red on un-vetted specs.
+>
+> **Un-parked so far:**
+> - `gateway-smoke` — gateway health + seeded-persona login (always on).
+> - `client/registration-and-login.spec.ts`, `client/adoption-application.spec.ts` — the `@smoke` core adopter journeys.
+>
+> **Still parked** (every other spec under `tests/client`, `tests/rescue`, `tests/admin`): un-park each by adding its glob to `UNPARKED[project]` once it passes in CI. Some non-auth specs (chat / moderation / cms / matching / notifications detail) may need follow-up gateway work — the same enum/envelope normalisation #1076 applied to auth likely applies to those domains' responses too.
 
 ## Layout
 

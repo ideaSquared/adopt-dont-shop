@@ -19,27 +19,27 @@ export const AUTH_FILES = {
   admin: '.auth/admin.json',
 } as const;
 
-// Phase 11 follow-up: the legacy app.client / app.rescue / app.admin
-// projects below are temporarily parked — every spec under their testDirs
-// is matched by `testIgnore: PARKED_TESTS` so none execute. The projects
-// remain in the config (rather than being deleted) so storageState wiring
-// and project naming stay stable while the rework lands.
+// Phase 11 follow-up — incremental un-park. #1076 aligned the gateway↔SPA
+// auth contract (Bearer tokens, /me envelope, enum casing), so the UI login
+// path produces a real session again and global-setup can snapshot
+// storageState per role. We now un-park the legacy app-driven specs ONE
+// journey at a time, validating each in CI (the `run-e2e` label, and the full
+// suite on push to `main`) before adding it here — so `main` gates on real
+// coverage without flipping the entire legacy suite on at once and going red.
 //
-// Why each project is parked rather than removed:
-//   1. The monolith's CSRF + httpOnly-cookie contract is gone; lib.auth
-//      and the per-app login flows still need to be reworked against the
-//      gateway's `{ tokens: { accessToken } }` Bearer-token shape before
-//      UI specs can drive a real session (see services/gateway/src/
-//      routes/auth.ts and lib.auth/src/services/auth-service.ts).
-//   2. The seeded API surface only exists for the four cutover domains
-//      below (auth, pets, rescue, applications). The remaining specs hit
-//      routes whose service hasn't shipped a full SPA-compatible shape
-//      yet (chat / moderation / cms / matching / notifications detail).
-//
-// The smoke project below DOES run and gates CI on the gateway's auth +
-// seeded-credentials contract, which is the smallest meaningful signal we
-// can give engineers today without lying about coverage.
-const PARKED_TESTS = [/.*/];
+// UNPARKED[project] lists the spec globs that run; every other spec under the
+// project's testDir stays parked. Extend a list once its journey is green in
+// CI. The still-parked specs are tracked in e2e/README.md.
+const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
+  client: ['**/registration-and-login.spec.ts', '**/adoption-application.spec.ts'],
+  rescue: [],
+  admin: [],
+};
+
+// Run exactly the listed specs — or nothing (a never-matching pattern) when a
+// project has no validated journeys yet, keeping it fully parked.
+const onlyUnparked = (specs: string[]): Array<string | RegExp> =>
+  specs.length > 0 ? specs : [/$a^/];
 
 export default defineConfig({
   testDir: './tests',
@@ -74,13 +74,14 @@ export default defineConfig({
       testDir: './tests/gateway-smoke',
       use: { baseURL: URLS.api },
     },
-    // The four projects below are stubs to keep storageState / project
-    // shape stable while the legacy app-driven specs are parked. They
-    // ignore everything under their testDir so no legacy spec runs.
+    // Each project runs only its UNPARKED specs (see above); the rest stay
+    // parked. global-setup logs in every role via the UI and writes its
+    // storageState, so a project starts authenticated as soon as it's
+    // un-parked.
     {
       name: 'client',
       testDir: './tests/client',
-      testIgnore: PARKED_TESTS,
+      testMatch: onlyUnparked(UNPARKED.client),
       use: {
         ...devices['Desktop Chrome'],
         baseURL: URLS.client,
@@ -90,7 +91,7 @@ export default defineConfig({
     {
       name: 'rescue',
       testDir: './tests/rescue',
-      testIgnore: PARKED_TESTS,
+      testMatch: onlyUnparked(UNPARKED.rescue),
       use: {
         ...devices['Desktop Chrome'],
         baseURL: URLS.rescue,
@@ -100,7 +101,7 @@ export default defineConfig({
     {
       name: 'admin',
       testDir: './tests/admin',
-      testIgnore: PARKED_TESTS,
+      testMatch: onlyUnparked(UNPARKED.admin),
       use: {
         ...devices['Desktop Chrome'],
         baseURL: URLS.admin,
