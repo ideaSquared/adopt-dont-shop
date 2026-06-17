@@ -19,17 +19,25 @@ function readUserId(body: LoginResponse): string {
   return body.user?.userId ?? body.user?.id ?? body.data?.user?.userId ?? body.data?.user?.id ?? '';
 }
 
-export async function loginViaApi(roleKey: RoleKey): Promise<ApiClient> {
+// Cache the access token per role for the lifetime of the worker process.
+// apiAs() is called from many specs, and the gateway rate-limits
+// POST /api/v1/auth/login to 10/min per IP — logging in on every call trips a
+// 429 once more than a handful of authenticated specs run (all e2e traffic
+// shares one docker-side IP). Access tokens are JWTs valid well beyond a suite
+// run, so one login per role per worker is plenty. Each apiAs() call still gets
+// its own disposable request context; only the login is shared.
+const tokenCache = new Map<RoleKey, { accessToken: string; userId: string }>();
+
+async function getRoleToken(roleKey: RoleKey): Promise<{ accessToken: string; userId: string }> {
+  const cached = tokenCache.get(roleKey);
+  if (cached) {
+    return cached;
+  }
   const role = ROLES[roleKey];
   // The Fastify gateway authenticates with Bearer tokens, not the deleted
   // monolith's httpOnly-cookie + CSRF model: login returns
-  // `{ user, tokens: { accessToken, refreshToken } }` in the body and there
-  // is no /csrf-token endpoint. Mint a context whose Authorization header
-  // carries the access token so every subsequent request from this client
-  // is authenticated.
+  // `{ user, tokens: { accessToken, refreshToken } }` in the body.
   const loginCtx = await playwrightRequest.newContext({ baseURL: URLS.api });
-  let accessToken: string | undefined;
-  let userId = '';
   try {
     const response = await loginCtx.post('/api/v1/auth/login', {
       data: { email: role.email, password: role.password },
@@ -41,15 +49,22 @@ export async function loginViaApi(roleKey: RoleKey): Promise<ApiClient> {
       throw new Error(`API login failed for ${role.email}: ${status} ${text.slice(0, 500)}`);
     }
     const body = (await response.json()) as LoginResponse;
-    accessToken = body.tokens?.accessToken ?? body.tokens?.access_token;
-    userId = readUserId(body);
+    const accessToken = body.tokens?.accessToken ?? body.tokens?.access_token;
+    if (!accessToken) {
+      throw new Error(`API login for ${role.email} returned no access token`);
+    }
+    const token = { accessToken, userId: readUserId(body) };
+    tokenCache.set(roleKey, token);
+    return token;
   } finally {
     await loginCtx.dispose();
   }
-  if (!accessToken) {
-    throw new Error(`API login for ${role.email} returned no access token`);
-  }
+}
 
+export async function loginViaApi(roleKey: RoleKey): Promise<ApiClient> {
+  // Mint a context whose Authorization header carries the (cached) access
+  // token so every subsequent request from this client is authenticated.
+  const { accessToken, userId } = await getRoleToken(roleKey);
   const context = await playwrightRequest.newContext({
     baseURL: URLS.api,
     extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` },

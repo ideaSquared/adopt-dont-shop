@@ -502,6 +502,14 @@ jobs:
             echo "CUTOVER_AUDIT=true"
             echo "CUTOVER_CHAT=true"
             echo "CUTOVER_CMS=true"
+            # Raise the gateway's global per-IP rate limit for e2e. A full
+            # Playwright run drives the whole SPA (favourites, chats,
+            # notifications, permissions, legal, match, csrf) across parallel
+            # workers from a single docker-side IP, bursting past the 100/min
+            # production default and 429-ing page loads. (apiAs also caches its
+            # login token per role to stay under the stricter 10/min auth-login
+            # limit.) Production keeps the 100/min default.
+            echo "GATEWAY_RATE_LIMIT_MAX=100000"
           } > .env
 
       - name: Start database and cache

@@ -31,7 +31,24 @@ export const AUTH_FILES = {
 // project's testDir stays parked. Extend a list once its journey is green in
 // CI. The still-parked specs are tracked in e2e/README.md.
 const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
-  client: ['**/registration-and-login.spec.ts', '**/adoption-application.spec.ts'],
+  client: [
+    '**/registration-and-login.spec.ts',
+    '**/adoption-application.spec.ts',
+    // ADS-865 (batch A1) — read journeys grounded in the seed, unblocked by
+    // the ADS-863 RBAC grants. Each verified green in CI before listing here.
+    '**/pet-discovery.spec.ts',
+    '**/distance-sorted-search.spec.ts',
+    '**/rescue-publishes-adopter-discovers.spec.ts',
+    // cannot-apply: fixed to use the viewable 'pending' pet (adopted pets are
+    // hidden → 404, no detail page to gate). session-expiry: anon /favorites →
+    // Login Required.
+    '**/cannot-apply-to-unavailable-pet.spec.ts',
+    '**/session-expiry.spec.ts',
+    // Deferred: notification-badge-updates — marking notifications read needs
+    // `notifications.update`, which the adopter lacks in the ADS-863 matrix
+    // (has only notifications.read) → 403. Needs a follow-up auth migration to
+    // grant adopters self-scoped notifications.update. Tracked in ADS-865.
+  ],
   rescue: [],
   admin: [],
 };

@@ -21,13 +21,10 @@ test.describe('notification badge', () => {
     const initialCount = beforeBody.count ?? beforeBody.data?.count ?? 0;
     expect(typeof initialCount).toBe('number');
 
-    // POST mark-all-read.
-    const csrfRes = await adopterApi.context.get('/api/v1/csrf-token');
-    expect(csrfRes.ok()).toBe(true);
-    const { csrfToken } = (await csrfRes.json()) as { csrfToken?: string };
-    const markRes = await adopterApi.context.post('/api/v1/notifications/read-all', {
-      headers: { 'x-csrf-token': csrfToken! },
-    });
+    // POST mark-all-read. The gateway authenticates with Bearer tokens and
+    // exposes no /csrf-token endpoint, so the adopter's Bearer context (set by
+    // apiAs) is all that's needed — no CSRF dance.
+    const markRes = await adopterApi.context.post('/api/v1/notifications/read-all');
     expect([200, 204]).toContain(markRes.status());
 
     const afterRes = await adopterApi.context.get('/api/v1/notifications/unread/count');

@@ -377,6 +377,12 @@ services:
       # ADS-800: same shared key as the *ms-env services — the gateway is
       # the signer, the services are the verifiers.
       PRINCIPAL_SIGNING_KEY: ${PRINCIPAL_SIGNING_KEY:-}
+      # Global per-IP rate limit (req/min). Defaults to the production-like 100
+      # so dev is unchanged; the e2e CI stack raises it via .env — a full
+      # Playwright run drives the whole SPA (favourites, chats, notifications,
+      # permissions, legal, match, csrf) from a single docker-side IP, bursting
+      # past 100/min.
+      GATEWAY_RATE_LIMIT_MAX: ${GATEWAY_RATE_LIMIT_MAX:-100}
     ports:
       - '127.0.0.1:4000:4000'
     depends_on:
