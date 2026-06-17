@@ -35,6 +35,7 @@ import type { Logger } from 'winston';
 import { signPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 export type AuthMiddlewareOptions = {
   authClient: AuthClient;
@@ -45,7 +46,67 @@ export type AuthMiddlewareOptions = {
   // running with the same PRINCIPAL_SIGNING_KEY verify the principal
   // cryptographically instead of trusting the bare headers.
   principalSigningKey?: string;
+  // ADS-863: the auth principal does not carry the rescue tenant key (the
+  // rescue↔user membership lives in the rescue service, not auth). When a
+  // rescue client is provided, rescue-staff principals get their `rescueId`
+  // resolved here and stamped into `x-rescue-id` / the signed principal so
+  // rescue-scoped writes (pet create, application review/approve) pass the
+  // tenant scope check. Optional + fail-open: without it, behaviour is
+  // unchanged.
+  rescueClient?: RescueClient;
 };
+
+// Cache of userId → resolved rescueId (or null when the user has no
+// membership). Staff memberships change rarely, so a short TTL keeps the
+// rescue lookup off the per-request hot path while staying fresh.
+const RESCUE_ID_TTL_MS = 5 * 60_000;
+const rescueIdCache = new Map<string, { rescueId: string | null; expiresAt: number }>();
+
+// Resolve a rescue-staff user's home rescue via the rescue service,
+// memoised. Fail-open: a missing membership (NOT_FOUND) or any upstream
+// error yields `null`, so the request proceeds without a rescue scope —
+// exactly as it did before this enrichment existed.
+async function resolveRescueId(
+  userId: string,
+  roleStrings: string[],
+  permissions: string[],
+  rescueClient: RescueClient,
+  principalSigningKey: string | undefined,
+  logger: Logger
+): Promise<string | null> {
+  const cached = rescueIdCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.rescueId;
+  }
+
+  let rescueId: string | null = null;
+  try {
+    const meta = new Metadata();
+    meta.set('x-user-id', userId);
+    meta.set('x-user-roles', roleStrings.join(','));
+    meta.set('x-user-permissions', permissions.join(','));
+    if (principalSigningKey) {
+      meta.set(
+        'x-principal-token',
+        signPrincipalToken({ userId, roles: roleStrings, permissions }, principalSigningKey)
+      );
+    }
+    const res = await rescueClient.getMyStaffMembership({}, meta);
+    rescueId = res.staffMember?.rescueId ?? null;
+  } catch (err) {
+    const code = (err as { code?: number }).code;
+    if (code !== grpcStatus.NOT_FOUND) {
+      logger.warn('rescueId enrichment failed', {
+        userId,
+        err: (err as Error)?.message ?? String(err),
+      });
+    }
+    rescueId = null;
+  }
+
+  rescueIdCache.set(userId, { rescueId, expiresAt: Date.now() + RESCUE_ID_TTL_MS });
+  return rescueId;
+}
 
 // Headers we strip on every request — anything else the client sends
 // is forwarded as-is. x-principal-token is in the list because the
@@ -81,7 +142,7 @@ export const registerAuthenticate = async (
   app: FastifyInstance,
   opts: AuthMiddlewareOptions
 ): Promise<void> => {
-  const { authClient, logger, principalSigningKey } = opts;
+  const { authClient, logger, principalSigningKey, rescueClient } = opts;
 
   app.addHook('onRequest', async (req, reply) => {
     // Step 1: strip spoofable headers. ALWAYS.
@@ -130,8 +191,24 @@ export const registerAuthenticate = async (
       headers['x-user-id'] = principal.userId;
       headers['x-user-roles'] = roles.join(',');
       headers['x-user-permissions'] = principal.permissions.join(',');
-      if (principal.rescueId) {
-        headers['x-rescue-id'] = principal.rescueId;
+      // ADS-863: resolve the rescue tenant key. The auth principal never
+      // carries it (rescue membership lives in the rescue service), so for
+      // rescue staff we look it up (cached, fail-open). Gated on the role so
+      // non-rescue users never trigger the lookup.
+      let rescueId = principal.rescueId || undefined;
+      if (!rescueId && rescueClient && roles.includes('rescue_staff')) {
+        rescueId =
+          (await resolveRescueId(
+            principal.userId,
+            roles,
+            [...principal.permissions],
+            rescueClient,
+            principalSigningKey,
+            logger
+          )) ?? undefined;
+      }
+      if (rescueId) {
+        headers['x-rescue-id'] = rescueId;
       }
       // ADS-800: sign the same principal so downstream services can
       // verify it instead of trusting the headers. Minted per request —
@@ -142,7 +219,7 @@ export const registerAuthenticate = async (
             userId: principal.userId,
             roles,
             permissions: [...principal.permissions],
-            ...(principal.rescueId ? { rescueId: principal.rescueId } : {}),
+            ...(rescueId ? { rescueId } : {}),
           },
           principalSigningKey
         );

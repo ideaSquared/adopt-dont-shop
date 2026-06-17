@@ -353,6 +353,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       authClient: opts.authClient,
       logger,
       principalSigningKey: config.principalSigningKey,
+      // ADS-863: lets the auth hook resolve rescue-staff principals'
+      // rescueId from the rescue service (when the rescue domain is wired).
+      rescueClient: opts.rescueClient,
     });
 
     // Gate /docs behind admin role. This hook runs AFTER the authenticate

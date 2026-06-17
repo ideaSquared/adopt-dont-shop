@@ -5,6 +5,7 @@ import { AuthV1, type ValidateTokenResponse } from '@adopt-dont-shop/proto';
 import { verifyPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { __TEST_PUBLIC_PATH_PREFIXES, registerAuthenticate } from './authenticate.js';
 
@@ -23,7 +24,11 @@ type ValidatedHeaders = {
   'x-rescue-id'?: string;
 };
 
-function makeApp(authClient: AuthClient, principalSigningKey?: string): Promise<FastifyInstance> {
+function makeApp(
+  authClient: AuthClient,
+  principalSigningKey?: string,
+  rescueClient?: RescueClient
+): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   // Echo endpoint that returns the headers the middleware left on
   // the request. Anything spoofable that survives is a failure.
@@ -40,9 +45,23 @@ function makeApp(authClient: AuthClient, principalSigningKey?: string): Promise<
   app.get('/health/simple', async () => ({ ok: true }));
   app.post('/api/v1/auth/login', async () => ({ logged: 'in' }));
   app.post('/api/v1/auth/refresh-token', async () => ({ refreshed: true }));
-  return registerAuthenticate(app, { authClient, logger: quietLogger, principalSigningKey }).then(
-    () => app
-  );
+  return registerAuthenticate(app, {
+    authClient,
+    logger: quietLogger,
+    principalSigningKey,
+    rescueClient,
+  }).then(() => app);
+}
+
+// Minimal RescueClient stub — the enrichment only ever calls
+// getMyStaffMembership, so the rest of the surface is left unimplemented.
+function makeRescueClient(impl: () => Promise<unknown>): {
+  client: RescueClient;
+  mock: ReturnType<typeof vi.fn>;
+} {
+  const mock = vi.fn(impl);
+  const client = { getMyStaffMembership: mock } as unknown as RescueClient;
+  return { client, mock };
 }
 
 function makeAuthClient(): { client: AuthClient; validateMock: ReturnType<typeof vi.fn> } {
@@ -124,6 +143,91 @@ describe('registerAuthenticate — header spoofing', () => {
     expect(body.roles).toBe('rescue_staff,admin');
     expect(body.permissions).toBe('pets.read,pets.update');
     expect(body.rescueId).toBe('rsc-1');
+  });
+});
+
+describe('registerAuthenticate — rescueId enrichment (ADS-863)', () => {
+  // Distinct userIds per test so the module-level memoisation cache doesn't
+  // bleed one test's resolved rescueId into the next.
+  const staffNoRescue = (userId: string): ValidateTokenResponse => ({
+    principal: {
+      userId,
+      roles: [AuthV1.UserRole.USER_ROLE_RESCUE_STAFF],
+      permissions: ['pets.create'],
+      rescueId: '',
+    },
+    expiresAt: '2026-06-05T18:30:00Z',
+  });
+
+  it('resolves and stamps x-rescue-id for a rescue-staff principal that lacks one', async () => {
+    const { client, validateMock } = makeAuthClient();
+    validateMock.mockResolvedValueOnce(staffNoRescue('usr-rescue-a'));
+    const { client: rescueClient, mock } = makeRescueClient(async () => ({
+      staffMember: { rescueId: 'rsc-resolved' },
+    }));
+    const app = await makeApp(client, undefined, rescueClient);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/echo',
+        headers: { authorization: 'Bearer good.token' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect((res.json() as { rescueId: string | null }).rescueId).toBe('rsc-resolved');
+      expect(mock).toHaveBeenCalledTimes(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('proceeds without x-rescue-id when the lookup finds no membership (fail-open)', async () => {
+    const { client, validateMock } = makeAuthClient();
+    validateMock.mockResolvedValueOnce(staffNoRescue('usr-rescue-b'));
+    // grpc-js status.NOT_FOUND = 5
+    const { client: rescueClient } = makeRescueClient(async () => {
+      throw Object.assign(new Error('no membership'), { code: 5 });
+    });
+    const app = await makeApp(client, undefined, rescueClient);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/echo',
+        headers: { authorization: 'Bearer good.token' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect((res.json() as { rescueId: string | null }).rescueId).toBeNull();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not call the rescue service for a non-rescue principal', async () => {
+    const { client, validateMock } = makeAuthClient();
+    validateMock.mockResolvedValueOnce({
+      principal: {
+        userId: 'usr-adopter',
+        roles: [AuthV1.UserRole.USER_ROLE_ADOPTER],
+        permissions: ['pets.read'],
+        rescueId: '',
+      },
+      expiresAt: '2026-06-05T18:30:00Z',
+    });
+    const { client: rescueClient, mock } = makeRescueClient(async () => ({
+      staffMember: { rescueId: 'should-not-be-used' },
+    }));
+    const app = await makeApp(client, undefined, rescueClient);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/echo',
+        headers: { authorization: 'Bearer good.token' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect((res.json() as { rescueId: string | null }).rescueId).toBeNull();
+      expect(mock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
   });
 });
 
