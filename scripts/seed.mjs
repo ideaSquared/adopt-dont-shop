@@ -35,6 +35,7 @@ const SEED_TARGETS = [
   ['service-rescue', 'rescues + staff'],
   ['service-pets', 'pet catalogue'],
   ['service-applications', 'application read-model (references user/pet/rescue ids)'],
+  ['service-chat', 'adopter↔rescue chat + participants (references user/rescue ids)'],
 ];
 
 function runSeed(service, label) {

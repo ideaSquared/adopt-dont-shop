@@ -74,9 +74,14 @@ export class HandlerError extends Error {
 
 // --- Permissions -----------------------------------------------------
 
-const CHAT_CREATE: Permission = 'chat.create' as Permission;
-const CHAT_READ: Permission = 'chat.read' as Permission;
-const CHAT_SEND: Permission = 'chat.send' as Permission;
+// Canonical permission names from lib.types (rescue-permissions.ts): the RBAC
+// matrix (auth migration 016) grants adopters + rescue staff `chats.*` /
+// `messages.*`, so the chat service MUST gate on those same strings. It
+// previously used ad-hoc `chat.read` / `chat.create` / `chat.send`, which no
+// role was ever granted — so every non-super_admin chat op 403'd.
+const CHAT_CREATE: Permission = 'chats.create' as Permission;
+const CHAT_READ: Permission = 'chats.read' as Permission;
+const CHAT_SEND: Permission = 'messages.create' as Permission;
 
 // --- Row shapes ------------------------------------------------------
 
