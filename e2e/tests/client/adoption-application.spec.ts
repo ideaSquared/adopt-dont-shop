@@ -1,5 +1,10 @@
 import { test, expect } from '../../fixtures';
-import { SEEDED_PET_IDS, createAdopterApplication, patchWithCsrf } from '../../helpers/seeds';
+import {
+  SEEDED_PET_IDS,
+  createAdopterApplication,
+  patchWithCsrf,
+  postWithCsrf,
+} from '../../helpers/seeds';
 
 /**
  * Adoption golden path (ADS-420).
@@ -53,9 +58,19 @@ test.describe('adoption application submission', () => {
     //    rely on.
     const { applicationId } = await createAdopterApplication(adopterApi, rescueApi);
 
-    // 2. Rescue staff transitions the application to approved. The
-    //    backend's status endpoint is authoritative — the dashboard
-    //    reads the persisted state from it.
+    // 2. Rescue staff moves the application through the review state
+    //    machine. Approval is illegal directly from 'submitted' — it must
+    //    pass through 'under_review' first (see the applications domain:
+    //    submitted → under_review → approved), so start the review before
+    //    approving. The backend's status endpoint is authoritative — the
+    //    dashboard reads the persisted state from it.
+    const reviewRes = await postWithCsrf(
+      rescueApi.context,
+      `/api/v1/applications/${applicationId}/review`,
+      {}
+    );
+    expect(reviewRes.ok()).toBe(true);
+
     const approveRes = await patchWithCsrf(
       rescueApi.context,
       `/api/v1/applications/${applicationId}/status`,

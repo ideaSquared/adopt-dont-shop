@@ -21,9 +21,12 @@ export async function expectOk(res: APIResponse, label: string): Promise<void> {
 }
 
 /**
- * Tiny convenience: every state-changing request needs a CSRF token,
- * and the response context tracks the cookie automatically.  This helper
- * does the GET /csrf-token + POST/PATCH/DELETE in one call.
+ * Issue a state-changing request. The Fastify gateway authenticates with
+ * Bearer tokens — the `apiAs` context already carries the Authorization
+ * header — and does NOT use the deleted monolith's cookie/CSRF model (there
+ * is no /csrf-token endpoint), so this is a thin passthrough. The
+ * `*WithCsrf` export names are retained only to avoid churning every call
+ * site; no CSRF handshake happens.
  */
 async function withCsrf<T extends 'post' | 'patch' | 'put' | 'delete'>(
   ctx: APIRequestContext,
@@ -31,20 +34,7 @@ async function withCsrf<T extends 'post' | 'patch' | 'put' | 'delete'>(
   url: string,
   options: { data?: unknown; headers?: Record<string, string> } = {}
 ): Promise<APIResponse> {
-  const csrfRes = await ctx.get('/api/v1/csrf-token');
-  if (!csrfRes.ok()) {
-    throw new Error(
-      `CSRF token fetch failed before ${method.toUpperCase()} ${url}: ${csrfRes.status()}`
-    );
-  }
-  const { csrfToken } = (await csrfRes.json()) as { csrfToken?: string };
-  if (!csrfToken) {
-    throw new Error(`CSRF token endpoint returned no token before ${method.toUpperCase()} ${url}`);
-  }
-  return ctx[method](url, {
-    ...options,
-    headers: { ...(options.headers ?? {}), 'x-csrf-token': csrfToken },
-  });
+  return ctx[method](url, options);
 }
 
 export const postWithCsrf = (

@@ -12,6 +12,7 @@ export type ApiClient = {
 type LoginResponse = {
   user?: { userId?: string; id?: string };
   data?: { user?: { userId?: string; id?: string } };
+  tokens?: { accessToken?: string; access_token?: string };
 };
 
 function readUserId(body: LoginResponse): string {
@@ -20,42 +21,44 @@ function readUserId(body: LoginResponse): string {
 
 export async function loginViaApi(roleKey: RoleKey): Promise<ApiClient> {
   const role = ROLES[roleKey];
-  // The backend's login endpoint sets the access + refresh tokens as
-  // httpOnly cookies and only returns { user, expiresIn } in the body —
-  // there is no Bearer token to extract.  Keep the same APIRequestContext
-  // for subsequent calls so the cookies travel with each request, and
-  // drive CSRF the same way the React app does (token endpoint seeds the
-  // cookie, value goes into the x-csrf-token header).
-  const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
-  const csrfRes = await ctx.get('/api/v1/csrf-token');
-  if (!csrfRes.ok()) {
-    const status = csrfRes.status();
-    const text = await csrfRes.text();
-    await ctx.dispose();
-    throw new Error(`CSRF token fetch failed for ${role.email}: ${status} ${text.slice(0, 300)}`);
+  // The Fastify gateway authenticates with Bearer tokens, not the deleted
+  // monolith's httpOnly-cookie + CSRF model: login returns
+  // `{ user, tokens: { accessToken, refreshToken } }` in the body and there
+  // is no /csrf-token endpoint. Mint a context whose Authorization header
+  // carries the access token so every subsequent request from this client
+  // is authenticated.
+  const loginCtx = await playwrightRequest.newContext({ baseURL: URLS.api });
+  let accessToken: string | undefined;
+  let userId = '';
+  try {
+    const response = await loginCtx.post('/api/v1/auth/login', {
+      data: { email: role.email, password: role.password },
+      timeout: 15_000,
+    });
+    if (!response.ok()) {
+      const status = response.status();
+      const text = await response.text();
+      throw new Error(`API login failed for ${role.email}: ${status} ${text.slice(0, 500)}`);
+    }
+    const body = (await response.json()) as LoginResponse;
+    accessToken = body.tokens?.accessToken ?? body.tokens?.access_token;
+    userId = readUserId(body);
+  } finally {
+    await loginCtx.dispose();
   }
-  const { csrfToken } = (await csrfRes.json()) as { csrfToken?: string };
-  if (!csrfToken) {
-    await ctx.dispose();
-    throw new Error(`CSRF token endpoint returned no token for ${role.email}`);
+  if (!accessToken) {
+    throw new Error(`API login for ${role.email} returned no access token`);
   }
-  const response = await ctx.post('/api/v1/auth/login', {
-    data: { email: role.email, password: role.password },
-    headers: { 'x-csrf-token': csrfToken },
+
+  const context = await playwrightRequest.newContext({
+    baseURL: URLS.api,
+    extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!response.ok()) {
-    const status = response.status();
-    const text = await response.text();
-    await ctx.dispose();
-    throw new Error(`API login failed for ${role.email}: ${status} ${text.slice(0, 500)}`);
-  }
-  const body = (await response.json()) as LoginResponse;
-  const userId = readUserId(body);
 
   return {
-    context: ctx,
+    context,
     userId,
-    dispose: () => ctx.dispose(),
+    dispose: () => context.dispose(),
   };
 }
 
