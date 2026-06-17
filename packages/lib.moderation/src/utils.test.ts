@@ -1,6 +1,7 @@
 import {
   buildQueryString,
   calculateResolutionTime,
+  formatDate,
   formatRelativeTime,
   getActionTypeLabel,
   getCategoryLabel,
@@ -39,6 +40,18 @@ describe('moderation labels', () => {
     ] as const) {
       expect(getStatusColor(status)).toMatch(/^#[0-9a-f]{6}$/i);
     }
+  });
+});
+
+describe('formatDate', () => {
+  it('formats a Date instance into a human-readable string', () => {
+    const formatted = formatDate(new Date('2026-04-21T09:05:00Z'));
+    expect(formatted).toContain('2026');
+    expect(formatted).toContain('Apr');
+  });
+
+  it('accepts an ISO string and produces the same shape', () => {
+    expect(formatDate('2026-04-21T09:05:00Z')).toContain('Apr');
   });
 });
 

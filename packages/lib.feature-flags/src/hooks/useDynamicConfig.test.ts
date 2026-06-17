@@ -86,6 +86,22 @@ describe('useConfigValue', () => {
     );
   });
 
+  it('falls back to the default when the config get yields a nullish value', () => {
+    const config = {
+      value: {},
+      get: () => null,
+    } as unknown as FakeConfig;
+    mockUseContext.mockReturnValue({ client: buildClient({ application_settings: config }) });
+
+    expect(useConfigValue('application_settings', 'present_but_null', 'fallback')).toBe('fallback');
+  });
+
+  it('returns the default when the named config does not exist on the client', () => {
+    mockUseContext.mockReturnValue({ client: buildClient({}) });
+
+    expect(useConfigValue('application_settings', 'any_key', 'fallback')).toBe('fallback');
+  });
+
   it('returns the supplied fallback and warns when the client is not initialized', () => {
     mockUseContext.mockReturnValue({ client: null });
 
