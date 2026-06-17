@@ -298,6 +298,19 @@ describe('GET /api/v1/chats/:chatId/messages — listMessages', () => {
     expect(req.limit).toBe(25);
     expect(req.cursor).toBe('xyz');
   });
+
+  it('surfaces the message text as `content` (mapped from the proto `body`)', async () => {
+    client.listMessagesMock.mockResolvedValueOnce({ messages: [MESSAGE_FIXTURE] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/chats/chat-1/messages',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    const json = res.json() as { messages: Array<{ body?: string; content?: string }> };
+    // Both surfaced: `body` for back-compat, `content` for the SPA / e2e.
+    expect(json.messages[0].body).toBe('Hello');
+    expect(json.messages[0].content).toBe('Hello');
+  });
 });
 
 // --- POST /api/v1/chats/:id/read ------------------------------------
