@@ -77,7 +77,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider
-          allowedUserTypes={['admin', 'moderator']}
+          allowedUserTypes={['admin', 'moderator', 'super_admin']}
           appType='admin'
           onAuthEvent={handleAuthEvent}
           onLogout={() => queryClient.clear()}

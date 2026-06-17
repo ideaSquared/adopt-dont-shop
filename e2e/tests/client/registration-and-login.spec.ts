@@ -4,6 +4,12 @@ import { URLS } from '../../playwright.config';
 import { request as playwrightRequest } from '@playwright/test';
 
 test.describe('adopter registration and login', () => {
+  // These journeys exercise the UNauthenticated experience (public
+  // registration, a failed login). The client project ships an
+  // authenticated adopter storageState, so reset it here — otherwise
+  // visiting /login redirects straight to the home page.
+  test.use({ storageState: { cookies: [], origins: [] } });
+
   test('a new adopter can register via the public API @smoke', async () => {
     // Drive registration through the backend directly.  The UI form has a
     // custom-styled Terms checkbox whose onChange handler only fires under
@@ -13,16 +19,14 @@ test.describe('adopter registration and login', () => {
     // tests.  What's actually unique about the e2e layer is that the
     // *backend's* registration endpoint is reachable and returns a sane
     // shape; that's what this test pins down.
+    //
+    // No CSRF handshake: the Fastify gateway authenticates with Bearer
+    // tokens, not the deleted monolith's cookie/CSRF model, so there is no
+    // /csrf-token endpoint and mutating POSTs don't require a CSRF header.
     const ctx = await playwrightRequest.newContext({ baseURL: URLS.api });
     try {
-      const csrfRes = await ctx.get('/api/v1/csrf-token');
-      expect(csrfRes.ok()).toBe(true);
-      const { csrfToken } = (await csrfRes.json()) as { csrfToken?: string };
-      expect(csrfToken).toBeTruthy();
-
       const email = uniqueEmail('signup');
       const response = await ctx.post('/api/v1/auth/register', {
-        headers: { 'x-csrf-token': csrfToken! },
         data: {
           email,
           password: 'BehaviourTest123!',

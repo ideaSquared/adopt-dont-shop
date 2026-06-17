@@ -31,7 +31,12 @@ export const AUTH_FILES = {
 // project's testDir stays parked. Extend a list once its journey is green in
 // CI. The still-parked specs are tracked in e2e/README.md.
 const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
-  client: ['**/registration-and-login.spec.ts', '**/adoption-application.spec.ts'],
+  // adoption-application is deferred: its journey depends on the seeds.ts
+  // mutation helpers, which still perform the deleted monolith's
+  // GET /csrf-token handshake (the Bearer gateway has no such endpoint, so
+  // every mutation throws). Re-park it until that helper layer is reworked
+  // to the Bearer contract and its backend endpoints are validated in CI.
+  client: ['**/registration-and-login.spec.ts'],
   rescue: [],
   admin: [],
 };
