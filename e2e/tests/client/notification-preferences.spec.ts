@@ -16,21 +16,23 @@ test.describe('notification preferences', () => {
   }) => {
     const adopterApi = await apiAs('adopter');
 
-    const beforeRes = await adopterApi.context.get('/api/v1/users/preferences');
-    await expectOk(beforeRes, 'GET /users/preferences (initial)');
+    const beforeRes = await adopterApi.context.get('/api/v1/notifications/preferences');
+    await expectOk(beforeRes, 'GET /notifications/preferences (initial)');
     const before = (await beforeRes.json()) as Record<string, unknown> & {
       data?: Record<string, unknown>;
     };
     const initialPrefs = (before.data ?? before) as Record<string, unknown>;
     const initialEmail = readEmailEnabled(initialPrefs) ?? true;
 
-    const flipRes = await putWithCsrf(adopterApi.context, '/api/v1/users/preferences', {
-      emailNotifications: !initialEmail,
+    // The gateway accepts the bare `email` field (or the proto-aligned
+    // `emailEnabled`) and returns the prefs as `emailEnabled`.
+    const flipRes = await putWithCsrf(adopterApi.context, '/api/v1/notifications/preferences', {
+      email: !initialEmail,
     });
-    await expectOk(flipRes, 'PUT /users/preferences (flip)');
+    await expectOk(flipRes, 'PUT /notifications/preferences (flip)');
 
-    const afterRes = await adopterApi.context.get('/api/v1/users/preferences');
-    await expectOk(afterRes, 'GET /users/preferences (after flip)');
+    const afterRes = await adopterApi.context.get('/api/v1/notifications/preferences');
+    await expectOk(afterRes, 'GET /notifications/preferences (after flip)');
     const after = (await afterRes.json()) as Record<string, unknown> & {
       data?: Record<string, unknown>;
     };
@@ -38,8 +40,8 @@ test.describe('notification preferences', () => {
     expect(readEmailEnabled(finalPrefs)).toBe(!initialEmail);
 
     // Restore so the suite is repeatable.
-    await putWithCsrf(adopterApi.context, '/api/v1/users/preferences', {
-      emailNotifications: initialEmail,
+    await putWithCsrf(adopterApi.context, '/api/v1/notifications/preferences', {
+      email: initialEmail,
     });
   });
 });

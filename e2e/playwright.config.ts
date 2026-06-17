@@ -49,10 +49,12 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // failing — they assert the dashboard reads the persisted state.
     '**/application-tracking.spec.ts',
     '**/application-status-roundtrip.spec.ts',
-    // Deferred: notification-badge-updates — marking notifications read needs
-    // `notifications.update`, which the adopter lacks in the ADS-863 matrix
-    // (has only notifications.read) → 403. Needs a follow-up auth migration to
-    // grant adopters self-scoped notifications.update. Tracked in ADS-865.
+    // Unblocked by ADS-869 (migration 017 grants adopters self-scoped
+    // notifications.update + notifications.prefs.{read,update}).
+    // notification-preferences also needed the gateway route (/notifications/
+    // preferences, not /users) and the `email` body field — fixed in the spec.
+    '**/notification-badge-updates.spec.ts',
+    '**/notification-preferences.spec.ts',
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863
