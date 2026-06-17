@@ -77,7 +77,21 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // Deferred: custom-application-questions — the gateway exposes no
     // /api/v1/rescues/:id/questions route (not cut over) → 404. Batch B.
   ],
-  admin: [],
+  admin: [
+    // ADS-867 (batch A3) — admin journeys. superadmin storageState
+    // short-circuits all permission checks (ADS-863), and the auth-route
+    // rate-limit ceiling was lifted for e2e (#1083). Page-load smokes prove the
+    // protected routes mount; role-boundary checks the anonymous redirect;
+    // field-permission-override hits the admin-only defaults API. Routes
+    // verified against apps/admin/src/App.tsx before listing.
+    '**/role-boundary-enforcement.spec.ts',
+    '**/field-permission-override.spec.ts',
+    '**/audit-log-and-settings.spec.ts',
+    '**/user-and-rescue-moderation.spec.ts',
+    '**/content-moderation-queue.spec.ts',
+    '**/support-ticket-triage.spec.ts',
+    '**/blog-post-publishing.spec.ts',
+  ],
 };
 
 // Run exactly the listed specs — or nothing (a never-matching pattern) when a
