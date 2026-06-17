@@ -75,9 +75,13 @@ const devUser: User = {
 
 const buildAuthResponse = (user: User): AuthResponse => ({
   user,
-  token: 'mock-token',
-  expiresIn: 3600,
-  accessToken: 'mock-token',
+  tokens: {
+    accessToken: 'mock-token',
+    refreshToken: 'mock-refresh-token',
+    accessExpiresAt: '2026-01-01T01:00:00Z',
+    refreshExpiresAt: '2026-02-01T00:00:00Z',
+  },
+  permissions: [],
 });
 
 // Stable reference so re-renders don't re-trigger the effect that watches it.

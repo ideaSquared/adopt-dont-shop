@@ -183,13 +183,30 @@ export interface RegisterRequest {
   confirmPassword?: string;
 }
 
+/**
+ * Token pair returned by the gateway in the JSON body.
+ *
+ * Phase 11 follow-up: the Fastify gateway replaced the monolith's
+ * httpOnly-cookie + CSRF model with Bearer tokens carried in the response
+ * body (see services/gateway/src/routes/auth.ts and the `TokenPair` proto
+ * message in packages/proto). The access token is attached to subsequent
+ * requests as `Authorization: Bearer <token>` via lib.api's `getAuthToken`
+ * hook; the refresh token is replayed to `/auth/refresh-token`.
+ */
+export interface TokenPair {
+  accessToken: string;
+  refreshToken: string;
+  // RFC 3339 expiry timestamps (optional — present on the gateway contract,
+  // but the SPA only needs the token strings to authenticate).
+  accessExpiresAt?: string;
+  refreshExpiresAt?: string;
+}
+
 export interface AuthResponse {
   user: User;
-  token: string; // Backend returns 'token', not 'accessToken'
-  refreshToken?: string; // No longer returned in body — sent as httpOnly cookie
-  expiresIn: number;
-  // Legacy field for frontend compatibility
-  accessToken?: string;
+  tokens: TokenPair;
+  // Flattened permission snapshot at login time (gateway LoginResponse).
+  permissions?: string[];
 }
 
 export interface ChangePasswordRequest {
@@ -202,8 +219,7 @@ export interface RefreshTokenRequest {
 }
 
 export interface RefreshTokenResponse {
-  token: string;
-  refreshToken?: string; // No longer returned in body — rotated via httpOnly cookie
+  tokens: TokenPair;
 }
 
 export interface PasswordResetRequest {
@@ -242,6 +258,7 @@ export interface TokenData {
 export const STORAGE_KEYS = {
   AUTH_TOKEN: '__dev_authToken',
   ACCESS_TOKEN: '__dev_accessToken',
+  REFRESH_TOKEN: '__dev_refreshToken',
   USER: 'user',
 } as const;
 

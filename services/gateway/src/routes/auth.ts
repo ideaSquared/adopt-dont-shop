@@ -35,6 +35,7 @@ import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 
 import { normalizeEmail, type EmailRateLimiter } from './email-rate-limiter.js';
+import { rolesToApi, withApiUser } from './auth-user-json.js';
 
 export type AuthRoutesOptions = {
   client: AuthClient;
@@ -162,7 +163,8 @@ export const registerAuthRoutes = async (
 
       try {
         const res = await client.login(grpcReq, buildMetadata(req));
-        return reply.send(AuthV1.LoginResponse.toJSON(res));
+        const json = AuthV1.LoginResponse.toJSON(res) as Record<string, unknown>;
+        return reply.send(withApiUser(json, res.user));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -213,7 +215,8 @@ export const registerAuthRoutes = async (
     async (req, reply) => {
       try {
         const res = await client.getMe({}, buildMetadata(req));
-        return reply.send(AuthV1.GetMeResponse.toJSON(res));
+        const json = AuthV1.GetMeResponse.toJSON(res) as Record<string, unknown>;
+        return reply.send({ ...withApiUser(json, res.user), roles: rolesToApi(res.roles ?? []) });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -272,7 +275,8 @@ export const registerAuthRoutes = async (
           },
           buildMetadata(req)
         );
-        return reply.code(201).send(AuthV1.RegisterResponse.toJSON(res));
+        const json = AuthV1.RegisterResponse.toJSON(res) as Record<string, unknown>;
+        return reply.code(201).send(withApiUser(json, res.user));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -292,7 +296,8 @@ export const registerAuthRoutes = async (
           },
           buildMetadata(req)
         );
-        return reply.send(AuthV1.VerifyEmailResponse.toJSON(res));
+        const json = AuthV1.VerifyEmailResponse.toJSON(res) as Record<string, unknown>;
+        return reply.send(withApiUser(json, res.user));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -410,7 +415,8 @@ export const registerAuthRoutes = async (
           },
           buildMetadata(req)
         );
-        return reply.send(AuthV1.UpdateAccountResponse.toJSON(res));
+        const json = AuthV1.UpdateAccountResponse.toJSON(res) as Record<string, unknown>;
+        return reply.send(withApiUser(json, res.user));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -424,7 +430,8 @@ export const registerAuthRoutes = async (
     async (req, reply) => {
       try {
         const res = await client.getMe({}, buildMetadata(req));
-        return reply.send(AuthV1.GetMeResponse.toJSON(res));
+        const json = AuthV1.GetMeResponse.toJSON(res) as Record<string, unknown>;
+        return reply.send({ ...withApiUser(json, res.user), roles: rolesToApi(res.roles ?? []) });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

@@ -6,6 +6,7 @@ import {
   User,
   ChangePasswordRequest,
   RefreshTokenResponse,
+  TokenPair,
   TwoFactorSetupResponse,
   TwoFactorEnableResponse,
   TwoFactorDisableResponse,
@@ -35,10 +36,13 @@ const AUTH_ENDPOINTS = {
 /**
  * AuthService - Authentication and user management service
  *
- * Access tokens are stored in httpOnly cookies (managed by the backend,
- * not accessible to JavaScript — XSS-safe). Refresh tokens use a separate
- * httpOnly cookie. All authenticated requests rely on the browser sending
- * these cookies automatically via `credentials: 'include'`.
+ * Phase 11 follow-up: the Fastify gateway replaced the deleted monolith's
+ * httpOnly-cookie + CSRF model with Bearer tokens. Login / refresh return
+ * `{ user, tokens: { accessToken, refreshToken } }` in the JSON body; the
+ * access token is stored here and attached to every authenticated request
+ * as `Authorization: Bearer <token>` via lib.api's `getAuthToken` hook
+ * (wired in the constructor). The refresh token is replayed to
+ * `/auth/refresh-token` to rotate the pair.
  */
 export class AuthService {
   constructor() {
@@ -54,13 +58,13 @@ export class AuthService {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await apiService.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, credentials);
 
-    // Access token is set as httpOnly cookie by the backend; refresh token likewise.
+    // Persist the user + the Bearer token pair the gateway returned in the
+    // body. getToken() then feeds the access token to lib.api so subsequent
+    // requests are authenticated.
     this.setUser(response.user);
+    this.setTokens(response.tokens);
 
-    return {
-      ...response,
-      accessToken: response.token, // Map backend 'token' to frontend 'accessToken'
-    };
+    return response;
   }
 
   /**
@@ -81,8 +85,11 @@ export class AuthService {
    * Logout user and clear all stored data
    */
   async logout(): Promise<void> {
+    // The gateway revokes the supplied refresh token (idempotent — an
+    // already-revoked/expired token still returns OK).
+    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
     try {
-      await apiService.post(AUTH_ENDPOINTS.LOGOUT);
+      await apiService.post(AUTH_ENDPOINTS.LOGOUT, refreshToken ? { refreshToken } : {});
     } catch (error) {
       console.error('Logout API call failed:', error);
     } finally {
@@ -125,28 +132,37 @@ export class AuthService {
   }
 
   /**
-   * Check if user is authenticated (user data present in localStorage).
-   * The access token lives in an httpOnly cookie so cannot be read from JS;
-   * user presence is the local indicator of an active session.
+   * Check if user is authenticated. Both the stored user record and the
+   * access token must be present — the user drives UI gating while the
+   * token is what actually authenticates API calls.
    */
   isAuthenticated(): boolean {
-    return !!this.getCurrentUser();
+    return !!this.getCurrentUser() && !!this.getToken();
   }
 
   /**
-   * Refresh access token — refresh token and new access token are both set
-   * as httpOnly cookies by the backend; no JS-side storage needed.
+   * Refresh the access token. Sends the stored refresh token to the gateway,
+   * persists the rotated pair, and returns the new access token.
    */
   async refreshToken(): Promise<string> {
-    const response = await apiService.post<RefreshTokenResponse>(AUTH_ENDPOINTS.REFRESH, {});
-    return response.token;
+    const stored = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    const response = await apiService.post<RefreshTokenResponse>(
+      AUTH_ENDPOINTS.REFRESH,
+      stored ? { refreshToken: stored } : {}
+    );
+    this.setTokens(response.tokens);
+    return response.tokens.accessToken;
   }
 
   /**
-   * Get user profile from API
+   * Get user profile from API.
+   *
+   * The gateway's `GET /auth/me` returns a `{ user, roles, permissions,
+   * rescueId }` envelope; the caller wants the bare user record, so unwrap.
    */
   async getProfile(): Promise<User> {
-    return await apiService.get<User>(AUTH_ENDPOINTS.ME);
+    const response = await apiService.get<{ user: User }>(AUTH_ENDPOINTS.ME);
+    return response.user;
   }
 
   /**
@@ -273,34 +289,44 @@ export class AuthService {
   }
 
   /**
-   * Returns null — the access token lives in an httpOnly cookie managed by
-   * the backend and is not readable from JavaScript. HTTP requests send it
-   * automatically via `credentials: 'include'`; Socket.IO connections use the
-   * same cookie on the WebSocket upgrade request.
+   * Returns the stored access token (or null). lib.api calls this via the
+   * `getAuthToken` hook to attach `Authorization: Bearer <token>`; the
+   * Socket.IO clients read it the same way.
    */
-  getToken(): null {
-    return null;
+  getToken(): string | null {
+    return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   }
 
   /**
-   * No-op — the access token is set as an httpOnly cookie by the backend
-   * login/refresh response and is never written to JS-accessible storage.
+   * Store (or clear) the access token. Passing a falsy value removes it.
    */
-  setToken(_token: string | null | undefined): void {
-    // intentional no-op
+  setToken(token: string | null | undefined): void {
+    if (token) {
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
+      return;
+    }
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
   }
 
   /**
-   * Clears local user state. The access/refresh token cookies are cleared
-   * by the backend logout endpoint.
+   * Clears the stored Bearer token pair. Called on logout (after the gateway
+   * revokes the refresh token) and when a session is found to be invalid.
    */
   clearTokens(): void {
-    // Token cookies are cleared server-side on logout; nothing to do here.
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
   }
 
   // Private helper methods
   private setUser(user: User): void {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  }
+
+  private setTokens(tokens: TokenPair): void {
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
+    if (tokens.refreshToken) {
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
+    }
   }
 
   private clearStorage(): void {
