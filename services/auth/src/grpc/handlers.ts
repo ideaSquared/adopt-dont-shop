@@ -214,12 +214,22 @@ export async function loadPrincipal(
   const extras = extraRolesRes.rows.map(r => r.name as UserRole);
   const roles = uniqueRoles([primary, ...extras]);
 
+  // Permissions are granted to ROLES. A user holds their primary role
+  // (`user_type`) plus any extra roles in `user_roles`; union the grants of
+  // all of them. Resolving the primary role here (rather than relying on a
+  // per-user `user_roles` row) means every user automatically carries their
+  // base role's permissions — see migration 016 / ADS-863.
   const permsRes = await deps.pool.query<{ name: string }>(
     `
     SELECT DISTINCT p.permission_name AS name FROM auth.permissions p
     INNER JOIN auth.role_permissions rp ON rp.permission_id = p.permission_id
-    INNER JOIN auth.user_roles ur ON ur.role_id = rp.role_id
-    WHERE ur.user_id = $1
+    WHERE rp.role_id IN (
+      SELECT r.role_id FROM auth.roles r
+      INNER JOIN auth.users u ON u.user_type::text = r.role_name
+      WHERE u.user_id = $1 AND u.deleted_at IS NULL
+      UNION
+      SELECT ur.role_id FROM auth.user_roles ur WHERE ur.user_id = $1
+    )
     `,
     [userId]
   );

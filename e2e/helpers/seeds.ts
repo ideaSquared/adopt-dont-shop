@@ -21,9 +21,12 @@ export async function expectOk(res: APIResponse, label: string): Promise<void> {
 }
 
 /**
- * Tiny convenience: every state-changing request needs a CSRF token,
- * and the response context tracks the cookie automatically.  This helper
- * does the GET /csrf-token + POST/PATCH/DELETE in one call.
+ * Issue a state-changing request. The Fastify gateway authenticates with
+ * Bearer tokens — the `apiAs` context already carries the Authorization
+ * header — and does NOT use the deleted monolith's cookie/CSRF model (there
+ * is no /csrf-token endpoint), so this is a thin passthrough. The
+ * `*WithCsrf` export names are retained only to avoid churning every call
+ * site; no CSRF handshake happens.
  */
 async function withCsrf<T extends 'post' | 'patch' | 'put' | 'delete'>(
   ctx: APIRequestContext,
@@ -31,20 +34,7 @@ async function withCsrf<T extends 'post' | 'patch' | 'put' | 'delete'>(
   url: string,
   options: { data?: unknown; headers?: Record<string, string> } = {}
 ): Promise<APIResponse> {
-  const csrfRes = await ctx.get('/api/v1/csrf-token');
-  if (!csrfRes.ok()) {
-    throw new Error(
-      `CSRF token fetch failed before ${method.toUpperCase()} ${url}: ${csrfRes.status()}`
-    );
-  }
-  const { csrfToken } = (await csrfRes.json()) as { csrfToken?: string };
-  if (!csrfToken) {
-    throw new Error(`CSRF token endpoint returned no token before ${method.toUpperCase()} ${url}`);
-  }
-  return ctx[method](url, {
-    ...options,
-    headers: { ...(options.headers ?? {}), 'x-csrf-token': csrfToken },
-  });
+  return ctx[method](url, options);
 }
 
 export const postWithCsrf = (
@@ -150,10 +140,11 @@ export async function getMyRescueId(rescueApi: ApiClient): Promise<string | null
  * SEEDED_PET_IDS.available instead.
  *
  * Notes on the body shape:
- *   - We deliberately do NOT pass rescueId — the backend's
- *     fieldWriteGuard rejects it with 403 ("Field access denied").
- *     The rescueId is inferred from the authenticated staff member's
- *     rescue association.
+ *   - The pets service requires rescue_id on create (handlers.ts:
+ *     "rescue_id is required") and the gateway maps it straight from the
+ *     request body — it does NOT infer it from the principal — so we
+ *     resolve the staff member's rescue and pass it explicitly. The
+ *     service still authorises the create against that rescueId.
  *   - We deliberately do NOT pass status — explicit values trip a
  *     Postgres ENUM type-mismatch ("column status is of type
  *     enum_pets_status but expression is of type
@@ -165,6 +156,10 @@ export async function createAvailablePet(
   namePrefix = 'Seed'
 ): Promise<{ petId: string; name: string; rescueId: string }> {
   const name = uniquePetName(namePrefix);
+  const staffRescueId = await getMyRescueId(rescueApi);
+  if (!staffRescueId) {
+    throw new Error('could not resolve the rescue staff persona’s rescueId before creating a pet');
+  }
   const createRes = await postWithCsrf(rescueApi.context, '/api/v1/pets', {
     name,
     type: 'dog',
@@ -172,6 +167,7 @@ export async function createAvailablePet(
     size: 'medium',
     ageGroup: 'adult',
     shortDescription: 'e2e seed',
+    rescueId: staffRescueId,
   });
   if (!createRes.ok()) {
     throw new Error(
@@ -198,10 +194,8 @@ export async function createAvailablePet(
   if (!petId) {
     throw new Error(`pet creation returned no id: ${JSON.stringify(body).slice(0, 200)}`);
   }
-  const rescueId = body.rescueId ?? body.rescue_id ?? body.data?.rescueId ?? body.data?.rescue_id;
-  if (!rescueId) {
-    throw new Error(`pet creation returned no rescueId: ${JSON.stringify(body).slice(0, 200)}`);
-  }
+  const rescueId =
+    body.rescueId ?? body.rescue_id ?? body.data?.rescueId ?? body.data?.rescue_id ?? staffRescueId;
   return { petId, name, rescueId };
 }
 

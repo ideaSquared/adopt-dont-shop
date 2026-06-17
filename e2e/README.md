@@ -9,8 +9,7 @@ The suite exercises real user journeys across the three React apps (`app.client`
 > **Un-parked so far:**
 > - `gateway-smoke` — gateway health + seeded-persona login (always on).
 > - `client/registration-and-login.spec.ts` — the `@smoke` public-registration + failed-login journey (runs unauthenticated).
->
-> **Deferred:** `client/adoption-application.spec.ts` — its journey relies on the `seeds.ts` mutation helpers, which still perform the deleted monolith's `GET /csrf-token` handshake. The Bearer gateway has no such endpoint, so those helpers throw; re-park stands until the helper layer is reworked to the Bearer contract and the application create/approve endpoints are validated in CI.
+> - `client/adoption-application.spec.ts` — the `@smoke` full adoption journey (submit → rescue approves → adopter sees approval). The `apiAs` fixture and `seeds.ts` mutation helpers now authenticate with Bearer tokens (no CSRF), matching the gateway.
 >
 > **Still parked** (every other spec under `tests/client`, `tests/rescue`, `tests/admin`): un-park each by adding its glob to `UNPARKED[project]` once it passes in CI. Some non-auth specs (chat / moderation / cms / matching / notifications detail) may need follow-up gateway work — the same enum/envelope normalisation #1076 applied to auth likely applies to those domains' responses too.
 

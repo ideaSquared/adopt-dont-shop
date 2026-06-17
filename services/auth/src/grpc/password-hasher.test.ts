@@ -28,5 +28,9 @@ describe('createBcryptPasswordHasher', () => {
     expect(hash.startsWith('$2')).toBe(true); // bcrypt format
     expect(await hasher.compare('hunter2', hash)).toBe(true);
     expect(await hasher.compare('wrong', hash)).toBe(false);
-  }, 30_000); // cost 12 → ~250ms per hash; generous headroom for parallel CI load
+    // cost 12 → ~250ms per hash normally, but this does a hash + two
+    // compares and v8 coverage instrumentation (test:coverage in CI) slows
+    // bcrypt ~10×, pushing it past a 10s budget on a loaded runner. 30s
+    // gives deterministic headroom under coverage.
+  }, 30_000);
 });

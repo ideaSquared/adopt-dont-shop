@@ -1,5 +1,10 @@
 import { test, expect } from '../../fixtures';
-import { SEEDED_PET_IDS, createAdopterApplication, patchWithCsrf } from '../../helpers/seeds';
+import {
+  SEEDED_PET_IDS,
+  createAdopterApplication,
+  patchWithCsrf,
+  postWithCsrf,
+} from '../../helpers/seeds';
 
 /**
  * Adoption golden path (ADS-420).
@@ -34,7 +39,32 @@ test.describe('adoption application submission', () => {
       .getByRole('link', { name: /apply (to|for) adopt/i })
       .or(page.getByRole('button', { name: /apply (to|for) adopt/i }))
       .first();
-    await expect(apply).toBeVisible({ timeout: 15_000 });
+    try {
+      await expect(apply).toBeVisible({ timeout: 15_000 });
+    } catch (err) {
+      // Diagnose which branch we're in: "Pet Not Found" (the pet failed to
+      // load) vs "Sign in to apply" (the adopter session wasn't recognised)
+      // vs something else. Logs land in the CI job output.
+      const headings = await page
+        .getByRole('heading')
+        .allTextContents()
+        .catch(() => [] as string[]);
+      const signInToApply = await page
+        .getByText(/sign in to apply/i)
+        .count()
+        .catch(() => 0);
+      const storage = await page.evaluate(() => Object.keys(window.localStorage)).catch(() => null);
+      // eslint-disable-next-line no-console
+      console.error(
+        `\n===== APPLY CTA DIAGNOSTICS =====\n` +
+          `url: ${page.url()}\n` +
+          `headings: ${JSON.stringify(headings)}\n` +
+          `"sign in to apply" count: ${signInToApply}\n` +
+          `localStorage keys: ${JSON.stringify(storage)}\n` +
+          `=================================\n`
+      );
+      throw err;
+    }
     await apply.click();
 
     await expect(page).toHaveURL(/\/apply\//, { timeout: 15_000 });
@@ -53,9 +83,19 @@ test.describe('adoption application submission', () => {
     //    rely on.
     const { applicationId } = await createAdopterApplication(adopterApi, rescueApi);
 
-    // 2. Rescue staff transitions the application to approved. The
-    //    backend's status endpoint is authoritative — the dashboard
-    //    reads the persisted state from it.
+    // 2. Rescue staff moves the application through the review state
+    //    machine. Approval is illegal directly from 'submitted' — it must
+    //    pass through 'under_review' first (see the applications domain:
+    //    submitted → under_review → approved), so start the review before
+    //    approving. The backend's status endpoint is authoritative — the
+    //    dashboard reads the persisted state from it.
+    const reviewRes = await postWithCsrf(
+      rescueApi.context,
+      `/api/v1/applications/${applicationId}/review`,
+      {}
+    );
+    expect(reviewRes.ok()).toBe(true);
+
     const approveRes = await patchWithCsrf(
       rescueApi.context,
       `/api/v1/applications/${applicationId}/status`,
