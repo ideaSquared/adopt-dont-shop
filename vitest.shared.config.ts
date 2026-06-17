@@ -12,13 +12,6 @@ const sharedConfig = defineConfig({
     testTimeout: 10000,
     clearMocks: true,
     restoreMocks: true,
-    // Force per-file isolation. Several lib test files mock the same module
-    // (e.g. '@adopt-dont-shop/lib.api') with their own vi.mock factories;
-    // without a fresh module registry per file these factories bind
-    // ambiguously, which made lib.auth's getProfile test resolve `undefined`
-    // in CI while passing locally. isolate:true guarantees each test file runs
-    // against its own module graph.
-    isolate: true,
     include: [
       'src/**/*.test.ts',
       'src/**/*.test.tsx',
