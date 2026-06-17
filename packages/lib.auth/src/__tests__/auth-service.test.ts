@@ -366,23 +366,24 @@ describe('AuthService', () => {
       getMock.mockReset();
       getMock.mockResolvedValue(mockUser);
 
+      // DIAGNOSTIC (temporary): call the mock directly to see whether it honours
+      // mockResolvedValue in CI, vs whether the source method drops the value.
+      const directAwaited = await (apiService.get as ReturnType<typeof vi.fn>)('/api/v1/auth/me');
       const result = await authService.getProfile();
 
-      // DIAGNOSTIC (temporary): surface CI-only state in the failure diff so we
-      // can see whether the source called the same mock instance we configured.
       const diag = {
         isMock: vi.isMockFunction(apiService.get),
-        configuredCallCount: getMock.mock.calls.length,
-        configuredCalls: getMock.mock.calls,
-        resultType: typeof result,
-        resultIsUndefined: result === undefined,
+        directAwaitedIsUser: JSON.stringify(directAwaited) === JSON.stringify(mockUser),
+        directAwaitedUndefined: directAwaited === undefined,
+        resultUndefined: result === undefined,
+        sameRefAsImport: apiService.get === getMock,
       };
       expect(diag).toEqual({
         isMock: true,
-        configuredCallCount: 1,
-        configuredCalls: [['/api/v1/auth/me']],
-        resultType: 'object',
-        resultIsUndefined: false,
+        directAwaitedIsUser: true,
+        directAwaitedUndefined: false,
+        resultUndefined: false,
+        sameRefAsImport: true,
       });
       expect(result).toEqual(mockUser);
     });
