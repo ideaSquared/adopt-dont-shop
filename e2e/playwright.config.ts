@@ -31,7 +31,16 @@ export const AUTH_FILES = {
 // project's testDir stays parked. Extend a list once its journey is green in
 // CI. The still-parked specs are tracked in e2e/README.md.
 const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
-  client: ['**/registration-and-login.spec.ts', '**/adoption-application.spec.ts'],
+  client: [
+    '**/registration-and-login.spec.ts',
+    '**/adoption-application.spec.ts',
+    // ADS-865 (batch A1) — read-only journeys grounded in the pets seed
+    // (services/pets/src/db/seed-data.ts), unblocked by the ADS-863 RBAC grants.
+    '**/pet-discovery.spec.ts',
+    '**/distance-sorted-search.spec.ts',
+    '**/cannot-apply-to-unavailable-pet.spec.ts',
+    '**/rescue-publishes-adopter-discovers.spec.ts',
+  ],
   rescue: [],
   admin: [],
 };
