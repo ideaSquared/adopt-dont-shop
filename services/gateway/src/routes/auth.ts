@@ -75,21 +75,29 @@ type AssignRoleBody = {
 // is admin-only and gets a wider window. All keyed on req.ip via
 // the default key generator. Production deploys can swap in a Redis
 // store via the plugin's `redis` option without touching this file.
+//
+// e2e override: a full Playwright run logs in / registers many times from a
+// single docker-side IP, tripping these strict anti-abuse limits. When
+// GATEWAY_AUTH_RATE_LIMIT_MAX is set (only in the e2e stack) it raises every
+// per-route max; unset in dev/prod, so the strict defaults below stand.
+const E2E_AUTH_MAX = Number(process.env.GATEWAY_AUTH_RATE_LIMIT_MAX);
+const authMax = (def: number): number =>
+  Number.isFinite(E2E_AUTH_MAX) && E2E_AUTH_MAX > 0 ? E2E_AUTH_MAX : def;
 const AUTH_RATE_LIMITS = {
-  login: { max: 10, timeWindow: '1 minute' },
-  logout: { max: 30, timeWindow: '1 minute' },
-  refreshToken: { max: 30, timeWindow: '1 minute' },
-  getMe: { max: 60, timeWindow: '1 minute' },
-  assignRole: { max: 30, timeWindow: '1 minute' },
+  login: { max: authMax(10), timeWindow: '1 minute' },
+  logout: { max: authMax(30), timeWindow: '1 minute' },
+  refreshToken: { max: authMax(30), timeWindow: '1 minute' },
+  getMe: { max: authMax(60), timeWindow: '1 minute' },
+  assignRole: { max: authMax(30), timeWindow: '1 minute' },
   // Account lifecycle — tighter on the unauthenticated paths to slow
   // enumeration / spam.
-  register: { max: 5, timeWindow: '1 minute' },
-  verifyEmail: { max: 10, timeWindow: '1 minute' },
-  resendVerification: { max: 5, timeWindow: '1 minute' },
-  forgotPassword: { max: 5, timeWindow: '1 minute' },
-  resetPassword: { max: 10, timeWindow: '1 minute' },
-  changePassword: { max: 10, timeWindow: '1 minute' },
-  updateAccount: { max: 30, timeWindow: '1 minute' },
+  register: { max: authMax(5), timeWindow: '1 minute' },
+  verifyEmail: { max: authMax(10), timeWindow: '1 minute' },
+  resendVerification: { max: authMax(5), timeWindow: '1 minute' },
+  forgotPassword: { max: authMax(5), timeWindow: '1 minute' },
+  resetPassword: { max: authMax(10), timeWindow: '1 minute' },
+  changePassword: { max: authMax(10), timeWindow: '1 minute' },
+  updateAccount: { max: authMax(30), timeWindow: '1 minute' },
 } as const;
 
 export const registerAuthRoutes = async (
