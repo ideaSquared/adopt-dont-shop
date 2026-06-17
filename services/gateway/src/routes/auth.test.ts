@@ -130,8 +130,15 @@ describe('POST /api/v1/auth/login', () => {
     });
 
     expect(res.statusCode).toBe(200);
-    const body = res.json() as { user: { email: string }; tokens: { accessToken: string } };
+    const body = res.json() as {
+      user: { email: string; userType: string; status: string };
+      tokens: { accessToken: string };
+    };
     expect(body.user.email).toBe('alex@example.com');
+    // The SPA speaks the canonical DB strings, not the SCREAMING proto enum
+    // names — the gateway must normalise these in the body (auth contract).
+    expect(body.user.userType).toBe('adopter');
+    expect(body.user.status).toBe('active');
     expect(body.tokens.accessToken).toBe('a.jwt');
 
     const [req] = loginMock.mock.calls[0];
@@ -256,8 +263,16 @@ describe('GET /api/v1/auth/me', () => {
       });
 
       expect(res.statusCode).toBe(200);
-      const body = res.json() as { user: { userId: string }; permissions: string[] };
+      const body = res.json() as {
+        user: { userId: string; userType: string; status: string };
+        roles: string[];
+        permissions: string[];
+      };
       expect(body.user.userId).toBe('usr-1');
+      // Normalised to the canonical DB strings for the SPA.
+      expect(body.user.userType).toBe('adopter');
+      expect(body.user.status).toBe('active');
+      expect(body.roles).toEqual(['adopter']);
       expect(body.permissions).toEqual(['pets.read']);
       const [, metadata] = getMeMock.mock.calls[0];
       expect(metadata.get('x-user-id')[0]).toBe('usr-1');
