@@ -68,6 +68,14 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // Unblocked by the applications seed — the rescue (Paws) inbox now lists
     // John Smith's seeded application. Tolerant of the status PATCH failing.
     '**/application-review.spec.ts',
+    // rescue-onboarding: rescue publishes a pet (createAvailablePet, same path
+    // the merged adoption journey exercises) → adopter discovery feed lists it.
+    // archive-adopted-pet: reads the seeded adopted pet 'Max' (now Paws-owned)
+    // as Paws staff; rescue_staff has pets.read + pets.archive.
+    '**/rescue-onboarding.spec.ts',
+    '**/archive-adopted-pet.spec.ts',
+    // Deferred: custom-application-questions — the gateway exposes no
+    // /api/v1/rescues/:id/questions route (not cut over) → 404. Batch B.
   ],
   admin: [],
 };

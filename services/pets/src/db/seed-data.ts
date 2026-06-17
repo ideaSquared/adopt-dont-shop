@@ -51,7 +51,11 @@ export const SEED_PETS: readonly SeedPet[] = [
   },
   {
     petId: 'e2e0a000-0000-4000-8000-000000000001',
-    rescueId: HAPPY_TAILS_RESCUE_ID,
+    // Paws-owned so the rescue.manager persona (Paws staff) can read this
+    // adopted pet — adopted pets are hidden from non-owning callers
+    // (handlers.ts PUBLIC_HIDDEN_STATUSES), which the archive-adopted-pet
+    // e2e spec exercises.
+    rescueId: PAWS_RESCUE_ID,
     name: 'Max',
     type: 'dog',
     gender: 'male',
