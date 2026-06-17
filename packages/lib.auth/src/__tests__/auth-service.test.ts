@@ -54,11 +54,9 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     authService = new AuthService();
-    // resetAllMocks (not clearAllMocks) so any leaked mock implementation or
-    // queued `...Once` value is fully drained between tests. Under reduced
-    // test isolation (e.g. CI's pool), a stale resolved/rejected value on the
-    // shared apiService mock could otherwise bleed into a later test — this is
-    // what made `getProfile` intermittently receive `undefined` in CI.
+    // resetAllMocks (not just clearAllMocks) so any mock implementation or
+    // queued `...Once` value set by a test is fully drained before the next,
+    // keeping the shared apiService mock's behaviour isolated per test.
     vi.resetAllMocks();
     mockLocalStorage.clear.mockClear();
     mockLocalStorage.getItem.mockReset();
@@ -346,17 +344,23 @@ describe('AuthService', () => {
   });
 
   describe('getProfile', () => {
-    it('should unwrap the user from the gateway /me envelope', async () => {
+    it('should request the /me endpoint and resolve to the unwrapped user', async () => {
       (apiService.get as ReturnType<typeof vi.fn>).mockResolvedValue({
         user: mockUser,
         roles: ['adopter'],
         permissions: ['pets.read'],
       });
 
-      const profile = await authService.getProfile();
+      const result = await authService.getProfile();
 
       expect(apiService.get).toHaveBeenCalledWith('/api/v1/auth/me');
-      expect(profile).toEqual(mockUser);
+      expect(result).toEqual(mockUser);
+    });
+
+    it('should propagate an API failure', async () => {
+      (apiService.get as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Unauthorized'));
+
+      await expect(authService.getProfile()).rejects.toThrow('Unauthorized');
     });
   });
 
@@ -434,27 +438,6 @@ describe('AuthService', () => {
 
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/2fa/backup-codes');
       expect(result).toEqual(mockResponse);
-    });
-  });
-
-  describe('getProfile', () => {
-    it('should request the current-user profile endpoint', async () => {
-      (apiService.get as ReturnType<typeof vi.fn>).mockResolvedValue(mockUser);
-
-      await authService.getProfile();
-
-      // Assert the behavioural contract: getProfile reads from /me. We do not
-      // assert the resolved value here because under CI's module resolution the
-      // mocked singleton's resolved value (but not its rejection — see the next
-      // test) is not reliably observed through the source's import binding; the
-      // method body is a trivial `return await apiService.get(ME)` passthrough.
-      expect(apiService.get).toHaveBeenCalledWith('/api/v1/auth/me');
-    });
-
-    it('should propagate an API failure', async () => {
-      (apiService.get as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Unauthorized'));
-
-      await expect(authService.getProfile()).rejects.toThrow('Unauthorized');
     });
   });
 
