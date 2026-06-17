@@ -383,6 +383,10 @@ services:
       # permissions, legal, match, csrf) from a single docker-side IP, bursting
       # past 100/min.
       GATEWAY_RATE_LIMIT_MAX: ${GATEWAY_RATE_LIMIT_MAX:-100}
+      # Per-route auth limits (login/register/...). Unset in dev/prod (strict
+      # anti-abuse defaults stand); the e2e stack raises it so a full Playwright
+      # run's many logins from one IP don't trip the 10/min login cap.
+      GATEWAY_AUTH_RATE_LIMIT_MAX: ${GATEWAY_AUTH_RATE_LIMIT_MAX:-}
     ports:
       - '127.0.0.1:4000:4000'
     depends_on:

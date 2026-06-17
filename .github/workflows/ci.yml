@@ -510,6 +510,10 @@ jobs:
             # login token per role to stay under the stricter 10/min auth-login
             # limit.) Production keeps the 100/min default.
             echo "GATEWAY_RATE_LIMIT_MAX=100000"
+            # Also lift the stricter per-route auth limits (login 10/min,
+            # register 5/min, ...) — a full suite logs in/registers many times
+            # from one IP across workers. Production leaves this unset.
+            echo "GATEWAY_AUTH_RATE_LIMIT_MAX=100000"
           } > .env
 
       - name: Start database and cache
