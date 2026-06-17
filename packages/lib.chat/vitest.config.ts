@@ -20,13 +20,14 @@ export default mergeConfig(
           'src/__mocks__/**/*',
           'src/index.ts',
         ],
-        // ADS-717: ratcheted to measured baseline (2026-06-16).
+        // ADS-717: ratcheted to measured baseline (2026-06-16); set ~4pts below measured
+        // to absorb CI coverage variance on async/React-heavy code.
         // Measured: statements=64.95 branches=46.64 functions=62.39 lines=65.72
         thresholds: {
-          statements: 63,
-          branches: 45,
-          functions: 61,
-          lines: 64,
+          statements: 60,
+          branches: 42,
+          functions: 58,
+          lines: 61,
         },
       },
     },

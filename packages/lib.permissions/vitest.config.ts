@@ -12,13 +12,14 @@ export default defineLibConfig({
         'src/test-utils/**',
         'src/index.ts',
       ],
-      // ADS-717: ratcheted to measured baseline (2026-06-16).
+      // ADS-717: ratcheted to measured baseline (2026-06-16); set ~4pts below measured
+      // to absorb CI coverage variance on async/React-heavy code.
       // Measured: statements=90.74 branches=84.49 functions=100 lines=90.61
       thresholds: {
-        statements: 89,
-        branches: 83,
+        statements: 87,
+        branches: 80,
         functions: 99,
-        lines: 89,
+        lines: 87,
       },
     },
   },

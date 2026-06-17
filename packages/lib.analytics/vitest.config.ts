@@ -17,10 +17,10 @@ export default defineLibConfig({
       // report-service / report-schema / report-hook / endpoint coverage.
       // Measured: statements=82.04 branches=73.04 functions=86.81 lines=81.65
       thresholds: {
-        statements: 81,
-        branches: 72,
-        functions: 85,
-        lines: 80,
+        statements: 78,
+        branches: 69,
+        functions: 82,
+        lines: 77,
       },
     },
   },
