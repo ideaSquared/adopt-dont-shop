@@ -663,6 +663,24 @@ describe('validateToken', () => {
     });
   });
 
+  it('does not populate rescueId in the returned AuthPrincipal (gateway resolves it via rescue service)', async () => {
+    mocks.issuerMock.verifyAccess.mockResolvedValueOnce({
+      sub: 'usr-staff',
+      jti: 'j',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({ rows: [{ status: 'active' }] }) // status guard
+      .mockResolvedValueOnce({ rows: [{ user_type: 'rescue_staff' }] }) // primary role
+      .mockResolvedValueOnce({ rows: [] }) // extra roles
+      .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] }); // permissions
+
+    const res = await validateToken(mocks.deps, null, { accessToken: 'tok' });
+    expect(res.principal.rescueId).toBeUndefined();
+  });
+
   it('accepts a token issued at/after the revocation watermark', async () => {
     mocks.issuerMock.verifyAccess.mockResolvedValueOnce({
       sub: 'usr-1',
