@@ -275,6 +275,353 @@ describe('PetsService', () => {
     });
   });
 
+  describe('searchPets filter mapping', () => {
+    const emptyResponse = {
+      success: true,
+      data: [],
+      meta: { page: 1, total: 0, totalPages: 1, hasNext: false, hasPrev: false },
+    };
+
+    it('maps an age range to ageMin/ageMax and drops the age object', async () => {
+      mockApiService.get.mockResolvedValueOnce(emptyResponse);
+
+      await service.searchPets({ age: { min: 1, max: 5 } });
+
+      const params = mockApiService.get.mock.calls[0][1] as Record<string, unknown>;
+      expect(params.ageMin).toBe(1);
+      expect(params.ageMax).toBe(5);
+      expect(params).not.toHaveProperty('age');
+    });
+
+    it('renames ageGroup to age_group for the backend', async () => {
+      mockApiService.get.mockResolvedValueOnce(emptyResponse);
+
+      await service.searchPets({ ageGroup: 'senior' });
+
+      const params = mockApiService.get.mock.calls[0][1] as Record<string, unknown>;
+      expect(params.age_group).toBe('senior');
+      expect(params).not.toHaveProperty('ageGroup');
+    });
+
+    it('promotes a breed-only filter to the general search parameter', async () => {
+      mockApiService.get.mockResolvedValueOnce(emptyResponse);
+
+      await service.searchPets({ breed: 'Collie' });
+
+      const params = mockApiService.get.mock.calls[0][1] as Record<string, unknown>;
+      expect(params.search).toBe('Collie');
+      expect(params).not.toHaveProperty('breed');
+    });
+
+    it('keeps breed when an explicit search term is also present', async () => {
+      mockApiService.get.mockResolvedValueOnce(emptyResponse);
+
+      await service.searchPets({ breed: 'Collie', search: 'friendly' });
+
+      const params = mockApiService.get.mock.calls[0][1] as Record<string, unknown>;
+      expect(params.search).toBe('friendly');
+      expect(params.breed).toBe('Collie');
+    });
+
+    it('maps adoption_fee sort to the backend adoptionFeeMinor field', async () => {
+      mockApiService.get.mockResolvedValueOnce(emptyResponse);
+
+      await service.searchPets({ sortBy: 'adoption_fee' });
+
+      const params = mockApiService.get.mock.calls[0][1] as Record<string, unknown>;
+      expect(params.sortBy).toBe('adoptionFeeMinor');
+    });
+
+    it('passes through an unrecognised sortBy value unchanged', async () => {
+      mockApiService.get.mockResolvedValueOnce(emptyResponse);
+
+      await service.searchPets({ sortBy: 'somethingElse' });
+
+      const params = mockApiService.get.mock.calls[0][1] as Record<string, unknown>;
+      expect(params.sortBy).toBe('somethingElse');
+    });
+
+    it('returns an empty result set when the API response is malformed', async () => {
+      mockApiService.get.mockResolvedValueOnce({ success: false });
+
+      const result = await service.searchPets();
+
+      expect(result.data).toEqual([]);
+      expect(result.pagination).toEqual({
+        page: 1,
+        limit: 12,
+        total: 0,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      });
+    });
+
+    it('honours an explicit limit in the returned pagination', async () => {
+      mockApiService.get.mockResolvedValueOnce(emptyResponse);
+
+      const result = await service.searchPets({ limit: 24 });
+
+      expect(result.pagination.limit).toBe(24);
+    });
+  });
+
+  describe('getPetById', () => {
+    it('throws when the response has no data', async () => {
+      mockApiService.get.mockResolvedValueOnce({ success: true });
+
+      await expect(service.getPetById('1')).rejects.toThrow('Invalid API response structure');
+    });
+
+    it('propagates API errors', async () => {
+      mockApiService.get.mockRejectedValueOnce(new Error('not found'));
+
+      await expect(service.getPetById('1')).rejects.toThrow('not found');
+    });
+  });
+
+  describe('getRecentPets', () => {
+    it('fetches recent pets and normalises them', async () => {
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: [{ petId: 'r1', name: 'Recent' }],
+      });
+
+      const result = await service.getRecentPets(5);
+
+      expect(result[0].pet_id).toBe('r1');
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/recent', { limit: 5 });
+    });
+
+    it('returns an empty array when the API returns no data', async () => {
+      mockApiService.get.mockResolvedValueOnce({ success: true });
+
+      const result = await service.getRecentPets();
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getPetsByRescue', () => {
+    it('returns normalised pets and pagination for a rescue', async () => {
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: [{ petId: 'p1', name: 'A' }],
+        meta: { page: 3, total: 50, totalPages: 3, hasNext: false, hasPrev: true },
+      });
+
+      const result = await service.getPetsByRescue('rescue-1', 3);
+
+      expect(result.data[0].pet_id).toBe('p1');
+      expect(result.pagination.page).toBe(3);
+      expect(result.pagination.limit).toBe(20);
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/rescue/rescue-1', {
+        page: 3,
+        limit: 20,
+      });
+    });
+
+    it('falls back to the requested page when meta is absent', async () => {
+      mockApiService.get.mockResolvedValueOnce({ success: true, data: [] });
+
+      const result = await service.getPetsByRescue('rescue-1', 2);
+
+      expect(result.pagination.page).toBe(2);
+      expect(result.pagination.total).toBe(0);
+    });
+  });
+
+  describe('getPetBreeds and getPetTypes', () => {
+    it('fetches breeds for a specific type', async () => {
+      mockApiService.get.mockResolvedValueOnce({ success: true, data: ['Lab', 'Collie'] });
+
+      const result = await service.getPetBreeds('dog');
+
+      expect(result).toEqual(['Lab', 'Collie']);
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/breeds/dog');
+    });
+
+    it('fetches all breeds when no type is given', async () => {
+      mockApiService.get.mockResolvedValueOnce({ success: true, data: [] });
+
+      const result = await service.getPetBreeds();
+
+      expect(result).toEqual([]);
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/breeds');
+    });
+
+    it('fetches pet types', async () => {
+      mockApiService.get.mockResolvedValueOnce({ success: true, data: ['dog', 'cat'] });
+
+      const result = await service.getPetTypes();
+
+      expect(result).toEqual(['dog', 'cat']);
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/types');
+    });
+
+    it('propagates errors from getPetBreeds', async () => {
+      mockApiService.get.mockRejectedValueOnce(new Error('breeds down'));
+
+      await expect(service.getPetBreeds('dog')).rejects.toThrow('breeds down');
+    });
+  });
+
+  describe('getFavorites', () => {
+    it('normalises favourite pets and attaches rescue summary when present', async () => {
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: {
+          pets: [
+            {
+              petId: 'fav-1',
+              name: 'Fave',
+              Rescue: { name: 'Happy Tails', city: 'York', state: 'YK' },
+            },
+          ],
+        },
+      });
+
+      const result = await service.getFavorites();
+
+      expect(result[0].pet_id).toBe('fav-1');
+      expect(result[0].rescue).toEqual({ name: 'Happy Tails', location: 'York, YK' });
+    });
+
+    it('returns pets without rescue when no Rescue relation is present', async () => {
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: { pets: [{ petId: 'fav-2', name: 'Solo' }] },
+      });
+
+      const result = await service.getFavorites();
+
+      expect(result[0].pet_id).toBe('fav-2');
+      expect(result[0].rescue).toBeUndefined();
+    });
+
+    it('returns an empty array when there are no favourites', async () => {
+      mockApiService.get.mockResolvedValueOnce({ success: true, data: { pets: [] } });
+
+      const result = await service.getFavorites();
+
+      expect(result).toEqual([]);
+    });
+
+    it('propagates errors', async () => {
+      mockApiService.get.mockRejectedValueOnce(new Error('auth required'));
+
+      await expect(service.getFavorites()).rejects.toThrow('auth required');
+    });
+  });
+
+  describe('isFavorite', () => {
+    it('returns false when the value is missing', async () => {
+      mockApiService.get.mockResolvedValueOnce({ success: true, data: {} });
+
+      expect(await service.isFavorite('1')).toBe(false);
+    });
+
+    it('returns false instead of throwing when the request errors', async () => {
+      mockApiService.get.mockRejectedValueOnce(new Error('unauthenticated'));
+
+      expect(await service.isFavorite('1')).toBe(false);
+    });
+  });
+
+  describe('getSimilarPets', () => {
+    it('fetches similar pets for a given pet', async () => {
+      mockApiService.get.mockResolvedValueOnce({
+        success: true,
+        data: [{ petId: 's1', name: 'Sim' }],
+      });
+
+      const result = await service.getSimilarPets('pet-1', 3);
+
+      expect(result[0].pet_id).toBe('s1');
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/pet-1/similar', { limit: 3 });
+    });
+
+    it('propagates errors', async () => {
+      mockApiService.get.mockRejectedValueOnce(new Error('boom'));
+
+      await expect(service.getSimilarPets('pet-1')).rejects.toThrow('boom');
+    });
+  });
+
+  describe('reportPet', () => {
+    it('submits a report and returns the report id', async () => {
+      mockApiService.post.mockResolvedValueOnce({
+        success: true,
+        data: { reportId: 'rep-1', message: 'Thanks' },
+      });
+
+      const result = await service.reportPet('pet-1', 'spam', 'looks fake');
+
+      expect(result).toEqual({ reportId: 'rep-1', message: 'Thanks' });
+      expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/pets/pet-1/report', {
+        reason: 'spam',
+        description: 'looks fake',
+      });
+    });
+
+    it('returns a default acknowledgement when the API omits data', async () => {
+      mockApiService.post.mockResolvedValueOnce({ success: true });
+
+      const result = await service.reportPet('pet-1', 'spam');
+
+      expect(result).toEqual({ reportId: '', message: 'Report submitted successfully' });
+    });
+
+    it('propagates errors', async () => {
+      mockApiService.post.mockRejectedValueOnce(new Error('report failed'));
+
+      await expect(service.reportPet('pet-1', 'spam')).rejects.toThrow('report failed');
+    });
+  });
+
+  describe('getPetStats', () => {
+    it('parses statistics and applies schema defaults for omitted fields', async () => {
+      mockApiService.get.mockResolvedValueOnce({ data: { totalPets: 7, availablePets: 3 } });
+
+      const result = await service.getPetStats();
+
+      expect(result.totalPets).toBe(7);
+      expect(result.availablePets).toBe(3);
+      // Defaulted by the schema
+      expect(result.adoptedPets).toBe(0);
+      expect(result.petsByType).toEqual({});
+      expect(result.monthlyAdoptions).toEqual([]);
+      expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/pets/statistics');
+    });
+
+    it('parses an empty payload into a fully-defaulted stats object', async () => {
+      mockApiService.get.mockResolvedValueOnce({ data: undefined });
+
+      const result = await service.getPetStats();
+
+      expect(result.totalPets).toBe(0);
+      expect(result.popularBreeds).toEqual([]);
+    });
+
+    it('propagates errors', async () => {
+      mockApiService.get.mockRejectedValueOnce(new Error('stats down'));
+
+      await expect(service.getPetStats()).rejects.toThrow('stats down');
+    });
+  });
+
+  describe('debug logging', () => {
+    it('logs to console.error on failure when debug is enabled', async () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const debugService = new PetsService(mockApiService, { debug: true });
+      mockApiService.get.mockRejectedValueOnce(new Error('boom'));
+
+      await expect(debugService.searchPets()).rejects.toThrow('boom');
+      expect(spy).toHaveBeenCalledWith('Pet search failed:', expect.any(Error));
+      spy.mockRestore();
+    });
+  });
+
   describe('backend enum alignment', () => {
     // The frontend Zod schema validates inbound API payloads. When the
     // backend grew enum variants (`AgeGroup.BABY`, `PetType.SMALL_MAMMAL`,

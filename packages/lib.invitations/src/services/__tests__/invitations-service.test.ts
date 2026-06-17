@@ -24,9 +24,40 @@ describe('InvitationsService', () => {
       expect(config.debug).toBe(false);
     });
 
+    it('should construct its own ApiService when none is provided', () => {
+      const standalone = new InvitationsService();
+      expect(standalone.getConfig().debug).toBe(false);
+    });
+
     it('should allow config updates', () => {
       service.updateConfig({ debug: true });
       expect(service.getConfig().debug).toBe(true);
+    });
+
+    it('should propagate an apiUrl change to the underlying ApiService', () => {
+      mockApiService.updateConfig = vi.fn();
+
+      service.updateConfig({ apiUrl: 'https://api.example.com' });
+
+      expect(mockApiService.updateConfig).toHaveBeenCalledWith({
+        apiUrl: 'https://api.example.com',
+      });
+      expect(service.getConfig().apiUrl).toBe('https://api.example.com');
+    });
+
+    it('should not touch the ApiService when no apiUrl is given', () => {
+      mockApiService.updateConfig = vi.fn();
+
+      service.updateConfig({ debug: true });
+
+      expect(mockApiService.updateConfig).not.toHaveBeenCalled();
+    });
+
+    it('should return a config copy that cannot mutate internal state', () => {
+      const config = service.getConfig();
+      config.debug = true;
+
+      expect(service.getConfig().debug).toBe(false);
     });
   });
 
@@ -51,6 +82,27 @@ describe('InvitationsService', () => {
         title: 'Volunteer',
       });
     });
+
+    it('should re-throw when the API call fails', async () => {
+      mockApiService.post = vi.fn().mockRejectedValue(new Error('Send failed'));
+
+      await expect(
+        service.sendInvitation('rescue-1', { email: 'test@example.com' })
+      ).rejects.toThrow('Send failed');
+    });
+
+    it('should log the error in debug mode before re-throwing', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      service.updateConfig({ debug: true });
+      mockApiService.post = vi.fn().mockRejectedValue(new Error('Send failed'));
+
+      await expect(
+        service.sendInvitation('rescue-1', { email: 'test@example.com' })
+      ).rejects.toThrow('Send failed');
+      expect(errorSpy).toHaveBeenCalledWith('Failed to send invitation:', expect.any(Error));
+
+      errorSpy.mockRestore();
+    });
   });
 
   describe('getPendingInvitations', () => {
@@ -74,6 +126,40 @@ describe('InvitationsService', () => {
 
       expect(result).toEqual(mockInvitations);
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/rescues/rescue-1/invitations');
+    });
+
+    it('should fall back to a bare array response shape', async () => {
+      const mockInvitations = [
+        {
+          invitation_id: 2,
+          email: 'bare@example.com',
+          title: 'Helper',
+          created_at: '2025-02-01',
+          expiration: '2025-02-08',
+        },
+      ];
+
+      mockApiService.get = vi.fn().mockResolvedValue(mockInvitations);
+
+      const result = await service.getPendingInvitations('rescue-1');
+
+      expect(result).toEqual(mockInvitations);
+    });
+
+    it('should return an empty array when the response is unrecognised', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({ success: false });
+
+      const result = await service.getPendingInvitations('rescue-1');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return an empty array when success is true but invitations is not an array', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({ success: true, invitations: null });
+
+      const result = await service.getPendingInvitations('rescue-1');
+
+      expect(result).toEqual([]);
     });
 
     it('should return empty array for a 404 (no invitations yet)', async () => {
@@ -113,6 +199,31 @@ describe('InvitationsService', () => {
 
       await expect(service.getPendingInvitations('rescue-1')).rejects.toThrow('Network error');
     });
+
+    it('should re-throw when status comes from a nested response object', async () => {
+      const serverError = { response: { status: 503 } };
+      mockApiService.get = vi.fn().mockRejectedValue(serverError);
+
+      await expect(service.getPendingInvitations('rescue-1')).rejects.toEqual(serverError);
+    });
+
+    it('should swallow a non-Error rejection without a status and log in debug mode', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      service.updateConfig({ debug: true });
+      // A plain object without `status` and not an Error instance: not auth,
+      // not >=500, and not a network Error — so it is treated as empty.
+      mockApiService.get = vi.fn().mockRejectedValue({ message: 'odd' });
+
+      const result = await service.getPendingInvitations('rescue-1');
+
+      expect(result).toEqual([]);
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Failed to get pending invitations:',
+        expect.anything()
+      );
+
+      errorSpy.mockRestore();
+    });
   });
 
   describe('cancelInvitation', () => {
@@ -124,6 +235,23 @@ describe('InvitationsService', () => {
       expect(mockApiService.delete).toHaveBeenCalledWith(
         '/api/v1/rescues/rescue-1/invitations/123'
       );
+    });
+
+    it('should re-throw when cancellation fails', async () => {
+      mockApiService.delete = vi.fn().mockRejectedValue(new Error('Cancel failed'));
+
+      await expect(service.cancelInvitation('rescue-1', 123)).rejects.toThrow('Cancel failed');
+    });
+
+    it('should log the error in debug mode before re-throwing', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      service.updateConfig({ debug: true });
+      mockApiService.delete = vi.fn().mockRejectedValue(new Error('Cancel failed'));
+
+      await expect(service.cancelInvitation('rescue-1', 123)).rejects.toThrow('Cancel failed');
+      expect(errorSpy).toHaveBeenCalledWith('Failed to cancel invitation:', expect.any(Error));
+
+      errorSpy.mockRestore();
     });
   });
 
@@ -145,12 +273,41 @@ describe('InvitationsService', () => {
       expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/invitations/details/token123');
     });
 
+    it('should return null when the response has no invitation', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({ success: true, invitation: null });
+
+      const result = await service.getInvitationDetails('token123');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when the response is not successful', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({ success: false });
+
+      const result = await service.getInvitationDetails('token123');
+
+      expect(result).toBeNull();
+    });
+
     it('should return null on error', async () => {
       mockApiService.get = vi.fn().mockRejectedValue(new Error('Not found'));
 
       const result = await service.getInvitationDetails('invalid-token');
 
       expect(result).toBeNull();
+    });
+
+    it('should log the error in debug mode before returning null', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      service.updateConfig({ debug: true });
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('Not found'));
+
+      const result = await service.getInvitationDetails('invalid-token');
+
+      expect(result).toBeNull();
+      expect(errorSpy).toHaveBeenCalledWith('Failed to get invitation details:', expect.any(Error));
+
+      errorSpy.mockRestore();
     });
   });
 
@@ -176,6 +333,37 @@ describe('InvitationsService', () => {
 
       expect(result).toEqual(mockResponse);
       expect(mockApiService.post).toHaveBeenCalledWith('/api/v1/invitations/accept', payload);
+    });
+
+    it('should re-throw when acceptance fails', async () => {
+      mockApiService.post = vi.fn().mockRejectedValue(new Error('Accept failed'));
+
+      const payload = {
+        token: 'token123',
+        firstName: 'John',
+        lastName: 'Doe',
+        password: 'password123',
+      };
+
+      await expect(service.acceptInvitation(payload)).rejects.toThrow('Accept failed');
+    });
+
+    it('should log the error in debug mode before re-throwing', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      service.updateConfig({ debug: true });
+      mockApiService.post = vi.fn().mockRejectedValue(new Error('Accept failed'));
+
+      const payload = {
+        token: 'token123',
+        firstName: 'John',
+        lastName: 'Doe',
+        password: 'password123',
+      };
+
+      await expect(service.acceptInvitation(payload)).rejects.toThrow('Accept failed');
+      expect(errorSpy).toHaveBeenCalledWith('Failed to accept invitation:', expect.any(Error));
+
+      errorSpy.mockRestore();
     });
   });
 

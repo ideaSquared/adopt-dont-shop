@@ -1,7 +1,9 @@
 import {
   buildQueryString,
   calculateResolutionTime,
+  formatDate,
   formatDuration,
+  formatRelativeTime,
   formatTicketId,
   getCategoryIcon,
   getCategoryLabel,
@@ -93,6 +95,42 @@ describe('time helpers', () => {
     it('returns hours since createdAt', () => {
       const created = new Date(now.getTime() - 5 * 60 * 60 * 1000);
       expect(getTicketAge(created)).toBe(5);
+    });
+  });
+
+  describe('formatRelativeTime', () => {
+    const ago = (ms: number) => new Date(now.getTime() - ms);
+    const SECOND = 1000;
+    const MINUTE = 60 * SECOND;
+    const HOUR = 60 * MINUTE;
+    const DAY = 24 * HOUR;
+
+    it('returns "just now" within the last minute', () => {
+      expect(formatRelativeTime(ago(30 * SECOND))).toBe('just now');
+    });
+
+    it('pluralises minutes, hours, days, months and years correctly', () => {
+      expect(formatRelativeTime(ago(MINUTE))).toBe('1 minute ago');
+      expect(formatRelativeTime(ago(5 * MINUTE))).toBe('5 minutes ago');
+      expect(formatRelativeTime(ago(HOUR))).toBe('1 hour ago');
+      expect(formatRelativeTime(ago(3 * HOUR))).toBe('3 hours ago');
+      expect(formatRelativeTime(ago(DAY))).toBe('1 day ago');
+      expect(formatRelativeTime(ago(5 * DAY))).toBe('5 days ago');
+      expect(formatRelativeTime(ago(45 * DAY))).toBe('1 month ago');
+      expect(formatRelativeTime(ago(75 * DAY))).toBe('2 months ago');
+      expect(formatRelativeTime(ago(400 * DAY))).toBe('1 year ago');
+      expect(formatRelativeTime(ago(800 * DAY))).toBe('2 years ago');
+    });
+
+    it('accepts ISO date strings', () => {
+      expect(formatRelativeTime(ago(HOUR).toISOString())).toBe('1 hour ago');
+    });
+  });
+
+  describe('formatDate', () => {
+    it('formats both Date objects and ISO strings without throwing', () => {
+      expect(typeof formatDate(now)).toBe('string');
+      expect(formatDate(now)).toBe(formatDate(now.toISOString()));
     });
   });
 });

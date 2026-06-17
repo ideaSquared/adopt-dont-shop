@@ -81,6 +81,85 @@ describe('analytics consent', () => {
     setAnalyticsConsent('granted');
     expect(listener).toHaveBeenCalledTimes(2);
   });
+
+  it('also reacts to cross-tab storage events', () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeToAnalyticsConsent(listener);
+
+    // Simulate another tab writing consent then emitting the native event.
+    setAnalyticsConsent('granted');
+    listener.mockClear();
+    window.dispatchEvent(new StorageEvent('storage', { key: ANALYTICS_CONSENT_STORAGE_KEY }));
+
+    expect(listener).toHaveBeenCalledWith(true);
+    unsubscribe();
+  });
+});
+
+describe('analytics consent without usable localStorage', () => {
+  // When localStorage is missing (SSR, privacy mode) the gate must fail
+  // closed (no consent) and never throw.
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('reports no consent when localStorage is absent', () => {
+    Object.defineProperty(window, 'localStorage', { value: undefined, configurable: true });
+
+    expect(hasAnalyticsConsent()).toBe(false);
+  });
+
+  it('silently ignores writes when localStorage is absent', () => {
+    Object.defineProperty(window, 'localStorage', { value: undefined, configurable: true });
+
+    expect(() => setAnalyticsConsent('granted')).not.toThrow();
+    expect(hasAnalyticsConsent()).toBe(false);
+  });
+
+  it('fails closed when reading localStorage throws', () => {
+    const throwingStore = {
+      getItem: () => {
+        throw new Error('SecurityError: access denied');
+      },
+    } as unknown as Storage;
+    Object.defineProperty(window, 'localStorage', { value: throwingStore, configurable: true });
+
+    expect(hasAnalyticsConsent()).toBe(false);
+  });
+
+  it('swallows errors when writing to localStorage throws (quota / privacy mode)', () => {
+    const throwingStore = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error('QuotaExceededError');
+      },
+      removeItem: () => {
+        throw new Error('QuotaExceededError');
+      },
+    } as unknown as Storage;
+    Object.defineProperty(window, 'localStorage', { value: throwingStore, configurable: true });
+
+    expect(() => setAnalyticsConsent('granted')).not.toThrow();
+    expect(() => setAnalyticsConsent('unknown')).not.toThrow();
+  });
+});
+
+describe('analytics consent in a server-side (no window) environment', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('returns a no-op unsubscribe and never registers listeners when window is undefined', () => {
+    vi.stubGlobal('window', undefined);
+
+    const listener = vi.fn();
+    const unsubscribe = subscribeToAnalyticsConsent(listener);
+
+    expect(typeof unsubscribe).toBe('function');
+    // Calling the returned function must be safe and do nothing.
+    expect(() => unsubscribe()).not.toThrow();
+    expect(listener).not.toHaveBeenCalled();
+  });
 });
 
 describe('Sentry init bypasses the analytics consent gate', () => {

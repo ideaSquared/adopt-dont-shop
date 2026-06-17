@@ -3,13 +3,13 @@ import { defineLibConfig } from '../../vitest.shared.config';
 export default defineLibConfig({
   test: {
     coverage: {
-      // ADS-717: ratcheted to measured baseline (2026-05-29).
-      // Measured: statements=31.17 branches=52 functions=52.63 lines=31.54
+      // ADS-717: ratcheted to measured baseline (2026-06-16).
+      // Measured: statements=98.28 branches=88 functions=100 lines=98.26
       thresholds: {
-        statements: 30,
-        branches: 51,
-        functions: 51,
-        lines: 30,
+        statements: 97,
+        branches: 87,
+        functions: 99,
+        lines: 97,
       },
     },
   },

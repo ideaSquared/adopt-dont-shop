@@ -78,6 +78,7 @@ secrets/*
 
 ### Tests ###
 */coverage
+**/coverage/
 
 ### Build artifacts ###
 *.tsbuildinfo

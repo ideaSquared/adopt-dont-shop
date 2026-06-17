@@ -466,6 +466,135 @@ describe('FieldPermissionsService', () => {
     });
   });
 
+  describe('override fallback on API failure', () => {
+    it('falls back to defaults when the overrides API throws (getFieldAccess)', async () => {
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('Service unavailable'));
+
+      const result = await service.getFieldAccess('users', 'admin', 'email');
+
+      // Without overrides the default applies — admins may write email.
+      expect(result).toEqual({
+        allowed: true,
+        effectiveLevel: 'write',
+        source: 'default',
+      });
+    });
+
+    it('falls back to defaults when the overrides API throws (maskFields)', async () => {
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('Service unavailable'));
+
+      const masked = await service.maskFields(
+        { userId: 'user-1', firstName: 'Jane', password: 'secret' },
+        { resource: 'users', role: 'adopter', action: 'read' }
+      );
+
+      expect(masked).toHaveProperty('userId');
+      expect(masked).toHaveProperty('firstName');
+      expect(masked).not.toHaveProperty('password');
+    });
+  });
+
+  describe('override precedence', () => {
+    it('lets an override widen access beyond the default in the access map', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({
+        data: [
+          {
+            field_permission_id: 1,
+            resource: 'users',
+            field_name: 'status',
+            role: 'adopter',
+            access_level: 'read',
+            created_at: '2024-01-01',
+            updated_at: '2024-01-01',
+          },
+        ],
+      });
+
+      const map = await service.getEffectiveFieldAccessMap('users', 'adopter');
+
+      // status is normally hidden from adopters; the override exposes it as read.
+      expect(map.status).toBe('read');
+    });
+
+    it('never lets an override re-expose a sensitive denylisted field', async () => {
+      mockApiService.get = vi.fn().mockResolvedValue({
+        data: [
+          {
+            field_permission_id: 1,
+            resource: 'users',
+            field_name: 'password',
+            role: 'admin',
+            access_level: 'write',
+            created_at: '2024-01-01',
+            updated_at: '2024-01-01',
+          },
+        ],
+      });
+
+      const map = await service.getEffectiveFieldAccessMap('users', 'admin');
+
+      expect(map.password).toBe('none');
+    });
+  });
+
+  describe('updateFieldPermission / deleteFieldPermission errors', () => {
+    it('re-throws when the update API call fails', async () => {
+      mockApiService.post = vi.fn().mockRejectedValue(new Error('Forbidden'));
+
+      await expect(
+        service.updateFieldPermission({
+          resource: 'users',
+          field_name: 'email',
+          role: 'adopter',
+          access_level: 'read',
+          updatedBy: 'admin-1',
+        })
+      ).rejects.toThrow('Forbidden');
+    });
+
+    it('re-throws when the delete API call fails', async () => {
+      mockApiService.delete = vi.fn().mockRejectedValue(new Error('Forbidden'));
+
+      await expect(service.deleteFieldPermission('users', 'adopter', 'email')).rejects.toThrow(
+        'Forbidden'
+      );
+    });
+  });
+
+  describe('debug logging branches', () => {
+    it('logs to console.error when an update fails and debug is enabled', async () => {
+      const debugService = new FieldPermissionsService({ debug: true }, mockApiService);
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      mockApiService.post = vi.fn().mockRejectedValue(new Error('boom'));
+
+      await expect(
+        debugService.updateFieldPermission({
+          resource: 'users',
+          field_name: 'email',
+          role: 'adopter',
+          access_level: 'read',
+          updatedBy: 'admin-1',
+        })
+      ).rejects.toThrow('boom');
+
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+
+    it('logs to console.error when an override fetch fails and debug is enabled', async () => {
+      const debugService = new FieldPermissionsService({ debug: true }, mockApiService);
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      mockApiService.get = vi.fn().mockRejectedValue(new Error('boom'));
+
+      // getFieldAccess swallows the override error and falls back to defaults,
+      // but the debug branch inside getOverrides still logs.
+      await debugService.getFieldAccess('users', 'admin', 'email');
+
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+  });
+
   describe('getFieldPermissions — fail closed', () => {
     it('returns records when the API returns a valid { data: [...] } shape', async () => {
       const record = {
