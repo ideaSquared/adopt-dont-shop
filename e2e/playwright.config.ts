@@ -34,15 +34,17 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
   client: [
     '**/registration-and-login.spec.ts',
     '**/adoption-application.spec.ts',
-    // ADS-865 (batch A1) — read-only journeys grounded in the pets seed
-    // (services/pets/src/db/seed-data.ts), unblocked by the ADS-863 RBAC grants.
-    // Each verified green in CI before listing here.
+    // ADS-865 (batch A1) — read journeys grounded in the seed, unblocked by
+    // the ADS-863 RBAC grants. Each verified green in CI before listing here.
     '**/pet-discovery.spec.ts',
     '**/distance-sorted-search.spec.ts',
     '**/rescue-publishes-adopter-discovers.spec.ts',
-    // Deferred: cannot-apply-to-unavailable-pet — /pets/{adopted} renders no
-    // <h1> (page never loads a heading), failing the load guard. Likely a real
-    // adopted-pet detail-view bug, not a seed/RBAC gap; tracked in ADS-865.
+    // cannot-apply: fixed to use the viewable 'pending' pet (adopted pets are
+    // hidden → 404, no detail page to gate). session-expiry: anon /favorites →
+    // Login Required. notification-badge: unread-count → read-all → 0.
+    '**/cannot-apply-to-unavailable-pet.spec.ts',
+    '**/session-expiry.spec.ts',
+    '**/notification-badge-updates.spec.ts',
   ],
   rescue: [],
   admin: [],
