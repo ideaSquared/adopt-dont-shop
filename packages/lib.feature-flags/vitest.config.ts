@@ -4,13 +4,13 @@ export default defineLibConfig({
   test: {
     setupFiles: ['./src/test-utils/setup-tests.ts'],
     coverage: {
-      // ADS-717: ratcheted to measured baseline (2026-05-29).
-      // Measured: statements=63.63 branches=87.5 functions=27.27 lines=63.63
+      // ADS-717: ratcheted to measured baseline (2026-06-16).
+      // Measured: statements=100 branches=100 functions=100 lines=100
       thresholds: {
-        statements: 62,
-        branches: 86,
-        functions: 26,
-        lines: 62,
+        statements: 99,
+        branches: 99,
+        functions: 99,
+        lines: 99,
       },
     },
   },

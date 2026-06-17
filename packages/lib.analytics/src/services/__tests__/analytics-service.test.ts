@@ -373,7 +373,6 @@ describe('AnalyticsService', () => {
       });
       sampledService.setConsent({ analytics: true });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       // Justification: shouldSampleEvent is private and cannot be forced to
       // return false via the public API — the constructor normalises sampleRate
       // with `|| 100`, so sampleRate=0 silently becomes 100 (always samples).
@@ -604,7 +603,7 @@ describe('AnalyticsService', () => {
     it('drops events when consent has not been granted', async () => {
       const unconsented = new AnalyticsService({ autoTrackPageViews: false });
       const unconsentedApi = unconsented['apiService'];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       // Justification: the internal apiService is what we need to assert
       // against — the public API has no "did you send the event" hook
       // because the contract is "events are silently dropped".
@@ -623,7 +622,7 @@ describe('AnalyticsService', () => {
     it('sends events once consent is granted', async () => {
       const gated = new AnalyticsService({ autoTrackPageViews: false });
       const gatedApi = gated['apiService'];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       // Justification: same as above — observe outbound calls via the
       // internal apiService since the public API surface has no
       // "delivered" callback.
@@ -648,7 +647,7 @@ describe('AnalyticsService', () => {
     it('stops sending events when consent is revoked', async () => {
       const gated = new AnalyticsService({ autoTrackPageViews: false });
       const gatedApi = gated['apiService'];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       // Justification: same as above — observe outbound calls via the
       // internal apiService since the public API surface has no
       // "delivered" callback.
@@ -680,7 +679,7 @@ describe('AnalyticsService', () => {
       const dntService = new AnalyticsService({ autoTrackPageViews: false });
       dntService.setConsent({ analytics: true });
       const dntApi = dntService['apiService'];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       // Justification: assert outbound traffic via the internal apiService
       // because the public API silently drops DNT-blocked events.
       const postSpy = (dntApi as any).post as ReturnType<typeof vi.fn>;

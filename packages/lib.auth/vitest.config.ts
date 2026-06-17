@@ -11,13 +11,14 @@ export default mergeConfig(
       name: 'lib.auth',
       setupFiles: ['./src/setupTests.ts'],
       coverage: {
-        // ADS-717: ratcheted to measured baseline (2026-05-29).
-        // Measured: statements=52.25 branches=40.74 functions=55.55 lines=51.83
+        // ADS-717: ratcheted to measured baseline (2026-06-16); set ~4pts below measured
+        // to absorb CI coverage variance on async/React-heavy code.
+        // Measured: statements=89.17 branches=76.25 functions=88.98 lines=89.7
         thresholds: {
-          statements: 51,
-          branches: 39,
-          functions: 54,
-          lines: 50,
+          statements: 85,
+          branches: 72,
+          functions: 85,
+          lines: 85,
         },
       },
     },

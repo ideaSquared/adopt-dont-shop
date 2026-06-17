@@ -63,6 +63,18 @@ describe('eraseChat', () => {
     expect(total).toBe(0);
   });
 
+  it('treats a null rowCount as zero when summing the erased total', async () => {
+    // pg can report rowCount as null for some statements. The handler must
+    // coalesce that to 0 rather than producing NaN in the running total.
+    const client = {
+      query: vi.fn(async () => ({ rowCount: null, rows: [] })),
+    } as unknown as PoolClient;
+
+    const total = await eraseChat(client, PAYLOAD);
+
+    expect(total).toBe(0);
+  });
+
   it("scrubs content from the user's own already-soft-deleted messages (no deleted_at guard)", async () => {
     const { calls } = makeClient([0, 0, 0, 0]);
     const client = {

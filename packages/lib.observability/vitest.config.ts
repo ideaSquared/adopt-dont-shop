@@ -3,13 +3,14 @@ import { defineLibConfig } from '../../vitest.shared.config';
 export default defineLibConfig({
   test: {
     coverage: {
-      // ADS-717: ratcheted to measured baseline (2026-05-29).
-      // Measured (with web-vitals.ts included): statements=62.06 branches=57.69 functions=60 lines=64.81
+      // ADS-717: ratcheted to measured baseline (2026-06-16).
+      // Measured (full behavioural coverage of consent / sentry / web-vitals):
+      // statements=100 branches=100 functions=100 lines=100
       thresholds: {
-        statements: 61,
-        branches: 56,
-        functions: 59,
-        lines: 63,
+        statements: 99,
+        branches: 99,
+        functions: 99,
+        lines: 99,
       },
     },
   },

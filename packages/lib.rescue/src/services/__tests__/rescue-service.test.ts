@@ -420,6 +420,191 @@ describe('RescueService', () => {
     });
   });
 
+  const mockAdoptionPolicy = {
+    requireHomeVisit: true,
+    requireReferences: true,
+    minimumReferenceCount: 2,
+    requireVeterinarianReference: false,
+    adoptionFeeRange: { min: 50, max: 150 },
+    requirements: ['Must have a garden'],
+    policies: ['No re-homing within 6 months'],
+    returnPolicy: 'Returns accepted within 14 days',
+    spayNeuterPolicy: 'All pets are neutered',
+    followUpPolicy: 'Home check at 1 month',
+  };
+
+  describe('updateAdoptionPolicies', () => {
+    it('should update adoption policies successfully', async () => {
+      const mockResponse = {
+        success: true,
+        data: mockAdoptionPolicy,
+      };
+      mockApiService.put.mockResolvedValue(mockResponse);
+
+      const result = await rescueService.updateAdoptionPolicies('rescue-123', mockAdoptionPolicy);
+
+      expect(mockApiService.put).toHaveBeenCalledWith(
+        '/api/v1/rescues/rescue-123/adoption-policies',
+        mockAdoptionPolicy
+      );
+      expect(result).toEqual(mockAdoptionPolicy);
+    });
+
+    it('should throw when the response is not successful', async () => {
+      const mockResponse = {
+        success: false,
+        message: 'Failed to update adoption policies',
+      };
+      mockApiService.put.mockResolvedValue(mockResponse);
+
+      await expect(
+        rescueService.updateAdoptionPolicies('rescue-123', mockAdoptionPolicy)
+      ).rejects.toThrow('Failed to update adoption policies');
+    });
+
+    it('should throw when the response succeeds but has no data', async () => {
+      const mockResponse = {
+        success: true,
+        data: null,
+      };
+      mockApiService.put.mockResolvedValue(mockResponse);
+
+      await expect(
+        rescueService.updateAdoptionPolicies('rescue-123', mockAdoptionPolicy)
+      ).rejects.toThrow('Failed to update adoption policies');
+    });
+
+    it('should propagate network errors', async () => {
+      const error = new Error('Network error');
+      mockApiService.put.mockRejectedValue(error);
+
+      await expect(
+        rescueService.updateAdoptionPolicies('rescue-123', mockAdoptionPolicy)
+      ).rejects.toThrow('Network error');
+    });
+  });
+
+  describe('getAdoptionPolicies', () => {
+    it('should get adoption policies successfully', async () => {
+      const mockResponse = {
+        success: true,
+        data: mockAdoptionPolicy,
+      };
+      mockApiService.get.mockResolvedValue(mockResponse);
+
+      const result = await rescueService.getAdoptionPolicies('rescue-123');
+
+      expect(mockApiService.get).toHaveBeenCalledWith(
+        '/api/v1/rescues/rescue-123/adoption-policies'
+      );
+      expect(result).toEqual(mockAdoptionPolicy);
+    });
+
+    it('should return null when the response data is null', async () => {
+      const mockResponse = {
+        success: true,
+        data: null,
+      };
+      mockApiService.get.mockResolvedValue(mockResponse);
+
+      const result = await rescueService.getAdoptionPolicies('rescue-123');
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw when the response is not successful', async () => {
+      const mockResponse = {
+        success: false,
+        message: 'Failed to fetch adoption policies',
+      };
+      mockApiService.get.mockResolvedValue(mockResponse);
+
+      await expect(rescueService.getAdoptionPolicies('rescue-123')).rejects.toThrow(
+        'Failed to fetch adoption policies'
+      );
+    });
+
+    it('should propagate network errors', async () => {
+      const error = new Error('Network error');
+      mockApiService.get.mockRejectedValue(error);
+
+      await expect(rescueService.getAdoptionPolicies('rescue-123')).rejects.toThrow(
+        'Network error'
+      );
+    });
+  });
+
+  describe('transformRescueFromAPI (via getRescue)', () => {
+    const baseApiResponse: RescueAPIResponse = {
+      name: 'Solo Foster',
+      email: 'solo@foster.org',
+      address: '1 Lane',
+      city: 'Town',
+      postcode: 'AB1 2CD',
+      country: 'GB',
+      status: 'pending' as RescueStatus,
+    };
+
+    it('should compute type "individual" when no companies-house or charity number', async () => {
+      mockApiService.get.mockResolvedValue({ success: true, data: baseApiResponse });
+
+      const result = await rescueService.getRescue('rescue-solo');
+
+      expect(result.type).toBe('individual');
+    });
+
+    it('should compute type "organization" when a charity number is present', async () => {
+      mockApiService.get.mockResolvedValue({
+        success: true,
+        data: { ...baseApiResponse, charity_registration_number: 'CH-9999' },
+      });
+
+      const result = await rescueService.getRescue('rescue-org');
+
+      expect(result.type).toBe('organization');
+    });
+
+    it('should resolve camelCase fallbacks when snake_case fields are absent', async () => {
+      mockApiService.get.mockResolvedValue({
+        success: true,
+        data: {
+          rescueId: 'camel-1',
+          name: 'Camel Rescue',
+          email: 'camel@rescue.org',
+          address: '2 Road',
+          city: 'City',
+          postcode: 'XY9 8ZZ',
+          country: 'GB',
+          status: 'verified' as RescueStatus,
+          companiesHouseNumber: 'CH-1',
+          contactPerson: 'Cam El',
+          createdAt: '2024-05-01T00:00:00Z',
+          updatedAt: '2024-05-02T00:00:00Z',
+        },
+      });
+
+      const result = await rescueService.getRescue('camel-1');
+
+      expect(result.rescueId).toBe('camel-1');
+      expect(result.companiesHouseNumber).toBe('CH-1');
+      expect(result.contactPerson).toBe('Cam El');
+      expect(result.createdAt).toBe('2024-05-01T00:00:00Z');
+      expect(result.type).toBe('organization');
+    });
+
+    it('should fall back to name for contactPerson and default missing optional fields', async () => {
+      mockApiService.get.mockResolvedValue({ success: true, data: baseApiResponse });
+
+      const result = await rescueService.getRescue('rescue-solo');
+
+      expect(result.contactPerson).toBe('Solo Foster');
+      expect(result.isDeleted).toBe(false);
+      expect(result.createdAt).toBe('');
+      expect(result.verified).toBe(false);
+      expect(result.adoptionPolicies).toBeUndefined();
+    });
+  });
+
   describe('updateConfig', () => {
     it('should update service configuration', () => {
       const newConfig = { apiUrl: 'http://newapi.com', debug: true };

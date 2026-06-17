@@ -36,6 +36,13 @@ export default defineConfig({
         'src/**/*.test.{ts,tsx}',
         'src/**/*.spec.{ts,tsx}',
       ],
+      // ratcheted to measured baseline (2026-06-16); buffered for CI variance
+      thresholds: {
+        statements: 55,
+        branches: 41,
+        functions: 41,
+        lines: 57,
+      },
     },
   },
   resolve: {

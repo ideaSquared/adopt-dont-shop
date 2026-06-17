@@ -400,4 +400,336 @@ describe('NotificationsService', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('notification management (additional)', () => {
+    describe('getUserNotifications query-param building', () => {
+      it('should omit undefined filter values from the query string', async () => {
+        const filters: NotificationFilters = {
+          page: 2,
+          limit: undefined,
+          status: 'read',
+          priority: undefined,
+        };
+
+        mockApiService.get = vi.fn().mockResolvedValue({
+          data: [],
+          pagination: { page: 2, limit: 20, total: 0, totalPages: 0 },
+          success: true,
+          timestamp: new Date().toISOString(),
+        });
+
+        await service.getUserNotifications('user123', filters);
+
+        expect(mockApiService.get).toHaveBeenCalledWith(
+          '/api/v1/notifications/user/user123?page=2&status=read'
+        );
+      });
+
+      it('should not append a query string when filters are empty', async () => {
+        mockApiService.get = vi.fn().mockResolvedValue({
+          data: [],
+          pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+          success: true,
+          timestamp: new Date().toISOString(),
+        });
+
+        await service.getUserNotifications('user123', {});
+
+        expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/notifications/user/user123');
+      });
+
+      it('should propagate API errors', async () => {
+        mockApiService.get = vi.fn().mockRejectedValue(new Error('list failed'));
+
+        await expect(service.getUserNotifications('user123')).rejects.toThrow('list failed');
+      });
+    });
+
+    describe('getNotification', () => {
+      it('should fetch a single notification by id', async () => {
+        const mockResponse = {
+          data: { id: 'notif123', title: 'A notification' },
+          success: true,
+          timestamp: new Date().toISOString(),
+        };
+        mockApiService.get = vi.fn().mockResolvedValue(mockResponse);
+
+        const result = await service.getNotification('notif123');
+
+        expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/notifications/notif123');
+        expect(result).toEqual(mockResponse);
+      });
+
+      it('should propagate fetch errors', async () => {
+        mockApiService.get = vi.fn().mockRejectedValue(new Error('not found'));
+
+        await expect(service.getNotification('missing')).rejects.toThrow('not found');
+      });
+    });
+
+    describe('markAsRead errors', () => {
+      it('should propagate API errors', async () => {
+        mockApiService.patch = vi.fn().mockRejectedValue(new Error('patch failed'));
+
+        await expect(service.markAsRead(['notif1'])).rejects.toThrow('patch failed');
+      });
+    });
+
+    describe('markAllAsRead errors', () => {
+      it('should propagate API errors', async () => {
+        mockApiService.patch = vi.fn().mockRejectedValue(new Error('mark-all failed'));
+
+        await expect(service.markAllAsRead('user123')).rejects.toThrow('mark-all failed');
+      });
+    });
+
+    describe('deleteNotification errors', () => {
+      it('should propagate API errors', async () => {
+        mockApiService.delete = vi.fn().mockRejectedValue(new Error('delete failed'));
+
+        await expect(service.deleteNotification('notif123')).rejects.toThrow('delete failed');
+      });
+    });
+  });
+
+  describe('preference management (additional)', () => {
+    describe('getUserPreferences errors', () => {
+      it('should propagate API errors', async () => {
+        mockApiService.get = vi.fn().mockRejectedValue(new Error('prefs failed'));
+
+        await expect(service.getUserPreferences('user123')).rejects.toThrow('prefs failed');
+      });
+    });
+
+    describe('updatePreferences', () => {
+      it('should update user notification preferences', async () => {
+        const updates: Partial<NotificationPreferences> = {
+          doNotDisturb: { enabled: false },
+        };
+        const mockResponse = {
+          data: {
+            userId: 'user123',
+            channels: {},
+            doNotDisturb: { enabled: false },
+            updatedAt: new Date().toISOString(),
+          },
+          success: true,
+          timestamp: new Date().toISOString(),
+        };
+        mockApiService.patch = vi.fn().mockResolvedValue(mockResponse);
+
+        const result = await service.updatePreferences('user123', updates);
+
+        expect(mockApiService.patch).toHaveBeenCalledWith(
+          '/api/v1/notifications/preferences/user123',
+          updates
+        );
+        expect(result.data.doNotDisturb?.enabled).toBe(false);
+      });
+
+      it('should propagate API errors', async () => {
+        mockApiService.patch = vi.fn().mockRejectedValue(new Error('update failed'));
+
+        await expect(service.updatePreferences('user123', {})).rejects.toThrow('update failed');
+      });
+    });
+
+    describe('setDoNotDisturb errors', () => {
+      it('should propagate API errors', async () => {
+        mockApiService.patch = vi.fn().mockRejectedValue(new Error('dnd failed'));
+
+        await expect(service.setDoNotDisturb('user123', '22:00', '08:00')).rejects.toThrow(
+          'dnd failed'
+        );
+      });
+    });
+  });
+
+  describe('template operations', () => {
+    describe('getTemplates', () => {
+      it('should fetch all templates', async () => {
+        const mockResponse = {
+          data: [
+            { id: 'tpl1', name: 'Welcome' },
+            { id: 'tpl2', name: 'Reminder' },
+          ],
+          success: true,
+          timestamp: new Date().toISOString(),
+        };
+        mockApiService.get = vi.fn().mockResolvedValue(mockResponse);
+
+        const result = await service.getTemplates();
+
+        expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/notifications/templates');
+        expect(result.data).toHaveLength(2);
+      });
+
+      it('should propagate API errors', async () => {
+        mockApiService.get = vi.fn().mockRejectedValue(new Error('templates failed'));
+
+        await expect(service.getTemplates()).rejects.toThrow('templates failed');
+      });
+    });
+
+    describe('processTemplate', () => {
+      it('should process a template with variables', async () => {
+        const variables = { name: 'Rex', shelter: 'Happy Tails' };
+        const mockResponse = {
+          data: { title: 'Hi Rex', message: 'Welcome to Happy Tails' },
+          success: true,
+          timestamp: new Date().toISOString(),
+        };
+        mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
+
+        const result = await service.processTemplate('tpl1', variables);
+
+        expect(mockApiService.post).toHaveBeenCalledWith(
+          '/api/v1/notifications/templates/tpl1/process',
+          { variables }
+        );
+        expect(result.data.title).toBe('Hi Rex');
+      });
+
+      it('should propagate API errors', async () => {
+        mockApiService.post = vi.fn().mockRejectedValue(new Error('process failed'));
+
+        await expect(service.processTemplate('tpl1', {})).rejects.toThrow('process failed');
+      });
+    });
+
+    describe('previewTemplate', () => {
+      it('should preview a template with sample data', async () => {
+        const sampleData = { name: 'Rex' };
+        const mockResponse = {
+          data: { title: 'Hi Rex', message: 'Sample', html: '<p>Hi Rex</p>' },
+          success: true,
+          timestamp: new Date().toISOString(),
+        };
+        mockApiService.post = vi.fn().mockResolvedValue(mockResponse);
+
+        const result = await service.previewTemplate('tpl1', sampleData);
+
+        expect(mockApiService.post).toHaveBeenCalledWith(
+          '/api/v1/notifications/templates/tpl1/preview',
+          { sampleData }
+        );
+        expect(result.data.html).toBe('<p>Hi Rex</p>');
+      });
+
+      it('should propagate API errors', async () => {
+        mockApiService.post = vi.fn().mockRejectedValue(new Error('preview failed'));
+
+        await expect(service.previewTemplate('tpl1', {})).rejects.toThrow('preview failed');
+      });
+    });
+  });
+
+  describe('analytics (additional)', () => {
+    describe('getStats', () => {
+      it('should fetch global stats when no userId is given', async () => {
+        const mockResponse = {
+          data: { totalSent: 100, totalDelivered: 90, totalRead: 50 },
+          success: true,
+          timestamp: new Date().toISOString(),
+        };
+        mockApiService.get = vi.fn().mockResolvedValue(mockResponse);
+
+        const result = await service.getStats();
+
+        expect(mockApiService.get).toHaveBeenCalledWith('/api/v1/notifications/stats');
+        expect(result.data.totalSent).toBe(100);
+      });
+
+      it('should scope stats to a user when userId is given', async () => {
+        const mockResponse = {
+          data: { totalSent: 5, totalDelivered: 5, totalRead: 2 },
+          success: true,
+          timestamp: new Date().toISOString(),
+        };
+        mockApiService.get = vi.fn().mockResolvedValue(mockResponse);
+
+        await service.getStats('user123');
+
+        expect(mockApiService.get).toHaveBeenCalledWith(
+          '/api/v1/notifications/stats?userId=user123'
+        );
+      });
+
+      it('should propagate API errors', async () => {
+        mockApiService.get = vi.fn().mockRejectedValue(new Error('stats failed'));
+
+        await expect(service.getStats()).rejects.toThrow('stats failed');
+      });
+    });
+
+    describe('getUnreadCount errors', () => {
+      it('should propagate API errors', async () => {
+        mockApiService.get = vi.fn().mockRejectedValue(new Error('count failed'));
+
+        await expect(service.getUnreadCount('user123')).rejects.toThrow('count failed');
+      });
+    });
+  });
+
+  describe('debug logging', () => {
+    it('should log failures to console.error when debug is enabled', async () => {
+      const debugService = new NotificationsService({ debug: true });
+      const debugApi: any = debugService['apiService'];
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      debugApi.post = vi.fn().mockRejectedValue(new Error('boom'));
+
+      await expect(
+        debugService.sendNotification({
+          userId: 'user123',
+          title: 'T',
+          message: 'M',
+          category: 'system_alert',
+        })
+      ).rejects.toThrow('boom');
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('sendNotification failed'),
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should not log to console.error when debug is disabled', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      mockApiService.post = vi.fn().mockRejectedValue(new Error('boom'));
+
+      await expect(
+        service.sendNotification({
+          userId: 'user123',
+          title: 'T',
+          message: 'M',
+          category: 'system_alert',
+        })
+      ).rejects.toThrow('boom');
+
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should log to console.error on failed health check when debug is enabled', async () => {
+      const debugService = new NotificationsService({ debug: true });
+      const debugApi: any = debugService['apiService'];
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      debugApi.get = vi.fn().mockRejectedValue(new Error('down'));
+
+      const result = await debugService.healthCheck();
+
+      expect(result).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('health check failed'),
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+  });
 });

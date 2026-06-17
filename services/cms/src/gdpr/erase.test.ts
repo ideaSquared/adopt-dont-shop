@@ -47,4 +47,12 @@ describe('eraseCms', () => {
       expect(sql).not.toContain('cms.cms_content');
     }
   });
+
+  it('treats a null rowCount as zero rows affected', async () => {
+    const client = {
+      query: vi.fn(async () => ({ rows: [], rowCount: null })),
+    } as unknown as PoolClient;
+    const total = await eraseCms(client, PAYLOAD);
+    expect(total).toBe(0);
+  });
 });
