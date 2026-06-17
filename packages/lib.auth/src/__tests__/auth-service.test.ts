@@ -362,11 +362,16 @@ describe('AuthService', () => {
 
   describe('getProfile', () => {
     it('should fetch the current user profile from the API', async () => {
-      (apiService.get as ReturnType<typeof vi.fn>).mockResolvedValue(mockUser);
+      const getMock = vi.mocked(apiService.get);
+      // Reset first to drain any queued/leaked implementation, then queue the
+      // value for getProfile's single get() call explicitly. This makes the
+      // test independent of any prior mock state on the shared apiService.
+      getMock.mockReset();
+      getMock.mockResolvedValueOnce(mockUser);
 
       const result = await authService.getProfile();
 
-      expect(apiService.get).toHaveBeenCalledWith('/api/v1/auth/me');
+      expect(getMock).toHaveBeenCalledWith('/api/v1/auth/me');
       expect(result).toEqual(mockUser);
     });
 
