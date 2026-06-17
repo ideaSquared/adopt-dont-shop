@@ -515,6 +515,28 @@ services:
       retries: 3
       start_period: 60s
 
+  service-chat:
+    profiles: ['services', 'full']
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      target: development
+      args:
+        SERVICE: '@adopt-dont-shop/service.chat'
+        SERVICE_DIR: services/chat
+    environment:
+      <<: *ms-env
+    ports:
+      - '127.0.0.1:5006:5006'
+    depends_on: *ms-deps
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5006/health/simple']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
   service-moderation:
     profiles: ['services', 'full']
     build:
