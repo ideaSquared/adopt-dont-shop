@@ -49,7 +49,18 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // (has only notifications.read) → 403. Needs a follow-up auth migration to
     // grant adopters self-scoped notifications.update. Tracked in ADS-865.
   ],
-  rescue: [],
+  rescue: [
+    // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863
+    // RBAC grants + rescueId propagation. Page-load smokes prove the rescue
+    // app's protected routes mount for rescue.manager; the invitation specs
+    // assert anonymous invalid/empty-token states on /accept-invitation. Each
+    // verified green in CI before listing here.
+    '**/pet-listing-management.spec.ts',
+    '**/staff-management.spec.ts',
+    '**/home-visit-scheduling.spec.ts',
+    '**/staff-invitation-acceptance.spec.ts',
+    '**/invitation-expiry-and-resend.spec.ts',
+  ],
   admin: [],
 };
 
