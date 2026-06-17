@@ -39,7 +39,32 @@ test.describe('adoption application submission', () => {
       .getByRole('link', { name: /apply (to|for) adopt/i })
       .or(page.getByRole('button', { name: /apply (to|for) adopt/i }))
       .first();
-    await expect(apply).toBeVisible({ timeout: 15_000 });
+    try {
+      await expect(apply).toBeVisible({ timeout: 15_000 });
+    } catch (err) {
+      // Diagnose which branch we're in: "Pet Not Found" (the pet failed to
+      // load) vs "Sign in to apply" (the adopter session wasn't recognised)
+      // vs something else. Logs land in the CI job output.
+      const headings = await page
+        .getByRole('heading')
+        .allTextContents()
+        .catch(() => [] as string[]);
+      const signInToApply = await page
+        .getByText(/sign in to apply/i)
+        .count()
+        .catch(() => 0);
+      const storage = await page.evaluate(() => Object.keys(window.localStorage)).catch(() => null);
+      // eslint-disable-next-line no-console
+      console.error(
+        `\n===== APPLY CTA DIAGNOSTICS =====\n` +
+          `url: ${page.url()}\n` +
+          `headings: ${JSON.stringify(headings)}\n` +
+          `"sign in to apply" count: ${signInToApply}\n` +
+          `localStorage keys: ${JSON.stringify(storage)}\n` +
+          `=================================\n`
+      );
+      throw err;
+    }
     await apply.click();
 
     await expect(page).toHaveURL(/\/apply\//, { timeout: 15_000 });
