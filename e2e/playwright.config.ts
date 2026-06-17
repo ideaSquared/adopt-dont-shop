@@ -41,10 +41,13 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/rescue-publishes-adopter-discovers.spec.ts',
     // cannot-apply: fixed to use the viewable 'pending' pet (adopted pets are
     // hidden → 404, no detail page to gate). session-expiry: anon /favorites →
-    // Login Required. notification-badge: unread-count → read-all → 0.
+    // Login Required.
     '**/cannot-apply-to-unavailable-pet.spec.ts',
     '**/session-expiry.spec.ts',
-    '**/notification-badge-updates.spec.ts',
+    // Deferred: notification-badge-updates — marking notifications read needs
+    // `notifications.update`, which the adopter lacks in the ADS-863 matrix
+    // (has only notifications.read) → 403. Needs a follow-up auth migration to
+    // grant adopters self-scoped notifications.update. Tracked in ADS-865.
   ],
   rescue: [],
   admin: [],
