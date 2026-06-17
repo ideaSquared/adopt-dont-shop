@@ -68,7 +68,70 @@ async function loginAndPersist(roleKey: RoleKey): Promise<void> {
   try {
     const context = await browser.newContext({ baseURL: role.appUrl });
     const page = await context.newPage();
-    await loginViaUI(page, role.email, role.password);
+
+    // Diagnostics: a UI-login failure otherwise surfaces only as a blind
+    // `waitForURL` timeout. Capture the browser console, page errors, and
+    // the auth network round-trips so the CI log reveals the actual cause
+    // (thrown auth error vs. cold-compile/fill not registering vs. redirect).
+    const consoleLogs: string[] = [];
+    page.on('console', msg => consoleLogs.push(`[${msg.type()}] ${msg.text()}`));
+    page.on('pageerror', err => consoleLogs.push(`[pageerror] ${err.message}`));
+    const authResponses: Array<Promise<string>> = [];
+    page.on('response', resp => {
+      const url = resp.url();
+      if (/\/auth\/login|\/csrf-token|\/auth\/me/.test(url)) {
+        authResponses.push(
+          (async () => {
+            let body = '<unreadable>';
+            try {
+              body = (await resp.text()).slice(0, 300);
+            } catch {
+              /* keep placeholder */
+            }
+            return `${resp.request().method()} ${url} -> ${resp.status()} ${body}`;
+          })()
+        );
+      }
+    });
+
+    try {
+      await loginViaUI(page, role.email, role.password);
+    } catch (error) {
+      const emailValue = await page
+        .getByLabel(/email/i)
+        .first()
+        .inputValue()
+        .catch(() => '<no field>');
+      const passwordLen = await page
+        .getByLabel(/password/i)
+        .first()
+        .inputValue()
+        .then(v => String(v.length))
+        .catch(() => '<no field>');
+      const submitDisabled = await page
+        .getByRole('button', { name: /^(sign in|log ?in)$/i })
+        .first()
+        .isDisabled()
+        .catch(() => '<no button>');
+      const alerts = await page
+        .locator('[role="alert"]')
+        .allTextContents()
+        .catch(() => [] as string[]);
+      const network = (await Promise.all(authResponses.map(p => p.catch(() => '<err>')))).join(
+        '\n'
+      );
+      console.error(`\n===== UI LOGIN DIAGNOSTICS (${roleKey} @ ${role.appUrl}) =====`);
+      console.error(`current URL : ${page.url()}`);
+      console.error(
+        `email field : "${emailValue}"  password len: ${passwordLen}  submit disabled: ${submitDisabled}`
+      );
+      console.error(`visible alerts: ${JSON.stringify(alerts)}`);
+      console.error(`auth network:\n${network || '  (no auth/csrf responses observed)'}`);
+      console.error(`console:\n${consoleLogs.join('\n') || '  (none)'}`);
+      console.error(`============================================================\n`);
+      throw error;
+    }
+
     const filePath = resolve(import.meta.dirname, AUTH_FILES[roleKey]);
     mkdirSync(dirname(filePath), { recursive: true });
     await context.storageState({ path: filePath });
