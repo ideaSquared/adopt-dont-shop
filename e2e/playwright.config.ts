@@ -44,6 +44,11 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // Login Required.
     '**/cannot-apply-to-unavailable-pet.spec.ts',
     '**/session-expiry.spec.ts',
+    // Unblocked by the applications seed (services/applications/src/db/seed.ts
+    // gives John Smith a seeded application). Both tolerate the status PATCH
+    // failing — they assert the dashboard reads the persisted state.
+    '**/application-tracking.spec.ts',
+    '**/application-status-roundtrip.spec.ts',
     // Deferred: notification-badge-updates — marking notifications read needs
     // `notifications.update`, which the adopter lacks in the ADS-863 matrix
     // (has only notifications.read) → 403. Needs a follow-up auth migration to
@@ -60,6 +65,9 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/home-visit-scheduling.spec.ts',
     '**/staff-invitation-acceptance.spec.ts',
     '**/invitation-expiry-and-resend.spec.ts',
+    // Unblocked by the applications seed — the rescue (Paws) inbox now lists
+    // John Smith's seeded application. Tolerant of the status PATCH failing.
+    '**/application-review.spec.ts',
   ],
   admin: [],
 };
