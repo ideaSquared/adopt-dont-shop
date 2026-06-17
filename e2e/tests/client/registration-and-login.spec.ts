@@ -32,6 +32,10 @@ test.describe('adopter registration and login', () => {
           password: 'BehaviourTest123!',
           firstName: 'E2E',
           lastName: 'Tester',
+          // The auth service rejects registration (400) unless the terms
+          // and privacy policy are explicitly accepted.
+          termsAccepted: true,
+          privacyPolicyAccepted: true,
         },
       });
       // Backend returns 201 on success, OR 201 with a generic message
