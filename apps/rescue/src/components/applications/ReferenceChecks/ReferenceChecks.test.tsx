@@ -108,7 +108,9 @@ describe('ReferenceChecks — update form', () => {
     render(
       <ReferenceChecks
         {...defaultProps}
-        referenceUpdates={{ 'ref-1': { status: 'contacted', notes: 'Left voicemail', showForm: true } }}
+        referenceUpdates={{
+          'ref-1': { status: 'contacted', notes: 'Left voicemail', showForm: true },
+        }}
         onUpdateReference={onUpdateReference}
       />
     );

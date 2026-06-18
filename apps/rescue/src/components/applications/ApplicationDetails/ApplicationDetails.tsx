@@ -31,29 +31,23 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Name</span>
               <span className={styles.fieldValue}>
-                {getStr('personalInfo.firstName') || 'N/A'}{' '}
-                {getStr('personalInfo.lastName') || ''}
+                {getStr('personalInfo.firstName') || 'N/A'} {getStr('personalInfo.lastName') || ''}
               </span>
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Email</span>
-              <span className={styles.fieldValue}>
-                {getStr('personalInfo.email') || 'N/A'}
-              </span>
+              <span className={styles.fieldValue}>{getStr('personalInfo.email') || 'N/A'}</span>
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Phone</span>
-              <span className={styles.fieldValue}>
-                {getStr('personalInfo.phone') || 'N/A'}
-              </span>
+              <span className={styles.fieldValue}>{getStr('personalInfo.phone') || 'N/A'}</span>
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Address</span>
               <span className={styles.fieldValue}>
                 {getStr('personalInfo.address') || 'N/A'}
                 <br />
-                {getStr('personalInfo.city') || 'N/A'},{' '}
-                {getStr('personalInfo.state') || 'N/A'}{' '}
+                {getStr('personalInfo.city') || 'N/A'}, {getStr('personalInfo.state') || 'N/A'}{' '}
                 {getStr('personalInfo.zipCode') || 'N/A'}
               </span>
             </div>
@@ -195,9 +189,7 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
             <h4 className={styles.cardTitle}>Home Details</h4>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Yard Size</span>
-              <span className={styles.fieldValue}>
-                {getStr('answers.yard_size') || 'N/A'}
-              </span>
+              <span className={styles.fieldValue}>{getStr('answers.yard_size') || 'N/A'}</span>
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Yard Fenced</span>
@@ -207,9 +199,7 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Hours Pet Alone</span>
-              <span className={styles.fieldValue}>
-                {getStr('answers.hours_alone') || 'N/A'}
-              </span>
+              <span className={styles.fieldValue}>{getStr('answers.hours_alone') || 'N/A'}</span>
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>Current Pets</span>
@@ -242,9 +232,7 @@ export const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({
                 </div>
                 <div className={styles.fieldVertical}>
                   <span className={styles.fieldLabel}>What Happened</span>
-                  <div className={styles.fieldValueFullWidth}>
-                    {pet.what_happened || 'N/A'}
-                  </div>
+                  <div className={styles.fieldValueFullWidth}>{pet.what_happened || 'N/A'}</div>
                 </div>
               </div>
             ))}

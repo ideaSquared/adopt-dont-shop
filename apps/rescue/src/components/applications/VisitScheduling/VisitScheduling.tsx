@@ -271,9 +271,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                       <span className={styles.fieldValue}>
                         <span
                           className={styles.visitOutcome({
-                            outcome: (
-                              ['approved', 'conditional', 'rejected'] as const
-                            ).includes(
+                            outcome: (['approved', 'conditional', 'rejected'] as const).includes(
                               visit.outcome as 'approved' | 'conditional' | 'rejected'
                             )
                               ? (visit.outcome as 'approved' | 'conditional' | 'rejected')
@@ -383,10 +381,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                   <h5 className={styles.rescheduleTitle}>Reschedule Home Visit</h5>
                   <div className={styles.formRow}>
                     <div className={styles.formGroup}>
-                      <label
-                        className={styles.formLabel}
-                        htmlFor={`reschedule-date-${visit.id}`}
-                      >
+                      <label className={styles.formLabel} htmlFor={`reschedule-date-${visit.id}`}>
                         New Date
                       </label>
                       <input
@@ -401,10 +396,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                       />
                     </div>
                     <div className={styles.formGroup}>
-                      <label
-                        className={styles.formLabel}
-                        htmlFor={`reschedule-time-${visit.id}`}
-                      >
+                      <label className={styles.formLabel} htmlFor={`reschedule-time-${visit.id}`}>
                         New Time
                       </label>
                       <input
@@ -420,10 +412,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                   </div>
                   <div className={styles.formRow}>
                     <div className={styles.formGroup}>
-                      <label
-                        className={styles.formLabel}
-                        htmlFor={`reschedule-reason-${visit.id}`}
-                      >
+                      <label className={styles.formLabel} htmlFor={`reschedule-reason-${visit.id}`}>
                         Reason for Rescheduling
                       </label>
                       <textarea
@@ -469,10 +458,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                   <h5 className={styles.completeVisitTitle}>Complete Home Visit</h5>
                   <div className={styles.formRow}>
                     <div className={styles.formGroup}>
-                      <label
-                        className={styles.formLabel}
-                        htmlFor={`complete-outcome-${visit.id}`}
-                      >
+                      <label className={styles.formLabel} htmlFor={`complete-outcome-${visit.id}`}>
                         Visit Outcome
                       </label>
                       <select
@@ -497,10 +483,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                   </div>
                   <div className={styles.formRow}>
                     <div className={styles.formGroup}>
-                      <label
-                        className={styles.formLabel}
-                        htmlFor={`complete-notes-${visit.id}`}
-                      >
+                      <label className={styles.formLabel} htmlFor={`complete-notes-${visit.id}`}>
                         Visit Summary
                       </label>
                       <textarea
@@ -568,10 +551,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                   </h5>
                   <div className={styles.formRow}>
                     <div className={styles.formGroup}>
-                      <label
-                        className={styles.formLabel}
-                        htmlFor={`cancel-reason-${visit.id}`}
-                      >
+                      <label className={styles.formLabel} htmlFor={`cancel-reason-${visit.id}`}>
                         Reason for Cancellation
                       </label>
                       <textarea
@@ -638,9 +618,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
 
                 const detailVisitStatusVariant = (
                   ['scheduled', 'in_progress', 'completed', 'cancelled'] as const
-                ).includes(
-                  visit.status as 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
-                )
+                ).includes(visit.status as 'scheduled' | 'in_progress' | 'completed' | 'cancelled')
                   ? (visit.status as 'scheduled' | 'in_progress' | 'completed' | 'cancelled')
                   : 'default';
 
@@ -671,9 +649,7 @@ export const VisitScheduling: React.FC<VisitSchedulingProps> = ({
                         <span className={styles.fieldValue}>
                           <span
                             className={styles.visitOutcome({
-                              outcome: (
-                                ['approved', 'conditional', 'rejected'] as const
-                              ).includes(
+                              outcome: (['approved', 'conditional', 'rejected'] as const).includes(
                                 visit.outcome as 'approved' | 'conditional' | 'rejected'
                               )
                                 ? (visit.outcome as 'approved' | 'conditional' | 'rejected')

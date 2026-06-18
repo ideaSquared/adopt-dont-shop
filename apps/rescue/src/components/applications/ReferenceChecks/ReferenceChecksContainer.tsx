@@ -16,8 +16,13 @@ export const ReferenceChecksContainer: React.FC<ReferenceChecksContainerProps> =
   applicationId,
   onReferenceUpdate,
 }) => {
-  const { referenceUpdates, handleReferenceUpdate, toggleReferenceForm, updateReferenceField, resetReferenceUpdates } =
-    useReferenceChecks({ onReferenceUpdate });
+  const {
+    referenceUpdates,
+    handleReferenceUpdate,
+    toggleReferenceForm,
+    updateReferenceField,
+    resetReferenceUpdates,
+  } = useReferenceChecks({ onReferenceUpdate });
 
   useEffect(() => {
     resetReferenceUpdates();

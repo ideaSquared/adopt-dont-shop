@@ -1,6 +1,8 @@
 import React from 'react';
-import type { ApplicationTimeline as ApplicationTimelineType } from '../../../types/applications';
-import { TimelineEventType } from '../../../types/applications';
+import {
+  TimelineEventType,
+  type ApplicationTimeline as ApplicationTimelineType,
+} from '../../../types/applications';
 import { formatStatusName } from '../../../utils/statusUtils';
 import * as styles from '../ApplicationReview.css';
 
@@ -201,8 +203,7 @@ export const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({
                     </span>
                   </div>
                   <p className={styles.timelineDescription}>
-                    {event.event === 'status_change' &&
-                    typeof event.data?.newStatus === 'string'
+                    {event.event === 'status_change' && typeof event.data?.newStatus === 'string'
                       ? `Status changed to: ${formatStatusName(event.data.newStatus)}`
                       : event.description}
                   </p>

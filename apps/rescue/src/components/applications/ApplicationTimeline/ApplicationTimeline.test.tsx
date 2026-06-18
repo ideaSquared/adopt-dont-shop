@@ -118,9 +118,7 @@ describe('ApplicationTimeline — add event form', () => {
   });
 
   it('enables the submit button when a description is provided', () => {
-    render(
-      <ApplicationTimeline {...defaultProps} showAddEvent newEventDescription="Some note" />
-    );
+    render(<ApplicationTimeline {...defaultProps} showAddEvent newEventDescription="Some note" />);
     const submitBtn = screen.getByRole('button', { name: /^add event$/i });
     expect(submitBtn).not.toBeDisabled();
   });

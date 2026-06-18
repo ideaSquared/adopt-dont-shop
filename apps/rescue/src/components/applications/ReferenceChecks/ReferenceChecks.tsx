@@ -41,9 +41,9 @@ export const ReferenceChecks: React.FC<ReferenceChecksProps> = ({
       references.map(reference => {
         const currentRefStatus = referenceUpdates[reference.id]?.status || reference.status;
         const currentNotes = referenceUpdates[reference.id]?.notes || reference.notes;
-        const refStatusVariant = (
-          ['verified', 'contacted', 'pending', 'failed'] as const
-        ).includes(currentRefStatus as 'verified' | 'contacted' | 'pending' | 'failed')
+        const refStatusVariant = (['verified', 'contacted', 'pending', 'failed'] as const).includes(
+          currentRefStatus as 'verified' | 'contacted' | 'pending' | 'failed'
+        )
           ? (currentRefStatus as 'verified' | 'contacted' | 'pending' | 'failed')
           : 'default';
 

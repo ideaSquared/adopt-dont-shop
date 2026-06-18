@@ -139,35 +139,18 @@ describe('VisitScheduling — cancel visit modal (UX P2 B)', () => {
 
   it('opens the cancel modal when Cancel Visit is clicked', () => {
     const setCancellingVisit = vi.fn();
-    render(
-      <VisitScheduling
-        {...defaultProps}
-        setCancellingVisit={setCancellingVisit}
-      />
-    );
+    render(<VisitScheduling {...defaultProps} setCancellingVisit={setCancellingVisit} />);
     fireEvent.click(screen.getByRole('button', { name: /cancel visit/i }));
     expect(setCancellingVisit).toHaveBeenCalledWith('visit-1');
   });
 
   it('renders the cancel dialog when cancellingVisit matches the visit id', () => {
-    render(
-      <VisitScheduling
-        {...defaultProps}
-        cancellingVisit="visit-1"
-        cancelReason=""
-      />
-    );
+    render(<VisitScheduling {...defaultProps} cancellingVisit="visit-1" cancelReason="" />);
     expect(screen.getByRole('dialog', { name: /cancel home visit/i })).toBeInTheDocument();
   });
 
   it('keeps Confirm Cancellation disabled when reason is empty', () => {
-    render(
-      <VisitScheduling
-        {...defaultProps}
-        cancellingVisit="visit-1"
-        cancelReason=""
-      />
-    );
+    render(<VisitScheduling {...defaultProps} cancellingVisit="visit-1" cancelReason="" />);
     expect(screen.getByRole('button', { name: /confirm cancellation/i })).toBeDisabled();
   });
 
@@ -204,9 +187,7 @@ describe('VisitScheduling — start visit', () => {
 
   it('calls onMarkVisitInProgress when Start Visit is clicked', () => {
     const onMarkVisitInProgress = vi.fn();
-    render(
-      <VisitScheduling {...defaultProps} onMarkVisitInProgress={onMarkVisitInProgress} />
-    );
+    render(<VisitScheduling {...defaultProps} onMarkVisitInProgress={onMarkVisitInProgress} />);
     fireEvent.click(screen.getByRole('button', { name: /start visit/i }));
     expect(onMarkVisitInProgress).toHaveBeenCalledWith('visit-1');
   });

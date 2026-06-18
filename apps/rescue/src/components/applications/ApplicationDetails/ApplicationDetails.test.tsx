@@ -81,7 +81,9 @@ describe('ApplicationDetails — previous pets section', () => {
   it('renders previous pet entries when present', () => {
     const accessors = makeAccessors({
       answers: {
-        previous_pets: [{ type: 'dog', breed: 'Labrador', years_owned: '3', what_happened: 'Passed away' }],
+        previous_pets: [
+          { type: 'dog', breed: 'Labrador', years_owned: '3', what_happened: 'Passed away' },
+        ],
       },
     });
     render(<ApplicationDetails {...accessors} />);
