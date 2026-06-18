@@ -1,5 +1,12 @@
 # Schema Equivalence Runbook
 
+> **Historical context.** This runbook describes the schema-equivalence gate as it
+> existed for the (now-removed) monolith backend, whose Sequelize models, migrations,
+> and helper scripts all lived under a single `service.backend/` package. The codebase
+> is now microservices (each service owns its migrations under
+> `services/<name>/src/migrations/`), and the live CI workflow has been reworked
+> accordingly. The monolith paths below are retained to document the original tool.
+
 The schema-equivalence gate is the per-model rebaseline's safety net (see [`per-model-rebaseline.md` §3.4](./per-model-rebaseline.md#34-verification-step)). It enforces a single invariant:
 
 > A database bootstrapped via `sequelize-cli db:migrate` must be byte-equivalent (modulo documented asymmetries) to a database bootstrapped via `sequelize.sync()` against the same model code.

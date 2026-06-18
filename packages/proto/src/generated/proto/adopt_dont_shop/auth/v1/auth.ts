@@ -508,6 +508,26 @@ export interface RegisterResponse {
   permissions: string[];
 }
 
+export interface ProvisionInvitedUserRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface ProvisionInvitedUserResponse {
+  /**
+   * The resolved user (created or pre-existing). user_id is the field
+   * the caller needs to attach staff membership.
+   */
+  user?: User | undefined;
+  /**
+   * True when this call created the row; false when the email already
+   * had an account and was attached as-is.
+   */
+  created: boolean;
+}
+
 export interface VerifyEmailRequest {
   verificationToken: string;
 }
@@ -2969,6 +2989,213 @@ export const RegisterResponse: MessageFns<RegisterResponse> = {
         ? TokenPair.fromPartial(object.tokens)
         : undefined;
     message.permissions = object.permissions?.map(e => e) || [];
+    return message;
+  },
+};
+
+function createBaseProvisionInvitedUserRequest(): ProvisionInvitedUserRequest {
+  return { email: '', password: '', firstName: '', lastName: '' };
+}
+
+export const ProvisionInvitedUserRequest: MessageFns<ProvisionInvitedUserRequest> = {
+  encode(
+    message: ProvisionInvitedUserRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.email !== '') {
+      writer.uint32(10).string(message.email);
+    }
+    if (message.password !== '') {
+      writer.uint32(18).string(message.password);
+    }
+    if (message.firstName !== '') {
+      writer.uint32(26).string(message.firstName);
+    }
+    if (message.lastName !== '') {
+      writer.uint32(34).string(message.lastName);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ProvisionInvitedUserRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseProvisionInvitedUserRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.password = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ProvisionInvitedUserRequest {
+    return {
+      email: isSet(object.email) ? globalThis.String(object.email) : '',
+      password: isSet(object.password) ? globalThis.String(object.password) : '',
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+          ? globalThis.String(object.first_name)
+          : '',
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+          ? globalThis.String(object.last_name)
+          : '',
+    };
+  },
+
+  toJSON(message: ProvisionInvitedUserRequest): unknown {
+    const obj: any = {};
+    if (message.email !== '') {
+      obj.email = message.email;
+    }
+    if (message.password !== '') {
+      obj.password = message.password;
+    }
+    if (message.firstName !== '') {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== '') {
+      obj.lastName = message.lastName;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ProvisionInvitedUserRequest>, I>>(
+    base?: I
+  ): ProvisionInvitedUserRequest {
+    return ProvisionInvitedUserRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ProvisionInvitedUserRequest>, I>>(
+    object: I
+  ): ProvisionInvitedUserRequest {
+    const message = createBaseProvisionInvitedUserRequest();
+    message.email = object.email ?? '';
+    message.password = object.password ?? '';
+    message.firstName = object.firstName ?? '';
+    message.lastName = object.lastName ?? '';
+    return message;
+  },
+};
+
+function createBaseProvisionInvitedUserResponse(): ProvisionInvitedUserResponse {
+  return { user: undefined, created: false };
+}
+
+export const ProvisionInvitedUserResponse: MessageFns<ProvisionInvitedUserResponse> = {
+  encode(
+    message: ProvisionInvitedUserResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    if (message.created !== false) {
+      writer.uint32(16).bool(message.created);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ProvisionInvitedUserResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseProvisionInvitedUserResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.created = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ProvisionInvitedUserResponse {
+    return {
+      user: isSet(object.user) ? User.fromJSON(object.user) : undefined,
+      created: isSet(object.created) ? globalThis.Boolean(object.created) : false,
+    };
+  },
+
+  toJSON(message: ProvisionInvitedUserResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    if (message.created !== false) {
+      obj.created = message.created;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ProvisionInvitedUserResponse>, I>>(
+    base?: I
+  ): ProvisionInvitedUserResponse {
+    return ProvisionInvitedUserResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ProvisionInvitedUserResponse>, I>>(
+    object: I
+  ): ProvisionInvitedUserResponse {
+    const message = createBaseProvisionInvitedUserResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.created = object.created ?? false;
     return message;
   },
 };
@@ -9105,6 +9332,31 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): RegisterResponse => RegisterResponse.decode(value),
   },
   /**
+   * Internal create-or-find for the invite-acceptance flow. Unlike
+   * Register, this is NOT enumeration-safe: it returns the resolved
+   * user_id so the caller (the gateway, after validating an invitation
+   * token) can attach the user as rescue staff. When the email already
+   * has an account the existing user_id is returned untouched (attach,
+   * don't error). When it's new, the account is created already
+   * email_verified=true + active (the invite link came from a trusted
+   * email), with user_type=rescue_staff. The plaintext password is set
+   * so the invitee can log in normally afterwards. Service-internal —
+   * the gateway only exposes it behind the invitation-accept route.
+   */
+  provisionInvitedUser: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ProvisionInvitedUser' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ProvisionInvitedUserRequest): Buffer =>
+      Buffer.from(ProvisionInvitedUserRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ProvisionInvitedUserRequest =>
+      ProvisionInvitedUserRequest.decode(value),
+    responseSerialize: (value: ProvisionInvitedUserResponse): Buffer =>
+      Buffer.from(ProvisionInvitedUserResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ProvisionInvitedUserResponse =>
+      ProvisionInvitedUserResponse.decode(value),
+  },
+  /**
    * Consume the verification_token mailed to the user; flips
    * email_verified=true and status=active.
    */
@@ -9632,6 +9884,19 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    */
   register: handleUnaryCall<RegisterRequest, RegisterResponse>;
   /**
+   * Internal create-or-find for the invite-acceptance flow. Unlike
+   * Register, this is NOT enumeration-safe: it returns the resolved
+   * user_id so the caller (the gateway, after validating an invitation
+   * token) can attach the user as rescue staff. When the email already
+   * has an account the existing user_id is returned untouched (attach,
+   * don't error). When it's new, the account is created already
+   * email_verified=true + active (the invite link came from a trusted
+   * email), with user_type=rescue_staff. The plaintext password is set
+   * so the invitee can log in normally afterwards. Service-internal —
+   * the gateway only exposes it behind the invitation-accept route.
+   */
+  provisionInvitedUser: handleUnaryCall<ProvisionInvitedUserRequest, ProvisionInvitedUserResponse>;
+  /**
    * Consume the verification_token mailed to the user; flips
    * email_verified=true and status=active.
    */
@@ -9934,6 +10199,33 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: RegisterResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Internal create-or-find for the invite-acceptance flow. Unlike
+   * Register, this is NOT enumeration-safe: it returns the resolved
+   * user_id so the caller (the gateway, after validating an invitation
+   * token) can attach the user as rescue staff. When the email already
+   * has an account the existing user_id is returned untouched (attach,
+   * don't error). When it's new, the account is created already
+   * email_verified=true + active (the invite link came from a trusted
+   * email), with user_type=rescue_staff. The plaintext password is set
+   * so the invitee can log in normally afterwards. Service-internal —
+   * the gateway only exposes it behind the invitation-accept route.
+   */
+  provisionInvitedUser(
+    request: ProvisionInvitedUserRequest,
+    callback: (error: ServiceError | null, response: ProvisionInvitedUserResponse) => void
+  ): ClientUnaryCall;
+  provisionInvitedUser(
+    request: ProvisionInvitedUserRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ProvisionInvitedUserResponse) => void
+  ): ClientUnaryCall;
+  provisionInvitedUser(
+    request: ProvisionInvitedUserRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ProvisionInvitedUserResponse) => void
   ): ClientUnaryCall;
   /**
    * Consume the verification_token mailed to the user; flips

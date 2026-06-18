@@ -7,12 +7,12 @@ covered by automated tests in this repository.
 
 | Runner   | Where it lives                                  | What it covers                                     |
 | -------- | ----------------------------------------------- | -------------------------------------------------- |
-| Vitest   | `service.backend`, `app.*`, every `lib.*`       | Behaviour-driven tests for services, components, libraries |
+| Vitest   | every `services/*`, `app.*`, and `lib.*`        | Behaviour-driven tests for services, components, libraries |
 | Playwright | `e2e/`                                          | Cross-app integration journeys against the docker-compose stack |
 
-`service.backend` test config lives in `service.backend/vitest.config.ts`
-and enforces coverage thresholds (see ADS-418). `pnpm test:coverage`
-in that workspace fails the build below the thresholds.
+Each backend service owns its own `vitest.config.ts` under
+`services/<name>/`, which enforces coverage thresholds (see ADS-418).
+`pnpm test:coverage` in that workspace fails the build below the thresholds.
 
 ## E2E gating
 

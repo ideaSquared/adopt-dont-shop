@@ -57,7 +57,7 @@ Technical architecture for the Rescue App (app.rescue) - a comprehensive managem
 
 ### Backend Integration
 
-- **API Gateway**: service.backend endpoints
+- **API Gateway**: `services/gateway` endpoints
 - **Authentication**: JWT with refresh tokens
 - **Rate Limiting**: Protection against abuse
 - **Validation**: Request/response validation

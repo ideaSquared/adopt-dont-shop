@@ -21,20 +21,25 @@ Browser  ──WS────►  Socket.IO  ──►  analytics:invalidate / m
 
 ### Backend layout
 
-| Path | Purpose |
+The analytics/reports feature is owned by the `audit` service (`services/audit`).
+The paths below are the original monolith layout, kept as a map of the moving
+parts; the equivalent code now lives under `services/audit/src/` (with the HTTP
+layer fronted by the gateway).
+
+| Path (former-monolith layout) | Purpose |
 | --- | --- |
-| `service.backend/src/migrations/00-baseline-041..046-*.ts` | Tables: `reports`, `report_status_transitions`, `report_templates`, `report_shares`, `saved_reports`, `scheduled_reports` |
-| `service.backend/src/models/{ReportTemplate,SavedReport,ScheduledReport,ReportShare}.ts` | Sequelize models (audit-columns + paranoid soft-delete) |
-| `service.backend/src/schemas/reports.schema.ts` | Canonical Zod schemas for the report config |
-| `service.backend/src/services/reports.service.ts` | CRUD + execute + share + schedule orchestration |
-| `service.backend/src/services/report-cache.service.ts` | Redis cache with TTLs scaled to widget freshness |
-| `service.backend/src/services/report-renderer.service.ts` | PDF (`pdfkit`) + CSV (`papaparse`) renderers |
-| `service.backend/src/lib/redis.ts` | Lazy ioredis client; no-op when `REDIS_URL` is unset |
-| `service.backend/src/lib/queue.ts` | BullMQ `reports` queue + worker factory |
-| `service.backend/src/workers/reports.worker.ts` | Two job types: `report:scheduled-run`, `report:render-and-email` |
-| `service.backend/src/socket/analytics-emitter.ts` | Server → client Socket.IO events with debouncing |
-| `service.backend/src/controllers/reports.controller.ts` | HTTP layer; enforces rescue-scope authorization |
-| `service.backend/src/routes/reports.routes.ts` | Mounted at `/api/v1/reports` |
+| `src/migrations/00-baseline-041..046-*.ts` | Tables: `reports`, `report_status_transitions`, `report_templates`, `report_shares`, `saved_reports`, `scheduled_reports` |
+| `src/models/{ReportTemplate,SavedReport,ScheduledReport,ReportShare}.ts` | Sequelize models (audit-columns + paranoid soft-delete) |
+| `src/schemas/reports.schema.ts` | Canonical Zod schemas for the report config |
+| `src/services/reports.service.ts` | CRUD + execute + share + schedule orchestration |
+| `src/services/report-cache.service.ts` | Redis cache with TTLs scaled to widget freshness |
+| `src/services/report-renderer.service.ts` | PDF (`pdfkit`) + CSV (`papaparse`) renderers |
+| `src/lib/redis.ts` | Lazy ioredis client; no-op when `REDIS_URL` is unset |
+| `src/lib/queue.ts` | BullMQ `reports` queue + worker factory |
+| `src/workers/reports.worker.ts` | Two job types: `report:scheduled-run`, `report:render-and-email` |
+| `src/socket/analytics-emitter.ts` | Server → client Socket.IO events with debouncing |
+| `src/controllers/reports.controller.ts` | HTTP layer; enforces rescue-scope authorization |
+| `src/routes/reports.routes.ts` | Mounted at `/api/v1/reports` |
 
 ### Frontend layout
 
@@ -196,7 +201,9 @@ Then in app.admin:
 
 ## Testing
 
-- `service.backend/src/__tests__/services/reports.service.test.ts`
-  covers execute dispatch, cache hit/miss, view-permission matrix.
-- `service.backend/src/__tests__/services/report-cache.service.test.ts`
-  asserts graceful degradation when Redis is unreachable.
+- The audit service's reports-service tests (originally
+  `src/__tests__/services/reports.service.test.ts`)
+  cover execute dispatch, cache hit/miss, view-permission matrix.
+- The report-cache tests (originally
+  `src/__tests__/services/report-cache.service.test.ts`)
+  assert graceful degradation when Redis is unreachable.

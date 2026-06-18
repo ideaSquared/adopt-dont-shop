@@ -1,6 +1,6 @@
 # Dependency Graph
 
-This monorepo is wired together by Turborepo. The dependency graph captures every workspace package (apps, libraries, the backend service) and the `^build` edges between them — i.e. which packages must finish building before a consumer can start. Generating and reading it is the fastest way to understand the blast radius of a change and to debug Turbo cache or ordering surprises.
+This monorepo is wired together by Turborepo. The dependency graph captures every workspace package (apps, libraries, the `services/*` backend services) and the `^build` edges between them — i.e. which packages must finish building before a consumer can start. Generating and reading it is the fastest way to understand the blast radius of a change and to debug Turbo cache or ordering surprises.
 
 ## Generate the graph
 
@@ -22,16 +22,16 @@ lib.types                    # zero-dependency type definitions
 other lib.*                  # lib.api, lib.auth, lib.components, lib.utils, ...
    |
    v
-apps (app.admin, app.client, app.rescue) + service.backend
+apps (app.admin, app.client, app.rescue) + services/* (gateway, auth, pets, ...)
 ```
 
 - **lib.types** is the foundation. It exports shared TypeScript types and Zod schemas with no workspace dependencies of its own.
 - **Other libraries** (`lib.api`, `lib.auth`, `lib.components`, etc.) depend on `lib.types` and occasionally on each other (e.g. `lib.api` consumes `lib.auth`).
-- **Apps** (`app.admin`, `app.client`, `app.rescue`) and **`service.backend`** sit at the top — they consume the libraries but nothing consumes them.
+- **Apps** (`app.admin`, `app.client`, `app.rescue`) and the **`services/*`** backend services sit at the top — they consume the libraries but nothing consumes them.
 
 ### Why changing lib.types cascades
 
-Because `lib.types` sits at the bottom, every other workspace transitively depends on it. A change to `lib.types` invalidates the Turbo cache for every downstream library, which in turn invalidates every app and `service.backend`. Expect `pnpm build` after a `lib.types` edit to rebuild essentially the whole graph. Conversely, editing an isolated leaf like `app.admin` only rebuilds that one package.
+Because `lib.types` sits at the bottom, every other workspace transitively depends on it. A change to `lib.types` invalidates the Turbo cache for every downstream library, which in turn invalidates every app and `services/*` package. Expect `pnpm build` after a `lib.types` edit to rebuild essentially the whole graph. Conversely, editing an isolated leaf like `app.admin` only rebuilds that one package.
 
 If you want to see this in action, generate the graph and trace the inbound edges into `lib.types` — that fan-out is the cascade.
 

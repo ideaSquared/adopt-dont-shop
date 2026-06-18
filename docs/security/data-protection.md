@@ -40,12 +40,15 @@ Record your provider + verification command in the team runbook (`docs/runbooks/
 
 ## Columns covered by application-layer encryption
 
-| Column / table | Algorithm | Code reference |
+Code references below point at the auth service (the former monolith paths
+shown are now removed; equivalent logic lives under `services/auth/`).
+
+| Column / table | Algorithm | Code reference (former monolith) |
 | --- | --- | --- |
-| `users.password` | bcrypt (12 rounds) | `service.backend/src/models/User.ts` |
-| `users.totp_secret` | AES-256-GCM (env-key `ENCRYPTION_KEY`) | `service.backend/src/services/two-factor.service.ts` |
+| `users.password` | bcrypt (12 rounds) | `src/models/User.ts` |
+| `users.totp_secret` | AES-256-GCM (env-key `ENCRYPTION_KEY`) | `src/services/two-factor.service.ts` |
 | `users.backup_codes` | bcrypt (per code) | same |
-| `password_reset_tokens.token_hash`, `email_verification.token_hash` | SHA-256 | `service.backend/src/services/auth.service.ts` |
+| `password_reset_tokens.token_hash`, `email_verification.token_hash` | SHA-256 | `src/services/auth.service.ts` |
 
 Anything **not** listed above is plaintext at the application layer and
 relies on the storage layer for at-rest confidentiality.
@@ -62,7 +65,7 @@ In the `users`, `profile`, `application_drafts`, `pets` and audit-log tables:
 - free-text fields submitted as part of adoption applications (cover
   letters, lifestyle answers) — `application_drafts.payload` JSONB
 - audit-log `details` JSONB (subject to Winston redaction at write time —
-  see `service.backend/src/utils/logger-helpers.ts`)
+  via the shared redaction in the observability package)
 
 ## Backup / snapshot encryption
 

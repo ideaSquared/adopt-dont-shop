@@ -7,7 +7,7 @@ Last updated: 2026-04-27 (plan 6.2 + 5.2).
 
 ## 1. What we collect
 
-Walk through the actual models in `service.backend/src/models/`. Every field listed below exists in code today.
+Walk through the actual models defined across the backend services (`services/*/src`). Every field listed below exists in code today.
 
 ### User (`users` table)
 

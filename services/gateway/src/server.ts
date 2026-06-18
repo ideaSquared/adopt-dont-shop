@@ -72,6 +72,7 @@ import { registerNotificationsRoutes } from './routes/notifications.js';
 import { registerPetsRoutes } from './routes/pets.js';
 import { registerReportsRoutes } from './routes/reports.js';
 import { registerRescueRoutes } from './routes/rescue.js';
+import { registerInvitationAcceptRoutes } from './routes/invitation-accept.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
 import { registerSessionsRoutes } from './routes/sessions.js';
 import { registerStaffFosterRoutes } from './routes/staff-foster.js';
@@ -451,6 +452,15 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // Staff / foster / invitation-read surface (/api/v1/staff/*,
     // /api/v1/foster/*, GET /api/v1/invitations/details/:token).
     await registerStaffFosterRoutes(server, { client: opts.rescueClient });
+  }
+  // POST /api/v1/invitations/accept — register-on-accept. Orchestrates
+  // auth (provision the invited user) + rescue (consume the invitation +
+  // attach staff membership), so it needs BOTH cutover flags on.
+  if (opts.authClient && opts.rescueClient && cutover.auth && cutover.rescue) {
+    await registerInvitationAcceptRoutes(server, {
+      authClient: opts.authClient,
+      rescueClient: opts.rescueClient,
+    });
   }
   if (opts.auditClient && cutover.audit) {
     await registerAuditRoutes(server, { client: opts.auditClient });

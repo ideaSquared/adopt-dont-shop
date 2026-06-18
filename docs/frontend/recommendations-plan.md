@@ -34,7 +34,7 @@ Weighted sum of normalised feature scores (0–1):
 | Special-needs match | 0.05 |
 | Sponsored boost (non-overriding) | 0.05 |
 
-Weights live in `service.backend/src/services/recommendation.service.ts` as a typed config. Statsig dynamic config can override at runtime so tuning doesn't require a deploy.
+Weights live in the matching service (`services/matching`) as a typed config. Statsig dynamic config can override at runtime so tuning doesn't require a deploy.
 
 ### Output
 
@@ -64,11 +64,11 @@ Weights live in `service.backend/src/services/recommendation.service.ts` as a ty
 
 ### Service shape
 
-- `service.backend/src/services/recommendation.service.ts`
+- Recommendation logic in the matching service (`services/matching`):
   - `computeFeatureVector(user, pet)` → numeric features
   - `score(features, weights)` → number
   - `getRecommendations(userId, filters, limit)` → ordered `PetId[]`
-- Wired behind `GET /api/v1/discovery/recommendations` in `service.backend/src/routes/discovery.routes.ts`.
+- Exposed behind `GET /api/v1/discovery/recommendations` via the gateway (`services/gateway`).
 - Excludes `discoverySession.viewedPetIds` via query param `excludePetIds=...` (frontend sends from localStorage).
 - Caches per `(userId, filterHash)` for 60s in Redis to keep p95 under 300ms when the queue is paginated.
 

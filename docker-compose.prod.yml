@@ -83,7 +83,7 @@ x-service-env: &service-env
 services:
   # Database - Production configuration
   database:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
     container_name: ads_prod_db
     # ADS-752: read the DB password from the file-mounted Docker secret rather
     # than the env var. POSTGRES_PASSWORD_FILE is honoured by the postgres
@@ -121,7 +121,7 @@ services:
 
   # Redis - Production configuration
   redis:
-    image: redis:7.4-alpine
+    image: redis:7.4-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     container_name: ads_prod_redis
     restart: always
     ports: []  # Don't expose Redis port to host in production
@@ -159,7 +159,7 @@ services:
   # NATS JetStream — event backbone for the extracted services. Required once
   # any CUTOVER_<DOMAIN> flag is flipped on; harmless when all are off.
   nats:
-    image: nats:2.10-alpine
+    image: nats:2.10-alpine@sha256:b83efabe3e7def1e0a4a31ec6e078999bb17c80363f881df35edc70fcb6bb927
     container_name: ads_prod_nats
     restart: always
     ports: []

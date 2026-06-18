@@ -1,6 +1,6 @@
 # DATA-STANDARDS.md
 
-Engineering reference for all data modelling decisions in the `adopt-dont-shop` monorepo. These rules apply to every model in `service.backend/src/models/` and every migration in `service.backend/src/migrations/`. When a rule is marked **Aspirational**, the standard is defined here but not yet fully enforced in code.
+Engineering reference for all data modelling decisions in the `adopt-dont-shop` monorepo. These rules apply to every model and every migration owned by the backend services (each service under `services/<name>/src/models/` and `services/<name>/src/migrations/`). When a rule is marked **Aspirational**, the standard is defined here but not yet fully enforced in code.
 
 ---
 
@@ -23,7 +23,7 @@ export type RescueId = Brand<string, 'RescueId'>;
 
 Passing a `PetId` where a `UserId` is expected is a compile-time error.
 
-Helper: `service.backend/src/utils/uuid.ts`.
+Helper: a `uuid` utility in each service's `src/utils/` (originally `src/utils/uuid.ts` in the now-removed monolith).
 
 ---
 
@@ -128,7 +128,7 @@ Every **transactional** model (i.e. any model that records a business event or s
 
 Reference tables (`roles`, `permissions`, `breeds`) are exempt.
 
-Helper factory: `service.backend/src/models/audit-columns.ts`.
+Helper factory: an `audit-columns` factory in each service's `src/models/` (originally `src/models/audit-columns.ts` in the now-removed monolith).
 
 ---
 
@@ -229,7 +229,7 @@ Two-factor authentication secrets (`twoFactorSecret`) are encrypted at rest usin
 
 `EmailPreference.unsubscribeToken` must be generated with `crypto.randomBytes(32).toString('base64url')` — not with `generateReadableId`, which produces guessable output.
 
-Helpers: `service.backend/src/utils/secrets.ts`.
+Helpers: a `secrets` utility in each service's `src/utils/` (originally `src/utils/secrets.ts` in the now-removed monolith).
 
 ---
 
@@ -305,7 +305,7 @@ A retried request with the same key returns the cached response without executin
 
 ## 20. Standards Enforcement Test
 
-`service.backend/src/__tests__/models/standards.test.ts` is the ongoing enforcement mechanism. It iterates `sequelize.models` at runtime and asserts that every model satisfies:
+A `standards` model test in each service (originally `src/__tests__/models/standards.test.ts` in the now-removed monolith) is the ongoing enforcement mechanism. It iterates `sequelize.models` at runtime and asserts that every model satisfies:
 
 - `options.underscored === true`
 - Primary key is UUID with a default (whitelisted INTEGER PKs on reference tables are exempt)
@@ -321,10 +321,12 @@ This test must pass on every PR. A model that is missing any required property c
 
 ## Where the Rules Live
 
-| Concern | File |
+Each backend service carries its own copy of these helpers under `services/<name>/src/` (the paths below are the original monolith locations, retained as a quick lookup of what each helper is called):
+
+| Concern | File (former-monolith path) |
 |---|---|
-| Sequelize dialect helpers (`getJsonType`, `getUuidType`, etc.) | `service.backend/src/sequelize.ts` |
-| Audit column factory (`created_by`, `updated_by`, `version`) | `service.backend/src/models/audit-columns.ts` |
-| Secret hashing and encryption helpers | `service.backend/src/utils/secrets.ts` |
-| UUIDv7 generator | `service.backend/src/utils/uuid.ts` |
-| Standards enforcement test | `service.backend/src/__tests__/models/standards.test.ts` |
+| Sequelize dialect helpers (`getJsonType`, `getUuidType`, etc.) | `src/sequelize.ts` |
+| Audit column factory (`created_by`, `updated_by`, `version`) | `src/models/audit-columns.ts` |
+| Secret hashing and encryption helpers | `src/utils/secrets.ts` |
+| UUIDv7 generator | `src/utils/uuid.ts` |
+| Standards enforcement test | `src/__tests__/models/standards.test.ts` |

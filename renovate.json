@@ -45,6 +45,11 @@
       "description": "Pin GitHub Action SHAs",
       "matchManagers": ["github-actions"],
       "pinDigests": true
+    },
+    {
+      "description": "Pin Docker base image digests and keep them current",
+      "matchManagers": ["docker", "dockerfile", "docker-compose"],
+      "pinDigests": true
     }
   ],
   "vulnerabilityAlerts": {

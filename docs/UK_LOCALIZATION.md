@@ -166,7 +166,7 @@ export interface RescueAddress {
 
 ### Backend Model
 
-**Location:** `service.backend/src/models/Rescue.ts`
+**Location:** the Rescue model in the rescue service (`services/rescue`; originally `src/models/Rescue.ts` in the now-removed monolith)
 
 **Key Changes:**
 

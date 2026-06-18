@@ -102,20 +102,34 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/api-auth-contract.spec.ts',
     '**/logout-flow.spec.ts',
     '**/rate-limit-application-submission.spec.ts',
-    // ADS-870 — UI-level journeys for features that previously had API-only
-    // e2e coverage. The specs are written (2fa-login-ui, favourite-add-via-ui,
-    // custom-question-on-application-form) but PARKED: their first CI run went
-    // 53 pass / 3 fail — each of these three failed on a UI assumption that
-    // needs debugging with the docker stack UP (a token-setup login returned no
-    // token; the favourite button didn't flip to "Favorited"; the custom
-    // question didn't render on /apply). Un-park once each is reproduced green
-    // locally. Tracked under ADS-870.
-    // profile-update-persistence: deferred. The bio edit submits and the
-    // gateway/auth map+persist `bio`, and GET /auth/me returns it, but the
-    // value does not round-trip back into the edit form after a reload (the
-    // assertion at spec line 47 timed out across all 3 CI retries). Likely the
-    // client hydrates a stale cached user instead of refetching /me — needs
-    // dedicated runtime debugging before un-parking (tracked under ADS-868).
+    // ADS-870 — PARKED (files retained, not listed): three UI journeys that
+    // fail in CI on causes only reproducible with the full docker stack UP,
+    // which can't be run in the un-parking environment:
+    // - 2fa-login-ui: a freshly-registered throwaway account can't be driven to
+    //   a token — the API login returns no access token, and reading the
+    //   verification token via the peek seam comes back null, even though
+    //   registration sets it and the identical peek works for the green
+    //   email-verification-roundtrip. Needs the live stack to see why the token
+    //   is absent before the UI 2FA challenge can be exercised.
+    // - favourite-add-via-ui: the pet detail "Add to Favorites" control never
+    //   flips to "Favorited" in CI (the assert at spec line 33 timed out across
+    //   all retries) — needs the running UI to see whether the click, the
+    //   POST /pets/:id/favorite, or the state refresh is at fault.
+    // - custom-question-on-application-form: even after fixing the apply form's
+    //   `{ data }` read (the gateway returns `{ data: [...] }`, not
+    //   `{ questions }`), the custom question still doesn't render on /apply in
+    //   CI (spec line 69) — a second cause that needs runtime debugging.
+    // Un-park each once reproduced green against a live stack (tracked ADS-870).
+    // profile-update-persistence: RE-PARKED. Investigation showed the root
+    // cause is deeper than a stale cache: the SPA's profile save calls
+    // authService.updateProfile → PUT /api/v1/auth/me, but the gateway has no
+    // such route (server.ts's catch-all returns 404 for PUT /api/*; the real
+    // persistence route is PATCH /api/v1/users/account). So the bio never
+    // persists and the round-trip can't succeed. The correct fix re-points
+    // updateProfile to PATCH /users/account AND refetches the user (and resyncs
+    // ProfileEditForm's snapshot) — a shared-lib.auth change with admin/rescue
+    // blast radius and existing tests asserting the PUT-/auth/me flow, so it
+    // needs runtime verification before landing. Tracked under ADS-868.
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863
@@ -128,11 +142,13 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/home-visit-scheduling.spec.ts',
     '**/staff-invitation-acceptance.spec.ts',
     '**/invitation-expiry-and-resend.spec.ts',
-    // ADS-871 — staff-invitation round-trip via the token-peek seam is PARKED
-    // (file retained, not listed): the invite → read-token → resolve journey's
-    // `toContain` assertion failed in CI and the accept step has no
-    // AcceptInvitation RPC / gateway route to complete against. Needs the
-    // accept path built before the full round-trip can be un-parked (ADS-871).
+    // ADS-871 — staff-invitation round-trip, now COMPLETE: the register-on-
+    // accept path is built (rescue AcceptInvitation RPC + auth
+    // ProvisionInvitedUser RPC + POST /api/v1/invitations/accept gateway
+    // route). The spec drives invite → read-token → resolve → accept (sets a
+    // password) → invitee logs in → GET /api/v1/staff/me shows them as
+    // verified staff of the inviting rescue.
+    '**/staff-invitation-roundtrip.spec.ts',
     // Unblocked by the applications seed — the rescue (Paws) inbox now lists
     // John Smith's seeded application. Tolerant of the status PATCH failing.
     '**/application-review.spec.ts',

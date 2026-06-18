@@ -116,7 +116,7 @@ Add a new service entry following the exact pattern of the existing apps:
 app-<name>:
   build:
     context: .
-    dockerfile: Dockerfile.app.optimized
+    dockerfile: Dockerfile.app
     target: development
     args:
       APP_NAME: app.<name>

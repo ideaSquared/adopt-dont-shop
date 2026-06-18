@@ -104,7 +104,7 @@ adopt-dont-shop/
 ├── docker-compose.staging.yml  # Staging (pre-built GHCR images)
 ├── docker-compose.prod.yml     # Production overlay
 ├── Dockerfile.service          # Parameterised image for the gateway + services
-├── Dockerfile.app.optimized    # Multi-stage frontend Dockerfile
+├── Dockerfile.app              # Multi-stage image that builds a React app (Vite SPA + nginx)
 └── docs/                       # Detailed guides
 ```
 
@@ -141,6 +141,8 @@ pnpm exec turbo dev --filter=@adopt-dont-shop/lib.api
 pnpm exec turbo build --filter=@adopt-dont-shop/app.admin
 pnpm exec turbo test --filter=@adopt-dont-shop/service.gateway
 ```
+
+> **Schema ownership.** Only the schema-owning services (auth, pets, rescue, applications, chat, notifications, moderation, matching, cms, audit) define and run a `db:migrate` script — each owns its own tables. The gateway owns no tables, so it has no `db:migrate` script; `docker compose exec service-gateway pnpm db:migrate` will fail with a missing-script error, which is expected. Skip it in any per-service migration loop.
 
 ## Hot Reload
 

@@ -1,5 +1,11 @@
 # Schema Audit Runbook
 
+> **Historical context.** This runbook describes a tool built for the (now-removed)
+> monolith backend, whose Sequelize models and scripts all lived under a single
+> `service.backend/` package. The codebase is now microservices (each service owns its
+> own schema under `services/<name>/`). The monolith paths below are retained to
+> document the original tool and the rebaseline plan it gated.
+
 `service.backend/scripts/schema-audit.ts` is a read-only diff tool. It compares the Sequelize models registered in `service.backend/src/models/index.ts` against a live database and prints a per-table report of any drift. Its purpose is to gate the per-model rebaseline plan in [`per-model-rebaseline.md`](./per-model-rebaseline.md): the SequelizeMeta pre-seed step (§3) is only safe if the live DB already matches what the per-model baseline files would create. The audit answers "does it?".
 
 ## Running the script

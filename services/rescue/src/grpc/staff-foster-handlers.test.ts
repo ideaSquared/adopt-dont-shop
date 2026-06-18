@@ -9,6 +9,7 @@ import { RescueV1 } from '@adopt-dont-shop/proto';
 import type { HandlerDeps } from './handlers.js';
 import type { PetsClient } from './pets-client.js';
 import {
+  acceptInvitation,
   endFosterPlacement,
   getFosterPlacement,
   getInvitationByToken,
@@ -451,6 +452,103 @@ describe('getInvitationByToken', () => {
     });
     await expect(
       getInvitationByToken(mocks.deps, null, { token: 'tok-old' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});
+
+// --- AcceptInvitation -----------------------------------------------
+
+describe('acceptInvitation', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  const invRow = (overrides: Record<string, unknown> = {}) => ({
+    invitation_id: 'inv-1',
+    email: 'invitee@example.com',
+    rescue_id: RESCUE_ID,
+    user_id: null,
+    title: 'Volunteer',
+    invited_by: 'usr-admin',
+    expiration: new Date(Date.now() + 86_400_000),
+    used: false,
+    created_at: new Date('2026-06-01T00:00:00Z'),
+    ...overrides,
+  });
+
+  it('rejects a missing token', async () => {
+    await expect(
+      acceptInvitation(mocks.deps, null, { token: '', userId: 'usr-new' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a missing user_id', async () => {
+    await expect(
+      acceptInvitation(mocks.deps, null, { token: 'tok-abc', userId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('marks the invitation used and inserts a verified staff membership', async () => {
+    // 1. SELECT FOR UPDATE invitation, 2. SELECT existing membership (none),
+    // 3. INSERT staff_members, 4. UPDATE invitation.
+    mocks.clientScript([invRow()]);
+    mocks.clientScript([]);
+    mocks.clientScript([staffRow({ user_id: 'usr-new', title: 'Volunteer', is_verified: true })]);
+    mocks.clientScript([]);
+
+    const res = await acceptInvitation(mocks.deps, null, {
+      token: 'tok-abc',
+      userId: 'usr-new',
+    });
+
+    expect(res.staffMember?.userId).toBe('usr-new');
+    expect(res.staffMember?.rescueId).toBe(RESCUE_ID);
+    expect(res.staffMember?.isVerified).toBe(true);
+
+    const sqls = mocks.clientMock.query.mock.calls.map(c => String(c[0]).trim().split(/\s+/)[0]);
+    expect(sqls).toContain('INSERT');
+    expect(sqls).toContain('UPDATE');
+    expect(mocks.natsMock.publish).toHaveBeenCalled();
+  });
+
+  it('is idempotent — returns the existing membership without re-inserting', async () => {
+    // 1. SELECT FOR UPDATE invitation (already used), 2. SELECT existing
+    // membership (found) → short-circuits before any INSERT/UPDATE.
+    mocks.clientScript([invRow({ used: true, user_id: 'usr-new' })]);
+    mocks.clientScript([staffRow({ user_id: 'usr-new' })]);
+
+    const res = await acceptInvitation(mocks.deps, null, {
+      token: 'tok-abc',
+      userId: 'usr-new',
+    });
+
+    expect(res.staffMember?.userId).toBe('usr-new');
+    const sqls = mocks.clientMock.query.mock.calls.map(c => String(c[0]).trim().split(/\s+/)[0]);
+    expect(sqls).not.toContain('INSERT');
+  });
+
+  it('returns NOT_FOUND for an expired invitation', async () => {
+    mocks.clientScript([invRow({ expiration: new Date(Date.now() - 1000) })]);
+    await expect(
+      acceptInvitation(mocks.deps, null, { token: 'tok-old', userId: 'usr-new' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns NOT_FOUND for an unknown token', async () => {
+    mocks.clientScript([]);
+    await expect(
+      acceptInvitation(mocks.deps, null, { token: 'tok-nope', userId: 'usr-new' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns NOT_FOUND when the token was already used by a different user', async () => {
+    // Invitation used; no membership for THIS user → already consumed by
+    // someone else. Don't reveal that — treat as no longer valid.
+    mocks.clientScript([invRow({ used: true, user_id: 'usr-other' })]);
+    mocks.clientScript([]);
+    await expect(
+      acceptInvitation(mocks.deps, null, { token: 'tok-abc', userId: 'usr-new' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });

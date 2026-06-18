@@ -6,7 +6,7 @@
 
 ## Current state
 
-`service.backend/src/middleware/webhook-signature.ts` verifies provider
+The notifications service's webhook-signature middleware verifies provider
 signatures (SendGrid ECDSA, Postmark HMAC, SES shared-secret, generic
 HMAC) and rejects requests whose timestamp is outside the tolerated skew.
 Since ADS-734 that window is **120 seconds** by default (was 5 minutes),
@@ -39,13 +39,16 @@ composite primary key.
 
 **Files:**
 
-| Layer | Path |
+All of these live in the notifications service (the former monolith paths
+below are now removed; equivalent logic lives under `services/notifications/`):
+
+| Layer | Former monolith path |
 | --- | --- |
-| Migration | `service.backend/src/migrations/12-create-webhook-event-ids.ts` |
-| Model | `service.backend/src/models/WebhookEventId.ts` |
-| Service | `service.backend/src/services/email/webhook-idempotency.service.ts` |
-| Wiring | `service.backend/src/controllers/email.controller.ts` (`handleDeliveryWebhook`) |
-| Cleanup | `service.backend/src/jobs/webhook-events-purge.job.ts` |
+| Migration | `src/migrations/12-create-webhook-event-ids.ts` |
+| Model | `src/models/WebhookEventId.ts` |
+| Service | `src/services/email/webhook-idempotency.service.ts` |
+| Wiring | `src/controllers/email.controller.ts` (`handleDeliveryWebhook`) |
+| Cleanup | `src/jobs/webhook-events-purge.job.ts` |
 
 **Table shape:**
 
@@ -93,16 +96,17 @@ no-ops if Redis is unavailable, mirroring the other system purges
 
 ## Tests
 
-Per-event idempotency behaviour is covered by:
+Per-event idempotency behaviour is covered by (former monolith test
+paths; now removed, equivalent coverage lives under `services/notifications/`):
 
-- `service.backend/src/__tests__/services/webhook-idempotency.service.test.ts`
+- `src/__tests__/services/webhook-idempotency.service.test.ts`
   — service-level: new event inserts a row, replay throws
   `WebhookReplayError`, same event_id across providers is two rows.
-- `service.backend/src/__tests__/routes/email-webhook-idempotency.routes.test.ts`
+- `src/__tests__/routes/email-webhook-idempotency.routes.test.ts`
   — route-level: replay returns `200 { deduplicated: true }` and does
   NOT re-invoke `emailService.handleDeliveryWebhook`; different
   `status` for the same `messageId` is a distinct event.
-- `service.backend/src/__tests__/jobs/webhook-events-purge.test.ts`
+- `src/__tests__/jobs/webhook-events-purge.test.ts`
   — purge job deletes rows older than the 7-day cutoff.
 
 Existing timestamp-window coverage remains in

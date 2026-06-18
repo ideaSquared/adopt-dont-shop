@@ -20,6 +20,7 @@ import { adapt, adaptUnauth } from './adapter.js';
 import {
   changePassword,
   forgotPassword,
+  provisionInvitedUser,
   register,
   resendVerification,
   resetPassword,
@@ -91,6 +92,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     // Account-lifecycle RPCs — unauthenticated entry points + two
     // principal-required ones (changePassword, updateAccount).
     register: adaptUnauth(register, { deps, logger }),
+    // Service-internal create-or-find for invite acceptance — gated by
+    // the gateway behind invitation-token validation, not a principal.
+    provisionInvitedUser: adaptUnauth(provisionInvitedUser, { deps, logger }),
     verifyEmail: adaptUnauth(verifyEmail, { deps, logger }),
     resendVerification: adaptUnauth(resendVerification, { deps, logger }),
     forgotPassword: adaptUnauth(forgotPassword, { deps, logger }),
@@ -140,6 +144,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getMe',
       'assignRole',
       'register',
+      'provisionInvitedUser',
       'verifyEmail',
       'resendVerification',
       'forgotPassword',

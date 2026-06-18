@@ -81,7 +81,7 @@ docker logs adopt-dont-shop-service-backend-1 2>&1 | grep "GET /api/v1/field-per
 
 ## Testing a production build
 
-Test the exact image that would ship — build the production stage of Dockerfile.app.optimized:
+Test the exact image that would ship — build the production stage of Dockerfile.app:
 
 ```bash
 # Build production image for a specific app
@@ -89,7 +89,7 @@ docker build \
   --build-arg APP_NAME=app.admin \
   --target production \
   -t ads-app-admin:test \
-  -f Dockerfile.app.optimized \
+  -f Dockerfile.app \
   .
 
 # Run it locally to verify
@@ -111,7 +111,7 @@ docker build \
   --build-arg APP_NAME=app.admin \
   --target development \
   -t ads-app-admin:dev \
-  -f Dockerfile.app.optimized \
+  -f Dockerfile.app \
   .
 ```
 
