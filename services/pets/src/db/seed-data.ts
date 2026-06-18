@@ -76,3 +76,31 @@ export const SEED_PETS: readonly SeedPet[] = [
     shortDescription: 'On hold pending a home check.',
   },
 ];
+
+// John Smith (the seeded adopter — id from the auth seed). Used as the
+// owner of the pre-seeded favourites the client/swipe-and-favourite
+// journey reads back.
+export const SEEDED_ADOPTER_ID = '98915d9e-69ed-46b2-a897-57d8469ff360';
+
+export type SeedFavorite = {
+  id: string;
+  userId: string;
+  petId: string;
+};
+
+// Two favourites for John Smith, pinned to existing catalogue pets so the
+// /favorites page renders cards and the e2e can delete one and watch the
+// count drop. Fixed ids so the seed is idempotent (ON CONFLICT revives a
+// row a prior e2e run soft-deleted).
+export const SEED_FAVORITES: readonly SeedFavorite[] = [
+  {
+    id: 'f0000000-0000-4000-8000-000000000001',
+    userId: SEEDED_ADOPTER_ID,
+    petId: '9ff53898-c5c6-4422-a245-54e52d4c4b78', // Buddy (available)
+  },
+  {
+    id: 'f0000000-0000-4000-8000-000000000002',
+    userId: SEEDED_ADOPTER_ID,
+    petId: 'a1d109eb-e717-44a0-aed7-c7c0af6c152f', // Luna (pending)
+  },
+];

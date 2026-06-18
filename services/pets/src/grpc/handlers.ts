@@ -86,7 +86,7 @@ export class HandlerError extends Error {
 
 // --- Row shape (mirrors the columns the proto surfaces) --------------
 
-type PetRow = {
+export type PetRow = {
   pet_id: string;
   name: string;
   rescue_id: string | null;
@@ -131,7 +131,7 @@ type PetRow = {
   version: number;
 };
 
-function rowToProto(row: PetRow, includeInternalNotes = true): Pet {
+export function rowToProto(row: PetRow, includeInternalNotes = true): Pet {
   const extra = {
     color: row.color,
     goodWithChildren: row.good_with_children,
@@ -180,7 +180,7 @@ function rowToProto(row: PetRow, includeInternalNotes = true): Pet {
   };
 }
 
-const PETS_SELECT = `
+export const PETS_SELECT = `
   pet_id, name, rescue_id, type, status, gender, size, age_group,
   breed_id, secondary_breed_id, short_description, long_description,
   age_years, age_months, color, archived, featured, priority_listing,

@@ -59,6 +59,16 @@ service PetService {
   // `pets.read`. Returns an empty list (not NOT_FOUND) when the pet has
   // no favouriters or does not exist.
   rpc ListFavoriters(ListPetFavoritersRequest) returns (ListPetFavoritersResponse);
+
+  // --- Per-user favourites --------------------------------------------
+  // Self-scoped: each operates on the calling principal's own favourites.
+  // AddFavorite / RemoveFavorite are idempotent. ListUserFavorites returns
+  // the public projection of the pets the caller has favourited.
+
+  rpc AddFavorite(AddFavoriteRequest) returns (AddFavoriteResponse);
+  rpc RemoveFavorite(RemoveFavoriteRequest) returns (RemoveFavoriteResponse);
+  rpc GetFavoriteStatus(GetFavoriteStatusRequest) returns (GetFavoriteStatusResponse);
+  rpc ListUserFavorites(ListUserFavoritesRequest) returns (ListUserFavoritesResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -319,4 +329,36 @@ message ListPetFavoritersRequest {
 
 message ListPetFavoritersResponse {
   repeated string user_ids = 1;
+}
+
+// --- Per-user favourites ---------------------------------------------
+
+message AddFavoriteRequest {
+  string pet_id = 1;
+}
+
+message AddFavoriteResponse {
+  bool favorited = 1;
+}
+
+message RemoveFavoriteRequest {
+  string pet_id = 1;
+}
+
+message RemoveFavoriteResponse {
+  bool removed = 1;
+}
+
+message GetFavoriteStatusRequest {
+  string pet_id = 1;
+}
+
+message GetFavoriteStatusResponse {
+  bool is_favorite = 1;
+}
+
+message ListUserFavoritesRequest {}
+
+message ListUserFavoritesResponse {
+  repeated Pet pets = 1;
 }

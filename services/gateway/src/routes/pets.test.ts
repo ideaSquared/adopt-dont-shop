@@ -26,6 +26,10 @@ function makeClient(): {
   updateStatusMock: ReturnType<typeof vi.fn>;
   deleteMock: ReturnType<typeof vi.fn>;
   getStatsMock: ReturnType<typeof vi.fn>;
+  addFavoriteMock: ReturnType<typeof vi.fn>;
+  removeFavoriteMock: ReturnType<typeof vi.fn>;
+  getFavoriteStatusMock: ReturnType<typeof vi.fn>;
+  listUserFavoritesMock: ReturnType<typeof vi.fn>;
 } {
   const createMock = vi.fn();
   const getMock = vi.fn();
@@ -34,6 +38,10 @@ function makeClient(): {
   const updateStatusMock = vi.fn();
   const deleteMock = vi.fn();
   const getStatsMock = vi.fn();
+  const addFavoriteMock = vi.fn();
+  const removeFavoriteMock = vi.fn();
+  const getFavoriteStatusMock = vi.fn();
+  const listUserFavoritesMock = vi.fn();
   const client: PetsClient = {
     create: createMock,
     get: getMock,
@@ -42,6 +50,10 @@ function makeClient(): {
     updateStatus: updateStatusMock,
     delete: deleteMock,
     getStats: getStatsMock,
+    addFavorite: addFavoriteMock,
+    removeFavorite: removeFavoriteMock,
+    getFavoriteStatus: getFavoriteStatusMock,
+    listUserFavorites: listUserFavoritesMock,
     close: vi.fn(),
   };
   return {
@@ -53,6 +65,10 @@ function makeClient(): {
     updateStatusMock,
     deleteMock,
     getStatsMock,
+    addFavoriteMock,
+    removeFavoriteMock,
+    getFavoriteStatusMock,
+    listUserFavoritesMock,
   };
 }
 
@@ -459,6 +475,92 @@ describe('GET /api/v1/pets/stats', () => {
         headers: { 'x-user-id': 'usr-noperms', 'x-user-roles': 'adopter' },
       });
       expect(res.statusCode).toBe(403);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('favourite routes', () => {
+  it('GET /pets/favorites/user returns the SPA { pets } envelope', async () => {
+    const { client, listUserFavoritesMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      listUserFavoritesMock.mockResolvedValueOnce({ pets: [PET_FIXTURE] });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/favorites/user',
+        headers: { 'x-user-id': 'usr-1' },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { success: boolean; data: { pets: unknown[]; total: number } };
+      expect(body.success).toBe(true);
+      expect(body.data.pets).toHaveLength(1);
+      expect(body.data.total).toBe(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not let /favorites/user be shadowed by GET /:id', async () => {
+    const { client, listUserFavoritesMock, getMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      listUserFavoritesMock.mockResolvedValueOnce({ pets: [] });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/favorites/user',
+        headers: { 'x-user-id': 'usr-1' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(listUserFavoritesMock).toHaveBeenCalledTimes(1);
+      expect(getMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('GET /pets/:id/favorite/status returns { isFavorite }', async () => {
+    const { client, getFavoriteStatusMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      getFavoriteStatusMock.mockResolvedValueOnce({ isFavorite: true });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/pets/pet-1/favorite/status',
+        headers: { 'x-user-id': 'usr-1' },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: { isFavorite: boolean } };
+      expect(body.data.isFavorite).toBe(true);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /pets/:id/favorite adds (201) and DELETE removes', async () => {
+    const { client, addFavoriteMock, removeFavoriteMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      addFavoriteMock.mockResolvedValueOnce({ favorited: true });
+      const add = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/pet-1/favorite',
+        headers: { 'x-user-id': 'usr-1' },
+      });
+      expect(add.statusCode).toBe(201);
+      const [addReq] = addFavoriteMock.mock.calls[0] as [{ petId: string }];
+      expect(addReq.petId).toBe('pet-1');
+
+      removeFavoriteMock.mockResolvedValueOnce({ removed: true });
+      const del = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/pets/pet-1/favorite',
+        headers: { 'x-user-id': 'usr-1' },
+      });
+      expect(del.statusCode).toBe(200);
+      const body = del.json() as { data: { removed: boolean } };
+      expect(body.data.removed).toBe(true);
     } finally {
       await app.close();
     }

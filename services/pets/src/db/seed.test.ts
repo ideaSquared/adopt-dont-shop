@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { seedPets, type QueryFn } from './seed.js';
-import { SEED_PETS } from './seed-data.js';
+import { seedFavorites, seedPets, type QueryFn } from './seed.js';
+import { SEED_FAVORITES, SEED_PETS } from './seed-data.js';
 
 function recordingQuery(): { query: QueryFn; calls: Array<{ text: string; values: unknown[] }> } {
   const calls: Array<{ text: string; values: unknown[] }> = [];
@@ -54,5 +54,23 @@ describe('pets seed', () => {
     const second = recordingQuery();
     await seedPets({ query: second.query });
     expect(second.calls).toHaveLength(calls.length);
+  });
+
+  it('seeds John Smith two favourites with an idempotent (revive) upsert', async () => {
+    const { query, calls } = recordingQuery();
+
+    const count = await seedFavorites({ query });
+
+    expect(count).toBe(SEED_FAVORITES.length);
+    expect(calls).toHaveLength(SEED_FAVORITES.length);
+    // ON CONFLICT revives a row a prior e2e run soft-deleted.
+    for (const call of calls) {
+      expect(call.text).toMatch(/ON CONFLICT \(id\) DO UPDATE SET deleted_at = NULL/);
+    }
+    expect(calls[0].values).toEqual([
+      SEED_FAVORITES[0].id,
+      SEED_FAVORITES[0].userId,
+      SEED_FAVORITES[0].petId,
+    ]);
   });
 });

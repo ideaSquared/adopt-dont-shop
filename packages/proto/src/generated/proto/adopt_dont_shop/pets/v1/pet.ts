@@ -532,6 +532,36 @@ export interface ListPetFavoritersResponse {
   userIds: string[];
 }
 
+export interface AddFavoriteRequest {
+  petId: string;
+}
+
+export interface AddFavoriteResponse {
+  favorited: boolean;
+}
+
+export interface RemoveFavoriteRequest {
+  petId: string;
+}
+
+export interface RemoveFavoriteResponse {
+  removed: boolean;
+}
+
+export interface GetFavoriteStatusRequest {
+  petId: string;
+}
+
+export interface GetFavoriteStatusResponse {
+  isFavorite: boolean;
+}
+
+export interface ListUserFavoritesRequest {}
+
+export interface ListUserFavoritesResponse {
+  pets: Pet[];
+}
+
 function createBasePet(): Pet {
   return {
     petId: '',
@@ -3503,6 +3533,516 @@ export const ListPetFavoritersResponse: MessageFns<ListPetFavoritersResponse> = 
   },
 };
 
+function createBaseAddFavoriteRequest(): AddFavoriteRequest {
+  return { petId: '' };
+}
+
+export const AddFavoriteRequest: MessageFns<AddFavoriteRequest> = {
+  encode(message: AddFavoriteRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.petId !== '') {
+      writer.uint32(10).string(message.petId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AddFavoriteRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAddFavoriteRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AddFavoriteRequest {
+    return {
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+          ? globalThis.String(object.pet_id)
+          : '',
+    };
+  },
+
+  toJSON(message: AddFavoriteRequest): unknown {
+    const obj: any = {};
+    if (message.petId !== '') {
+      obj.petId = message.petId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AddFavoriteRequest>, I>>(base?: I): AddFavoriteRequest {
+    return AddFavoriteRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AddFavoriteRequest>, I>>(object: I): AddFavoriteRequest {
+    const message = createBaseAddFavoriteRequest();
+    message.petId = object.petId ?? '';
+    return message;
+  },
+};
+
+function createBaseAddFavoriteResponse(): AddFavoriteResponse {
+  return { favorited: false };
+}
+
+export const AddFavoriteResponse: MessageFns<AddFavoriteResponse> = {
+  encode(message: AddFavoriteResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.favorited !== false) {
+      writer.uint32(8).bool(message.favorited);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AddFavoriteResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAddFavoriteResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.favorited = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AddFavoriteResponse {
+    return { favorited: isSet(object.favorited) ? globalThis.Boolean(object.favorited) : false };
+  },
+
+  toJSON(message: AddFavoriteResponse): unknown {
+    const obj: any = {};
+    if (message.favorited !== false) {
+      obj.favorited = message.favorited;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AddFavoriteResponse>, I>>(base?: I): AddFavoriteResponse {
+    return AddFavoriteResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AddFavoriteResponse>, I>>(
+    object: I
+  ): AddFavoriteResponse {
+    const message = createBaseAddFavoriteResponse();
+    message.favorited = object.favorited ?? false;
+    return message;
+  },
+};
+
+function createBaseRemoveFavoriteRequest(): RemoveFavoriteRequest {
+  return { petId: '' };
+}
+
+export const RemoveFavoriteRequest: MessageFns<RemoveFavoriteRequest> = {
+  encode(message: RemoveFavoriteRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.petId !== '') {
+      writer.uint32(10).string(message.petId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RemoveFavoriteRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRemoveFavoriteRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RemoveFavoriteRequest {
+    return {
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+          ? globalThis.String(object.pet_id)
+          : '',
+    };
+  },
+
+  toJSON(message: RemoveFavoriteRequest): unknown {
+    const obj: any = {};
+    if (message.petId !== '') {
+      obj.petId = message.petId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RemoveFavoriteRequest>, I>>(base?: I): RemoveFavoriteRequest {
+    return RemoveFavoriteRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RemoveFavoriteRequest>, I>>(
+    object: I
+  ): RemoveFavoriteRequest {
+    const message = createBaseRemoveFavoriteRequest();
+    message.petId = object.petId ?? '';
+    return message;
+  },
+};
+
+function createBaseRemoveFavoriteResponse(): RemoveFavoriteResponse {
+  return { removed: false };
+}
+
+export const RemoveFavoriteResponse: MessageFns<RemoveFavoriteResponse> = {
+  encode(message: RemoveFavoriteResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.removed !== false) {
+      writer.uint32(8).bool(message.removed);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RemoveFavoriteResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRemoveFavoriteResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.removed = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RemoveFavoriteResponse {
+    return { removed: isSet(object.removed) ? globalThis.Boolean(object.removed) : false };
+  },
+
+  toJSON(message: RemoveFavoriteResponse): unknown {
+    const obj: any = {};
+    if (message.removed !== false) {
+      obj.removed = message.removed;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RemoveFavoriteResponse>, I>>(
+    base?: I
+  ): RemoveFavoriteResponse {
+    return RemoveFavoriteResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RemoveFavoriteResponse>, I>>(
+    object: I
+  ): RemoveFavoriteResponse {
+    const message = createBaseRemoveFavoriteResponse();
+    message.removed = object.removed ?? false;
+    return message;
+  },
+};
+
+function createBaseGetFavoriteStatusRequest(): GetFavoriteStatusRequest {
+  return { petId: '' };
+}
+
+export const GetFavoriteStatusRequest: MessageFns<GetFavoriteStatusRequest> = {
+  encode(
+    message: GetFavoriteStatusRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.petId !== '') {
+      writer.uint32(10).string(message.petId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetFavoriteStatusRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetFavoriteStatusRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetFavoriteStatusRequest {
+    return {
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+          ? globalThis.String(object.pet_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetFavoriteStatusRequest): unknown {
+    const obj: any = {};
+    if (message.petId !== '') {
+      obj.petId = message.petId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetFavoriteStatusRequest>, I>>(
+    base?: I
+  ): GetFavoriteStatusRequest {
+    return GetFavoriteStatusRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetFavoriteStatusRequest>, I>>(
+    object: I
+  ): GetFavoriteStatusRequest {
+    const message = createBaseGetFavoriteStatusRequest();
+    message.petId = object.petId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetFavoriteStatusResponse(): GetFavoriteStatusResponse {
+  return { isFavorite: false };
+}
+
+export const GetFavoriteStatusResponse: MessageFns<GetFavoriteStatusResponse> = {
+  encode(
+    message: GetFavoriteStatusResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.isFavorite !== false) {
+      writer.uint32(8).bool(message.isFavorite);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetFavoriteStatusResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetFavoriteStatusResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.isFavorite = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetFavoriteStatusResponse {
+    return {
+      isFavorite: isSet(object.isFavorite)
+        ? globalThis.Boolean(object.isFavorite)
+        : isSet(object.is_favorite)
+          ? globalThis.Boolean(object.is_favorite)
+          : false,
+    };
+  },
+
+  toJSON(message: GetFavoriteStatusResponse): unknown {
+    const obj: any = {};
+    if (message.isFavorite !== false) {
+      obj.isFavorite = message.isFavorite;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetFavoriteStatusResponse>, I>>(
+    base?: I
+  ): GetFavoriteStatusResponse {
+    return GetFavoriteStatusResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetFavoriteStatusResponse>, I>>(
+    object: I
+  ): GetFavoriteStatusResponse {
+    const message = createBaseGetFavoriteStatusResponse();
+    message.isFavorite = object.isFavorite ?? false;
+    return message;
+  },
+};
+
+function createBaseListUserFavoritesRequest(): ListUserFavoritesRequest {
+  return {};
+}
+
+export const ListUserFavoritesRequest: MessageFns<ListUserFavoritesRequest> = {
+  encode(_: ListUserFavoritesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListUserFavoritesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListUserFavoritesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): ListUserFavoritesRequest {
+    return {};
+  },
+
+  toJSON(_: ListUserFavoritesRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListUserFavoritesRequest>, I>>(
+    base?: I
+  ): ListUserFavoritesRequest {
+    return ListUserFavoritesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListUserFavoritesRequest>, I>>(
+    _: I
+  ): ListUserFavoritesRequest {
+    const message = createBaseListUserFavoritesRequest();
+    return message;
+  },
+};
+
+function createBaseListUserFavoritesResponse(): ListUserFavoritesResponse {
+  return { pets: [] };
+}
+
+export const ListUserFavoritesResponse: MessageFns<ListUserFavoritesResponse> = {
+  encode(
+    message: ListUserFavoritesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.pets) {
+      Pet.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListUserFavoritesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListUserFavoritesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.pets.push(Pet.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListUserFavoritesResponse {
+    return {
+      pets: globalThis.Array.isArray(object?.pets)
+        ? object.pets.map((e: any) => Pet.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListUserFavoritesResponse): unknown {
+    const obj: any = {};
+    if (message.pets?.length) {
+      obj.pets = message.pets.map(e => Pet.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListUserFavoritesResponse>, I>>(
+    base?: I
+  ): ListUserFavoritesResponse {
+    return ListUserFavoritesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListUserFavoritesResponse>, I>>(
+    object: I
+  ): ListUserFavoritesResponse {
+    const message = createBaseListUserFavoritesResponse();
+    message.pets = object.pets?.map(e => Pet.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * PetService is the gRPC contract for the pets vertical. It owns the
  * `pets.*` schema (Pet, PetMedia, Breed, UserFavorite, Rating,
@@ -3654,6 +4194,56 @@ export const PetServiceService = {
     responseDeserialize: (value: Buffer): ListPetFavoritersResponse =>
       ListPetFavoritersResponse.decode(value),
   },
+  addFavorite: {
+    path: '/adopt_dont_shop.pets.v1.PetService/AddFavorite' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AddFavoriteRequest): Buffer =>
+      Buffer.from(AddFavoriteRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AddFavoriteRequest => AddFavoriteRequest.decode(value),
+    responseSerialize: (value: AddFavoriteResponse): Buffer =>
+      Buffer.from(AddFavoriteResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AddFavoriteResponse => AddFavoriteResponse.decode(value),
+  },
+  removeFavorite: {
+    path: '/adopt_dont_shop.pets.v1.PetService/RemoveFavorite' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RemoveFavoriteRequest): Buffer =>
+      Buffer.from(RemoveFavoriteRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RemoveFavoriteRequest =>
+      RemoveFavoriteRequest.decode(value),
+    responseSerialize: (value: RemoveFavoriteResponse): Buffer =>
+      Buffer.from(RemoveFavoriteResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RemoveFavoriteResponse =>
+      RemoveFavoriteResponse.decode(value),
+  },
+  getFavoriteStatus: {
+    path: '/adopt_dont_shop.pets.v1.PetService/GetFavoriteStatus' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetFavoriteStatusRequest): Buffer =>
+      Buffer.from(GetFavoriteStatusRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetFavoriteStatusRequest =>
+      GetFavoriteStatusRequest.decode(value),
+    responseSerialize: (value: GetFavoriteStatusResponse): Buffer =>
+      Buffer.from(GetFavoriteStatusResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetFavoriteStatusResponse =>
+      GetFavoriteStatusResponse.decode(value),
+  },
+  listUserFavorites: {
+    path: '/adopt_dont_shop.pets.v1.PetService/ListUserFavorites' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListUserFavoritesRequest): Buffer =>
+      Buffer.from(ListUserFavoritesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListUserFavoritesRequest =>
+      ListUserFavoritesRequest.decode(value),
+    responseSerialize: (value: ListUserFavoritesResponse): Buffer =>
+      Buffer.from(ListUserFavoritesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListUserFavoritesResponse =>
+      ListUserFavoritesResponse.decode(value),
+  },
 } as const;
 
 export interface PetServiceServer extends UntypedServiceImplementation {
@@ -3705,6 +4295,10 @@ export interface PetServiceServer extends UntypedServiceImplementation {
    * no favouriters or does not exist.
    */
   listFavoriters: handleUnaryCall<ListPetFavoritersRequest, ListPetFavoritersResponse>;
+  addFavorite: handleUnaryCall<AddFavoriteRequest, AddFavoriteResponse>;
+  removeFavorite: handleUnaryCall<RemoveFavoriteRequest, RemoveFavoriteResponse>;
+  getFavoriteStatus: handleUnaryCall<GetFavoriteStatusRequest, GetFavoriteStatusResponse>;
+  listUserFavorites: handleUnaryCall<ListUserFavoritesRequest, ListUserFavoritesResponse>;
 }
 
 export interface PetServiceClient extends Client {
@@ -3867,6 +4461,66 @@ export interface PetServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ListPetFavoritersResponse) => void
+  ): ClientUnaryCall;
+  addFavorite(
+    request: AddFavoriteRequest,
+    callback: (error: ServiceError | null, response: AddFavoriteResponse) => void
+  ): ClientUnaryCall;
+  addFavorite(
+    request: AddFavoriteRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AddFavoriteResponse) => void
+  ): ClientUnaryCall;
+  addFavorite(
+    request: AddFavoriteRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AddFavoriteResponse) => void
+  ): ClientUnaryCall;
+  removeFavorite(
+    request: RemoveFavoriteRequest,
+    callback: (error: ServiceError | null, response: RemoveFavoriteResponse) => void
+  ): ClientUnaryCall;
+  removeFavorite(
+    request: RemoveFavoriteRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RemoveFavoriteResponse) => void
+  ): ClientUnaryCall;
+  removeFavorite(
+    request: RemoveFavoriteRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RemoveFavoriteResponse) => void
+  ): ClientUnaryCall;
+  getFavoriteStatus(
+    request: GetFavoriteStatusRequest,
+    callback: (error: ServiceError | null, response: GetFavoriteStatusResponse) => void
+  ): ClientUnaryCall;
+  getFavoriteStatus(
+    request: GetFavoriteStatusRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetFavoriteStatusResponse) => void
+  ): ClientUnaryCall;
+  getFavoriteStatus(
+    request: GetFavoriteStatusRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetFavoriteStatusResponse) => void
+  ): ClientUnaryCall;
+  listUserFavorites(
+    request: ListUserFavoritesRequest,
+    callback: (error: ServiceError | null, response: ListUserFavoritesResponse) => void
+  ): ClientUnaryCall;
+  listUserFavorites(
+    request: ListUserFavoritesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListUserFavoritesResponse) => void
+  ): ClientUnaryCall;
+  listUserFavorites(
+    request: ListUserFavoritesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListUserFavoritesResponse) => void
   ): ClientUnaryCall;
 }
 

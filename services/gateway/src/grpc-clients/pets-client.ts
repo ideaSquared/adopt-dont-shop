@@ -14,16 +14,24 @@ import { credentials, Metadata, type CallOptions } from '@grpc/grpc-js';
 
 import {
   PetsV1,
+  type AddFavoriteRequest,
+  type AddFavoriteResponse,
   type CreatePetRequest,
   type CreatePetResponse,
   type DeletePetRequest,
   type DeletePetResponse,
+  type GetFavoriteStatusRequest,
+  type GetFavoriteStatusResponse,
   type GetPetRequest,
   type GetPetResponse,
   type GetPetStatsRequest,
   type GetPetStatsResponse,
   type ListPetsRequest,
   type ListPetsResponse,
+  type ListUserFavoritesRequest,
+  type ListUserFavoritesResponse,
+  type RemoveFavoriteRequest,
+  type RemoveFavoriteResponse,
   type UpdatePetRequest,
   type UpdatePetResponse,
   type UpdatePetStatusRequest,
@@ -42,6 +50,16 @@ export type PetsClient = {
   updateStatus(req: UpdatePetStatusRequest, metadata: Metadata): Promise<UpdatePetStatusResponse>;
   delete(req: DeletePetRequest, metadata: Metadata): Promise<DeletePetResponse>;
   getStats(req: GetPetStatsRequest, metadata: Metadata): Promise<GetPetStatsResponse>;
+  addFavorite(req: AddFavoriteRequest, metadata: Metadata): Promise<AddFavoriteResponse>;
+  removeFavorite(req: RemoveFavoriteRequest, metadata: Metadata): Promise<RemoveFavoriteResponse>;
+  getFavoriteStatus(
+    req: GetFavoriteStatusRequest,
+    metadata: Metadata
+  ): Promise<GetFavoriteStatusResponse>;
+  listUserFavorites(
+    req: ListUserFavoritesRequest,
+    metadata: Metadata
+  ): Promise<ListUserFavoritesResponse>;
   close(): void;
 };
 
@@ -113,6 +131,10 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
     get: (req, metadata) => callUnary(stub.get, req, metadata, true),
     list: (req, metadata) => callUnary(stub.list, req, metadata, true),
     getStats: (req, metadata) => callUnary(stub.getStats, req, metadata, true),
+    addFavorite: (req, metadata) => callUnary(stub.addFavorite, req, metadata, false),
+    removeFavorite: (req, metadata) => callUnary(stub.removeFavorite, req, metadata, false),
+    getFavoriteStatus: (req, metadata) => callUnary(stub.getFavoriteStatus, req, metadata, true),
+    listUserFavorites: (req, metadata) => callUnary(stub.listUserFavorites, req, metadata, true),
     close: () => stub.close(),
   };
 };

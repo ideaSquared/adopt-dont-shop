@@ -3,15 +3,13 @@ import { petCardLocator } from '../../helpers/pet';
 import { deleteWithCsrf, expectOk } from '../../helpers/seeds';
 
 /**
- * The seeders pre-create TWO favourites for John Smith
- * (31-e2e-fixtures.ts).  Test 1 asserts the favourites page surfaces
- * them.  Test 2 deletes one via API and asserts the count drops by one.
- *
- * We deliberately don't go through POST /pets/:id/favorite because
- * the favourite-add code path is currently 500ing on a Postgres ENUM
- * cast inside the Pet read — captured separately as a backend bug.
- * The unfavourite (DELETE) path remains exercised and is the real
- * contract this test pins down.
+ * The pets seed (services/pets/src/db/seed.ts → SEED_FAVORITES) pre-creates
+ * TWO favourites for John Smith — Buddy (available) and Luna (pending).
+ * Test 1 asserts the favourites page surfaces them. Test 2 deletes one via
+ * the DELETE /pets/:id/favorite gateway route and asserts the count drops
+ * by one. The list, status and add/remove favourite routes are all wired
+ * in services/gateway/src/routes/pets.ts onto the pets service's
+ * user-favourites RPCs.
  */
 test.describe('favourites', () => {
   test('seeded favourites show on the favourites page', async ({ page }) => {
@@ -35,9 +33,9 @@ test.describe('favourites', () => {
     const initialCount = await petCardLocator(page).count();
     expect(initialCount).toBeGreaterThan(0);
 
-    // Delete the second seeded favourite (pet 756a...).  This leaves
-    // the first one (9ff5...) intact for the read test in this file.
-    const secondSeededFav = '756ac9c5-ac22-49eb-a21d-8385d525e6de';
+    // Delete the second seeded favourite (Luna, a1d1...).  This leaves
+    // the first one (Buddy, 9ff5...) intact for the read test in this file.
+    const secondSeededFav = 'a1d109eb-e717-44a0-aed7-c7c0af6c152f';
     const removeRes = await deleteWithCsrf(
       adopterApi.context,
       `/api/v1/pets/${secondSeededFav}/favorite`
