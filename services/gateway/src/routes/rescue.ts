@@ -96,15 +96,6 @@ export const registerRescueRoutes = async (
       schema: {
         tags: ['rescue'],
         summary: 'List rescues',
-        querystring: {
-          type: 'object',
-          properties: {
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-            status: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -134,12 +125,6 @@ export const registerRescueRoutes = async (
       schema: {
         tags: ['rescue'],
         summary: 'Get a rescue by ID',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -159,29 +144,6 @@ export const registerRescueRoutes = async (
       schema: {
         tags: ['rescue'],
         summary: 'Create a rescue',
-        body: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            email: { type: 'string' },
-            phone: { type: 'string' },
-            address: { type: 'string' },
-            city: { type: 'string' },
-            county: { type: 'string' },
-            postcode: { type: 'string' },
-            country: { type: 'string' },
-            website: { type: 'string' },
-            description: { type: 'string' },
-            mission: { type: 'string' },
-            companiesHouseNumber: { type: 'string' },
-            charityRegistrationNumber: { type: 'string' },
-            contactPerson: { type: 'string' },
-            contactTitle: { type: 'string' },
-            contactEmail: { type: 'string' },
-            contactPhone: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -221,16 +183,6 @@ export const registerRescueRoutes = async (
       schema: {
         tags: ['rescue'],
         summary: 'Update a rescue',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -252,21 +204,6 @@ export const registerRescueRoutes = async (
       schema: {
         tags: ['rescue'],
         summary: 'Verify a rescue',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            toStatus: { type: 'string' },
-            verificationSource: { type: 'string' },
-            failureReason: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -293,21 +230,6 @@ export const registerRescueRoutes = async (
       schema: {
         tags: ['rescue'],
         summary: 'Invite staff to a rescue',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            email: { type: 'string' },
-            title: { type: 'string' },
-            expiresInSeconds: { type: 'number' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -340,12 +262,6 @@ export const registerRescueRoutes = async (
       schema: {
         tags: ['rescue'],
         summary: 'List application questions for a rescue',
-        params: {
-          type: 'object',
-          properties: {
-            rescueId: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -371,33 +287,6 @@ export const registerRescueRoutes = async (
       schema: {
         tags: ['rescue'],
         summary: 'Create an application question for a rescue',
-        params: {
-          type: 'object',
-          properties: {
-            rescueId: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            questionKey: { type: 'string' },
-            question_key: { type: 'string' },
-            category: { type: 'string' },
-            questionType: { type: 'string' },
-            question_type: { type: 'string' },
-            questionText: { type: 'string' },
-            question_text: { type: 'string' },
-            helpText: { type: 'string' },
-            help_text: { type: 'string' },
-            placeholder: { type: 'string' },
-            options: { type: 'array', items: { type: 'string' } },
-            sortOrder: { type: 'number' },
-            displayOrder: { type: 'number' },
-            isRequired: { type: 'boolean' },
-            is_required: { type: 'boolean' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -438,13 +327,6 @@ export const registerRescueRoutes = async (
       schema: {
         tags: ['rescue'],
         summary: 'Delete an application question',
-        params: {
-          type: 'object',
-          properties: {
-            rescueId: { type: 'string' },
-            questionId: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {

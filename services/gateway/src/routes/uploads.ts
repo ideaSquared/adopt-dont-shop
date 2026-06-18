@@ -180,13 +180,6 @@ export const registerUploadsRoutes = async (
         tags: ['uploads'],
         summary: 'Serve a signed upload URL',
         security: [],
-        params: {
-          type: 'object',
-          properties: {
-            expiresAt: { type: 'string' },
-            signature: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {

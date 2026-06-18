@@ -86,10 +86,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Create and submit an adoption application',
-        body: {
-          type: 'object',
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -131,20 +127,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Update application status',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            status: { type: 'string' },
-            notes: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -181,19 +163,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Withdraw an application',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            reason: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -223,16 +192,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Update application answers',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -265,21 +224,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Save draft answers for an application',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            expectedVersion: { type: 'number' },
-            answersPatchJson: { type: 'string' },
-            referencesJson: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -306,19 +250,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Submit a draft application',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            expectedVersion: { type: 'number' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -345,19 +276,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Start review of an application',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            note: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -382,20 +300,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Schedule a home visit for an application',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            scheduledAt: { type: 'string' },
-            note: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -421,20 +325,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Complete a home visit for an application',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            outcome: { type: 'string' },
-            notes: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -460,19 +350,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Approve an application',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            notes: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -497,19 +374,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Reject an application',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            reason: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -534,19 +398,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Withdraw an application (service-shaped)',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            reason: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -571,12 +422,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Mark an application as adopted',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -601,14 +446,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Get application statistics',
-        querystring: {
-          type: 'object',
-          properties: {
-            rescue: { type: 'string' },
-            adopter: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -632,17 +469,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'List applications',
-        querystring: {
-          type: 'object',
-          properties: {
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-            status: { type: 'string' },
-            rescue: { type: 'string' },
-            adopter: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -679,19 +505,6 @@ export const registerApplicationsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Get an application by ID',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        querystring: {
-          type: 'object',
-          properties: {
-            timeline: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {

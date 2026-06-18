@@ -91,16 +91,6 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.startSession },
       schema: {
         tags: ['matching'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            filtersJson: { type: 'string' },
-            deviceType: { type: 'string' },
-            userAgent: { type: 'string' },
-            ipAddress: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -149,16 +139,6 @@ export const registerMatchingRoutes = async (
       schema: {
         tags: ['matching'],
         params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            petId: { type: 'string' },
-            action: { type: 'string' },
-            responseTime: { type: 'number' },
-            deviceType: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -189,17 +169,6 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.recordSwipe },
       schema: {
         tags: ['discovery'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            sessionId: { type: 'string' },
-            petId: { type: 'string' },
-            action: { type: 'string' },
-            responseTime: { type: 'number' },
-            deviceType: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -232,15 +201,6 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.listSwipeHistory },
       schema: {
         tags: ['matching'],
-        querystring: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-            action: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -273,16 +233,6 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.recommend },
       schema: {
         tags: ['discovery'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            sessionId: { type: 'string' },
-            filters: { type: 'object', additionalProperties: true },
-            userId: { type: 'string' },
-            limit: { type: 'number' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -311,16 +261,6 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.recommend },
       schema: {
         tags: ['discovery'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            sessionId: { type: 'string' },
-            filters: { type: 'object', additionalProperties: true },
-            userId: { type: 'string' },
-            limit: { type: 'number' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -349,17 +289,6 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.search },
       schema: {
         tags: ['discovery'],
-        querystring: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            q: { type: 'string' },
-            query: { type: 'string' },
-            filters: { type: 'string' },
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -423,11 +352,6 @@ export const registerMatchingRoutes = async (
     {
       schema: {
         tags: ['discovery'],
-        params: {
-          type: 'object',
-          properties: { userId: { type: 'string' } },
-          required: ['userId'],
-        },
       },
     },
     async (req, reply) => {
@@ -453,11 +377,6 @@ export const registerMatchingRoutes = async (
     {
       schema: {
         tags: ['discovery'],
-        params: {
-          type: 'object',
-          properties: { sessionId: { type: 'string' } },
-          required: ['sessionId'],
-        },
       },
     },
     async (req, reply) => {

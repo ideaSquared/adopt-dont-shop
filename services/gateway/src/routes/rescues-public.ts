@@ -48,16 +48,6 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'List rescues',
-        querystring: {
-          type: 'object',
-          properties: {
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-            status: { type: 'string' },
-            search: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -85,13 +75,6 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'List featured rescues',
-        querystring: {
-          type: 'object',
-          properties: {
-            limit: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -123,17 +106,6 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'Search rescues',
-        querystring: {
-          type: 'object',
-          properties: {
-            search: { type: 'string' },
-            q: { type: 'string' },
-            status: { type: 'string' },
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -163,16 +135,6 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'List nearby rescues by location',
-        querystring: {
-          type: 'object',
-          properties: {
-            lat: { type: 'string' },
-            lng: { type: 'string' },
-            radiusKm: { type: 'string' },
-            limit: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -230,10 +192,6 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'Register a new rescue organisation',
-        body: {
-          type: 'object',
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => createRescue(client, req, reply)
@@ -248,10 +206,6 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'Create a rescue organisation',
-        body: {
-          type: 'object',
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => createRescue(client, req, reply)
@@ -266,12 +220,6 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'Get a rescue by ID',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {

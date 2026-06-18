@@ -68,12 +68,6 @@ export const registerSessionsRoutes = async (
       schema: {
         tags: ['sessions'],
         summary: 'Revoke a specific session',
-        params: {
-          type: 'object',
-          properties: {
-            sessionId: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {

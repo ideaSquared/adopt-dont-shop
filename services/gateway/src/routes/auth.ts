@@ -156,14 +156,6 @@ export const registerAuthRoutes = async (
         // so the existing handler keeps full control of validation
         // (returns the gRPC INVALID_ARGUMENT → 400 the SPA already
         // expects). The OpenAPI doc still tells consumers what to send.
-        body: {
-          type: 'object',
-          properties: {
-            email: { type: 'string' },
-            password: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -193,13 +185,6 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Invalidate the current session and refresh token',
-        body: {
-          type: 'object',
-          properties: {
-            refreshToken: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -222,13 +207,6 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Exchange a refresh token for a new access token',
-        body: {
-          type: 'object',
-          properties: {
-            refreshToken: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -271,15 +249,6 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth', 'admin'],
         summary: 'Assign a role to a target user (admin only)',
-        body: {
-          type: 'object',
-          properties: {
-            targetUserId: { type: 'string' },
-            role: { type: 'string' },
-            reason: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -310,19 +279,6 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Register a new user account',
         security: [],
-        body: {
-          type: 'object',
-          properties: {
-            email: { type: 'string' },
-            password: { type: 'string' },
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
-            phoneNumber: { type: 'string' },
-            termsAccepted: { type: 'boolean' },
-            privacyPolicyAccepted: { type: 'boolean' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -365,13 +321,6 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Verify email address using a verification token',
         security: [],
-        body: {
-          type: 'object',
-          properties: {
-            verificationToken: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -403,13 +352,6 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Resend the email verification link',
         security: [],
-        body: {
-          type: 'object',
-          properties: {
-            email: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -438,13 +380,6 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Send a password reset link to the given email',
         security: [],
-        body: {
-          type: 'object',
-          properties: {
-            email: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -475,14 +410,6 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Reset password using a reset token',
         security: [],
-        body: {
-          type: 'object',
-          properties: {
-            resetToken: { type: 'string' },
-            newPassword: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -512,14 +439,6 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Change password for the authenticated user',
-        body: {
-          type: 'object',
-          properties: {
-            currentPassword: { type: 'string' },
-            newPassword: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -572,14 +491,6 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Enable two-factor authentication using a verified TOTP secret',
-        body: {
-          type: 'object',
-          properties: {
-            secret: { type: 'string' },
-            token: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -603,13 +514,6 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Disable two-factor authentication for the authenticated user',
-        body: {
-          type: 'object',
-          properties: {
-            token: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -630,23 +534,6 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Update account profile fields for the authenticated user',
-        body: {
-          type: 'object',
-          properties: {
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
-            phoneNumber: { type: 'string' },
-            bio: { type: 'string' },
-            timezone: { type: 'string' },
-            language: { type: 'string' },
-            country: { type: 'string' },
-            city: { type: 'string' },
-            addressLine1: { type: 'string' },
-            addressLine2: { type: 'string' },
-            postalCode: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {

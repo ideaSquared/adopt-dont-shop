@@ -28,22 +28,6 @@ export const registerBroadcastRoutes = async (
       schema: {
         tags: ['notifications', 'admin'],
         summary: 'Broadcast a notification to a cohort of users',
-        body: {
-          type: 'object',
-          properties: {
-            cohort: { type: 'object' },
-            type: {},
-            title: { type: 'string' },
-            message: { type: 'string' },
-            actionUrl: { type: 'string' },
-            action_url: { type: 'string' },
-            data: { type: 'object' },
-            dataJson: { type: 'string' },
-            scheduledFor: { type: 'string' },
-            scheduled_for: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {

@@ -95,18 +95,6 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'List saved reports',
-        querystring: {
-          type: 'object',
-          properties: {
-            rescue_id: { type: 'string' },
-            rescueId: { type: 'string' },
-            is_archived: { type: 'string' },
-            archived: { type: 'string' },
-            page: { type: 'string' },
-            limit: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -152,17 +140,6 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'List report templates',
-        querystring: {
-          type: 'object',
-          properties: {
-            category: { type: 'string' },
-            rescue_id: { type: 'string' },
-            rescueId: { type: 'string' },
-            system: { type: 'string' },
-            system_only: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -191,12 +168,6 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Get a saved report by ID',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -221,21 +192,6 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Create a saved report',
-        body: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            description: { type: 'string' },
-            rescue_id: { type: 'string' },
-            rescueId: { type: 'string' },
-            template_id: { type: 'string' },
-            templateId: { type: 'string' },
-            config: { type: 'object' },
-            configJson: { type: 'string' },
-            config_json: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -276,25 +232,6 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Update a saved report',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            description: { type: 'string' },
-            config: { type: 'object' },
-            configJson: { type: 'string' },
-            config_json: { type: 'string' },
-            is_archived: { type: 'boolean' },
-            isArchived: { type: 'boolean' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -334,12 +271,6 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Delete a saved report',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {

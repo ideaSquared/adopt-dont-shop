@@ -46,17 +46,6 @@ export const registerNotificationsRoutes = async (
     {
       schema: {
         tags: ['notifications'],
-        querystring: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-            status: { type: 'string' },
-            channel: { type: 'string' },
-            type: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -91,16 +80,6 @@ export const registerNotificationsRoutes = async (
     {
       schema: {
         tags: ['notifications'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            userId: { type: 'string' },
-            type: { type: 'string' },
-            title: { type: 'string' },
-            message: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -160,14 +139,6 @@ export const registerNotificationsRoutes = async (
     {
       schema: {
         tags: ['notifications'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            daysToKeep: { type: 'number' },
-            days_to_keep: { type: 'number' },
-          },
-        },
       },
     },
     async (req, reply) => {

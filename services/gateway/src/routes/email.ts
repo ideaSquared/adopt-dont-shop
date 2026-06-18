@@ -78,18 +78,6 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'List email templates',
-        querystring: {
-          type: 'object',
-          properties: {
-            type: { type: 'string' },
-            status: { type: 'string' },
-            category: { type: 'string' },
-            search: { type: 'string' },
-            page: { type: 'string' },
-            limit: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -132,24 +120,6 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'Create an email template',
-        body: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            description: { type: 'string' },
-            type: { type: 'string' },
-            category: { type: 'string' },
-            status: { type: 'string' },
-            subject: { type: 'string' },
-            htmlContent: { type: 'string' },
-            html_content: { type: 'string' },
-            textContent: { type: 'string' },
-            text_content: { type: 'string' },
-            variables: {},
-            locale: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -196,12 +166,6 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'Get an email template by ID',
-        params: {
-          type: 'object',
-          properties: {
-            templateId: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -225,29 +189,6 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'Update an email template',
-        params: {
-          type: 'object',
-          properties: {
-            templateId: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            description: { type: 'string' },
-            type: { type: 'string' },
-            category: { type: 'string' },
-            status: { type: 'string' },
-            subject: { type: 'string' },
-            htmlContent: { type: 'string' },
-            html_content: { type: 'string' },
-            textContent: { type: 'string' },
-            text_content: { type: 'string' },
-            variables: {},
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -294,12 +235,6 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'Delete an email template',
-        params: {
-          type: 'object',
-          properties: {
-            templateId: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -320,19 +255,6 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'Preview a rendered email template',
-        params: {
-          type: 'object',
-          properties: {
-            templateId: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            variables: {},
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {

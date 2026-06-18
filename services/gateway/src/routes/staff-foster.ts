@@ -101,17 +101,6 @@ export const registerStaffFosterRoutes = async (
       schema: {
         tags: ['foster'],
         summary: 'Create a foster placement',
-        body: {
-          type: 'object',
-          properties: {
-            rescueId: { type: 'string' },
-            petId: { type: 'string' },
-            fosterUserId: { type: 'string' },
-            startDate: { type: 'string' },
-            notes: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -145,15 +134,6 @@ export const registerStaffFosterRoutes = async (
       schema: {
         tags: ['foster'],
         summary: 'List foster placements',
-        querystring: {
-          type: 'object',
-          properties: {
-            rescueId: { type: 'string' },
-            fosterUserId: { type: 'string' },
-            status: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -179,12 +159,6 @@ export const registerStaffFosterRoutes = async (
       schema: {
         tags: ['foster'],
         summary: 'Get a foster placement by ID',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -207,21 +181,6 @@ export const registerStaffFosterRoutes = async (
       schema: {
         tags: ['foster'],
         summary: 'End a foster placement',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            outcome: { type: 'string' },
-            endDate: { type: 'string' },
-            notes: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -255,12 +214,6 @@ export const registerStaffFosterRoutes = async (
         tags: ['staff'],
         summary: 'Get invitation details by token',
         security: [],
-        params: {
-          type: 'object',
-          properties: {
-            token: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {

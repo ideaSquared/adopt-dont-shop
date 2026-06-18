@@ -143,13 +143,6 @@ export const registerDashboardRoutes = async (
       schema: {
         tags: ['dashboard'],
         summary: 'Get rescue dashboard statistics',
-        querystring: {
-          type: 'object',
-          properties: {
-            rescueId: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -230,14 +223,6 @@ export const registerDashboardRoutes = async (
       schema: {
         tags: ['dashboard'],
         summary: 'Get recent activity for a rescue',
-        querystring: {
-          type: 'object',
-          properties: {
-            rescueId: { type: 'string' },
-            limit: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {

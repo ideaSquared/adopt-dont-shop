@@ -76,17 +76,6 @@ export const registerAnalyticsRoutes = async (
         tags: ['analytics'],
         summary: 'Record a page view event',
         security: [],
-        body: {
-          type: 'object',
-          properties: {
-            url: { type: 'string' },
-            title: { type: 'string' },
-            referrer: { type: 'string' },
-            sessionId: { type: 'string' },
-            userId: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -116,16 +105,6 @@ export const registerAnalyticsRoutes = async (
         tags: ['analytics'],
         summary: 'Record a single analytics event',
         security: [],
-        body: {
-          type: 'object',
-          properties: {
-            event: { type: 'string' },
-            properties: { type: 'object' },
-            sessionId: { type: 'string' },
-            userId: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -154,13 +133,6 @@ export const registerAnalyticsRoutes = async (
         tags: ['analytics'],
         summary: 'Record a batch of analytics events',
         security: [],
-        body: {
-          type: 'object',
-          properties: {
-            events: { type: 'array' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {

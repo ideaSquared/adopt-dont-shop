@@ -85,21 +85,6 @@ export const registerSupportRoutes = async (
       schema: {
         tags: ['support'],
         summary: 'Open a support ticket',
-        body: {
-          type: 'object',
-          properties: {
-            subject: { type: 'string' },
-            description: { type: 'string' },
-            category: { type: 'string' },
-            priority: { type: 'string' },
-            userEmail: { type: 'string' },
-            user_email: { type: 'string' },
-            userName: { type: 'string' },
-            user_name: { type: 'string' },
-            tags: { type: 'array', items: { type: 'string' } },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -141,15 +126,6 @@ export const registerSupportRoutes = async (
       schema: {
         tags: ['support'],
         summary: 'List support tickets for the current user',
-        querystring: {
-          type: 'object',
-          properties: {
-            status: { type: 'string' },
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -186,12 +162,6 @@ export const registerSupportRoutes = async (
       schema: {
         tags: ['support'],
         summary: 'Get a support ticket by ID',
-        params: {
-          type: 'object',
-          properties: {
-            ticketId: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -215,19 +185,6 @@ export const registerSupportRoutes = async (
       schema: {
         tags: ['support'],
         summary: 'Reply to a support ticket',
-        params: {
-          type: 'object',
-          properties: {
-            ticketId: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            content: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -257,12 +214,6 @@ export const registerSupportRoutes = async (
       schema: {
         tags: ['support'],
         summary: 'Get support ticket messages',
-        params: {
-          type: 'object',
-          properties: {
-            ticketId: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {

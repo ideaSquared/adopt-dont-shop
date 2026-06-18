@@ -74,13 +74,6 @@ export const registerGdprRoutes = async (
         tags: ['gdpr'],
         summary: 'Submit a GDPR erasure request for the authenticated user',
         security: [],
-        body: {
-          type: 'object',
-          properties: {
-            reason: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -176,12 +169,6 @@ export const registerGdprRoutes = async (
         schema: {
           tags: ['gdpr'],
           summary: 'Get the status of a GDPR erasure request by correlation ID',
-          params: {
-            type: 'object',
-            properties: {
-              correlationId: { type: 'string' },
-            },
-          },
         },
       },
       async (req, reply) => {

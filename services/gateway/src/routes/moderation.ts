@@ -81,20 +81,6 @@ export const registerModerationRoutes = async (
       config: { rateLimit: RL_WRITE },
       schema: {
         tags: ['moderation'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            reportedEntityType: { type: 'string' },
-            reportedEntityId: { type: 'string' },
-            reportedUserId: { type: 'string' },
-            category: { type: 'string' },
-            severity: { type: 'string' },
-            title: { type: 'string' },
-            description: { type: 'string' },
-            metadataJson: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -124,18 +110,6 @@ export const registerModerationRoutes = async (
       config: { rateLimit: RL_READ },
       schema: {
         tags: ['moderation'],
-        querystring: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-            status: { type: 'string' },
-            severity: { type: 'string' },
-            category: { type: 'string' },
-            assigned: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -191,14 +165,6 @@ export const registerModerationRoutes = async (
       schema: {
         tags: ['moderation'],
         params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            moderatorId: { type: 'string' },
-            reason: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -224,14 +190,6 @@ export const registerModerationRoutes = async (
       schema: {
         tags: ['moderation'],
         params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            resolution: { type: 'string' },
-            resolutionNotes: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -258,22 +216,6 @@ export const registerModerationRoutes = async (
       config: { rateLimit: RL_WRITE },
       schema: {
         tags: ['moderation'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            reportId: { type: 'string' },
-            targetEntityType: { type: 'string' },
-            targetEntityId: { type: 'string' },
-            targetUserId: { type: 'string' },
-            actionType: { type: 'string' },
-            severity: { type: 'string' },
-            reason: { type: 'string' },
-            description: { type: 'string' },
-            metadataJson: { type: 'string' },
-            duration: { type: 'number' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -305,17 +247,6 @@ export const registerModerationRoutes = async (
       config: { rateLimit: RL_READ },
       schema: {
         tags: ['moderation'],
-        querystring: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-            user: { type: 'string' },
-            report: { type: 'string' },
-            action: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -348,17 +279,6 @@ export const registerModerationRoutes = async (
       config: { rateLimit: RL_WRITE },
       schema: {
         tags: ['moderation'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            parentType: { type: 'string' },
-            parentId: { type: 'string' },
-            type: { type: 'string' },
-            content: { type: 'string' },
-            description: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -387,19 +307,6 @@ export const registerModerationRoutes = async (
       config: { rateLimit: RL_WRITE },
       schema: {
         tags: ['moderation'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            userId: { type: 'string' },
-            sanctionType: { type: 'string' },
-            reason: { type: 'string' },
-            description: { type: 'string' },
-            duration: { type: 'number' },
-            reportId: { type: 'string' },
-            moderatorActionId: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -428,16 +335,6 @@ export const registerModerationRoutes = async (
       config: { rateLimit: RL_READ },
       schema: {
         tags: ['moderation'],
-        params: {
-          type: 'object',
-          properties: { userId: { type: 'string' } },
-          required: ['userId'],
-        },
-        querystring: {
-          type: 'object',
-          additionalProperties: true,
-          properties: { includeInactive: { type: 'string' } },
-        },
       },
     },
     async (req, reply) => {
@@ -461,11 +358,6 @@ export const registerModerationRoutes = async (
       schema: {
         tags: ['moderation'],
         params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: { appealReason: { type: 'string' } },
-        },
       },
     },
     async (req, reply) => {
@@ -491,20 +383,6 @@ export const registerModerationRoutes = async (
       config: { rateLimit: RL_WRITE },
       schema: {
         tags: ['moderation'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            userId: { type: 'string' },
-            userEmail: { type: 'string' },
-            userName: { type: 'string' },
-            priority: { type: 'string' },
-            category: { type: 'string' },
-            subject: { type: 'string' },
-            description: { type: 'string' },
-            tags: { type: 'array', items: { type: 'string' } },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -534,19 +412,6 @@ export const registerModerationRoutes = async (
       config: { rateLimit: RL_READ },
       schema: {
         tags: ['moderation'],
-        querystring: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-            status: { type: 'string' },
-            priority: { type: 'string' },
-            category: { type: 'string' },
-            assigned: { type: 'string' },
-            user: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -580,11 +445,6 @@ export const registerModerationRoutes = async (
       schema: {
         tags: ['moderation'],
         params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
-        querystring: {
-          type: 'object',
-          additionalProperties: true,
-          properties: { responses: { type: 'string' } },
-        },
       },
     },
     async (req, reply) => {
@@ -608,14 +468,6 @@ export const registerModerationRoutes = async (
       schema: {
         tags: ['moderation'],
         params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            content: { type: 'string' },
-            isInternal: { type: 'boolean' },
-          },
-        },
       },
     },
     async (req, reply) => {

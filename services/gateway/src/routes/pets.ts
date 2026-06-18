@@ -78,18 +78,6 @@ export const registerPetsRoutes = async (
         // coercion (the existing handler does its own parseInt). Keeps
         // OpenAPI useful for SDK generation without changing runtime
         // validation behaviour.
-        querystring: {
-          type: 'object',
-          properties: {
-            cursor: { type: 'string' },
-            limit: { type: 'string' },
-            status: { type: 'string' },
-            type: { type: 'string' },
-            size: { type: 'string' },
-            rescueId: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -124,13 +112,6 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Get pet statistics, optionally filtered by rescue',
-        querystring: {
-          type: 'object',
-          properties: {
-            rescueId: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -176,12 +157,6 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Get a single pet by ID',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -204,10 +179,6 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Create a new pet listing',
-        body: {
-          type: 'object',
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -232,16 +203,6 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Update an existing pet listing',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -265,20 +226,6 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Update the adoption status of a pet',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
-        body: {
-          type: 'object',
-          properties: {
-            toStatus: { type: 'string' },
-            reason: { type: 'string' },
-          },
-          additionalProperties: true,
-        },
       },
     },
     async (req, reply) => {
@@ -307,12 +254,6 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Delete a pet listing',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -333,12 +274,6 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Check whether the authenticated user has favourited a pet',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -357,12 +292,6 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Add a pet to the authenticated user favourites',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -381,12 +310,6 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Remove a pet from the authenticated user favourites',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {

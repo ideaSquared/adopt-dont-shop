@@ -107,11 +107,6 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
-        params: {
-          type: 'object',
-          properties: { resource: { type: 'string' }, role: { type: 'string' } },
-          required: ['resource', 'role'],
-        },
       },
     },
     async (req, reply) => {
@@ -139,13 +134,6 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            overrides: { type: 'array', items: { type: 'object', additionalProperties: true } },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -187,16 +175,6 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
-        body: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            resource: { type: 'string' },
-            field_name: { type: 'string' },
-            role: { type: 'string' },
-            access_level: { type: 'string' },
-          },
-        },
       },
     },
     async (req, reply) => {
@@ -234,11 +212,6 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
-        params: {
-          type: 'object',
-          properties: { resource: { type: 'string' }, role: { type: 'string' } },
-          required: ['resource', 'role'],
-        },
       },
     },
     async (req, reply) => {
@@ -264,15 +237,6 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
-        params: {
-          type: 'object',
-          properties: {
-            resource: { type: 'string' },
-            role: { type: 'string' },
-            field_name: { type: 'string' },
-          },
-          required: ['resource', 'role', 'field_name'],
-        },
       },
     },
     async (req, reply) => {
@@ -303,11 +267,6 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
-        params: {
-          type: 'object',
-          properties: { resource: { type: 'string' } },
-          required: ['resource'],
-        },
       },
     },
     async (req, reply) => {
