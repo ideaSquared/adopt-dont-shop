@@ -32,29 +32,44 @@ export const registerSessionsRoutes = async (
   // GET /api/v1/sessions — list active sessions for the calling user.
   // Monolith response shape: { data: [{sessionId, familyId, expiresAt,
   // createdAt}, ...] }. We mirror it.
-  app.get('/api/v1/sessions', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    try {
-      const res = await client.listSessions({}, metadata);
-      // toJSON would yield `{ sessions: [...] }` (proto field name);
-      // the monolith uses `data: [...]`. Reshape here.
-      return reply.send({
-        data: (res.sessions ?? []).map(s => ({
-          sessionId: s.sessionId,
-          familyId: s.familyId,
-          expiresAt: s.expiresAt,
-          createdAt: s.createdAt,
-        })),
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.get(
+    '/api/v1/sessions',
+    {
+      schema: {
+        tags: ['sessions'],
+        summary: 'List active sessions for the calling user',
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const res = await client.listSessions({}, metadata);
+        // toJSON would yield `{ sessions: [...] }` (proto field name);
+        // the monolith uses `data: [...]`. Reshape here.
+        return reply.send({
+          data: (res.sessions ?? []).map(s => ({
+            sessionId: s.sessionId,
+            familyId: s.familyId,
+            expiresAt: s.expiresAt,
+            createdAt: s.createdAt,
+          })),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // DELETE /api/v1/sessions/:sessionId — revoke. Returns 204 to match
   // monolith parity. The gRPC response payload is discarded.
   app.delete<{ Params: { sessionId: string } }>(
     '/api/v1/sessions/:sessionId',
+    {
+      schema: {
+        tags: ['sessions'],
+        summary: 'Revoke a specific session',
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       const grpcReq: RevokeSessionRequest = { sessionId: req.params.sessionId };

@@ -77,7 +77,13 @@ export const registerApplicationDocumentsRoutes = async (
   // field carrying the document category (e.g. "id_verification").
   app.post<{ Params: { id: string } }>(
     '/api/v1/applications/:id/documents',
-    { config: { rateLimit: DOCUMENT_UPLOAD_RATE_LIMIT } },
+    {
+      config: { rateLimit: DOCUMENT_UPLOAD_RATE_LIMIT },
+      schema: {
+        tags: ['applications'],
+        summary: 'Upload a document for an application (multipart/form-data)',
+      },
+    },
     async (req, reply) => {
       if (typeof (req as { isMultipart?: () => boolean }).isMultipart !== 'function') {
         return reply.code(500).send({ error: 'multipart support not registered' });
@@ -163,19 +169,37 @@ export const registerApplicationDocumentsRoutes = async (
 
   // GET /:id/documents → { data: Document[] }. The frontend's getDocuments
   // helper unwraps `data` (defaulting to [] if absent).
-  app.get<{ Params: { id: string } }>('/api/v1/applications/:id/documents', async (req, reply) => {
-    try {
-      const res = await client.listDocuments({ applicationId: req.params.id }, buildMetadata(req));
-      return reply.send({ data: res.documents.map(documentToView) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/applications/:id/documents',
+    {
+      schema: {
+        tags: ['applications'],
+        summary: 'List documents for an application',
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.listDocuments(
+          { applicationId: req.params.id },
+          buildMetadata(req)
+        );
+        return reply.send({ data: res.documents.map(documentToView) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // DELETE /:id/documents/:docId → 204. The service soft-deletes the row;
   // bytes stay (cleanup is a separate retention job — not in scope).
   app.delete<{ Params: { id: string; docId: string } }>(
     '/api/v1/applications/:id/documents/:docId',
+    {
+      schema: {
+        tags: ['applications'],
+        summary: 'Delete a document from an application',
+      },
+    },
     async (req, reply) => {
       try {
         await client.removeDocument(

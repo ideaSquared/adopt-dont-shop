@@ -79,67 +79,91 @@ export const registerSupportRoutes = async (
   // Caller is the ticket owner. The handler reads principal.userId for
   // the row; we still accept user_email + user_name from the body
   // (the monolith sends them — saves a /auth/me round-trip).
-  app.post('/api/v1/support/tickets', async (req, reply) => {
-    const body = (req.body ?? {}) as {
-      subject?: string;
-      description?: string;
-      category?: string;
-      priority?: string;
-      userEmail?: string;
-      user_email?: string;
-      userName?: string;
-      user_name?: string;
-      tags?: string[];
-    };
-    const grpcReq: OpenSupportTicketRequest = {
-      subject: body.subject ?? '',
-      description: body.description ?? '',
-      category: categoryFromString(body.category),
-      priority: priorityFromString(body.priority),
-      userEmail: body.userEmail ?? body.user_email ?? '',
-      userName: body.userName ?? body.user_name,
-      tags: body.tags ?? [],
-    };
-    try {
-      const res = await client.openSupportTicket(grpcReq, buildMetadata(req));
-      return reply.code(201).send({ success: true, data: res.ticket });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.post(
+    '/api/v1/support/tickets',
+    {
+      schema: {
+        tags: ['support'],
+        summary: 'Open a support ticket',
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as {
+        subject?: string;
+        description?: string;
+        category?: string;
+        priority?: string;
+        userEmail?: string;
+        user_email?: string;
+        userName?: string;
+        user_name?: string;
+        tags?: string[];
+      };
+      const grpcReq: OpenSupportTicketRequest = {
+        subject: body.subject ?? '',
+        description: body.description ?? '',
+        category: categoryFromString(body.category),
+        priority: priorityFromString(body.priority),
+        userEmail: body.userEmail ?? body.user_email ?? '',
+        userName: body.userName ?? body.user_name,
+        tags: body.tags ?? [],
+      };
+      try {
+        const res = await client.openSupportTicket(grpcReq, buildMetadata(req));
+        return reply.code(201).send({ success: true, data: res.ticket });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // ---- GET /api/v1/support/my-tickets ------------------------------
   // The handler self-scopes for non-admins, so no explicit user_id
   // filter needed.
-  app.get('/api/v1/support/my-tickets', async (req, reply) => {
-    const query = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(query, { limit: 0 });
-    if (!pagination.ok) {
-      return reply.code(400).send({ error: pagination.error });
+  app.get(
+    '/api/v1/support/my-tickets',
+    {
+      schema: {
+        tags: ['support'],
+        summary: 'List support tickets for the current user',
+      },
+    },
+    async (req, reply) => {
+      const query = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(query, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+      const grpcReq: ListSupportTicketsRequest = {
+        status: statusFromString(query.status),
+        // page/limit — the monolith uses page-based; we forward limit
+        // only. Page-based pagination over a keyset cursor RPC is left
+        // to the SPA (cursor in/out).
+        limit: pagination.limit,
+        cursor: query.cursor,
+      } as ListSupportTicketsRequest;
+      try {
+        const res = await client.listSupportTickets(grpcReq, buildMetadata(req));
+        return reply.send({
+          success: true,
+          data: res.tickets ?? [],
+          nextCursor: res.nextCursor,
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const grpcReq: ListSupportTicketsRequest = {
-      status: statusFromString(query.status),
-      // page/limit — the monolith uses page-based; we forward limit
-      // only. Page-based pagination over a keyset cursor RPC is left
-      // to the SPA (cursor in/out).
-      limit: pagination.limit,
-      cursor: query.cursor,
-    } as ListSupportTicketsRequest;
-    try {
-      const res = await client.listSupportTickets(grpcReq, buildMetadata(req));
-      return reply.send({
-        success: true,
-        data: res.tickets ?? [],
-        nextCursor: res.nextCursor,
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   // ---- GET /api/v1/support/tickets/:ticketId -----------------------
   app.get<{ Params: { ticketId: string } }>(
     '/api/v1/support/tickets/:ticketId',
+    {
+      schema: {
+        tags: ['support'],
+        summary: 'Get a support ticket by ID',
+      },
+    },
     async (req, reply) => {
       const grpcReq: GetSupportTicketRequest = {
         ticketId: req.params.ticketId,
@@ -157,6 +181,12 @@ export const registerSupportRoutes = async (
   // ---- POST /api/v1/support/tickets/:ticketId/reply ----------------
   app.post<{ Params: { ticketId: string } }>(
     '/api/v1/support/tickets/:ticketId/reply',
+    {
+      schema: {
+        tags: ['support'],
+        summary: 'Reply to a support ticket',
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as { content?: string };
       const grpcReq: RespondToTicketRequest = {
@@ -180,6 +210,12 @@ export const registerSupportRoutes = async (
   // included.
   app.get<{ Params: { ticketId: string } }>(
     '/api/v1/support/tickets/:ticketId/messages',
+    {
+      schema: {
+        tags: ['support'],
+        summary: 'Get support ticket messages',
+      },
+    },
     async (req, reply) => {
       const grpcReq: GetSupportTicketRequest = {
         ticketId: req.params.ticketId,
