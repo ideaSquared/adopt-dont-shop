@@ -195,6 +195,37 @@ export default mergeConfig(shared, {
 });
 ```
 
+#### Automated ratchet (ADS-796)
+
+The shared-config baseline is raised automatically by a ratchet instead of being
+edited by hand. `scripts/ratchet-coverage.mjs` reads a v8 coverage summary
+(`coverage/coverage-summary.json`, emitted by the vitest `json-summary` reporter)
+and persists the new floor to `coverage-thresholds.json` at the repo root:
+
+```bash
+# raise the persisted baseline towards measured coverage (minus a 1% margin)
+pnpm run ratchet:coverage
+
+# preview without writing the file
+pnpm run ratchet:coverage -- --dry-run
+```
+
+The rule is one-directional and pure (unit-tested via `pnpm run test:scripts`):
+a threshold is **never lowered**, and is only raised when measured coverage
+clears the current floor by more than the safety margin. `vitest.shared.config.ts`
+reads `coverage-thresholds.json` when present and falls back to the historic 0%
+baseline when it is absent — so committing a populated file is what moves the
+floor off 0%.
+
+**Rollout:** the file is intentionally absent today (baseline stays 0%, CI
+unchanged). To switch it on, run coverage with the `json-summary` reporter, run
+`pnpm run ratchet:coverage`, and commit the generated `coverage-thresholds.json`.
+A scheduled/`main` CI job can then re-run the ratchet and open a follow-up PR.
+
+**Exemptions:** a package that cannot meet the shared floor sets a lower
+`thresholds` block in its own `vitest.config.ts` with a comment linking the
+tracking ticket. The override always wins over the shared baseline.
+
 ## Reporting bugs / proposing features
 
 Use the issue templates in [`.github/ISSUE_TEMPLATE/`](./.github/ISSUE_TEMPLATE/):
