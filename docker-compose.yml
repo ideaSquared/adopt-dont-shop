@@ -52,12 +52,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-postgis.sql:/docker-entrypoint-initdb.d/init-postgis.sql
+    # Healthcheck timing standard (ADS-860): every service probes on a uniform
+    # interval 10s / timeout 5s / retries 5 so Docker reports healthy promptly.
+    # start_period varies by tier — infra 10s, application containers 40s.
     healthcheck:
       test:
         ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-adopt_user} -d ${POSTGRES_DB:-adopt_dont_shop_dev}']
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   # NATS JetStream — async event bus between backend microservices.
   # Phase 0 foundation (ADS-microservices migration). Mirrors the CAD pattern:
@@ -155,10 +159,10 @@ services:
       NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     mem_limit: 2g
     memswap_limit: 2g
 
@@ -190,10 +194,10 @@ services:
       NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     mem_limit: 2g
     memswap_limit: 2g
 
@@ -227,10 +231,10 @@ services:
       NODE_OPTIONS: '--max-old-space-size=3072 --max-semi-space-size=128'
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     mem_limit: 2g
     memswap_limit: 2g
 
@@ -409,10 +413,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:4000/health/simple']
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 40s
 
   service-notifications:
     profiles: ['services', 'full']
@@ -431,10 +435,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5001/health/simple']
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 40s
 
   service-auth:
     profiles: ['services', 'full']
@@ -455,10 +459,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5002/health/simple']
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 40s
 
   service-pets:
     profiles: ['services', 'full']
@@ -477,10 +481,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5003/health/simple']
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 40s
 
   service-rescue:
     profiles: ['services', 'full']
@@ -499,10 +503,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5004/health/simple']
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 40s
 
   service-applications:
     profiles: ['services', 'full']
@@ -522,10 +526,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5005/health/simple']
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 40s
 
   service-chat:
     profiles: ['services', 'full']
@@ -544,10 +548,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5006/health/simple']
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 40s
 
   service-moderation:
     profiles: ['services', 'full']
@@ -566,10 +570,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5007/health/simple']
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 40s
 
   service-matching:
     profiles: ['services', 'full']
@@ -589,10 +593,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5008/health/simple']
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 40s
 
   service-audit:
     profiles: ['services', 'full']
@@ -611,10 +615,10 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5009/health/simple']
-      interval: 30s
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 40s
 
 # ============================================================================
 # VOLUMES - Simplified to only what's needed
