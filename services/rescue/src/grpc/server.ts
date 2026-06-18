@@ -26,6 +26,7 @@ import {
   verifyRescue,
 } from './handlers.js';
 import {
+  acceptInvitation,
   endFosterPlacement,
   getFosterPlacement,
   getInvitationByToken,
@@ -73,6 +74,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     endFosterPlacement: adapt(endFosterPlacement, { deps, logger }),
     // Public — the invitation token is the credential.
     getInvitationByToken: adaptUnauth(getInvitationByToken, { deps, logger }),
+    acceptInvitation: adaptUnauth(acceptInvitation, { deps, logger }),
     listApplicationQuestions: adapt(listApplicationQuestions, { deps, logger }),
     createApplicationQuestion: adapt(createApplicationQuestion, { deps, logger }),
     deleteApplicationQuestion: adapt(deleteApplicationQuestion, { deps, logger }),
@@ -93,6 +95,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getFosterPlacement',
       'endFosterPlacement',
       'getInvitationByToken',
+      'acceptInvitation',
       'listApplicationQuestions',
       'createApplicationQuestion',
       'deleteApplicationQuestion',

@@ -25,6 +25,8 @@ import type {
   ChangePasswordResponse,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
+  ProvisionInvitedUserRequest,
+  ProvisionInvitedUserResponse,
   RegisterRequest,
   RegisterResponse,
   ResendVerificationRequest,
@@ -182,6 +184,89 @@ export async function register(
 // already-registered email, so the response can't probe account existence.
 // `permissions` is the only required proto field; user/tokens are omitted.
 const REGISTERED_RESPONSE: RegisterResponse = { permissions: [] };
+
+// --- ProvisionInvitedUser -------------------------------------------
+//
+// Create-or-find for the invite-acceptance orchestration. The gateway
+// has already validated the invitation token (so the email is trusted);
+// this resolves it to an auth user the caller can attach as rescue
+// staff. NOT enumeration-safe by design — it returns the user_id.
+
+export async function provisionInvitedUser(
+  deps: HandlerDeps,
+  _principal: Principal | null,
+  req: ProvisionInvitedUserRequest
+): Promise<ProvisionInvitedUserResponse> {
+  void _principal;
+  assertEmail(req.email);
+  assertPassword(req.password);
+  if (!req.firstName || !req.lastName) {
+    throw new HandlerError('INVALID_ARGUMENT', 'first_name and last_name are required');
+  }
+
+  // Attach an existing account as-is — never error on a known email.
+  const existing = await deps.pool.query<UserRow>(
+    `SELECT * FROM auth.users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
+    [req.email]
+  );
+  if (existing.rows.length > 0) {
+    return { user: rowToProtoUser(existing.rows[0]), created: false };
+  }
+
+  const password = await deps.passwordHasher.hash(req.password);
+
+  // New invited staff: created already verified + active (the invite
+  // link came from a trusted email) so they can log in immediately.
+  try {
+    const created = await withTransaction(deps, async ({ client, publish }) => {
+      const insertRes = await client.query<UserRow>(
+        `
+        INSERT INTO auth.users (
+          user_id, email, password, first_name, last_name,
+          status, user_type, email_verified, phone_verified,
+          two_factor_enabled, terms_accepted_at, privacy_policy_accepted_at,
+          login_attempts, created_at, updated_at
+        )
+        VALUES (
+          gen_random_uuid(), $1, $2, $3, $4,
+          'active', 'rescue_staff', true, false,
+          false, now(), now(),
+          0, now(), now()
+        )
+        RETURNING *
+        `,
+        [req.email, password, req.firstName, req.lastName]
+      );
+      const user = insertRes.rows[0];
+      publish({
+        type: 'auth.userRegistered',
+        id: `auth.userRegistered.${user.user_id}`,
+        payload: {
+          userId: user.user_id,
+          email: user.email,
+          firstName: user.first_name,
+          invited: true,
+        },
+      });
+      return user;
+    });
+    return { user: rowToProtoUser(created), created: true };
+  } catch (err) {
+    // Unique-violation race: a concurrent provision/register created the
+    // row between the pre-check and the INSERT. Attach the now-existing
+    // row instead of failing.
+    if ((err as { code?: string }).code === '23505') {
+      const raced = await deps.pool.query<UserRow>(
+        `SELECT * FROM auth.users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
+        [req.email]
+      );
+      if (raced.rows.length > 0) {
+        return { user: rowToProtoUser(raced.rows[0]), created: false };
+      }
+    }
+    throw err;
+  }
+}
 
 // --- VerifyEmail -----------------------------------------------------
 

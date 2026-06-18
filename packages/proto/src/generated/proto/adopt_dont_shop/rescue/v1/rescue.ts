@@ -547,6 +547,21 @@ export interface GetInvitationByTokenResponse {
   invitation?: Invitation | undefined;
 }
 
+export interface AcceptInvitationRequest {
+  /** The invitation token from the email link (the credential). */
+  token: string;
+  /**
+   * The auth user that the gateway provisioned (or found) for the
+   * invitee's email. Becomes the staff member's user_id.
+   */
+  userId: string;
+}
+
+export interface AcceptInvitationResponse {
+  /** The staff membership the invitee now holds at the rescue. */
+  staffMember?: StaffMember | undefined;
+}
+
 /**
  * category / question_type are carried as the raw Postgres ENUM strings
  * (e.g. 'personal_information', 'text') rather than proto enums — the DB
@@ -4629,6 +4644,167 @@ export const GetInvitationByTokenResponse: MessageFns<GetInvitationByTokenRespon
   },
 };
 
+function createBaseAcceptInvitationRequest(): AcceptInvitationRequest {
+  return { token: '', userId: '' };
+}
+
+export const AcceptInvitationRequest: MessageFns<AcceptInvitationRequest> = {
+  encode(
+    message: AcceptInvitationRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.token !== '') {
+      writer.uint32(10).string(message.token);
+    }
+    if (message.userId !== '') {
+      writer.uint32(18).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AcceptInvitationRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAcceptInvitationRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.token = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AcceptInvitationRequest {
+    return {
+      token: isSet(object.token) ? globalThis.String(object.token) : '',
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+    };
+  },
+
+  toJSON(message: AcceptInvitationRequest): unknown {
+    const obj: any = {};
+    if (message.token !== '') {
+      obj.token = message.token;
+    }
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AcceptInvitationRequest>, I>>(
+    base?: I
+  ): AcceptInvitationRequest {
+    return AcceptInvitationRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AcceptInvitationRequest>, I>>(
+    object: I
+  ): AcceptInvitationRequest {
+    const message = createBaseAcceptInvitationRequest();
+    message.token = object.token ?? '';
+    message.userId = object.userId ?? '';
+    return message;
+  },
+};
+
+function createBaseAcceptInvitationResponse(): AcceptInvitationResponse {
+  return { staffMember: undefined };
+}
+
+export const AcceptInvitationResponse: MessageFns<AcceptInvitationResponse> = {
+  encode(
+    message: AcceptInvitationResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.staffMember !== undefined) {
+      StaffMember.encode(message.staffMember, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AcceptInvitationResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAcceptInvitationResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.staffMember = StaffMember.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AcceptInvitationResponse {
+    return {
+      staffMember: isSet(object.staffMember)
+        ? StaffMember.fromJSON(object.staffMember)
+        : isSet(object.staff_member)
+          ? StaffMember.fromJSON(object.staff_member)
+          : undefined,
+    };
+  },
+
+  toJSON(message: AcceptInvitationResponse): unknown {
+    const obj: any = {};
+    if (message.staffMember !== undefined) {
+      obj.staffMember = StaffMember.toJSON(message.staffMember);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AcceptInvitationResponse>, I>>(
+    base?: I
+  ): AcceptInvitationResponse {
+    return AcceptInvitationResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AcceptInvitationResponse>, I>>(
+    object: I
+  ): AcceptInvitationResponse {
+    const message = createBaseAcceptInvitationResponse();
+    message.staffMember =
+      object.staffMember !== undefined && object.staffMember !== null
+        ? StaffMember.fromPartial(object.staffMember)
+        : undefined;
+    return message;
+  },
+};
+
 function createBaseApplicationQuestion(): ApplicationQuestion {
   return {
     questionId: '',
@@ -5816,6 +5992,30 @@ export const RescueServiceService = {
       GetInvitationByTokenResponse.decode(value),
   },
   /**
+   * Consume a pending invitation: mark it used + attach the given user
+   * as a staff member of the invited rescue. The gateway calls this
+   * AFTER provisioning the auth user (the token-bearer's account), so it
+   * supplies the resolved user_id. Validates the token again (unused +
+   * unexpired) inside the transaction. Idempotent: re-accepting an
+   * already-consumed invitation for the same user returns the existing
+   * membership rather than erroring. NOT_FOUND when the token is unknown
+   * or expired; FAILED_PRECONDITION when it was already used by a
+   * DIFFERENT user. Public — the token IS the credential.
+   */
+  acceptInvitation: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/AcceptInvitation' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AcceptInvitationRequest): Buffer =>
+      Buffer.from(AcceptInvitationRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AcceptInvitationRequest =>
+      AcceptInvitationRequest.decode(value),
+    responseSerialize: (value: AcceptInvitationResponse): Buffer =>
+      Buffer.from(AcceptInvitationResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AcceptInvitationResponse =>
+      AcceptInvitationResponse.decode(value),
+  },
+  /**
    * List a rescue's adoption-application questions: the shared `core`
    * baseline plus the rescue's own `rescue_specific` rows. Caller MUST
    * have `applications.read` scoped to the rescue.
@@ -5950,6 +6150,18 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
    * Public — no principal required (the token IS the credential).
    */
   getInvitationByToken: handleUnaryCall<GetInvitationByTokenRequest, GetInvitationByTokenResponse>;
+  /**
+   * Consume a pending invitation: mark it used + attach the given user
+   * as a staff member of the invited rescue. The gateway calls this
+   * AFTER provisioning the auth user (the token-bearer's account), so it
+   * supplies the resolved user_id. Validates the token again (unused +
+   * unexpired) inside the transaction. Idempotent: re-accepting an
+   * already-consumed invitation for the same user returns the existing
+   * membership rather than erroring. NOT_FOUND when the token is unknown
+   * or expired; FAILED_PRECONDITION when it was already used by a
+   * DIFFERENT user. Public — the token IS the credential.
+   */
+  acceptInvitation: handleUnaryCall<AcceptInvitationRequest, AcceptInvitationResponse>;
   /**
    * List a rescue's adoption-application questions: the shared `core`
    * baseline plus the rescue's own `rescue_specific` rows. Caller MUST
@@ -6236,6 +6448,32 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetInvitationByTokenResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Consume a pending invitation: mark it used + attach the given user
+   * as a staff member of the invited rescue. The gateway calls this
+   * AFTER provisioning the auth user (the token-bearer's account), so it
+   * supplies the resolved user_id. Validates the token again (unused +
+   * unexpired) inside the transaction. Idempotent: re-accepting an
+   * already-consumed invitation for the same user returns the existing
+   * membership rather than erroring. NOT_FOUND when the token is unknown
+   * or expired; FAILED_PRECONDITION when it was already used by a
+   * DIFFERENT user. Public — the token IS the credential.
+   */
+  acceptInvitation(
+    request: AcceptInvitationRequest,
+    callback: (error: ServiceError | null, response: AcceptInvitationResponse) => void
+  ): ClientUnaryCall;
+  acceptInvitation(
+    request: AcceptInvitationRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AcceptInvitationResponse) => void
+  ): ClientUnaryCall;
+  acceptInvitation(
+    request: AcceptInvitationRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AcceptInvitationResponse) => void
   ): ClientUnaryCall;
   /**
    * List a rescue's adoption-application questions: the shared `core`

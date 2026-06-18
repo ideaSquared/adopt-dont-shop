@@ -8,6 +8,7 @@ import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 import {
   changePassword,
   forgotPassword,
+  provisionInvitedUser,
   register,
   resendVerification,
   resetPassword,
@@ -188,6 +189,94 @@ describe('register', () => {
 
     const res = await register(mocks.deps, null, REGISTER_REQ);
     expect(res).toEqual({ permissions: [] });
+  });
+});
+
+describe('provisionInvitedUser', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => vi.resetAllMocks());
+
+  const PROVISION_REQ = {
+    email: 'invitee@example.com',
+    password: 'hunter22',
+    firstName: 'Jo',
+    lastName: 'Bloggs',
+  } as Parameters<typeof provisionInvitedUser>[2];
+
+  it('rejects an invalid email', async () => {
+    await expect(
+      provisionInvitedUser(mocks.deps, null, { ...PROVISION_REQ, email: 'nope' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a short password', async () => {
+    await expect(
+      provisionInvitedUser(mocks.deps, null, { ...PROVISION_REQ, password: 'short' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects missing names', async () => {
+    await expect(
+      provisionInvitedUser(mocks.deps, null, { ...PROVISION_REQ, firstName: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('attaches an existing account without creating a new row', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRowFixture({ user_id: 'usr-existing', email: 'invitee@example.com' })],
+    });
+
+    const res = await provisionInvitedUser(mocks.deps, null, PROVISION_REQ);
+
+    expect(res.created).toBe(false);
+    expect(res.user?.userId).toBe('usr-existing');
+    // No INSERT — the transaction client was never used.
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.hasherMock.hash).not.toHaveBeenCalled();
+  });
+
+  it('creates a verified active rescue_staff user for a new email', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // no existing
+    mocks.hasherMock.hash.mockResolvedValue('$2b$10$hashed');
+    mocks.clientScript([
+      userRowFixture({
+        user_id: 'usr-new',
+        email: 'invitee@example.com',
+        email_verified: true,
+        status: 'active',
+        user_type: 'rescue_staff',
+      }),
+    ]);
+
+    const res = await provisionInvitedUser(mocks.deps, null, PROVISION_REQ);
+
+    expect(res.created).toBe(true);
+    expect(res.user?.userId).toBe('usr-new');
+    expect(res.user?.emailVerified).toBe(true);
+    const insertSql = String(realQueries(mocks.clientMock.query)[0][0]);
+    expect(insertSql).toContain('INSERT INTO auth.users');
+    expect(mocks.natsMock.publish).toHaveBeenCalled();
+  });
+
+  it('attaches the raced row on a unique-violation', async () => {
+    // No existing on the first check, INSERT races a 23505, then the
+    // re-select finds the row the concurrent caller created.
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [userRowFixture({ user_id: 'usr-raced' })] });
+    mocks.hasherMock.hash.mockResolvedValue('$2b$10$hashed');
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') return { rows: [] };
+      throw Object.assign(new Error('duplicate key'), { code: '23505' });
+    });
+
+    const res = await provisionInvitedUser(mocks.deps, null, PROVISION_REQ);
+
+    expect(res.created).toBe(false);
+    expect(res.user?.userId).toBe('usr-raced');
   });
 });
 

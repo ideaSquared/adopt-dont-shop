@@ -128,11 +128,13 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/home-visit-scheduling.spec.ts',
     '**/staff-invitation-acceptance.spec.ts',
     '**/invitation-expiry-and-resend.spec.ts',
-    // ADS-871 — staff-invitation round-trip via the token-peek seam is PARKED
-    // (file retained, not listed): the invite → read-token → resolve journey's
-    // `toContain` assertion failed in CI and the accept step has no
-    // AcceptInvitation RPC / gateway route to complete against. Needs the
-    // accept path built before the full round-trip can be un-parked (ADS-871).
+    // ADS-871 — staff-invitation round-trip, now COMPLETE: the register-on-
+    // accept path is built (rescue AcceptInvitation RPC + auth
+    // ProvisionInvitedUser RPC + POST /api/v1/invitations/accept gateway
+    // route). The spec drives invite → read-token → resolve → accept (sets a
+    // password) → invitee logs in → GET /api/v1/staff/me shows them as
+    // verified staff of the inviting rescue.
+    '**/staff-invitation-roundtrip.spec.ts',
     // Unblocked by the applications seed — the rescue (Paws) inbox now lists
     // John Smith's seeded application. Tolerant of the status PATCH failing.
     '**/application-review.spec.ts',

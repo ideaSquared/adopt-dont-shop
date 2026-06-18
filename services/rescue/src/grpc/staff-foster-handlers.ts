@@ -18,6 +18,8 @@ import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/even
 import type { Permission, RescueId } from '@adopt-dont-shop/lib.types';
 import {
   RescueV1,
+  type AcceptInvitationRequest,
+  type AcceptInvitationResponse,
   type CreateFosterPlacementRequest,
   type CreateFosterPlacementResponse,
   type EndFosterPlacementRequest,
@@ -535,4 +537,102 @@ export async function getInvitationByToken(
     throw new HandlerError('NOT_FOUND', 'invitation not found or no longer valid');
   }
   return { invitation: invitationRowToProto(row) };
+}
+
+// --- AcceptInvitation ------------------------------------------------
+
+// Consume a pending invitation: mark it used + attach the given user as
+// a verified staff member of the invited rescue. The gateway supplies
+// user_id after provisioning the auth account. Public — the token is the
+// credential. Idempotent: re-accepting for the SAME user returns the
+// existing membership; an already-used token whose membership belongs to
+// a different user is treated as no-longer-valid (NOT_FOUND), matching
+// GetInvitationByToken's non-enumerating contract.
+export async function acceptInvitation(
+  deps: HandlerDeps,
+  _principal: Principal | null,
+  req: AcceptInvitationRequest
+): Promise<AcceptInvitationResponse> {
+  void _principal;
+  if (!req.token) {
+    throw new HandlerError('INVALID_ARGUMENT', 'token is required');
+  }
+  if (!req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
+  }
+
+  const staffMember = await withTransaction(deps, async ({ client, publish }) => {
+    // Lock the invitation row so two concurrent accepts can't both pass
+    // the validity check and double-insert a membership.
+    const invRes = await client.query<InvitationRow>(
+      `SELECT invitation_id, email, rescue_id, user_id, title, invited_by,
+              expiration, used, created_at
+       FROM rescue.invitations
+       WHERE token = $1
+       FOR UPDATE`,
+      [req.token]
+    );
+    const inv = invRes.rows[0];
+    if (!inv || inv.expiration.getTime() <= Date.now()) {
+      throw new HandlerError('NOT_FOUND', 'invitation not found or no longer valid');
+    }
+
+    // Idempotency: an existing (non-deleted) membership for this user at
+    // the invited rescue means the invitation was already accepted by
+    // them — return it unchanged rather than inserting a duplicate.
+    const existing = await client.query<StaffMemberRow>(
+      `SELECT ${STAFF_SELECT} FROM rescue.staff_members
+       WHERE rescue_id = $1 AND user_id = $2 AND deleted_at IS NULL
+       LIMIT 1`,
+      [inv.rescue_id, req.userId]
+    );
+    if (existing.rows[0]) {
+      return existing.rows[0];
+    }
+
+    // The token was already consumed but this user has no membership —
+    // it belongs to someone else. Don't reveal that; treat as invalid.
+    if (inv.used) {
+      throw new HandlerError('NOT_FOUND', 'invitation not found or no longer valid');
+    }
+
+    const staffMemberId = randomUUID();
+    // added_by is NOT NULL — fall back to the invitee themselves when the
+    // invitation didn't record an inviter.
+    const addedBy = inv.invited_by ?? req.userId;
+    const insertRes = await client.query<StaffMemberRow>(
+      `
+      INSERT INTO rescue.staff_members (
+        staff_member_id, rescue_id, user_id, title,
+        is_verified, verified_by, verified_at,
+        added_by, added_at, created_by, version, created_at, updated_at
+      )
+      VALUES ($1, $2, $3, $4, true, $5, now(), $5, now(), $5, 0, now(), now())
+      RETURNING ${STAFF_SELECT}
+      `,
+      [staffMemberId, inv.rescue_id, req.userId, inv.title ?? null, addedBy]
+    );
+
+    await client.query(
+      `UPDATE rescue.invitations
+         SET used = true, user_id = $2, updated_at = now(), version = version + 1
+       WHERE invitation_id = $1`,
+      [inv.invitation_id, req.userId]
+    );
+
+    publish({
+      type: 'rescue.invitationAccepted',
+      id: `rescue.invitationAccepted.${inv.invitation_id}`,
+      payload: {
+        invitationId: inv.invitation_id,
+        rescueId: inv.rescue_id,
+        userId: req.userId,
+        staffMemberId,
+      },
+    });
+
+    return insertRes.rows[0];
+  });
+
+  return { staffMember: staffRowToProto(staffMember) };
 }
