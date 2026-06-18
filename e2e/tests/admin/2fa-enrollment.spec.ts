@@ -3,6 +3,7 @@ import { generateSync } from 'otplib';
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 
 import { uniqueEmail } from '../../helpers/factories';
+import { verifyEmailViaPeek } from '../../helpers/token-peek';
 import { URLS } from '../../playwright.config';
 
 /**
@@ -42,6 +43,10 @@ test.describe('2FA enrollment', () => {
       },
     });
     expect([200, 201]).toContain(reg.status());
+
+    // Login now requires a verified email, so verify the throwaway account via
+    // the token-peek seam before the password login can mint tokens.
+    await verifyEmailViaPeek(email);
 
     const loginRes = await anon.post('/api/v1/auth/login', { data: { email, password } });
     expect(loginRes.ok()).toBe(true);

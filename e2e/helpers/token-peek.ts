@@ -45,6 +45,28 @@ export async function peekAuthTokens(email: string): Promise<AuthTokens> {
 }
 
 /**
+ * Drive the email-verification step for a freshly-registered throwaway account:
+ * read its verification token via the peek seam and POST it to
+ * /auth/verify-email. Required before an API login, because login now rejects
+ * an unverified (pending_verification) account with an emailVerificationRequired
+ * flag and no tokens. Throws loudly if no token is outstanding or verify fails.
+ */
+export async function verifyEmailViaPeek(email: string): Promise<void> {
+  const { verificationToken } = await peekAuthTokens(email);
+  if (!verificationToken) {
+    throw new Error(`no verification token outstanding for ${email} — cannot verify`);
+  }
+  await withAnonApi(async ctx => {
+    const res = await ctx.post('/api/v1/auth/verify-email', { data: { verificationToken } });
+    if (!res.ok()) {
+      throw new Error(
+        `verify-email failed for ${email}: ${res.status()} ${(await res.text()).slice(0, 200)}`
+      );
+    }
+  });
+}
+
+/**
  * Read the most recent pending staff-invitation token for an email from the
  * test-token-peek seam. Returns null when no pending invitation exists.
  */
