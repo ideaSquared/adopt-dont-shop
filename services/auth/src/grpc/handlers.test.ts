@@ -2,6 +2,8 @@ import type { NatsConnection } from 'nats';
 import type { Pool } from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { generateSecret, generateSync } from 'otplib';
+
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 import { AuthV1, type LoginRequest } from '@adopt-dont-shop/proto';
@@ -275,6 +277,58 @@ describe('login', () => {
 
     // BEGIN → INSERT → UPDATE → COMMIT → NATS_PUBLISH
     expect(callOrder).toEqual(['BEGIN', 'INSERT', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+  });
+
+  // --- Two-factor enforcement ----------------------------------------
+
+  it('asks for the second factor (no tokens) when 2FA is on and no code is given', async () => {
+    const secret = generateSecret();
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRowFixture({ two_factor_enabled: true, two_factor_secret: secret })],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+
+    const res = await login(mocks.deps, null, BASE_LOGIN_REQ);
+
+    expect(res.twoFactorRequired).toBe(true);
+    expect(res.tokens).toBeUndefined();
+    expect(res.user).toBeUndefined();
+    // No token was minted — the login is not complete yet.
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+  });
+
+  it('rejects a wrong 2FA code with UNAUTHENTICATED', async () => {
+    const secret = generateSecret();
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRowFixture({ two_factor_enabled: true, two_factor_secret: secret })],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+
+    await expect(
+      login(mocks.deps, null, { ...BASE_LOGIN_REQ, twoFactorToken: '000000' })
+    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+  });
+
+  it('completes the login when a valid 2FA code is supplied', async () => {
+    const secret = generateSecret();
+    const code = generateSync({ secret });
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRowFixture({ two_factor_enabled: true, two_factor_secret: secret })],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
+
+    const res = await login(mocks.deps, null, { ...BASE_LOGIN_REQ, twoFactorToken: code });
+
+    expect(res.twoFactorRequired).toBe(false);
+    expect(res.tokens?.accessToken).toBe('access.jwt.token');
+    expect(mocks.issuerMock.mint).toHaveBeenCalledTimes(1);
   });
 });
 

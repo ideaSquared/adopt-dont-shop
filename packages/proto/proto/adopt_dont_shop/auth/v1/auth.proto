@@ -77,6 +77,16 @@ service AuthService {
   // Authenticated change. Requires the current password.
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
 
+  // --- Two-factor (TOTP) enrolment -----------------------------------
+  // Self-scoped. Setup mints a fresh secret (NOT yet persisted); Enable
+  // verifies a TOTP code against that secret and turns 2FA on; Disable
+  // verifies a current code and turns it off. Once enabled, Login
+  // requires the code (see LoginResponse.two_factor_required).
+
+  rpc SetupTwoFactor(SetupTwoFactorRequest) returns (SetupTwoFactorResponse);
+  rpc EnableTwoFactor(EnableTwoFactorRequest) returns (EnableTwoFactorResponse);
+  rpc DisableTwoFactor(DisableTwoFactorRequest) returns (DisableTwoFactorResponse);
+
   // Authenticated profile edit (first_name, last_name, phone_number,
   // bio, timezone, language, country, city, address). Email changes go
   // through a dedicated re-verification flow (deferred).
@@ -300,6 +310,10 @@ message LoginRequest {
   // Populated by the gateway from the inbound HTTP request.
   optional string ip_address = 3;
   optional string user_agent = 4;
+  // The 6-digit TOTP code, supplied on the SECOND login call when the
+  // account has 2FA enabled. Absent on the first call (the service then
+  // answers with two_factor_required).
+  optional string two_factor_token = 5;
 }
 
 message LoginResponse {
@@ -309,6 +323,10 @@ message LoginResponse {
   // this for the lifetime of the access token; ValidateToken is the
   // freshness check for every subsequent request.
   repeated string permissions = 3;
+  // Set when the password was correct but the account has 2FA enabled and
+  // no (valid) two_factor_token was supplied. user/tokens are empty in
+  // this case — the client re-submits Login with the TOTP code.
+  bool two_factor_required = 4;
 }
 
 // --- Logout ----------------------------------------------------------
@@ -456,6 +474,38 @@ message ChangePasswordRequest {
 
 message ChangePasswordResponse {
   bool ok = 1;
+}
+
+// --- Two-factor (TOTP) ------------------------------------------------
+
+message SetupTwoFactorRequest {}
+
+message SetupTwoFactorResponse {
+  // Base32 TOTP secret the client shows (and re-submits to EnableTwoFactor).
+  string secret = 1;
+  // otpauth:// provisioning URI for QR rendering.
+  string otpauth_url = 2;
+}
+
+message EnableTwoFactorRequest {
+  // The secret returned by SetupTwoFactor and the current TOTP code that
+  // proves the user scanned it correctly.
+  string secret = 1;
+  string token = 2;
+}
+
+message EnableTwoFactorResponse {
+  bool enabled = 1;
+}
+
+message DisableTwoFactorRequest {
+  // A current TOTP code (verified against the stored secret) authorises
+  // turning 2FA off.
+  string token = 1;
+}
+
+message DisableTwoFactorResponse {
+  bool disabled = 1;
 }
 
 message UpdateAccountRequest {

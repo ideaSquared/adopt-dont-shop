@@ -30,6 +30,9 @@ function makeClient(): {
   forgotPasswordMock: ReturnType<typeof vi.fn>;
   resetPasswordMock: ReturnType<typeof vi.fn>;
   changePasswordMock: ReturnType<typeof vi.fn>;
+  setupTwoFactorMock: ReturnType<typeof vi.fn>;
+  enableTwoFactorMock: ReturnType<typeof vi.fn>;
+  disableTwoFactorMock: ReturnType<typeof vi.fn>;
   updateAccountMock: ReturnType<typeof vi.fn>;
 } {
   const loginMock = vi.fn();
@@ -44,6 +47,9 @@ function makeClient(): {
   const forgotPasswordMock = vi.fn();
   const resetPasswordMock = vi.fn();
   const changePasswordMock = vi.fn();
+  const setupTwoFactorMock = vi.fn();
+  const enableTwoFactorMock = vi.fn();
+  const disableTwoFactorMock = vi.fn();
   const updateAccountMock = vi.fn();
   const client: AuthClient = {
     login: loginMock,
@@ -58,6 +64,9 @@ function makeClient(): {
     forgotPassword: forgotPasswordMock,
     resetPassword: resetPasswordMock,
     changePassword: changePasswordMock,
+    setupTwoFactor: setupTwoFactorMock,
+    enableTwoFactor: enableTwoFactorMock,
+    disableTwoFactor: disableTwoFactorMock,
     updateAccount: updateAccountMock,
     close: vi.fn(),
   };
@@ -75,6 +84,9 @@ function makeClient(): {
     forgotPasswordMock,
     resetPasswordMock,
     changePasswordMock,
+    setupTwoFactorMock,
+    enableTwoFactorMock,
+    disableTwoFactorMock,
     updateAccountMock,
   };
 }
@@ -624,6 +636,110 @@ describe('auth rate limiting (ADS-844)', () => {
       // 5 within the per-IP cap pass; the 6th from the same IP is 429.
       expect(statuses.slice(0, 5)).toEqual([200, 200, 200, 200, 200]);
       expect(statuses[5]).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('two-factor routes', () => {
+  it('POST /auth/2fa/setup returns the secret + otpauth URL', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.setupTwoFactorMock.mockResolvedValueOnce({
+        secret: 'BASE32SECRET',
+        otpauthUrl: 'otpauth://totp/AdoptDontShop:a@b.com?secret=BASE32SECRET',
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/2fa/setup',
+        headers: { 'x-user-id': 'usr-1' },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { secret: string; otpauthUrl: string };
+      expect(body.secret).toBe('BASE32SECRET');
+      expect(body.otpauthUrl).toContain('otpauth://');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/2fa/setup maps the already-enabled 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.setupTwoFactorMock.mockRejectedValueOnce({
+        code: grpcStatus.INVALID_ARGUMENT,
+        details: 'two-factor authentication is already enabled',
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/2fa/setup',
+        headers: { 'x-user-id': 'usr-1' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.body.toLowerCase()).toContain('already enabled');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/2fa/enable threads secret + token', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.enableTwoFactorMock.mockResolvedValueOnce({ enabled: true });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/2fa/enable',
+        headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+        payload: { secret: 'S', token: '123456' },
+      });
+      expect(res.statusCode).toBe(200);
+      const [grpcReq] = m.enableTwoFactorMock.mock.calls[0] as [{ secret: string; token: string }];
+      expect(grpcReq.secret).toBe('S');
+      expect(grpcReq.token).toBe('123456');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/2fa/disable threads the token', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.disableTwoFactorMock.mockResolvedValueOnce({ disabled: true });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/2fa/disable',
+        headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+        payload: { token: '654321' },
+      });
+      expect(res.statusCode).toBe(200);
+      const [grpcReq] = m.disableTwoFactorMock.mock.calls[0] as [{ token: string }];
+      expect(grpcReq.token).toBe('654321');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('login threads the TOTP token and surfaces two_factor_required', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.loginMock.mockResolvedValueOnce({ permissions: [], twoFactorRequired: true });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        headers: { 'content-type': 'application/json' },
+        payload: { email: 'a@b.com', password: 'pw', twoFactorToken: '111111' },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { twoFactorRequired?: boolean };
+      expect(body.twoFactorRequired).toBe(true);
+      const [grpcReq] = m.loginMock.mock.calls[0] as [{ twoFactorToken?: string }];
+      expect(grpcReq.twoFactorToken).toBe('111111');
     } finally {
       await app.close();
     }

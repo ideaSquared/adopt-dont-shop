@@ -22,6 +22,8 @@
 
 import { randomUUID } from 'node:crypto';
 
+import { verifySync } from 'otplib';
+
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Permission, UserId, UserRole } from '@adopt-dont-shop/lib.types';
@@ -136,6 +138,7 @@ export type UserRow = {
   email_verified: boolean;
   phone_verified: boolean;
   two_factor_enabled: boolean;
+  two_factor_secret: string | null;
   status: UserStatusDb;
   user_type: UserRoleDb;
   profile_image_url: string | null;
@@ -301,6 +304,10 @@ function rolesToProto(roles: UserRole[]): AuthV1.UserRole[] {
 // latency doesn't reveal whether an account exists.
 const DUMMY_PASSWORD_HASH = '$2a$12$0000000000000000000000000000000000000000000000000000u';
 
+// Verify a TOTP code against a stored base32 secret. Wraps otplib's
+// VerifyResult ({ valid, ... }) down to a boolean.
+const verifyTotp = (token: string, secret: string): boolean => verifySync({ token, secret }).valid;
+
 // Progressive login throttle. Rather than a hard lockout (which lets an
 // attacker deny a victim access by deliberately failing logins), failed
 // attempts apply a SHORT, exponentially-growing soft-lock that clears on
@@ -384,6 +391,20 @@ export async function login(
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
 
+  // Second factor. The password is correct; if the account has 2FA on we
+  // require a valid TOTP code before minting any tokens. A first login
+  // call (no code) is answered with two_factor_required so the client can
+  // prompt and re-submit; a wrong code is an auth failure.
+  if (user.two_factor_enabled) {
+    if (!req.twoFactorToken) {
+      return { permissions: [], twoFactorRequired: true };
+    }
+    if (!user.two_factor_secret || !verifyTotp(req.twoFactorToken, user.two_factor_secret)) {
+      loginCounter.inc({ outcome: 'invalid_credentials' });
+      throw new HandlerError('UNAUTHENTICATED', 'invalid two-factor code');
+    }
+  }
+
   const minted = await deps.tokenIssuer.mint(user.user_id);
 
   await withTransaction(deps, async ({ client, publish }) => {
@@ -419,6 +440,7 @@ export async function login(
     user: rowToProtoUser(user),
     tokens: minted.pair,
     permissions: principal.permissions,
+    twoFactorRequired: false,
   };
 }
 

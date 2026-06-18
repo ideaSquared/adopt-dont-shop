@@ -53,6 +53,11 @@ export type AuthRoutesOptions = {
 type LoginBody = {
   email?: string;
   password?: string;
+  // The TOTP code, supplied on the second login call when the account has
+  // 2FA enabled. Accept a few key spellings the SPA/clients might send.
+  twoFactorToken?: string;
+  two_factor_token?: string;
+  token?: string;
 };
 
 type LogoutBody = {
@@ -97,6 +102,7 @@ const AUTH_RATE_LIMITS = {
   forgotPassword: { max: authMax(5), timeWindow: '1 minute' },
   resetPassword: { max: authMax(10), timeWindow: '1 minute' },
   changePassword: { max: authMax(10), timeWindow: '1 minute' },
+  twoFactor: { max: authMax(10), timeWindow: '1 minute' },
   updateAccount: { max: authMax(30), timeWindow: '1 minute' },
 } as const;
 
@@ -167,6 +173,7 @@ export const registerAuthRoutes = async (
         password: body.password ?? '',
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
+        twoFactorToken: body.twoFactorToken ?? body.two_factor_token ?? body.token,
       };
 
       try {
@@ -391,6 +398,54 @@ export const registerAuthRoutes = async (
           buildMetadata(req)
         );
         return reply.send(AuthV1.ChangePasswordResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // --- Two-factor (TOTP) enrolment -----------------------------------
+  // Self-scoped: the authenticate middleware stamps the principal, and the
+  // handlers act on that user's own account.
+
+  app.post(
+    '/api/v1/auth/2fa/setup',
+    { config: { rateLimit: AUTH_RATE_LIMITS.twoFactor } },
+    async (req, reply) => {
+      try {
+        const res = await client.setupTwoFactor({}, buildMetadata(req));
+        return reply.send(AuthV1.SetupTwoFactorResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/auth/2fa/enable',
+    { config: { rateLimit: AUTH_RATE_LIMITS.twoFactor } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as { secret?: string; token?: string };
+      try {
+        const res = await client.enableTwoFactor(
+          { secret: b.secret ?? '', token: b.token ?? '' },
+          buildMetadata(req)
+        );
+        return reply.send(AuthV1.EnableTwoFactorResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/auth/2fa/disable',
+    { config: { rateLimit: AUTH_RATE_LIMITS.twoFactor } },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as { token?: string };
+      try {
+        const res = await client.disableTwoFactor({ token: b.token ?? '' }, buildMetadata(req));
+        return reply.send(AuthV1.DisableTwoFactorResponse.toJSON(res));
       } catch (err) {
         return handleGrpcError(err, reply);
       }

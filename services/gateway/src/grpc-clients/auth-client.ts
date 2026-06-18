@@ -17,8 +17,14 @@ import {
   type AssignRoleResponse,
   type ChangePasswordRequest,
   type ChangePasswordResponse,
+  type DisableTwoFactorRequest,
+  type DisableTwoFactorResponse,
+  type EnableTwoFactorRequest,
+  type EnableTwoFactorResponse,
   type ForgotPasswordRequest,
   type ForgotPasswordResponse,
+  type SetupTwoFactorRequest,
+  type SetupTwoFactorResponse,
   type GetMeRequest,
   type GetMeResponse,
   type LoginRequest,
@@ -101,6 +107,15 @@ export type AuthClient = {
   forgotPassword(req: ForgotPasswordRequest, metadata: Metadata): Promise<ForgotPasswordResponse>;
   resetPassword(req: ResetPasswordRequest, metadata: Metadata): Promise<ResetPasswordResponse>;
   changePassword(req: ChangePasswordRequest, metadata: Metadata): Promise<ChangePasswordResponse>;
+  setupTwoFactor(req: SetupTwoFactorRequest, metadata: Metadata): Promise<SetupTwoFactorResponse>;
+  enableTwoFactor(
+    req: EnableTwoFactorRequest,
+    metadata: Metadata
+  ): Promise<EnableTwoFactorResponse>;
+  disableTwoFactor(
+    req: DisableTwoFactorRequest,
+    metadata: Metadata
+  ): Promise<DisableTwoFactorResponse>;
   updateAccount(req: UpdateAccountRequest, metadata: Metadata): Promise<UpdateAccountResponse>;
   listSessions(req: ListSessionsRequest, metadata: Metadata): Promise<ListSessionsResponse>;
   revokeSession(req: RevokeSessionRequest, metadata: Metadata): Promise<RevokeSessionResponse>;
@@ -236,6 +251,9 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     forgotPassword: (req, metadata) => callUnary(stub.forgotPassword, req, metadata, false),
     resetPassword: (req, metadata) => callUnary(stub.resetPassword, req, metadata, false),
     changePassword: (req, metadata) => callUnary(stub.changePassword, req, metadata, false),
+    setupTwoFactor: (req, metadata) => callUnary(stub.setupTwoFactor, req, metadata, false),
+    enableTwoFactor: (req, metadata) => callUnary(stub.enableTwoFactor, req, metadata, false),
+    disableTwoFactor: (req, metadata) => callUnary(stub.disableTwoFactor, req, metadata, false),
     updateAccount: (req, metadata) => callUnary(stub.updateAccount, req, metadata, false),
     revokeSession: (req, metadata) => callUnary(stub.revokeSession, req, metadata, false),
     updatePrivacyPreferences: (req, metadata) =>

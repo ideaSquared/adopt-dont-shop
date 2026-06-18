@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { Alert, Button, Input } from '@adopt-dont-shop/lib.components';
 import { LoginRequestSchema } from '@adopt-dont-shop/lib.validation';
 import { useAuth } from '../hooks/useAuth';
+import { TWO_FACTOR_REQUIRED_MESSAGE } from '../services/auth-service';
 import { LoginRequest } from '../types';
 import * as styles from './LoginForm.css';
-
-const TWO_FACTOR_REQUIRED_MESSAGE = 'Two-factor authentication code required';
 
 // Canonical schema lives in @adopt-dont-shop/lib.validation. Pick the
 // fields this form actually owns — the 2FA token is collected

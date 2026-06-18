@@ -33,6 +33,11 @@ const AUTH_ENDPOINTS = {
   TWO_FACTOR_BACKUP_CODES: '/api/v1/auth/2fa/backup-codes',
 } as const;
 
+// The login flow signals "password OK, now I need your TOTP code" by
+// throwing an Error whose message contains this string. LoginForm matches
+// on it to swap to the 2FA code prompt and re-submit with twoFactorToken.
+export const TWO_FACTOR_REQUIRED_MESSAGE = 'Two-factor authentication code required';
+
 /**
  * AuthService - Authentication and user management service
  *
@@ -57,6 +62,14 @@ export class AuthService {
    */
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await apiService.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, credentials);
+
+    // Password was correct but the account has 2FA on and no (valid) code
+    // was supplied. The body carries no user/tokens — surface the signal
+    // as an error the LoginForm prompts on, WITHOUT persisting a partial
+    // session.
+    if (response.twoFactorRequired) {
+      throw new Error(TWO_FACTOR_REQUIRED_MESSAGE);
+    }
 
     // Persist the user + the Bearer token pair the gateway returned in the
     // body. getToken() then feeds the access token to lib.api so subsequent

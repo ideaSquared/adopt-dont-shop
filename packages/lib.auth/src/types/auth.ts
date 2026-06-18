@@ -207,6 +207,11 @@ export interface AuthResponse {
   tokens: TokenPair;
   // Flattened permission snapshot at login time (gateway LoginResponse).
   permissions?: string[];
+  // Set when the password was correct but the account has 2FA enabled and
+  // no (valid) code was supplied. user/tokens are absent in that case — the
+  // client re-submits login with twoFactorToken. auth-service turns this
+  // into the TWO_FACTOR_REQUIRED_MESSAGE error the LoginForm prompts on.
+  twoFactorRequired?: boolean;
 }
 
 export interface ChangePasswordRequest {
