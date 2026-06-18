@@ -186,8 +186,7 @@ jobs:
           name: lib-dist
 
       - name: Lint
-        run: pnpm lint
-        working-directory: apps/${{ matrix.app }}
+        run: pnpm exec turbo run lint --filter='@adopt-dont-shop/app.${{ matrix.app }}'
 
       - name: Test (with coverage thresholds)
         run: pnpm test:coverage
