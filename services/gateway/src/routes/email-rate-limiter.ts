@@ -31,9 +31,22 @@ export type EmailRateLimiterOptions = {
 export type EmailRateLimiter = {
   // Returns true when the attempt is within the cap, false when throttled.
   consume: (email: string) => Promise<boolean>;
+  // Current resident bucket count. Only the in-memory limiter tracks state
+  // locally; the Redis-backed limiter keeps none, so it omits this.
+  size?: () => number;
 };
 
 const KEY_PREFIX = 'auth-email-rl';
+
+// Hard ceiling on the in-memory limiter's bucket map. The opportunistic sweep
+// reclaims expired buckets across windows (the real attack vector — a flood of
+// unique one-shot emails), but a single-window flood of unique emails has no
+// expired entries to reclaim, so this cap bounds the resident set regardless.
+export const MEMORY_LIMITER_MAX_BUCKETS = 10_000;
+
+// Run the expired-bucket sweep once per this many new buckets. Amortizes the
+// O(n) scan so steady traffic reclaims memory long before the hard cap.
+const SWEEP_EVERY_N_INSERTS = 64;
 
 // Normalize an email so casing / whitespace variants share one bucket. Returns
 // undefined when the value isn't a usable email-ish string.
@@ -81,16 +94,51 @@ const redisLimiter = (
 
 const memoryLimiter = (max: number, windowMs: number, now: () => number): EmailRateLimiter => {
   const buckets = new Map<string, { count: number; resetAt: number }>();
+  let insertsSinceSweep = 0;
+
+  // Drop every bucket whose window has elapsed. Reclaims one-shot emails that
+  // would otherwise linger for the rest of the process lifetime.
+  const sweepExpired = (ts: number): void => {
+    for (const [email, bucket] of buckets) {
+      if (ts >= bucket.resetAt) {
+        buckets.delete(email);
+      }
+    }
+  };
+
+  // Map iteration is insertion-ordered, so the first key is the oldest seen.
+  // Used as a last-resort ceiling when a single-window flood leaves nothing to
+  // sweep — bounded eviction beats unbounded growth.
+  const evictOldest = (): void => {
+    const oldest = buckets.keys().next();
+    if (!oldest.done) {
+      buckets.delete(oldest.value);
+    }
+  };
+
   return {
     consume: (email: string): Promise<boolean> => {
       const ts = now();
       const existing = buckets.get(email);
       if (!existing || ts >= existing.resetAt) {
+        insertsSinceSweep += 1;
+        if (insertsSinceSweep >= SWEEP_EVERY_N_INSERTS) {
+          sweepExpired(ts);
+          insertsSinceSweep = 0;
+        }
+        // Hard ceiling: O(1) per eviction. Don't sweep here — at capacity that
+        // would run a full O(n) scan on every insert during a single-window
+        // flood (nothing is expired to reclaim), the amortized sweep above
+        // already reclaims cross-window buckets.
+        while (buckets.size >= MEMORY_LIMITER_MAX_BUCKETS) {
+          evictOldest();
+        }
         buckets.set(email, { count: 1, resetAt: ts + windowMs });
         return Promise.resolve(true);
       }
       existing.count += 1;
       return Promise.resolve(existing.count <= max);
     },
+    size: (): number => buckets.size,
   };
 };
