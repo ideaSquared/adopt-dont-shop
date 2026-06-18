@@ -54,7 +54,7 @@ field's purpose / retention here, update PRIVACY.md too.
 | Recipients | Other participants in the chat thread |
 | International transfers | None |
 | Retention | Lifetime of the related application + 6 years (tied to the application above). On erasure: message bodies replaced with tombstone (`[message removed at user request]`), participant rows preserved for thread continuity. |
-| Security measures | Participant-only read access; content moderation via `service.backend/services/content-moderation.service` |
+| Security measures | Participant-only read access; content moderation via the moderation service (`services/moderation`) |
 
 ## 4. Support tickets
 

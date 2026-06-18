@@ -18,7 +18,7 @@ pnpm new-app <app-name> --template <template>
 - **template**: One of `minimal`, `standard`, `enterprise` (defaults to `standard` if omitted)
 - **--overwrite**: Replace an existing app directory of the same name
 
-The generator only scaffolds React apps under `app.*`. Backend services are not produced by this script — `service.backend` is the single backend; add new domain code there.
+The generator only scaffolds React apps under `app.*`. Backend services are not produced by this script — the backend is a set of microservices under `services/<name>/`; add a new backend domain by creating a new service there, not via this generator.
 
 ### Templates
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-PostgreSQL 16 with the PostGIS extension and Sequelize 7. Models live in `service.backend/src/models/` and are mirrored 1:1 by baseline migrations under `service.backend/src/migrations/`. This document is a high-level reference — the source of truth is always the model file.
+PostgreSQL 16 with the PostGIS extension and Sequelize 7. Each service owns its slice of the schema: models live under `services/<name>/src/models/` and are mirrored by migrations under `services/<name>/src/migrations/`. This document is a high-level reference — the source of truth is always the model file.
 
 ## Entity Relationships
 
@@ -229,7 +229,7 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 
 ### Swipe Actions
 
-**Purpose**: User swipe behavior tracking. See `service.backend/src/models/SwipeAction.ts` for the authoritative shape.
+**Purpose**: User swipe behavior tracking. See the owning service's `src/models/SwipeAction.ts` for the authoritative shape.
 
 | Field            | Type           | Description                                                  |
 | ---------------- | -------------- | ------------------------------------------------------------ |
@@ -361,7 +361,7 @@ Most tables use soft delete (deleted_at timestamp) instead of hard delete for:
 
 ### Migration Management
 
-Migrations live in `service.backend/src/migrations/` as numbered TypeScript files (e.g. `00-baseline-001-users.ts`, `01-add-user-type-support-agent-super-admin.ts`). The project uses [Umzug](https://github.com/sequelize/umzug) via a custom runner at `service.backend/src/migrations/runner.ts` — **`sequelize-cli` is not installed**. Create a new migration by adding the next sequential file following the existing pattern.
+Each service keeps its migrations under `services/<name>/src/migrations/` as numbered TypeScript files (e.g. `00-baseline-001-users.ts`, `01-add-user-type-support-agent-super-admin.ts`) and runs them itself on startup — **`sequelize-cli` is not installed**. Create a new migration by adding the next sequential file in the owning service following the existing pattern.
 
 ```bash
 # From the repo root, while the dev stack is running:
@@ -373,7 +373,7 @@ pnpm db:migrate:undo      # ts-node src/migrations/runner.ts down
 pnpm db:migrate:status    # ts-node src/migrations/runner.ts status
 ```
 
-The backend exposes three migration scripts in `service.backend/package.json`: `db:migrate`, `db:migrate:undo`, `db:migrate:status`.
+Each service's `package.json` exposes the migration scripts: `db:migrate`, `db:migrate:undo`, `db:migrate:status`.
 
 ### Best Practices
 

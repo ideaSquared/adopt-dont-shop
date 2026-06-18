@@ -9,17 +9,14 @@ probe fails for 2m)
   `failures: [{ service: 'redis', ... }]`.
 - Kubernetes / LB drops pods from rotation; effective capacity falls.
 - BullMQ reports queue stops processing (the `queue` probe fails
-  alongside Redis — see
-  `service.backend/src/services/health-check.service.ts`).
+  alongside Redis — see the gateway's health-check service).
 - Auth `/login`, `/register` either rate-limit oddly or fail to
-  enforce limits across replicas (see
-  `service.backend/src/middleware/auth-rate-limit.ts` — Redis-backed
-  `RedisStore` falls back to in-memory **per-replica** when Redis is
-  unconfigured, but **errors out** mid-request if Redis was up and
-  then dies).
+  enforce limits across replicas (the Redis-backed rate-limit
+  middleware's `RedisStore` falls back to in-memory **per-replica**
+  when Redis is unconfigured, but **errors out** mid-request if Redis
+  was up and then dies).
 - Cache-fronted endpoints stay up but slow down — the read-through
-  helper in `service.backend/src/cache/redis-cache.ts` falls through
-  to the loader on any Redis failure.
+  cache helper falls through to the loader on any Redis failure.
 
 ## What still works vs. what doesn't
 

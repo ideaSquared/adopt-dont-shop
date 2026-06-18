@@ -13,11 +13,11 @@ otherwise `warning` (`P95LatencyHigh`).
 - Postgres `pg_stat_activity` shows many `idle in transaction` or
   long-running queries.
 - 5xx may rise once the `DB_POOL_ACQUIRE_MS` timeout (default 30s) is
-  hit — see `service.backend/src/sequelize.ts`.
+  hit — see the service's database connection config.
 
 ## Pool config (current defaults)
 
-From `service.backend/src/sequelize.ts:40-51`:
+From the service's database connection config:
 
 | Env var                              | Default | Meaning                                   |
 | ------------------------------------ | ------- | ----------------------------------------- |
