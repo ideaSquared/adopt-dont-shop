@@ -103,19 +103,35 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/logout-flow.spec.ts',
     '**/rate-limit-application-submission.spec.ts',
     // ADS-870 — UI-level journeys for features that previously had API-only
-    // e2e coverage. The specs are written (2fa-login-ui, favourite-add-via-ui,
-    // custom-question-on-application-form) but PARKED: their first CI run went
-    // 53 pass / 3 fail — each of these three failed on a UI assumption that
-    // needs debugging with the docker stack UP (a token-setup login returned no
-    // token; the favourite button didn't flip to "Favorited"; the custom
-    // question didn't render on /apply). Un-park once each is reproduced green
-    // locally. Tracked under ADS-870.
-    // profile-update-persistence: deferred. The bio edit submits and the
-    // gateway/auth map+persist `bio`, and GET /auth/me returns it, but the
-    // value does not round-trip back into the edit form after a reload (the
-    // assertion at spec line 47 timed out across all 3 CI retries). Likely the
-    // client hydrates a stale cached user instead of refetching /me — needs
-    // dedicated runtime debugging before un-parking (tracked under ADS-868).
+    // e2e coverage. Debugged by code-reading the spec against the SPA/API it
+    // drives:
+    // - 2fa-login-ui: the throwaway account is logged in (and the access token
+    //   captured) BEFORE 2FA is enabled, so the setup login returns a token —
+    //   the same flow the green admin/2fa-enrollment.spec.ts uses. The UI half
+    //   (gateway → two_factor_required → auth-service throws
+    //   TWO_FACTOR_REQUIRED_MESSAGE → LoginForm shows the `000000` field +
+    //   "Verify" button) is wired correctly end-to-end.
+    // - favourite-add-via-ui: PetDetailsPage's button renders "♥ Favorited"
+    //   after petService.addToFavorites resolves (optimistic flip); the
+    //   favourites infra is the same path the green swipe-and-favourite.spec.ts
+    //   exercises.
+    // - custom-question-on-application-form: fixed a real SPA bug — the apply
+    //   form read the questions list as `{ questions }` but the gateway route
+    //   GET /api/v1/rescues/:id/questions returns `{ data: [...] }`, so the
+    //   read threw and no question rendered (apps/client ApplicationPage).
+    '**/2fa-login-ui.spec.ts',
+    '**/favourite-add-via-ui.spec.ts',
+    '**/custom-question-on-application-form.spec.ts',
+    // profile-update-persistence: RE-PARKED. Investigation showed the root
+    // cause is deeper than a stale cache: the SPA's profile save calls
+    // authService.updateProfile → PUT /api/v1/auth/me, but the gateway has no
+    // such route (server.ts's catch-all returns 404 for PUT /api/*; the real
+    // persistence route is PATCH /api/v1/users/account). So the bio never
+    // persists and the round-trip can't succeed. The correct fix re-points
+    // updateProfile to PATCH /users/account AND refetches the user (and resyncs
+    // ProfileEditForm's snapshot) — a shared-lib.auth change with admin/rescue
+    // blast radius and existing tests asserting the PUT-/auth/me flow, so it
+    // needs runtime verification before landing. Tracked under ADS-868.
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863
