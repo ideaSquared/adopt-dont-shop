@@ -33,7 +33,11 @@ import {
 const ADOPTER_PRINCIPAL: Principal = {
   userId: 'usr-adopter' as UserId,
   roles: ['adopter'],
-  permissions: ['chat.create' as Permission, 'chat.read' as Permission, 'chat.send' as Permission],
+  permissions: [
+    'chats.create' as Permission,
+    'chats.read' as Permission,
+    'messages.create' as Permission,
+  ],
 };
 
 const UNPRIVILEGED_PRINCIPAL: Principal = {

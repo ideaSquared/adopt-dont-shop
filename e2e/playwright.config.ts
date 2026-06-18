@@ -55,6 +55,11 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // preferences, not /users) and the `email` body field — fixed in the spec.
     '**/notification-badge-updates.spec.ts',
     '**/notification-preferences.spec.ts',
+    // Batch B chat (ADS-868): unblocked by the chat seed (a John Smith ↔ Paws
+    // chat) + the chat service gating on canonical chats.*/messages.* perms.
+    // These post a message via API and read it back from the other side.
+    '**/adopter-rescue-chat.spec.ts',
+    '**/realtime-chat-propagation.spec.ts',
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863
@@ -76,6 +81,9 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // as Paws staff; rescue_staff has pets.read + pets.archive.
     '**/rescue-onboarding.spec.ts',
     '**/archive-adopted-pet.spec.ts',
+    // Batch B chat (ADS-868): rescue staffer posts to the seeded chat, adopter
+    // reads it back. Unblocked by the chat seed + canonical chat perms.
+    '**/messaging-applicants.spec.ts',
     // Deferred: custom-application-questions — the gateway exposes no
     // /api/v1/rescues/:id/questions route (not cut over) → 404. Batch B.
   ],

@@ -39,6 +39,25 @@ export type ChatRoutesOptions = {
 // prefixes via this list.
 const CHAT_PREFIXES = ['/api/v1/chats', '/api/v1/conversations'] as const;
 
+// Envelope normalization: the proto Message carries its text under `body`
+// (the POST maps the SPA's `content` onto it). But the SPA chat client
+// (ChatContext) and the e2e helpers READ `content`, so without this the text
+// round-trips into an undefined field. Surface `content` alongside `body` on
+// every message the gateway returns — the gateway is the single REST-shape
+// translation layer.
+const withMessageContent = (m: Record<string, unknown>): Record<string, unknown> => ({
+  ...m,
+  content: m.content ?? m.body,
+});
+
+const normalizeMessages = (json: unknown): unknown => {
+  const obj = json as { messages?: Array<Record<string, unknown>> };
+  if (!Array.isArray(obj.messages)) {
+    return json;
+  }
+  return { ...obj, messages: obj.messages.map(withMessageContent) };
+};
+
 export const registerChatRoutes = async (
   app: FastifyInstance,
   opts: ChatRoutesOptions
@@ -248,7 +267,7 @@ const registerChatRoutesForPrefix = (
 
     try {
       const res = await client.listMessages(grpcReq, metadata);
-      return reply.send(ChatV1.ListMessagesResponse.toJSON(res));
+      return reply.send(normalizeMessages(ChatV1.ListMessagesResponse.toJSON(res)));
     } catch (err) {
       return handleGrpcError(err, reply);
     }
@@ -291,7 +310,10 @@ const registerChatRoutesForPrefix = (
 
     try {
       const res = await client.sendMessage(grpcReq, metadata);
-      return reply.code(201).send(ChatV1.SendMessageResponse.toJSON(res));
+      const json = ChatV1.SendMessageResponse.toJSON(res) as { message?: Record<string, unknown> };
+      return reply
+        .code(201)
+        .send(json.message ? { ...json, message: withMessageContent(json.message) } : json);
     } catch (err) {
       return handleGrpcError(err, reply);
     }

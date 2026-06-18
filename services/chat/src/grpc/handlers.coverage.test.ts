@@ -37,15 +37,19 @@ import {
 const ADOPTER_PRINCIPAL: Principal = {
   userId: 'usr-adopter' as UserId,
   roles: ['adopter'],
-  permissions: ['chat.create' as Permission, 'chat.read' as Permission, 'chat.send' as Permission],
+  permissions: [
+    'chats.create' as Permission,
+    'chats.read' as Permission,
+    'messages.create' as Permission,
+  ],
 };
 
-// super_admin holding chat.read bypasses the participant-membership SELECT
-// in isParticipantOrAdmin.
+// super_admin bypasses the participant-membership SELECT in
+// isParticipantOrAdmin regardless of explicit grants.
 const SUPER_ADMIN_PRINCIPAL: Principal = {
   userId: 'usr-root' as UserId,
   roles: ['super_admin'],
-  permissions: ['chat.read' as Permission, 'chat.send' as Permission],
+  permissions: ['chats.read' as Permission, 'messages.create' as Permission],
 };
 
 // --- Row fixtures ----------------------------------------------------
