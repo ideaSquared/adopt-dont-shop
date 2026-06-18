@@ -93,6 +93,18 @@ service RescueService {
   rpc GetInvitationByToken(GetInvitationByTokenRequest)
       returns (GetInvitationByTokenResponse);
 
+  // Consume a pending invitation: mark it used + attach the given user
+  // as a staff member of the invited rescue. The gateway calls this
+  // AFTER provisioning the auth user (the token-bearer's account), so it
+  // supplies the resolved user_id. Validates the token again (unused +
+  // unexpired) inside the transaction. Idempotent: re-accepting an
+  // already-consumed invitation for the same user returns the existing
+  // membership rather than erroring. NOT_FOUND when the token is unknown
+  // or expired; FAILED_PRECONDITION when it was already used by a
+  // DIFFERENT user. Public — the token IS the credential.
+  rpc AcceptInvitation(AcceptInvitationRequest)
+      returns (AcceptInvitationResponse);
+
   // --- Application questions -------------------------------------------
 
   // List a rescue's adoption-application questions: the shared `core`
@@ -433,6 +445,21 @@ message GetInvitationByTokenRequest {
 
 message GetInvitationByTokenResponse {
   Invitation invitation = 1;
+}
+
+// --- AcceptInvitation -------------------------------------------------
+
+message AcceptInvitationRequest {
+  // The invitation token from the email link (the credential).
+  string token = 1;
+  // The auth user that the gateway provisioned (or found) for the
+  // invitee's email. Becomes the staff member's user_id.
+  string user_id = 2;
+}
+
+message AcceptInvitationResponse {
+  // The staff membership the invitee now holds at the rescue.
+  StaffMember staff_member = 1;
 }
 
 // --- Application questions --------------------------------------------

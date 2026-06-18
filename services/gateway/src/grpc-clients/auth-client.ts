@@ -33,6 +33,8 @@ import {
   type LogoutResponse,
   type RefreshTokenRequest,
   type RefreshTokenResponse,
+  type ProvisionInvitedUserRequest,
+  type ProvisionInvitedUserResponse,
   type RegisterRequest,
   type RegisterResponse,
   type ResendVerificationRequest,
@@ -99,6 +101,10 @@ export type AuthClient = {
   getMe(req: GetMeRequest, metadata: Metadata): Promise<GetMeResponse>;
   assignRole(req: AssignRoleRequest, metadata: Metadata): Promise<AssignRoleResponse>;
   register(req: RegisterRequest, metadata: Metadata): Promise<RegisterResponse>;
+  provisionInvitedUser(
+    req: ProvisionInvitedUserRequest,
+    metadata: Metadata
+  ): Promise<ProvisionInvitedUserResponse>;
   verifyEmail(req: VerifyEmailRequest, metadata: Metadata): Promise<VerifyEmailResponse>;
   resendVerification(
     req: ResendVerificationRequest,
@@ -246,6 +252,8 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     logout: (req, metadata) => callUnary(stub.logout, req, metadata, false),
     refreshToken: (req, metadata) => callUnary(stub.refreshToken, req, metadata, false),
     register: (req, metadata) => callUnary(stub.register, req, metadata, false),
+    provisionInvitedUser: (req, metadata) =>
+      callUnary(stub.provisionInvitedUser, req, metadata, false),
     verifyEmail: (req, metadata) => callUnary(stub.verifyEmail, req, metadata, false),
     resendVerification: (req, metadata) => callUnary(stub.resendVerification, req, metadata, false),
     forgotPassword: (req, metadata) => callUnary(stub.forgotPassword, req, metadata, false),

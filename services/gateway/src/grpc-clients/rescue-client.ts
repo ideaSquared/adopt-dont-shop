@@ -13,6 +13,8 @@ import { credentials, Metadata, type CallOptions } from '@grpc/grpc-js';
 
 import {
   RescueV1,
+  type AcceptInvitationRequest,
+  type AcceptInvitationResponse,
   type CreateApplicationQuestionRequest,
   type CreateApplicationQuestionResponse,
   type CreateFosterPlacementRequest,
@@ -86,6 +88,10 @@ export type RescueClient = {
     req: GetInvitationByTokenRequest,
     metadata: Metadata
   ): Promise<GetInvitationByTokenResponse>;
+  acceptInvitation(
+    req: AcceptInvitationRequest,
+    metadata: Metadata
+  ): Promise<AcceptInvitationResponse>;
   listApplicationQuestions(
     req: ListApplicationQuestionsRequest,
     metadata: Metadata
@@ -172,6 +178,7 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
       callUnary(stub.createApplicationQuestion, req, metadata, false),
     deleteApplicationQuestion: (req, metadata) =>
       callUnary(stub.deleteApplicationQuestion, req, metadata, false),
+    acceptInvitation: (req, metadata) => callUnary(stub.acceptInvitation, req, metadata, false),
     // ── Idempotent (reads) ───────────────────────────────────────────
     get: (req, metadata) => callUnary(stub.get, req, metadata, true),
     list: (req, metadata) => callUnary(stub.list, req, metadata, true),
