@@ -202,7 +202,7 @@ app.get('/api/{{LIB_NAME}}/example', async (req, res) => {
 
 ## 🐳 Docker Integration
 
-Libraries are automatically available to apps through the optimized workspace pattern in `Dockerfile.app.optimized`. No additional configuration needed — just add the dependency to your app's `package.json` and run `pnpm install` at the repo root.
+Libraries are automatically available to apps through the optimized workspace pattern in `Dockerfile.app`. No additional configuration needed — just add the dependency to your app's `package.json` and run `pnpm install` at the repo root.
 
 ## 🧪 Testing
 

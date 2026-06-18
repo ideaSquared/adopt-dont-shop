@@ -256,7 +256,7 @@ Targets are measured via Prometheus histograms (`middleware/metrics.ts`); not cu
 
 ### Containerization
 
-- Docker multi-stage builds (`Dockerfile.app.optimized`)
+- Docker multi-stage builds (`Dockerfile.app`)
 - Docker Compose for dev/staging/prod orchestration
 - Health check endpoints (see above)
 - Graceful shutdown procedures

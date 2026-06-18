@@ -17,7 +17,7 @@ Node 20.19.0 is targeted in three places, all consistent today:
 | `engines.node` | `>=20.19.0` | `package.json` |
 | `.nvmrc` | `20.19.0` | `.nvmrc` |
 | Backend Dockerfile `ARG NODE_VERSION` | `20.19.0` | `service.backend/Dockerfile` (lines 4, 9, 180) |
-| App Dockerfile `ARG NODE_VERSION` | `20.19.0` | `Dockerfile.app.optimized` (lines 11–12) |
+| App Dockerfile `ARG NODE_VERSION` | `20.19.0` | `Dockerfile.app` (lines 11–12) |
 | GitHub Actions | reads `.nvmrc` via `actions/setup-node@v4` `node-version-file` | `.github/workflows/ci.yml`, `quality.yml`, `lib-test-guard.yml`, `security.yml`, `storybook.yml` |
 
 CI does **not** currently use a matrix — every workflow pulls the single
@@ -88,7 +88,7 @@ Native dependencies that re-build per Node major (must rebuild in CI):
 4. Bump `.nvmrc` to `22.11.0` (or latest 22.x LTS at the time).
 5. Bump `engines.node` in root `package.json` to `>=22.11.0`.
 6. Bump `ARG NODE_VERSION=22.11.0` in `service.backend/Dockerfile` (two
-   FROM stages) and `Dockerfile.app.optimized`.
+   FROM stages) and `Dockerfile.app`.
 7. `pnpm install --frozen-lockfile` regenerates the lockfile if any optional native binaries change;
    commit the regeneration.
 
@@ -150,7 +150,7 @@ Locations:
 - `service.backend/Dockerfile:4` (the ARG)
 - `service.backend/Dockerfile:9` and `:180` inherit via `${NODE_VERSION}` — no
   edit needed.
-- `Dockerfile.app.optimized:11` (the ARG); `:12` inherits.
+- `Dockerfile.app:11` (the ARG); `:12` inherits.
 
 After bumping, rebuild the optimised image and check `docker run --rm
 service.backend:dev node -v` reports `v22.x`.

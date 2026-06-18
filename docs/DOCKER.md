@@ -38,7 +38,7 @@ Both Dockerfiles use multi-stage builds for optimal image size and cache reuse:
 | `build` | Compile TypeScript / bundle assets |
 | `production` | Minimal runtime image (Node for backend, nginx for frontend) |
 
-Each microservice under `services/` has its own `Dockerfile.service` (shared build template). All three frontend apps share [Dockerfile.app.optimized](../Dockerfile.app.optimized) and select their app via the `APP_NAME` build arg.
+Each microservice under `services/` has its own `Dockerfile.service` (shared build template). All three frontend apps share [Dockerfile.app](../Dockerfile.app) and select their app via the `APP_NAME` build arg.
 
 ### Services
 
@@ -190,7 +190,7 @@ docker build --build-arg SERVICE=@adopt-dont-shop/service.gateway --build-arg SE
 docker build \
   --build-arg APP_NAME=app.client \
   --target production \
-  -f Dockerfile.app.optimized \
+  -f Dockerfile.app \
   -t adopt-dont-shop/app-client:latest .
 ```
 
@@ -221,7 +221,7 @@ VITE_WS_BASE_URL=wss://api.your-domain.com
 `.github/workflows/docker.yml`:
 
 1. Build backend (development + production targets)
-2. Build all three frontend apps in parallel via `Dockerfile.app.optimized`
+2. Build all three frontend apps in parallel via `Dockerfile.app`
 3. Validate full-stack compose integration using `docker-compose.ci.yml`
 4. Trivy security scan on built images
 

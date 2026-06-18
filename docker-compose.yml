@@ -136,7 +136,7 @@ services:
     profiles: ["admin", "full"]
     build:
       context: .
-      dockerfile: Dockerfile.app.optimized
+      dockerfile: Dockerfile.app
       target: development
       args:
         APP_NAME: admin
@@ -171,7 +171,7 @@ services:
     profiles: ["client", "full"]
     build:
       context: .
-      dockerfile: Dockerfile.app.optimized
+      dockerfile: Dockerfile.app
       target: development
       args:
         APP_NAME: client
@@ -206,7 +206,7 @@ services:
     profiles: ["rescue", "full"]
     build:
       context: .
-      dockerfile: Dockerfile.app.optimized
+      dockerfile: Dockerfile.app
       target: development
       args:
         APP_NAME: rescue
