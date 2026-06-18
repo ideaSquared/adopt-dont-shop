@@ -13,8 +13,12 @@ import { credentials, Metadata, type CallOptions } from '@grpc/grpc-js';
 
 import {
   RescueV1,
+  type CreateApplicationQuestionRequest,
+  type CreateApplicationQuestionResponse,
   type CreateFosterPlacementRequest,
   type CreateFosterPlacementResponse,
+  type DeleteApplicationQuestionRequest,
+  type DeleteApplicationQuestionResponse,
   type CreateRescueRequest,
   type CreateRescueResponse,
   type EndFosterPlacementRequest,
@@ -29,6 +33,8 @@ import {
   type GetRescueResponse,
   type InviteStaffRequest,
   type InviteStaffResponse,
+  type ListApplicationQuestionsRequest,
+  type ListApplicationQuestionsResponse,
   type ListFosterPlacementsRequest,
   type ListFosterPlacementsResponse,
   type ListRescuesRequest,
@@ -80,6 +86,18 @@ export type RescueClient = {
     req: GetInvitationByTokenRequest,
     metadata: Metadata
   ): Promise<GetInvitationByTokenResponse>;
+  listApplicationQuestions(
+    req: ListApplicationQuestionsRequest,
+    metadata: Metadata
+  ): Promise<ListApplicationQuestionsResponse>;
+  createApplicationQuestion(
+    req: CreateApplicationQuestionRequest,
+    metadata: Metadata
+  ): Promise<CreateApplicationQuestionResponse>;
+  deleteApplicationQuestion(
+    req: DeleteApplicationQuestionRequest,
+    metadata: Metadata
+  ): Promise<DeleteApplicationQuestionResponse>;
   close(): void;
 };
 
@@ -150,6 +168,10 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     createFosterPlacement: (req, metadata) =>
       callUnary(stub.createFosterPlacement, req, metadata, false),
     endFosterPlacement: (req, metadata) => callUnary(stub.endFosterPlacement, req, metadata, false),
+    createApplicationQuestion: (req, metadata) =>
+      callUnary(stub.createApplicationQuestion, req, metadata, false),
+    deleteApplicationQuestion: (req, metadata) =>
+      callUnary(stub.deleteApplicationQuestion, req, metadata, false),
     // ── Idempotent (reads) ───────────────────────────────────────────
     get: (req, metadata) => callUnary(stub.get, req, metadata, true),
     list: (req, metadata) => callUnary(stub.list, req, metadata, true),
@@ -161,6 +183,8 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     getFosterPlacement: (req, metadata) => callUnary(stub.getFosterPlacement, req, metadata, true),
     getInvitationByToken: (req, metadata) =>
       callUnary(stub.getInvitationByToken, req, metadata, true),
+    listApplicationQuestions: (req, metadata) =>
+      callUnary(stub.listApplicationQuestions, req, metadata, true),
     close: () => stub.close(),
   };
 };

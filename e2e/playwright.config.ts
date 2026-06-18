@@ -118,8 +118,12 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // bulk-edit-pets is a page-load smoke for /analytics (mislabeled file) —
     // same low-risk pattern as the other rescue page-loads.
     '**/bulk-edit-pets.spec.ts',
-    // Still deferred (need new gateway routes wired, ADS-868):
-    // - custom-application-questions → no /api/v1/rescues/:id/questions route
+    // Batch F (ADS-868) — full-stack feature: rescue-service application-
+    // questions RPCs (proto + handlers) + the /api/v1/rescues/:id/questions
+    // gateway routes. A rescue admin lists (core baseline) + creates a custom
+    // question and sees it on re-list.
+    '**/custom-application-questions.spec.ts',
+    // Still deferred (full feature build, ADS-868):
     // - 2fa-enrollment → /auth/2fa/* RPCs not built yet
   ],
   admin: [
