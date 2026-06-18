@@ -86,16 +86,20 @@ export const registerFieldPermissionsRoutes = async (
   const { client } = opts;
 
   // GET /api/v1/field-permissions/defaults — full defaults blob.
-  app.get('/api/v1/field-permissions/defaults', { schema: { tags: ['field-permissions'] } }, async (req, reply) => {
-    try {
-      const res = await client.getFieldPermissionDefaults({}, buildMetadata(req));
-      // The handler JSON-encodes the defaults blob; parse here so the
-      // gateway response stays a normal object the SPA can consume.
-      return reply.send({ success: true, data: JSON.parse(res.defaultsJson) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.get(
+    '/api/v1/field-permissions/defaults',
+    { schema: { tags: ['field-permissions'] } },
+    async (req, reply) => {
+      try {
+        const res = await client.getFieldPermissionDefaults({}, buildMetadata(req));
+        // The handler JSON-encodes the defaults blob; parse here so the
+        // gateway response stays a normal object the SPA can consume.
+        return reply.send({ success: true, data: JSON.parse(res.defaultsJson) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // GET /api/v1/field-permissions/defaults/:resource/:role
   app.get<{ Params: { resource: string; role: string } }>(
@@ -103,7 +107,11 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
-        params: { type: 'object', properties: { resource: { type: 'string' }, role: { type: 'string' } }, required: ['resource', 'role'] },
+        params: {
+          type: 'object',
+          properties: { resource: { type: 'string' }, role: { type: 'string' } },
+          required: ['resource', 'role'],
+        },
       },
     },
     async (req, reply) => {
@@ -126,85 +134,97 @@ export const registerFieldPermissionsRoutes = async (
   // POST /api/v1/field-permissions/bulk — keep before the dynamic
   // /:resource handlers so Fastify's first-match-wins router picks the
   // static segment.
-  app.post('/api/v1/field-permissions/bulk', {
-    schema: {
-      tags: ['field-permissions'],
-      body: {
-        type: 'object',
-        additionalProperties: true,
-        properties: {
-          overrides: { type: 'array', items: { type: 'object', additionalProperties: true } },
+  app.post(
+    '/api/v1/field-permissions/bulk',
+    {
+      schema: {
+        tags: ['field-permissions'],
+        body: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            overrides: { type: 'array', items: { type: 'object', additionalProperties: true } },
+          },
         },
       },
     },
-  }, async (req, reply) => {
-    const body = (req.body ?? {}) as { overrides?: Array<Record<string, unknown>> };
-    const overridesRaw = body.overrides ?? [];
-    if (!Array.isArray(overridesRaw) || overridesRaw.length === 0) {
-      return reply.code(400).send({ success: false, error: 'overrides must be a non-empty array' });
+    async (req, reply) => {
+      const body = (req.body ?? {}) as { overrides?: Array<Record<string, unknown>> };
+      const overridesRaw = body.overrides ?? [];
+      if (!Array.isArray(overridesRaw) || overridesRaw.length === 0) {
+        return reply
+          .code(400)
+          .send({ success: false, error: 'overrides must be a non-empty array' });
+      }
+      const overrides: FieldPermissionOverrideInput[] = [];
+      for (const o of overridesRaw) {
+        const resource = resourceToProto(String(o.resource ?? ''));
+        const accessLevel = accessLevelToProto(String(o.access_level ?? o.accessLevel ?? ''));
+        if (resource === null || accessLevel === null) {
+          return reply
+            .code(400)
+            .send({ success: false, error: 'invalid resource or access_level' });
+        }
+        overrides.push({
+          resource,
+          fieldName: String(o.field_name ?? o.fieldName ?? ''),
+          role: String(o.role ?? ''),
+          accessLevel,
+        });
+      }
+      try {
+        const res = await client.bulkUpsertFieldPermissions({ overrides }, buildMetadata(req));
+        return reply.send({ success: true, data: res.overrides.map(toView) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const overrides: FieldPermissionOverrideInput[] = [];
-    for (const o of overridesRaw) {
-      const resource = resourceToProto(String(o.resource ?? ''));
-      const accessLevel = accessLevelToProto(String(o.access_level ?? o.accessLevel ?? ''));
+  );
+
+  // POST /api/v1/field-permissions — single upsert.
+  app.post(
+    '/api/v1/field-permissions',
+    {
+      schema: {
+        tags: ['field-permissions'],
+        body: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            resource: { type: 'string' },
+            field_name: { type: 'string' },
+            role: { type: 'string' },
+            access_level: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const resource = resourceToProto(String(body.resource ?? ''));
+      const accessLevel = accessLevelToProto(String(body.access_level ?? body.accessLevel ?? ''));
       if (resource === null || accessLevel === null) {
         return reply.code(400).send({ success: false, error: 'invalid resource or access_level' });
       }
-      overrides.push({
-        resource,
-        fieldName: String(o.field_name ?? o.fieldName ?? ''),
-        role: String(o.role ?? ''),
-        accessLevel,
-      });
-    }
-    try {
-      const res = await client.bulkUpsertFieldPermissions({ overrides }, buildMetadata(req));
-      return reply.send({ success: true, data: res.overrides.map(toView) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
-
-  // POST /api/v1/field-permissions — single upsert.
-  app.post('/api/v1/field-permissions', {
-    schema: {
-      tags: ['field-permissions'],
-      body: {
-        type: 'object',
-        additionalProperties: true,
-        properties: {
-          resource: { type: 'string' },
-          field_name: { type: 'string' },
-          role: { type: 'string' },
-          access_level: { type: 'string' },
-        },
-      },
-    },
-  }, async (req, reply) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const resource = resourceToProto(String(body.resource ?? ''));
-    const accessLevel = accessLevelToProto(String(body.access_level ?? body.accessLevel ?? ''));
-    if (resource === null || accessLevel === null) {
-      return reply.code(400).send({ success: false, error: 'invalid resource or access_level' });
-    }
-    try {
-      const res = await client.upsertFieldPermission(
-        {
-          resource,
-          fieldName: String(body.field_name ?? body.fieldName ?? ''),
-          role: String(body.role ?? ''),
-          accessLevel,
-        },
-        buildMetadata(req)
-      );
-      if (res.override === undefined) {
-        return reply.code(500).send({ success: false, error: 'no override returned' });
+      try {
+        const res = await client.upsertFieldPermission(
+          {
+            resource,
+            fieldName: String(body.field_name ?? body.fieldName ?? ''),
+            role: String(body.role ?? ''),
+            accessLevel,
+          },
+          buildMetadata(req)
+        );
+        if (res.override === undefined) {
+          return reply.code(500).send({ success: false, error: 'no override returned' });
+        }
+        return reply.send({ success: true, data: toView(res.override) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
       }
-      return reply.send({ success: true, data: toView(res.override) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
     }
-  });
+  );
 
   // GET /api/v1/field-permissions/:resource/:role — order matters,
   // must register BEFORE the bare /:resource route so the 3-segment
@@ -214,7 +234,11 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
-        params: { type: 'object', properties: { resource: { type: 'string' }, role: { type: 'string' } }, required: ['resource', 'role'] },
+        params: {
+          type: 'object',
+          properties: { resource: { type: 'string' }, role: { type: 'string' } },
+          required: ['resource', 'role'],
+        },
       },
     },
     async (req, reply) => {
@@ -240,7 +264,15 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
-        params: { type: 'object', properties: { resource: { type: 'string' }, role: { type: 'string' }, field_name: { type: 'string' } }, required: ['resource', 'role', 'field_name'] },
+        params: {
+          type: 'object',
+          properties: {
+            resource: { type: 'string' },
+            role: { type: 'string' },
+            field_name: { type: 'string' },
+          },
+          required: ['resource', 'role', 'field_name'],
+        },
       },
     },
     async (req, reply) => {
@@ -271,7 +303,11 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
-        params: { type: 'object', properties: { resource: { type: 'string' } }, required: ['resource'] },
+        params: {
+          type: 'object',
+          properties: { resource: { type: 'string' } },
+          required: ['resource'],
+        },
       },
     },
     async (req, reply) => {

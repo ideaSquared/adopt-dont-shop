@@ -118,44 +118,48 @@ export const registerModerationRoutes = async (
     }
   );
 
-  app.get('/api/v1/moderation/reports', {
-    config: { rateLimit: RL_READ },
-    schema: {
-      tags: ['moderation'],
-      querystring: {
-        type: 'object',
-        additionalProperties: true,
-        properties: {
-          cursor: { type: 'string' },
-          limit: { type: 'string' },
-          status: { type: 'string' },
-          severity: { type: 'string' },
-          category: { type: 'string' },
-          assigned: { type: 'string' },
+  app.get(
+    '/api/v1/moderation/reports',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation'],
+        querystring: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            status: { type: 'string' },
+            severity: { type: 'string' },
+            category: { type: 'string' },
+            assigned: { type: 'string' },
+          },
         },
       },
     },
-  }, async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q, { limit: 0 });
-    if (!pagination.ok) {
-      return reply.code(400).send({ error: pagination.error });
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+      const grpcReq: ListReportsRequest = {
+        cursor: q.cursor,
+        limit: pagination.limit,
+        status: parseReportStatus(q.status),
+        severity: parseSeverity(q.severity),
+        category: parseCategory(q.category),
+        assignedModerator: q.assigned,
+      };
+      try {
+        const res = await client.listReports(grpcReq, buildMetadata(req));
+        return reply.send(ModerationV1.ListReportsResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const grpcReq: ListReportsRequest = {
-      cursor: q.cursor,
-      limit: pagination.limit,
-      status: parseReportStatus(q.status),
-      severity: parseSeverity(q.severity),
-      category: parseCategory(q.category),
-      assignedModerator: q.assigned,
-    };
-    try {
-      const res = await client.listReports(grpcReq, buildMetadata(req));
-      return reply.send(ModerationV1.ListReportsResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/moderation/reports/:id',
@@ -295,42 +299,46 @@ export const registerModerationRoutes = async (
     }
   );
 
-  app.get('/api/v1/moderation/actions', {
-    config: { rateLimit: RL_READ },
-    schema: {
-      tags: ['moderation'],
-      querystring: {
-        type: 'object',
-        additionalProperties: true,
-        properties: {
-          cursor: { type: 'string' },
-          limit: { type: 'string' },
-          user: { type: 'string' },
-          report: { type: 'string' },
-          action: { type: 'string' },
+  app.get(
+    '/api/v1/moderation/actions',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation'],
+        querystring: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            user: { type: 'string' },
+            report: { type: 'string' },
+            action: { type: 'string' },
+          },
         },
       },
     },
-  }, async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q, { limit: 0 });
-    if (!pagination.ok) {
-      return reply.code(400).send({ error: pagination.error });
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+      const grpcReq: ListModeratorActionsRequest = {
+        cursor: q.cursor,
+        limit: pagination.limit,
+        targetUserId: q.user,
+        reportId: q.report,
+        actionType: parseActionType(q.action),
+      };
+      try {
+        const res = await client.listModeratorActions(grpcReq, buildMetadata(req));
+        return reply.send(ModerationV1.ListModeratorActionsResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const grpcReq: ListModeratorActionsRequest = {
-      cursor: q.cursor,
-      limit: pagination.limit,
-      targetUserId: q.user,
-      reportId: q.report,
-      actionType: parseActionType(q.action),
-    };
-    try {
-      const res = await client.listModeratorActions(grpcReq, buildMetadata(req));
-      return reply.send(ModerationV1.ListModeratorActionsResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   // ---------- Evidence ----------
 
@@ -420,7 +428,11 @@ export const registerModerationRoutes = async (
       config: { rateLimit: RL_READ },
       schema: {
         tags: ['moderation'],
-        params: { type: 'object', properties: { userId: { type: 'string' } }, required: ['userId'] },
+        params: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+          required: ['userId'],
+        },
         querystring: {
           type: 'object',
           additionalProperties: true,
@@ -516,46 +528,50 @@ export const registerModerationRoutes = async (
     }
   );
 
-  app.get('/api/v1/moderation/tickets', {
-    config: { rateLimit: RL_READ },
-    schema: {
-      tags: ['moderation'],
-      querystring: {
-        type: 'object',
-        additionalProperties: true,
-        properties: {
-          cursor: { type: 'string' },
-          limit: { type: 'string' },
-          status: { type: 'string' },
-          priority: { type: 'string' },
-          category: { type: 'string' },
-          assigned: { type: 'string' },
-          user: { type: 'string' },
+  app.get(
+    '/api/v1/moderation/tickets',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation'],
+        querystring: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            status: { type: 'string' },
+            priority: { type: 'string' },
+            category: { type: 'string' },
+            assigned: { type: 'string' },
+            user: { type: 'string' },
+          },
         },
       },
     },
-  }, async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q, { limit: 0 });
-    if (!pagination.ok) {
-      return reply.code(400).send({ error: pagination.error });
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+      const grpcReq: ListSupportTicketsRequest = {
+        cursor: q.cursor,
+        limit: pagination.limit,
+        status: parseTicketStatus(q.status),
+        priority: parseTicketPriority(q.priority),
+        category: parseTicketCategory(q.category),
+        assignedTo: q.assigned,
+        userId: q.user,
+      };
+      try {
+        const res = await client.listSupportTickets(grpcReq, buildMetadata(req));
+        return reply.send(ModerationV1.ListSupportTicketsResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const grpcReq: ListSupportTicketsRequest = {
-      cursor: q.cursor,
-      limit: pagination.limit,
-      status: parseTicketStatus(q.status),
-      priority: parseTicketPriority(q.priority),
-      category: parseTicketCategory(q.category),
-      assignedTo: q.assigned,
-      userId: q.user,
-    };
-    try {
-      const res = await client.listSupportTickets(grpcReq, buildMetadata(req));
-      return reply.send(ModerationV1.ListSupportTicketsResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/moderation/tickets/:id',

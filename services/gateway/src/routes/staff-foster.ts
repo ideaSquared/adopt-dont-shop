@@ -56,170 +56,194 @@ export const registerStaffFosterRoutes = async (
   const { client } = opts;
 
   // ---- GET /api/v1/staff/me ----------------------------------------
-  app.get('/api/v1/staff/me', {
-    schema: {
-      tags: ['staff'],
-      summary: 'Get current user staff membership',
+  app.get(
+    '/api/v1/staff/me',
+    {
+      schema: {
+        tags: ['staff'],
+        summary: 'Get current user staff membership',
+      },
     },
-  }, async (req, reply) => {
-    try {
-      const res = await client.getMyStaffMembership({}, buildMetadata(req));
-      return reply.send({ success: true, data: res.staffMember });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+    async (req, reply) => {
+      try {
+        const res = await client.getMyStaffMembership({}, buildMetadata(req));
+        return reply.send({ success: true, data: res.staffMember });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // ---- GET /api/v1/staff/colleagues --------------------------------
-  app.get('/api/v1/staff/colleagues', {
-    schema: {
-      tags: ['staff'],
-      summary: 'List staff colleagues within the current rescue',
+  app.get(
+    '/api/v1/staff/colleagues',
+    {
+      schema: {
+        tags: ['staff'],
+        summary: 'List staff colleagues within the current rescue',
+      },
     },
-  }, async (req, reply) => {
-    try {
-      // Empty rescue_id → service resolves the caller's own rescue.
-      const res = await client.listStaffMembers({ rescueId: undefined }, buildMetadata(req));
-      return reply.send({ success: true, data: res.staffMembers ?? [] });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+    async (req, reply) => {
+      try {
+        // Empty rescue_id → service resolves the caller's own rescue.
+        const res = await client.listStaffMembers({ rescueId: undefined }, buildMetadata(req));
+        return reply.send({ success: true, data: res.staffMembers ?? [] });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // ---- POST /api/v1/foster/placements ------------------------------
-  app.post('/api/v1/foster/placements', {
-    schema: {
-      tags: ['foster'],
-      summary: 'Create a foster placement',
-      body: {
-        type: 'object',
-        properties: {
-          rescueId: { type: 'string' },
-          petId: { type: 'string' },
-          fosterUserId: { type: 'string' },
-          startDate: { type: 'string' },
-          notes: { type: 'string' },
+  app.post(
+    '/api/v1/foster/placements',
+    {
+      schema: {
+        tags: ['foster'],
+        summary: 'Create a foster placement',
+        body: {
+          type: 'object',
+          properties: {
+            rescueId: { type: 'string' },
+            petId: { type: 'string' },
+            fosterUserId: { type: 'string' },
+            startDate: { type: 'string' },
+            notes: { type: 'string' },
+          },
+          additionalProperties: true,
         },
-        additionalProperties: true,
       },
     },
-  }, async (req, reply) => {
-    const body = (req.body ?? {}) as {
-      rescueId?: string;
-      petId?: string;
-      fosterUserId?: string;
-      startDate?: string;
-      notes?: string;
-    };
-    const grpcReq: CreateFosterPlacementRequest = {
-      rescueId: body.rescueId ?? '',
-      petId: body.petId ?? '',
-      fosterUserId: body.fosterUserId ?? '',
-      startDate: body.startDate ?? '',
-      notes: body.notes,
-    };
-    try {
-      const res = await client.createFosterPlacement(grpcReq, buildMetadata(req));
-      return reply.code(201).send({ success: true, data: res.placement });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+    async (req, reply) => {
+      const body = (req.body ?? {}) as {
+        rescueId?: string;
+        petId?: string;
+        fosterUserId?: string;
+        startDate?: string;
+        notes?: string;
+      };
+      const grpcReq: CreateFosterPlacementRequest = {
+        rescueId: body.rescueId ?? '',
+        petId: body.petId ?? '',
+        fosterUserId: body.fosterUserId ?? '',
+        startDate: body.startDate ?? '',
+        notes: body.notes,
+      };
+      try {
+        const res = await client.createFosterPlacement(grpcReq, buildMetadata(req));
+        return reply.code(201).send({ success: true, data: res.placement });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // ---- GET /api/v1/foster/placements -------------------------------
-  app.get('/api/v1/foster/placements', {
-    schema: {
-      tags: ['foster'],
-      summary: 'List foster placements',
-      querystring: {
-        type: 'object',
-        properties: {
-          rescueId: { type: 'string' },
-          fosterUserId: { type: 'string' },
-          status: { type: 'string' },
+  app.get(
+    '/api/v1/foster/placements',
+    {
+      schema: {
+        tags: ['foster'],
+        summary: 'List foster placements',
+        querystring: {
+          type: 'object',
+          properties: {
+            rescueId: { type: 'string' },
+            fosterUserId: { type: 'string' },
+            status: { type: 'string' },
+          },
+          additionalProperties: true,
         },
-        additionalProperties: true,
       },
     },
-  }, async (req, reply) => {
-    const query = req.query as Record<string, string | undefined>;
-    const grpcReq: ListFosterPlacementsRequest = {
-      rescueId: query.rescueId,
-      fosterUserId: query.fosterUserId,
-      statusFilter: fosterStatusFromString(query.status),
-    };
-    try {
-      const res = await client.listFosterPlacements(grpcReq, buildMetadata(req));
-      return reply.send({ success: true, data: res.placements ?? [] });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+    async (req, reply) => {
+      const query = req.query as Record<string, string | undefined>;
+      const grpcReq: ListFosterPlacementsRequest = {
+        rescueId: query.rescueId,
+        fosterUserId: query.fosterUserId,
+        statusFilter: fosterStatusFromString(query.status),
+      };
+      try {
+        const res = await client.listFosterPlacements(grpcReq, buildMetadata(req));
+        return reply.send({ success: true, data: res.placements ?? [] });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // ---- GET /api/v1/foster/placements/:id ---------------------------
-  app.get<{ Params: { id: string } }>('/api/v1/foster/placements/:id', {
-    schema: {
-      tags: ['foster'],
-      summary: 'Get a foster placement by ID',
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/foster/placements/:id',
+    {
+      schema: {
+        tags: ['foster'],
+        summary: 'Get a foster placement by ID',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
         },
       },
     },
-  }, async (req, reply) => {
-    try {
-      const res = await client.getFosterPlacement(
-        { placementId: req.params.id },
-        buildMetadata(req)
-      );
-      return reply.send({ success: true, data: res.placement });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+    async (req, reply) => {
+      try {
+        const res = await client.getFosterPlacement(
+          { placementId: req.params.id },
+          buildMetadata(req)
+        );
+        return reply.send({ success: true, data: res.placement });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // ---- POST /api/v1/foster/placements/:id/end ----------------------
-  app.post<{ Params: { id: string } }>('/api/v1/foster/placements/:id/end', {
-    schema: {
-      tags: ['foster'],
-      summary: 'End a foster placement',
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/foster/placements/:id/end',
+    {
+      schema: {
+        tags: ['foster'],
+        summary: 'End a foster placement',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
         },
-      },
-      body: {
-        type: 'object',
-        properties: {
-          outcome: { type: 'string' },
-          endDate: { type: 'string' },
-          notes: { type: 'string' },
+        body: {
+          type: 'object',
+          properties: {
+            outcome: { type: 'string' },
+            endDate: { type: 'string' },
+            notes: { type: 'string' },
+          },
+          additionalProperties: true,
         },
-        additionalProperties: true,
       },
     },
-  }, async (req, reply) => {
-    const body = (req.body ?? {}) as {
-      outcome?: string;
-      endDate?: string;
-      notes?: string;
-    };
-    const grpcReq: EndFosterPlacementRequest = {
-      placementId: req.params.id,
-      outcome: endOutcomeFromString(body.outcome),
-      endDate: body.endDate,
-      notes: body.notes,
-    };
-    try {
-      const res = await client.endFosterPlacement(grpcReq, buildMetadata(req));
-      return reply.send({ success: true, data: res.placement });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+    async (req, reply) => {
+      const body = (req.body ?? {}) as {
+        outcome?: string;
+        endDate?: string;
+        notes?: string;
+      };
+      const grpcReq: EndFosterPlacementRequest = {
+        placementId: req.params.id,
+        outcome: endOutcomeFromString(body.outcome),
+        endDate: body.endDate,
+        notes: body.notes,
+      };
+      try {
+        const res = await client.endFosterPlacement(grpcReq, buildMetadata(req));
+        return reply.send({ success: true, data: res.placement });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // ---- GET /api/v1/invitations/details/:token ----------------------
   // Public — reachable from the email link before the invitee has an

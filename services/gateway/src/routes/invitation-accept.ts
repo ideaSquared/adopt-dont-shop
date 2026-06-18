@@ -63,54 +63,55 @@ export const registerInvitationAcceptRoutes = async (
       },
     },
     async (req, reply) => {
-    const body = (req.body ?? {}) as AcceptBody;
-    const token = body.token ?? '';
-    const password = body.password ?? '';
-    const firstName = body.firstName ?? body.first_name ?? '';
-    const lastName = body.lastName ?? body.last_name ?? '';
+      const body = (req.body ?? {}) as AcceptBody;
+      const token = body.token ?? '';
+      const password = body.password ?? '';
+      const firstName = body.firstName ?? body.first_name ?? '';
+      const lastName = body.lastName ?? body.last_name ?? '';
 
-    if (!token) {
-      return reply.code(400).send({ error: 'token is required' });
-    }
-    if (!password) {
-      return reply.code(400).send({ error: 'password is required' });
-    }
-    if (!firstName || !lastName) {
-      return reply.code(400).send({ error: 'firstName and lastName are required' });
-    }
-
-    const metadata = buildMetadata(req);
-
-    try {
-      // 1. Validate the invitation + read the invitee's email. NOT_FOUND
-      //    (unknown / used / expired) surfaces as 404.
-      const details = await rescueClient.getInvitationByToken({ token }, metadata);
-      const email = details.invitation?.email;
-      if (!email) {
-        return reply.code(404).send({ error: 'invitation not found or no longer valid' });
+      if (!token) {
+        return reply.code(400).send({ error: 'token is required' });
+      }
+      if (!password) {
+        return reply.code(400).send({ error: 'password is required' });
+      }
+      if (!firstName || !lastName) {
+        return reply.code(400).send({ error: 'firstName and lastName are required' });
       }
 
-      // 2. Create-or-find the auth user with the invitee's trusted email.
-      const provisioned = await authClient.provisionInvitedUser(
-        { email, password, firstName, lastName },
-        metadata
-      );
-      const userId = provisioned.user?.userId;
-      if (!userId) {
-        return reply.code(500).send({ error: 'internal_error' });
+      const metadata = buildMetadata(req);
+
+      try {
+        // 1. Validate the invitation + read the invitee's email. NOT_FOUND
+        //    (unknown / used / expired) surfaces as 404.
+        const details = await rescueClient.getInvitationByToken({ token }, metadata);
+        const email = details.invitation?.email;
+        if (!email) {
+          return reply.code(404).send({ error: 'invitation not found or no longer valid' });
+        }
+
+        // 2. Create-or-find the auth user with the invitee's trusted email.
+        const provisioned = await authClient.provisionInvitedUser(
+          { email, password, firstName, lastName },
+          metadata
+        );
+        const userId = provisioned.user?.userId;
+        if (!userId) {
+          return reply.code(500).send({ error: 'internal_error' });
+        }
+
+        // 3. Consume the invitation + attach staff membership.
+        const accepted = await rescueClient.acceptInvitation({ token, userId }, metadata);
+
+        return reply.code(201).send({
+          success: true,
+          message: 'Invitation accepted',
+          userId,
+          data: accepted.staffMember,
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
       }
-
-      // 3. Consume the invitation + attach staff membership.
-      const accepted = await rescueClient.acceptInvitation({ token, userId }, metadata);
-
-      return reply.code(201).send({
-        success: true,
-        message: 'Invitation accepted',
-        userId,
-        data: accepted.staffMember,
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
     }
-  });
+  );
 };

@@ -89,245 +89,274 @@ export const registerReportsRoutes = async (
   const { client } = opts;
 
   // GET /api/v1/reports — paginated list. Self-scoped at the service.
-  app.get('/api/v1/reports', {
-    schema: {
-      tags: ['reports'],
-      summary: 'List saved reports',
-      querystring: {
-        type: 'object',
-        properties: {
-          rescue_id: { type: 'string' },
-          rescueId: { type: 'string' },
-          is_archived: { type: 'string' },
-          archived: { type: 'string' },
-          page: { type: 'string' },
-          limit: { type: 'string' },
+  app.get(
+    '/api/v1/reports',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'List saved reports',
+        querystring: {
+          type: 'object',
+          properties: {
+            rescue_id: { type: 'string' },
+            rescueId: { type: 'string' },
+            is_archived: { type: 'string' },
+            archived: { type: 'string' },
+            page: { type: 'string' },
+            limit: { type: 'string' },
+          },
+          additionalProperties: true,
         },
-        additionalProperties: true,
       },
     },
-  }, async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q);
-    if (!pagination.ok) {
-      return reply.code(400).send({ success: false, error: pagination.error });
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q);
+      if (!pagination.ok) {
+        return reply.code(400).send({ success: false, error: pagination.error });
+      }
+      const grpcReq: AuditListSavedReportsRequest = {
+        rescueId: q.rescue_id || q.rescueId,
+        isArchived:
+          q.is_archived === 'true' || q.archived === 'true'
+            ? true
+            : q.is_archived === 'false' || q.archived === 'false'
+              ? false
+              : undefined,
+        page: pagination.page,
+        limit: pagination.limit,
+      };
+      try {
+        const res = await client.listSavedReports(grpcReq, buildMetadata(req));
+        return reply.send({
+          success: true,
+          data: res.reports.map(reportToView),
+          pagination: {
+            page: res.page,
+            limit: grpcReq.limit || 20,
+            total: res.total,
+            totalPages: res.totalPages,
+          },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const grpcReq: AuditListSavedReportsRequest = {
-      rescueId: q.rescue_id || q.rescueId,
-      isArchived:
-        q.is_archived === 'true' || q.archived === 'true'
-          ? true
-          : q.is_archived === 'false' || q.archived === 'false'
-            ? false
-            : undefined,
-      page: pagination.page,
-      limit: pagination.limit,
-    };
-    try {
-      const res = await client.listSavedReports(grpcReq, buildMetadata(req));
-      return reply.send({
-        success: true,
-        data: res.reports.map(reportToView),
-        pagination: {
-          page: res.page,
-          limit: grpcReq.limit || 20,
-          total: res.total,
-          totalPages: res.totalPages,
-        },
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   // GET /api/v1/reports/templates — register BEFORE /:id so the
   // static path wins.
-  app.get('/api/v1/reports/templates', {
-    schema: {
-      tags: ['reports'],
-      summary: 'List report templates',
-      querystring: {
-        type: 'object',
-        properties: {
-          category: { type: 'string' },
-          rescue_id: { type: 'string' },
-          rescueId: { type: 'string' },
-          system: { type: 'string' },
-          system_only: { type: 'string' },
-        },
-        additionalProperties: true,
-      },
-    },
-  }, async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const cat = CATEGORY_FROM_STRING[(q.category ?? '').toLowerCase()];
-    const grpcReq: AuditListReportTemplatesRequest = {
-      category: cat ?? AuditV1.ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_UNSPECIFIED,
-      rescueId: q.rescue_id || q.rescueId,
-      systemOnly: q.system === 'true' || q.system_only === 'true' ? true : undefined,
-    };
-    try {
-      const res = await client.listReportTemplates(grpcReq, buildMetadata(req));
-      return reply.send({
-        success: true,
-        data: res.templates.map(templateToView),
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
-
-  app.get<{ Params: { id: string } }>('/api/v1/reports/:id', {
-    schema: {
-      tags: ['reports'],
-      summary: 'Get a saved report by ID',
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
+  app.get(
+    '/api/v1/reports/templates',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'List report templates',
+        querystring: {
+          type: 'object',
+          properties: {
+            category: { type: 'string' },
+            rescue_id: { type: 'string' },
+            rescueId: { type: 'string' },
+            system: { type: 'string' },
+            system_only: { type: 'string' },
+          },
+          additionalProperties: true,
         },
       },
     },
-  }, async (req, reply) => {
-    try {
-      const res = await client.getSavedReport({ savedReportId: req.params.id }, buildMetadata(req));
-      if (!res.report) {
-        return reply.code(404).send({ success: false, error: 'not found' });
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const cat = CATEGORY_FROM_STRING[(q.category ?? '').toLowerCase()];
+      const grpcReq: AuditListReportTemplatesRequest = {
+        category: cat ?? AuditV1.ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_UNSPECIFIED,
+        rescueId: q.rescue_id || q.rescueId,
+        systemOnly: q.system === 'true' || q.system_only === 'true' ? true : undefined,
+      };
+      try {
+        const res = await client.listReportTemplates(grpcReq, buildMetadata(req));
+        return reply.send({
+          success: true,
+          data: res.templates.map(templateToView),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
       }
-      return reply.send({ success: true, data: reportToView(res.report) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
     }
-  });
+  );
 
-  app.post('/api/v1/reports', {
-    schema: {
-      tags: ['reports'],
-      summary: 'Create a saved report',
-      body: {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-          description: { type: 'string' },
-          rescue_id: { type: 'string' },
-          rescueId: { type: 'string' },
-          template_id: { type: 'string' },
-          templateId: { type: 'string' },
-          config: { type: 'object' },
-          configJson: { type: 'string' },
-          config_json: { type: 'string' },
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/reports/:id',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'Get a saved report by ID',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
         },
-        additionalProperties: true,
       },
     },
-  }, async (req, reply) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const configJson = encodeConfig(body.config, body.configJson, body.config_json);
-    const grpcReq: AuditCreateSavedReportRequest = {
-      name: String(body.name ?? ''),
-      description: typeof body.description === 'string' ? body.description : undefined,
-      rescueId:
-        typeof body.rescue_id === 'string'
-          ? body.rescue_id
-          : typeof body.rescueId === 'string'
-            ? body.rescueId
+    async (req, reply) => {
+      try {
+        const res = await client.getSavedReport(
+          { savedReportId: req.params.id },
+          buildMetadata(req)
+        );
+        if (!res.report) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        return reply.send({ success: true, data: reportToView(res.report) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/reports',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'Create a saved report',
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            description: { type: 'string' },
+            rescue_id: { type: 'string' },
+            rescueId: { type: 'string' },
+            template_id: { type: 'string' },
+            templateId: { type: 'string' },
+            config: { type: 'object' },
+            configJson: { type: 'string' },
+            config_json: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const configJson = encodeConfig(body.config, body.configJson, body.config_json);
+      const grpcReq: AuditCreateSavedReportRequest = {
+        name: String(body.name ?? ''),
+        description: typeof body.description === 'string' ? body.description : undefined,
+        rescueId:
+          typeof body.rescue_id === 'string'
+            ? body.rescue_id
+            : typeof body.rescueId === 'string'
+              ? body.rescueId
+              : undefined,
+        templateId:
+          typeof body.template_id === 'string'
+            ? body.template_id
+            : typeof body.templateId === 'string'
+              ? body.templateId
+              : undefined,
+        configJson,
+      };
+      try {
+        const res = await client.createSavedReport(grpcReq, buildMetadata(req));
+        if (!res.report) {
+          return reply.code(500).send({ success: false, error: 'no row returned' });
+        }
+        return reply.code(201).send({ success: true, data: reportToView(res.report) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.put<{ Params: { id: string } }>(
+    '/api/v1/reports/:id',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'Update a saved report',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            description: { type: 'string' },
+            config: { type: 'object' },
+            configJson: { type: 'string' },
+            config_json: { type: 'string' },
+            is_archived: { type: 'boolean' },
+            isArchived: { type: 'boolean' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: AuditUpdateSavedReportRequest = {
+        savedReportId: req.params.id,
+        name: typeof body.name === 'string' ? body.name : undefined,
+        description: typeof body.description === 'string' ? body.description : undefined,
+        configJson:
+          body.config !== undefined ||
+          body.configJson !== undefined ||
+          body.config_json !== undefined
+            ? encodeConfig(body.config, body.configJson, body.config_json)
             : undefined,
-      templateId:
-        typeof body.template_id === 'string'
-          ? body.template_id
-          : typeof body.templateId === 'string'
-            ? body.templateId
-            : undefined,
-      configJson,
-    };
-    try {
-      const res = await client.createSavedReport(grpcReq, buildMetadata(req));
-      if (!res.report) {
-        return reply.code(500).send({ success: false, error: 'no row returned' });
+        isArchived:
+          typeof body.is_archived === 'boolean'
+            ? body.is_archived
+            : typeof body.isArchived === 'boolean'
+              ? body.isArchived
+              : undefined,
+      };
+      try {
+        const res = await client.updateSavedReport(grpcReq, buildMetadata(req));
+        if (!res.report) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        return reply.send({ success: true, data: reportToView(res.report) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
       }
-      return reply.code(201).send({ success: true, data: reportToView(res.report) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
     }
-  });
+  );
 
-  app.put<{ Params: { id: string } }>('/api/v1/reports/:id', {
-    schema: {
-      tags: ['reports'],
-      summary: 'Update a saved report',
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-        },
-      },
-      body: {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-          description: { type: 'string' },
-          config: { type: 'object' },
-          configJson: { type: 'string' },
-          config_json: { type: 'string' },
-          is_archived: { type: 'boolean' },
-          isArchived: { type: 'boolean' },
-        },
-        additionalProperties: true,
-      },
-    },
-  }, async (req, reply) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const grpcReq: AuditUpdateSavedReportRequest = {
-      savedReportId: req.params.id,
-      name: typeof body.name === 'string' ? body.name : undefined,
-      description: typeof body.description === 'string' ? body.description : undefined,
-      configJson:
-        body.config !== undefined || body.configJson !== undefined || body.config_json !== undefined
-          ? encodeConfig(body.config, body.configJson, body.config_json)
-          : undefined,
-      isArchived:
-        typeof body.is_archived === 'boolean'
-          ? body.is_archived
-          : typeof body.isArchived === 'boolean'
-            ? body.isArchived
-            : undefined,
-    };
-    try {
-      const res = await client.updateSavedReport(grpcReq, buildMetadata(req));
-      if (!res.report) {
-        return reply.code(404).send({ success: false, error: 'not found' });
-      }
-      return reply.send({ success: true, data: reportToView(res.report) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
-
-  app.delete<{ Params: { id: string } }>('/api/v1/reports/:id', {
-    schema: {
-      tags: ['reports'],
-      summary: 'Delete a saved report',
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
+  app.delete<{ Params: { id: string } }>(
+    '/api/v1/reports/:id',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'Delete a saved report',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
         },
       },
     },
-  }, async (req, reply) => {
-    try {
-      const res = await client.deleteSavedReport(
-        { savedReportId: req.params.id },
-        buildMetadata(req)
-      );
-      if (!res.deleted) {
-        return reply.code(404).send({ success: false, error: 'not found' });
+    async (req, reply) => {
+      try {
+        const res = await client.deleteSavedReport(
+          { savedReportId: req.params.id },
+          buildMetadata(req)
+        );
+        if (!res.deleted) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        return reply.send({ success: true });
+      } catch (err) {
+        return handleGrpcError(err, reply);
       }
-      return reply.send({ success: true });
-    } catch (err) {
-      return handleGrpcError(err, reply);
     }
-  });
+  );
 };
 
 function encodeConfig(configObj: unknown, configJson: unknown, configSnake: unknown): string {

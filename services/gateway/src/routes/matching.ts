@@ -396,21 +396,25 @@ export const registerMatchingRoutes = async (
 
   // PUT /api/v1/match/profile — upsert. The SPA sends snake_case
   // preference fields; map each to the proto's set_* + *_json pair.
-  app.put('/api/v1/match/profile', {
-    schema: {
-      tags: ['matching'],
-      body: { type: 'object', additionalProperties: true },
+  app.put(
+    '/api/v1/match/profile',
+    {
+      schema: {
+        tags: ['matching'],
+        body: { type: 'object', additionalProperties: true },
+      },
     },
-  }, async (req, reply) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    try {
-      const grpcReq = buildUpsertRequest(body);
-      const res = await client.upsertMatchProfile(grpcReq, buildMetadata(req));
-      return reply.send({ success: true, data: matchProfileToView(res.profile) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+    async (req, reply) => {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      try {
+        const grpcReq = buildUpsertRequest(body);
+        const res = await client.upsertMatchProfile(grpcReq, buildMetadata(req));
+        return reply.send({ success: true, data: matchProfileToView(res.profile) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // ---- Swipe statistics --------------------------------------------
   // GET /api/v1/discovery/swipe/stats/:userId
@@ -419,7 +423,11 @@ export const registerMatchingRoutes = async (
     {
       schema: {
         tags: ['discovery'],
-        params: { type: 'object', properties: { userId: { type: 'string' } }, required: ['userId'] },
+        params: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+          required: ['userId'],
+        },
       },
     },
     async (req, reply) => {
@@ -445,7 +453,11 @@ export const registerMatchingRoutes = async (
     {
       schema: {
         tags: ['discovery'],
-        params: { type: 'object', properties: { sessionId: { type: 'string' } }, required: ['sessionId'] },
+        params: {
+          type: 'object',
+          properties: { sessionId: { type: 'string' } },
+          required: ['sessionId'],
+        },
       },
     },
     async (req, reply) => {

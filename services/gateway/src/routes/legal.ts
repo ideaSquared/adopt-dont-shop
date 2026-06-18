@@ -93,13 +93,14 @@ export const registerLegalRoutes = async (
       },
     },
     async (_req, reply) => {
-    try {
-      const doc = await getTermsDocument(docsDir);
-      return reply.send({ data: doc });
-    } catch {
-      return reply.code(500).send({ error: 'legal content unavailable' });
+      try {
+        const doc = await getTermsDocument(docsDir);
+        return reply.send({ data: doc });
+      } catch {
+        return reply.code(500).send({ error: 'legal content unavailable' });
+      }
     }
-  });
+  );
 
   app.get(
     '/api/v1/legal/privacy',
@@ -111,13 +112,14 @@ export const registerLegalRoutes = async (
       },
     },
     async (_req, reply) => {
-    try {
-      const doc = await getPrivacyDocument(docsDir);
-      return reply.send({ data: doc });
-    } catch {
-      return reply.code(500).send({ error: 'legal content unavailable' });
+      try {
+        const doc = await getPrivacyDocument(docsDir);
+        return reply.send({ data: doc });
+      } catch {
+        return reply.code(500).send({ error: 'legal content unavailable' });
+      }
     }
-  });
+  );
 
   app.get(
     '/api/v1/legal/cookies',
@@ -129,13 +131,14 @@ export const registerLegalRoutes = async (
       },
     },
     async (_req, reply) => {
-    try {
-      const doc = await getCookiesDocument(docsDir);
-      return reply.send({ data: doc });
-    } catch {
-      return reply.code(500).send({ error: 'legal content unavailable' });
+      try {
+        const doc = await getCookiesDocument(docsDir);
+        return reply.send({ data: doc });
+      } catch {
+        return reply.code(500).send({ error: 'legal content unavailable' });
+      }
     }
-  });
+  );
 };
 
 // Exposed for tests so they can clear cached fixture reads between

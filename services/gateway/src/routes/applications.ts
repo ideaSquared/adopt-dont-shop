@@ -79,44 +79,48 @@ export const registerApplicationsRoutes = async (
   // and stores the frontend's data blob verbatim as answers so it
   // round-trips on read (applications-view.ts parses it back into `data`).
 
-  app.post('/api/v1/applications', {
-    config: { rateLimit: RL_WRITE },
-    schema: {
-      tags: ['applications'],
-      summary: 'Create and submit an adoption application',
-      body: {
-        type: 'object',
-        additionalProperties: true,
+  app.post(
+    '/api/v1/applications',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Create and submit an adoption application',
+        body: {
+          type: 'object',
+          additionalProperties: true,
+        },
       },
     },
-  }, async (req, reply) => {
-    const b = (req.body ?? {}) as Record<string, unknown>;
-    const adopterId = (b.userId as string) ?? (b.adopterId as string) ?? headerUserId(req) ?? '';
-    const petId = (b.petId as string) ?? '';
-    const meta = buildMetadata(req);
-    try {
-      const started = await client.startDraft({ adopterId, petId }, meta);
-      const draft = requireApplication(started.application);
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const adopterId = (b.userId as string) ?? (b.adopterId as string) ?? headerUserId(req) ?? '';
+      const petId = (b.petId as string) ?? '';
+      const meta = buildMetadata(req);
+      try {
+        const started = await client.startDraft({ adopterId, petId }, meta);
+        const draft = requireApplication(started.application);
 
-      const saved = await client.saveDraftAnswers(
-        {
-          applicationId: draft.applicationId,
-          expectedVersion: draft.version,
-          answersPatchJson: JSON.stringify(b),
-        },
-        meta
-      );
-      const withAnswers = requireApplication(saved.application);
+        const saved = await client.saveDraftAnswers(
+          {
+            applicationId: draft.applicationId,
+            expectedVersion: draft.version,
+            answersPatchJson: JSON.stringify(b),
+          },
+          meta
+        );
+        const withAnswers = requireApplication(saved.application);
 
-      const submitted = await client.submitDraft(
-        { applicationId: withAnswers.applicationId, expectedVersion: withAnswers.version },
-        meta
-      );
-      return sendView(reply, submitted.application, 201);
-    } catch (err) {
-      return handleGrpcError(err, reply);
+        const submitted = await client.submitDraft(
+          { applicationId: withAnswers.applicationId, expectedVersion: withAnswers.version },
+          meta
+        );
+        return sendView(reply, submitted.application, 201);
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // PATCH /:id/status — the SPA's updateApplicationStatus. The frontend's
   // 4-value status maps onto the service's decision commands.
@@ -590,75 +594,83 @@ export const registerApplicationsRoutes = async (
   // Registered before /:id so the static `stats` segment wins over the
   // param route. Collapses the service's raw per-status counts to the
   // SPA's ApplicationStatsSchema, wrapped in `{ data }`.
-  app.get('/api/v1/applications/stats', {
-    config: { rateLimit: RL_READ },
-    schema: {
-      tags: ['applications'],
-      summary: 'Get application statistics',
-      querystring: {
-        type: 'object',
-        properties: {
-          rescue: { type: 'string' },
-          adopter: { type: 'string' },
+  app.get(
+    '/api/v1/applications/stats',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['applications'],
+        summary: 'Get application statistics',
+        querystring: {
+          type: 'object',
+          properties: {
+            rescue: { type: 'string' },
+            adopter: { type: 'string' },
+          },
+          additionalProperties: true,
         },
-        additionalProperties: true,
       },
     },
-  }, async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    try {
-      const res = await client.getStats(
-        { rescueIdFilter: q.rescue, adopterIdFilter: q.adopter },
-        buildMetadata(req)
-      );
-      return reply.send({ data: statsToView(res) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      try {
+        const res = await client.getStats(
+          { rescueIdFilter: q.rescue, adopterIdFilter: q.adopter },
+          buildMetadata(req)
+        );
+        return reply.send({ data: statsToView(res) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
-  app.get('/api/v1/applications', {
-    config: { rateLimit: RL_READ },
-    schema: {
-      tags: ['applications'],
-      summary: 'List applications',
-      querystring: {
-        type: 'object',
-        properties: {
-          cursor: { type: 'string' },
-          limit: { type: 'string' },
-          status: { type: 'string' },
-          rescue: { type: 'string' },
-          adopter: { type: 'string' },
+  app.get(
+    '/api/v1/applications',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['applications'],
+        summary: 'List applications',
+        querystring: {
+          type: 'object',
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            status: { type: 'string' },
+            rescue: { type: 'string' },
+            adopter: { type: 'string' },
+          },
+          additionalProperties: true,
         },
-        additionalProperties: true,
       },
     },
-  }, async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q, { limit: 0 });
-    if (!pagination.ok) {
-      return reply.code(400).send({ error: pagination.error });
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+      const grpcReq: ListApplicationsRequest = {
+        cursor: q.cursor,
+        limit: pagination.limit,
+        statusFilter: parseStatus(q.status),
+        rescueIdFilter: q.rescue,
+        adopterIdFilter: q.adopter,
+      };
+      try {
+        const res = await client.list(grpcReq, buildMetadata(req));
+        // Stage B: map to the frontend view + drop draft/unspecified rows,
+        // and wrap in the `{ data }` envelope the SPA expects.
+        const data = res.applications
+          .map(applicationToView)
+          .filter((v): v is ApplicationView => v !== null);
+        return reply.send({ data });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const grpcReq: ListApplicationsRequest = {
-      cursor: q.cursor,
-      limit: pagination.limit,
-      statusFilter: parseStatus(q.status),
-      rescueIdFilter: q.rescue,
-      adopterIdFilter: q.adopter,
-    };
-    try {
-      const res = await client.list(grpcReq, buildMetadata(req));
-      // Stage B: map to the frontend view + drop draft/unspecified rows,
-      // and wrap in the `{ data }` envelope the SPA expects.
-      const data = res.applications
-        .map(applicationToView)
-        .filter((v): v is ApplicationView => v !== null);
-      return reply.send({ data });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/applications/:id',

@@ -72,114 +72,122 @@ export const registerEmailRoutes = async (
   const { client } = opts;
 
   // GET /api/v1/email/templates
-  app.get('/api/v1/email/templates', {
-    schema: {
-      tags: ['email'],
-      summary: 'List email templates',
-      querystring: {
-        type: 'object',
-        properties: {
-          type: { type: 'string' },
-          status: { type: 'string' },
-          category: { type: 'string' },
-          search: { type: 'string' },
-          page: { type: 'string' },
-          limit: { type: 'string' },
+  app.get(
+    '/api/v1/email/templates',
+    {
+      schema: {
+        tags: ['email'],
+        summary: 'List email templates',
+        querystring: {
+          type: 'object',
+          properties: {
+            type: { type: 'string' },
+            status: { type: 'string' },
+            category: { type: 'string' },
+            search: { type: 'string' },
+            page: { type: 'string' },
+            limit: { type: 'string' },
+          },
+          additionalProperties: true,
         },
-        additionalProperties: true,
       },
     },
-  }, async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q, { limit: 0 });
-    if (!pagination.ok) {
-      return reply.code(400).send({ success: false, error: pagination.error });
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ success: false, error: pagination.error });
+      }
+      const grpcReq: ListEmailTemplatesRequest = {
+        typeFilter: typeFromString(q.type),
+        statusFilter: statusFromString(q.status),
+        categoryFilter: q.category,
+        search: q.search,
+        page: pagination.page,
+        limit: pagination.limit,
+      };
+      try {
+        const res = await client.listEmailTemplates(grpcReq, metadata);
+        return reply.send({
+          success: true,
+          data: res.templates.map(t => NotificationsV1.EmailTemplate.toJSON(t)),
+          pagination: {
+            page: res.page,
+            limit: grpcReq.limit || 20,
+            total: res.total,
+            totalPages: res.totalPages,
+          },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const grpcReq: ListEmailTemplatesRequest = {
-      typeFilter: typeFromString(q.type),
-      statusFilter: statusFromString(q.status),
-      categoryFilter: q.category,
-      search: q.search,
-      page: pagination.page,
-      limit: pagination.limit,
-    };
-    try {
-      const res = await client.listEmailTemplates(grpcReq, metadata);
-      return reply.send({
-        success: true,
-        data: res.templates.map(t => NotificationsV1.EmailTemplate.toJSON(t)),
-        pagination: {
-          page: res.page,
-          limit: grpcReq.limit || 20,
-          total: res.total,
-          totalPages: res.totalPages,
-        },
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   // POST /api/v1/email/templates
-  app.post('/api/v1/email/templates', {
-    schema: {
-      tags: ['email'],
-      summary: 'Create an email template',
-      body: {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-          description: { type: 'string' },
-          type: { type: 'string' },
-          category: { type: 'string' },
-          status: { type: 'string' },
-          subject: { type: 'string' },
-          htmlContent: { type: 'string' },
-          html_content: { type: 'string' },
-          textContent: { type: 'string' },
-          text_content: { type: 'string' },
-          variables: {},
-          locale: { type: 'string' },
+  app.post(
+    '/api/v1/email/templates',
+    {
+      schema: {
+        tags: ['email'],
+        summary: 'Create an email template',
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            description: { type: 'string' },
+            type: { type: 'string' },
+            category: { type: 'string' },
+            status: { type: 'string' },
+            subject: { type: 'string' },
+            htmlContent: { type: 'string' },
+            html_content: { type: 'string' },
+            textContent: { type: 'string' },
+            text_content: { type: 'string' },
+            variables: {},
+            locale: { type: 'string' },
+          },
+          additionalProperties: true,
         },
-        additionalProperties: true,
       },
     },
-  }, async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const grpcReq: CreateEmailTemplateRequest = {
-      name: typeof body.name === 'string' ? body.name : '',
-      description: typeof body.description === 'string' ? body.description : undefined,
-      type: typeFromString(typeof body.type === 'string' ? body.type : undefined),
-      category: typeof body.category === 'string' ? body.category : '',
-      status: statusFromString(typeof body.status === 'string' ? body.status : undefined),
-      subject: typeof body.subject === 'string' ? body.subject : '',
-      htmlContent:
-        typeof body.htmlContent === 'string'
-          ? body.htmlContent
-          : typeof body.html_content === 'string'
-            ? body.html_content
-            : '',
-      textContent:
-        typeof body.textContent === 'string'
-          ? body.textContent
-          : typeof body.text_content === 'string'
-            ? body.text_content
-            : undefined,
-      variablesJson: variablesJson(body.variables) ?? '[]',
-      locale: typeof body.locale === 'string' ? body.locale : undefined,
-    };
-    try {
-      const res = await client.createEmailTemplate(grpcReq, metadata);
-      return reply.code(201).send({
-        success: true,
-        data: NotificationsV1.EmailTemplate.toJSON(res.template!),
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: CreateEmailTemplateRequest = {
+        name: typeof body.name === 'string' ? body.name : '',
+        description: typeof body.description === 'string' ? body.description : undefined,
+        type: typeFromString(typeof body.type === 'string' ? body.type : undefined),
+        category: typeof body.category === 'string' ? body.category : '',
+        status: statusFromString(typeof body.status === 'string' ? body.status : undefined),
+        subject: typeof body.subject === 'string' ? body.subject : '',
+        htmlContent:
+          typeof body.htmlContent === 'string'
+            ? body.htmlContent
+            : typeof body.html_content === 'string'
+              ? body.html_content
+              : '',
+        textContent:
+          typeof body.textContent === 'string'
+            ? body.textContent
+            : typeof body.text_content === 'string'
+              ? body.text_content
+              : undefined,
+        variablesJson: variablesJson(body.variables) ?? '[]',
+        locale: typeof body.locale === 'string' ? body.locale : undefined,
+      };
+      try {
+        const res = await client.createEmailTemplate(grpcReq, metadata);
+        return reply.code(201).send({
+          success: true,
+          data: NotificationsV1.EmailTemplate.toJSON(res.template!),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // GET /api/v1/email/templates/:templateId
   app.get<{ Params: { templateId: string } }>(

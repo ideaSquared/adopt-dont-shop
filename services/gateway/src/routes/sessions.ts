@@ -41,23 +41,24 @@ export const registerSessionsRoutes = async (
       },
     },
     async (req, reply) => {
-    const metadata = buildMetadata(req);
-    try {
-      const res = await client.listSessions({}, metadata);
-      // toJSON would yield `{ sessions: [...] }` (proto field name);
-      // the monolith uses `data: [...]`. Reshape here.
-      return reply.send({
-        data: (res.sessions ?? []).map(s => ({
-          sessionId: s.sessionId,
-          familyId: s.familyId,
-          expiresAt: s.expiresAt,
-          createdAt: s.createdAt,
-        })),
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+      const metadata = buildMetadata(req);
+      try {
+        const res = await client.listSessions({}, metadata);
+        // toJSON would yield `{ sessions: [...] }` (proto field name);
+        // the monolith uses `data: [...]`. Reshape here.
+        return reply.send({
+          data: (res.sessions ?? []).map(s => ({
+            sessionId: s.sessionId,
+            familyId: s.familyId,
+            expiresAt: s.expiresAt,
+            createdAt: s.createdAt,
+          })),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // DELETE /api/v1/sessions/:sessionId — revoke. Returns 204 to match
   // monolith parity. The gRPC response payload is discarded.
