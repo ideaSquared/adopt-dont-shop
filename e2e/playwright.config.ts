@@ -84,12 +84,12 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // token via the seam → reset → log in with the new password. Proves the
     // seam works end-to-end.
     '**/password-reset-roundtrip.spec.ts',
-    // email-verification-roundtrip: PARKED. It asserts a freshly-registered
-    // user is BLOCKED from logging in until verified, but the auth service
-    // only blocks 'suspended'/'deactivated' — login before email-verify is
-    // currently allowed. The spec's premise is a product question, not a bug;
-    // park until the intended "must verify before login" behaviour is decided
-    // (tracked under ADS-871).
+    // ADS-871 — login now REQUIRES a verified email. The auth Login handler
+    // answers a fresh (pending_verification) account with an
+    // emailVerificationRequired flag and no tokens (mirroring the 2FA flow);
+    // verifying via the emailed token (read through the token-peek seam) then
+    // lets login complete. register → blocked → verify → login succeeds.
+    '**/email-verification-roundtrip.spec.ts',
     // Batch D (ADS-868) — rewritten from the monolith's CSRF + cookie-session
     // model to the gateway's actual Bearer contract:
     // - api-auth-contract (renamed from api-csrf-and-cookie-contract): asserts

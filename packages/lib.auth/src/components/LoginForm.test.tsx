@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AuthContext, type AuthContextType } from '../contexts/AuthContext';
+import { authService } from '../services/auth-service';
 import { LoginForm } from './LoginForm';
 
 const buildAuthValue = (overrides: Partial<AuthContextType> = {}): AuthContextType => ({
@@ -75,6 +76,49 @@ describe('LoginForm 2FA token field [C2-2]', () => {
     await user.paste(backupCode);
 
     expect(token).toHaveValue(backupCode);
+  });
+});
+
+describe('LoginForm email-verification prompt [ADS-871]', () => {
+  // Step into the verify-email state by stubbing login to throw the
+  // well-known "email verification required" error the form keys on. The
+  // form then shows the verify prompt with a resend action instead of a
+  // session — mirroring the 2FA flow.
+  const enterVerifyEmailMode = async () => {
+    const user = userEvent.setup();
+    const login = vi.fn().mockRejectedValue(new Error('Email verification required'));
+
+    renderLoginForm(buildAuthValue({ login }));
+
+    await user.type(screen.getByPlaceholderText(/enter your email/i), 'fresh@b.com');
+    await user.type(screen.getByPlaceholderText(/enter your password/i), 'password');
+    await user.click(screen.getByRole('button', { name: /sign in/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/please verify your email/i)).toBeInTheDocument();
+    });
+
+    return { user };
+  };
+
+  it('shows the verify-email prompt instead of logging in', async () => {
+    await enterVerifyEmailMode();
+
+    expect(screen.queryByRole('button', { name: /sign in/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /resend verification email/i })).toBeInTheDocument();
+  });
+
+  it('resends the verification email for the entered address', async () => {
+    const resendSpy = vi.spyOn(authService, 'resendVerification').mockResolvedValue();
+    const { user } = await enterVerifyEmailMode();
+
+    await user.click(screen.getByRole('button', { name: /resend verification email/i }));
+
+    expect(resendSpy).toHaveBeenCalledWith('fresh@b.com');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /verification email sent/i })).toBeInTheDocument();
+    });
+    resendSpy.mockRestore();
   });
 });
 

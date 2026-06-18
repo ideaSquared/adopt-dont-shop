@@ -391,13 +391,23 @@ export async function login(
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
 
+  // Email verification gate. The password is correct, but an account whose
+  // email has not been verified cannot log in. We answer with
+  // email_verification_required (no tokens minted) so the client can prompt
+  // the user to verify — and resend the verification email — before
+  // re-attempting login.
+  if (!user.email_verified) {
+    loginCounter.inc({ outcome: 'email_unverified' });
+    return { permissions: [], twoFactorRequired: false, emailVerificationRequired: true };
+  }
+
   // Second factor. The password is correct; if the account has 2FA on we
   // require a valid TOTP code before minting any tokens. A first login
   // call (no code) is answered with two_factor_required so the client can
   // prompt and re-submit; a wrong code is an auth failure.
   if (user.two_factor_enabled) {
     if (!req.twoFactorToken) {
-      return { permissions: [], twoFactorRequired: true };
+      return { permissions: [], twoFactorRequired: true, emailVerificationRequired: false };
     }
     if (!user.two_factor_secret || !verifyTotp(req.twoFactorToken, user.two_factor_secret)) {
       loginCounter.inc({ outcome: 'invalid_credentials' });
@@ -441,6 +451,7 @@ export async function login(
     tokens: minted.pair,
     permissions: principal.permissions,
     twoFactorRequired: false,
+    emailVerificationRequired: false,
   };
 }
 

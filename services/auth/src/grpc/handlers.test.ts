@@ -330,6 +330,64 @@ describe('login', () => {
     expect(res.tokens?.accessToken).toBe('access.jwt.token');
     expect(mocks.issuerMock.mint).toHaveBeenCalledTimes(1);
   });
+
+  // --- Email-verification enforcement --------------------------------
+
+  it('blocks login (no tokens) when the email is not verified', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRowFixture({ email_verified: false })],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+
+    const res = await login(mocks.deps, null, BASE_LOGIN_REQ);
+
+    expect(res.emailVerificationRequired).toBe(true);
+    expect(res.tokens).toBeUndefined();
+    expect(res.user).toBeUndefined();
+    // No token was minted — the login is not complete until the email is verified.
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+  });
+
+  it('gates email verification BEFORE the second factor', async () => {
+    // An unverified account with 2FA on is still blocked on verification
+    // first — we never reach the TOTP check, so no code is requested.
+    const secret = generateSecret();
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        userRowFixture({
+          email_verified: false,
+          two_factor_enabled: true,
+          two_factor_secret: secret,
+        }),
+      ],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+
+    const res = await login(mocks.deps, null, BASE_LOGIN_REQ);
+
+    expect(res.emailVerificationRequired).toBe(true);
+    expect(res.twoFactorRequired).toBe(false);
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+  });
+
+  it('completes the login (flag false) when the email is verified', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRowFixture({ email_verified: true })],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
+
+    const res = await login(mocks.deps, null, BASE_LOGIN_REQ);
+
+    expect(res.emailVerificationRequired).toBe(false);
+    expect(res.tokens?.accessToken).toBe('access.jwt.token');
+    expect(mocks.issuerMock.mint).toHaveBeenCalledTimes(1);
+  });
 });
 
 // --- logout ----------------------------------------------------------
