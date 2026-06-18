@@ -60,6 +60,12 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // These post a message via API and read it back from the other side.
     '**/adopter-rescue-chat.spec.ts',
     '**/realtime-chat-propagation.spec.ts',
+    // Batch H (ADS-868) — the pets user-favourites feature: proto + pets
+    // handlers (add/remove/status/list-mine) + the /pets/:id/favorite[/status]
+    // and /pets/favorites/user gateway routes + a 2-favourite seed for John
+    // Smith. The page reads the seeded favourites; the spec deletes one and
+    // watches the count drop.
+    '**/swipe-and-favourite.spec.ts',
     // Batch C (ADS-868) — UI-only auth/profile journeys. No new gateway routes,
     // no CSRF (the gateway is Bearer-only), grounded in the existing John Smith
     // seed:

@@ -27,6 +27,12 @@ import {
   updatePet,
   updatePetStatus,
 } from './handlers.js';
+import {
+  addFavorite,
+  getFavoriteStatus,
+  listUserFavorites,
+  removeFavorite,
+} from './favorite-handlers.js';
 
 export type CreateGrpcServerOptions = {
   config: PetsConfig;
@@ -51,6 +57,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     delete: adapt(deletePet, { deps, logger }),
     getStats: adapt(getPetStats, { deps, logger }),
     listFavoriters: adapt(listFavoriters, { deps, logger }),
+    addFavorite: adapt(addFavorite, { deps, logger }),
+    removeFavorite: adapt(removeFavorite, { deps, logger }),
+    getFavoriteStatus: adapt(getFavoriteStatus, { deps, logger }),
+    listUserFavorites: adapt(listUserFavorites, { deps, logger }),
   });
 
   logger.info('gRPC PetService registered', {
@@ -63,6 +73,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'delete',
       'getStats',
       'listFavoriters',
+      'addFavorite',
+      'removeFavorite',
+      'getFavoriteStatus',
+      'listUserFavorites',
     ],
     grpcPort: config.grpcPort,
   });

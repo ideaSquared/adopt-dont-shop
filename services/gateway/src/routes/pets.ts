@@ -128,6 +128,22 @@ export const registerPetsRoutes = async (
     }
   });
 
+  // GET /api/v1/pets/favorites/user — the caller's own favourites. Static
+  // path, so it must register BEFORE the dynamic /:id route. Returns the
+  // monolith shape { success, data: { pets, total, ... } } the SPA reads.
+  app.get('/api/v1/pets/favorites/user', async (req, reply) => {
+    try {
+      const res = await client.listUserFavorites({}, buildMetadata(req));
+      const pets = res.pets.map(petToView);
+      return reply.send({
+        success: true,
+        data: { pets, total: pets.length, page: 1, totalPages: 1 },
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
   app.get<{ Params: { id: string } }>(
     '/api/v1/pets/:id',
     { config: { rateLimit: PETS_RATE_LIMITS.get } },
@@ -213,6 +229,35 @@ export const registerPetsRoutes = async (
       }
     }
   );
+
+  // --- Per-user favourites: /api/v1/pets/:id/favorite[/status] --------
+
+  app.get<{ Params: { id: string } }>('/api/v1/pets/:id/favorite/status', async (req, reply) => {
+    try {
+      const res = await client.getFavoriteStatus({ petId: req.params.id }, buildMetadata(req));
+      return reply.send({ success: true, data: { isFavorite: res.isFavorite } });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  app.post<{ Params: { id: string } }>('/api/v1/pets/:id/favorite', async (req, reply) => {
+    try {
+      const res = await client.addFavorite({ petId: req.params.id }, buildMetadata(req));
+      return reply.code(201).send({ success: true, data: { favorited: res.favorited } });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  app.delete<{ Params: { id: string } }>('/api/v1/pets/:id/favorite', async (req, reply) => {
+    try {
+      const res = await client.removeFavorite({ petId: req.params.id }, buildMetadata(req));
+      return reply.send({ success: true, data: { removed: res.removed } });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
 };
 
 // --- Helpers ---------------------------------------------------------
