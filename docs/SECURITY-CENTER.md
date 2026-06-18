@@ -21,10 +21,9 @@ Two new RBAC permissions gate the Security Center:
 - `admin.security.manage` — mutating operations (revoke sessions,
   add/remove IP rules, lock/unlock accounts).
 
-Both are granted to `super_admin` and `admin` roles by the role-permissions
-reference seeder (`service.backend/src/seeders/reference/role-permissions.ts`,
-exported as `seedRolePermissions`). Re-run `pnpm db:seed:reference`
-on existing environments to pick them up.
+Both are granted to `super_admin` and `admin` roles by the auth service's
+role-permissions reference seeder (`seedRolePermissions`). Re-run the
+reference seed on existing environments to pick them up.
 
 ## Best practices
 
@@ -52,8 +51,8 @@ on existing environments to pick them up.
 - Block rules win over allow rules: a sub-range block inside a broader
   allow range still denies.
 - IPv4 supports CIDR (`10.0.0.0/8`); IPv6 currently supports only
-  exact-address rules. If you need IPv6 ranges, swap the matcher in
-  `service.backend/src/utils/ip-match.ts` for `ipaddr.js`.
+  exact-address rules. If you need IPv6 ranges, swap the auth service's
+  IP-matching helper for `ipaddr.js`.
 - Rules can carry an `expires_at` for temporary blocks (e.g. a 24-hour
   block during an active incident). Expired rules are ignored without
   needing a cleanup job.

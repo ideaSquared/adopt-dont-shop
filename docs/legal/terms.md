@@ -5,9 +5,9 @@
 
 > Placeholder copy — must be reviewed and approved by legal counsel before
 > production launch. The version string above is the canonical identifier
-> recorded against the user via `users.terms_accepted_at`
-> (`service.backend/src/models/User.ts`) and surfaced through the
-> `ConsentRecord` type in `service.backend/src/services/consent.service.ts`.
+> recorded against the user via `users.terms_accepted_at` (on the User
+> model in the auth service) and surfaced through the `ConsentRecord` type
+> in the auth service's consent service.
 
 ## 1. Acceptance of terms
 

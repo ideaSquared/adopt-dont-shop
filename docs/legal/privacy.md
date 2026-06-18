@@ -5,9 +5,9 @@
 
 > Placeholder copy — must be reviewed and approved by legal counsel before
 > production launch. The version string above is the canonical identifier
-> recorded against the user via `users.privacy_policy_accepted_at`
-> (`service.backend/src/models/User.ts`) and surfaced through the
-> `ConsentRecord` type in `service.backend/src/services/consent.service.ts`.
+> recorded against the user via `users.privacy_policy_accepted_at` (on the
+> User model in the auth service) and surfaced through the `ConsentRecord`
+> type in the auth service's consent service.
 
 ## 1. Who we are
 
@@ -50,8 +50,8 @@ You may at any time:
 - Swipe actions: 24-month rolling window.
 - Home-visit records: 5 years (regulatory retention).
 
-These periods are enforced by an automated retention job; see
-`service.backend/src/jobs/retention.job.ts`.
+These periods are enforced by an automated retention job in the backend
+services.
 
 ## 6. Children's data
 

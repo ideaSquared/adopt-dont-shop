@@ -66,7 +66,7 @@ adopt-dont-shop/
 │   ├── package.json                       # @adopt-dont-shop/app.mobile
 │   └── tsconfig.json
 ├── lib.*/                                 # shared libraries (unchanged)
-└── service.backend/                       # API (the contract mobile consumes)
+└── services/                              # backend services; the gateway is the API mobile consumes
 ```
 
 Integration points:
@@ -75,7 +75,7 @@ Integration points:
 - **Turborepo:** `build`, `lint`, `type-check`, and `test` tasks work out of the box once `app.mobile/package.json` defines those scripts. Mobile-specific tasks (`expo start`, EAS builds) live as additional scripts and run outside the normal web pipeline.
 - **TypeScript:** extend `tsconfig.base.json` as the other packages do.
 - **Testing:** the repo standard is Vitest; React Native's ecosystem standard is Jest + `@testing-library/react-native`. This is a real divergence — see Open Questions.
-- **API contract:** mobile talks to `service.backend` over HTTP using the same Zod schemas/types from `lib.api`/`lib.types`, so the contract stays in sync without a separate codegen step.
+- **API contract:** mobile talks to the gateway (`services/gateway`) over HTTP using the same Zod schemas/types from `lib.api`/`lib.types`, so the contract stays in sync without a separate codegen step.
 
 ## High-level migration phases
 
@@ -83,7 +83,7 @@ Each phase should leave the repo in a working, shippable state (per our TDD / sm
 
 1. **Scaffold** → verify: `pnpm dlx create-expo-app app.mobile` (TypeScript template), add to workspaces, `pnpm install` resolves, `expo start` boots the blank app on a simulator.
 2. **Wire shared libs** → verify: import a type from `lib.types` and a schema from `lib.validation` in a screen; `pnpm type-check` passes for `app.mobile`.
-3. **Auth + API client** → verify: log in against `service.backend` (or staging) using `lib.api` contracts; token persisted; an authenticated request succeeds.
+3. **Auth + API client** → verify: log in against the gateway (`services/gateway`, or staging) using `lib.api` contracts; token persisted; an authenticated request succeeds.
 4. **Core adopter flows** → verify: browse pets, view pet detail, submit/track an application — driven by tests against the real API contract.
 5. **Native capabilities** → verify: push notifications, image upload from camera/gallery, offline-friendly caching (React Query) behave on device.
 6. **CI + release** → verify: GitHub Actions runs `type-check`/`lint`/tests for `app.mobile`; **EAS Build** produces iOS/Android artifacts; TestFlight + Play internal testing distribution works.

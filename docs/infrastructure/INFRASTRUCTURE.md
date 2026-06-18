@@ -25,9 +25,9 @@ The Adopt Don't Shop platform uses a modern microservices architecture with shar
                       │
                       ▼
               ┌─────────────┐
-              │service.backend│
-              │   (Node.js)  │
-              │   Port:5000  │
+              │service.gateway│
+              │  (Fastify)   │
+              │   Port:4000  │
               └─────────────┘
                       │
         ┌─────────────┼─────────────┐
@@ -67,12 +67,12 @@ The Adopt Don't Shop platform uses a modern microservices architecture with shar
 
 ### Backend Services
 
-**service.backend** - Main API
+**service.gateway** - Main API edge
 
-- Technology: Node.js + Express + TypeScript
-- Port: 5000
+- Technology: Node.js + Fastify + TypeScript
+- Port: 4000
 - Domain: api.localhost / api.adoptdontshop.com
-- Features: REST API, WebSocket messaging, authentication
+- Features: REST API, WebSocket messaging, authentication. Fronts the gRPC microservices (auth, pets, rescue, applications, notifications, moderation, matching, audit, chat, cms).
 
 ### Databases & Storage
 
@@ -176,14 +176,14 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 - `localhost` → app.client (port 3000)
 - `admin.localhost` → app.admin (port 3001)
 - `rescue.localhost` → app.rescue (port 3002)
-- `api.localhost` → service.backend (port 5000)
+- `api.localhost` → service.gateway (port 4000)
 
 **Production:**
 
 - `www.adoptdontshop.com` → app.client
 - `admin.adoptdontshop.com` → app.admin
 - `rescue.adoptdontshop.com` → app.rescue
-- `api.adoptdontshop.com` → service.backend
+- `api.adoptdontshop.com` → service.gateway
 
 ## Development Workflow
 
@@ -225,22 +225,14 @@ cd lib.api && pnpm dev
 
 ### Database Migrations
 
-The backend uses a custom Umzug runner (`service.backend/src/migrations/runner.ts`) and a custom seed CLI (`service.backend/src/seeders/cli.ts`). `sequelize-cli` is not installed.
+Each service owns its migrations under `services/<name>/src/migrations/` and runs them itself — a service applies its own schema automatically when its container starts (the entrypoint runs `pnpm run --if-present db:migrate`).
 
 ```bash
-# From the repo root (containers must be running):
-pnpm db:migrate                                              # ts-node src/migrations/runner.ts up
-docker compose exec service-backend pnpm db:migrate:undo     # rollback
-docker compose exec service-backend pnpm db:migrate:status   # show applied / pending
+# Migrate one service by hand (containers must be running):
+docker compose exec service-auth pnpm db:migrate
 
-# Seeders are split by safety profile — no "do everything" alias:
-docker compose exec service-backend pnpm db:seed:reference   # idempotent reference data
-docker compose exec service-backend pnpm db:seed:demo        # Faker (dev/staging; ALLOW_DEMO_SEED=true)
-docker compose exec service-backend pnpm db:seed:fixtures    # deterministic e2e fixtures
-docker compose exec service-backend pnpm db:seed:reset       # truncate demo+fixture tables
-
-# Authoring a new migration: copy the latest file in
-# service.backend/src/migrations/ and follow the numbered naming pattern.
+# Authoring a new migration: copy the latest file in the relevant
+# services/<name>/src/migrations/ directory and follow the numbered naming pattern.
 ```
 
 ## CI/CD Pipeline

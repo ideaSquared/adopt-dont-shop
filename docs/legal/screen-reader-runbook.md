@@ -35,7 +35,7 @@ Checklist:
 
 Setup:
 
-- Get a user whose `details.tosVersion` (or `privacyVersion`) is older than the currently published `TERMS_VERSION` / `PRIVACY_VERSION`. Easiest path: in `service.backend`, run a quick SQL update on a seeded user, e.g. `UPDATE users SET details = jsonb_set(details, '{tosVersion}', '"2020-01-01"') WHERE email='adopter@example.test';`.
+- Get a user whose `details.tosVersion` (or `privacyVersion`) is older than the currently published `TERMS_VERSION` / `PRIVACY_VERSION`. Easiest path: against the auth service database (which owns the `users` table), run a quick SQL update on a seeded user, e.g. `UPDATE users SET details = jsonb_set(details, '{tosVersion}', '"2020-01-01"') WHERE email='adopter@example.test';`.
 - Sign in as that user in `app.client`.
 
 Checklist:

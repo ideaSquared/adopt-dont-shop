@@ -10,13 +10,13 @@ Testing Pyramid
 └── Service / behaviour tests — Services, utilities, middleware, models (src/__tests__/services/, etc.)
 ```
 
-Tests live under `service.backend/src/__tests__/` organised by layer (`services/`, `controllers/`, `integration/`, `middleware/`, `models/`, `security/`, `utils/`, `validation/`).
+Tests live alongside the code in each service under `services/<name>/src/`, organised by layer (services, controllers/handlers, integration, middleware, models, security, utils, validation).
 
 ## Quick Start
 
 ### Running Tests
 
-From `service.backend/` (or via `pnpm exec turbo test --filter=@adopt-dont-shop/service-backend` at the repo root):
+From the relevant `services/<name>` package (or via `pnpm exec turbo test --filter=@adopt-dont-shop/service.<name>` at the repo root):
 
 ```bash
 # All tests
@@ -43,7 +43,7 @@ Follow the [project CLAUDE.md](../../.claude/CLAUDE.md) guidance: aim for 100% b
 
 ## Configuration
 
-Vitest is configured in `service.backend/vitest.config.ts`. The service does not use Jest; any legacy `jest.config.js` should be treated as stale.
+Vitest is configured per service in `services/<name>/vitest.config.ts`. The services do not use Jest; any legacy `jest.config.js` should be treated as stale.
 
 ### Test Database
 

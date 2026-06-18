@@ -83,8 +83,8 @@ and have the DBA on the line.
 ### C. Lock contention (`could not obtain lock`)
 
 A long-running query is holding the table. The migration exits on
-`DB_LOCK_TIMEOUT_MS` (default 10s — see
-`service.backend/src/sequelize.ts`).
+`DB_LOCK_TIMEOUT_MS` (default 10s — see the service's database
+connection config).
 
 ```bash
 # Find the blocker.

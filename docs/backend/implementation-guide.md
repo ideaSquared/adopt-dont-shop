@@ -37,7 +37,7 @@ From the repository root the typical workflow uses Docker — the container boot
 
 4. **Initialize the database (first run, or after `docker:reset`)**
 
-   The migration runner is a custom Umzug script at `service.backend/src/migrations/runner.ts` (the project does not use `sequelize-cli`). Seeds are split into reference / demo / fixtures with no "do everything" alias — pick the right one for what you're doing.
+   Each service runs its own migrations from `services/<name>/src/migrations/` on startup (the project does not use `sequelize-cli`). Seeds are split into reference / demo / fixtures with no "do everything" alias — pick the right one for what you're doing.
 
    ```bash
    # From the repo root — wrappers shell into the service-backend container
@@ -59,7 +59,7 @@ From the repository root the typical workflow uses Docker — the container boot
 If you prefer to run the backend on the host (you must provide Postgres and Redis yourself):
 
 ```bash
-cd service.backend
+cd services/<name>       # e.g. services/gateway, services/auth, services/pets
 pnpm dev                  # tsx watch --clear-screen=false src/index.ts
 ```
 
@@ -188,7 +188,7 @@ uploads/
 
 ## Database Management
 
-The project uses a custom [Umzug](https://github.com/sequelize/umzug) runner (`service.backend/src/migrations/runner.ts`) and a custom seed CLI (`service.backend/src/seeders/cli.ts`) — `sequelize-cli` is **not** installed. Migrations live in `service.backend/src/migrations/`; seeders in `service.backend/src/seeders/`.
+Each service runs its own migrations and seeders — `sequelize-cli` is **not** installed. Migrations live in `services/<name>/src/migrations/`; seeders (where a service has them) in `services/<name>/src/seeders/`.
 
 ### Migrations
 
@@ -200,8 +200,8 @@ pnpm db:migrate
 docker compose exec service-backend pnpm db:migrate:status
 docker compose exec service-backend pnpm db:migrate:undo
 
-# Authoring a new migration: copy an existing file in
-# service.backend/src/migrations/ and follow the numbered naming pattern
+# Authoring a new migration: copy an existing file in the owning service's
+# services/<name>/src/migrations/ and follow the numbered naming pattern
 # (e.g. 01-add-something.ts). The runner picks them up automatically.
 ```
 
@@ -217,13 +217,13 @@ docker compose exec service-backend pnpm db:seed:reset       # truncate demo+fix
 docker compose exec service-backend pnpm db:bootstrap        # first-run admin in production
 ```
 
-See `service.backend/src/seeders/README.md` for the full split.
+See the owning service's `src/seeders/` directory for the full split.
 
 ## Testing
 
 ### Run Tests
 
-The backend uses **Vitest**. Run from `service.backend/` (or via `pnpm exec turbo test --filter=@adopt-dont-shop/service-backend` at the root).
+The backend services use **Vitest**. Run from the relevant `services/<name>` package (or via `pnpm exec turbo test --filter=@adopt-dont-shop/service.<name>` at the root).
 
 ```bash
 # All tests
@@ -296,16 +296,16 @@ docker compose logs -f service-backend
 ### Production
 
 ```bash
-# Build production image (multi-stage target in the shared Dockerfile)
+# Build a service's production image (multi-stage target; each service ships its own Dockerfile)
 docker build \
   --target production \
-  -t adoptdontshop/backend:latest \
-  -f service.backend/Dockerfile .
+  -t adoptdontshop/gateway:latest \
+  -f services/gateway/Dockerfile .
 
 # Run production container
 docker run -p 5000:5000 \
   --env-file .env.production \
-  adoptdontshop/backend:latest
+  adoptdontshop/gateway:latest
 ```
 
 The root `docker-compose.prod.yml` overlay exercises this path end-to-end — see [Deployment Guide](./deployment.md) and [Docker Infrastructure Guide](../DOCKER.md).
@@ -323,7 +323,7 @@ The root `docker-compose.prod.yml` overlay exercises this path end-to-end — se
 
 ### Add Database Model
 
-1. **Create migration** by copying the latest file in `service.backend/src/migrations/` and renaming it (the runner is a custom Umzug script — no generator). Follow the existing numbered naming pattern (`NN-create-my-table.ts`).
+1. **Create migration** by copying the latest file in the owning service's `services/<name>/src/migrations/` and renaming it (the runner picks files up automatically — no generator). Follow the existing numbered naming pattern (`NN-create-my-table.ts`).
 2. **Define schema** in the migration file under `src/migrations/`
 3. **Create model** `src/models/MyModel.ts`
 4. **Run migration** `pnpm db:migrate` (from the repo root)
@@ -380,8 +380,8 @@ pnpm dev  # Will recreate automatically
 ### Performance Issues
 
 ```bash
-# Toggle Sequelize query logging by setting DB_LOGGING=true in .env and restarting the backend
-# (`service.backend/src/sequelize.ts` reads DB_LOGGING).
+# Toggle Sequelize query logging by setting DB_LOGGING=true in .env and restarting the service
+# (each service's `src/sequelize.ts` reads DB_LOGGING).
 
 # Monitor in development dashboard
 open http://localhost:5000/monitoring/dashboard

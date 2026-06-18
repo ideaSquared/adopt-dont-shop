@@ -52,7 +52,7 @@ Server layout (single CPX42):
 | `.github/workflows/deploy.yml` | Build → push → deploy workflow |
 | `.github/workflows/rollback.yml` | Redeploy a previous SHA |
 | `Makefile` | CLI commands (`make staging`, `make prod`, `make rollback`) |
-| `service.backend/src/migrations/runner.ts` | Custom Umzug migration runner |
+| `services/<name>/src/migrations/` | Per-service migrations (each service runs its own) |
 
 ---
 
@@ -205,9 +205,9 @@ Auto-renewal handled by certbot container in gateway stack (renews every 12h via
 
 ### Migrations
 
-- Migrations use a custom Umzug runner (`service.backend/src/migrations/runner.ts`)
-- `sequelize-cli` is **not** installed — use `pnpm db:migrate` / `pnpm db:migrate:undo`
-- Deploy workflow runs `pnpm db:migrate` after health check passes
+- Each service owns its migrations under `services/<name>/src/migrations/` and runs them itself
+- A service applies its own schema on container start (entrypoint runs `pnpm run --if-present db:migrate`)
+- Deploy workflow waits for each service's migration step to complete before health check passes
 
 ### First deploy — baseline
 

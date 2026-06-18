@@ -8,7 +8,7 @@ The backend ships as a Docker image alongside three frontend images. Production 
 
 ### Runtime
 
-- **Node.js**: v22 (pinned in `.nvmrc` and `package.json` engines `>=22 <23`). The production image is `node:22-alpine` (see `service.backend/Dockerfile`).
+- **Node.js**: v22 (pinned in `.nvmrc` and `package.json` engines `>=22 <23`). The production images are `node:22-alpine` (each service ships its own `services/<name>/Dockerfile`).
 - **PostgreSQL**: 16 with the **PostGIS** extension (`postgis/postgis:16-3.4` in `docker-compose.yml`). Location features depend on PostGIS — a plain Postgres install is not enough.
 - **Redis**: 7+ (`redis:7-alpine`) — used for sessions, BullMQ job queues, and rate-limiting.
 
@@ -90,7 +90,7 @@ Behind the scenes:
 
 ## Database migrations
 
-Migrations are managed by an Umzug runner (`service.backend/src/migrations/`). No `sequelize-cli`.
+Each service owns and runs its own migrations under `services/<name>/src/migrations/`. No `sequelize-cli`.
 
 ```bash
 pnpm migrate              # apply pending migrations
@@ -115,4 +115,4 @@ On a production deploy, run `pnpm migrate` inside the running backend container 
 - [`docs/runbooks/deploy-rollback.md`](../runbooks/deploy-rollback.md) — incident rollback procedure.
 - [`docs/runbooks/migration-failure.md`](../runbooks/migration-failure.md) — when migrations fail mid-deploy.
 - [`docs/INFRA.md`](../INFRA.md) — infra topology (nginx, uploads, signed URLs).
-- [`service.backend/SECURITY.md`](../../service.backend/SECURITY.md) — production security checklist.
+- [`docs/security/`](../security/) — production security guidance (data protection, gRPC trust, webhook replay protection, image signing).

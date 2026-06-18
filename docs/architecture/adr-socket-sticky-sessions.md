@@ -3,14 +3,14 @@
 - Status: Accepted
 - Date: 2026-06-04
 - Linear: ADS-678
-- Related code: `service.backend/src/socket/socket-registry.ts`,
-  `service.backend/src/middleware/socket-rate-limit.ts`
+- Related code: the socket registry and socket rate-limit middleware
+  (originally in the monolith, now in `services/gateway/src/ws/`)
 
 ## Context
 
 The backend enforces a per-user concurrent Socket.IO connection cap
-(`MAX_CONNECTIONS_PER_USER`, currently 5) in
-`service.backend/src/socket/socket-registry.ts`. The cap exists so a
+(`MAX_CONNECTIONS_PER_USER`, currently 5) in the socket registry
+(originally in the monolith, now in `services/gateway/src/ws/`). The cap exists so a
 single authenticated user cannot exhaust file descriptors on a backend
 instance by repeatedly opening sockets (DoS protection covering the
 multi-device + multi-tab case: laptop + phone + a second laptop = 3,
@@ -18,8 +18,8 @@ with headroom for brief overlap during reconnects).
 
 The cap is tracked in a process-local `Map<userId, Set<socketId>>`. It
 is NOT shared between backend replicas. By contrast, the inbound
-per-event rate limiter at
-`service.backend/src/middleware/socket-rate-limit.ts` (ADS-709) is
+per-event rate limiter in the socket rate-limit middleware
+(originally in the monolith, now in `services/gateway/src/ws/`; ADS-709) is
 backed by Redis (`INCR` + `EXPIRE` Lua script) with an in-memory
 fallback so its counters are global across replicas.
 
