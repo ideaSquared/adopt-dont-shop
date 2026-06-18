@@ -77,6 +77,13 @@ pnpm ci:local         # full preflight (~3-5min): format + lint + type-check + t
 
 `ci:local` covers everything in the fast and slow tiers below except E2E and the backend coverage thresholds — run those separately when relevant.
 
+**Coverage parity.** Root `pnpm test` (and `ci:local`) run plain `turbo run test` — they skip the coverage thresholds. CI's `test-frontend`, `test-libs`, and `test-services` jobs run `test:coverage` and enforce the thresholds declared in `vitest.shared.config.ts`, so a PR that's green on `pnpm test` locally can still fail CI on coverage. To match the CI gate locally, run coverage the same way CI does:
+
+```bash
+pnpm exec turbo run test:coverage                 # every package, with thresholds
+pnpm exec turbo run test:coverage --filter='@adopt-dont-shop/lib.api'   # scope to what you changed
+```
+
 #### Opt-in pre-push hook (ADS-732)
 
 `.husky/pre-push` will run `ci:local:quick` automatically before every `git push`, but is **off by default** so it doesn't surprise existing contributors. `pnpm setup` will offer to enable it during onboarding — answering yes is recommended for your first month. You can also toggle it manually once per checkout:
@@ -114,8 +121,10 @@ node scripts/check-lib-tests.mjs
 # Catches high-severity vulnerabilities across all workspaces
 pnpm audit --audit-level high
 
-# Playwright E2E suite — required if you touched anything user-facing or auth (~5 min).
+# Playwright E2E suite — run if you touched anything user-facing or auth (~5 min).
 # Requires the Docker stack running (pnpm docker:dev:detach).
+# In CI this is opt-in on PRs: add the `run-e2e` label to run it there too
+# (see "CI behaviour" under E2E Testing below).
 pnpm test:e2e
 ```
 
@@ -131,7 +140,7 @@ The required checks that gate merge (all feed into the `ci-required` aggregator 
 4. **Library Tests** (`ci.yml` → `test-libs`) — lint, test and type-check across every `lib.*`.
 5. **Service Tests** (`ci.yml` → `test-services`) — lint + test + type-check across every `services/*` package. Added in ADS-822 so zero-test services no longer merge green.
 6. **Dev-Auth Guard** (`ci.yml` → `dev-auth-guard`) — production bundle scan ensuring dev-auth bypass code is properly gated (ADS-676).
-7. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. Re-added as blocking in ADS-792 after the suite was reworked for the post-monolith gateway stack.
+7. **E2E Tests (Playwright)** (`ci.yml` → `test-e2e`) — full Docker stack + browser suite. **Opt-in on PRs:** runs on `main` pushes and `workflow_dispatch`, or on a PR carrying the **`run-e2e`** label; otherwise skipped (treated as success). When it runs, a failure blocks the PR. Reworked for the post-monolith gateway stack in ADS-792.
 
 Additional checks that run but are not part of `ci-required`:
 
@@ -247,9 +256,10 @@ pnpm test:e2e:report
 
 ### CI behaviour
 
+- **E2E is opt-in on PRs.** The `test-e2e` job only runs automatically on pushes to `main` and via manual `workflow_dispatch`. On a pull request it is skipped (which `ci-required` treats as success) **unless** you add the **`run-e2e`** label — adding it re-triggers CI and runs the full Playwright suite. Add the label once your branch is ready (especially for user-facing, auth, or cross-app changes); leaving it off keeps in-progress PRs fast. See the `test-e2e` job in `.github/workflows/ci.yml`.
 - Playwright runs with `retries: 2` in CI. A test must fail 3 times in a row before it counts as a failure.
 - Flaky retry counts are printed in the "Report E2E retry counts" CI step.
-- The `test-e2e` job is a blocking signal — a failure fails the PR check. The suite was reworked for the post-monolith gateway stack and re-added as a required check in ADS-792 (see the `ci-required` aggregator in `.github/workflows/ci.yml`).
+- When E2E does run (labelled PR or `main` push) it is a blocking signal — a failure fails the PR check. The suite was reworked for the post-monolith gateway stack in ADS-792 (see the `ci-required` aggregator in `.github/workflows/ci.yml`).
 
 ### Selector guidelines
 
