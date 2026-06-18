@@ -91,6 +91,18 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/api-auth-contract.spec.ts',
     '**/logout-flow.spec.ts',
     '**/rate-limit-application-submission.spec.ts',
+    // ADS-870 — UI-level journeys for features that previously had API-only
+    // e2e coverage. Each drives the SPA through a control that already exists:
+    // - 2fa-login-ui: a throwaway account enables 2FA via API, then the
+    //   client /login UI prompts for a TOTP code (lib.auth LoginForm needs2FA)
+    //   and a fresh code completes the login.
+    // - favourite-add-via-ui: the pet detail page's "Add to Favorites" control
+    //   POSTs /pets/:id/favorite and the pet then shows on /favorites.
+    // - custom-question-on-application-form: the adopter's /apply form fetches
+    //   GET /rescues/:id/questions and renders a rescue's custom question.
+    '**/2fa-login-ui.spec.ts',
+    '**/favourite-add-via-ui.spec.ts',
+    '**/custom-question-on-application-form.spec.ts',
     // profile-update-persistence: deferred. The bio edit submits and the
     // gateway/auth map+persist `bio`, and GET /auth/me returns it, but the
     // value does not round-trip back into the edit form after a reload (the

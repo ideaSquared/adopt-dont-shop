@@ -2,7 +2,7 @@ import { test, expect } from '../../fixtures';
 import { URLS } from '../../playwright.config';
 
 test.describe('role boundary enforcement', () => {
-  test('an anonymous user is redirected to login on the admin app', async ({ browser }) => {
+  test('an anonymous user is redirected to login on the admin app @smoke', async ({ browser }) => {
     // Verify the boundary the same way the admin SPA enforces it: an
     // anonymous user (no cookies, no localStorage) navigating to the
     // admin home is bounced to /login.  This sidesteps the brittle

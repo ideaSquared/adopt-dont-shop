@@ -12,7 +12,7 @@ import { expectOk, getFirstAdopterChat, listChatMessages, postWithCsrf } from '.
  * for "the message reached the rescue".
  */
 test.describe('chat between adopter and rescue', () => {
-  test('a message sent by the adopter is readable on the rescue side', async ({ apiAs }) => {
+  test('a message sent by the adopter is readable on the rescue side @smoke', async ({ apiAs }) => {
     const adopterApi = await apiAs('adopter');
     const rescueApi = await apiAs('rescue');
     const { chatId } = await getFirstAdopterChat(adopterApi);
