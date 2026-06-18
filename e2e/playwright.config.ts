@@ -84,8 +84,13 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // Batch B chat (ADS-868): rescue staffer posts to the seeded chat, adopter
     // reads it back. Unblocked by the chat seed + canonical chat perms.
     '**/messaging-applicants.spec.ts',
-    // Deferred: custom-application-questions — the gateway exposes no
-    // /api/v1/rescues/:id/questions route (not cut over) → 404. Batch B.
+    // bulk-edit-pets is a page-load smoke for /analytics (mislabeled file) —
+    // same low-risk pattern as the other rescue page-loads.
+    '**/bulk-edit-pets.spec.ts',
+    // Deferred (need new gateway routes wired, ADS-868):
+    // - custom-application-questions → no /api/v1/rescues/:id/questions route
+    // - messaging via /admin/users/:id/action, /auth/2fa/* (bulk-user-actions,
+    //   2fa-enrollment) → those routes aren't registered in the gateway.
   ],
   admin: [
     // ADS-867 (batch A3) — admin journeys. superadmin storageState
