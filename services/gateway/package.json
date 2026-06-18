@@ -23,6 +23,8 @@
     "build": "tsc",
     "clean": "rm -rf dist",
     "test": "vitest run",
+    "test:contracts:consumer": "vitest run --config vitest.contracts.config.ts --reporter=verbose test/contracts/*.consumer.test.ts",
+    "test:contracts:provider": "vitest run --config vitest.contracts.config.ts --reporter=verbose test/contracts/*.provider.test.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src",
@@ -57,6 +59,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@pact-foundation/pact": "^13.1.4",
     "@types/pg": "^8.15.5",
     "socket.io-client": "^4.8.3"
   }

@@ -1,0 +1,56 @@
+{
+  "consumer": {
+    "name": "service.gateway"
+  },
+  "messages": [
+    {
+      "contents": {
+        "expiresAt": "2026-01-01T12:00:00.000Z",
+        "principal": {
+          "permissions": ["pets.read", "applications.submit"],
+          "roles": [],
+          "userId": "user-abc-123"
+        }
+      },
+      "description": "ValidateTokenResponse with populated principal",
+      "metadata": {
+        "contentType": "application/json"
+      },
+      "providerStates": [
+        {
+          "name": "a valid, non-revoked access token for an active user"
+        }
+      ]
+    },
+    {
+      "contents": {
+        "code": "UNAUTHENTICATED",
+        "message": "access token revoked"
+      },
+      "description": "error descriptor with code UNAUTHENTICATED for a revoked token",
+      "metadata": {
+        "contentType": "application/json"
+      },
+      "providerStates": [
+        {
+          "name": "a revoked access token in the denylist"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "13.2.0"
+    },
+    "pactRust": {
+      "ffi": "0.4.22",
+      "models": "1.2.3"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "service.auth"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "consumer": {
+    "name": "service.notifications"
+  },
+  "messages": [
+    {
+      "contents": {
+        "correlationId": "corr-abc-123",
+        "email": "user@example.com",
+        "reason": "User requested account deletion",
+        "requestedAt": "2026-06-18T10:00:00.000Z",
+        "userId": "user-to-erase-001"
+      },
+      "description": "gdpr.erasureRequested event with all fields",
+      "metadata": {
+        "contentType": "application/json"
+      },
+      "providerStates": [
+        {
+          "name": "a registered user who has requested GDPR erasure"
+        }
+      ]
+    },
+    {
+      "contents": {
+        "correlationId": "corr-def-456",
+        "requestedAt": "2026-06-18T11:00:00.000Z",
+        "userId": "user-to-erase-002"
+      },
+      "description": "gdpr.erasureRequested event with only required fields",
+      "metadata": {
+        "contentType": "application/json"
+      },
+      "providerStates": [
+        {
+          "name": "a user whose email could not be resolved at erasure time"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "13.2.0"
+    },
+    "pactRust": {
+      "ffi": "0.4.22",
+      "models": "1.2.3"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "service.gateway"
+  }
+}

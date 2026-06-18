@@ -1,0 +1,63 @@
+{
+  "consumer": {
+    "name": "service.gateway"
+  },
+  "messages": [
+    {
+      "contents": {
+        "application": {
+          "adopterId": "adopter-001",
+          "answersJson": "{\"q1\":\"yes\"}",
+          "applicationId": "app-001",
+          "createdAt": "2026-01-01T00:00:00.000Z",
+          "petId": "pet-001",
+          "referencesJson": "[]",
+          "rescueId": "rescue-001",
+          "status": 1,
+          "updatedAt": "2026-01-01T00:00:00.000Z",
+          "version": 1
+        },
+        "timeline": []
+      },
+      "description": "GetApplicationResponse with application data",
+      "metadata": {
+        "contentType": "application/json"
+      },
+      "providerStates": [
+        {
+          "name": "application app-001 exists and is owned by adopter-001"
+        }
+      ]
+    },
+    {
+      "contents": {
+        "code": "NOT_FOUND",
+        "message": "application not found"
+      },
+      "description": "error descriptor with code NOT_FOUND for a missing application",
+      "metadata": {
+        "contentType": "application/json"
+      },
+      "providerStates": [
+        {
+          "name": "no application with id app-missing exists"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "13.2.0"
+    },
+    "pactRust": {
+      "ffi": "0.4.22",
+      "models": "1.2.3"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "service.applications"
+  }
+}
