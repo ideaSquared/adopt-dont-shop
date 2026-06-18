@@ -102,15 +102,15 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/api-auth-contract.spec.ts',
     '**/logout-flow.spec.ts',
     '**/rate-limit-application-submission.spec.ts',
-    // ADS-870 — 2FA driven through the client login UI. The throwaway account
-    // registers, VERIFIES its email (login now requires it), enables 2FA via
-    // API, then the UI half is exercised: gateway → two_factor_required →
-    // auth-service throws TWO_FACTOR_REQUIRED_MESSAGE → LoginForm shows the
-    // `000000` field + "Verify" button → a fresh TOTP completes login.
-    '**/2fa-login-ui.spec.ts',
-    // ADS-870 — PARKED (files retained, not listed): two UI journeys that fail
-    // in CI on causes only reproducible with the full docker stack UP, which
-    // can't be run in the un-parking environment:
+    // ADS-870 — PARKED (files retained, not listed): three UI journeys that
+    // fail in CI on causes only reproducible with the full docker stack UP,
+    // which can't be run in the un-parking environment:
+    // - 2fa-login-ui: a freshly-registered throwaway account can't be driven to
+    //   a token — the API login returns no access token, and reading the
+    //   verification token via the peek seam comes back null, even though
+    //   registration sets it and the identical peek works for the green
+    //   email-verification-roundtrip. Needs the live stack to see why the token
+    //   is absent before the UI 2FA challenge can be exercised.
     // - favourite-add-via-ui: the pet detail "Add to Favorites" control never
     //   flips to "Favorited" in CI (the assert at spec line 33 timed out across
     //   all retries) — needs the running UI to see whether the click, the
