@@ -67,6 +67,12 @@ jobs:
       - name: Verify workflow path filters
         run: node scripts/check-workflow-paths.mjs
 
+      # ADS-846: every third-party base image in the prod/staging compose
+      # files must be pinned to an immutable digest (`tag@sha256:...`), not a
+      # bare tag, so a deploy can't silently pull swapped bytes.
+      - name: Verify prod/staging base images are digest-pinned
+        run: node scripts/check-docker-pinning.mjs
+
   # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes
   # ============================================================================

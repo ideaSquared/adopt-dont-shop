@@ -70,7 +70,7 @@ x-service-env: &service-env
 
 services:
   database:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
     container_name: ads_staging_db
     restart: always
     ports: []
@@ -105,7 +105,7 @@ services:
           memory: 512m
 
   redis:
-    image: redis:7.4-alpine
+    image: redis:7.4-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     container_name: ads_staging_redis
     restart: always
     ports: []
@@ -141,7 +141,7 @@ services:
   # (publish-after-commit + idempotent subscribers). Required once any
   # CUTOVER_<DOMAIN> flag is flipped on; harmless when all are off.
   nats:
-    image: nats:2.10-alpine
+    image: nats:2.10-alpine@sha256:b83efabe3e7def1e0a4a31ec6e078999bb17c80363f881df35edc70fcb6bb927
     container_name: ads_staging_nats
     restart: always
     ports: []
