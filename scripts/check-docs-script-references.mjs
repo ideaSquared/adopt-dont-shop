@@ -71,20 +71,29 @@ function listMarkdown(dir) {
   return out;
 }
 
-// Matches the explicit `pnpm run foo` / `npm run foo` form only. The script
-// name is a single token of [a-z][a-z0-9:_-]*.
-const REF_RE = /\b(?:pnpm|npm) run\s+([a-z][a-z0-9:_-]*)/g;
+// Matches the explicit `pnpm run foo` / `npm run foo` form only. The package
+// manager keyword is captured so the failure message can quote the exact form
+// that appears in the doc. The script name is a single token of
+// [a-z][a-z0-9:_-]*.
+const REF_RE = /\b(pnpm|npm) run\s+([a-z][a-z0-9:_-]*)/g;
 
 function findBadRefs(file, known) {
   const contents = readFileSync(file, 'utf8');
   const bad = [];
   let m;
   while ((m = REF_RE.exec(contents)) !== null) {
-    const name = m[1];
+    const pm = m[1];
+    const name = m[2];
     if (known.has(name)) continue;
-    bad.push(name);
+    bad.push({ pm, name });
   }
-  return [...new Set(bad)];
+  const seen = new Set();
+  return bad.filter(({ pm, name }) => {
+    const key = `${pm} run ${name}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function main() {
@@ -106,8 +115,8 @@ function main() {
   const failures = [];
   for (const file of docsToScan) {
     const bad = findBadRefs(file, known);
-    for (const name of bad) {
-      failures.push(`${relative(ROOT, file)}: references 'pnpm ${name}' but no package defines a '${name}' script`);
+    for (const { pm, name } of bad) {
+      failures.push(`${relative(ROOT, file)}: references '${pm} run ${name}' but no package defines a '${name}' script`);
     }
   }
 
