@@ -145,6 +145,12 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // reactivate) wired in services/gateway/src/routes/users.ts onto the
     // existing auth admin RPCs.
     '**/bulk-user-actions.spec.ts',
+    // Batch G (ADS-868) — full 2FA feature: proto + auth setup/enable/disable
+    // handlers (otplib TOTP) + login enforcement (LoginResponse.
+    // two_factor_required) + /auth/2fa/* gateway routes + the lib.auth login
+    // prompt. Runs on a throwaway account so the enabled 2FA can't leak into
+    // a shared persona's login.
+    '**/2fa-enrollment.spec.ts',
   ],
 };
 

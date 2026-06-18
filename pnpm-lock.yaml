@@ -1766,6 +1766,9 @@ importers:
       node-pg-migrate:
         specifier: ^8.0.4
         version: 8.0.4(@types/pg@8.20.0)(pg@8.21.0)
+      otplib:
+        specifier: ^13.4.1
+        version: 13.4.1
       pg:
         specifier: ^8.21.0
         version: 8.21.0
