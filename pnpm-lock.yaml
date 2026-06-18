@@ -1622,6 +1622,34 @@ importers:
         specifier: ^11.0.4
         version: 11.0.4
 
+  packages/test-utils:
+    dependencies:
+      '@adopt-dont-shop/authz':
+        specifier: workspace:*
+        version: link:../authz
+      '@adopt-dont-shop/lib.types':
+        specifier: workspace:*
+        version: link:../lib.types
+      '@grpc/grpc-js':
+        specifier: ^1.14.4
+        version: 1.14.4
+      nats:
+        specifier: ^2.29.3
+        version: 2.29.3
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@opentelemetry/api@1.9.1)(@types/node@25.9.3)(@vitest/coverage-v8@4.1.9)(@vitest/ui@4.1.9)(jsdom@29.1.1(@noble/hashes@2.2.0))(msw@2.14.6(@types/node@25.9.3)(typescript@6.0.3))(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.1)(jiti@2.6.1)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0))
+    devDependencies:
+      '@adopt-dont-shop/proto':
+        specifier: workspace:*
+        version: link:../proto
+      '@types/node':
+        specifier: ^25.9.1
+        version: 25.9.3
+      typescript:
+        specifier: ^6.0.0
+        version: 6.0.3
+
   services/applications:
     dependencies:
       '@adopt-dont-shop/authz':
@@ -1954,6 +1982,9 @@ importers:
         specifier: ^3.19.0
         version: 3.19.0
     devDependencies:
+      '@adopt-dont-shop/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@types/pg':
         specifier: ^8.15.5
         version: 8.20.0
@@ -2110,6 +2141,9 @@ importers:
         specifier: ^3.19.0
         version: 3.19.0
     devDependencies:
+      '@adopt-dont-shop/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@types/nodemailer':
         specifier: ^8.0.0
         version: 8.0.1

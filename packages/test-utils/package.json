@@ -1,0 +1,44 @@
+{
+  "name": "@adopt-dont-shop/test-utils",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared test utilities for gRPC microservices: stub gRPC server harness, principal/metadata builders, and NATS/JetStream test doubles. Dev-only — never shipped in service images.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@adopt-dont-shop/authz": "workspace:*",
+    "@adopt-dont-shop/lib.types": "workspace:*",
+    "@grpc/grpc-js": "^1.14.4",
+    "nats": "^2.29.3",
+    "vitest": "^4.1.9"
+  },
+  "devDependencies": {
+    "@adopt-dont-shop/proto": "workspace:*",
+    "@types/node": "^25.9.1",
+    "typescript": "^6.0.0"
+  },
+  "peerDependencies": {
+    "vitest": "^4.1.9"
+  }
+}

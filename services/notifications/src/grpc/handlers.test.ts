@@ -1,8 +1,6 @@
-import type { NatsConnection } from 'nats';
 import type { Pool, PoolClient } from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 import {
   NotificationsV1,
@@ -10,6 +8,8 @@ import {
   type DismissNotificationRequest,
   type ListNotificationsRequest,
 } from '@adopt-dont-shop/proto';
+
+import { makeNatsDouble, testPrincipal } from '@adopt-dont-shop/test-utils';
 
 import {
   createNotification,
@@ -20,7 +20,7 @@ import {
 
 // --- Test fixtures --------------------------------------------------
 
-const SYSTEM_PRINCIPAL: Principal = {
+const SYSTEM_PRINCIPAL = testPrincipal({
   userId: 'svc-application' as UserId,
   roles: ['admin'],
   permissions: [
@@ -28,19 +28,19 @@ const SYSTEM_PRINCIPAL: Principal = {
     'notifications.read' as Permission,
     'notifications.update' as Permission,
   ],
-};
+});
 
-const SUPER_ADMIN_PRINCIPAL: Principal = {
+const SUPER_ADMIN_PRINCIPAL = testPrincipal({
   userId: 'svc-super' as UserId,
   roles: ['super_admin'],
   permissions: [],
-};
+});
 
-const ADOPTER_PRINCIPAL: Principal = {
+const ADOPTER_PRINCIPAL = testPrincipal({
   userId: 'usr-adopter' as UserId,
   roles: ['adopter'],
   permissions: ['notifications.read' as Permission, 'notifications.update' as Permission],
-};
+});
 
 function rowFixture(overrides: Record<string, unknown> = {}) {
   return {
@@ -82,23 +82,16 @@ function makeMocks() {
     connect: vi.fn().mockResolvedValue(client),
     query: vi.fn(),
   };
-  const natsPublish = vi.fn();
-  // JetStream publish routes to the same spy so existing publish assertions
-  // keep working; withTransaction now publishes via nats.jetstream().publish().
-  const nats = {
-    publish: natsPublish,
-    jetstream: () => ({ publish: natsPublish }),
-  };
+  const nat = makeNatsDouble();
   return {
     pool: pool as unknown as Pool,
     client: client as unknown as PoolClient,
-    nats: nats as unknown as NatsConnection,
     poolMock: pool,
     clientMock: client,
-    natsMock: nats,
+    natsMock: nat,
     deps: {
       pool: pool as unknown as Pool,
-      nats: nats as unknown as NatsConnection,
+      nats: nat.connection,
     },
   };
 }
@@ -165,8 +158,9 @@ describe('createNotification', () => {
       }
       return { rows: [] };
     });
-    mocks.natsMock.publish.mockImplementation(() => {
+    mocks.natsMock.publishSpy.mockImplementation((subject: string) => {
       calls.push('NATS_PUBLISH');
+      void subject;
     });
 
     const res = await createNotification(mocks.deps, SYSTEM_PRINCIPAL, BASE_CREATE_REQ);
@@ -190,7 +184,7 @@ describe('createNotification', () => {
 
     await createNotification(mocks.deps, SYSTEM_PRINCIPAL, BASE_CREATE_REQ);
 
-    const [subject, body] = mocks.natsMock.publish.mock.calls[0];
+    const [subject, body] = mocks.natsMock.publishSpy.mock.calls[0] as [string, Uint8Array];
     expect(subject).toBe('notifications.created');
     const envelope = JSON.parse(
       body instanceof Uint8Array ? new TextDecoder().decode(body) : (body as string)
@@ -213,7 +207,7 @@ describe('createNotification', () => {
       'duplicate key'
     );
 
-    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publishSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -244,7 +238,7 @@ describe('listNotifications', () => {
     };
     const res = await listNotifications(mocks.deps, ADOPTER_PRINCIPAL, req);
 
-    const [, params] = mocks.poolMock.query.mock.calls[0];
+    const [, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
     expect(params[0]).toBe(ADOPTER_PRINCIPAL.userId);
     // limit+1 = 21 by default
     expect(params[params.length - 1]).toBe(21);
@@ -272,7 +266,7 @@ describe('listNotifications', () => {
     expect(res.notifications).toHaveLength(20);
     expect(res.nextCursor).toBeDefined();
     const decoded = JSON.parse(Buffer.from(res.nextCursor!, 'base64').toString('utf8'));
-    expect(decoded.notificationId).toBe(rows[19].notification_id);
+    expect(decoded.notificationId).toBe(rows[19]!.notification_id);
   });
 
   it('rejects a limit > 100 — INVALID_ARGUMENT', async () => {
@@ -310,7 +304,7 @@ describe('listNotifications', () => {
       typeFilter: 0,
     });
 
-    const [sql, params] = mocks.poolMock.query.mock.calls[0];
+    const [sql, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
     expect(sql).toMatch(/status = \$2/);
     expect(params[1]).toBe('pending');
   });
@@ -378,7 +372,7 @@ describe('dismissNotification', () => {
 
     // Only the SELECT happened — no transaction, no publish.
     expect(mocks.poolMock.connect).not.toHaveBeenCalled();
-    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publishSpy).not.toHaveBeenCalled();
     expect(res.notification.status).toBe(
       NotificationsV1.NotificationStatus.NOTIFICATION_STATUS_READ
     );
@@ -401,8 +395,9 @@ describe('dismissNotification', () => {
       }
       return { rows: [] };
     });
-    mocks.natsMock.publish.mockImplementation(() => {
+    mocks.natsMock.publishSpy.mockImplementation((subject: string) => {
       calls.push('NATS_PUBLISH');
+      void subject;
     });
 
     const res = await dismissNotification(mocks.deps, ADOPTER_PRINCIPAL, dismissReq);
@@ -411,7 +406,7 @@ describe('dismissNotification', () => {
     expect(res.notification.status).toBe(
       NotificationsV1.NotificationStatus.NOTIFICATION_STATUS_READ
     );
-    const [subject, body] = mocks.natsMock.publish.mock.calls[0];
+    const [subject, body] = mocks.natsMock.publishSpy.mock.calls[0] as [string, Uint8Array];
     expect(subject).toBe('notifications.dismissed');
     const envelope = JSON.parse(
       body instanceof Uint8Array ? new TextDecoder().decode(body) : (body as string)
@@ -450,8 +445,9 @@ describe('createNotification idempotency (dedup)', () => {
       calls.push(sql.trim().split(/\s+/)[0]);
       return { rows: [] };
     });
-    mocks.natsMock.publish.mockImplementation(() => {
+    mocks.natsMock.publishSpy.mockImplementation((subject: string) => {
       calls.push('PUBLISH');
+      void subject;
     });
   };
 
@@ -477,7 +473,7 @@ describe('createNotification idempotency (dedup)', () => {
 
     expect(calls).toEqual(['BEGIN', 'CLAIM', 'COMMIT']);
     expect(res.notification).toBeUndefined();
-    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publishSpy).not.toHaveBeenCalled();
   });
 
   it('does not claim anything when no dedup option is supplied (direct gRPC path)', async () => {
