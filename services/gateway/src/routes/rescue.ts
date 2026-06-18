@@ -22,6 +22,7 @@ import type { FastifyInstance } from 'fastify';
 
 import {
   RescueV1,
+  type CreateApplicationQuestionRequest,
   type CreateRescueRequest,
   type InviteStaffRequest,
   type ListRescuesRequest,
@@ -61,6 +62,23 @@ type InviteStaffBody = {
   email?: string;
   title?: string;
   expiresInSeconds?: number;
+};
+type QuestionBody = {
+  questionKey?: string;
+  question_key?: string;
+  category?: string;
+  questionType?: string;
+  question_type?: string;
+  questionText?: string;
+  question_text?: string;
+  helpText?: string;
+  help_text?: string;
+  placeholder?: string;
+  options?: string[];
+  sortOrder?: number;
+  displayOrder?: number;
+  isRequired?: boolean;
+  is_required?: boolean;
 };
 
 export const registerRescueRoutes = async (
@@ -189,6 +207,81 @@ export const registerRescueRoutes = async (
       try {
         const res = await client.inviteStaff(grpcReq, buildMetadata(req));
         return reply.code(201).send(RescueV1.InviteStaffResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // --- Application questions -------------------------------------------
+  // NOTE the PLURAL `/api/v1/rescues/:rescueId/questions` prefix — the
+  // monolith's questionnaire-builder surface lived there and the SPA
+  // addresses it that way (distinct from the singular /api/v1/rescue/*
+  // CRUD above).
+
+  app.get<{ Params: { rescueId: string } }>(
+    '/api/v1/rescues/:rescueId/questions',
+    { config: { rateLimit: RESCUE_RATE_LIMITS.get } },
+    async (req, reply) => {
+      try {
+        const res = await client.listApplicationQuestions(
+          { rescueId: req.params.rescueId },
+          buildMetadata(req)
+        );
+        return reply.send({
+          success: true,
+          data: res.questions.map(q => RescueV1.ApplicationQuestion.toJSON(q)),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post<{ Params: { rescueId: string } }>(
+    '/api/v1/rescues/:rescueId/questions',
+    { config: { rateLimit: RESCUE_RATE_LIMITS.update } },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as QuestionBody;
+      const grpcReq: CreateApplicationQuestionRequest = {
+        rescueId: req.params.rescueId,
+        questionKey: body.questionKey ?? body.question_key ?? '',
+        category: body.category ?? '',
+        questionType: body.questionType ?? body.question_type ?? '',
+        questionText: body.questionText ?? body.question_text ?? '',
+        helpText: body.helpText ?? body.help_text,
+        placeholder: body.placeholder,
+        options: Array.isArray(body.options) ? body.options : [],
+        displayOrder:
+          typeof body.sortOrder === 'number'
+            ? body.sortOrder
+            : typeof body.displayOrder === 'number'
+              ? body.displayOrder
+              : 0,
+        isRequired: Boolean(body.isRequired ?? body.is_required ?? false),
+      };
+      try {
+        const res = await client.createApplicationQuestion(grpcReq, buildMetadata(req));
+        return reply.code(201).send({
+          success: true,
+          question: res.question ? RescueV1.ApplicationQuestion.toJSON(res.question) : null,
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.delete<{ Params: { rescueId: string; questionId: string } }>(
+    '/api/v1/rescues/:rescueId/questions/:questionId',
+    { config: { rateLimit: RESCUE_RATE_LIMITS.update } },
+    async (req, reply) => {
+      try {
+        const res = await client.deleteApplicationQuestion(
+          { questionId: req.params.questionId },
+          buildMetadata(req)
+        );
+        return reply.send({ success: true, deleted: res.deleted });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

@@ -226,6 +226,13 @@ export type {
   EndFosterPlacementResponse,
   GetInvitationByTokenRequest,
   GetInvitationByTokenResponse,
+  ApplicationQuestion,
+  ListApplicationQuestionsRequest,
+  ListApplicationQuestionsResponse,
+  CreateApplicationQuestionRequest,
+  CreateApplicationQuestionResponse,
+  DeleteApplicationQuestionRequest,
+  DeleteApplicationQuestionResponse,
   RescueServiceServer,
   RescueServiceClient,
 } from './generated/proto/adopt_dont_shop/rescue/v1/rescue.js';

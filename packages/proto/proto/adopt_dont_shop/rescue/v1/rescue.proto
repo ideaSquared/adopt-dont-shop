@@ -92,6 +92,26 @@ service RescueService {
   // Public — no principal required (the token IS the credential).
   rpc GetInvitationByToken(GetInvitationByTokenRequest)
       returns (GetInvitationByTokenResponse);
+
+  // --- Application questions -------------------------------------------
+
+  // List a rescue's adoption-application questions: the shared `core`
+  // baseline plus the rescue's own `rescue_specific` rows. Caller MUST
+  // have `applications.read` scoped to the rescue.
+  rpc ListApplicationQuestions(ListApplicationQuestionsRequest)
+      returns (ListApplicationQuestionsResponse);
+
+  // Create a rescue-specific custom question. Caller MUST have
+  // `applications.update` scoped to the rescue. Publishes
+  // `rescue.applicationQuestionCreated`.
+  rpc CreateApplicationQuestion(CreateApplicationQuestionRequest)
+      returns (CreateApplicationQuestionResponse);
+
+  // Soft-delete a rescue-specific question. Caller MUST have
+  // `applications.update` scoped to the question's rescue. Core
+  // questions cannot be deleted (FAILED_PRECONDITION).
+  rpc DeleteApplicationQuestion(DeleteApplicationQuestionRequest)
+      returns (DeleteApplicationQuestionResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -413,4 +433,66 @@ message GetInvitationByTokenRequest {
 
 message GetInvitationByTokenResponse {
   Invitation invitation = 1;
+}
+
+// --- Application questions --------------------------------------------
+
+enum ApplicationQuestionScope {
+  APPLICATION_QUESTION_SCOPE_UNSPECIFIED = 0;
+  APPLICATION_QUESTION_SCOPE_CORE = 1;
+  APPLICATION_QUESTION_SCOPE_RESCUE_SPECIFIC = 2;
+}
+
+// category / question_type are carried as the raw Postgres ENUM strings
+// (e.g. 'personal_information', 'text') rather than proto enums — the DB
+// type is the source of truth and the REST surface speaks those strings.
+message ApplicationQuestion {
+  string question_id = 1;
+  optional string rescue_id = 2;
+  string question_key = 3;
+  ApplicationQuestionScope scope = 4;
+  string category = 5;
+  string question_type = 6;
+  string question_text = 7;
+  optional string help_text = 8;
+  optional string placeholder = 9;
+  repeated string options = 10;
+  int32 display_order = 11;
+  bool is_enabled = 12;
+  bool is_required = 13;
+  string created_at = 14;
+  string updated_at = 15;
+}
+
+message ListApplicationQuestionsRequest {
+  string rescue_id = 1;
+}
+
+message ListApplicationQuestionsResponse {
+  repeated ApplicationQuestion questions = 1;
+}
+
+message CreateApplicationQuestionRequest {
+  string rescue_id = 1;
+  string question_key = 2;
+  string category = 3;
+  string question_type = 4;
+  string question_text = 5;
+  optional string help_text = 6;
+  optional string placeholder = 7;
+  repeated string options = 8;
+  int32 display_order = 9;
+  bool is_required = 10;
+}
+
+message CreateApplicationQuestionResponse {
+  ApplicationQuestion question = 1;
+}
+
+message DeleteApplicationQuestionRequest {
+  string question_id = 1;
+}
+
+message DeleteApplicationQuestionResponse {
+  bool deleted = 1;
 }

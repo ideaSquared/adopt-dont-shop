@@ -25,6 +25,9 @@ function makeClient(): {
   updateMock: ReturnType<typeof vi.fn>;
   verifyMock: ReturnType<typeof vi.fn>;
   inviteStaffMock: ReturnType<typeof vi.fn>;
+  listQuestionsMock: ReturnType<typeof vi.fn>;
+  createQuestionMock: ReturnType<typeof vi.fn>;
+  deleteQuestionMock: ReturnType<typeof vi.fn>;
 } {
   const createMock = vi.fn();
   const getMock = vi.fn();
@@ -32,6 +35,9 @@ function makeClient(): {
   const updateMock = vi.fn();
   const verifyMock = vi.fn();
   const inviteStaffMock = vi.fn();
+  const listQuestionsMock = vi.fn();
+  const createQuestionMock = vi.fn();
+  const deleteQuestionMock = vi.fn();
   const client: RescueClient = {
     create: createMock,
     get: getMock,
@@ -47,9 +53,23 @@ function makeClient(): {
     getFosterPlacement: vi.fn(),
     endFosterPlacement: vi.fn(),
     getInvitationByToken: vi.fn(),
+    listApplicationQuestions: listQuestionsMock,
+    createApplicationQuestion: createQuestionMock,
+    deleteApplicationQuestion: deleteQuestionMock,
     close: vi.fn(),
   };
-  return { client, createMock, getMock, listMock, updateMock, verifyMock, inviteStaffMock };
+  return {
+    client,
+    createMock,
+    getMock,
+    listMock,
+    updateMock,
+    verifyMock,
+    inviteStaffMock,
+    listQuestionsMock,
+    createQuestionMock,
+    deleteQuestionMock,
+  };
 }
 
 async function makeApp(client: RescueClient): Promise<FastifyInstance> {
@@ -360,6 +380,97 @@ describe('error mapping fallback', () => {
       getMock.mockRejectedValueOnce(new Error('connection refused'));
       const res = await app.inject({ method: 'GET', url: '/api/v1/rescue/rsc-1' });
       expect(res.statusCode).toBe(500);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+const QUESTION_FIXTURE: RescueV1.ApplicationQuestion = {
+  questionId: 'q-1',
+  rescueId: 'rsc-1',
+  questionKey: 'e2e_key',
+  scope: RescueV1.ApplicationQuestionScope.APPLICATION_QUESTION_SCOPE_RESCUE_SPECIFIC,
+  category: 'personal_information',
+  questionType: 'text',
+  questionText: 'What is your name?',
+  options: [],
+  displayOrder: 5,
+  isEnabled: true,
+  isRequired: false,
+  createdAt: '2026-06-01T00:00:00Z',
+  updatedAt: '2026-06-01T00:00:00Z',
+};
+
+describe('application questions routes', () => {
+  it('GET lists a rescue questions under the plural prefix', async () => {
+    const { client, listQuestionsMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      listQuestionsMock.mockResolvedValueOnce({ questions: [QUESTION_FIXTURE] });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/rescues/rsc-1/questions',
+        headers: { 'x-user-id': 'staff-1', 'x-user-roles': 'rescue_staff' },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { success: boolean; data: Array<{ questionId: string }> };
+      expect(body.success).toBe(true);
+      expect(body.data[0].questionId).toBe('q-1');
+      const [grpcReq] = listQuestionsMock.mock.calls[0] as [{ rescueId: string }];
+      expect(grpcReq.rescueId).toBe('rsc-1');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST maps sortOrder → displayOrder and returns 201 with the question', async () => {
+    const { client, createQuestionMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      createQuestionMock.mockResolvedValueOnce({ question: QUESTION_FIXTURE });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rescues/rsc-1/questions',
+        headers: { 'x-user-id': 'staff-1', 'x-user-roles': 'rescue_staff' },
+        payload: {
+          questionKey: 'e2e_key',
+          questionText: 'What is your name?',
+          category: 'personal_information',
+          questionType: 'text',
+          isRequired: false,
+          sortOrder: 5,
+        },
+      });
+      expect(res.statusCode).toBe(201);
+      const body = res.json() as { success: boolean; question: { questionId: string } };
+      expect(body.question.questionId).toBe('q-1');
+      const [grpcReq] = createQuestionMock.mock.calls[0] as [
+        { rescueId: string; displayOrder: number; questionKey: string },
+      ];
+      expect(grpcReq.rescueId).toBe('rsc-1');
+      expect(grpcReq.displayOrder).toBe(5);
+      expect(grpcReq.questionKey).toBe('e2e_key');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('DELETE forwards the questionId and returns the deleted flag', async () => {
+    const { client, deleteQuestionMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      deleteQuestionMock.mockResolvedValueOnce({ deleted: true });
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/rescues/rsc-1/questions/q-1',
+        headers: { 'x-user-id': 'staff-1', 'x-user-roles': 'rescue_staff' },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { success: boolean; deleted: boolean };
+      expect(body.deleted).toBe(true);
+      const [grpcReq] = deleteQuestionMock.mock.calls[0] as [{ questionId: string }];
+      expect(grpcReq.questionId).toBe('q-1');
     } finally {
       await app.close();
     }

@@ -34,6 +34,11 @@ import {
   listStaffMembers,
   makeCreateFosterPlacement,
 } from './staff-foster-handlers.js';
+import {
+  createApplicationQuestion,
+  deleteApplicationQuestion,
+  listApplicationQuestions,
+} from './application-question-handlers.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
 
 export type CreateGrpcServerOptions = {
@@ -68,6 +73,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     endFosterPlacement: adapt(endFosterPlacement, { deps, logger }),
     // Public — the invitation token is the credential.
     getInvitationByToken: adaptUnauth(getInvitationByToken, { deps, logger }),
+    listApplicationQuestions: adapt(listApplicationQuestions, { deps, logger }),
+    createApplicationQuestion: adapt(createApplicationQuestion, { deps, logger }),
+    deleteApplicationQuestion: adapt(deleteApplicationQuestion, { deps, logger }),
   });
 
   logger.info('gRPC RescueService registered', {
@@ -85,6 +93,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getFosterPlacement',
       'endFosterPlacement',
       'getInvitationByToken',
+      'listApplicationQuestions',
+      'createApplicationQuestion',
+      'deleteApplicationQuestion',
     ],
     grpcPort: config.grpcPort,
   });
