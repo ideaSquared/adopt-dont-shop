@@ -53,6 +53,11 @@ type InvitationTokenRow = {
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' && value.length > 0 ? value : undefined;
 
+// Per-route rate limit (overrides the gateway's global @fastify/rate-limit).
+// Even though this seam is test-only and unreachable in prod, an unbounded
+// DB-reading route is flagged by CodeQL — and a cap is correct hygiene.
+const TEST_PEEK_RATE_LIMIT = { max: 60, timeWindow: '1 minute' } as const;
+
 export const registerTestTokenPeekRoutes = async (
   app: FastifyInstance,
   opts: TestTokenPeekRoutesOptions
@@ -65,46 +70,53 @@ export const registerTestTokenPeekRoutes = async (
   // GET /api/v1/test/auth-token?email=…
   // Returns the current verification + reset tokens for a user, read straight
   // from auth.users. Either may be null when none is outstanding.
-  app.get('/api/v1/test/auth-token', { schema: { hide: true } }, async (req, reply) => {
-    const query = (req.query ?? {}) as Record<string, unknown>;
-    const email = asString(query.email);
-    if (!email) {
-      return reply.code(400).send({ error: 'email query param is required' });
-    }
+  app.get(
+    '/api/v1/test/auth-token',
+    { schema: { hide: true }, config: { rateLimit: TEST_PEEK_RATE_LIMIT } },
+    async (req, reply) => {
+      const query = (req.query ?? {}) as Record<string, unknown>;
+      const email = asString(query.email);
+      if (!email) {
+        return reply.code(400).send({ error: 'email query param is required' });
+      }
 
-    const res = await pool.query<AuthTokenRow>(
-      `SELECT verification_token, verification_token_expires_at,
+      const res = await pool.query<AuthTokenRow>(
+        `SELECT verification_token, verification_token_expires_at,
               reset_token, reset_token_expiration
          FROM auth.users
         WHERE email = $1 AND deleted_at IS NULL
         LIMIT 1`,
-      [email]
-    );
-    const row = res.rows[0];
-    if (!row) {
-      return reply.code(404).send({ error: 'user not found' });
+        [email]
+      );
+      const row = res.rows[0];
+      if (!row) {
+        return reply.code(404).send({ error: 'user not found' });
+      }
+      return reply.send({
+        verificationToken: row.verification_token,
+        verificationTokenExpiresAt: row.verification_token_expires_at?.toISOString() ?? null,
+        resetToken: row.reset_token,
+        resetTokenExpiration: row.reset_token_expiration?.toISOString() ?? null,
+      });
     }
-    return reply.send({
-      verificationToken: row.verification_token,
-      verificationTokenExpiresAt: row.verification_token_expires_at?.toISOString() ?? null,
-      resetToken: row.reset_token,
-      resetTokenExpiration: row.reset_token_expiration?.toISOString() ?? null,
-    });
-  });
+  );
 
   // GET /api/v1/test/invitation-token?email=…[&rescueId=…]
   // Returns the most recent PENDING (unused, unexpired) staff-invitation token
   // for an email, read straight from rescue.invitations.
-  app.get('/api/v1/test/invitation-token', { schema: { hide: true } }, async (req, reply) => {
-    const query = (req.query ?? {}) as Record<string, unknown>;
-    const email = asString(query.email);
-    if (!email) {
-      return reply.code(400).send({ error: 'email query param is required' });
-    }
-    const rescueId = asString(query.rescueId);
+  app.get(
+    '/api/v1/test/invitation-token',
+    { schema: { hide: true }, config: { rateLimit: TEST_PEEK_RATE_LIMIT } },
+    async (req, reply) => {
+      const query = (req.query ?? {}) as Record<string, unknown>;
+      const email = asString(query.email);
+      if (!email) {
+        return reply.code(400).send({ error: 'email query param is required' });
+      }
+      const rescueId = asString(query.rescueId);
 
-    const res = await pool.query<InvitationTokenRow>(
-      `SELECT token
+      const res = await pool.query<InvitationTokenRow>(
+        `SELECT token
          FROM rescue.invitations
         WHERE email = $1
           AND used = false
@@ -112,12 +124,13 @@ export const registerTestTokenPeekRoutes = async (
           AND ($2::uuid IS NULL OR rescue_id = $2::uuid)
         ORDER BY created_at DESC
         LIMIT 1`,
-      [email, rescueId ?? null]
-    );
-    const row = res.rows[0];
-    if (!row) {
-      return reply.code(404).send({ error: 'no pending invitation found' });
+        [email, rescueId ?? null]
+      );
+      const row = res.rows[0];
+      if (!row) {
+        return reply.code(404).send({ error: 'no pending invitation found' });
+      }
+      return reply.send({ token: row.token });
     }
-    return reply.send({ token: row.token });
-  });
+  );
 };

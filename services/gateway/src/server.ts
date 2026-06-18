@@ -564,7 +564,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // Registers ONLY when E2E_TOKEN_PEEK=true AND a DATABASE_URL is wired, and
   // loadConfig() refuses to enable it under NODE_ENV=production — so it is
   // impossible to reach in prod. See routes/test-token-peek.ts.
-  if (config.testTokenPeek.enabled && config.testTokenPeek.databaseUrl) {
+  if (config.testTokenPeek?.enabled && config.testTokenPeek.databaseUrl) {
     await registerTestTokenPeekRoutes(server, {
       databaseUrl: config.testTokenPeek.databaseUrl,
     });
