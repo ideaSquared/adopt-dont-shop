@@ -122,13 +122,14 @@ const memoryLimiter = (max: number, windowMs: number, now: () => number): EmailR
       const existing = buckets.get(email);
       if (!existing || ts >= existing.resetAt) {
         insertsSinceSweep += 1;
-        if (
-          insertsSinceSweep >= SWEEP_EVERY_N_INSERTS ||
-          buckets.size >= MEMORY_LIMITER_MAX_BUCKETS
-        ) {
+        if (insertsSinceSweep >= SWEEP_EVERY_N_INSERTS) {
           sweepExpired(ts);
           insertsSinceSweep = 0;
         }
+        // Hard ceiling: O(1) per eviction. Don't sweep here — at capacity that
+        // would run a full O(n) scan on every insert during a single-window
+        // flood (nothing is expired to reclaim), the amortized sweep above
+        // already reclaims cross-window buckets.
         while (buckets.size >= MEMORY_LIMITER_MAX_BUCKETS) {
           evictOldest();
         }
