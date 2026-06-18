@@ -548,6 +548,185 @@ describe('auth account-lifecycle routes', () => {
   });
 });
 
+describe('auth account-lifecycle input validation (ADS-853)', () => {
+  it('POST /auth/register defaults missing fields without invoking the client unsafely', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.registerMock.mockResolvedValueOnce({ permissions: [] });
+      // Only email + password supplied — the rest must default exactly as before.
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: { email: 'a@example.com', password: 'longenoughpw' },
+      });
+      expect(m.registerMock.mock.calls[0][0]).toMatchObject({
+        email: 'a@example.com',
+        password: 'longenoughpw',
+        firstName: '',
+        lastName: '',
+        termsAccepted: false,
+        privacyPolicyAccepted: false,
+      });
+      expect(m.registerMock.mock.calls[0][0].phoneNumber).toBeUndefined();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/register rejects a non-string string field with 400, not a downstream call', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: { email: 123, password: 'longenoughpw' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.registerMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/register rejects a non-boolean terms flag with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: { email: 'a@example.com', password: 'pw', termsAccepted: 'yes' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.registerMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/verify-email rejects a non-string token with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/verify-email',
+        payload: { verificationToken: 42 },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.verifyEmailMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/resend-verification rejects a non-string email with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/resend-verification',
+        payload: { email: false },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.resendVerificationMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/forgot-password rejects a non-string email with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/forgot-password',
+        payload: { email: { nested: true } },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.forgotPasswordMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/reset-password rejects a non-string new password with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/reset-password',
+        payload: { resetToken: 't', newPassword: 999 },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.resetPasswordMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/change-password rejects a non-string field with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/change-password',
+        payload: { currentPassword: 'old', newPassword: [] },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.changePasswordMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('PATCH /users/account rejects a non-string field with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/users/account',
+        payload: { firstName: 7 },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.updateAccountMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('falls through camelCase to snake_case only when the camel key is absent', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.registerMock.mockResolvedValueOnce({ permissions: [] });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          email: 'a@example.com',
+          password: 'pw',
+          first_name: 'SnakeFirst',
+          lastName: 'CamelLast',
+        },
+      });
+      expect(m.registerMock.mock.calls[0][0]).toMatchObject({
+        firstName: 'SnakeFirst',
+        lastName: 'CamelLast',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+});
+
 describe('auth rate limiting (ADS-844)', () => {
   it('throttles a per-EMAIL flood spread across many IPs', async () => {
     const m = makeClient();

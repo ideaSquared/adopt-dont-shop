@@ -271,28 +271,28 @@ export const registerAuthRoutes = async (
       try {
         const res = await client.register(
           {
-            email: (b.email as string) ?? '',
-            password: (b.password as string) ?? '',
-            firstName: (b.firstName as string) ?? (b.first_name as string) ?? '',
-            lastName: (b.lastName as string) ?? (b.last_name as string) ?? '',
-            phoneNumber: (b.phoneNumber as string) ?? (b.phone_number as string),
+            email: pickString(b, ['email'], ''),
+            password: pickString(b, ['password'], ''),
+            firstName: pickString(b, ['firstName', 'first_name'], ''),
+            lastName: pickString(b, ['lastName', 'last_name'], ''),
+            phoneNumber: pickString(b, ['phoneNumber', 'phone_number']),
             ipAddress: req.ip,
             userAgent: req.headers['user-agent'],
-            termsAccepted:
-              (b.termsAccepted as boolean) ??
-              (b.terms_accepted as boolean) ??
-              (b.acceptedTerms as boolean) ??
-              false,
-            privacyPolicyAccepted:
-              (b.privacyPolicyAccepted as boolean) ??
-              (b.privacy_policy_accepted as boolean) ??
-              false,
+            termsAccepted: pickBool(b, ['termsAccepted', 'terms_accepted', 'acceptedTerms'], false),
+            privacyPolicyAccepted: pickBool(
+              b,
+              ['privacyPolicyAccepted', 'privacy_policy_accepted'],
+              false
+            ),
           },
           buildMetadata(req)
         );
         const json = AuthV1.RegisterResponse.toJSON(res) as Record<string, unknown>;
         return reply.code(201).send(withApiUser(json, res.user));
       } catch (err) {
+        if (err instanceof BadRequestError) {
+          return reply.code(400).send({ error: err.message });
+        }
         return handleGrpcError(err, reply);
       }
     }
@@ -306,14 +306,16 @@ export const registerAuthRoutes = async (
       try {
         const res = await client.verifyEmail(
           {
-            verificationToken:
-              (b.verificationToken as string) ?? (b.verification_token as string) ?? '',
+            verificationToken: pickString(b, ['verificationToken', 'verification_token'], ''),
           },
           buildMetadata(req)
         );
         const json = AuthV1.VerifyEmailResponse.toJSON(res) as Record<string, unknown>;
         return reply.send(withApiUser(json, res.user));
       } catch (err) {
+        if (err instanceof BadRequestError) {
+          return reply.code(400).send({ error: err.message });
+        }
         return handleGrpcError(err, reply);
       }
     }
@@ -329,11 +331,14 @@ export const registerAuthRoutes = async (
       const b = (req.body ?? {}) as Record<string, unknown>;
       try {
         const res = await client.resendVerification(
-          { email: (b.email as string) ?? '' },
+          { email: pickString(b, ['email'], '') },
           buildMetadata(req)
         );
         return reply.send(AuthV1.ResendVerificationResponse.toJSON(res));
       } catch (err) {
+        if (err instanceof BadRequestError) {
+          return reply.code(400).send({ error: err.message });
+        }
         return handleGrpcError(err, reply);
       }
     }
@@ -349,11 +354,14 @@ export const registerAuthRoutes = async (
       const b = (req.body ?? {}) as Record<string, unknown>;
       try {
         const res = await client.forgotPassword(
-          { email: (b.email as string) ?? '' },
+          { email: pickString(b, ['email'], '') },
           buildMetadata(req)
         );
         return reply.send(AuthV1.ForgotPasswordResponse.toJSON(res));
       } catch (err) {
+        if (err instanceof BadRequestError) {
+          return reply.code(400).send({ error: err.message });
+        }
         return handleGrpcError(err, reply);
       }
     }
@@ -372,13 +380,16 @@ export const registerAuthRoutes = async (
       try {
         const res = await client.resetPassword(
           {
-            resetToken: (b.resetToken as string) ?? (b.reset_token as string) ?? '',
-            newPassword: (b.newPassword as string) ?? (b.new_password as string) ?? '',
+            resetToken: pickString(b, ['resetToken', 'reset_token'], ''),
+            newPassword: pickString(b, ['newPassword', 'new_password'], ''),
           },
           buildMetadata(req)
         );
         return reply.send(AuthV1.ResetPasswordResponse.toJSON(res));
       } catch (err) {
+        if (err instanceof BadRequestError) {
+          return reply.code(400).send({ error: err.message });
+        }
         return handleGrpcError(err, reply);
       }
     }
@@ -392,13 +403,16 @@ export const registerAuthRoutes = async (
       try {
         const res = await client.changePassword(
           {
-            currentPassword: (b.currentPassword as string) ?? (b.current_password as string) ?? '',
-            newPassword: (b.newPassword as string) ?? (b.new_password as string) ?? '',
+            currentPassword: pickString(b, ['currentPassword', 'current_password'], ''),
+            newPassword: pickString(b, ['newPassword', 'new_password'], ''),
           },
           buildMetadata(req)
         );
         return reply.send(AuthV1.ChangePasswordResponse.toJSON(res));
       } catch (err) {
+        if (err instanceof BadRequestError) {
+          return reply.code(400).send({ error: err.message });
+        }
         return handleGrpcError(err, reply);
       }
     }
@@ -457,30 +471,29 @@ export const registerAuthRoutes = async (
     { config: { rateLimit: AUTH_RATE_LIMITS.updateAccount } },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
-      const str = (k1: string, k2?: string): string | undefined => {
-        const v = (b[k1] ?? (k2 ? b[k2] : undefined)) as unknown;
-        return typeof v === 'string' ? v : undefined;
-      };
       try {
         const res = await client.updateAccount(
           {
-            firstName: str('firstName', 'first_name'),
-            lastName: str('lastName', 'last_name'),
-            phoneNumber: str('phoneNumber', 'phone_number'),
-            bio: str('bio'),
-            timezone: str('timezone'),
-            language: str('language'),
-            country: str('country'),
-            city: str('city'),
-            addressLine1: str('addressLine1', 'address_line_1'),
-            addressLine2: str('addressLine2', 'address_line_2'),
-            postalCode: str('postalCode', 'postal_code'),
+            firstName: pickString(b, ['firstName', 'first_name']),
+            lastName: pickString(b, ['lastName', 'last_name']),
+            phoneNumber: pickString(b, ['phoneNumber', 'phone_number']),
+            bio: pickString(b, ['bio']),
+            timezone: pickString(b, ['timezone']),
+            language: pickString(b, ['language']),
+            country: pickString(b, ['country']),
+            city: pickString(b, ['city']),
+            addressLine1: pickString(b, ['addressLine1', 'address_line_1']),
+            addressLine2: pickString(b, ['addressLine2', 'address_line_2']),
+            postalCode: pickString(b, ['postalCode', 'postal_code']),
           },
           buildMetadata(req)
         );
         const json = AuthV1.UpdateAccountResponse.toJSON(res) as Record<string, unknown>;
         return reply.send(withApiUser(json, res.user));
       } catch (err) {
+        if (err instanceof BadRequestError) {
+          return reply.code(400).send({ error: err.message });
+        }
         return handleGrpcError(err, reply);
       }
     }
@@ -503,6 +516,59 @@ export const registerAuthRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
+
+// Thrown by the body parsers below when a present field carries the wrong
+// type. Caught per-handler and mapped to a 400 — a non-string smuggled into a
+// string proto field is a client error, not a downstream INTERNAL.
+class BadRequestError extends Error {}
+
+const isPresent = (v: unknown): boolean => v !== undefined && v !== null;
+
+// Resolve a string from the first present key (camelCase preferred, then any
+// aliases), preserving the `firstName ?? first_name ?? fallback` semantics. A
+// present-but-non-string value is rejected rather than silently forwarded.
+function pickString(
+  body: Record<string, unknown>,
+  keys: readonly string[],
+  fallback: string
+): string;
+function pickString(body: Record<string, unknown>, keys: readonly string[]): string | undefined;
+function pickString(
+  body: Record<string, unknown>,
+  keys: readonly string[],
+  fallback?: string
+): string | undefined {
+  for (const key of keys) {
+    const value = body[key];
+    if (!isPresent(value)) {
+      continue;
+    }
+    if (typeof value !== 'string') {
+      throw new BadRequestError(`${key} must be a string`);
+    }
+    return value;
+  }
+  return fallback;
+}
+
+// Boolean counterpart to pickString, preserving the `?? ?? false` chains.
+function pickBool(
+  body: Record<string, unknown>,
+  keys: readonly string[],
+  fallback: boolean
+): boolean {
+  for (const key of keys) {
+    const value = body[key];
+    if (!isPresent(value)) {
+      continue;
+    }
+    if (typeof value !== 'boolean') {
+      throw new BadRequestError(`${key} must be a boolean`);
+    }
+    return value;
+  }
+  return fallback;
+}
 
 // Accept the canonical DB role string (`adopter`, `rescue_staff`, …)
 // OR the SCREAMING proto form (`USER_ROLE_ADOPTER`). The handler's
