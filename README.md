@@ -104,7 +104,7 @@ adopt-dont-shop/
 ├── docker-compose.staging.yml  # Staging (pre-built GHCR images)
 ├── docker-compose.prod.yml     # Production overlay
 ├── Dockerfile.service          # Parameterised image for the gateway + services
-├── Dockerfile.app.optimized    # Multi-stage frontend Dockerfile
+├── Dockerfile.app              # Multi-stage image that builds a React app (Vite SPA + nginx)
 └── docs/                       # Detailed guides
 ```
 

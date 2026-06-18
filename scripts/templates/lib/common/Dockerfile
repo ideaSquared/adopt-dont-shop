@@ -75,7 +75,7 @@ USER appuser
 HEALTHCHECK NONE
 
 # dumb-init reaps orphaned child processes and forwards signals correctly,
-# matching the pattern used in service.backend/Dockerfile and Dockerfile.app.optimized.
+# matching the pattern used in service.backend/Dockerfile and Dockerfile.app.
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
 # Default command

@@ -308,7 +308,7 @@ jobs:
         run: |
           PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
           docker build \
-            -f Dockerfile.app.optimized \
+            -f Dockerfile.app \
             --target production \
             --build-arg APP_NAME=client \
             --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
@@ -335,7 +335,7 @@ jobs:
         run: |
           PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
           docker build \
-            -f Dockerfile.app.optimized \
+            -f Dockerfile.app \
             --target production \
             --build-arg APP_NAME=admin \
             --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \
@@ -362,7 +362,7 @@ jobs:
         run: |
           PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
           docker build \
-            -f Dockerfile.app.optimized \
+            -f Dockerfile.app \
             --target production \
             --build-arg APP_NAME=rescue \
             --build-arg VITE_API_BASE_URL="${{ vars.VITE_API_BASE_URL }}" \

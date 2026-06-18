@@ -99,12 +99,12 @@ export function registerWorkspace(workspaceEntry, extraScripts = {}) {
 }
 
 /**
- * Insert a `COPY lib.<name>/ ./lib.<name>/` line into Dockerfile.app.optimized
+ * Insert a `COPY lib.<name>/ ./lib.<name>/` line into Dockerfile.app
  * after the last existing such line. Skips silently when the dockerfile or
  * marker is missing.
  */
 export function updateAppOptimizedDockerfile(libName) {
-  const dockerfilePath = path.join(ROOT_DIR, 'Dockerfile.app.optimized');
+  const dockerfilePath = path.join(ROOT_DIR, 'Dockerfile.app');
   if (!fs.existsSync(dockerfilePath)) {
     return;
   }
@@ -116,7 +116,7 @@ export function updateAppOptimizedDockerfile(libName) {
   const matches = [...content.matchAll(libCopyRegex)];
 
   if (matches.length === 0) {
-    log(`⚠️  Could not find library copy section in Dockerfile.app.optimized`, 'yellow');
+    log(`⚠️  Could not find library copy section in Dockerfile.app`, 'yellow');
     log(`💡 Manually add: ${newLine}`, 'cyan');
     return;
   }
@@ -126,7 +126,7 @@ export function updateAppOptimizedDockerfile(libName) {
   content = content.slice(0, insertIndex) + '\n' + newLine + content.slice(insertIndex);
 
   fs.writeFileSync(dockerfilePath, content);
-  log(`🐳 Updated Dockerfile.app.optimized with lib.${libName}`, 'green');
+  log(`🐳 Updated Dockerfile.app with lib.${libName}`, 'green');
 }
 
 export { ROOT_DIR };

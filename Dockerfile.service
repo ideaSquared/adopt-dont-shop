@@ -5,7 +5,7 @@
 #   SERVICE      — the workspace package name (e.g. @adopt-dont-shop/service.audit)
 #   SERVICE_DIR  — the path under the repo root  (e.g. services/audit)
 #
-# Mirrors Dockerfile.app.optimized: `turbo prune --docker` computes the
+# Mirrors Dockerfile.app: `turbo prune --docker` computes the
 # dependency closure for the target service so the install/build layers only
 # carry what that service actually needs (its workspace deps: proto, events,
 # authz, db, observability, lib.types). Two targets:
@@ -130,7 +130,7 @@ RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 # Strip setuid/setgid bits from every binary on the image — nothing the
 # Node runtime does legitimately needs a suid/sgid helper, so removing the
 # bits closes off a privilege-escalation path for any RCE. -xdev keeps the
-# find within this layer's filesystem. Mirrors Dockerfile.app.optimized.
+# find within this layer's filesystem. Mirrors Dockerfile.app.
 # [ADS-771]
 RUN find / -xdev -perm -4000 -exec chmod -s {} + 2>/dev/null || true && \
     find / -xdev -perm -2000 -exec chmod -s {} + 2>/dev/null || true

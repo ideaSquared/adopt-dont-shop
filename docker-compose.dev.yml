@@ -6,7 +6,7 @@
 #
 # What this override changes vs the base file:
 #   * Every app/service swaps its heavy per-service multi-stage build
-#     (Dockerfile.app.optimized / Dockerfile.service, which prune + turbo build
+#     (Dockerfile.app / Dockerfile.service, which prune + turbo build
 #     each service separately) for ONE shared Dockerfile.dev. That image bakes a
 #     single full workspace `pnpm install` in the standard isolated layout, so
 #     deps resolve exactly as pnpm intends (workspace pkgs, bins, native modules
@@ -22,7 +22,7 @@
 # host node_modules never leaks; the baked (correct) one is used.
 #
 # Production / staging images are unchanged — they still use the full
-# Dockerfile.service / Dockerfile.app.optimized builds.
+# Dockerfile.service / Dockerfile.app builds.
 
 # ---------------------------------------------------------------------------
 # Shared anchors
