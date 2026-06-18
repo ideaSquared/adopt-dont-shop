@@ -15,7 +15,8 @@ export type LoginOutcome =
   | 'success'
   | 'invalid_credentials'
   | 'account_locked'
-  | 'account_suspended';
+  | 'account_suspended'
+  | 'email_unverified';
 
 export type RegistrationOutcome = 'success' | 'duplicate_email' | 'invalid_input';
 

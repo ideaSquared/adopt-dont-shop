@@ -33,11 +33,20 @@ test.describe('email verification round-trip (ADS-871)', () => {
       });
       expect([200, 201]).toContain(registerRes.status());
 
-      // 2. Login is rejected while the account is unverified.
+      // 2. Login is blocked while the account is unverified. Mirroring the
+      //    2FA flow, the gateway answers 200 with an
+      //    `emailVerificationRequired` flag and NO tokens — the client turns
+      //    that into a "verify your email" prompt rather than a session.
       const unverifiedLogin = await api.post('/api/v1/auth/login', {
         data: { email, password: PASSWORD },
       });
-      expect(unverifiedLogin.ok()).toBe(false);
+      expect(unverifiedLogin.ok()).toBe(true);
+      const unverifiedBody = (await unverifiedLogin.json()) as {
+        emailVerificationRequired?: boolean;
+        tokens?: { accessToken?: string };
+      };
+      expect(unverifiedBody.emailVerificationRequired).toBe(true);
+      expect(unverifiedBody.tokens?.accessToken).toBeUndefined();
 
       // 3. Read the verification token via the test-token-peek seam.
       const tokens = await peekAuthTokens(email);

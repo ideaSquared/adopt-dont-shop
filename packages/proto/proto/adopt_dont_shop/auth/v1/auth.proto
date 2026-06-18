@@ -327,6 +327,11 @@ message LoginResponse {
   // no (valid) two_factor_token was supplied. user/tokens are empty in
   // this case — the client re-submits Login with the TOTP code.
   bool two_factor_required = 4;
+  // Set when the password was correct but the account's email is not yet
+  // verified. user/tokens are empty in this case — the client prompts the
+  // user to verify their email (and can resend the verification email)
+  // before login can complete.
+  bool email_verification_required = 5;
 }
 
 // --- Logout ----------------------------------------------------------

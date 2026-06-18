@@ -212,6 +212,11 @@ export interface AuthResponse {
   // client re-submits login with twoFactorToken. auth-service turns this
   // into the TWO_FACTOR_REQUIRED_MESSAGE error the LoginForm prompts on.
   twoFactorRequired?: boolean;
+  // Set when the password was correct but the account's email is not yet
+  // verified. user/tokens are absent in that case — the client prompts the
+  // user to verify their email (and can resend it). auth-service turns this
+  // into the EMAIL_VERIFICATION_REQUIRED_MESSAGE error the LoginForm prompts on.
+  emailVerificationRequired?: boolean;
 }
 
 export interface ChangePasswordRequest {

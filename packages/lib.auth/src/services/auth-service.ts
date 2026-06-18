@@ -38,6 +38,11 @@ const AUTH_ENDPOINTS = {
 // on it to swap to the 2FA code prompt and re-submit with twoFactorToken.
 export const TWO_FACTOR_REQUIRED_MESSAGE = 'Two-factor authentication code required';
 
+// The login flow signals "password OK, but your email isn't verified yet" by
+// throwing an Error whose message contains this string. LoginForm matches on
+// it to swap to the "verify your email" prompt with a resend action.
+export const EMAIL_VERIFICATION_REQUIRED_MESSAGE = 'Email verification required';
+
 /**
  * AuthService - Authentication and user management service
  *
@@ -69,6 +74,13 @@ export class AuthService {
     // session.
     if (response.twoFactorRequired) {
       throw new Error(TWO_FACTOR_REQUIRED_MESSAGE);
+    }
+
+    // Password was correct but the account's email isn't verified. The body
+    // carries no user/tokens — surface the signal as an error the LoginForm
+    // prompts on, WITHOUT persisting a partial session.
+    if (response.emailVerificationRequired) {
+      throw new Error(EMAIL_VERIFICATION_REQUIRED_MESSAGE);
     }
 
     // Persist the user + the Bearer token pair the gateway returned in the
@@ -227,6 +239,16 @@ export class AuthService {
       throw new Error('No user email found');
     }
     await apiService.post(AUTH_ENDPOINTS.RESEND_VERIFICATION, { email: user.email });
+  }
+
+  /**
+   * Resend the verification email for a given address. Used by the login
+   * "verify your email" prompt, where there is no persisted session to read
+   * the email from. The gateway always responds with success to avoid
+   * leaking which addresses have accounts.
+   */
+  async resendVerification(email: string): Promise<void> {
+    await apiService.post(AUTH_ENDPOINTS.RESEND_VERIFICATION, { email });
   }
 
   /**

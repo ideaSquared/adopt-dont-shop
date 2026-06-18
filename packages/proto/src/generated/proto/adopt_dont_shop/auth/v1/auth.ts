@@ -395,6 +395,13 @@ export interface LoginResponse {
    * this case — the client re-submits Login with the TOTP code.
    */
   twoFactorRequired: boolean;
+  /**
+   * Set when the password was correct but the account's email is not yet
+   * verified. user/tokens are empty in this case — the client prompts the
+   * user to verify their email (and can resend the verification email)
+   * before login can complete.
+   */
+  emailVerificationRequired: boolean;
 }
 
 export interface LogoutRequest {
@@ -1734,7 +1741,13 @@ export const LoginRequest: MessageFns<LoginRequest> = {
 };
 
 function createBaseLoginResponse(): LoginResponse {
-  return { user: undefined, tokens: undefined, permissions: [], twoFactorRequired: false };
+  return {
+    user: undefined,
+    tokens: undefined,
+    permissions: [],
+    twoFactorRequired: false,
+    emailVerificationRequired: false,
+  };
 }
 
 export const LoginResponse: MessageFns<LoginResponse> = {
@@ -1750,6 +1763,9 @@ export const LoginResponse: MessageFns<LoginResponse> = {
     }
     if (message.twoFactorRequired !== false) {
       writer.uint32(32).bool(message.twoFactorRequired);
+    }
+    if (message.emailVerificationRequired !== false) {
+      writer.uint32(40).bool(message.emailVerificationRequired);
     }
     return writer;
   },
@@ -1793,6 +1809,14 @@ export const LoginResponse: MessageFns<LoginResponse> = {
           message.twoFactorRequired = reader.bool();
           continue;
         }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.emailVerificationRequired = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1814,6 +1838,11 @@ export const LoginResponse: MessageFns<LoginResponse> = {
         : isSet(object.two_factor_required)
           ? globalThis.Boolean(object.two_factor_required)
           : false,
+      emailVerificationRequired: isSet(object.emailVerificationRequired)
+        ? globalThis.Boolean(object.emailVerificationRequired)
+        : isSet(object.email_verification_required)
+          ? globalThis.Boolean(object.email_verification_required)
+          : false,
     };
   },
 
@@ -1831,6 +1860,9 @@ export const LoginResponse: MessageFns<LoginResponse> = {
     if (message.twoFactorRequired !== false) {
       obj.twoFactorRequired = message.twoFactorRequired;
     }
+    if (message.emailVerificationRequired !== false) {
+      obj.emailVerificationRequired = message.emailVerificationRequired;
+    }
     return obj;
   },
 
@@ -1847,6 +1879,7 @@ export const LoginResponse: MessageFns<LoginResponse> = {
         : undefined;
     message.permissions = object.permissions?.map(e => e) || [];
     message.twoFactorRequired = object.twoFactorRequired ?? false;
+    message.emailVerificationRequired = object.emailVerificationRequired ?? false;
     return message;
   },
 };

@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { Alert, Button, Input } from '@adopt-dont-shop/lib.components';
 import { LoginRequestSchema } from '@adopt-dont-shop/lib.validation';
 import { useAuth } from '../hooks/useAuth';
-import { TWO_FACTOR_REQUIRED_MESSAGE } from '../services/auth-service';
+import {
+  TWO_FACTOR_REQUIRED_MESSAGE,
+  EMAIL_VERIFICATION_REQUIRED_MESSAGE,
+  authService,
+} from '../services/auth-service';
 import { LoginRequest } from '../types';
 import * as styles from './LoginForm.css';
 
@@ -49,6 +53,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [needs2FA, setNeeds2FA] = useState(false);
   const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +94,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         return;
       }
 
+      if (errorMessage.includes(EMAIL_VERIFICATION_REQUIRED_MESSAGE)) {
+        setNeedsEmailVerification(true);
+        setResendStatus('idle');
+        setError(null);
+        return;
+      }
+
       setError(errorMessage);
     }
   };
@@ -108,7 +121,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const handleBack = () => {
     setNeeds2FA(false);
     setTwoFactorToken('');
+    setNeedsEmailVerification(false);
+    setResendStatus('idle');
     setError(null);
+  };
+
+  const handleResendVerification = async () => {
+    setResendStatus('sending');
+    try {
+      await authService.resendVerification(formData.email);
+    } finally {
+      // The gateway always responds with success to avoid leaking which
+      // addresses have accounts, so we report "sent" regardless.
+      setResendStatus('sent');
+    }
   };
 
   return (
@@ -120,7 +146,31 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       )}
 
       <form className={styles.form} onSubmit={handleSubmit}>
-        {!needs2FA ? (
+        {needsEmailVerification ? (
+          <div className={styles.twoFactorGroup}>
+            <div className={styles.twoFactorLabel}>Please verify your email</div>
+            <p className={styles.twoFactorDescription}>
+              Your email address needs to be verified before you can sign in. Check your inbox for
+              the verification link we sent you.
+            </p>
+            <Button
+              type="button"
+              size="md"
+              variant="secondary"
+              onClick={handleResendVerification}
+              disabled={resendStatus === 'sending'}
+            >
+              {resendStatus === 'sending'
+                ? 'Sending...'
+                : resendStatus === 'sent'
+                  ? 'Verification email sent'
+                  : 'Resend verification email'}
+            </Button>
+            <button className={styles.backLink} type="button" onClick={handleBack}>
+              Back to login
+            </button>
+          </div>
+        ) : !needs2FA ? (
           <>
             <div className={styles.formGroup}>
               <Input
@@ -190,19 +240,21 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </div>
         )}
 
-        <Button
-          type="submit"
-          size="lg"
-          variant="primary"
-          disabled={
-            isLoading ||
-            (!needs2FA && (!formData.email || !formData.password)) ||
-            (needs2FA && twoFactorToken.length < 6)
-          }
-          style={{ width: '100%' }}
-        >
-          {isLoading ? 'Signing In...' : needs2FA ? 'Verify' : 'Sign In'}
-        </Button>
+        {!needsEmailVerification && (
+          <Button
+            type="submit"
+            size="lg"
+            variant="primary"
+            disabled={
+              isLoading ||
+              (!needs2FA && (!formData.email || !formData.password)) ||
+              (needs2FA && twoFactorToken.length < 6)
+            }
+            style={{ width: '100%' }}
+          >
+            {isLoading ? 'Signing In...' : needs2FA ? 'Verify' : 'Sign In'}
+          </Button>
+        )}
 
         {helperText && <small className={styles.helperText}>{helperText}</small>}
       </form>
