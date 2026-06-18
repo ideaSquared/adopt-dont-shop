@@ -12,6 +12,8 @@ The suite exercises real user journeys across the three React apps (`app.client`
 > - `client/adoption-application.spec.ts` — the `@smoke` full adoption journey (submit → rescue approves → adopter sees approval). The `apiAs` fixture and `seeds.ts` mutation helpers now authenticate with Bearer tokens (no CSRF), matching the gateway.
 >
 > **Still parked** (every other spec under `tests/client`, `tests/rescue`, `tests/admin`): un-park each by adding its glob to `UNPARKED[project]` once it passes in CI. Some non-auth specs (chat / moderation / cms / matching / notifications detail) may need follow-up gateway work — the same enum/envelope normalisation #1076 applied to auth likely applies to those domains' responses too.
+>
+> **Blocked on architecture, not yet un-parked** — these assert the monolith's CSRF + cookie-session model, which the Bearer-only gateway deliberately removed (there is no `GET /api/v1/csrf-token` endpoint and JWTs are stateless): `client/api-csrf-and-cookie-contract.spec.ts`, `client/logout-flow.spec.ts`, `client/rate-limit-application-submission.spec.ts`. `client/swipe-and-favourite.spec.ts` additionally needs a favourites seed in the pets service. Each needs a rewrite to the Bearer contract (and a seed) rather than a config flip. `rescue/custom-application-questions`, `admin/bulk-user-actions`, `admin/2fa-enrollment` need new gateway routes built (ADS-868).
 
 ## Layout
 

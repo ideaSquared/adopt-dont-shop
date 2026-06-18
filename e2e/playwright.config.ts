@@ -60,6 +60,22 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // These post a message via API and read it back from the other side.
     '**/adopter-rescue-chat.spec.ts',
     '**/realtime-chat-propagation.spec.ts',
+    // Batch C (ADS-868) — UI-only auth/profile journeys. No new gateway routes,
+    // no CSRF (the gateway is Bearer-only), grounded in the existing John Smith
+    // seed:
+    // - form-validation: anonymous /register rejects a malformed email
+    //   client-side (Zod) — pure UI, no backend.
+    // - email-verification-gating: the seeded (verified) adopter is NOT blocked
+    //   from the apply flow — a subset of the merged adoption-application path.
+    // - password-reset: /forgot-password shows a confirmation; /reset-password
+    //   with a bad token is rejected. Gateway already has POST
+    //   /auth/forgot-password + /auth/reset-password.
+    // - profile-update: a bio edit round-trips via PUT /users/profile
+    //   (account-handlers persists `bio`) and survives navigation.
+    '**/form-validation-per-field.spec.ts',
+    '**/email-verification-gating.spec.ts',
+    '**/password-reset-flow.spec.ts',
+    '**/profile-update-persistence.spec.ts',
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863
