@@ -662,7 +662,26 @@ export const registerApplicationsRoutes = async (
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/applications/:id',
-    { config: { rateLimit: RL_READ } },
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['applications'],
+        summary: 'Get an application by ID',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        querystring: {
+          type: 'object',
+          properties: {
+            timeline: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
       try {
