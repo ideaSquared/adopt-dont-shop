@@ -221,10 +221,10 @@ export const ApplicationPage: React.FC = () => {
       }
 
       const [questionsResponse, defaults] = await Promise.all([
-        apiService.get<{ questions: Question[] }>(`/api/v1/rescues/${petData.rescue_id}/questions`),
+        apiService.get<{ data: Question[] }>(`/api/v1/rescues/${petData.rescue_id}/questions`),
         applicationProfileService.getApplicationDefaults().catch(() => null),
       ]);
-      const enabledQuestions = questionsResponse.questions.filter((q: Question) => q.isEnabled);
+      const enabledQuestions = questionsResponse.data.filter((q: Question) => q.isEnabled);
       setAllQuestions(enabledQuestions);
       setCategories(groupQuestionsByMacroStep(enabledQuestions, petData.name));
 
