@@ -118,10 +118,9 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // bulk-edit-pets is a page-load smoke for /analytics (mislabeled file) —
     // same low-risk pattern as the other rescue page-loads.
     '**/bulk-edit-pets.spec.ts',
-    // Deferred (need new gateway routes wired, ADS-868):
+    // Still deferred (need new gateway routes wired, ADS-868):
     // - custom-application-questions → no /api/v1/rescues/:id/questions route
-    // - messaging via /admin/users/:id/action, /auth/2fa/* (bulk-user-actions,
-    //   2fa-enrollment) → those routes aren't registered in the gateway.
+    // - 2fa-enrollment → /auth/2fa/* RPCs not built yet
   ],
   admin: [
     // ADS-867 (batch A3) — admin journeys. superadmin storageState
@@ -137,6 +136,11 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/content-moderation-queue.spec.ts',
     '**/support-ticket-triage.spec.ts',
     '**/blog-post-publishing.spec.ts',
+    // Batch E (ADS-868) — new gateway routes. bulk-user-actions exercises the
+    // /api/v1/admin/users surface (list, detail, PATCH :id/action suspend|
+    // reactivate) wired in services/gateway/src/routes/users.ts onto the
+    // existing auth admin RPCs.
+    '**/bulk-user-actions.spec.ts',
   ],
 };
 

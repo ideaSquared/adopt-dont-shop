@@ -36,6 +36,7 @@ import type { NotificationsClient } from '../grpc-clients/notifications-client.j
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
+import { userToApiJson } from './auth-user-json.js';
 
 export type UsersRoutesOptions = {
   authClient: AuthClient;
@@ -356,6 +357,95 @@ export const registerUsersRoutes = async (
           message: 'User reactivated',
           data: AuthV1.User.toJSON(res.user!),
         });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // ---- Admin user surface: /api/v1/admin/users/* -------------------
+  // The admin SPA (and the e2e bulk-action flow) address users under an
+  // /admin/users prefix. These map onto the same auth RPCs as the
+  // /users/:userId admin routes above, but serialise via userToApiJson so
+  // userType/status come back as the canonical strings the admin UI reads
+  // ('admin', 'suspended') rather than the proto SCREAMING_SNAKE names.
+
+  // GET /api/v1/admin/users — list/search.
+  app.get('/api/v1/admin/users', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    const q = req.query as Record<string, string | undefined>;
+    const pagination = parsePagination(q, { limit: 0 });
+    if (!pagination.ok) {
+      return reply.code(400).send({ success: false, error: pagination.error });
+    }
+    const grpcReq: SearchUsersRequest = {
+      search: q.search,
+      statusFilter: statusFilterFromString(q.status),
+      userTypeFilter: userTypeFilterFromString(q.userType ?? q.user_type),
+      emailVerified: q.emailVerified ? q.emailVerified === 'true' : undefined,
+      createdFrom: q.createdFrom ?? q.created_from,
+      createdTo: q.createdTo ?? q.created_to,
+      page: pagination.page,
+      limit: pagination.limit,
+      sortBy: q.sortBy ?? q.sort_by,
+      sortOrder: q.sortOrder ?? q.sort_order,
+    };
+    try {
+      const res = await authClient.searchUsers(grpcReq, metadata);
+      return reply.send({
+        success: true,
+        data: res.users.map(userToApiJson),
+        pagination: {
+          page: res.page,
+          limit: grpcReq.limit || 20,
+          total: res.total,
+          totalPages: res.totalPages,
+        },
+      });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // GET /api/v1/admin/users/:userId — single user detail.
+  app.get<{ Params: { userId: string } }>('/api/v1/admin/users/:userId', async (req, reply) => {
+    const metadata = buildMetadata(req);
+    try {
+      const res = await authClient.adminGetUser({ userId: req.params.userId }, metadata);
+      return reply.send({ success: true, data: userToApiJson(res.user!) });
+    } catch (err) {
+      return handleGrpcError(err, reply);
+    }
+  });
+
+  // PATCH /api/v1/admin/users/:userId/action — the per-user moderation
+  // action the admin UI's bulk button calls once per row. Maps a small
+  // action vocabulary onto the existing admin RPCs.
+  app.patch<{ Params: { userId: string } }>(
+    '/api/v1/admin/users/:userId/action',
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as { action?: string };
+      try {
+        if (body.action === 'suspend') {
+          const grpcReq: AdminUpdateUserRequest = {
+            userId: req.params.userId,
+            status: AuthV1.UserStatus.USER_STATUS_SUSPENDED,
+            userType: AuthV1.UserRole.USER_ROLE_UNSPECIFIED,
+            emailVerified: undefined,
+            firstName: undefined,
+            lastName: undefined,
+          };
+          const res = await authClient.adminUpdateUser(grpcReq, metadata);
+          return reply.send({ success: true, data: userToApiJson(res.user!) });
+        }
+        if (body.action === 'reactivate') {
+          const res = await authClient.reactivateUser({ userId: req.params.userId }, metadata);
+          return reply.send({ success: true, data: userToApiJson(res.user!) });
+        }
+        return reply
+          .code(400)
+          .send({ success: false, error: `unknown action: ${body.action ?? ''}` });
       } catch (err) {
         return handleGrpcError(err, reply);
       }
