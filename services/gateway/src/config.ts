@@ -277,6 +277,8 @@ function isEnabled(raw: string | undefined): boolean {
 // fields are optional); `provider` selects which one drives uploads.
 function buildStorageConfig(env: NodeJS.ProcessEnv): GatewayConfig['storage'] {
   const provider: 'local' | 's3' = env.STORAGE_PROVIDER?.trim() === 's3' ? 's3' : 'local';
+  const maxFileSizeRaw = env.MAX_FILE_SIZE?.trim();
+  const maxFileSize = maxFileSizeRaw ? Number.parseInt(maxFileSizeRaw, 10) : 10485760;
   return {
     provider,
     local: {
@@ -291,8 +293,10 @@ function buildStorageConfig(env: NodeJS.ProcessEnv): GatewayConfig['storage'] {
       cloudFrontDomain: env.CLOUDFRONT_DOMAIN?.trim(),
     },
     // Multipart body limit — 10 MiB default. Override with MAX_FILE_SIZE
-    // if larger PDFs are expected.
-    maxFileSize: Number.parseInt(env.MAX_FILE_SIZE?.trim() || '10485760', 10),
+    // if larger PDFs are expected. A non-numeric / non-positive value falls
+    // back to the default rather than plumbing NaN into the body limit
+    // (mirrors buildRateLimitConfig).
+    maxFileSize: Number.isNaN(maxFileSize) || maxFileSize <= 0 ? 10485760 : maxFileSize,
     signingSecret: readOptionalSecret('UPLOAD_SIGNING_SECRET', env, 32),
   };
 }

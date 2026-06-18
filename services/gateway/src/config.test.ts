@@ -105,6 +105,28 @@ describe('loadConfig', () => {
   });
 });
 
+describe('loadConfig — storage max file size (ADS-850)', () => {
+  it('defaults to 10485760 bytes when MAX_FILE_SIZE is unset', () => {
+    const config = loadConfig({});
+    expect(config.storage.maxFileSize).toBe(10485760);
+  });
+
+  it('honours a valid numeric MAX_FILE_SIZE', () => {
+    const config = loadConfig({ MAX_FILE_SIZE: '20971520' });
+    expect(config.storage.maxFileSize).toBe(20971520);
+  });
+
+  it('falls back to the default for a non-numeric MAX_FILE_SIZE', () => {
+    const config = loadConfig({ MAX_FILE_SIZE: 'not-a-number' });
+    expect(config.storage.maxFileSize).toBe(10485760);
+  });
+
+  it('falls back to the default for a non-positive MAX_FILE_SIZE', () => {
+    expect(loadConfig({ MAX_FILE_SIZE: '0' }).storage.maxFileSize).toBe(10485760);
+    expect(loadConfig({ MAX_FILE_SIZE: '-1' }).storage.maxFileSize).toBe(10485760);
+  });
+});
+
 describe('loadConfig — principal signing key (ADS-800)', () => {
   const VALID_KEY = 'a-principal-signing-key-of-at-least-32-bytes';
 
