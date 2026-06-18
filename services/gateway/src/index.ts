@@ -41,6 +41,34 @@ const main = async (): Promise<void> => {
   let applicationsClient: ReturnType<typeof createApplicationsClient> | undefined;
   let chatClient: ReturnType<typeof createChatClient> | undefined;
 
+  // Close the 9 gRPC clients (and any future ones) through one helper so the
+  // success path (logs) and the boot-failure path (silent) can't drift apart.
+  // `log: false` swallows errors, matching the original error-path cleanup
+  // which never logged. Reads the closed-over client `let`s, so it works for
+  // both signal-driven shutdown and the boot-failure catch.
+  const closeGrpcClients = (log: boolean): void => {
+    const clients: ReadonlyArray<{ label: string; client: { close(): void } | undefined }> = [
+      { label: 'notifications client', client: notificationsClient },
+      { label: 'auth client', client: authClient },
+      { label: 'pets client', client: petsClient },
+      { label: 'rescue client', client: rescueClient },
+      { label: 'audit client', client: auditClient },
+      { label: 'matching client', client: matchingClient },
+      { label: 'moderation client', client: moderationClient },
+      { label: 'applications client', client: applicationsClient },
+      { label: 'chat client', client: chatClient },
+    ];
+    for (const { label, client } of clients) {
+      try {
+        client?.close();
+      } catch (err) {
+        if (log) {
+          logger.error(`${label} close error`, { err });
+        }
+      }
+    }
+  };
+
   try {
     const config = loadConfig();
 
@@ -158,51 +186,7 @@ const main = async (): Promise<void> => {
       } catch (err) {
         logger.error('nats drain error', { err });
       }
-      try {
-        notificationsClient?.close();
-      } catch (err) {
-        logger.error('notifications client close error', { err });
-      }
-      try {
-        authClient?.close();
-      } catch (err) {
-        logger.error('auth client close error', { err });
-      }
-      try {
-        petsClient?.close();
-      } catch (err) {
-        logger.error('pets client close error', { err });
-      }
-      try {
-        rescueClient?.close();
-      } catch (err) {
-        logger.error('rescue client close error', { err });
-      }
-      try {
-        auditClient?.close();
-      } catch (err) {
-        logger.error('audit client close error', { err });
-      }
-      try {
-        matchingClient?.close();
-      } catch (err) {
-        logger.error('matching client close error', { err });
-      }
-      try {
-        moderationClient?.close();
-      } catch (err) {
-        logger.error('moderation client close error', { err });
-      }
-      try {
-        applicationsClient?.close();
-      } catch (err) {
-        logger.error('applications client close error', { err });
-      }
-      try {
-        chatClient?.close();
-      } catch (err) {
-        logger.error('chat client close error', { err });
-      }
+      closeGrpcClients(true);
       process.exit(0);
     };
 
@@ -226,51 +210,7 @@ const main = async (): Promise<void> => {
     } catch {
       // Same.
     }
-    try {
-      notificationsClient?.close();
-    } catch {
-      // Same.
-    }
-    try {
-      authClient?.close();
-    } catch {
-      // Same.
-    }
-    try {
-      petsClient?.close();
-    } catch {
-      // Same.
-    }
-    try {
-      rescueClient?.close();
-    } catch {
-      // Same.
-    }
-    try {
-      auditClient?.close();
-    } catch {
-      // Same.
-    }
-    try {
-      matchingClient?.close();
-    } catch {
-      // Same.
-    }
-    try {
-      moderationClient?.close();
-    } catch {
-      // Same.
-    }
-    try {
-      applicationsClient?.close();
-    } catch {
-      // Same.
-    }
-    try {
-      chatClient?.close();
-    } catch {
-      // Same.
-    }
+    closeGrpcClients(false);
     process.exit(1);
   }
 };
