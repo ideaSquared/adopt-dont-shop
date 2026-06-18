@@ -355,19 +355,22 @@ jobs:
   test-e2e:
     name: E2E Tests (Playwright)
     needs: [test-frontend, test-services]
-    # E2E is opt-in on pull requests — the full docker-stack build + Playwright
-    # run is too slow to pay on every push during development. It runs when:
-    #   * pushing to main (the pre-deploy integration gate), or
-    #   * a PR carries the `run-e2e` label (opt in when the branch is ready), or
-    #   * triggered manually via workflow_dispatch.
-    # On any other PR it is skipped, which the `ci-required` aggregator treats as
-    # success — so E2E never blocks normal in-progress PRs.
+    # ADS-870: E2E now runs on EVERY PR, but the scope depends on opt-in:
+    #   * push to main / workflow_dispatch / a PR labelled `run-e2e`
+    #       → the FULL suite (the pre-deploy / branch-ready integration gate).
+    #   * any other PR
+    #       → a SMOKE subset (`--grep @smoke`) so in-progress PRs get fast
+    #         feedback on the headline journeys without paying the full run.
+    # The full docker-stack still has to come up either way (smoke specs span
+    # all three apps + the gateway), so the saving is the Playwright run time,
+    # not the stack bring-up. The `ci-required` aggregator treats a skipped E2E
+    # job (when the frontend/backend filters skip its `needs`) as success.
     if: |
       always() &&
       (
         github.event_name == 'workflow_dispatch' ||
         (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-        (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-e2e'))
+        github.event_name == 'pull_request'
       ) &&
       (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') &&
       (needs.test-services.result == 'success' || needs.test-services.result == 'skipped')
@@ -669,16 +672,20 @@ jobs:
           done
 
       - name: Run Playwright suite
-        # E2E only reaches this point when explicitly requested (main push,
-        # `run-e2e` label, or manual dispatch), so always run the full suite —
-        # the point of opting in is to get complete integration coverage, not a
-        # smoke subset. Tag tests with @smoke and run `pnpm test:e2e:smoke`
-        # locally for a quick subset.
+        # ADS-870: full suite when opted in (main push, `run-e2e` label, or
+        # manual dispatch); otherwise a @smoke subset for fast PR feedback.
+        # `pnpm test:e2e:smoke` runs `playwright test --grep @smoke`.
         #
         # Retries are configured in e2e/playwright.config.ts (retries: CI ? 2 : 0).
         run: |
-          echo "${{ github.event_name }} on ${{ github.ref }} — running full suite"
-          pnpm test:e2e
+          if [ "${{ github.event_name }}" = "pull_request" ] && \
+             [ "${{ contains(github.event.pull_request.labels.*.name, 'run-e2e') }}" != "true" ]; then
+            echo "unlabelled PR — running @smoke subset"
+            pnpm test:e2e:smoke
+          else
+            echo "${{ github.event_name }} on ${{ github.ref }} — running full suite"
+            pnpm test:e2e
+          fi
 
       # ADS-386: Surface flaky-retry signal so engineers can see which tests
       # needed retries without having to open the full HTML report.

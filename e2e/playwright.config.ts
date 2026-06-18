@@ -91,6 +91,14 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/api-auth-contract.spec.ts',
     '**/logout-flow.spec.ts',
     '**/rate-limit-application-submission.spec.ts',
+    // ADS-870 — UI-level journeys for features that previously had API-only
+    // e2e coverage. The specs are written (2fa-login-ui, favourite-add-via-ui,
+    // custom-question-on-application-form) but PARKED: their first CI run went
+    // 53 pass / 3 fail — each of these three failed on a UI assumption that
+    // needs debugging with the docker stack UP (a token-setup login returned no
+    // token; the favourite button didn't flip to "Favorited"; the custom
+    // question didn't render on /apply). Un-park once each is reproduced green
+    // locally. Tracked under ADS-870.
     // profile-update-persistence: deferred. The bio edit submits and the
     // gateway/auth map+persist `bio`, and GET /auth/me returns it, but the
     // value does not round-trip back into the edit form after a reload (the

@@ -3,7 +3,7 @@ import { uniqueText } from '../../helpers/factories';
 import { expectOk, getFirstAdopterChat, listChatMessages, postWithCsrf } from '../../helpers/seeds';
 
 test.describe('rescue messaging', () => {
-  test('a rescue staffer can send a message via API to a seeded chat', async ({ apiAs }) => {
+  test('a rescue staffer can send a message via API to a seeded chat @smoke', async ({ apiAs }) => {
     const adopterApi = await apiAs('adopter');
     const rescueApi = await apiAs('rescue');
     const { chatId } = await getFirstAdopterChat(adopterApi);
