@@ -102,26 +102,24 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/api-auth-contract.spec.ts',
     '**/logout-flow.spec.ts',
     '**/rate-limit-application-submission.spec.ts',
-    // ADS-870 — UI-level journeys for features that previously had API-only
-    // e2e coverage. Debugged by code-reading the spec against the SPA/API it
-    // drives:
-    // - 2fa-login-ui: the throwaway account is logged in (and the access token
-    //   captured) BEFORE 2FA is enabled, so the setup login returns a token —
-    //   the same flow the green admin/2fa-enrollment.spec.ts uses. The UI half
-    //   (gateway → two_factor_required → auth-service throws
-    //   TWO_FACTOR_REQUIRED_MESSAGE → LoginForm shows the `000000` field +
-    //   "Verify" button) is wired correctly end-to-end.
-    // - favourite-add-via-ui: PetDetailsPage's button renders "♥ Favorited"
-    //   after petService.addToFavorites resolves (optimistic flip); the
-    //   favourites infra is the same path the green swipe-and-favourite.spec.ts
-    //   exercises.
-    // - custom-question-on-application-form: fixed a real SPA bug — the apply
-    //   form read the questions list as `{ questions }` but the gateway route
-    //   GET /api/v1/rescues/:id/questions returns `{ data: [...] }`, so the
-    //   read threw and no question rendered (apps/client ApplicationPage).
+    // ADS-870 — 2FA driven through the client login UI. The throwaway account
+    // registers, VERIFIES its email (login now requires it), enables 2FA via
+    // API, then the UI half is exercised: gateway → two_factor_required →
+    // auth-service throws TWO_FACTOR_REQUIRED_MESSAGE → LoginForm shows the
+    // `000000` field + "Verify" button → a fresh TOTP completes login.
     '**/2fa-login-ui.spec.ts',
-    '**/favourite-add-via-ui.spec.ts',
-    '**/custom-question-on-application-form.spec.ts',
+    // ADS-870 — PARKED (files retained, not listed): two UI journeys that fail
+    // in CI on causes only reproducible with the full docker stack UP, which
+    // can't be run in the un-parking environment:
+    // - favourite-add-via-ui: the pet detail "Add to Favorites" control never
+    //   flips to "Favorited" in CI (the assert at spec line 33 timed out across
+    //   all retries) — needs the running UI to see whether the click, the
+    //   POST /pets/:id/favorite, or the state refresh is at fault.
+    // - custom-question-on-application-form: even after fixing the apply form's
+    //   `{ data }` read (the gateway returns `{ data: [...] }`, not
+    //   `{ questions }`), the custom question still doesn't render on /apply in
+    //   CI (spec line 69) — a second cause that needs runtime debugging.
+    // Un-park each once reproduced green against a live stack (tracked ADS-870).
     // profile-update-persistence: RE-PARKED. Investigation showed the root
     // cause is deeper than a stale cache: the SPA's profile save calls
     // authService.updateProfile → PUT /api/v1/auth/me, but the gateway has no
