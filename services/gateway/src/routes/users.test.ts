@@ -524,6 +524,109 @@ type SearchUsersReqShape = {
   userTypeFilter: AuthV1.UserRole;
 };
 
+describe('/api/v1/admin/users surface', () => {
+  let app: FastifyInstance;
+  let auth: ReturnType<typeof makeAuthClient>;
+  let notif: ReturnType<typeof makeNotifClient>;
+
+  beforeEach(async () => {
+    auth = makeAuthClient();
+    notif = makeNotifClient();
+    app = await buildApp(auth, notif);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('GET lists users with canonical status/userType strings', async () => {
+    auth.searchUsersMock.mockResolvedValueOnce({
+      users: [ADMIN_USER_FIXTURE],
+      total: 1,
+      page: 1,
+      totalPages: 1,
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/users?limit=50',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: Array<{ userType: string; status: string }> };
+    expect(body.data[0].userType).toBe('adopter');
+    expect(body.data[0].status).toBe('active');
+  });
+
+  it('GET :userId returns the user with a canonical status string', async () => {
+    auth.adminGetUserMock.mockResolvedValueOnce({ user: ADMIN_USER_FIXTURE });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/users/usr-9',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { userId: string; status: string } };
+    expect(body.data.userId).toBe('usr-9');
+    expect(body.data.status).toBe('active');
+  });
+
+  it('PATCH action=suspend sets status SUSPENDED and returns "suspended"', async () => {
+    const suspended = { ...ADMIN_USER_FIXTURE, status: AuthV1.UserStatus.USER_STATUS_SUSPENDED };
+    auth.adminUpdateUserMock.mockResolvedValueOnce({ user: suspended });
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/admin/users/usr-9/action',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify({ action: 'suspend', reason: 'probe' }),
+    });
+    expect(res.statusCode).toBe(200);
+    const [grpcReq] = auth.adminUpdateUserMock.mock.calls[0] as [
+      { userId: string; status: AuthV1.UserStatus },
+      Metadata,
+    ];
+    expect(grpcReq.userId).toBe('usr-9');
+    expect(grpcReq.status).toBe(AuthV1.UserStatus.USER_STATUS_SUSPENDED);
+    const body = res.json() as { data: { status: string } };
+    expect(body.data.status).toBe('suspended');
+  });
+
+  it('PATCH action=reactivate routes to reactivateUser', async () => {
+    auth.reactivateUserMock.mockResolvedValueOnce({ user: ADMIN_USER_FIXTURE });
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/admin/users/usr-9/action',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify({ action: 'reactivate' }),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(auth.reactivateUserMock).toHaveBeenCalledTimes(1);
+    expect(auth.adminUpdateUserMock).not.toHaveBeenCalled();
+  });
+
+  it('PATCH with an unknown action → 400 without calling any RPC', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/v1/admin/users/usr-9/action',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify({ action: 'frobnicate' }),
+    });
+    expect(res.statusCode).toBe(400);
+    expect(auth.adminUpdateUserMock).not.toHaveBeenCalled();
+    expect(auth.reactivateUserMock).not.toHaveBeenCalled();
+  });
+});
+
 describe('GET /api/v1/users/statistics', () => {
   let app: FastifyInstance;
   let auth: ReturnType<typeof makeAuthClient>;
