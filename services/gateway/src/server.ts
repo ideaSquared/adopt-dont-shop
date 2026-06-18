@@ -75,6 +75,7 @@ import { registerRescueRoutes } from './routes/rescue.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
 import { registerSessionsRoutes } from './routes/sessions.js';
 import { registerStaffFosterRoutes } from './routes/staff-foster.js';
+import { registerTestTokenPeekRoutes } from './routes/test-token-peek.js';
 import { registerUploadsRoutes } from './routes/uploads.js';
 import { registerUsersRoutes } from './routes/users.js';
 
@@ -556,6 +557,20 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       authClient: opts.authClient,
       redis: rateLimitRedis,
     });
+  }
+
+  // TEST-ONLY token-peek seam (ADS-871). Lets the e2e suite read one-time
+  // reset/verification/invitation tokens normally only delivered by email.
+  // Registers ONLY when E2E_TOKEN_PEEK=true AND a DATABASE_URL is wired, and
+  // loadConfig() refuses to enable it under NODE_ENV=production — so it is
+  // impossible to reach in prod. See routes/test-token-peek.ts.
+  if (config.testTokenPeek.enabled && config.testTokenPeek.databaseUrl) {
+    await registerTestTokenPeekRoutes(server, {
+      databaseUrl: config.testTokenPeek.databaseUrl,
+    });
+    logger.warn(
+      'test-token-peek seam ENABLED — /api/v1/test/* exposes one-time auth tokens (e2e only)'
+    );
   }
 
   // Phase 11: the residual monolith has been deleted, so the catch-all
