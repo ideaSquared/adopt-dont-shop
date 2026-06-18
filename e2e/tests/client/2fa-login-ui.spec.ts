@@ -4,6 +4,7 @@ import { request as playwrightRequest } from '@playwright/test';
 
 import { test, expect } from '../../fixtures';
 import { uniqueEmail } from '../../helpers/factories';
+import { peekAuthTokens } from '../../helpers/token-peek';
 import { URLS } from '../../playwright.config';
 
 /**
@@ -41,6 +42,15 @@ test.describe('2FA via the login UI', () => {
         },
       });
       expect([200, 201]).toContain(reg.status());
+
+      // Login now requires a verified email, so verify the throwaway via the
+      // token-peek seam before the password login can mint a token.
+      const { verificationToken } = await peekAuthTokens(email);
+      expect(verificationToken).toBeTruthy();
+      const verifyRes = await api.post('/api/v1/auth/verify-email', {
+        data: { verificationToken },
+      });
+      expect(verifyRes.ok()).toBe(true);
 
       const loginRes = await api.post('/api/v1/auth/login', { data: { email, password } });
       expect(loginRes.ok()).toBe(true);
