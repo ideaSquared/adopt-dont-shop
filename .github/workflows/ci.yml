@@ -516,6 +516,12 @@ jobs:
             # register 5/min, ...) — a full suite logs in/registers many times
             # from one IP across workers. Production leaves this unset.
             echo "GATEWAY_AUTH_RATE_LIMIT_MAX=100000"
+            # ADS-871: enable the gateway's test-only token-peek seam so the
+            # e2e suite can read one-time reset/verify/invitation tokens and
+            # drive the full auth round-trips. Safe here — NODE_ENV is
+            # development above, and the gateway refuses to boot with this on
+            # under NODE_ENV=production. Production/staging never set it.
+            echo "E2E_TOKEN_PEEK=true"
           } > .env
 
       - name: Start database and cache

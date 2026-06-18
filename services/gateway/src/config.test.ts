@@ -153,6 +153,48 @@ describe('loadConfig — upload signing secret (ADS-845)', () => {
   });
 });
 
+describe('loadConfig — test-token-peek seam (ADS-871)', () => {
+  it('is disabled by default', () => {
+    const config = loadConfig({});
+    expect(config.testTokenPeek.enabled).toBe(false);
+  });
+
+  it('enables only for the exact string "true" (case-insensitive)', () => {
+    expect(loadConfig({ E2E_TOKEN_PEEK: 'true' }).testTokenPeek.enabled).toBe(true);
+    expect(loadConfig({ E2E_TOKEN_PEEK: 'TRUE' }).testTokenPeek.enabled).toBe(true);
+    expect(loadConfig({ E2E_TOKEN_PEEK: '1' }).testTokenPeek.enabled).toBe(false);
+    expect(loadConfig({ E2E_TOKEN_PEEK: 'yes' }).testTokenPeek.enabled).toBe(false);
+    expect(loadConfig({ E2E_TOKEN_PEEK: '' }).testTokenPeek.enabled).toBe(false);
+  });
+
+  it('exposes DATABASE_URL when set, undefined otherwise', () => {
+    expect(loadConfig({}).testTokenPeek.databaseUrl).toBeUndefined();
+    const url = 'postgresql://u:p@database:5432/db';
+    expect(loadConfig({ DATABASE_URL: url }).testTokenPeek.databaseUrl).toBe(url);
+  });
+
+  // The seam exposes one-time secrets, so it must be IMPOSSIBLE to turn on in
+  // production: boot fails outright rather than coming up with it enabled.
+  it('refuses to enable under NODE_ENV=production (boot fails)', () => {
+    expect(() => loadConfig({ E2E_TOKEN_PEEK: 'true', NODE_ENV: 'production' })).toThrow(
+      /E2E_TOKEN_PEEK must never be enabled in production/
+    );
+  });
+
+  it('allows enabling under non-production environments', () => {
+    expect(
+      loadConfig({ E2E_TOKEN_PEEK: 'true', NODE_ENV: 'development' }).testTokenPeek.enabled
+    ).toBe(true);
+    expect(loadConfig({ E2E_TOKEN_PEEK: 'true', NODE_ENV: 'test' }).testTokenPeek.enabled).toBe(
+      true
+    );
+  });
+
+  it('does not throw in production when the flag is off', () => {
+    expect(() => loadConfig({ NODE_ENV: 'production' })).not.toThrow();
+  });
+});
+
 describe('loadConfig — CORS origins (ADS-809)', () => {
   it('parses a single origin from CORS_ORIGIN', () => {
     const config = loadConfig({ CORS_ORIGIN: 'https://app.example.com' });

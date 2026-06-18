@@ -108,6 +108,20 @@ export type GatewayConfig = {
   // Optional: unset → legacy header-only propagation (phased rollout).
   // Read via config-secrets so PRINCIPAL_SIGNING_KEY_FILE works.
   principalSigningKey: string | undefined;
+  // Test-only one-time-token peek seam (ADS-871). Lets the Playwright e2e
+  // suite read password-reset / email-verification / staff-invitation tokens
+  // that are normally only delivered by email, so it can drive the full
+  // auth round-trips. SECURITY: this exposes one-time secrets, so it is
+  // OFF unless E2E_TOKEN_PEEK === "true", and loadConfig HARD-REFUSES to
+  // enable it when NODE_ENV === 'production' (boot fails). It also needs a
+  // databaseUrl, which production never wires to the gateway. See
+  // routes/test-token-peek.ts.
+  testTokenPeek: {
+    enabled: boolean;
+    // Postgres connection string for the shared (schema-per-service) DB the
+    // seam queries directly. Undefined unless DATABASE_URL is set.
+    databaseUrl: string | undefined;
+  };
   // CORS — explicit allowed-origin list for the @fastify/cors plugin.
   // Loaded from CORS_ORIGIN (comma-separated). The list must include the
   // origins of every SPA that calls the gateway directly. nginx also
@@ -190,6 +204,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
       publicEnabled: env.GATEWAY_CONFIG_ENABLED?.trim().toLowerCase() !== 'false',
     },
     principalSigningKey: readOptionalSecret('PRINCIPAL_SIGNING_KEY', env, 32),
+    testTokenPeek: buildTestTokenPeekConfig(env),
     cors: buildCorsConfig(env),
     rateLimit: buildRateLimitConfig(env),
   };
@@ -226,6 +241,27 @@ function buildRateLimitConfig(env: NodeJS.ProcessEnv): GatewayConfig['rateLimit'
     redisUrl: readSecret('REDIS_URL', env)?.trim() || undefined,
     max: Number.isNaN(max) || max <= 0 ? 100 : max,
     timeWindow: env.GATEWAY_RATE_LIMIT_WINDOW?.trim() || '1 minute',
+  };
+}
+
+// Build the test-token-peek config block (ADS-871). The seam is OFF by
+// default and can only be turned on outside production: even if a misconfig
+// sets E2E_TOKEN_PEEK=true in a production deploy, this THROWS at boot so the
+// gateway never comes up exposing one-time secrets. The seam additionally
+// needs DATABASE_URL (which prod never wires to the gateway) — defence in
+// depth. Enabled requires the exact string "true" (case-insensitive), matching
+// the cutover-flag convention.
+function buildTestTokenPeekConfig(env: NodeJS.ProcessEnv): GatewayConfig['testTokenPeek'] {
+  const enabled = isEnabled(env.E2E_TOKEN_PEEK);
+  const environment = env.NODE_ENV?.trim() || 'development';
+  if (enabled && environment === 'production') {
+    throw new Error(
+      'E2E_TOKEN_PEEK must never be enabled in production — it exposes one-time auth tokens'
+    );
+  }
+  return {
+    enabled,
+    databaseUrl: readSecret('DATABASE_URL', env)?.trim() || undefined,
   };
 }
 

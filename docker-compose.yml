@@ -387,12 +387,24 @@ services:
       # anti-abuse defaults stand); the e2e stack raises it so a full Playwright
       # run's many logins from one IP don't trip the 10/min login cap.
       GATEWAY_AUTH_RATE_LIMIT_MAX: ${GATEWAY_AUTH_RATE_LIMIT_MAX:-}
+      # ADS-871 test-only token-peek seam. OFF unless E2E_TOKEN_PEEK=true (the
+      # e2e CI stack sets it; dev/prod leave it unset). The gateway refuses to
+      # boot with this on under NODE_ENV=production, and the seam additionally
+      # needs DATABASE_URL — which is only wired here for the seam's direct
+      # reads of the one-time reset/verify/invitation tokens.
+      E2E_TOKEN_PEEK: ${E2E_TOKEN_PEEK:-}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-adopt_user}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-adopt_dont_shop_dev}
     ports:
       - '127.0.0.1:4000:4000'
     depends_on:
       nats:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # ADS-871: the test-only token-peek seam reads tokens straight from
+      # Postgres, so the gateway now needs the database up. (The seam is OFF
+      # unless E2E_TOKEN_PEEK=true; the dependency is harmless when it's off.)
+      database:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
