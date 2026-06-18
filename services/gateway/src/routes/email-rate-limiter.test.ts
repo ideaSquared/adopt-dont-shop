@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { createEmailRateLimiter, normalizeEmail } from './email-rate-limiter.js';
+import {
+  createEmailRateLimiter,
+  MEMORY_LIMITER_MAX_BUCKETS,
+  normalizeEmail,
+} from './email-rate-limiter.js';
 
 describe('normalizeEmail', () => {
   it('lower-cases and trims so casing / whitespace cannot dodge the cap', () => {
@@ -43,6 +47,52 @@ describe('createEmailRateLimiter (in-memory)', () => {
 
     now += 1_001; // window elapsed
     expect(await limiter.consume('a@example.com')).toBe(true);
+  });
+
+  it('evicts expired buckets so resident size does not grow with unique emails', async () => {
+    let now = 1_000_000;
+    const limiter = createEmailRateLimiter({ max: 5, windowMs: 1_000, now: () => now });
+
+    // First window: seed a batch of one-shot emails.
+    for (let i = 0; i < 100; i += 1) {
+      await limiter.consume(`first-${i}@example.com`);
+    }
+
+    now += 1_001; // every first-window bucket is now expired
+
+    // Second window: a fresh batch. The expired buckets must be reclaimed,
+    // not accumulated on top of the new ones.
+    for (let i = 0; i < 100; i += 1) {
+      await limiter.consume(`second-${i}@example.com`);
+    }
+
+    expect(limiter.size?.()).toBeLessThanOrEqual(101);
+  });
+
+  it('stays bounded under a flood of unique emails within a single window', async () => {
+    const limiter = createEmailRateLimiter({ max: 5, windowMs: 60_000 });
+
+    for (let i = 0; i < MEMORY_LIMITER_MAX_BUCKETS * 3; i += 1) {
+      await limiter.consume(`flood-${i}@example.com`);
+    }
+
+    expect(limiter.size?.()).toBeLessThanOrEqual(MEMORY_LIMITER_MAX_BUCKETS);
+  });
+
+  it('keeps throttling a repeatedly-hit email while other live emails churn below the cap', async () => {
+    const limiter = createEmailRateLimiter({ max: 3, windowMs: 60_000 });
+
+    expect(await limiter.consume('victim@example.com')).toBe(true);
+    expect(await limiter.consume('victim@example.com')).toBe(true);
+    expect(await limiter.consume('victim@example.com')).toBe(true);
+
+    // Interleave other live emails, staying well under the cap.
+    for (let i = 0; i < 50; i += 1) {
+      await limiter.consume(`noise-${i}@example.com`);
+    }
+
+    // The victim's 4th attempt is still throttled — its bucket survived.
+    expect(await limiter.consume('victim@example.com')).toBe(false);
   });
 });
 
