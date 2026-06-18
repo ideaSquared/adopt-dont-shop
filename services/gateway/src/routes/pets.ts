@@ -118,7 +118,22 @@ export const registerPetsRoutes = async (
 
   // /stats must register BEFORE the dynamic /:id route so the literal
   // segment wins Fastify's first-registered-wins matcher.
-  app.get('/api/v1/pets/stats', async (req, reply) => {
+  app.get(
+    '/api/v1/pets/stats',
+    {
+      schema: {
+        tags: ['pets'],
+        summary: 'Get pet statistics, optionally filtered by rescue',
+        querystring: {
+          type: 'object',
+          properties: {
+            rescueId: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
+    async (req, reply) => {
     const query = req.query as Record<string, string | undefined>;
     try {
       const res = await client.getStats({ rescueIdFilter: query.rescueId }, buildMetadata(req));
@@ -131,7 +146,15 @@ export const registerPetsRoutes = async (
   // GET /api/v1/pets/favorites/user — the caller's own favourites. Static
   // path, so it must register BEFORE the dynamic /:id route. Returns the
   // monolith shape { success, data: { pets, total, ... } } the SPA reads.
-  app.get('/api/v1/pets/favorites/user', async (req, reply) => {
+  app.get(
+    '/api/v1/pets/favorites/user',
+    {
+      schema: {
+        tags: ['pets'],
+        summary: "List the authenticated user's favourite pets",
+      },
+    },
+    async (req, reply) => {
     try {
       const res = await client.listUserFavorites({}, buildMetadata(req));
       const pets = res.pets.map(petToView);
@@ -146,7 +169,19 @@ export const registerPetsRoutes = async (
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/pets/:id',
-    { config: { rateLimit: PETS_RATE_LIMITS.get } },
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.get },
+      schema: {
+        tags: ['pets'],
+        summary: 'Get a single pet by ID',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.get({ petId: req.params.id }, buildMetadata(req));
@@ -162,7 +197,17 @@ export const registerPetsRoutes = async (
 
   app.post(
     '/api/v1/pets',
-    { config: { rateLimit: PETS_RATE_LIMITS.create } },
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.create },
+      schema: {
+        tags: ['pets'],
+        summary: 'Create a new pet listing',
+        body: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       // Stage B: adapt the frontend snake_case/token payload → proto.
       const grpcReq = viewToCreateRequest(req.body);
@@ -180,7 +225,23 @@ export const registerPetsRoutes = async (
 
   app.patch<{ Params: { id: string } }>(
     '/api/v1/pets/:id',
-    { config: { rateLimit: PETS_RATE_LIMITS.update } },
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.update },
+      schema: {
+        tags: ['pets'],
+        summary: 'Update an existing pet listing',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const grpcReq = viewToUpdateRequest(req.params.id, req.body);
       try {
@@ -197,7 +258,27 @@ export const registerPetsRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/pets/:id/status',
-    { config: { rateLimit: PETS_RATE_LIMITS.updateStatus } },
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.updateStatus },
+      schema: {
+        tags: ['pets'],
+        summary: 'Update the adoption status of a pet',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            toStatus: { type: 'string' },
+            reason: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as UpdateStatusBody;
       const grpcReq: UpdatePetStatusRequest = {
@@ -219,7 +300,19 @@ export const registerPetsRoutes = async (
 
   app.delete<{ Params: { id: string } }>(
     '/api/v1/pets/:id',
-    { config: { rateLimit: PETS_RATE_LIMITS.delete } },
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.delete },
+      schema: {
+        tags: ['pets'],
+        summary: 'Delete a pet listing',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       try {
         await client.delete({ petId: req.params.id }, buildMetadata(req));
@@ -232,7 +325,21 @@ export const registerPetsRoutes = async (
 
   // --- Per-user favourites: /api/v1/pets/:id/favorite[/status] --------
 
-  app.get<{ Params: { id: string } }>('/api/v1/pets/:id/favorite/status', async (req, reply) => {
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/pets/:id/favorite/status',
+    {
+      schema: {
+        tags: ['pets'],
+        summary: 'Check whether the authenticated user has favourited a pet',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
     try {
       const res = await client.getFavoriteStatus({ petId: req.params.id }, buildMetadata(req));
       return reply.send({ success: true, data: { isFavorite: res.isFavorite } });
@@ -241,7 +348,21 @@ export const registerPetsRoutes = async (
     }
   });
 
-  app.post<{ Params: { id: string } }>('/api/v1/pets/:id/favorite', async (req, reply) => {
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/pets/:id/favorite',
+    {
+      schema: {
+        tags: ['pets'],
+        summary: 'Add a pet to the authenticated user favourites',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
     try {
       const res = await client.addFavorite({ petId: req.params.id }, buildMetadata(req));
       return reply.code(201).send({ success: true, data: { favorited: res.favorited } });
@@ -250,7 +371,21 @@ export const registerPetsRoutes = async (
     }
   });
 
-  app.delete<{ Params: { id: string } }>('/api/v1/pets/:id/favorite', async (req, reply) => {
+  app.delete<{ Params: { id: string } }>(
+    '/api/v1/pets/:id/favorite',
+    {
+      schema: {
+        tags: ['pets'],
+        summary: 'Remove a pet from the authenticated user favourites',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
     try {
       const res = await client.removeFavorite({ petId: req.params.id }, buildMetadata(req));
       return reply.send({ success: true, data: { removed: res.removed } });

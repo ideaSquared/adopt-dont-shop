@@ -132,7 +132,12 @@ export const registerUsersRoutes = async (
   // The monolith mounts both /profile and /account for the same payload.
   // The /account routes already live in routes/auth.ts; we add /profile
   // here so lib.api's user.getProfile() call lands on a single seam.
-  app.get('/api/v1/users/profile', async (req, reply) => {
+  app.get('/api/v1/users/profile', {
+    schema: {
+      tags: ['users'],
+      summary: 'Get current user profile',
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const res = await authClient.getMe({} as GetMeRequest, metadata);
@@ -142,7 +147,16 @@ export const registerUsersRoutes = async (
     }
   });
 
-  app.put('/api/v1/users/profile', async (req, reply) => {
+  app.put('/api/v1/users/profile', {
+    schema: {
+      tags: ['users'],
+      summary: 'Update current user profile',
+      body: {
+        type: 'object',
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const b = (req.body ?? {}) as Record<string, unknown>;
     const str = (k1: string, k2?: string): string | undefined => {
@@ -172,7 +186,12 @@ export const registerUsersRoutes = async (
 
   // --- GET /api/v1/users/preferences --------------------------------
   // Fetches both backing rows in parallel and composes.
-  app.get('/api/v1/users/preferences', async (req, reply) => {
+  app.get('/api/v1/users/preferences', {
+    schema: {
+      tags: ['users'],
+      summary: 'Get current user preferences',
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const [notif, privacy] = await Promise.all([
@@ -193,7 +212,16 @@ export const registerUsersRoutes = async (
   // may be empty (no fields supplied for that slice) — the underlying
   // handlers no-op on an empty patch and return the current row, which
   // we then re-compose into the unified response.
-  app.put('/api/v1/users/preferences', async (req, reply) => {
+  app.put('/api/v1/users/preferences', {
+    schema: {
+      tags: ['users'],
+      summary: 'Update current user preferences',
+      body: {
+        type: 'object',
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as Record<string, unknown>;
     try {
@@ -214,7 +242,12 @@ export const registerUsersRoutes = async (
   // --- POST /api/v1/users/preferences/reset -------------------------
   // Destroy + recreate both backing rows so the table-level defaults
   // win. The monolith returns the fresh defaults in the response body.
-  app.post('/api/v1/users/preferences/reset', async (req, reply) => {
+  app.post('/api/v1/users/preferences/reset', {
+    schema: {
+      tags: ['users'],
+      summary: 'Reset current user preferences to defaults',
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const [notif, privacy] = await Promise.all([
@@ -236,7 +269,33 @@ export const registerUsersRoutes = async (
   // Fastify's matcher) but BEFORE the dynamic GET /:userId below.
 
   // GET /api/v1/users/search
-  app.get('/api/v1/users/search', async (req, reply) => {
+  app.get('/api/v1/users/search', {
+    schema: {
+      tags: ['users'],
+      summary: 'Search users (admin)',
+      querystring: {
+        type: 'object',
+        properties: {
+          search: { type: 'string' },
+          status: { type: 'string' },
+          userType: { type: 'string' },
+          user_type: { type: 'string' },
+          emailVerified: { type: 'string' },
+          createdFrom: { type: 'string' },
+          created_from: { type: 'string' },
+          createdTo: { type: 'string' },
+          created_to: { type: 'string' },
+          page: { type: 'string' },
+          limit: { type: 'string' },
+          sortBy: { type: 'string' },
+          sort_by: { type: 'string' },
+          sortOrder: { type: 'string' },
+          sort_order: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const q = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(q, { limit: 0 });
@@ -273,7 +332,12 @@ export const registerUsersRoutes = async (
   });
 
   // GET /api/v1/users/statistics
-  app.get('/api/v1/users/statistics', async (req, reply) => {
+  app.get('/api/v1/users/statistics', {
+    schema: {
+      tags: ['users'],
+      summary: 'Get user statistics (admin)',
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const res = await authClient.getUserStatistics({}, metadata);
@@ -287,7 +351,18 @@ export const registerUsersRoutes = async (
   });
 
   // GET /api/v1/users/:userId
-  app.get<{ Params: { userId: string } }>('/api/v1/users/:userId', async (req, reply) => {
+  app.get<{ Params: { userId: string } }>('/api/v1/users/:userId', {
+    schema: {
+      tags: ['users'],
+      summary: 'Get a user by ID (admin)',
+      params: {
+        type: 'object',
+        properties: {
+          userId: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const res = await authClient.adminGetUser({ userId: req.params.userId }, metadata);
@@ -298,7 +373,22 @@ export const registerUsersRoutes = async (
   });
 
   // PUT /api/v1/users/:userId — admin update.
-  app.put<{ Params: { userId: string } }>('/api/v1/users/:userId', async (req, reply) => {
+  app.put<{ Params: { userId: string } }>('/api/v1/users/:userId', {
+    schema: {
+      tags: ['users'],
+      summary: 'Update a user (admin)',
+      params: {
+        type: 'object',
+        properties: {
+          userId: { type: 'string' },
+        },
+      },
+      body: {
+        type: 'object',
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as Record<string, unknown>;
     const grpcReq: AdminUpdateUserRequest = {
@@ -326,6 +416,25 @@ export const registerUsersRoutes = async (
   // POST /api/v1/users/:userId/deactivate
   app.post<{ Params: { userId: string } }>(
     '/api/v1/users/:userId/deactivate',
+    {
+      schema: {
+        tags: ['users'],
+        summary: 'Deactivate a user (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            reason: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       const body = (req.body ?? {}) as { reason?: string };
@@ -348,6 +457,18 @@ export const registerUsersRoutes = async (
   // POST /api/v1/users/:userId/reactivate
   app.post<{ Params: { userId: string } }>(
     '/api/v1/users/:userId/reactivate',
+    {
+      schema: {
+        tags: ['users'],
+        summary: 'Reactivate a user (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       try {
@@ -371,7 +492,33 @@ export const registerUsersRoutes = async (
   // ('admin', 'suspended') rather than the proto SCREAMING_SNAKE names.
 
   // GET /api/v1/admin/users — list/search.
-  app.get('/api/v1/admin/users', async (req, reply) => {
+  app.get('/api/v1/admin/users', {
+    schema: {
+      tags: ['users'],
+      summary: 'List or search users (admin)',
+      querystring: {
+        type: 'object',
+        properties: {
+          search: { type: 'string' },
+          status: { type: 'string' },
+          userType: { type: 'string' },
+          user_type: { type: 'string' },
+          emailVerified: { type: 'string' },
+          createdFrom: { type: 'string' },
+          created_from: { type: 'string' },
+          createdTo: { type: 'string' },
+          created_to: { type: 'string' },
+          page: { type: 'string' },
+          limit: { type: 'string' },
+          sortBy: { type: 'string' },
+          sort_by: { type: 'string' },
+          sortOrder: { type: 'string' },
+          sort_order: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const q = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(q, { limit: 0 });
@@ -408,7 +555,18 @@ export const registerUsersRoutes = async (
   });
 
   // GET /api/v1/admin/users/:userId — single user detail.
-  app.get<{ Params: { userId: string } }>('/api/v1/admin/users/:userId', async (req, reply) => {
+  app.get<{ Params: { userId: string } }>('/api/v1/admin/users/:userId', {
+    schema: {
+      tags: ['users'],
+      summary: 'Get a user by ID (admin)',
+      params: {
+        type: 'object',
+        properties: {
+          userId: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const res = await authClient.adminGetUser({ userId: req.params.userId }, metadata);
@@ -423,6 +581,25 @@ export const registerUsersRoutes = async (
   // action vocabulary onto the existing admin RPCs.
   app.patch<{ Params: { userId: string } }>(
     '/api/v1/admin/users/:userId/action',
+    {
+      schema: {
+        tags: ['users'],
+        summary: 'Apply a moderation action to a user (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            action: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       const body = (req.body ?? {}) as { action?: string };
@@ -454,7 +631,24 @@ export const registerUsersRoutes = async (
 
   // POST /api/v1/users/bulk-update — admin bulk status/role change.
   // POST so it never collides with the GET/PUT /:userId dynamic routes.
-  app.post('/api/v1/users/bulk-update', async (req, reply) => {
+  app.post('/api/v1/users/bulk-update', {
+    schema: {
+      tags: ['users'],
+      summary: 'Bulk update user status or role (admin)',
+      body: {
+        type: 'object',
+        properties: {
+          userIds: { type: 'array', items: { type: 'string' } },
+          user_ids: { type: 'array', items: { type: 'string' } },
+          status: { type: 'string' },
+          userType: { type: 'string' },
+          user_type: { type: 'string' },
+          reason: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as {
       userIds?: string[];
@@ -487,6 +681,18 @@ export const registerUsersRoutes = async (
   // GET /api/v1/users/:userId/permissions
   app.get<{ Params: { userId: string } }>(
     '/api/v1/users/:userId/permissions',
+    {
+      schema: {
+        tags: ['users'],
+        summary: 'Get permissions for a user',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       try {
@@ -502,6 +708,18 @@ export const registerUsersRoutes = async (
   // row + their flattened permission set in one round trip.
   app.get<{ Params: { userId: string } }>(
     '/api/v1/users/:userId/with-permissions',
+    {
+      schema: {
+        tags: ['users'],
+        summary: 'Get a user with their permissions',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       try {
@@ -524,7 +742,27 @@ export const registerUsersRoutes = async (
 
   // PUT /api/v1/users/:userId/role — change a single user's user_type.
   // Reuses AdminUpdateUser with only the user_type field set.
-  app.put<{ Params: { userId: string } }>('/api/v1/users/:userId/role', async (req, reply) => {
+  app.put<{ Params: { userId: string } }>('/api/v1/users/:userId/role', {
+    schema: {
+      tags: ['users'],
+      summary: 'Update a user role (admin)',
+      params: {
+        type: 'object',
+        properties: {
+          userId: { type: 'string' },
+        },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          role: { type: 'string' },
+          userType: { type: 'string' },
+          user_type: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as { role?: string; userType?: string; user_type?: string };
     const grpcReq: AdminUpdateUserRequest = {

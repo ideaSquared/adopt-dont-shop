@@ -188,7 +188,20 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/logout',
-    { config: { rateLimit: AUTH_RATE_LIMITS.logout } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.logout },
+      schema: {
+        tags: ['auth'],
+        summary: 'Invalidate the current session and refresh token',
+        body: {
+          type: 'object',
+          properties: {
+            refreshToken: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as LogoutBody;
       const grpcReq: LogoutRequest = { refreshToken: body.refreshToken ?? '' };
@@ -204,7 +217,20 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/refresh-token',
-    { config: { rateLimit: AUTH_RATE_LIMITS.refreshToken } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.refreshToken },
+      schema: {
+        tags: ['auth'],
+        summary: 'Exchange a refresh token for a new access token',
+        body: {
+          type: 'object',
+          properties: {
+            refreshToken: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as RefreshTokenBody;
       const grpcReq: RefreshTokenRequest = { refreshToken: body.refreshToken ?? '' };
@@ -240,7 +266,22 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/assign-role',
-    { config: { rateLimit: AUTH_RATE_LIMITS.assignRole } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.assignRole },
+      schema: {
+        tags: ['auth', 'admin'],
+        summary: 'Assign a role to a target user (admin only)',
+        body: {
+          type: 'object',
+          properties: {
+            targetUserId: { type: 'string' },
+            role: { type: 'string' },
+            reason: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as AssignRoleBody;
       const grpcReq: AssignRoleRequest = {
@@ -265,6 +306,24 @@ export const registerAuthRoutes = async (
     {
       config: { rateLimit: AUTH_RATE_LIMITS.register },
       preHandler: emailRateLimit(b => b.email ?? b.email_address),
+      schema: {
+        tags: ['auth'],
+        summary: 'Register a new user account',
+        security: [],
+        body: {
+          type: 'object',
+          properties: {
+            email: { type: 'string' },
+            password: { type: 'string' },
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+            phoneNumber: { type: 'string' },
+            termsAccepted: { type: 'boolean' },
+            privacyPolicyAccepted: { type: 'boolean' },
+          },
+          additionalProperties: true,
+        },
+      },
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -300,7 +359,21 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/verify-email',
-    { config: { rateLimit: AUTH_RATE_LIMITS.verifyEmail } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.verifyEmail },
+      schema: {
+        tags: ['auth'],
+        summary: 'Verify email address using a verification token',
+        security: [],
+        body: {
+          type: 'object',
+          properties: {
+            verificationToken: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       try {
@@ -326,6 +399,18 @@ export const registerAuthRoutes = async (
     {
       config: { rateLimit: AUTH_RATE_LIMITS.resendVerification },
       preHandler: emailRateLimit(b => b.email),
+      schema: {
+        tags: ['auth'],
+        summary: 'Resend the email verification link',
+        security: [],
+        body: {
+          type: 'object',
+          properties: {
+            email: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -349,6 +434,18 @@ export const registerAuthRoutes = async (
     {
       config: { rateLimit: AUTH_RATE_LIMITS.forgotPassword },
       preHandler: emailRateLimit(b => b.email),
+      schema: {
+        tags: ['auth'],
+        summary: 'Send a password reset link to the given email',
+        security: [],
+        body: {
+          type: 'object',
+          properties: {
+            email: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -374,6 +471,19 @@ export const registerAuthRoutes = async (
       // reset-password carries no email — key the per-target cap on the reset
       // token instead, so a flood against one token (across IPs) is throttled.
       preHandler: emailRateLimit(b => b.resetToken ?? b.reset_token),
+      schema: {
+        tags: ['auth'],
+        summary: 'Reset password using a reset token',
+        security: [],
+        body: {
+          type: 'object',
+          properties: {
+            resetToken: { type: 'string' },
+            newPassword: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
@@ -397,7 +507,21 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/change-password',
-    { config: { rateLimit: AUTH_RATE_LIMITS.changePassword } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.changePassword },
+      schema: {
+        tags: ['auth'],
+        summary: 'Change password for the authenticated user',
+        body: {
+          type: 'object',
+          properties: {
+            currentPassword: { type: 'string' },
+            newPassword: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       try {
@@ -424,7 +548,13 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/2fa/setup',
-    { config: { rateLimit: AUTH_RATE_LIMITS.twoFactor } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.twoFactor },
+      schema: {
+        tags: ['auth'],
+        summary: 'Initiate two-factor authentication setup for the authenticated user',
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.setupTwoFactor({}, buildMetadata(req));
@@ -437,7 +567,21 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/2fa/enable',
-    { config: { rateLimit: AUTH_RATE_LIMITS.twoFactor } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.twoFactor },
+      schema: {
+        tags: ['auth'],
+        summary: 'Enable two-factor authentication using a verified TOTP secret',
+        body: {
+          type: 'object',
+          properties: {
+            secret: { type: 'string' },
+            token: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as { secret?: string; token?: string };
       try {
@@ -454,7 +598,20 @@ export const registerAuthRoutes = async (
 
   app.post(
     '/api/v1/auth/2fa/disable',
-    { config: { rateLimit: AUTH_RATE_LIMITS.twoFactor } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.twoFactor },
+      schema: {
+        tags: ['auth'],
+        summary: 'Disable two-factor authentication for the authenticated user',
+        body: {
+          type: 'object',
+          properties: {
+            token: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as { token?: string };
       try {
@@ -468,7 +625,30 @@ export const registerAuthRoutes = async (
 
   app.patch(
     '/api/v1/users/account',
-    { config: { rateLimit: AUTH_RATE_LIMITS.updateAccount } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.updateAccount },
+      schema: {
+        tags: ['auth'],
+        summary: 'Update account profile fields for the authenticated user',
+        body: {
+          type: 'object',
+          properties: {
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+            phoneNumber: { type: 'string' },
+            bio: { type: 'string' },
+            timezone: { type: 'string' },
+            language: { type: 'string' },
+            country: { type: 'string' },
+            city: { type: 'string' },
+            addressLine1: { type: 'string' },
+            addressLine2: { type: 'string' },
+            postalCode: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       try {
@@ -502,7 +682,13 @@ export const registerAuthRoutes = async (
   // GET /api/v1/users/account — alias for /auth/me.
   app.get(
     '/api/v1/users/account',
-    { config: { rateLimit: AUTH_RATE_LIMITS.getMe } },
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.getMe },
+      schema: {
+        tags: ['auth'],
+        summary: 'Return the authenticated user account profile',
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.getMe({}, buildMetadata(req));

@@ -83,7 +83,16 @@ export const registerLegalRoutes = async (
 ): Promise<void> => {
   const { docsDir } = opts;
 
-  app.get('/api/v1/legal/terms', async (_req, reply) => {
+  app.get(
+    '/api/v1/legal/terms',
+    {
+      schema: {
+        tags: ['legal'],
+        summary: 'Return the current terms of service document',
+        security: [],
+      },
+    },
+    async (_req, reply) => {
     try {
       const doc = await getTermsDocument(docsDir);
       return reply.send({ data: doc });
@@ -92,7 +101,16 @@ export const registerLegalRoutes = async (
     }
   });
 
-  app.get('/api/v1/legal/privacy', async (_req, reply) => {
+  app.get(
+    '/api/v1/legal/privacy',
+    {
+      schema: {
+        tags: ['legal'],
+        summary: 'Return the current privacy policy document',
+        security: [],
+      },
+    },
+    async (_req, reply) => {
     try {
       const doc = await getPrivacyDocument(docsDir);
       return reply.send({ data: doc });
@@ -101,7 +119,16 @@ export const registerLegalRoutes = async (
     }
   });
 
-  app.get('/api/v1/legal/cookies', async (_req, reply) => {
+  app.get(
+    '/api/v1/legal/cookies',
+    {
+      schema: {
+        tags: ['legal'],
+        summary: 'Return the current cookie policy document',
+        security: [],
+      },
+    },
+    async (_req, reply) => {
     try {
       const doc = await getCookiesDocument(docsDir);
       return reply.send({ data: doc });

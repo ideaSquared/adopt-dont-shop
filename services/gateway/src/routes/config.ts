@@ -25,5 +25,15 @@ const DEFAULT_PUBLIC_CONFIG: Record<string, string | number | boolean> = {
 };
 
 export const registerConfigRoutes = async (app: FastifyInstance): Promise<void> => {
-  app.get('/api/v1/config', async (_req, reply) => reply.send(DEFAULT_PUBLIC_CONFIG));
+  app.get(
+    '/api/v1/config',
+    {
+      schema: {
+        tags: ['config'],
+        summary: 'Return public application configuration values',
+        security: [],
+      },
+    },
+    async (_req, reply) => reply.send(DEFAULT_PUBLIC_CONFIG)
+  );
 };

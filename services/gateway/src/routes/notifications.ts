@@ -41,7 +41,22 @@ export const registerNotificationsRoutes = async (
 ): Promise<void> => {
   const { client } = opts;
 
-  app.get('/api/v1/notifications', async (req, reply) => {
+  app.get('/api/v1/notifications', {
+    schema: {
+      tags: ['notifications'],
+      querystring: {
+        type: 'object',
+        additionalProperties: true,
+        properties: {
+          cursor: { type: 'string' },
+          limit: { type: 'string' },
+          status: { type: 'string' },
+          channel: { type: 'string' },
+          type: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const query = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(query, { limit: 0 });
@@ -67,7 +82,21 @@ export const registerNotificationsRoutes = async (
     }
   });
 
-  app.post('/api/v1/notifications', async (req, reply) => {
+  app.post('/api/v1/notifications', {
+    schema: {
+      tags: ['notifications'],
+      body: {
+        type: 'object',
+        additionalProperties: true,
+        properties: {
+          userId: { type: 'string' },
+          type: { type: 'string' },
+          title: { type: 'string' },
+          message: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as Partial<CreateNotificationRequest>;
 
@@ -102,7 +131,7 @@ export const registerNotificationsRoutes = async (
   });
 
   // Unread count — must register before /:id so the static segment wins.
-  app.get('/api/v1/notifications/unread/count', async (req, reply) => {
+  app.get('/api/v1/notifications/unread/count', { schema: { tags: ['notifications'] } }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const res = await client.getUnreadCount({}, metadata);
@@ -113,7 +142,19 @@ export const registerNotificationsRoutes = async (
   });
 
   // Admin cleanup — soft-delete notifications older than N days.
-  app.post('/api/v1/notifications/cleanup', async (req, reply) => {
+  app.post('/api/v1/notifications/cleanup', {
+    schema: {
+      tags: ['notifications'],
+      body: {
+        type: 'object',
+        additionalProperties: true,
+        properties: {
+          daysToKeep: { type: 'number' },
+          days_to_keep: { type: 'number' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as { daysToKeep?: number; days_to_keep?: number };
     const daysToKeep = body.daysToKeep ?? body.days_to_keep ?? 0;
@@ -130,7 +171,7 @@ export const registerNotificationsRoutes = async (
   });
 
   // Mark all unread as read.
-  app.post('/api/v1/notifications/read-all', async (req, reply) => {
+  app.post('/api/v1/notifications/read-all', { schema: { tags: ['notifications'] } }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const res = await client.markAllRead({}, metadata);
@@ -145,7 +186,7 @@ export const registerNotificationsRoutes = async (
   });
 
   // In-app notification preferences (user_notification_prefs).
-  app.get('/api/v1/notifications/preferences', async (req, reply) => {
+  app.get('/api/v1/notifications/preferences', { schema: { tags: ['notifications'] } }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const res = await client.getNotificationPreferences({}, metadata);
@@ -158,7 +199,12 @@ export const registerNotificationsRoutes = async (
     }
   });
 
-  app.put('/api/v1/notifications/preferences', async (req, reply) => {
+  app.put('/api/v1/notifications/preferences', {
+    schema: {
+      tags: ['notifications'],
+      body: { type: 'object', additionalProperties: true },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as Record<string, unknown>;
     const grpcReq: UpdateNotificationPreferencesRequest = buildPrefsPatch(body);
@@ -176,7 +222,12 @@ export const registerNotificationsRoutes = async (
   });
 
   // Single notification fetch.
-  app.get<{ Params: { id: string } }>('/api/v1/notifications/:id', async (req, reply) => {
+  app.get<{ Params: { id: string } }>('/api/v1/notifications/:id', {
+    schema: {
+      tags: ['notifications'],
+      params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const res = await client.getNotification({ notificationId: req.params.id }, metadata);
@@ -191,7 +242,12 @@ export const registerNotificationsRoutes = async (
 
   // Mark single notification as read — matches the monolith path
   // /api/v1/notifications/:notificationId/read.
-  app.patch<{ Params: { id: string } }>('/api/v1/notifications/:id/read', async (req, reply) => {
+  app.patch<{ Params: { id: string } }>('/api/v1/notifications/:id/read', {
+    schema: {
+      tags: ['notifications'],
+      params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       await client.dismiss({ notificationId: req.params.id }, metadata);
@@ -204,7 +260,12 @@ export const registerNotificationsRoutes = async (
     }
   });
 
-  app.delete<{ Params: { id: string } }>('/api/v1/notifications/:id', async (req, reply) => {
+  app.delete<{ Params: { id: string } }>('/api/v1/notifications/:id', {
+    schema: {
+      tags: ['notifications'],
+      params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const grpcReq: DismissNotificationRequest = { notificationId: req.params.id };
 

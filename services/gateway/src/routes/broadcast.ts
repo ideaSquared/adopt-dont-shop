@@ -22,7 +22,31 @@ export const registerBroadcastRoutes = async (
 ): Promise<void> => {
   const { client } = opts;
 
-  app.post('/api/v1/notifications/broadcast', async (req, reply) => {
+  app.post(
+    '/api/v1/notifications/broadcast',
+    {
+      schema: {
+        tags: ['notifications', 'admin'],
+        summary: 'Broadcast a notification to a cohort of users',
+        body: {
+          type: 'object',
+          properties: {
+            cohort: { type: 'object' },
+            type: {},
+            title: { type: 'string' },
+            message: { type: 'string' },
+            actionUrl: { type: 'string' },
+            action_url: { type: 'string' },
+            data: { type: 'object' },
+            dataJson: { type: 'string' },
+            scheduledFor: { type: 'string' },
+            scheduled_for: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
+    async (req, reply) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const cohort = (body.cohort ?? {}) as Record<string, unknown>;
 

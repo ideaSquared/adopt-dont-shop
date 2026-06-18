@@ -87,7 +87,22 @@ export const registerMatchingRoutes = async (
 
   app.post(
     '/api/v1/matching/sessions',
-    { config: { rateLimit: MATCHING_RATE_LIMITS.startSession } },
+    {
+      config: { rateLimit: MATCHING_RATE_LIMITS.startSession },
+      schema: {
+        tags: ['matching'],
+        body: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            filtersJson: { type: 'string' },
+            deviceType: { type: 'string' },
+            userAgent: { type: 'string' },
+            ipAddress: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as StartSessionBody;
       const grpcReq: StartSessionRequest = {
@@ -109,7 +124,13 @@ export const registerMatchingRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/matching/sessions/:id/end',
-    { config: { rateLimit: MATCHING_RATE_LIMITS.endSession } },
+    {
+      config: { rateLimit: MATCHING_RATE_LIMITS.endSession },
+      schema: {
+        tags: ['matching'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       const grpcReq: EndSessionRequest = { sessionId: req.params.id };
       try {
@@ -123,7 +144,23 @@ export const registerMatchingRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/matching/sessions/:id/swipes',
-    { config: { rateLimit: MATCHING_RATE_LIMITS.recordSwipe } },
+    {
+      config: { rateLimit: MATCHING_RATE_LIMITS.recordSwipe },
+      schema: {
+        tags: ['matching'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            petId: { type: 'string' },
+            action: { type: 'string' },
+            responseTime: { type: 'number' },
+            deviceType: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as RecordSwipeBody;
       const grpcReq: RecordSwipeRequest = {
@@ -148,7 +185,23 @@ export const registerMatchingRoutes = async (
   // ({ success, message }) so the SPA doesn't notice the cutover.
   app.post(
     '/api/v1/discovery/swipe/action',
-    { config: { rateLimit: MATCHING_RATE_LIMITS.recordSwipe } },
+    {
+      config: { rateLimit: MATCHING_RATE_LIMITS.recordSwipe },
+      schema: {
+        tags: ['discovery'],
+        body: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            sessionId: { type: 'string' },
+            petId: { type: 'string' },
+            action: { type: 'string' },
+            responseTime: { type: 'number' },
+            deviceType: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as RecordSwipeBody & { sessionId?: string };
       if (!body.sessionId) {
@@ -175,7 +228,21 @@ export const registerMatchingRoutes = async (
 
   app.get(
     '/api/v1/matching/swipes',
-    { config: { rateLimit: MATCHING_RATE_LIMITS.listSwipeHistory } },
+    {
+      config: { rateLimit: MATCHING_RATE_LIMITS.listSwipeHistory },
+      schema: {
+        tags: ['matching'],
+        querystring: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            action: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
       const pagination = parsePagination(query, { limit: 0 });
@@ -202,7 +269,22 @@ export const registerMatchingRoutes = async (
   // start a session implicitly using the filters as the session filters.
   app.post(
     '/api/v1/discovery/queue',
-    { config: { rateLimit: MATCHING_RATE_LIMITS.recommend } },
+    {
+      config: { rateLimit: MATCHING_RATE_LIMITS.recommend },
+      schema: {
+        tags: ['discovery'],
+        body: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            sessionId: { type: 'string' },
+            filters: { type: 'object', additionalProperties: true },
+            userId: { type: 'string' },
+            limit: { type: 'number' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as DiscoveryQueueBody;
       const filtersJson = body.filters !== undefined ? JSON.stringify(body.filters) : '';
@@ -225,7 +307,22 @@ export const registerMatchingRoutes = async (
   // an active session.
   app.post(
     '/api/v1/discovery/pets/more',
-    { config: { rateLimit: MATCHING_RATE_LIMITS.recommend } },
+    {
+      config: { rateLimit: MATCHING_RATE_LIMITS.recommend },
+      schema: {
+        tags: ['discovery'],
+        body: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            sessionId: { type: 'string' },
+            filters: { type: 'object', additionalProperties: true },
+            userId: { type: 'string' },
+            limit: { type: 'number' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as DiscoveryQueueBody;
       if (body.sessionId === undefined || body.sessionId === '') {
@@ -248,7 +345,23 @@ export const registerMatchingRoutes = async (
   // GET /api/v1/search/pets — lib.search free-text + filters search.
   app.get(
     '/api/v1/search/pets',
-    { config: { rateLimit: MATCHING_RATE_LIMITS.search } },
+    {
+      config: { rateLimit: MATCHING_RATE_LIMITS.search },
+      schema: {
+        tags: ['discovery'],
+        querystring: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            q: { type: 'string' },
+            query: { type: 'string' },
+            filters: { type: 'string' },
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
       const pagination = parsePagination(query, { limit: 0 });
@@ -272,7 +385,7 @@ export const registerMatchingRoutes = async (
 
   // ---- Match profile -----------------------------------------------
   // GET /api/v1/match/profile — read the adopter's preferences.
-  app.get('/api/v1/match/profile', async (req, reply) => {
+  app.get('/api/v1/match/profile', { schema: { tags: ['matching'] } }, async (req, reply) => {
     try {
       const res = await client.getMatchProfile({}, buildMetadata(req));
       return reply.send({ success: true, data: matchProfileToView(res.profile) });
@@ -283,7 +396,12 @@ export const registerMatchingRoutes = async (
 
   // PUT /api/v1/match/profile — upsert. The SPA sends snake_case
   // preference fields; map each to the proto's set_* + *_json pair.
-  app.put('/api/v1/match/profile', async (req, reply) => {
+  app.put('/api/v1/match/profile', {
+    schema: {
+      tags: ['matching'],
+      body: { type: 'object', additionalProperties: true },
+    },
+  }, async (req, reply) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     try {
       const grpcReq = buildUpsertRequest(body);
@@ -298,6 +416,12 @@ export const registerMatchingRoutes = async (
   // GET /api/v1/discovery/swipe/stats/:userId
   app.get<{ Params: { userId: string } }>(
     '/api/v1/discovery/swipe/stats/:userId',
+    {
+      schema: {
+        tags: ['discovery'],
+        params: { type: 'object', properties: { userId: { type: 'string' } }, required: ['userId'] },
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.getUserSwipeStats(
@@ -318,6 +442,12 @@ export const registerMatchingRoutes = async (
   // GET /api/v1/discovery/swipe/session/:sessionId
   app.get<{ Params: { sessionId: string } }>(
     '/api/v1/discovery/swipe/session/:sessionId',
+    {
+      schema: {
+        tags: ['discovery'],
+        params: { type: 'object', properties: { sessionId: { type: 'string' } }, required: ['sessionId'] },
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.getSessionStats(

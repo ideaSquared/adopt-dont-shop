@@ -89,7 +89,24 @@ export const registerReportsRoutes = async (
   const { client } = opts;
 
   // GET /api/v1/reports — paginated list. Self-scoped at the service.
-  app.get('/api/v1/reports', async (req, reply) => {
+  app.get('/api/v1/reports', {
+    schema: {
+      tags: ['reports'],
+      summary: 'List saved reports',
+      querystring: {
+        type: 'object',
+        properties: {
+          rescue_id: { type: 'string' },
+          rescueId: { type: 'string' },
+          is_archived: { type: 'string' },
+          archived: { type: 'string' },
+          page: { type: 'string' },
+          limit: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(q);
     if (!pagination.ok) {
@@ -125,7 +142,23 @@ export const registerReportsRoutes = async (
 
   // GET /api/v1/reports/templates — register BEFORE /:id so the
   // static path wins.
-  app.get('/api/v1/reports/templates', async (req, reply) => {
+  app.get('/api/v1/reports/templates', {
+    schema: {
+      tags: ['reports'],
+      summary: 'List report templates',
+      querystring: {
+        type: 'object',
+        properties: {
+          category: { type: 'string' },
+          rescue_id: { type: 'string' },
+          rescueId: { type: 'string' },
+          system: { type: 'string' },
+          system_only: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const cat = CATEGORY_FROM_STRING[(q.category ?? '').toLowerCase()];
     const grpcReq: AuditListReportTemplatesRequest = {
@@ -144,7 +177,18 @@ export const registerReportsRoutes = async (
     }
   });
 
-  app.get<{ Params: { id: string } }>('/api/v1/reports/:id', async (req, reply) => {
+  app.get<{ Params: { id: string } }>('/api/v1/reports/:id', {
+    schema: {
+      tags: ['reports'],
+      summary: 'Get a saved report by ID',
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     try {
       const res = await client.getSavedReport({ savedReportId: req.params.id }, buildMetadata(req));
       if (!res.report) {
@@ -156,7 +200,27 @@ export const registerReportsRoutes = async (
     }
   });
 
-  app.post('/api/v1/reports', async (req, reply) => {
+  app.post('/api/v1/reports', {
+    schema: {
+      tags: ['reports'],
+      summary: 'Create a saved report',
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          rescue_id: { type: 'string' },
+          rescueId: { type: 'string' },
+          template_id: { type: 'string' },
+          templateId: { type: 'string' },
+          config: { type: 'object' },
+          configJson: { type: 'string' },
+          config_json: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const configJson = encodeConfig(body.config, body.configJson, body.config_json);
     const grpcReq: AuditCreateSavedReportRequest = {
@@ -187,7 +251,31 @@ export const registerReportsRoutes = async (
     }
   });
 
-  app.put<{ Params: { id: string } }>('/api/v1/reports/:id', async (req, reply) => {
+  app.put<{ Params: { id: string } }>('/api/v1/reports/:id', {
+    schema: {
+      tags: ['reports'],
+      summary: 'Update a saved report',
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          config: { type: 'object' },
+          configJson: { type: 'string' },
+          config_json: { type: 'string' },
+          is_archived: { type: 'boolean' },
+          isArchived: { type: 'boolean' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const grpcReq: AuditUpdateSavedReportRequest = {
       savedReportId: req.params.id,
@@ -215,7 +303,18 @@ export const registerReportsRoutes = async (
     }
   });
 
-  app.delete<{ Params: { id: string } }>('/api/v1/reports/:id', async (req, reply) => {
+  app.delete<{ Params: { id: string } }>('/api/v1/reports/:id', {
+    schema: {
+      tags: ['reports'],
+      summary: 'Delete a saved report',
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     try {
       const res = await client.deleteSavedReport(
         { savedReportId: req.params.id },

@@ -79,7 +79,27 @@ export const registerSupportRoutes = async (
   // Caller is the ticket owner. The handler reads principal.userId for
   // the row; we still accept user_email + user_name from the body
   // (the monolith sends them — saves a /auth/me round-trip).
-  app.post('/api/v1/support/tickets', async (req, reply) => {
+  app.post('/api/v1/support/tickets', {
+    schema: {
+      tags: ['support'],
+      summary: 'Open a support ticket',
+      body: {
+        type: 'object',
+        properties: {
+          subject: { type: 'string' },
+          description: { type: 'string' },
+          category: { type: 'string' },
+          priority: { type: 'string' },
+          userEmail: { type: 'string' },
+          user_email: { type: 'string' },
+          userName: { type: 'string' },
+          user_name: { type: 'string' },
+          tags: { type: 'array', items: { type: 'string' } },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const body = (req.body ?? {}) as {
       subject?: string;
       description?: string;
@@ -111,7 +131,21 @@ export const registerSupportRoutes = async (
   // ---- GET /api/v1/support/my-tickets ------------------------------
   // The handler self-scopes for non-admins, so no explicit user_id
   // filter needed.
-  app.get('/api/v1/support/my-tickets', async (req, reply) => {
+  app.get('/api/v1/support/my-tickets', {
+    schema: {
+      tags: ['support'],
+      summary: 'List support tickets for the current user',
+      querystring: {
+        type: 'object',
+        properties: {
+          status: { type: 'string' },
+          cursor: { type: 'string' },
+          limit: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const query = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(query, { limit: 0 });
     if (!pagination.ok) {
@@ -140,6 +174,18 @@ export const registerSupportRoutes = async (
   // ---- GET /api/v1/support/tickets/:ticketId -----------------------
   app.get<{ Params: { ticketId: string } }>(
     '/api/v1/support/tickets/:ticketId',
+    {
+      schema: {
+        tags: ['support'],
+        summary: 'Get a support ticket by ID',
+        params: {
+          type: 'object',
+          properties: {
+            ticketId: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const grpcReq: GetSupportTicketRequest = {
         ticketId: req.params.ticketId,
@@ -157,6 +203,25 @@ export const registerSupportRoutes = async (
   // ---- POST /api/v1/support/tickets/:ticketId/reply ----------------
   app.post<{ Params: { ticketId: string } }>(
     '/api/v1/support/tickets/:ticketId/reply',
+    {
+      schema: {
+        tags: ['support'],
+        summary: 'Reply to a support ticket',
+        params: {
+          type: 'object',
+          properties: {
+            ticketId: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            content: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as { content?: string };
       const grpcReq: RespondToTicketRequest = {
@@ -180,6 +245,18 @@ export const registerSupportRoutes = async (
   // included.
   app.get<{ Params: { ticketId: string } }>(
     '/api/v1/support/tickets/:ticketId/messages',
+    {
+      schema: {
+        tags: ['support'],
+        summary: 'Get support ticket messages',
+        params: {
+          type: 'object',
+          properties: {
+            ticketId: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const grpcReq: GetSupportTicketRequest = {
         ticketId: req.params.ticketId,

@@ -73,6 +73,26 @@ export const registerChatRoutes = async (
   // registers once. Same handler shape as the other six.
   app.post<{ Params: { messageId: string } }>(
     '/api/v1/messages/:messageId/reactions',
+    {
+      schema: {
+        tags: ['chat'],
+        summary: 'Add or remove a reaction on a message',
+        params: {
+          type: 'object',
+          properties: {
+            messageId: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            emoji: { type: 'string' },
+            remove: { type: 'boolean' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       const body = (req.body ?? {}) as { emoji?: string; remove?: boolean };
@@ -98,7 +118,22 @@ const registerChatRoutesForPrefix = (
   prefix: string
 ): void => {
   // ---- GET <prefix> -------------------------------------------------
-  app.get(prefix, async (req, reply) => {
+  app.get(prefix, {
+    schema: {
+      tags: ['chat'],
+      summary: 'List chats for the calling user',
+      querystring: {
+        type: 'object',
+        properties: {
+          cursor: { type: 'string' },
+          limit: { type: 'string' },
+          unreadOnly: { type: 'string' },
+          unread_only: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const query = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(query, { limit: 0 });
@@ -120,7 +155,22 @@ const registerChatRoutesForPrefix = (
   });
 
   // ---- POST <prefix> -----------------------------------------------
-  app.post(prefix, async (req, reply) => {
+  app.post(prefix, {
+    schema: {
+      tags: ['chat'],
+      summary: 'Open or create a chat',
+      body: {
+        type: 'object',
+        properties: {
+          applicationId: { type: 'string' },
+          application_id: { type: 'string' },
+          otherUserId: { type: 'string' },
+          other_user_id: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as Partial<OpenChatRequest> & {
       application_id?: string;
@@ -148,7 +198,24 @@ const registerChatRoutesForPrefix = (
   // ---- GET <prefix>/search ----------------------------------------
   // Must register BEFORE the :chatId routes so the static segment
   // wins Fastify's first-registered-wins matcher.
-  app.get(`${prefix}/search`, async (req, reply) => {
+  app.get(`${prefix}/search`, {
+    schema: {
+      tags: ['chat'],
+      summary: 'Search chats',
+      querystring: {
+        type: 'object',
+        properties: {
+          query: { type: 'string' },
+          q: { type: 'string' },
+          cursor: { type: 'string' },
+          limit: { type: 'string' },
+          rescueId: { type: 'string' },
+          rescue_id: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const query = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(query, { limit: 0 });
@@ -194,7 +261,18 @@ const registerChatRoutesForPrefix = (
   // Single-chat unread count for the calling principal. Returns the
   // monolith envelope { success, data: { unreadCount } } so the SPA's
   // lib.chat consumer keeps working.
-  app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId/unread-count`, async (req, reply) => {
+  app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId/unread-count`, {
+    schema: {
+      tags: ['chat'],
+      summary: 'Get unread message count for a chat',
+      params: {
+        type: 'object',
+        properties: {
+          chatId: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const res = await client.getChatUnreadCount({ chatId: req.params.chatId }, metadata);
@@ -212,7 +290,18 @@ const registerChatRoutesForPrefix = (
   // /:chatId/{unread-count,messages,read} routes above so they win
   // Fastify's first-registered-wins matcher. Returns the monolith
   // envelope { success, data: Chat } where Chat is the proto JSON.
-  app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId`, async (req, reply) => {
+  app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId`, {
+    schema: {
+      tags: ['chat'],
+      summary: 'Get a single chat by ID',
+      params: {
+        type: 'object',
+        properties: {
+          chatId: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     try {
       const res = await client.getChat({ chatId: req.params.chatId }, metadata);
@@ -232,6 +321,25 @@ const registerChatRoutesForPrefix = (
   // Soft-delete (archive) a chat. Participant-or-admin only.
   app.delete<{ Params: { chatId: string }; Body?: { reason?: string } }>(
     `${prefix}/:chatId`,
+    {
+      schema: {
+        tags: ['chat'],
+        summary: 'Delete (archive) a chat',
+        params: {
+          type: 'object',
+          properties: {
+            chatId: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            reason: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       const body = (req.body ?? {}) as { reason?: string };
@@ -252,7 +360,26 @@ const registerChatRoutesForPrefix = (
   );
 
   // ---- GET <prefix>/:chatId/messages -------------------------------
-  app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId/messages`, async (req, reply) => {
+  app.get<{ Params: { chatId: string } }>(`${prefix}/:chatId/messages`, {
+    schema: {
+      tags: ['chat'],
+      summary: 'List messages in a chat',
+      params: {
+        type: 'object',
+        properties: {
+          chatId: { type: 'string' },
+        },
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          cursor: { type: 'string' },
+          limit: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const query = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(query, { limit: 0 });
@@ -280,6 +407,26 @@ const registerChatRoutesForPrefix = (
   // message by its own id and verifies the chat link itself.
   app.delete<{ Params: { chatId: string; messageId: string }; Body?: { reason?: string } }>(
     `${prefix}/:chatId/messages/:messageId`,
+    {
+      schema: {
+        tags: ['chat'],
+        summary: 'Delete a message',
+        params: {
+          type: 'object',
+          properties: {
+            chatId: { type: 'string' },
+            messageId: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            reason: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       const body = (req.body ?? {}) as { reason?: string };
@@ -300,7 +447,26 @@ const registerChatRoutesForPrefix = (
   );
 
   // ---- POST <prefix>/:chatId/messages ------------------------------
-  app.post<{ Params: { chatId: string } }>(`${prefix}/:chatId/messages`, async (req, reply) => {
+  app.post<{ Params: { chatId: string } }>(`${prefix}/:chatId/messages`, {
+    schema: {
+      tags: ['chat'],
+      summary: 'Send a message to a chat',
+      params: {
+        type: 'object',
+        properties: {
+          chatId: { type: 'string' },
+        },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          body: { type: 'string' },
+          content: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as { body?: string; content?: string };
     const grpcReq: SendMessageRequest = {
@@ -320,7 +486,26 @@ const registerChatRoutesForPrefix = (
   });
 
   // ---- POST <prefix>/:chatId/read ----------------------------------
-  app.post<{ Params: { chatId: string } }>(`${prefix}/:chatId/read`, async (req, reply) => {
+  app.post<{ Params: { chatId: string } }>(`${prefix}/:chatId/read`, {
+    schema: {
+      tags: ['chat'],
+      summary: 'Mark messages in a chat as read',
+      params: {
+        type: 'object',
+        properties: {
+          chatId: { type: 'string' },
+        },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          upToMessageId: { type: 'string' },
+          up_to_message_id: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as { upToMessageId?: string; up_to_message_id?: string };
     const grpcReq: MarkReadRequest = {

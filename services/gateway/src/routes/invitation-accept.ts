@@ -43,7 +43,26 @@ export const registerInvitationAcceptRoutes = async (
 ): Promise<void> => {
   const { authClient, rescueClient } = opts;
 
-  app.post('/api/v1/invitations/accept', async (req, reply) => {
+  app.post(
+    '/api/v1/invitations/accept',
+    {
+      schema: {
+        tags: ['invitations'],
+        summary: 'Accept a rescue staff invitation and provision the user account',
+        security: [],
+        body: {
+          type: 'object',
+          properties: {
+            token: { type: 'string' },
+            password: { type: 'string' },
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
+    async (req, reply) => {
     const body = (req.body ?? {}) as AcceptBody;
     const token = body.token ?? '';
     const password = body.password ?? '';

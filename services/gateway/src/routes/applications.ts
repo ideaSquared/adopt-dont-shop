@@ -79,7 +79,17 @@ export const registerApplicationsRoutes = async (
   // and stores the frontend's data blob verbatim as answers so it
   // round-trips on read (applications-view.ts parses it back into `data`).
 
-  app.post('/api/v1/applications', { config: { rateLimit: RL_WRITE } }, async (req, reply) => {
+  app.post('/api/v1/applications', {
+    config: { rateLimit: RL_WRITE },
+    schema: {
+      tags: ['applications'],
+      summary: 'Create and submit an adoption application',
+      body: {
+        type: 'object',
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const b = (req.body ?? {}) as Record<string, unknown>;
     const adopterId = (b.userId as string) ?? (b.adopterId as string) ?? headerUserId(req) ?? '';
     const petId = (b.petId as string) ?? '';
@@ -112,7 +122,27 @@ export const registerApplicationsRoutes = async (
   // 4-value status maps onto the service's decision commands.
   app.patch<{ Params: { id: string } }>(
     '/api/v1/applications/:id/status',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Update application status',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            notes: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const target = b.status as string | undefined;
@@ -142,7 +172,26 @@ export const registerApplicationsRoutes = async (
   // PUT /:id/withdraw — the SPA's withdrawApplication.
   app.put<{ Params: { id: string } }>(
     '/api/v1/applications/:id/withdraw',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Withdraw an application',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            reason: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       try {
@@ -165,7 +214,23 @@ export const registerApplicationsRoutes = async (
   // decided application surfaces the service's INVALID_ARGUMENT as 400.
   app.put<{ Params: { id: string } }>(
     '/api/v1/applications/:id',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Update application answers',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const id = req.params.id;
@@ -191,7 +256,28 @@ export const registerApplicationsRoutes = async (
 
   app.patch<{ Params: { id: string } }>(
     '/api/v1/applications/:id/answers',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Save draft answers for an application',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            expectedVersion: { type: 'number' },
+            answersPatchJson: { type: 'string' },
+            referencesJson: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: SaveDraftAnswersRequest = {
@@ -211,7 +297,26 @@ export const registerApplicationsRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/applications/:id/submit',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Submit a draft application',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            expectedVersion: { type: 'number' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: SubmitDraftRequest = {
@@ -231,7 +336,26 @@ export const registerApplicationsRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/applications/:id/review',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Start review of an application',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            note: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: StartReviewRequest = {
@@ -249,7 +373,27 @@ export const registerApplicationsRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/applications/:id/home-visit/schedule',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Schedule a home visit for an application',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            scheduledAt: { type: 'string' },
+            note: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: ScheduleHomeVisitRequest = {
@@ -268,7 +412,27 @@ export const registerApplicationsRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/applications/:id/home-visit/complete',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Complete a home visit for an application',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            outcome: { type: 'string' },
+            notes: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: CompleteHomeVisitRequest = {
@@ -287,7 +451,26 @@ export const registerApplicationsRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/applications/:id/approve',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Approve an application',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            notes: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: ApproveRequest = {
@@ -305,7 +488,26 @@ export const registerApplicationsRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/applications/:id/reject',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Reject an application',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            reason: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: RejectRequest = {
@@ -323,7 +525,26 @@ export const registerApplicationsRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/applications/:id/withdraw',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Withdraw an application (service-shaped)',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            reason: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: WithdrawRequest = {
@@ -341,7 +562,19 @@ export const registerApplicationsRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/applications/:id/adopt',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Mark an application as adopted',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.markAdopted({ applicationId: req.params.id }, buildMetadata(req));
@@ -357,7 +590,21 @@ export const registerApplicationsRoutes = async (
   // Registered before /:id so the static `stats` segment wins over the
   // param route. Collapses the service's raw per-status counts to the
   // SPA's ApplicationStatsSchema, wrapped in `{ data }`.
-  app.get('/api/v1/applications/stats', { config: { rateLimit: RL_READ } }, async (req, reply) => {
+  app.get('/api/v1/applications/stats', {
+    config: { rateLimit: RL_READ },
+    schema: {
+      tags: ['applications'],
+      summary: 'Get application statistics',
+      querystring: {
+        type: 'object',
+        properties: {
+          rescue: { type: 'string' },
+          adopter: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     try {
       const res = await client.getStats(
@@ -370,7 +617,24 @@ export const registerApplicationsRoutes = async (
     }
   });
 
-  app.get('/api/v1/applications', { config: { rateLimit: RL_READ } }, async (req, reply) => {
+  app.get('/api/v1/applications', {
+    config: { rateLimit: RL_READ },
+    schema: {
+      tags: ['applications'],
+      summary: 'List applications',
+      querystring: {
+        type: 'object',
+        properties: {
+          cursor: { type: 'string' },
+          limit: { type: 'string' },
+          status: { type: 'string' },
+          rescue: { type: 'string' },
+          adopter: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(q, { limit: 0 });
     if (!pagination.ok) {

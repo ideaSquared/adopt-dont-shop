@@ -69,7 +69,27 @@ export const registerAnalyticsRoutes = async (
 ): Promise<void> => {
   const { logger } = opts;
 
-  app.post('/api/v1/analytics/pageviews', async (req, reply) => {
+  app.post(
+    '/api/v1/analytics/pageviews',
+    {
+      schema: {
+        tags: ['analytics'],
+        summary: 'Record a page view event',
+        security: [],
+        body: {
+          type: 'object',
+          properties: {
+            url: { type: 'string' },
+            title: { type: 'string' },
+            referrer: { type: 'string' },
+            sessionId: { type: 'string' },
+            userId: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
+    async (req, reply) => {
     const body = (req.body ?? {}) as PageviewBody;
     const pagePath = body.path || body.url || req.url || 'unknown';
     logger.info('Pageview recorded', {
@@ -88,7 +108,26 @@ export const registerAnalyticsRoutes = async (
     return reply.code(201).send({ success: true, message: 'Pageview recorded' });
   });
 
-  app.post('/api/v1/analytics/events', async (req, reply) => {
+  app.post(
+    '/api/v1/analytics/events',
+    {
+      schema: {
+        tags: ['analytics'],
+        summary: 'Record a single analytics event',
+        security: [],
+        body: {
+          type: 'object',
+          properties: {
+            event: { type: 'string' },
+            properties: { type: 'object' },
+            sessionId: { type: 'string' },
+            userId: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
+    async (req, reply) => {
     const body = (req.body ?? {}) as EventBody;
     const eventName = body.event || body.name || body.type || 'unknown';
     logger.info('Analytics event recorded', {
@@ -106,7 +145,23 @@ export const registerAnalyticsRoutes = async (
     return reply.code(201).send({ success: true, message: 'Event recorded' });
   });
 
-  app.post('/api/v1/analytics/events/batch', async (req, reply) => {
+  app.post(
+    '/api/v1/analytics/events/batch',
+    {
+      schema: {
+        tags: ['analytics'],
+        summary: 'Record a batch of analytics events',
+        security: [],
+        body: {
+          type: 'object',
+          properties: {
+            events: { type: 'array' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
+    async (req, reply) => {
     const body = (req.body ?? {}) as BatchBody;
     if (!Array.isArray(body.events)) {
       return reply.code(400).send({ success: false, message: 'Events must be an array' });
@@ -137,7 +192,16 @@ export const registerAnalyticsRoutes = async (
     });
   });
 
-  app.get('/api/v1/analytics/health', async () => ({
+  app.get(
+    '/api/v1/analytics/health',
+    {
+      schema: {
+        tags: ['analytics'],
+        summary: 'Health check for the analytics endpoint',
+        security: [],
+      },
+    },
+    async () => ({
     success: true,
     status: 'healthy',
     timestamp: new Date().toISOString(),

@@ -153,7 +153,22 @@ export const registerCmsRoutes = async (
   const { client } = opts;
 
   // --- Public reads (no auth) ----------------------------------------
-  app.get('/api/v1/cms/public/content', async (req, reply) => {
+  app.get('/api/v1/cms/public/content', {
+    schema: {
+      tags: ['cms'],
+      summary: 'List public CMS content',
+      security: [],
+      querystring: {
+        type: 'object',
+        properties: {
+          type: { type: 'string' },
+          page: { type: 'string' },
+          limit: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(q);
     if (!pagination.ok) {
@@ -181,7 +196,19 @@ export const registerCmsRoutes = async (
     }
   });
 
-  app.get<{ Params: { slug: string } }>('/api/v1/cms/public/content/:slug', async (req, reply) => {
+  app.get<{ Params: { slug: string } }>('/api/v1/cms/public/content/:slug', {
+    schema: {
+      tags: ['cms'],
+      summary: 'Get public CMS content by slug',
+      security: [],
+      params: {
+        type: 'object',
+        properties: {
+          slug: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     try {
       const res = await client.getPublicContentBySlug(
         { slug: req.params.slug },
@@ -197,7 +224,23 @@ export const registerCmsRoutes = async (
   });
 
   // --- Admin content reads ------------------------------------------
-  app.get('/api/v1/cms/content', async (req, reply) => {
+  app.get('/api/v1/cms/content', {
+    schema: {
+      tags: ['cms'],
+      summary: 'List CMS content (admin)',
+      querystring: {
+        type: 'object',
+        properties: {
+          type: { type: 'string' },
+          status: { type: 'string' },
+          search: { type: 'string' },
+          page: { type: 'string' },
+          limit: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(q);
     if (!pagination.ok) {
@@ -228,7 +271,18 @@ export const registerCmsRoutes = async (
   });
 
   // Slug lookup BEFORE the dynamic :contentId so it isn't shadowed.
-  app.get<{ Params: { slug: string } }>('/api/v1/cms/content/slug/:slug', async (req, reply) => {
+  app.get<{ Params: { slug: string } }>('/api/v1/cms/content/slug/:slug', {
+    schema: {
+      tags: ['cms'],
+      summary: 'Get CMS content by slug (admin)',
+      params: {
+        type: 'object',
+        properties: {
+          slug: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     try {
       const res = await client.getContentBySlug({ slug: req.params.slug }, buildMetadata(req));
       if (!res.content) {
@@ -242,6 +296,18 @@ export const registerCmsRoutes = async (
 
   app.get<{ Params: { contentId: string } }>(
     '/api/v1/cms/content/:contentId',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Get a CMS content item by ID',
+        params: {
+          type: 'object',
+          properties: {
+            contentId: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.getContent(
@@ -258,7 +324,34 @@ export const registerCmsRoutes = async (
     }
   );
 
-  app.post('/api/v1/cms/content', async (req, reply) => {
+  app.post('/api/v1/cms/content', {
+    schema: {
+      tags: ['cms'],
+      summary: 'Create a CMS content item',
+      body: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          slug: { type: 'string' },
+          contentType: { type: 'string' },
+          content_type: { type: 'string' },
+          content: { type: 'string' },
+          excerpt: { type: 'string' },
+          metaTitle: { type: 'string' },
+          meta_title: { type: 'string' },
+          metaDescription: { type: 'string' },
+          meta_description: { type: 'string' },
+          metaKeywords: { type: 'array', items: { type: 'string' } },
+          meta_keywords: { type: 'array', items: { type: 'string' } },
+          featuredImageUrl: { type: 'string' },
+          featured_image_url: { type: 'string' },
+          scheduledPublishAt: { type: 'string' },
+          scheduledUnpublishAt: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const grpcReq: CmsCreateContentRequest = {
       title: String(body.title ?? ''),
@@ -307,6 +400,35 @@ export const registerCmsRoutes = async (
 
   app.put<{ Params: { contentId: string } }>(
     '/api/v1/cms/content/:contentId',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Update a CMS content item',
+        params: {
+          type: 'object',
+          properties: {
+            contentId: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            slug: { type: 'string' },
+            content: { type: 'string' },
+            excerpt: { type: 'string' },
+            metaTitle: { type: 'string' },
+            metaDescription: { type: 'string' },
+            metaKeywords: { type: 'array', items: { type: 'string' } },
+            meta_keywords: { type: 'array', items: { type: 'string' } },
+            featuredImageUrl: { type: 'string' },
+            changeNote: { type: 'string' },
+            change_note: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as Record<string, unknown>;
       const hasMetaKeywords = Array.isArray(body.metaKeywords) || Array.isArray(body.meta_keywords);
@@ -346,6 +468,18 @@ export const registerCmsRoutes = async (
 
   app.delete<{ Params: { contentId: string } }>(
     '/api/v1/cms/content/:contentId',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Delete a CMS content item',
+        params: {
+          type: 'object',
+          properties: {
+            contentId: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.deleteContent(
@@ -365,33 +499,61 @@ export const registerCmsRoutes = async (
   // Workflow
   const workflow = (
     path: string,
-    fn: (id: string, m: Metadata) => Promise<{ content?: CmsContent }>
+    fn: (id: string, m: Metadata) => Promise<{ content?: CmsContent }>,
+    summary: string
   ): void => {
-    app.post<{ Params: { contentId: string } }>(path, async (req, reply) => {
-      try {
-        const res = await fn(req.params.contentId, buildMetadata(req));
-        if (!res.content) {
-          return reply.code(404).send({ success: false, error: 'not found' });
+    app.post<{ Params: { contentId: string } }>(
+      path,
+      {
+        schema: {
+          tags: ['cms'],
+          summary,
+          params: {
+            type: 'object',
+            properties: {
+              contentId: { type: 'string' },
+            },
+          },
+        },
+      },
+      async (req, reply) => {
+        try {
+          const res = await fn(req.params.contentId, buildMetadata(req));
+          if (!res.content) {
+            return reply.code(404).send({ success: false, error: 'not found' });
+          }
+          return reply.send({ success: true, content: contentToView(res.content) });
+        } catch (err) {
+          return handleGrpcError(err, reply);
         }
-        return reply.send({ success: true, content: contentToView(res.content) });
-      } catch (err) {
-        return handleGrpcError(err, reply);
       }
-    });
+    );
   };
   workflow('/api/v1/cms/content/:contentId/publish', (id, m) =>
-    client.publishContent({ contentId: id }, m)
+    client.publishContent({ contentId: id }, m), 'Publish a CMS content item'
   );
   workflow('/api/v1/cms/content/:contentId/unpublish', (id, m) =>
-    client.unpublishContent({ contentId: id }, m)
+    client.unpublishContent({ contentId: id }, m), 'Unpublish a CMS content item'
   );
   workflow('/api/v1/cms/content/:contentId/archive', (id, m) =>
-    client.archiveContent({ contentId: id }, m)
+    client.archiveContent({ contentId: id }, m), 'Archive a CMS content item'
   );
 
   // Versions
   app.get<{ Params: { contentId: string } }>(
     '/api/v1/cms/content/:contentId/versions',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Get version history for a CMS content item',
+        params: {
+          type: 'object',
+          properties: {
+            contentId: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.getVersionHistory(
@@ -411,6 +573,19 @@ export const registerCmsRoutes = async (
 
   app.post<{ Params: { contentId: string; version: string } }>(
     '/api/v1/cms/content/:contentId/versions/:version/restore',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Restore a CMS content item to a previous version',
+        params: {
+          type: 'object',
+          properties: {
+            contentId: { type: 'string' },
+            version: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const version = Number.parseInt(req.params.version, 10);
       if (Number.isNaN(version) || version <= 0) {
@@ -432,7 +607,20 @@ export const registerCmsRoutes = async (
   );
 
   // --- Menus --------------------------------------------------------
-  app.get('/api/v1/cms/menus', async (req, reply) => {
+  app.get('/api/v1/cms/menus', {
+    schema: {
+      tags: ['cms'],
+      summary: 'List CMS menus',
+      querystring: {
+        type: 'object',
+        properties: {
+          location: { type: 'string' },
+          active: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const grpcReq = {
       location: q.location,
@@ -446,7 +634,18 @@ export const registerCmsRoutes = async (
     }
   });
 
-  app.get<{ Params: { menuId: string } }>('/api/v1/cms/menus/:menuId', async (req, reply) => {
+  app.get<{ Params: { menuId: string } }>('/api/v1/cms/menus/:menuId', {
+    schema: {
+      tags: ['cms'],
+      summary: 'Get a CMS menu by ID',
+      params: {
+        type: 'object',
+        properties: {
+          menuId: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     try {
       const res = await client.getMenu({ menuId: req.params.menuId }, buildMetadata(req));
       if (!res.menu) {
@@ -458,7 +657,22 @@ export const registerCmsRoutes = async (
     }
   });
 
-  app.post('/api/v1/cms/menus', async (req, reply) => {
+  app.post('/api/v1/cms/menus', {
+    schema: {
+      tags: ['cms'],
+      summary: 'Create a CMS menu',
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          location: { type: 'string' },
+          items: {},
+          isActive: { type: 'boolean' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const itemsJson = Array.isArray(body.items)
       ? JSON.stringify(body.items)
@@ -484,7 +698,28 @@ export const registerCmsRoutes = async (
     }
   });
 
-  app.put<{ Params: { menuId: string } }>('/api/v1/cms/menus/:menuId', async (req, reply) => {
+  app.put<{ Params: { menuId: string } }>('/api/v1/cms/menus/:menuId', {
+    schema: {
+      tags: ['cms'],
+      summary: 'Update a CMS menu',
+      params: {
+        type: 'object',
+        properties: {
+          menuId: { type: 'string' },
+        },
+      },
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          location: { type: 'string' },
+          items: {},
+          isActive: { type: 'boolean' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const itemsJson = Array.isArray(body.items)
       ? JSON.stringify(body.items)
@@ -511,7 +746,18 @@ export const registerCmsRoutes = async (
     }
   });
 
-  app.delete<{ Params: { menuId: string } }>('/api/v1/cms/menus/:menuId', async (req, reply) => {
+  app.delete<{ Params: { menuId: string } }>('/api/v1/cms/menus/:menuId', {
+    schema: {
+      tags: ['cms'],
+      summary: 'Delete a CMS menu',
+      params: {
+        type: 'object',
+        properties: {
+          menuId: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     try {
       const res = await client.deleteMenu({ menuId: req.params.menuId }, buildMetadata(req));
       if (!res.deleted) {

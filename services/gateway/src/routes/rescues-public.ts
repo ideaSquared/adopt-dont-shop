@@ -41,7 +41,23 @@ export const registerRescuesPublicRoutes = async (
   // GET /api/v1/rescues — list with optional status filter, name search,
   // and keyset pagination. lib.rescue.searchRescues / followedRescues
   // hit this with `search=` / cursor params.
-  app.get('/api/v1/rescues', { config: { rateLimit: RL_READ } }, async (req, reply) => {
+  app.get('/api/v1/rescues', {
+    config: { rateLimit: RL_READ },
+    schema: {
+      tags: ['rescues'],
+      summary: 'List rescues',
+      querystring: {
+        type: 'object',
+        properties: {
+          cursor: { type: 'string' },
+          limit: { type: 'string' },
+          status: { type: 'string' },
+          search: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(q, { limit: 0 });
     if (!pagination.ok) {
@@ -58,7 +74,20 @@ export const registerRescuesPublicRoutes = async (
 
   // GET /api/v1/rescues/featured — randomized verified picks. Limit
   // defaults to 8 since the SPA renders a small carousel.
-  app.get('/api/v1/rescues/featured', { config: { rateLimit: RL_READ } }, async (req, reply) => {
+  app.get('/api/v1/rescues/featured', {
+    config: { rateLimit: RL_READ },
+    schema: {
+      tags: ['rescues'],
+      summary: 'List featured rescues',
+      querystring: {
+        type: 'object',
+        properties: {
+          limit: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(q, { limit: 8 });
     if (!pagination.ok) {
@@ -79,7 +108,24 @@ export const registerRescuesPublicRoutes = async (
 
   // GET /api/v1/rescues/search?search=…&status=… — alias for List with
   // name_search wired in.
-  app.get('/api/v1/rescues/search', { config: { rateLimit: RL_READ } }, async (req, reply) => {
+  app.get('/api/v1/rescues/search', {
+    config: { rateLimit: RL_READ },
+    schema: {
+      tags: ['rescues'],
+      summary: 'Search rescues',
+      querystring: {
+        type: 'object',
+        properties: {
+          search: { type: 'string' },
+          q: { type: 'string' },
+          status: { type: 'string' },
+          cursor: { type: 'string' },
+          limit: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(q, { limit: 0 });
     if (!pagination.ok) {
@@ -98,7 +144,23 @@ export const registerRescuesPublicRoutes = async (
   // service stub returns empty until lat/lng columns land in the schema;
   // the SPA's UX falls back to a "no nearby rescues" empty state
   // cleanly when that happens.
-  app.get('/api/v1/rescues/nearby', { config: { rateLimit: RL_READ } }, async (req, reply) => {
+  app.get('/api/v1/rescues/nearby', {
+    config: { rateLimit: RL_READ },
+    schema: {
+      tags: ['rescues'],
+      summary: 'List nearby rescues by location',
+      querystring: {
+        type: 'object',
+        properties: {
+          lat: { type: 'string' },
+          lng: { type: 'string' },
+          radiusKm: { type: 'string' },
+          limit: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const q = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(q, { limit: 20 });
     if (!pagination.ok) {
@@ -125,7 +187,13 @@ export const registerRescuesPublicRoutes = async (
   // GET /api/v1/rescues/followed — per-user follows. No follows table yet;
   // return an empty page so the SPA's "rescues you follow" surface renders
   // cleanly. A future PR adds a user_rescue_follows table + the join.
-  app.get('/api/v1/rescues/followed', { config: { rateLimit: RL_READ } }, async (_req, reply) => {
+  app.get('/api/v1/rescues/followed', {
+    config: { rateLimit: RL_READ },
+    schema: {
+      tags: ['rescues'],
+      summary: 'List rescues followed by the current user',
+    },
+  }, async (_req, reply) => {
     return reply.send({
       success: true,
       data: [],
@@ -135,13 +203,33 @@ export const registerRescuesPublicRoutes = async (
 
   // POST /api/v1/rescues/register — alias for Create. The SPA's
   // registration flow posts here.
-  app.post('/api/v1/rescues/register', { config: { rateLimit: RL_WRITE } }, async (req, reply) =>
+  app.post('/api/v1/rescues/register', {
+    config: { rateLimit: RL_WRITE },
+    schema: {
+      tags: ['rescues'],
+      summary: 'Register a new rescue organisation',
+      body: {
+        type: 'object',
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) =>
     createRescue(client, req, reply)
   );
 
   // POST /api/v1/rescues — also Create (for admin tooling that hits the
   // canonical path).
-  app.post('/api/v1/rescues', { config: { rateLimit: RL_WRITE } }, async (req, reply) =>
+  app.post('/api/v1/rescues', {
+    config: { rateLimit: RL_WRITE },
+    schema: {
+      tags: ['rescues'],
+      summary: 'Create a rescue organisation',
+      body: {
+        type: 'object',
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) =>
     createRescue(client, req, reply)
   );
 
@@ -149,7 +237,19 @@ export const registerRescuesPublicRoutes = async (
   // getRescueById hits this and parses with RescueAPIResponseSchema.
   app.get<{ Params: { id: string } }>(
     '/api/v1/rescues/:id',
-    { config: { rateLimit: RL_READ } },
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Get a rescue by ID',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.get({ rescueId: req.params.id }, buildMetadata(req));

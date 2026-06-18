@@ -137,7 +137,19 @@ export const registerDashboardRoutes = async (
   const { petsClient, applicationsClient, rescueClient } = opts;
 
   // --- GET /api/v1/dashboard/rescue --------------------------------
-  app.get('/api/v1/dashboard/rescue', async (req, reply) => {
+  app.get('/api/v1/dashboard/rescue', {
+    schema: {
+      tags: ['dashboard'],
+      summary: 'Get rescue dashboard statistics',
+      querystring: {
+        type: 'object',
+        properties: {
+          rescueId: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const rescueId = resolveRescueScope(req);
 
@@ -208,7 +220,20 @@ export const registerDashboardRoutes = async (
   });
 
   // --- GET /api/v1/dashboard/activity ------------------------------
-  app.get('/api/v1/dashboard/activity', async (req, reply) => {
+  app.get('/api/v1/dashboard/activity', {
+    schema: {
+      tags: ['dashboard'],
+      summary: 'Get recent activity for a rescue',
+      querystring: {
+        type: 'object',
+        properties: {
+          rescueId: { type: 'string' },
+          limit: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const rescueId = resolveRescueScope(req);
     if (!rescueId) {

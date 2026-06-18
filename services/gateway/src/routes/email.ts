@@ -72,7 +72,24 @@ export const registerEmailRoutes = async (
   const { client } = opts;
 
   // GET /api/v1/email/templates
-  app.get('/api/v1/email/templates', async (req, reply) => {
+  app.get('/api/v1/email/templates', {
+    schema: {
+      tags: ['email'],
+      summary: 'List email templates',
+      querystring: {
+        type: 'object',
+        properties: {
+          type: { type: 'string' },
+          status: { type: 'string' },
+          category: { type: 'string' },
+          search: { type: 'string' },
+          page: { type: 'string' },
+          limit: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const q = req.query as Record<string, string | undefined>;
     const pagination = parsePagination(q, { limit: 0 });
@@ -105,7 +122,30 @@ export const registerEmailRoutes = async (
   });
 
   // POST /api/v1/email/templates
-  app.post('/api/v1/email/templates', async (req, reply) => {
+  app.post('/api/v1/email/templates', {
+    schema: {
+      tags: ['email'],
+      summary: 'Create an email template',
+      body: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          type: { type: 'string' },
+          category: { type: 'string' },
+          status: { type: 'string' },
+          subject: { type: 'string' },
+          htmlContent: { type: 'string' },
+          html_content: { type: 'string' },
+          textContent: { type: 'string' },
+          text_content: { type: 'string' },
+          variables: {},
+          locale: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as Record<string, unknown>;
     const grpcReq: CreateEmailTemplateRequest = {
@@ -144,6 +184,18 @@ export const registerEmailRoutes = async (
   // GET /api/v1/email/templates/:templateId
   app.get<{ Params: { templateId: string } }>(
     '/api/v1/email/templates/:templateId',
+    {
+      schema: {
+        tags: ['email'],
+        summary: 'Get an email template by ID',
+        params: {
+          type: 'object',
+          properties: {
+            templateId: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       try {
@@ -161,6 +213,35 @@ export const registerEmailRoutes = async (
   // PUT /api/v1/email/templates/:templateId
   app.put<{ Params: { templateId: string } }>(
     '/api/v1/email/templates/:templateId',
+    {
+      schema: {
+        tags: ['email'],
+        summary: 'Update an email template',
+        params: {
+          type: 'object',
+          properties: {
+            templateId: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            description: { type: 'string' },
+            type: { type: 'string' },
+            category: { type: 'string' },
+            status: { type: 'string' },
+            subject: { type: 'string' },
+            htmlContent: { type: 'string' },
+            html_content: { type: 'string' },
+            textContent: { type: 'string' },
+            text_content: { type: 'string' },
+            variables: {},
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       const body = (req.body ?? {}) as Record<string, unknown>;
@@ -201,6 +282,18 @@ export const registerEmailRoutes = async (
   // DELETE /api/v1/email/templates/:templateId
   app.delete<{ Params: { templateId: string } }>(
     '/api/v1/email/templates/:templateId',
+    {
+      schema: {
+        tags: ['email'],
+        summary: 'Delete an email template',
+        params: {
+          type: 'object',
+          properties: {
+            templateId: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       try {
@@ -215,6 +308,25 @@ export const registerEmailRoutes = async (
   // POST /api/v1/email/templates/:templateId/preview
   app.post<{ Params: { templateId: string } }>(
     '/api/v1/email/templates/:templateId/preview',
+    {
+      schema: {
+        tags: ['email'],
+        summary: 'Preview a rendered email template',
+        params: {
+          type: 'object',
+          properties: {
+            templateId: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            variables: {},
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       const body = (req.body ?? {}) as { variables?: unknown };

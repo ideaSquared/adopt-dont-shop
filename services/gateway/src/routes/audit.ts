@@ -53,7 +53,27 @@ export const registerAuditRoutes = async (
 
   app.get(
     '/api/v1/audit',
-    { config: { rateLimit: AUDIT_RATE_LIMITS.query } },
+    {
+      config: { rateLimit: AUDIT_RATE_LIMITS.query },
+      schema: {
+        tags: ['audit'],
+        summary: 'Query audit log entries',
+        querystring: {
+          type: 'object',
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            service: { type: 'string' },
+            subject: { type: 'string' },
+            actor_user_id: { type: 'string' },
+            outcome: { type: 'string' },
+            from: { type: 'string' },
+            to: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
       const pagination = parsePagination(query, { limit: 0 });
@@ -81,7 +101,28 @@ export const registerAuditRoutes = async (
 
   app.get<{ Params: { type: string; id: string } }>(
     '/api/v1/audit/targets/:type/:id',
-    { config: { rateLimit: AUDIT_RATE_LIMITS.getByTarget } },
+    {
+      config: { rateLimit: AUDIT_RATE_LIMITS.getByTarget },
+      schema: {
+        tags: ['audit'],
+        summary: 'Get audit log entries for a specific target',
+        params: {
+          type: 'object',
+          properties: {
+            type: { type: 'string' },
+            id: { type: 'string' },
+          },
+        },
+        querystring: {
+          type: 'object',
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+          },
+          additionalProperties: true,
+        },
+      },
+    },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
       const pagination = parsePagination(query, { limit: 0 });

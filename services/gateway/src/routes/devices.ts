@@ -51,7 +51,26 @@ export const registerDevicesRoutes = async (
   const { client } = opts;
 
   // POST /api/v1/devices — register / refresh a device token.
-  app.post('/api/v1/devices', async (req, reply) => {
+  app.post('/api/v1/devices', {
+    schema: {
+      tags: ['devices'],
+      summary: 'Register or refresh a device token',
+      body: {
+        type: 'object',
+        properties: {
+          token: { type: 'string' },
+          deviceToken: { type: 'string' },
+          device_token: { type: 'string' },
+          platform: { type: 'string' },
+          appVersion: { type: 'string' },
+          app_version: { type: 'string' },
+          deviceInfo: { type: 'object' },
+          device_info: { type: 'object' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const body = (req.body ?? {}) as {
       // Monolith accepts `token`; the proto field is `device_token`.
@@ -93,7 +112,20 @@ export const registerDevicesRoutes = async (
   });
 
   // GET /api/v1/devices — list the calling principal's device tokens.
-  app.get('/api/v1/devices', async (req, reply) => {
+  app.get('/api/v1/devices', {
+    schema: {
+      tags: ['devices'],
+      summary: 'List device tokens for the calling user',
+      querystring: {
+        type: 'object',
+        properties: {
+          includeInactive: { type: 'string' },
+          include_inactive: { type: 'string' },
+        },
+        additionalProperties: true,
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const query = req.query as Record<string, string | undefined>;
     const grpcReq: ListDeviceTokensRequest = {
@@ -109,7 +141,18 @@ export const registerDevicesRoutes = async (
   });
 
   // DELETE /api/v1/devices/:tokenId — soft-delete + revoke.
-  app.delete<{ Params: { tokenId: string } }>('/api/v1/devices/:tokenId', async (req, reply) => {
+  app.delete<{ Params: { tokenId: string } }>('/api/v1/devices/:tokenId', {
+    schema: {
+      tags: ['devices'],
+      summary: 'Unregister a device token',
+      params: {
+        type: 'object',
+        properties: {
+          tokenId: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const metadata = buildMetadata(req);
     const grpcReq: UnregisterDeviceTokenRequest = { tokenId: req.params.tokenId };
 

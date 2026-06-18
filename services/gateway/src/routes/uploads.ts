@@ -94,7 +94,13 @@ export const registerUploadsRoutes = async (
   // the resize step is skipped).
   app.post(
     '/api/v1/uploads/images',
-    { config: { rateLimit: UPLOAD_RATE_LIMITS.images } },
+    {
+      config: { rateLimit: UPLOAD_RATE_LIMITS.images },
+      schema: {
+        tags: ['uploads'],
+        summary: 'Upload an image (multipart/form-data)',
+      },
+    },
     async (req, reply) => {
       if (typeof (req as { isMultipart?: () => boolean }).isMultipart !== 'function') {
         return reply.code(500).send({ error: 'multipart support not registered' });
@@ -168,7 +174,21 @@ export const registerUploadsRoutes = async (
     Params: { expiresAt: string; signature: string; '*': string };
   }>(
     '/uploads-signed/:expiresAt/:signature/*',
-    { config: { rateLimit: UPLOAD_RATE_LIMITS.signedServe } },
+    {
+      config: { rateLimit: UPLOAD_RATE_LIMITS.signedServe },
+      schema: {
+        tags: ['uploads'],
+        summary: 'Serve a signed upload URL',
+        security: [],
+        params: {
+          type: 'object',
+          properties: {
+            expiresAt: { type: 'string' },
+            signature: { type: 'string' },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       if (!opts.signingSecret) {
         return reply.code(503).send({ error: 'Signed serving not configured' });

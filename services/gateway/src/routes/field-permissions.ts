@@ -86,7 +86,7 @@ export const registerFieldPermissionsRoutes = async (
   const { client } = opts;
 
   // GET /api/v1/field-permissions/defaults — full defaults blob.
-  app.get('/api/v1/field-permissions/defaults', async (req, reply) => {
+  app.get('/api/v1/field-permissions/defaults', { schema: { tags: ['field-permissions'] } }, async (req, reply) => {
     try {
       const res = await client.getFieldPermissionDefaults({}, buildMetadata(req));
       // The handler JSON-encodes the defaults blob; parse here so the
@@ -100,6 +100,12 @@ export const registerFieldPermissionsRoutes = async (
   // GET /api/v1/field-permissions/defaults/:resource/:role
   app.get<{ Params: { resource: string; role: string } }>(
     '/api/v1/field-permissions/defaults/:resource/:role',
+    {
+      schema: {
+        tags: ['field-permissions'],
+        params: { type: 'object', properties: { resource: { type: 'string' }, role: { type: 'string' } }, required: ['resource', 'role'] },
+      },
+    },
     async (req, reply) => {
       const resource = resourceToProto(req.params.resource);
       if (resource === null) {
@@ -120,7 +126,18 @@ export const registerFieldPermissionsRoutes = async (
   // POST /api/v1/field-permissions/bulk — keep before the dynamic
   // /:resource handlers so Fastify's first-match-wins router picks the
   // static segment.
-  app.post('/api/v1/field-permissions/bulk', async (req, reply) => {
+  app.post('/api/v1/field-permissions/bulk', {
+    schema: {
+      tags: ['field-permissions'],
+      body: {
+        type: 'object',
+        additionalProperties: true,
+        properties: {
+          overrides: { type: 'array', items: { type: 'object', additionalProperties: true } },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const body = (req.body ?? {}) as { overrides?: Array<Record<string, unknown>> };
     const overridesRaw = body.overrides ?? [];
     if (!Array.isArray(overridesRaw) || overridesRaw.length === 0) {
@@ -149,7 +166,21 @@ export const registerFieldPermissionsRoutes = async (
   });
 
   // POST /api/v1/field-permissions — single upsert.
-  app.post('/api/v1/field-permissions', async (req, reply) => {
+  app.post('/api/v1/field-permissions', {
+    schema: {
+      tags: ['field-permissions'],
+      body: {
+        type: 'object',
+        additionalProperties: true,
+        properties: {
+          resource: { type: 'string' },
+          field_name: { type: 'string' },
+          role: { type: 'string' },
+          access_level: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, reply) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const resource = resourceToProto(String(body.resource ?? ''));
     const accessLevel = accessLevelToProto(String(body.access_level ?? body.accessLevel ?? ''));
@@ -180,6 +211,12 @@ export const registerFieldPermissionsRoutes = async (
   // form wins.
   app.get<{ Params: { resource: string; role: string } }>(
     '/api/v1/field-permissions/:resource/:role',
+    {
+      schema: {
+        tags: ['field-permissions'],
+        params: { type: 'object', properties: { resource: { type: 'string' }, role: { type: 'string' } }, required: ['resource', 'role'] },
+      },
+    },
     async (req, reply) => {
       const resource = resourceToProto(req.params.resource);
       if (resource === null) {
@@ -200,6 +237,12 @@ export const registerFieldPermissionsRoutes = async (
   // DELETE /api/v1/field-permissions/:resource/:role/:field_name
   app.delete<{ Params: { resource: string; role: string; field_name: string } }>(
     '/api/v1/field-permissions/:resource/:role/:field_name',
+    {
+      schema: {
+        tags: ['field-permissions'],
+        params: { type: 'object', properties: { resource: { type: 'string' }, role: { type: 'string' }, field_name: { type: 'string' } }, required: ['resource', 'role', 'field_name'] },
+      },
+    },
     async (req, reply) => {
       const resource = resourceToProto(req.params.resource);
       if (resource === null) {
@@ -225,6 +268,12 @@ export const registerFieldPermissionsRoutes = async (
   // GET /api/v1/field-permissions/:resource
   app.get<{ Params: { resource: string } }>(
     '/api/v1/field-permissions/:resource',
+    {
+      schema: {
+        tags: ['field-permissions'],
+        params: { type: 'object', properties: { resource: { type: 'string' } }, required: ['resource'] },
+      },
+    },
     async (req, reply) => {
       const resource = resourceToProto(req.params.resource);
       if (resource === null) {
