@@ -192,7 +192,7 @@ export function rowToProtoUser(row: UserRow): AuthUser {
 export async function loadPrincipal(
   deps: HandlerDeps,
   userId: string
-): Promise<{ roles: UserRole[]; permissions: Permission[]; rescueId?: string }> {
+): Promise<{ roles: UserRole[]; permissions: Permission[] }> {
   // Roles — primary user_type plus everything in user_roles.
   const userTypeRes = await deps.pool.query<{ user_type: UserRoleDb }>(
     `SELECT user_type FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
@@ -627,11 +627,13 @@ export async function validateToken(
   // Now (and only now) hydrate the principal. Single user_id read +
   // role/permission joins — same query loadPrincipal uses.
   const principal = await loadPrincipal(deps, claims.sub);
+  // rescueId is NOT populated here: rescue-staff membership lives in the
+  // rescue service, not auth. The gateway resolves it via RescueService
+  // after ValidateToken succeeds (ADS-863) and stamps it on the request.
   const proto: AuthPrincipal = {
     userId: claims.sub,
     roles: rolesToProto(principal.roles),
     permissions: principal.permissions,
-    rescueId: principal.rescueId,
   };
 
   return {
