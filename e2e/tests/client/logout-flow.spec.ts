@@ -1,42 +1,52 @@
-import { test, expect } from '../../fixtures';
+import { test, expect, request as playwrightRequest } from '@playwright/test';
+import { URLS } from '../../playwright.config';
+import { ROLES } from '../../fixtures/roles';
 
 /**
- * Verify that logout actually invalidates the session.  The dev_user
- * shortcut in AuthContext means a stale localStorage entry can mask a
- * real auth failure — this test deliberately drives the API logout
- * endpoint AND clears local storage, then asserts that a follow-up
- * request to a protected resource fails with 401.
- *
- * Why API instead of UI: the per-app logout button lives in different
- * places (sidebar, user menu, mobile drawer) and is liable to move.
- * The contract we care about is "logout invalidates the cookies",
- * which the API exercises directly.
+ * Logout under the gateway's Bearer model. There is no CSRF endpoint and
+ * access tokens are stateless JWTs — logout's job is to revoke the
+ * *refresh* token (recording its jti in the denylist). So the contract is
+ * a plain authenticated POST that carries the refresh token minted at
+ * login; no CSRF dance is involved. We then assert the React app drops to
+ * its anonymous "Login Required" surface once the browser session is wiped.
  */
 test.describe('logout flow', () => {
-  test('an adopter can log out and is then unauthenticated', async ({ page, apiAs }) => {
-    const api = await apiAs('adopter');
+  test('an adopter can log out by revoking their refresh token', async ({ page }) => {
+    const { email, password } = ROLES.adopter;
 
-    // Sanity: confirm the cookies authenticate before logout.
-    const beforeRes = await api.context.get('/api/v1/auth/me');
-    expect(beforeRes.ok()).toBe(true);
+    // Fresh login so we hold BOTH tokens — the shared apiAs cache keeps only
+    // the access token, but logout needs the refresh token. No CSRF header.
+    const anon = await playwrightRequest.newContext({ baseURL: URLS.api });
+    const loginRes = await anon.post('/api/v1/auth/login', { data: { email, password } });
+    expect(loginRes.ok()).toBe(true);
+    const body = (await loginRes.json()) as {
+      tokens?: { accessToken?: string; refreshToken?: string };
+    };
+    const accessToken = body.tokens?.accessToken;
+    const refreshToken = body.tokens?.refreshToken;
+    expect(accessToken).toBeTruthy();
+    expect(refreshToken).toBeTruthy();
+    await anon.dispose();
 
-    // Logout via API.
-    const csrfRes = await api.context.get('/api/v1/csrf-token');
-    expect(csrfRes.ok()).toBe(true);
-    const { csrfToken } = (await csrfRes.json()) as { csrfToken?: string };
-    expect(csrfToken).toBeTruthy();
-
-    const logoutRes = await api.context.post('/api/v1/auth/logout', {
-      headers: { 'x-csrf-token': csrfToken! },
+    const authed = await playwrightRequest.newContext({
+      baseURL: URLS.api,
+      extraHTTPHeaders: { Authorization: `Bearer ${accessToken}` },
     });
-    expect([200, 204]).toContain(logoutRes.status());
+    try {
+      // Sanity: the access token authenticates before logout.
+      expect((await authed.get('/api/v1/auth/me')).ok()).toBe(true);
 
-    // After logout, the same context's cookies must no longer authenticate.
-    const afterRes = await api.context.get('/api/v1/auth/me');
-    expect(afterRes.status()).toBe(401);
+      // Logout takes no CSRF token — the Bearer context plus the refresh
+      // token in the body is the whole contract. It revokes idempotently.
+      const logoutRes = await authed.post('/api/v1/auth/logout', { data: { refreshToken } });
+      expect([200, 204]).toContain(logoutRes.status());
+    } finally {
+      await authed.dispose();
+    }
 
-    // And the React app, if we wipe the dev_user shortcut and reload,
-    // should treat the user as anonymous on a protected surface.
+    // Browser side: load the client origin while authenticated, wipe the
+    // session, then reload — the app must fall back to "Login Required".
+    await page.goto('/favorites', { waitUntil: 'domcontentloaded', timeout: 60_000 });
     await page.evaluate(() => {
       try {
         window.localStorage.clear();

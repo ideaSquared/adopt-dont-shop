@@ -73,6 +73,18 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/form-validation-per-field.spec.ts',
     '**/email-verification-gating.spec.ts',
     '**/password-reset-flow.spec.ts',
+    // Batch D (ADS-868) — rewritten from the monolith's CSRF + cookie-session
+    // model to the gateway's actual Bearer contract:
+    // - api-auth-contract (renamed from api-csrf-and-cookie-contract): asserts
+    //   there's NO CSRF gate (a bad-creds login is 401 not 403), no /csrf-token
+    //   endpoint (404), and a tokenless protected read is 401.
+    // - logout-flow: a Bearer-authenticated logout revokes the refresh token
+    //   (200), then the SPA falls back to "Login Required" once wiped.
+    // - rate-limit-application-submission: login responses carry the
+    //   x-ratelimit-* headers @fastify/rate-limit emits (no CSRF dance).
+    '**/api-auth-contract.spec.ts',
+    '**/logout-flow.spec.ts',
+    '**/rate-limit-application-submission.spec.ts',
     // profile-update-persistence: deferred. The bio edit submits and the
     // gateway/auth map+persist `bio`, and GET /auth/me returns it, but the
     // value does not round-trip back into the edit form after a reload (the
