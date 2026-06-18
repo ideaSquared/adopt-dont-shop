@@ -14,6 +14,8 @@ The suite exercises real user journeys across the three React apps (`app.client`
 > **Still parked** (every other spec under `tests/client`, `tests/rescue`, `tests/admin`): un-park each by adding its glob to `UNPARKED[project]` once it passes in CI. Some non-auth specs (chat / moderation / cms / matching / notifications detail) may need follow-up gateway work — the same enum/envelope normalisation #1076 applied to auth likely applies to those domains' responses too.
 >
 > **Blocked on architecture, not yet un-parked** — these assert the monolith's CSRF + cookie-session model, which the Bearer-only gateway deliberately removed (there is no `GET /api/v1/csrf-token` endpoint and JWTs are stateless): `client/api-csrf-and-cookie-contract.spec.ts`, `client/logout-flow.spec.ts`, `client/rate-limit-application-submission.spec.ts`. `client/swipe-and-favourite.spec.ts` additionally needs a favourites seed in the pets service. Each needs a rewrite to the Bearer contract (and a seed) rather than a config flip. `rescue/custom-application-questions`, `admin/bulk-user-actions`, `admin/2fa-enrollment` need new gateway routes built (ADS-868).
+>
+> **`client/profile-update-persistence.spec.ts` — deferred, needs runtime debugging.** The whole server path is wired (the SPA submits `bio`; the gateway `PUT /users/profile` maps it; `account-handlers` persists it; `GET /auth/me` returns it via `withApiUser`), yet the bio does not round-trip back into the edit form after a reload (the assertion timed out across all CI retries). The likely cause is the client hydrating a stale cached user rather than refetching `/me` — confirm at runtime before un-parking (ADS-868).
 
 ## Layout
 

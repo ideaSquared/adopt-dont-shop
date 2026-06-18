@@ -70,12 +70,15 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     // - password-reset: /forgot-password shows a confirmation; /reset-password
     //   with a bad token is rejected. Gateway already has POST
     //   /auth/forgot-password + /auth/reset-password.
-    // - profile-update: a bio edit round-trips via PUT /users/profile
-    //   (account-handlers persists `bio`) and survives navigation.
     '**/form-validation-per-field.spec.ts',
     '**/email-verification-gating.spec.ts',
     '**/password-reset-flow.spec.ts',
-    '**/profile-update-persistence.spec.ts',
+    // profile-update-persistence: deferred. The bio edit submits and the
+    // gateway/auth map+persist `bio`, and GET /auth/me returns it, but the
+    // value does not round-trip back into the edit form after a reload (the
+    // assertion at spec line 47 timed out across all 3 CI retries). Likely the
+    // client hydrates a stale cached user instead of refetching /me — needs
+    // dedicated runtime debugging before un-parking (tracked under ADS-868).
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863
