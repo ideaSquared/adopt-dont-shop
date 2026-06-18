@@ -200,7 +200,7 @@ export const registerUploadsRoutes = async (
       if (resolved === null) {
         return reply.code(400).send({ error: 'Invalid file path' });
       }
-      return streamFile(resolved, reply);
+      return await streamFile(resolved, reply);
     }
   );
 };
@@ -297,10 +297,10 @@ async function tryRedirectToProvider(
   }
 }
 
-function streamFile(resolved: string, reply: FastifyReply): FastifyReply {
+async function streamFile(resolved: string, reply: FastifyReply): Promise<FastifyReply> {
   let stats: fs.Stats;
   try {
-    stats = fs.statSync(resolved);
+    stats = await fs.promises.stat(resolved);
   } catch {
     return reply.code(404).send({ error: 'File not found' });
   }

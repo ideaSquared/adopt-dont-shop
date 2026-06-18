@@ -279,6 +279,17 @@ describe('GET /uploads-signed/:expiresAt/:signature/*', () => {
     expect(res.statusCode).toBe(404);
   });
 
+  it('returns 404 when the resolved path is a directory, not a file', async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) + 60;
+    const filePath = 'pets';
+    const signature = computeUploadSignature(filePath, expiresAt, SECRET);
+    const res = await app.inject({
+      method: 'GET',
+      url: `/uploads-signed/${expiresAt}/${signature}/${filePath}`,
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
   it('returns 503 when no signing secret is configured', async () => {
     await app.close();
     app = await buildApp(tmp, undefined);
