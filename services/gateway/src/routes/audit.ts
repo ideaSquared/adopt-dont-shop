@@ -53,7 +53,13 @@ export const registerAuditRoutes = async (
 
   app.get(
     '/api/v1/audit',
-    { config: { rateLimit: AUDIT_RATE_LIMITS.query } },
+    {
+      config: { rateLimit: AUDIT_RATE_LIMITS.query },
+      schema: {
+        tags: ['audit'],
+        summary: 'Query audit log entries',
+      },
+    },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
       const pagination = parsePagination(query, { limit: 0 });
@@ -81,7 +87,13 @@ export const registerAuditRoutes = async (
 
   app.get<{ Params: { type: string; id: string } }>(
     '/api/v1/audit/targets/:type/:id',
-    { config: { rateLimit: AUDIT_RATE_LIMITS.getByTarget } },
+    {
+      config: { rateLimit: AUDIT_RATE_LIMITS.getByTarget },
+      schema: {
+        tags: ['audit'],
+        summary: 'Get audit log entries for a specific target',
+      },
+    },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
       const pagination = parsePagination(query, { limit: 0 });

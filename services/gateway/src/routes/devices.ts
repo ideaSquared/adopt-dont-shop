@@ -51,75 +51,102 @@ export const registerDevicesRoutes = async (
   const { client } = opts;
 
   // POST /api/v1/devices — register / refresh a device token.
-  app.post('/api/v1/devices', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const body = (req.body ?? {}) as {
-      // Monolith accepts `token`; the proto field is `device_token`.
-      // Accept both so the SPA can transition without coordinated
-      // rename.
-      token?: string;
-      deviceToken?: string;
-      device_token?: string;
-      platform?: string;
-      appVersion?: string;
-      app_version?: string;
-      deviceInfo?: Record<string, unknown>;
-      device_info?: Record<string, unknown>;
-    };
+  app.post(
+    '/api/v1/devices',
+    {
+      schema: {
+        tags: ['devices'],
+        summary: 'Register or refresh a device token',
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as {
+        // Monolith accepts `token`; the proto field is `device_token`.
+        // Accept both so the SPA can transition without coordinated
+        // rename.
+        token?: string;
+        deviceToken?: string;
+        device_token?: string;
+        platform?: string;
+        appVersion?: string;
+        app_version?: string;
+        deviceInfo?: Record<string, unknown>;
+        device_info?: Record<string, unknown>;
+      };
 
-    const grpcReq: RegisterDeviceTokenRequest = {
-      deviceToken: body.deviceToken ?? body.device_token ?? body.token ?? '',
-      platform: platformFromString(body.platform),
-      appVersion: body.appVersion ?? body.app_version,
-      // Proto field carries the JSON-stringified payload; the chat /
-      // notifications handler parses it back.
-      deviceInfoJson: body.deviceInfo
-        ? JSON.stringify(body.deviceInfo)
-        : body.device_info
-          ? JSON.stringify(body.device_info)
-          : '',
-    };
+      const grpcReq: RegisterDeviceTokenRequest = {
+        deviceToken: body.deviceToken ?? body.device_token ?? body.token ?? '',
+        platform: platformFromString(body.platform),
+        appVersion: body.appVersion ?? body.app_version,
+        // Proto field carries the JSON-stringified payload; the chat /
+        // notifications handler parses it back.
+        deviceInfoJson: body.deviceInfo
+          ? JSON.stringify(body.deviceInfo)
+          : body.device_info
+            ? JSON.stringify(body.device_info)
+            : '',
+      };
 
-    try {
-      const res = await client.registerDeviceToken(grpcReq, metadata);
-      // 201 on fresh registration, 200 when an existing token was
-      // refreshed — same convention chat.openChat uses.
-      return reply
-        .code(res.alreadyRegistered ? 200 : 201)
-        .send(NotificationsV1.RegisterDeviceTokenResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+      try {
+        const res = await client.registerDeviceToken(grpcReq, metadata);
+        // 201 on fresh registration, 200 when an existing token was
+        // refreshed — same convention chat.openChat uses.
+        return reply
+          .code(res.alreadyRegistered ? 200 : 201)
+          .send(NotificationsV1.RegisterDeviceTokenResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // GET /api/v1/devices — list the calling principal's device tokens.
-  app.get('/api/v1/devices', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const query = req.query as Record<string, string | undefined>;
-    const grpcReq: ListDeviceTokensRequest = {
-      includeInactive: query.includeInactive === 'true' || query.include_inactive === 'true',
-    } as ListDeviceTokensRequest;
+  app.get(
+    '/api/v1/devices',
+    {
+      schema: {
+        tags: ['devices'],
+        summary: 'List device tokens for the calling user',
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const query = req.query as Record<string, string | undefined>;
+      const grpcReq: ListDeviceTokensRequest = {
+        includeInactive: query.includeInactive === 'true' || query.include_inactive === 'true',
+      } as ListDeviceTokensRequest;
 
-    try {
-      const res = await client.listDeviceTokens(grpcReq, metadata);
-      return reply.send(NotificationsV1.ListDeviceTokensResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+      try {
+        const res = await client.listDeviceTokens(grpcReq, metadata);
+        return reply.send(NotificationsV1.ListDeviceTokensResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // DELETE /api/v1/devices/:tokenId — soft-delete + revoke.
-  app.delete<{ Params: { tokenId: string } }>('/api/v1/devices/:tokenId', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const grpcReq: UnregisterDeviceTokenRequest = { tokenId: req.params.tokenId };
+  app.delete<{ Params: { tokenId: string } }>(
+    '/api/v1/devices/:tokenId',
+    {
+      schema: {
+        tags: ['devices'],
+        summary: 'Unregister a device token',
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const grpcReq: UnregisterDeviceTokenRequest = { tokenId: req.params.tokenId };
 
-    try {
-      const res = await client.unregisterDeviceToken(grpcReq, metadata);
-      return reply.send(NotificationsV1.UnregisterDeviceTokenResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+      try {
+        const res = await client.unregisterDeviceToken(grpcReq, metadata);
+        return reply.send(NotificationsV1.UnregisterDeviceTokenResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 };
 
 // --- Helpers ---------------------------------------------------------

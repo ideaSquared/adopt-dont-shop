@@ -62,7 +62,12 @@ export const registerModerationAdminRoutes = async (
 
   app.get(
     '/api/v1/admin/moderation/reports',
-    { config: { rateLimit: RL_READ } },
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation', 'admin'],
+      },
+    },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
       const pagination = parsePagination(q, { limit: 0 });
@@ -111,7 +116,13 @@ export const registerModerationAdminRoutes = async (
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/admin/moderation/reports/:id',
-    { config: { rateLimit: RL_READ } },
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation', 'admin'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.getReport(
@@ -130,7 +141,12 @@ export const registerModerationAdminRoutes = async (
 
   app.post(
     '/api/v1/admin/moderation/reports',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation', 'admin'],
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: FileReportRequest = {
@@ -184,7 +200,13 @@ export const registerModerationAdminRoutes = async (
   // resolution). Assignment is a separate route.
   app.patch<{ Params: { id: string } }>(
     '/api/v1/admin/moderation/reports/:id/status',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation', 'admin'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const target = b.status as string | undefined;
@@ -210,7 +232,13 @@ export const registerModerationAdminRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/admin/moderation/reports/:id/assign',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation', 'admin'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: AssignReportRequest = {
@@ -236,7 +264,12 @@ export const registerModerationAdminRoutes = async (
   // failure short-circuits the loop and surfaces the first error.
   app.post(
     '/api/v1/admin/moderation/reports/bulk-update',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation', 'admin'],
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as {
         reportIds?: string[];
@@ -296,7 +329,12 @@ export const registerModerationAdminRoutes = async (
 
   app.get(
     '/api/v1/admin/moderation/actions',
-    { config: { rateLimit: RL_READ } },
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation', 'admin'],
+      },
+    },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
       const pagination = parsePagination(q, { limit: 0 });
@@ -330,7 +368,12 @@ export const registerModerationAdminRoutes = async (
 
   app.post(
     '/api/v1/admin/moderation/actions',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation', 'admin'],
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: LogModeratorActionRequest = {
@@ -385,7 +428,12 @@ export const registerModerationAdminRoutes = async (
 
   app.get(
     '/api/v1/admin/support/tickets',
-    { config: { rateLimit: RL_READ } },
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation', 'admin'],
+      },
+    },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
       const pagination = parsePagination(q, { limit: 0 });
@@ -435,7 +483,13 @@ export const registerModerationAdminRoutes = async (
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/admin/support/tickets/:id',
-    { config: { rateLimit: RL_READ } },
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation', 'admin'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.getSupportTicket(
@@ -457,7 +511,12 @@ export const registerModerationAdminRoutes = async (
 
   app.post(
     '/api/v1/admin/support/tickets',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation', 'admin'],
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: OpenSupportTicketRequest = {
@@ -498,7 +557,13 @@ export const registerModerationAdminRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/admin/support/tickets/:id/responses',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation', 'admin'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: RespondToTicketRequest = {

@@ -77,7 +77,12 @@ export const registerModerationRoutes = async (
 
   app.post(
     '/api/v1/moderation/reports',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation'],
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: FileReportRequest = {
@@ -99,31 +104,46 @@ export const registerModerationRoutes = async (
     }
   );
 
-  app.get('/api/v1/moderation/reports', { config: { rateLimit: RL_READ } }, async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q, { limit: 0 });
-    if (!pagination.ok) {
-      return reply.code(400).send({ error: pagination.error });
+  app.get(
+    '/api/v1/moderation/reports',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation'],
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+      const grpcReq: ListReportsRequest = {
+        cursor: q.cursor,
+        limit: pagination.limit,
+        status: parseReportStatus(q.status),
+        severity: parseSeverity(q.severity),
+        category: parseCategory(q.category),
+        assignedModerator: q.assigned,
+      };
+      try {
+        const res = await client.listReports(grpcReq, buildMetadata(req));
+        return reply.send(ModerationV1.ListReportsResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const grpcReq: ListReportsRequest = {
-      cursor: q.cursor,
-      limit: pagination.limit,
-      status: parseReportStatus(q.status),
-      severity: parseSeverity(q.severity),
-      category: parseCategory(q.category),
-      assignedModerator: q.assigned,
-    };
-    try {
-      const res = await client.listReports(grpcReq, buildMetadata(req));
-      return reply.send(ModerationV1.ListReportsResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/moderation/reports/:id',
-    { config: { rateLimit: RL_READ } },
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
       try {
@@ -140,7 +160,13 @@ export const registerModerationRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/moderation/reports/:id/assign',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: AssignReportRequest = {
@@ -159,7 +185,13 @@ export const registerModerationRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/moderation/reports/:id/resolve',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: ResolveReportRequest = {
@@ -180,7 +212,12 @@ export const registerModerationRoutes = async (
 
   app.post(
     '/api/v1/moderation/actions',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation'],
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: LogModeratorActionRequest = {
@@ -204,32 +241,46 @@ export const registerModerationRoutes = async (
     }
   );
 
-  app.get('/api/v1/moderation/actions', { config: { rateLimit: RL_READ } }, async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q, { limit: 0 });
-    if (!pagination.ok) {
-      return reply.code(400).send({ error: pagination.error });
+  app.get(
+    '/api/v1/moderation/actions',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation'],
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+      const grpcReq: ListModeratorActionsRequest = {
+        cursor: q.cursor,
+        limit: pagination.limit,
+        targetUserId: q.user,
+        reportId: q.report,
+        actionType: parseActionType(q.action),
+      };
+      try {
+        const res = await client.listModeratorActions(grpcReq, buildMetadata(req));
+        return reply.send(ModerationV1.ListModeratorActionsResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const grpcReq: ListModeratorActionsRequest = {
-      cursor: q.cursor,
-      limit: pagination.limit,
-      targetUserId: q.user,
-      reportId: q.report,
-      actionType: parseActionType(q.action),
-    };
-    try {
-      const res = await client.listModeratorActions(grpcReq, buildMetadata(req));
-      return reply.send(ModerationV1.ListModeratorActionsResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   // ---------- Evidence ----------
 
   app.post(
     '/api/v1/moderation/evidence',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation'],
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: AddEvidenceRequest = {
@@ -252,7 +303,12 @@ export const registerModerationRoutes = async (
 
   app.post(
     '/api/v1/moderation/sanctions',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation'],
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: IssueSanctionRequest = {
@@ -275,7 +331,12 @@ export const registerModerationRoutes = async (
 
   app.get<{ Params: { userId: string } }>(
     '/api/v1/moderation/users/:userId/sanctions',
-    { config: { rateLimit: RL_READ } },
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation'],
+      },
+    },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
       try {
@@ -292,7 +353,13 @@ export const registerModerationRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/moderation/sanctions/:id/appeal',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: AppealSanctionRequest = {
@@ -312,7 +379,12 @@ export const registerModerationRoutes = async (
 
   app.post(
     '/api/v1/moderation/tickets',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation'],
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: OpenSupportTicketRequest = {
@@ -334,32 +406,47 @@ export const registerModerationRoutes = async (
     }
   );
 
-  app.get('/api/v1/moderation/tickets', { config: { rateLimit: RL_READ } }, async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q, { limit: 0 });
-    if (!pagination.ok) {
-      return reply.code(400).send({ error: pagination.error });
+  app.get(
+    '/api/v1/moderation/tickets',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation'],
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+      const grpcReq: ListSupportTicketsRequest = {
+        cursor: q.cursor,
+        limit: pagination.limit,
+        status: parseTicketStatus(q.status),
+        priority: parseTicketPriority(q.priority),
+        category: parseTicketCategory(q.category),
+        assignedTo: q.assigned,
+        userId: q.user,
+      };
+      try {
+        const res = await client.listSupportTickets(grpcReq, buildMetadata(req));
+        return reply.send(ModerationV1.ListSupportTicketsResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const grpcReq: ListSupportTicketsRequest = {
-      cursor: q.cursor,
-      limit: pagination.limit,
-      status: parseTicketStatus(q.status),
-      priority: parseTicketPriority(q.priority),
-      category: parseTicketCategory(q.category),
-      assignedTo: q.assigned,
-      userId: q.user,
-    };
-    try {
-      const res = await client.listSupportTickets(grpcReq, buildMetadata(req));
-      return reply.send(ModerationV1.ListSupportTicketsResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/moderation/tickets/:id',
-    { config: { rateLimit: RL_READ } },
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       const q = req.query as Record<string, string | undefined>;
       try {
@@ -376,7 +463,13 @@ export const registerModerationRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/moderation/tickets/:id/responses',
-    { config: { rateLimit: RL_WRITE } },
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
       const grpcReq: RespondToTicketRequest = {

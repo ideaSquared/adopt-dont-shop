@@ -137,124 +137,142 @@ export const registerDashboardRoutes = async (
   const { petsClient, applicationsClient, rescueClient } = opts;
 
   // --- GET /api/v1/dashboard/rescue --------------------------------
-  app.get('/api/v1/dashboard/rescue', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const rescueId = resolveRescueScope(req);
+  app.get(
+    '/api/v1/dashboard/rescue',
+    {
+      schema: {
+        tags: ['dashboard'],
+        summary: 'Get rescue dashboard statistics',
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const rescueId = resolveRescueScope(req);
 
-    if (!rescueId) {
-      // Mirrors monolith behaviour: no staff association → 400.
-      return reply.code(400).send({
-        success: false,
-        message: 'User is not associated with a rescue organization',
-      });
+      if (!rescueId) {
+        // Mirrors monolith behaviour: no staff association → 400.
+        return reply.code(400).send({
+          success: false,
+          message: 'User is not associated with a rescue organization',
+        });
+      }
+
+      try {
+        // Four parallel upstream calls. The pets recent-listing reuses
+        // pets.List with limit=10; the applications recent-listing reuses
+        // apps.List the same way. We could ask for fewer fields, but the
+        // ListPets / ListApplications shapes are already lean, and one
+        // round trip per upstream beats six.
+        const petStatsReq: GetPetStatsRequest = { rescueIdFilter: rescueId };
+        const appStatsReq: ApplicationsGetStatsRequest = { rescueIdFilter: rescueId };
+        const petListReq: ListPetsRequest = {
+          rescueIdFilter: rescueId,
+          limit: DEFAULT_ACTIVITY_LIMIT,
+          statusFilter: PetsV1.PetStatus.PET_STATUS_UNSPECIFIED,
+          typeFilter: PetsV1.PetType.PET_TYPE_UNSPECIFIED,
+          sizeFilter: PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
+        };
+        const appListReq: ListApplicationsRequest = {
+          rescueIdFilter: rescueId,
+          limit: DEFAULT_ACTIVITY_LIMIT,
+          statusFilter: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_UNSPECIFIED,
+        };
+        const staffReq: ListStaffMembersRequest = {
+          rescueId,
+        };
+
+        const [petStats, appStats, petList, appList, staffList] = await Promise.all([
+          petsClient.getStats(petStatsReq, metadata),
+          applicationsClient.getStats(appStatsReq, metadata),
+          petsClient.list(petListReq, metadata),
+          applicationsClient.list(appListReq, metadata),
+          rescueClient.listStaffMembers(staffReq, metadata),
+        ]);
+
+        const recentActivity = mergeAndSort(
+          petList.pets.map(buildPetActivity),
+          appList.applications.map(buildApplicationActivity),
+          DEFAULT_ACTIVITY_LIMIT
+        );
+
+        return reply.send({
+          success: true,
+          message: 'Dashboard statistics retrieved successfully',
+          data: {
+            totalAnimals: petStats.total,
+            availableForAdoption: petStats.available,
+            pendingApplications: appStats.submitted,
+            recentAdoptions: petStats.monthlyAdoptions,
+            totalApplications: appStats.total,
+            adoptedPets: petStats.adopted,
+            staffCount: staffList.staffMembers?.length ?? 0,
+            averageTimeToAdoption: petStats.averageDaysToAdoption,
+            recentActivity,
+          },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-
-    try {
-      // Four parallel upstream calls. The pets recent-listing reuses
-      // pets.List with limit=10; the applications recent-listing reuses
-      // apps.List the same way. We could ask for fewer fields, but the
-      // ListPets / ListApplications shapes are already lean, and one
-      // round trip per upstream beats six.
-      const petStatsReq: GetPetStatsRequest = { rescueIdFilter: rescueId };
-      const appStatsReq: ApplicationsGetStatsRequest = { rescueIdFilter: rescueId };
-      const petListReq: ListPetsRequest = {
-        rescueIdFilter: rescueId,
-        limit: DEFAULT_ACTIVITY_LIMIT,
-        statusFilter: PetsV1.PetStatus.PET_STATUS_UNSPECIFIED,
-        typeFilter: PetsV1.PetType.PET_TYPE_UNSPECIFIED,
-        sizeFilter: PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
-      };
-      const appListReq: ListApplicationsRequest = {
-        rescueIdFilter: rescueId,
-        limit: DEFAULT_ACTIVITY_LIMIT,
-        statusFilter: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_UNSPECIFIED,
-      };
-      const staffReq: ListStaffMembersRequest = {
-        rescueId,
-      };
-
-      const [petStats, appStats, petList, appList, staffList] = await Promise.all([
-        petsClient.getStats(petStatsReq, metadata),
-        applicationsClient.getStats(appStatsReq, metadata),
-        petsClient.list(petListReq, metadata),
-        applicationsClient.list(appListReq, metadata),
-        rescueClient.listStaffMembers(staffReq, metadata),
-      ]);
-
-      const recentActivity = mergeAndSort(
-        petList.pets.map(buildPetActivity),
-        appList.applications.map(buildApplicationActivity),
-        DEFAULT_ACTIVITY_LIMIT
-      );
-
-      return reply.send({
-        success: true,
-        message: 'Dashboard statistics retrieved successfully',
-        data: {
-          totalAnimals: petStats.total,
-          availableForAdoption: petStats.available,
-          pendingApplications: appStats.submitted,
-          recentAdoptions: petStats.monthlyAdoptions,
-          totalApplications: appStats.total,
-          adoptedPets: petStats.adopted,
-          staffCount: staffList.staffMembers?.length ?? 0,
-          averageTimeToAdoption: petStats.averageDaysToAdoption,
-          recentActivity,
-        },
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   // --- GET /api/v1/dashboard/activity ------------------------------
-  app.get('/api/v1/dashboard/activity', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const rescueId = resolveRescueScope(req);
-    if (!rescueId) {
-      return reply.code(400).send({
-        success: false,
-        message: 'User is not associated with a rescue organization',
-      });
+  app.get(
+    '/api/v1/dashboard/activity',
+    {
+      schema: {
+        tags: ['dashboard'],
+        summary: 'Get recent activity for a rescue',
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const rescueId = resolveRescueScope(req);
+      if (!rescueId) {
+        return reply.code(400).send({
+          success: false,
+          message: 'User is not associated with a rescue organization',
+        });
+      }
+
+      const query = req.query as Record<string, string | undefined>;
+      const limit = parseLimit(query.limit);
+
+      try {
+        const petListReq: ListPetsRequest = {
+          rescueIdFilter: rescueId,
+          limit,
+          statusFilter: PetsV1.PetStatus.PET_STATUS_UNSPECIFIED,
+          typeFilter: PetsV1.PetType.PET_TYPE_UNSPECIFIED,
+          sizeFilter: PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
+        };
+        const appListReq: ListApplicationsRequest = {
+          rescueIdFilter: rescueId,
+          limit,
+          statusFilter: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_UNSPECIFIED,
+        };
+
+        const [petList, appList] = await Promise.all([
+          petsClient.list(petListReq, metadata),
+          applicationsClient.list(appListReq, metadata),
+        ]);
+
+        const activity = mergeAndSort(
+          petList.pets.map(buildPetActivity),
+          appList.applications.map(buildApplicationActivity),
+          limit
+        );
+
+        return reply.send({
+          success: true,
+          message: 'Activity retrieved successfully',
+          data: activity,
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-
-    const query = req.query as Record<string, string | undefined>;
-    const limit = parseLimit(query.limit);
-
-    try {
-      const petListReq: ListPetsRequest = {
-        rescueIdFilter: rescueId,
-        limit,
-        statusFilter: PetsV1.PetStatus.PET_STATUS_UNSPECIFIED,
-        typeFilter: PetsV1.PetType.PET_TYPE_UNSPECIFIED,
-        sizeFilter: PetsV1.PetSize.PET_SIZE_UNSPECIFIED,
-      };
-      const appListReq: ListApplicationsRequest = {
-        rescueIdFilter: rescueId,
-        limit,
-        statusFilter: ApplicationsV1.ApplicationStatus.APPLICATION_STATUS_UNSPECIFIED,
-      };
-
-      const [petList, appList] = await Promise.all([
-        petsClient.list(petListReq, metadata),
-        applicationsClient.list(appListReq, metadata),
-      ]);
-
-      const activity = mergeAndSort(
-        petList.pets.map(buildPetActivity),
-        appList.applications.map(buildApplicationActivity),
-        limit
-      );
-
-      return reply.send({
-        success: true,
-        message: 'Activity retrieved successfully',
-        data: activity,
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 };
 
 // --- Helpers ---------------------------------------------------------
