@@ -569,6 +569,28 @@ export const registerUsersRoutes = async (
     }
   );
 
+  // POST /api/v1/admin/users/:userId/reset-password — admin-initiated
+  // password reset. Returns the plaintext temporary password for the
+  // admin to relay; the user changes it on next sign-in.
+  app.post<{ Params: { userId: string } }>(
+    '/api/v1/admin/users/:userId/reset-password',
+    {
+      schema: {
+        tags: ['users'],
+        summary: 'Reset a user password and return a temporary one (admin)',
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const res = await authClient.adminResetPassword({ userId: req.params.userId }, metadata);
+        return reply.send({ temporary_password: res.temporaryPassword });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // POST /api/v1/users/bulk-update — admin bulk status/role change.
   // POST so it never collides with the GET/PUT /:userId dynamic routes.
   app.post(

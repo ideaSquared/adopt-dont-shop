@@ -792,6 +792,18 @@ export interface ReactivateUserResponse {
   user?: User | undefined;
 }
 
+export interface AdminResetPasswordRequest {
+  userId: string;
+}
+
+export interface AdminResetPasswordResponse {
+  /**
+   * Plaintext temporary password. Never persisted in the clear — the
+   * admin relays it to the user, who changes it on next sign-in.
+   */
+  temporaryPassword: string;
+}
+
 export interface GetUserStatisticsRequest {}
 
 export interface UserStatusCount {
@@ -6701,6 +6713,148 @@ export const ReactivateUserResponse: MessageFns<ReactivateUserResponse> = {
   },
 };
 
+function createBaseAdminResetPasswordRequest(): AdminResetPasswordRequest {
+  return { userId: '' };
+}
+
+export const AdminResetPasswordRequest: MessageFns<AdminResetPasswordRequest> = {
+  encode(
+    message: AdminResetPasswordRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminResetPasswordRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminResetPasswordRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminResetPasswordRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+    };
+  },
+
+  toJSON(message: AdminResetPasswordRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminResetPasswordRequest>, I>>(
+    base?: I
+  ): AdminResetPasswordRequest {
+    return AdminResetPasswordRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminResetPasswordRequest>, I>>(
+    object: I
+  ): AdminResetPasswordRequest {
+    const message = createBaseAdminResetPasswordRequest();
+    message.userId = object.userId ?? '';
+    return message;
+  },
+};
+
+function createBaseAdminResetPasswordResponse(): AdminResetPasswordResponse {
+  return { temporaryPassword: '' };
+}
+
+export const AdminResetPasswordResponse: MessageFns<AdminResetPasswordResponse> = {
+  encode(
+    message: AdminResetPasswordResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.temporaryPassword !== '') {
+      writer.uint32(10).string(message.temporaryPassword);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminResetPasswordResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminResetPasswordResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.temporaryPassword = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminResetPasswordResponse {
+    return {
+      temporaryPassword: isSet(object.temporaryPassword)
+        ? globalThis.String(object.temporaryPassword)
+        : isSet(object.temporary_password)
+          ? globalThis.String(object.temporary_password)
+          : '',
+    };
+  },
+
+  toJSON(message: AdminResetPasswordResponse): unknown {
+    const obj: any = {};
+    if (message.temporaryPassword !== '') {
+      obj.temporaryPassword = message.temporaryPassword;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminResetPasswordResponse>, I>>(
+    base?: I
+  ): AdminResetPasswordResponse {
+    return AdminResetPasswordResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminResetPasswordResponse>, I>>(
+    object: I
+  ): AdminResetPasswordResponse {
+    const message = createBaseAdminResetPasswordResponse();
+    message.temporaryPassword = object.temporaryPassword ?? '';
+    return message;
+  },
+};
+
 function createBaseGetUserStatisticsRequest(): GetUserStatisticsRequest {
   return {};
 }
@@ -9697,6 +9851,26 @@ export const AuthServiceService = {
       BulkUpdateUsersResponse.decode(value),
   },
   /**
+   * Admin-initiated password reset. Generates a temporary password, hashes
+   * and stores it, clears any lockout, and revokes the target's active
+   * refresh tokens so existing sessions can't continue. Returns the
+   * plaintext temporary password for the admin to relay out-of-band.
+   * admin.users.update. Refuses resetting your own account via this path.
+   */
+  adminResetPassword: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/AdminResetPassword' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AdminResetPasswordRequest): Buffer =>
+      Buffer.from(AdminResetPasswordRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AdminResetPasswordRequest =>
+      AdminResetPasswordRequest.decode(value),
+    responseSerialize: (value: AdminResetPasswordResponse): Buffer =>
+      Buffer.from(AdminResetPasswordResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AdminResetPasswordResponse =>
+      AdminResetPasswordResponse.decode(value),
+  },
+  /**
    * Returns the full default field-permission configuration (the
    * hard-coded source-of-truth lib.types ships). Admin-only.
    * admin.field_permissions.read.
@@ -9990,6 +10164,14 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * assignment from a non-super_admin actor.
    */
   bulkUpdateUsers: handleUnaryCall<BulkUpdateUsersRequest, BulkUpdateUsersResponse>;
+  /**
+   * Admin-initiated password reset. Generates a temporary password, hashes
+   * and stores it, clears any lockout, and revokes the target's active
+   * refresh tokens so existing sessions can't continue. Returns the
+   * plaintext temporary password for the admin to relay out-of-band.
+   * admin.users.update. Refuses resetting your own account via this path.
+   */
+  adminResetPassword: handleUnaryCall<AdminResetPasswordRequest, AdminResetPasswordResponse>;
   /**
    * Returns the full default field-permission configuration (the
    * hard-coded source-of-truth lib.types ships). Admin-only.
@@ -10619,6 +10801,28 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: BulkUpdateUsersResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Admin-initiated password reset. Generates a temporary password, hashes
+   * and stores it, clears any lockout, and revokes the target's active
+   * refresh tokens so existing sessions can't continue. Returns the
+   * plaintext temporary password for the admin to relay out-of-band.
+   * admin.users.update. Refuses resetting your own account via this path.
+   */
+  adminResetPassword(
+    request: AdminResetPasswordRequest,
+    callback: (error: ServiceError | null, response: AdminResetPasswordResponse) => void
+  ): ClientUnaryCall;
+  adminResetPassword(
+    request: AdminResetPasswordRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AdminResetPasswordResponse) => void
+  ): ClientUnaryCall;
+  adminResetPassword(
+    request: AdminResetPasswordRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AdminResetPasswordResponse) => void
   ): ClientUnaryCall;
   /**
    * Returns the full default field-permission configuration (the

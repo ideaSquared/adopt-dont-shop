@@ -181,6 +181,13 @@ service AuthService {
   // assignment from a non-super_admin actor.
   rpc BulkUpdateUsers(BulkUpdateUsersRequest) returns (BulkUpdateUsersResponse);
 
+  // Admin-initiated password reset. Generates a temporary password, hashes
+  // and stores it, clears any lockout, and revokes the target's active
+  // refresh tokens so existing sessions can't continue. Returns the
+  // plaintext temporary password for the admin to relay out-of-band.
+  // admin.users.update. Refuses resetting your own account via this path.
+  rpc AdminResetPassword(AdminResetPasswordRequest) returns (AdminResetPasswordResponse);
+
   // --- Field permissions admin -----------------------------------------
 
   // Returns the full default field-permission configuration (the
@@ -717,6 +724,16 @@ message ReactivateUserRequest {
 
 message ReactivateUserResponse {
   User user = 1;
+}
+
+message AdminResetPasswordRequest {
+  string user_id = 1;
+}
+
+message AdminResetPasswordResponse {
+  // Plaintext temporary password. Never persisted in the clear — the
+  // admin relays it to the user, who changes it on next sign-in.
+  string temporary_password = 1;
 }
 
 message GetUserStatisticsRequest {}

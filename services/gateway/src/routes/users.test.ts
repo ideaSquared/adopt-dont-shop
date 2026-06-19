@@ -75,6 +75,7 @@ function makeAuthClient(): AuthClient & {
   getUserStatisticsMock: ReturnType<typeof vi.fn>;
   getUserPermissionsMock: ReturnType<typeof vi.fn>;
   bulkUpdateUsersMock: ReturnType<typeof vi.fn>;
+  adminResetPasswordMock: ReturnType<typeof vi.fn>;
 } {
   const getMeMock = vi.fn();
   const updateAccountMock = vi.fn();
@@ -89,6 +90,7 @@ function makeAuthClient(): AuthClient & {
   const getUserStatisticsMock = vi.fn();
   const getUserPermissionsMock = vi.fn();
   const bulkUpdateUsersMock = vi.fn();
+  const adminResetPasswordMock = vi.fn();
   return {
     getMe: getMeMock,
     updateAccount: updateAccountMock,
@@ -103,6 +105,7 @@ function makeAuthClient(): AuthClient & {
     getUserStatistics: getUserStatisticsMock,
     getUserPermissions: getUserPermissionsMock,
     bulkUpdateUsers: bulkUpdateUsersMock,
+    adminResetPassword: adminResetPasswordMock,
     login: vi.fn(),
     logout: vi.fn(),
     refreshToken: vi.fn(),
@@ -130,6 +133,7 @@ function makeAuthClient(): AuthClient & {
     getUserStatisticsMock,
     getUserPermissionsMock,
     bulkUpdateUsersMock,
+    adminResetPasswordMock,
   };
 }
 
@@ -624,6 +628,62 @@ describe('/api/v1/admin/users surface', () => {
     expect(res.statusCode).toBe(400);
     expect(auth.adminUpdateUserMock).not.toHaveBeenCalled();
     expect(auth.reactivateUserMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/v1/admin/users/:userId/reset-password', () => {
+  let app: FastifyInstance;
+  let auth: ReturnType<typeof makeAuthClient>;
+  let notif: ReturnType<typeof makeNotifClient>;
+
+  beforeEach(async () => {
+    auth = makeAuthClient();
+    notif = makeNotifClient();
+    app = await buildApp(auth, notif);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns the temporary password under the snake_case key the SPA reads', async () => {
+    auth.adminResetPasswordMock.mockResolvedValueOnce({ temporaryPassword: 'tmp-Abc123' });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/users/usr-9/reset-password',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ temporary_password: 'tmp-Abc123' });
+    const [grpcReq] = auth.adminResetPasswordMock.mock.calls[0] as [{ userId: string }, Metadata];
+    expect(grpcReq.userId).toBe('usr-9');
+  });
+
+  it('maps PERMISSION_DENIED → 403', async () => {
+    auth.adminResetPasswordMock.mockRejectedValueOnce({
+      code: status.PERMISSION_DENIED,
+      details: 'no',
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/users/usr-9/reset-password',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('maps NOT_FOUND → 404', async () => {
+    auth.adminResetPasswordMock.mockRejectedValueOnce({
+      code: status.NOT_FOUND,
+      details: 'gone',
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/users/ghost/reset-password',
+      headers: { 'x-user-id': 'svc-admin', 'x-user-roles': 'admin' },
+    });
+    expect(res.statusCode).toBe(404);
   });
 });
 

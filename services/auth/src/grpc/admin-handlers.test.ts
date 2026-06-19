@@ -8,6 +8,7 @@ import { AuthV1 } from '@adopt-dont-shop/proto';
 
 import {
   adminGetUser,
+  adminResetPassword,
   adminUpdateUser,
   bulkUpdateUsers,
   deactivateUser,
@@ -296,6 +297,59 @@ describe('reactivateUser', () => {
     const res = await reactivateUser(mocks.deps, ADMIN, { userId: 'usr-1' });
     expect(res.user?.status).toBe(AuthV1.UserStatus.USER_STATUS_ACTIVE);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.userReactivated');
+  });
+});
+
+// --- adminResetPassword ----------------------------------------------
+
+describe('adminResetPassword', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+    (mocks.deps.passwordHasher.hash as ReturnType<typeof vi.fn>).mockResolvedValue('hashed-temp');
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects principals without admin.users.update', async () => {
+    await expect(
+      adminResetPassword(mocks.deps, NO_PERMS, { userId: 'usr-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects a missing user_id', async () => {
+    await expect(adminResetPassword(mocks.deps, ADMIN, { userId: '' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('refuses resetting your own account', async () => {
+    await expect(
+      adminResetPassword(mocks.deps, ADMIN, { userId: 'svc-admin' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('maps a missing user to NOT_FOUND', async () => {
+    mocks.clientScript.push({ rows: [] }); // UPDATE auth.users returns no rows
+    await expect(adminResetPassword(mocks.deps, ADMIN, { userId: 'ghost' })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('hashes a generated password, revokes sessions, and publishes the event', async () => {
+    mocks.clientScript.push({ rows: [{ user_id: 'usr-1' }] }); // UPDATE auth.users
+    mocks.clientScript.push({ rows: [] }); // UPDATE auth.refresh_tokens
+
+    const res = await adminResetPassword(mocks.deps, ADMIN, { userId: 'usr-1' });
+
+    // A non-empty plaintext temp password is returned to the admin...
+    expect(res.temporaryPassword).toBeTruthy();
+    // ...and it is the plaintext that was hashed (never persisted in clear).
+    const hashMock = mocks.deps.passwordHasher.hash as ReturnType<typeof vi.fn>;
+    expect(hashMock).toHaveBeenCalledTimes(1);
+    expect(hashMock).toHaveBeenCalledWith(res.temporaryPassword);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.passwordResetByAdmin');
   });
 });
 

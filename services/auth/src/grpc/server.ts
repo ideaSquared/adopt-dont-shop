@@ -39,6 +39,7 @@ import {
 } from './handlers.js';
 import {
   adminGetUser,
+  adminResetPassword,
   adminUpdateUser,
   bulkUpdateUsers,
   deactivateUser,
@@ -121,6 +122,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getUserStatistics: adapt(getUserStatistics, { deps, logger }),
     getUserPermissions: adapt(getUserPermissions, { deps, logger }),
     bulkUpdateUsers: adapt(bulkUpdateUsers, { deps, logger }),
+    adminResetPassword: adapt(adminResetPassword, { deps, logger }),
     listUserIdsByCohort: adapt(listUserIdsByCohort, { deps, logger }),
     // Field-level permissions admin — /api/v1/field-permissions/*.
     getFieldPermissionDefaults: adapt(getFieldPermissionDefaults, { deps, logger }),
@@ -164,6 +166,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getUserStatistics',
       'getUserPermissions',
       'bulkUpdateUsers',
+      'adminResetPassword',
       'listUserIdsByCohort',
       'getFieldPermissionDefaults',
       'getFieldPermissionDefaultsForRole',
