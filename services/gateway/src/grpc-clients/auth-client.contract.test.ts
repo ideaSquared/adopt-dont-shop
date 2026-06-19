@@ -13,8 +13,6 @@
 
 import {
   Metadata,
-  Server,
-  ServerCredentials,
   type ServerUnaryCall,
   type sendUnaryData,
   type ServiceError,
@@ -29,7 +27,9 @@ import {
   type ValidateTokenResponse,
 } from '@adopt-dont-shop/proto';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+import { startStubGrpcServer, type StubGrpcServer } from '@adopt-dont-shop/test-utils';
 
 import { createAuthClient } from './auth-client.js';
 
@@ -86,29 +86,15 @@ const makeHandlers = (overrides: Partial<AuthV1.AuthServiceServer>): AuthV1.Auth
   ...overrides,
 });
 
+// Start a stub gRPC server for a single test case; the returned `stub`
+// carries `stub.address` and `stub.close()`. Callers are responsible for
+// calling `stub.close()` in a `finally` block.
+const startTestServer = (handlers: AuthV1.AuthServiceServer): Promise<StubGrpcServer> =>
+  startStubGrpcServer(AuthV1.AuthServiceService, handlers);
+
 // ── suite ─────────────────────────────────────────────────────────────
 
 describe('auth-client — gRPC contract', () => {
-  let server: Server;
-  let port: number;
-
-  beforeEach(() => {
-    server = new Server();
-  });
-
-  afterEach(async () => {
-    await new Promise<void>(resolve => server.tryShutdown(() => resolve()));
-  });
-
-  const startServer = (handlers: AuthV1.AuthServiceServer): Promise<number> =>
-    new Promise<number>((resolve, reject) => {
-      server.addService(AuthV1.AuthServiceService, handlers);
-      server.bindAsync('127.0.0.1:0', ServerCredentials.createInsecure(), (err, boundPort) => {
-        if (err) reject(err);
-        else resolve(boundPort);
-      });
-    });
-
   // ── 1. Happy-path read: validateToken ────────────────────────────
 
   it('validateToken — returns typed response round-trip', async () => {
@@ -124,7 +110,7 @@ describe('auth-client — gRPC contract', () => {
 
     let receivedToken = '';
 
-    port = await startServer(
+    const stub = await startTestServer(
       makeHandlers({
         validateToken: (
           call: ServerUnaryCall<ValidateTokenRequest, ValidateTokenResponse>,
@@ -136,7 +122,7 @@ describe('auth-client — gRPC contract', () => {
       })
     );
 
-    const client = createAuthClient({ address: `127.0.0.1:${port}` });
+    const client = createAuthClient({ address: stub.address });
     try {
       const result = await client.validateToken({ accessToken: 'tok-abc' }, new Metadata());
       expect(receivedToken).toBe('tok-abc');
@@ -144,6 +130,7 @@ describe('auth-client — gRPC contract', () => {
       expect(result.expiresAt).toBe('2026-01-01T00:00:00Z');
     } finally {
       client.close();
+      await stub.close();
     }
   });
 
@@ -174,7 +161,7 @@ describe('auth-client — gRPC contract', () => {
     let capturedEmail = '';
     let capturedPassword = '';
 
-    port = await startServer(
+    const stub = await startTestServer(
       makeHandlers({
         login: (
           call: ServerUnaryCall<LoginRequest, LoginResponse>,
@@ -187,7 +174,7 @@ describe('auth-client — gRPC contract', () => {
       })
     );
 
-    const client = createAuthClient({ address: `127.0.0.1:${port}` });
+    const client = createAuthClient({ address: stub.address });
     try {
       const result = await client.login(
         { email: 'login@example.com', password: 'secret' },
@@ -199,13 +186,14 @@ describe('auth-client — gRPC contract', () => {
       expect(result.user?.userId).toBe('user-456');
     } finally {
       client.close();
+      await stub.close();
     }
   });
 
   // ── 3. Error contract ────────────────────────────────────────────
 
   it('validateToken — NOT_FOUND from the server surfaces with .code === status.NOT_FOUND', async () => {
-    port = await startServer(
+    const stub = await startTestServer(
       makeHandlers({
         validateToken: (
           _call: ServerUnaryCall<ValidateTokenRequest, ValidateTokenResponse>,
@@ -216,7 +204,7 @@ describe('auth-client — gRPC contract', () => {
       })
     );
 
-    const client = createAuthClient({ address: `127.0.0.1:${port}` });
+    const client = createAuthClient({ address: stub.address });
     try {
       await client.validateToken({ accessToken: 'missing' }, new Metadata());
       expect.fail('expected rejection');
@@ -224,6 +212,7 @@ describe('auth-client — gRPC contract', () => {
       expect((err as { code?: number }).code).toBe(status.NOT_FOUND);
     } finally {
       client.close();
+      await stub.close();
     }
   });
 
@@ -236,7 +225,7 @@ describe('auth-client — gRPC contract', () => {
   // this keeps the elapsed time bounded to a single 5s deadline.
 
   it('deadline — a never-responding server produces DEADLINE_EXCEEDED within ~6s', async () => {
-    port = await startServer(
+    const stub = await startTestServer(
       makeHandlers({
         login: (
           _call: ServerUnaryCall<LoginRequest, LoginResponse>,
@@ -247,7 +236,7 @@ describe('auth-client — gRPC contract', () => {
       })
     );
 
-    const client = createAuthClient({ address: `127.0.0.1:${port}` });
+    const client = createAuthClient({ address: stub.address });
     const start = Date.now();
     try {
       await client.login({ email: 'test@example.com', password: 'secret' }, new Metadata());
@@ -261,6 +250,7 @@ describe('auth-client — gRPC contract', () => {
       expect(elapsed).toBeLessThan(7_000);
     } finally {
       client.close();
+      await stub.close();
     }
   }, 8_000); // explicit timeout > 5s deadline
 });
