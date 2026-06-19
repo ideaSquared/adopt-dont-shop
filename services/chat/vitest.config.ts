@@ -17,6 +17,9 @@ export default defineConfig({
         // the `main()` entrypoint wrapper isn't — exclude it like migrations so
         // it doesn't drag the ratcheted floor.
         'src/db/seed.ts',
+        // Dev-only bulk-data ('spam') seeder — a manual, env-gated CLI that
+        // never runs in production. Excluded like the seed CLI above.
+        'src/db/spam.ts',
         'src/**/index.ts',
       ],
       reporter: ['text', 'lcov'],

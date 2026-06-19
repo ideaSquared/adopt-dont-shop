@@ -122,6 +122,28 @@ pnpm db:seed        # root orchestrator: docker compose exec into
 
 `pnpm db:seed` is safe to re-run at any time. Per-service overrides are available too (`docker compose exec service-auth pnpm db:seed`).
 
+### Spamming the stack (dev-only bulk data)
+
+`db:seed` only plants a small fixed persona set. To make a dev database _look_ like production — hundreds of pets, applications, chats, notifications — use the bulk **spam** seeder:
+
+```bash
+pnpm db:spam        # floods the running stack with faker volume
+```
+
+It runs each service's `db:spam` script (`tsx ./src/db/spam.ts`) in dependency order: auth (adopters + staff) → rescue → pets + ratings → applications → chat → notifications. Spam users get `@example.test` emails and share the password `DevPassword123!` (override with `SPAM_PASSWORD`), so you can log in as any of them.
+
+**It is gated and additive:**
+
+- **Gated** — every script refuses unless `NODE_ENV` ∈ {`development`, `test`} _and_ `ALLOW_SPAM=true`. The orchestrator sets both when execing into the containers, so a stray `DATABASE_URL` can't flood staging/prod. (Staging gets realistic-flow generators separately; spam is dev-only.)
+- **Additive** — each run inserts fresh random-UUID rows. Re-running adds _more_ data; it does not upsert. Wipe with `pnpm docker:reset`.
+
+Volume is tunable per entity via `SPAM_*` env vars (forwarded into the containers). Defaults: 50 adopters, 20 staff, 8 rescues, 200 pets, 100 ratings, 400 applications, 150 chats, 2000 messages, 800 notifications.
+
+```bash
+SPAM_PETS=2000 SPAM_APPLICATIONS=5000 pnpm db:spam   # heavier load
+FAKER_SEED=7 pnpm db:spam                            # different generated text
+```
+
 **Seeded personas** (all share the password `DevPassword123!`, override with `SEED_PASSWORD`):
 
 | Email | Role | App |
