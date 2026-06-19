@@ -68,26 +68,6 @@ export type GatewayConfig = {
     // else that wants to mint a signed URL.
     signingSecret?: string;
   };
-  // Per-domain strangler cutover switches. When false (the default), the
-  // gateway does NOT register that domain's /api/v1/* routes, so requests
-  // fall through the catch-all proxy to the residual monolith — today's
-  // behaviour. Flip a domain to true ONLY once its gateway routes return
-  // a frontend-compatible response shape (see ADR 0002 — the gRPC
-  // proto-JSON shape diverges from the frontend contract, so a per-domain
-  // adapter must land before that domain goes live). Env:
-  // CUTOVER_<DOMAIN>=true.
-  cutover: {
-    auth: boolean;
-    notifications: boolean;
-    pets: boolean;
-    rescue: boolean;
-    applications: boolean;
-    moderation: boolean;
-    matching: boolean;
-    audit: boolean;
-    chat: boolean;
-    cms: boolean;
-  };
   // Gateway-folded routes — per the plan's "small static reads fold
   // into service.gateway" guidance. Each block is independently
   // toggle-able so a deploy can roll out legal vs config separately.
@@ -184,18 +164,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     chatGrpcUrl: env.CHAT_GRPC_URL?.trim() || DEFAULT_CHAT_GRPC_URL,
     cmsGrpcUrl: env.CMS_GRPC_URL?.trim() || DEFAULT_CMS_GRPC_URL,
     storage: buildStorageConfig(env),
-    cutover: {
-      auth: isEnabled(env.CUTOVER_AUTH),
-      notifications: isEnabled(env.CUTOVER_NOTIFICATIONS),
-      pets: isEnabled(env.CUTOVER_PETS),
-      rescue: isEnabled(env.CUTOVER_RESCUE),
-      applications: isEnabled(env.CUTOVER_APPLICATIONS),
-      moderation: isEnabled(env.CUTOVER_MODERATION),
-      matching: isEnabled(env.CUTOVER_MATCHING),
-      audit: isEnabled(env.CUTOVER_AUDIT),
-      chat: isEnabled(env.CUTOVER_CHAT),
-      cms: isEnabled(env.CUTOVER_CMS),
-    },
     legal: {
       enabled: env.GATEWAY_LEGAL_ENABLED?.trim().toLowerCase() !== 'false',
       docsDir: env.LEGAL_DOCS_DIR?.trim() || 'docs/legal',
@@ -249,8 +217,8 @@ function buildRateLimitConfig(env: NodeJS.ProcessEnv): GatewayConfig['rateLimit'
 // sets E2E_TOKEN_PEEK=true in a production deploy, this THROWS at boot so the
 // gateway never comes up exposing one-time secrets. The seam additionally
 // needs DATABASE_URL (which prod never wires to the gateway) — defence in
-// depth. Enabled requires the exact string "true" (case-insensitive), matching
-// the cutover-flag convention.
+// depth. Enabled requires the exact string "true" (case-insensitive), per the
+// isEnabled() convention.
 function buildTestTokenPeekConfig(env: NodeJS.ProcessEnv): GatewayConfig['testTokenPeek'] {
   const enabled = isEnabled(env.E2E_TOKEN_PEEK);
   const environment = env.NODE_ENV?.trim() || 'development';
@@ -265,9 +233,8 @@ function buildTestTokenPeekConfig(env: NodeJS.ProcessEnv): GatewayConfig['testTo
   };
 }
 
-// A cutover flag is on only for the exact string "true" (case-insensitive).
-// Anything else — unset, "false", "0", "" — leaves the domain proxied to
-// the monolith.
+// A boolean env flag is on only for the exact string "true" (case-insensitive).
+// Anything else — unset, "false", "0", "" — is treated as off.
 function isEnabled(raw: string | undefined): boolean {
   return raw?.trim().toLowerCase() === 'true';
 }

@@ -1,10 +1,9 @@
 // REST → gRPC translation for the rescue service's staff / foster /
-// invitation-read surface. Ports the monolith's /api/v1/staff/*,
-// /api/v1/foster/* and GET /api/v1/invitations/details/:token.
+// invitation-read surface. Serves /api/v1/staff/*, /api/v1/foster/* and
+// GET /api/v1/invitations/details/:token.
 //
-// Mounted under the rescue cutover flag. Responses use the monolith's
-// `{ success, data }` envelope so the SPA (lib.rescue, staff views)
-// doesn't notice the cutover.
+// Registers when the rescue service client is wired. Responses use the
+// `{ success, data }` envelope the SPA (lib.rescue, staff views) expects.
 
 import type { FastifyInstance } from 'fastify';
 

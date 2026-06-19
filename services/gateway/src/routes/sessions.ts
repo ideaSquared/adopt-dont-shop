@@ -2,14 +2,14 @@
 //
 // Maps the SPA's existing session-management surface onto the auth
 // service's new ListSessions / RevokeSession RPCs (introduced in the
-// same PR that wires this route). Path shapes mirror the monolith
-// exactly so the SPA needs no change at cutover:
+// same PR that wires this route). Path shapes match what the SPA
+// already expects:
 //
 //   GET    /api/v1/sessions              listSessions
 //   DELETE /api/v1/sessions/:sessionId   revokeSession (204 on success)
 //
-// Mounted under the existing CUTOVER_AUTH flag — sessions are an auth
-// surface, so they cut over together with login/logout/etc.
+// Registers alongside the other auth routes (gated on the auth client
+// being wired).
 
 import type { FastifyInstance } from 'fastify';
 

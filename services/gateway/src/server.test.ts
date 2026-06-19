@@ -284,18 +284,6 @@ describe('createServer — per-route rate limit override (auth login)', () => {
     server = await createServer({
       config: {
         ...baseConfig,
-        cutover: {
-          auth: true,
-          notifications: false,
-          pets: false,
-          rescue: false,
-          applications: false,
-          moderation: false,
-          matching: false,
-          audit: false,
-          chat: false,
-          cms: false,
-        },
         rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
       },
       logger: quietLogger,
@@ -368,24 +356,11 @@ describe('createServer — Prometheus rate-limit counter', () => {
   });
 });
 
-// Per-domain cutover gate. With the flag OFF (default) the gateway does
-// NOT register the domain's /api/v1/* routes, so the request 404s.
-// With the flag ON the gateway's route plugin intercepts it.
-describe('createServer — per-domain cutover gate', () => {
+// Domain routes register whenever their gRPC client is wired — there is
+// no migration toggle anymore. A path whose client isn't wired, or that
+// the gateway doesn't own, falls through to the 404 handler.
+describe('createServer — domain route registration', () => {
   let server: FastifyInstance;
-
-  const allOff = {
-    auth: false,
-    notifications: false,
-    pets: false,
-    rescue: false,
-    applications: false,
-    moderation: false,
-    matching: false,
-    audit: false,
-    chat: false,
-    cms: false,
-  } as const;
 
   // A stub applications client whose List resolves an empty page. Only
   // the List path is exercised here.
@@ -397,29 +372,36 @@ describe('createServer — per-domain cutover gate', () => {
     await server?.close();
   });
 
-  it('404s /api/v1/applications when cutover.applications is OFF (even with a client)', async () => {
+  it('registers /api/v1/applications when the applications client is wired', async () => {
     server = await createServer({
-      config: { ...baseConfig, cutover: { ...allOff } },
+      config: baseConfig,
       logger: quietLogger,
       applicationsClient,
+    });
+    const res = await server.inject({ method: 'GET', url: '/api/v1/applications' });
+    // The gateway route served it — the view adapter wraps the (empty)
+    // result in the frontend's `{ data }` envelope.
+    expect(res.json()).toEqual({ data: [] });
+  });
+
+  it('404s /api/v1/applications when no applications client is wired', async () => {
+    server = await createServer({
+      config: baseConfig,
+      logger: quietLogger,
     });
     const res = await server.inject({ method: 'GET', url: '/api/v1/applications' });
     expect(res.statusCode).toBe(404);
   });
 
-  it('intercepts /api/v1/applications at the gateway route when cutover.applications is ON', async () => {
+  it('404s an /api/* path the gateway does not own', async () => {
     server = await createServer({
-      config: {
-        ...baseConfig,
-        cutover: { ...allOff, applications: true },
-      },
+      config: baseConfig,
       logger: quietLogger,
       applicationsClient,
     });
-    const res = await server.inject({ method: 'GET', url: '/api/v1/applications' });
-    // The gateway route served it — Stage B view adapter wraps the
-    // (empty) result in the frontend's `{ data }` envelope.
-    expect(res.json()).toEqual({ data: [] });
+    const res = await server.inject({ method: 'GET', url: '/api/v1/nonexistent' });
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: 'not_found' });
   });
 });
 
@@ -452,26 +434,13 @@ describe('createServer — /docs gate (admin only)', () => {
     } as unknown as Parameters<typeof createServer>[0]['authClient'];
   }
 
-  const allCutoverOff = {
-    auth: false,
-    notifications: false,
-    pets: false,
-    rescue: false,
-    applications: false,
-    moderation: false,
-    matching: false,
-    audit: false,
-    chat: false,
-    cms: false,
-  } as const;
-
   afterEach(async () => {
     await server?.close();
   });
 
   it('returns 403 for unauthenticated requests to /docs when authClient is wired', async () => {
     server = await createServer({
-      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      config: baseConfig,
       logger: quietLogger,
       authClient: makeAuthClient([]), // stub — won't be called (no Bearer token)
     });
@@ -483,7 +452,7 @@ describe('createServer — /docs gate (admin only)', () => {
   it('returns 403 for non-admin authenticated requests to /docs', async () => {
     // Role 1 = adopter — not admin
     server = await createServer({
-      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      config: baseConfig,
       logger: quietLogger,
       authClient: makeAuthClient([1]),
     });
@@ -498,7 +467,7 @@ describe('createServer — /docs gate (admin only)', () => {
   it('allows admin users through to /docs', async () => {
     // Role 3 = admin
     server = await createServer({
-      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      config: baseConfig,
       logger: quietLogger,
       authClient: makeAuthClient([3]),
     });
@@ -514,7 +483,7 @@ describe('createServer — /docs gate (admin only)', () => {
   it('allows super_admin users through to /docs', async () => {
     // Role 5 = super_admin
     server = await createServer({
-      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      config: baseConfig,
       logger: quietLogger,
       authClient: makeAuthClient([5]),
     });
@@ -528,7 +497,7 @@ describe('createServer — /docs gate (admin only)', () => {
 
   it('serves /openapi.json without authentication (stays open for SDK tooling)', async () => {
     server = await createServer({
-      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      config: baseConfig,
       logger: quietLogger,
       authClient: makeAuthClient([]),
     });
@@ -538,7 +507,7 @@ describe('createServer — /docs gate (admin only)', () => {
 
   it('leaves /docs open when no authClient is wired (dev / smoke-test mode)', async () => {
     server = await createServer({
-      config: { ...baseConfig, cutover: { ...allCutoverOff } },
+      config: baseConfig,
       logger: quietLogger,
       // No authClient — authenticate middleware is skipped entirely
     });

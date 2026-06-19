@@ -1,8 +1,8 @@
 // REST → gRPC translation for /api/v1/applications/*.
 //
-// Phase 5.3d cutover. Same strangler-fig shape as routes/moderation.ts
-// (#929) / routes/matching.ts (#923) — registers BEFORE the catch-all
-// proxy so first-registered-wins prefix routing picks it off.
+// Same shape as routes/moderation.ts (#929) / routes/matching.ts (#923)
+// — registers BEFORE the /api/* 404 handler so first-registered-wins
+// prefix routing picks it off.
 //
 // Two layers (ADR 0002, Stage B):
 //
@@ -23,9 +23,8 @@
 //   withdraw,adopt}.
 //
 // Authz lives in the service handlers; the gateway stamps x-user-*
-// metadata via the Phase 2.5 authenticate middleware. These routes only
-// serve traffic when CUTOVER_APPLICATIONS is on (else /api/v1/* proxies
-// to the monolith) — see server.ts.
+// metadata via the authenticate middleware. These routes register
+// whenever the applications service client is wired — see server.ts.
 
 import rateLimit from '@fastify/rate-limit';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';

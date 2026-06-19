@@ -342,10 +342,9 @@ services:
 
   # ==========================================================================
   # EXTRACTED MICROSERVICES (CAD-style). Opt-in via `--profile services`.
-  # The gateway fronts /api/* and proxies to the monolith for every domain
-  # whose CUTOVER_<DOMAIN> flag is off (the default), so bringing these up
-  # changes nothing until a flag is flipped. gRPC URL defaults in the gateway
-  # config (service-<name>:<port>) match these container names.
+  # The gateway is the single REST surface fronting /api/* and routes each
+  # domain to its gRPC service. gRPC URL defaults in the gateway config
+  # (service-<name>:<port>) match these container names.
   # ==========================================================================
 
   service-gateway:
@@ -364,20 +363,6 @@ services:
       # Same Redis the other microservices use; the gateway gets its own
       # key namespace via the plugin's default nameSpace.
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-      # Phase 11: the monolith is deleted, so there is no proxy fall-through —
-      # a domain whose flag is off just 404s at the gateway. Dev and e2e want
-      # every extracted domain live, so default each flag on (overridable via
-      # .env). Without these the gateway registers no /api/v1/* routes at all.
-      CUTOVER_AUTH: ${CUTOVER_AUTH:-true}
-      CUTOVER_NOTIFICATIONS: ${CUTOVER_NOTIFICATIONS:-true}
-      CUTOVER_PETS: ${CUTOVER_PETS:-true}
-      CUTOVER_RESCUE: ${CUTOVER_RESCUE:-true}
-      CUTOVER_APPLICATIONS: ${CUTOVER_APPLICATIONS:-true}
-      CUTOVER_MODERATION: ${CUTOVER_MODERATION:-true}
-      CUTOVER_MATCHING: ${CUTOVER_MATCHING:-true}
-      CUTOVER_AUDIT: ${CUTOVER_AUDIT:-true}
-      CUTOVER_CHAT: ${CUTOVER_CHAT:-true}
-      CUTOVER_CMS: ${CUTOVER_CMS:-true}
       # ADS-800: same shared key as the *ms-env services — the gateway is
       # the signer, the services are the verifiers.
       PRINCIPAL_SIGNING_KEY: ${PRINCIPAL_SIGNING_KEY:-}

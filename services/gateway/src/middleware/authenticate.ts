@@ -177,6 +177,9 @@ export const registerAuthenticate = async (
         // a principal — but guard so a future contract drift fails
         // closed instead of silently forwarding unauth as auth.
         if (!isPublic) {
+          logger.warn('rejecting request: token validated but no principal returned', {
+            url: req.url,
+          });
           return reply.code(401).send({ error: 'invalid token' });
         }
         return;
@@ -235,7 +238,12 @@ export const registerAuthenticate = async (
       }
       const grpcCode = (err as { code?: number }).code;
       const httpStatus = grpcCode === grpcStatus.UNAUTHENTICATED ? 401 : 500;
-      if (httpStatus !== 401) {
+      if (httpStatus === 401) {
+        // Invalid / expired / revoked token on a protected path. Log at
+        // warn so a flood of 401s (e.g. a stale SPA session) is visible in
+        // the gateway logs instead of failing silently.
+        logger.warn('rejecting request: invalid token', { url: req.url });
+      } else {
         logger.error('ValidateToken upstream error', {
           err: (err as Error)?.message ?? String(err),
           url: req.url,

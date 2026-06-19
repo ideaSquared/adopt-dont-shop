@@ -3,8 +3,8 @@
 // The service.applications gRPC surface returns proto-JSON that diverges
 // from the frontend's `ApplicationSchema` (lib.applications). This module
 // is the read-side translation: a decoded proto `Application` →
-// the frontend's view shape, so flipping CUTOVER_APPLICATIONS on serves a
-// shape the SPA's Zod parse accepts unchanged.
+// the frontend's view shape, so the gateway serves a shape the SPA's Zod
+// parse accepts unchanged.
 //
 // Two divergences handled here:
 //

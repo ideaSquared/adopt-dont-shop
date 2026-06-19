@@ -3,8 +3,8 @@
 // service.pets returns proto-JSON; the frontend lib.pets `PetSchema`
 // expects snake_case fields, lowercase enum tokens, the long-tail fields
 // unpacked from the proto's `extra_json` blob, and a `{ success, data,
-// meta }` envelope. This module is that translation so flipping
-// CUTOVER_PETS serves a shape the SPA's Zod parse accepts.
+// meta }` envelope. This module is that translation so the gateway
+// serves a shape the SPA's Zod parse accepts.
 //
 // Only `pet_id` + `name` are required on the frontend schema; everything
 // else is optional, so we map what the proto carries and omit the rest.

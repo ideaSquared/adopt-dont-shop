@@ -15,7 +15,7 @@ decide in 10 seconds whether to escalate.
 | [`deploy-rollback.md`](./deploy-rollback.md)     | Bad deploy: image is live but error rate is up           |
 | [`migration-failure.md`](./migration-failure.md) | `service-backend-migrate` exited non-zero; backend won't start |
 | [`maintenance-mode.md`](./maintenance-mode.md)   | Planned outage, controlled brownout, or kill-switch needed |
-| [`applications-cutover.md`](./applications-cutover.md) | Flipping `/api/v1/applications/*` to the microservice (or rolling back) |
+| [`applications-cutover.md`](./applications-cutover.md) | _Obsolete_ — per-domain cutover flags removed; gateway always registers routes |
 
 ## On-call principles
 

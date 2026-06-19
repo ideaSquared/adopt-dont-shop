@@ -555,23 +555,6 @@ jobs:
             # out.
             echo "UPLOAD_SIGNING_SECRET=$(openssl rand -base64 32)"
             echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002"
-            # Phase 11 follow-up: per-domain cutover flags must be on so
-            # the gateway actually registers its /api/v1/* routes. With
-            # them off (the production-prod default during strangler
-            # migration) the gateway returns 404 for every API path,
-            # which makes the e2e suite uniformly red. The monolith is
-            # gone — there is no fall-through — so for e2e we want all
-            # extracted domains live.
-            echo "CUTOVER_AUTH=true"
-            echo "CUTOVER_NOTIFICATIONS=true"
-            echo "CUTOVER_PETS=true"
-            echo "CUTOVER_RESCUE=true"
-            echo "CUTOVER_APPLICATIONS=true"
-            echo "CUTOVER_MODERATION=true"
-            echo "CUTOVER_MATCHING=true"
-            echo "CUTOVER_AUDIT=true"
-            echo "CUTOVER_CHAT=true"
-            echo "CUTOVER_CMS=true"
             # Raise the gateway's global per-IP rate limit for e2e. A full
             # Playwright run drives the whole SPA (favourites, chats,
             # notifications, permissions, legal, match, csrf) across parallel

@@ -1,6 +1,13 @@
 # ADR 0002 — Applications strangler-fig cutover plan
 
-- Status: Proposed
+> **Superseded.** The per-domain `CUTOVER_<DOMAIN>` switches this ADR describes
+> have been removed. The residual monolith was deleted (Phase 11) and the
+> gateway now always registers a domain's routes when its gRPC client is wired —
+> there is no flag and no fall-through. The response-shape (view-adapter)
+> requirements below remain the standard for any gateway route. Retained for
+> historical context.
+
+- Status: Superseded
 - Date: 2026-06-06
 - Scope: `services/applications`, `services/gateway`, `services/api` (residual
   monolith), `lib.applications`

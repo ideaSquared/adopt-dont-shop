@@ -66,25 +66,12 @@ const stubPetsClient = {
   getStats: () => Promise.resolve({}),
 } as unknown as Parameters<typeof createServer>[0]['petsClient'];
 
-const allCutover = {
-  auth: true,
-  notifications: false,
-  pets: true,
-  rescue: false,
-  applications: false,
-  moderation: false,
-  matching: false,
-  audit: false,
-  chat: false,
-  cms: false,
-} as const;
-
 describe('createServer — OpenAPI spec endpoint', () => {
   let server: FastifyInstance;
 
   beforeEach(async () => {
     server = await createServer({
-      config: { ...baseConfig, cutover: { ...allCutover } } as GatewayConfig,
+      config: baseConfig,
       logger: quietLogger,
       authClient: stubAuthClient,
       petsClient: stubPetsClient,

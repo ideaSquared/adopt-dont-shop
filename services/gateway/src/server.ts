@@ -32,7 +32,7 @@ import {
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import Redis from 'ioredis';
 import { Counter } from 'prom-client';
 
@@ -385,17 +385,14 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
 
   // Service-specific routes register at /api/v1/<domain> BEFORE the
-  // catch-all proxy — Fastify's first-registered-wins prefix routing
-  // picks them off before the catch-all sees the request.
+  // unmatched-route 404 handler — Fastify's first-registered-wins prefix
+  // routing picks them off before the catch-all sees the request.
   //
-  // Each domain registers ONLY when (a) its gRPC client is wired and
-  // (b) its per-domain cutover flag is on. The flag defaults off, so by
-  // default these routes are NOT registered and /api/v1/* falls through
-  // to the residual monolith — preserving today's behaviour. A domain
-  // goes live only once its routes return a frontend-compatible shape
-  // (ADR 0002). NOTE: the authenticate middleware above is independent
-  // of cutover.auth and always runs; only the /api/v1/auth/* ROUTES are
-  // gated here.
+  // Each domain registers when its gRPC client is wired. If a service's
+  // client is not configured (e.g. a partial test harness, or a service
+  // that hasn't come up), its routes are skipped and those paths fall to
+  // the 404 handler. There is no monolith fall-through — the gateway is
+  // the single REST surface.
   // Per-email rate limiter for the auth surface (ADS-844). Layered on top of
   // the per-IP @fastify/rate-limit cap to throttle an email-flood spread across
   // many IPs. Reuses the rate-limit Redis store when available so the cap is
@@ -406,18 +403,17 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     redis: rateLimitRedis,
   });
 
-  const { cutover } = config;
-  if (opts.authClient && cutover.auth) {
+  if (opts.authClient) {
     await registerAuthRoutes(server, { client: opts.authClient, emailRateLimiter });
-    // /api/v1/sessions/* — list/revoke. Shares the auth cutover flag
-    // because it's the same identity surface from the SPA's POV.
+    // /api/v1/sessions/* — list/revoke. Same auth client because it's the
+    // same identity surface from the SPA's POV.
     await registerSessionsRoutes(server, { client: opts.authClient });
     // /api/v1/field-permissions/* — admin surface. Backed entirely by
     // service.auth (which owns the field_permissions table + lib.types
-    // defaults). Shares the auth cutover flag.
+    // defaults).
     await registerFieldPermissionsRoutes(server, { client: opts.authClient });
   }
-  if (opts.notificationsClient && cutover.notifications) {
+  if (opts.notificationsClient) {
     await registerNotificationsRoutes(server, { client: opts.notificationsClient });
     // /api/v1/devices/* — register / list / unregister device tokens.
     // Reuses the same notifications gRPC client (device token RPCs
@@ -426,25 +422,25 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // /api/v1/email/templates/* — admin email-template CRUD. The
     // email_templates table is owned by service.notifications.
     await registerEmailRoutes(server, { client: opts.notificationsClient });
-    // /api/v1/notifications/broadcast — admin fan-out. Sits under the
-    // notifications cutover gate (the upstream call lives in service.
-    // notifications, which in turn calls service.auth for the cohort).
+    // /api/v1/notifications/broadcast — admin fan-out (the upstream call
+    // lives in service.notifications, which in turn calls service.auth for
+    // the cohort).
     await registerBroadcastRoutes(server, { client: opts.notificationsClient });
   }
   // /api/v1/users/* — profile + composed preferences. Requires BOTH
   // auth (profile + privacy prefs) and notifications (in-app channel
-  // prefs) cutover so the unified GET /preferences can compose without
+  // prefs) clients so the unified GET /preferences can compose without
   // partial data.
-  if (opts.authClient && opts.notificationsClient && cutover.auth && cutover.notifications) {
+  if (opts.authClient && opts.notificationsClient) {
     await registerUsersRoutes(server, {
       authClient: opts.authClient,
       notificationsClient: opts.notificationsClient,
     });
   }
-  if (opts.petsClient && cutover.pets) {
+  if (opts.petsClient) {
     await registerPetsRoutes(server, { client: opts.petsClient });
   }
-  if (opts.rescueClient && cutover.rescue) {
+  if (opts.rescueClient) {
     await registerRescueRoutes(server, { client: opts.rescueClient });
     // SPA-facing surface at /api/v1/rescues/* (plural — the path
     // lib.rescue actually calls).
@@ -455,24 +451,24 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   // POST /api/v1/invitations/accept — register-on-accept. Orchestrates
   // auth (provision the invited user) + rescue (consume the invitation +
-  // attach staff membership), so it needs BOTH cutover flags on.
-  if (opts.authClient && opts.rescueClient && cutover.auth && cutover.rescue) {
+  // attach staff membership), so it needs BOTH clients wired.
+  if (opts.authClient && opts.rescueClient) {
     await registerInvitationAcceptRoutes(server, {
       authClient: opts.authClient,
       rescueClient: opts.rescueClient,
     });
   }
-  if (opts.auditClient && cutover.audit) {
+  if (opts.auditClient) {
     await registerAuditRoutes(server, { client: opts.auditClient });
     // /api/v1/reports/* — saved reports + templates. Owned by
-    // service.audit (same gRPC stub). Shares the audit cutover flag
-    // because the audit service ships the rows.
+    // service.audit (same gRPC stub) because the audit service ships the
+    // rows.
     await registerReportsRoutes(server, { client: opts.auditClient });
   }
-  if (opts.matchingClient && cutover.matching) {
+  if (opts.matchingClient) {
     await registerMatchingRoutes(server, { client: opts.matchingClient });
   }
-  if (opts.moderationClient && cutover.moderation) {
+  if (opts.moderationClient) {
     await registerModerationRoutes(server, { client: opts.moderationClient });
     // SPA-facing surface at /api/v1/admin/{moderation,support}/* with
     // frontend-shape envelopes (lib.moderation, lib.support-tickets).
@@ -507,7 +503,7 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     signingSecret: config.storage.signingSecret,
   });
 
-  if (opts.applicationsClient && cutover.applications) {
+  if (opts.applicationsClient) {
     await registerApplicationsRoutes(server, { client: opts.applicationsClient });
     // Application document routes (multipart upload → storage → AddDocument).
     await registerApplicationDocumentsRoutes(server, {
@@ -515,24 +511,17 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       storage: storageConfig,
     });
   }
-  if (opts.chatClient && cutover.chat) {
+  if (opts.chatClient) {
     await registerChatRoutes(server, { client: opts.chatClient });
   }
-  if (opts.cmsClient && cutover.cms) {
+  if (opts.cmsClient) {
     await registerCmsRoutes(server, { client: opts.cmsClient });
   }
   // /api/v1/dashboard/* — cross-service composition (pets stats + apps
   // stats + rescue staff count + recent pet/application activity). Only
-  // registers when ALL three backing services have a wired client AND
-  // are cutover, so partial-cutover envs don't return half-empty data.
-  if (
-    opts.petsClient &&
-    opts.applicationsClient &&
-    opts.rescueClient &&
-    cutover.pets &&
-    cutover.applications &&
-    cutover.rescue
-  ) {
+  // registers when ALL three backing services have a wired client, so a
+  // partial harness doesn't return half-empty data.
+  if (opts.petsClient && opts.applicationsClient && opts.rescueClient) {
     await registerDashboardRoutes(server, {
       petsClient: opts.petsClient,
       applicationsClient: opts.applicationsClient,
@@ -540,10 +529,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     });
   }
 
-  // Gateway-folded surface — no upstream service required, no cutover
-  // flag. Per the plan: "CMS / legal / config — small static reads fold
-  // into service.gateway". CMS extraction itself is deferred (full DB
-  // schema + admin CRUD); legal markdown + public config land here.
+  // Gateway-folded surface — no upstream service required. Per the plan:
+  // "CMS / legal / config — small static reads fold into service.gateway".
+  // CMS extraction itself is deferred (full DB schema + admin CRUD); legal
+  // markdown + public config land here.
   if (config.legal.enabled) {
     await registerLegalRoutes(server, { docsDir: config.legal.docsDir });
   }
@@ -583,15 +572,21 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     );
   }
 
-  // Phase 11: the residual monolith has been deleted, so the catch-all
-  // proxy is gone with it. Any /api/* path the gateway doesn't explicitly
-  // own now 404s rather than silently round-tripping bytes to a backend
-  // that doesn't exist.
-  server.get('/api/*', async (_req, reply) => reply.code(404).send({ error: 'not_found' }));
-  server.post('/api/*', async (_req, reply) => reply.code(404).send({ error: 'not_found' }));
-  server.put('/api/*', async (_req, reply) => reply.code(404).send({ error: 'not_found' }));
-  server.patch('/api/*', async (_req, reply) => reply.code(404).send({ error: 'not_found' }));
-  server.delete('/api/*', async (_req, reply) => reply.code(404).send({ error: 'not_found' }));
+  // Any /api/* path the gateway doesn't explicitly own 404s — the gateway
+  // is the single REST surface and there is no fall-through. We LOG every
+  // unmatched API request at warn: a 404 here usually means a service
+  // client wasn't wired (so its routes never registered) or the SPA is
+  // calling a path that doesn't exist. Without this line the failure is
+  // invisible in the logs (Fastify's own request logging is disabled).
+  const apiNotFound = async (req: FastifyRequest, reply: FastifyReply) => {
+    logger.warn('unmatched API route', { method: req.method, url: req.url });
+    return reply.code(404).send({ error: 'not_found' });
+  };
+  server.get('/api/*', apiNotFound);
+  server.post('/api/*', apiNotFound);
+  server.put('/api/*', apiNotFound);
+  server.patch('/api/*', apiNotFound);
+  server.delete('/api/*', apiNotFound);
 
   return server;
 };
