@@ -3,8 +3,9 @@
 How the Adopt Don't Shop REST API is versioned, what counts as a breaking
 change, and the lifecycle a route follows from deprecation to sunset. The
 contract this document governs is the gateway's public REST surface — the
-single `/api/v1/*` edge served by `services/gateway`, described by
-[`docs/backend/openapi.yaml`](./backend/openapi.yaml).
+single `/api/v1/*` edge served by `services/gateway`, described by the
+OpenAPI document the gateway generates from its route schemas (served as
+JSON at `/openapi.json` and browsable at `/docs`).
 
 > Scope: the public REST API only. The internal gRPC contracts between the
 > gateway and the extracted services are versioned separately by the proto
@@ -15,9 +16,9 @@ single `/api/v1/*` edge served by `services/gateway`, described by
 - The API is versioned **in the URL path**: `/api/v<N>/`.
 - **Every route is currently on `v1`** (`/api/v1/...`). There is no `v2` yet.
 - The version is a single integer that increments only when a backwards-
-  incompatible change cannot be avoided. It is **not** tied to the package
-  `version` (`1.0.0`) in `openapi.yaml` — the OpenAPI `info.version` tracks
-  spec revisions; the path version tracks the wire contract.
+  incompatible change cannot be avoided. It is **not** tied to the generated
+  spec's OpenAPI `info.version` — that tracks spec revisions; the path
+  version tracks the wire contract.
 - A new major version is introduced **side-by-side**: `/api/v2/*` routes are
   added while `/api/v1/*` continues to serve until its sunset date. We do not
   reuse a version number after it is retired.
@@ -92,17 +93,22 @@ to engineers (e.g. log a warning on any response carrying a `Sunset` header).
 
 ### OpenAPI annotation
 
-A deprecated route or field is marked in the OpenAPI document so the change is
-visible in generated docs and SDKs:
+A deprecated route is marked in the route's `schema` annotation in the
+gateway, which `@fastify/swagger` surfaces in the generated document so the
+change is visible in `/docs` and any generated SDK:
 
-```yaml
-paths:
-  /api/v1/old-thing:
-    get:
-      deprecated: true
-      description: |
-        Deprecated 2026-08-01, sunset 2027-02-01. Use `/api/v1/new-thing`.
-        See docs/api-versioning.md.
+```ts
+server.get(
+  '/api/v1/old-thing',
+  {
+    schema: {
+      deprecated: true,
+      description:
+        'Deprecated 2026-08-01, sunset 2027-02-01. Use /api/v1/new-thing. See docs/api-versioning.md.',
+    },
+  },
+  handler
+);
 ```
 
 `deprecated: true` is the canonical machine-readable signal; the headers above
@@ -121,9 +127,10 @@ are its runtime counterpart. Keep the two in sync.
    what is being deprecated, the replacement, the timeline (deprecation date +
    sunset date), and the migration steps. Link it from this document and from
    the OpenAPI `description`.
-4. **Mark it deprecated.** Set `deprecated: true` in `openapi.yaml`, wire the
-   `Deprecation` / `Sunset` / `Link` headers on the route in the gateway, and
-   add the dates to the route's `description`.
+4. **Mark it deprecated.** Set `deprecated: true` in the route's `schema`
+   annotation in the gateway (it flows into the generated spec), wire the
+   `Deprecation` / `Sunset` / `Link` headers on the route, and add the dates
+   to the route's `description`.
 5. **Announce.** Note the deprecation in the commit using a conventional
    commit `BREAKING CHANGE:` footer so it surfaces in the changelog:
 
@@ -156,7 +163,7 @@ deprecate `v1` with `Deprecation` / `Sunset` headers and an ADR, run the
 - [ ] Change confirmed breaking (else: ship additively, stop here).
 - [ ] Replacement route/field live and documented.
 - [ ] ADR written under `docs/adr/` with deprecation + sunset dates.
-- [ ] `deprecated: true` set in `openapi.yaml`; dates in the `description`.
+- [ ] `deprecated: true` set in the route's `schema` annotation; dates in the `description`.
 - [ ] `Deprecation` + `Sunset` + `Link` headers wired in the gateway.
 - [ ] Conventional commit carries a `BREAKING CHANGE:` footer.
 - [ ] Calendar reminder set for the sunset date.
