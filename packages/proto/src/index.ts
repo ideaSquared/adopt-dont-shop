@@ -150,6 +150,8 @@ export type {
   DeactivateUserResponse,
   ReactivateUserRequest,
   ReactivateUserResponse,
+  AdminResetPasswordRequest,
+  AdminResetPasswordResponse,
   GetUserStatisticsRequest,
   GetUserStatisticsResponse,
   GetUserPermissionsRequest,

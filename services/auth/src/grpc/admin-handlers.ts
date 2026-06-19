@@ -7,6 +7,8 @@
 // Reuses rowToProtoUser + UserRow + the enum maps from handlers.ts so
 // the admin view returns the same User shape GetMe does.
 
+import { randomBytes } from 'node:crypto';
+
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
 import type { Permission } from '@adopt-dont-shop/lib.types';
@@ -14,6 +16,8 @@ import {
   AuthV1,
   type AdminGetUserRequest,
   type AdminGetUserResponse,
+  type AdminResetPasswordRequest,
+  type AdminResetPasswordResponse,
   type AdminUpdateUserRequest,
   type AdminUpdateUserResponse,
   type BulkUpdateUsersRequest,
@@ -341,6 +345,69 @@ async function setStatus(
     throw new HandlerError('INTERNAL', 'status update returned no rows');
   }
   return { user: rowToProtoUser(updated) };
+}
+
+// --- AdminResetPassword ----------------------------------------------
+
+// A URL-safe random string with enough entropy to be a one-time password.
+// 18 bytes → 24 base64url chars; communicated out-of-band and changed by
+// the user on next sign-in.
+function generateTemporaryPassword(): string {
+  return randomBytes(18).toString('base64url');
+}
+
+export async function adminResetPassword(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: AdminResetPasswordRequest
+): Promise<AdminResetPasswordResponse> {
+  if (!req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
+  }
+  if (!hasPermission(principal, ADMIN_USERS_UPDATE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_USERS_UPDATE}' required`);
+  }
+  if (req.userId === principal.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'cannot reset your own password via the admin path');
+  }
+
+  const temporaryPassword = generateTemporaryPassword();
+  const passwordHash = await deps.passwordHasher.hash(temporaryPassword);
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    const res = await client.query<{ user_id: string }>(
+      `
+      UPDATE auth.users
+      SET password = $1, login_attempts = 0, locked_until = NULL,
+          updated_at = now(), version = version + 1
+      WHERE user_id = $2 AND deleted_at IS NULL
+      RETURNING user_id
+      `,
+      [passwordHash, req.userId]
+    );
+    if (res.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
+    }
+
+    // Revoke active refresh tokens so existing sessions can't continue
+    // under the old credentials.
+    await client.query(
+      `
+      UPDATE auth.refresh_tokens
+      SET revoked_at = now(), is_revoked = true, updated_at = now()
+      WHERE user_id = $1 AND revoked_at IS NULL
+      `,
+      [req.userId]
+    );
+
+    publish({
+      type: 'auth.passwordResetByAdmin',
+      id: `auth.passwordResetByAdmin.${req.userId}.${Date.now()}`,
+      payload: { userId: req.userId, resetBy: principal.userId },
+    });
+  });
+
+  return { temporaryPassword };
 }
 
 // --- GetUserStatistics -----------------------------------------------

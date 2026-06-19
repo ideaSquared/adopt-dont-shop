@@ -67,6 +67,8 @@ import {
   type DeactivateUserResponse,
   type ReactivateUserRequest,
   type ReactivateUserResponse,
+  type AdminResetPasswordRequest,
+  type AdminResetPasswordResponse,
   type GetUserStatisticsRequest,
   type GetUserStatisticsResponse,
   type GetUserPermissionsRequest,
@@ -145,6 +147,10 @@ export type AuthClient = {
   ): Promise<AdminUpdateUserResponse>;
   deactivateUser(req: DeactivateUserRequest, metadata: Metadata): Promise<DeactivateUserResponse>;
   reactivateUser(req: ReactivateUserRequest, metadata: Metadata): Promise<ReactivateUserResponse>;
+  adminResetPassword(
+    req: AdminResetPasswordRequest,
+    metadata: Metadata
+  ): Promise<AdminResetPasswordResponse>;
   getUserStatistics(
     req: GetUserStatisticsRequest,
     metadata: Metadata
@@ -273,6 +279,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     deactivateUser: (req, metadata) => callUnary(stub.deactivateUser, req, metadata, false),
     reactivateUser: (req, metadata) => callUnary(stub.reactivateUser, req, metadata, false),
     bulkUpdateUsers: (req, metadata) => callUnary(stub.bulkUpdateUsers, req, metadata, false),
+    adminResetPassword: (req, metadata) => callUnary(stub.adminResetPassword, req, metadata, false),
     upsertFieldPermission: (req, metadata) =>
       callUnary(stub.upsertFieldPermission, req, metadata, false),
     bulkUpsertFieldPermissions: (req, metadata) =>
