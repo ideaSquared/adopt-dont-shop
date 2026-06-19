@@ -153,95 +153,139 @@ export const registerCmsRoutes = async (
   const { client } = opts;
 
   // --- Public reads (no auth) ----------------------------------------
-  app.get('/api/v1/cms/public/content', async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q);
-    if (!pagination.ok) {
-      return reply.code(400).send({ success: false, error: pagination.error });
-    }
-    const grpcReq: CmsListPublicContentRequest = {
-      contentType: contentTypeFromString(q.type),
-      page: pagination.page,
-      limit: pagination.limit,
-    };
-    try {
-      const res = await client.listPublicContent(grpcReq, buildMetadata(req));
-      return reply.send({
-        success: true,
-        data: res.items.map(contentToView),
-        pagination: {
-          page: res.page,
-          limit: grpcReq.limit || 20,
-          total: res.total,
-          totalPages: res.totalPages,
-        },
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
-
-  app.get<{ Params: { slug: string } }>('/api/v1/cms/public/content/:slug', async (req, reply) => {
-    try {
-      const res = await client.getPublicContentBySlug(
-        { slug: req.params.slug },
-        buildMetadata(req)
-      );
-      if (!res.content) {
-        return reply.code(404).send({ success: false, error: 'not found' });
+  app.get(
+    '/api/v1/cms/public/content',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'List public CMS content',
+        security: [],
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q);
+      if (!pagination.ok) {
+        return reply.code(400).send({ success: false, error: pagination.error });
       }
-      return reply.send({ success: true, content: contentToView(res.content) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+      const grpcReq: CmsListPublicContentRequest = {
+        contentType: contentTypeFromString(q.type),
+        page: pagination.page,
+        limit: pagination.limit,
+      };
+      try {
+        const res = await client.listPublicContent(grpcReq, buildMetadata(req));
+        return reply.send({
+          success: true,
+          data: res.items.map(contentToView),
+          pagination: {
+            page: res.page,
+            limit: grpcReq.limit || 20,
+            total: res.total,
+            totalPages: res.totalPages,
+          },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
+
+  app.get<{ Params: { slug: string } }>(
+    '/api/v1/cms/public/content/:slug',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Get public CMS content by slug',
+        security: [],
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.getPublicContentBySlug(
+          { slug: req.params.slug },
+          buildMetadata(req)
+        );
+        if (!res.content) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        return reply.send({ success: true, content: contentToView(res.content) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
 
   // --- Admin content reads ------------------------------------------
-  app.get('/api/v1/cms/content', async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q);
-    if (!pagination.ok) {
-      return reply.code(400).send({ success: false, error: pagination.error });
+  app.get(
+    '/api/v1/cms/content',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'List CMS content (admin)',
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q);
+      if (!pagination.ok) {
+        return reply.code(400).send({ success: false, error: pagination.error });
+      }
+      const grpcReq: CmsListContentRequest = {
+        contentType: contentTypeFromString(q.type),
+        status: contentStatusFromString(q.status),
+        search: q.search,
+        page: pagination.page,
+        limit: pagination.limit,
+      };
+      try {
+        const res = await client.listContent(grpcReq, buildMetadata(req));
+        return reply.send({
+          success: true,
+          data: res.items.map(contentToView),
+          pagination: {
+            page: res.page,
+            limit: grpcReq.limit || 20,
+            total: res.total,
+            totalPages: res.totalPages,
+          },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-    const grpcReq: CmsListContentRequest = {
-      contentType: contentTypeFromString(q.type),
-      status: contentStatusFromString(q.status),
-      search: q.search,
-      page: pagination.page,
-      limit: pagination.limit,
-    };
-    try {
-      const res = await client.listContent(grpcReq, buildMetadata(req));
-      return reply.send({
-        success: true,
-        data: res.items.map(contentToView),
-        pagination: {
-          page: res.page,
-          limit: grpcReq.limit || 20,
-          total: res.total,
-          totalPages: res.totalPages,
-        },
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   // Slug lookup BEFORE the dynamic :contentId so it isn't shadowed.
-  app.get<{ Params: { slug: string } }>('/api/v1/cms/content/slug/:slug', async (req, reply) => {
-    try {
-      const res = await client.getContentBySlug({ slug: req.params.slug }, buildMetadata(req));
-      if (!res.content) {
-        return reply.code(404).send({ success: false, error: 'not found' });
+  app.get<{ Params: { slug: string } }>(
+    '/api/v1/cms/content/slug/:slug',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Get CMS content by slug (admin)',
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.getContentBySlug({ slug: req.params.slug }, buildMetadata(req));
+        if (!res.content) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        return reply.send({ success: true, content: contentToView(res.content) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
       }
-      return reply.send({ success: true, content: contentToView(res.content) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
     }
-  });
+  );
 
   app.get<{ Params: { contentId: string } }>(
     '/api/v1/cms/content/:contentId',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Get a CMS content item by ID',
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.getContent(
@@ -258,55 +302,70 @@ export const registerCmsRoutes = async (
     }
   );
 
-  app.post('/api/v1/cms/content', async (req, reply) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const grpcReq: CmsCreateContentRequest = {
-      title: String(body.title ?? ''),
-      slug: String(body.slug ?? ''),
-      contentType: contentTypeFromString(String(body.contentType ?? body.content_type ?? '')),
-      content: String(body.content ?? ''),
-      excerpt: typeof body.excerpt === 'string' ? body.excerpt : undefined,
-      metaTitle:
-        typeof body.metaTitle === 'string'
-          ? body.metaTitle
-          : typeof body.meta_title === 'string'
-            ? body.meta_title
-            : undefined,
-      metaDescription:
-        typeof body.metaDescription === 'string'
-          ? body.metaDescription
-          : typeof body.meta_description === 'string'
-            ? body.meta_description
-            : undefined,
-      metaKeywords: Array.isArray(body.metaKeywords)
-        ? (body.metaKeywords as string[])
-        : Array.isArray(body.meta_keywords)
-          ? (body.meta_keywords as string[])
-          : [],
-      featuredImageUrl:
-        typeof body.featuredImageUrl === 'string'
-          ? body.featuredImageUrl
-          : typeof body.featured_image_url === 'string'
-            ? body.featured_image_url
-            : undefined,
-      scheduledPublishAt:
-        typeof body.scheduledPublishAt === 'string' ? body.scheduledPublishAt : undefined,
-      scheduledUnpublishAt:
-        typeof body.scheduledUnpublishAt === 'string' ? body.scheduledUnpublishAt : undefined,
-    };
-    try {
-      const res = await client.createContent(grpcReq, buildMetadata(req));
-      if (!res.content) {
-        return reply.code(500).send({ success: false, error: 'no content' });
+  app.post(
+    '/api/v1/cms/content',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Create a CMS content item',
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: CmsCreateContentRequest = {
+        title: String(body.title ?? ''),
+        slug: String(body.slug ?? ''),
+        contentType: contentTypeFromString(String(body.contentType ?? body.content_type ?? '')),
+        content: String(body.content ?? ''),
+        excerpt: typeof body.excerpt === 'string' ? body.excerpt : undefined,
+        metaTitle:
+          typeof body.metaTitle === 'string'
+            ? body.metaTitle
+            : typeof body.meta_title === 'string'
+              ? body.meta_title
+              : undefined,
+        metaDescription:
+          typeof body.metaDescription === 'string'
+            ? body.metaDescription
+            : typeof body.meta_description === 'string'
+              ? body.meta_description
+              : undefined,
+        metaKeywords: Array.isArray(body.metaKeywords)
+          ? (body.metaKeywords as string[])
+          : Array.isArray(body.meta_keywords)
+            ? (body.meta_keywords as string[])
+            : [],
+        featuredImageUrl:
+          typeof body.featuredImageUrl === 'string'
+            ? body.featuredImageUrl
+            : typeof body.featured_image_url === 'string'
+              ? body.featured_image_url
+              : undefined,
+        scheduledPublishAt:
+          typeof body.scheduledPublishAt === 'string' ? body.scheduledPublishAt : undefined,
+        scheduledUnpublishAt:
+          typeof body.scheduledUnpublishAt === 'string' ? body.scheduledUnpublishAt : undefined,
+      };
+      try {
+        const res = await client.createContent(grpcReq, buildMetadata(req));
+        if (!res.content) {
+          return reply.code(500).send({ success: false, error: 'no content' });
+        }
+        return reply.code(201).send({ success: true, content: contentToView(res.content) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
       }
-      return reply.code(201).send({ success: true, content: contentToView(res.content) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
     }
-  });
+  );
 
   app.put<{ Params: { contentId: string } }>(
     '/api/v1/cms/content/:contentId',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Update a CMS content item',
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as Record<string, unknown>;
       const hasMetaKeywords = Array.isArray(body.metaKeywords) || Array.isArray(body.meta_keywords);
@@ -346,6 +405,12 @@ export const registerCmsRoutes = async (
 
   app.delete<{ Params: { contentId: string } }>(
     '/api/v1/cms/content/:contentId',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Delete a CMS content item',
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.deleteContent(
@@ -365,33 +430,55 @@ export const registerCmsRoutes = async (
   // Workflow
   const workflow = (
     path: string,
-    fn: (id: string, m: Metadata) => Promise<{ content?: CmsContent }>
+    fn: (id: string, m: Metadata) => Promise<{ content?: CmsContent }>,
+    summary: string
   ): void => {
-    app.post<{ Params: { contentId: string } }>(path, async (req, reply) => {
-      try {
-        const res = await fn(req.params.contentId, buildMetadata(req));
-        if (!res.content) {
-          return reply.code(404).send({ success: false, error: 'not found' });
+    app.post<{ Params: { contentId: string } }>(
+      path,
+      {
+        schema: {
+          tags: ['cms'],
+          summary,
+        },
+      },
+      async (req, reply) => {
+        try {
+          const res = await fn(req.params.contentId, buildMetadata(req));
+          if (!res.content) {
+            return reply.code(404).send({ success: false, error: 'not found' });
+          }
+          return reply.send({ success: true, content: contentToView(res.content) });
+        } catch (err) {
+          return handleGrpcError(err, reply);
         }
-        return reply.send({ success: true, content: contentToView(res.content) });
-      } catch (err) {
-        return handleGrpcError(err, reply);
       }
-    });
+    );
   };
-  workflow('/api/v1/cms/content/:contentId/publish', (id, m) =>
-    client.publishContent({ contentId: id }, m)
+  workflow(
+    '/api/v1/cms/content/:contentId/publish',
+    (id, m) => client.publishContent({ contentId: id }, m),
+    'Publish a CMS content item'
   );
-  workflow('/api/v1/cms/content/:contentId/unpublish', (id, m) =>
-    client.unpublishContent({ contentId: id }, m)
+  workflow(
+    '/api/v1/cms/content/:contentId/unpublish',
+    (id, m) => client.unpublishContent({ contentId: id }, m),
+    'Unpublish a CMS content item'
   );
-  workflow('/api/v1/cms/content/:contentId/archive', (id, m) =>
-    client.archiveContent({ contentId: id }, m)
+  workflow(
+    '/api/v1/cms/content/:contentId/archive',
+    (id, m) => client.archiveContent({ contentId: id }, m),
+    'Archive a CMS content item'
   );
 
   // Versions
   app.get<{ Params: { contentId: string } }>(
     '/api/v1/cms/content/:contentId/versions',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Get version history for a CMS content item',
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.getVersionHistory(
@@ -411,6 +498,12 @@ export const registerCmsRoutes = async (
 
   app.post<{ Params: { contentId: string; version: string } }>(
     '/api/v1/cms/content/:contentId/versions/:version/restore',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Restore a CMS content item to a previous version',
+      },
+    },
     async (req, reply) => {
       const version = Number.parseInt(req.params.version, 10);
       if (Number.isNaN(version) || version <= 0) {
@@ -432,96 +525,141 @@ export const registerCmsRoutes = async (
   );
 
   // --- Menus --------------------------------------------------------
-  app.get('/api/v1/cms/menus', async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const grpcReq = {
-      location: q.location,
-      isActive: q.active === 'true' ? true : q.active === 'false' ? false : undefined,
-    };
-    try {
-      const res = await client.listMenus(grpcReq, buildMetadata(req));
-      return reply.send({ success: true, data: res.menus.map(menuToView) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
-
-  app.get<{ Params: { menuId: string } }>('/api/v1/cms/menus/:menuId', async (req, reply) => {
-    try {
-      const res = await client.getMenu({ menuId: req.params.menuId }, buildMetadata(req));
-      if (!res.menu) {
-        return reply.code(404).send({ success: false, error: 'not found' });
+  app.get(
+    '/api/v1/cms/menus',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'List CMS menus',
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const grpcReq = {
+        location: q.location,
+        isActive: q.active === 'true' ? true : q.active === 'false' ? false : undefined,
+      };
+      try {
+        const res = await client.listMenus(grpcReq, buildMetadata(req));
+        return reply.send({ success: true, data: res.menus.map(menuToView) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
       }
-      return reply.send({ success: true, menu: menuToView(res.menu) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
     }
-  });
+  );
 
-  app.post('/api/v1/cms/menus', async (req, reply) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const itemsJson = Array.isArray(body.items)
-      ? JSON.stringify(body.items)
-      : typeof body.items === 'string'
-        ? body.items
-        : '[]';
-    try {
-      const res = await client.createMenu(
-        {
-          name: String(body.name ?? ''),
-          location: String(body.location ?? ''),
-          itemsJson,
-          isActive: typeof body.isActive === 'boolean' ? body.isActive : undefined,
-        },
-        buildMetadata(req)
-      );
-      if (!res.menu) {
-        return reply.code(500).send({ success: false, error: 'no menu' });
+  app.get<{ Params: { menuId: string } }>(
+    '/api/v1/cms/menus/:menuId',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Get a CMS menu by ID',
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.getMenu({ menuId: req.params.menuId }, buildMetadata(req));
+        if (!res.menu) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        return reply.send({ success: true, menu: menuToView(res.menu) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
       }
-      return reply.code(201).send({ success: true, menu: menuToView(res.menu) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
     }
-  });
+  );
 
-  app.put<{ Params: { menuId: string } }>('/api/v1/cms/menus/:menuId', async (req, reply) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const itemsJson = Array.isArray(body.items)
-      ? JSON.stringify(body.items)
-      : typeof body.items === 'string'
-        ? body.items
-        : undefined;
-    try {
-      const res = await client.updateMenu(
-        {
-          menuId: req.params.menuId,
-          name: typeof body.name === 'string' ? body.name : undefined,
-          location: typeof body.location === 'string' ? body.location : undefined,
-          itemsJson,
-          isActive: typeof body.isActive === 'boolean' ? body.isActive : undefined,
-        },
-        buildMetadata(req)
-      );
-      if (!res.menu) {
-        return reply.code(404).send({ success: false, error: 'not found' });
+  app.post(
+    '/api/v1/cms/menus',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Create a CMS menu',
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const itemsJson = Array.isArray(body.items)
+        ? JSON.stringify(body.items)
+        : typeof body.items === 'string'
+          ? body.items
+          : '[]';
+      try {
+        const res = await client.createMenu(
+          {
+            name: String(body.name ?? ''),
+            location: String(body.location ?? ''),
+            itemsJson,
+            isActive: typeof body.isActive === 'boolean' ? body.isActive : undefined,
+          },
+          buildMetadata(req)
+        );
+        if (!res.menu) {
+          return reply.code(500).send({ success: false, error: 'no menu' });
+        }
+        return reply.code(201).send({ success: true, menu: menuToView(res.menu) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
       }
-      return reply.send({ success: true, menu: menuToView(res.menu) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
     }
-  });
+  );
 
-  app.delete<{ Params: { menuId: string } }>('/api/v1/cms/menus/:menuId', async (req, reply) => {
-    try {
-      const res = await client.deleteMenu({ menuId: req.params.menuId }, buildMetadata(req));
-      if (!res.deleted) {
-        return reply.code(404).send({ success: false, error: 'not found' });
+  app.put<{ Params: { menuId: string } }>(
+    '/api/v1/cms/menus/:menuId',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Update a CMS menu',
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const itemsJson = Array.isArray(body.items)
+        ? JSON.stringify(body.items)
+        : typeof body.items === 'string'
+          ? body.items
+          : undefined;
+      try {
+        const res = await client.updateMenu(
+          {
+            menuId: req.params.menuId,
+            name: typeof body.name === 'string' ? body.name : undefined,
+            location: typeof body.location === 'string' ? body.location : undefined,
+            itemsJson,
+            isActive: typeof body.isActive === 'boolean' ? body.isActive : undefined,
+          },
+          buildMetadata(req)
+        );
+        if (!res.menu) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        return reply.send({ success: true, menu: menuToView(res.menu) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
       }
-      return reply.send({ success: true });
-    } catch (err) {
-      return handleGrpcError(err, reply);
     }
-  });
+  );
+
+  app.delete<{ Params: { menuId: string } }>(
+    '/api/v1/cms/menus/:menuId',
+    {
+      schema: {
+        tags: ['cms'],
+        summary: 'Delete a CMS menu',
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.deleteMenu({ menuId: req.params.menuId }, buildMetadata(req));
+        if (!res.deleted) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        return reply.send({ success: true });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
 };
 
 // --- Helpers --------------------------------------------------------

@@ -91,7 +91,13 @@ export const registerRescueRoutes = async (
 
   app.get(
     '/api/v1/rescue',
-    { config: { rateLimit: RESCUE_RATE_LIMITS.list } },
+    {
+      config: { rateLimit: RESCUE_RATE_LIMITS.list },
+      schema: {
+        tags: ['rescue'],
+        summary: 'List rescues',
+      },
+    },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
       const pagination = parsePagination(query, { limit: 0 });
@@ -114,7 +120,13 @@ export const registerRescueRoutes = async (
 
   app.get<{ Params: { id: string } }>(
     '/api/v1/rescue/:id',
-    { config: { rateLimit: RESCUE_RATE_LIMITS.get } },
+    {
+      config: { rateLimit: RESCUE_RATE_LIMITS.get },
+      schema: {
+        tags: ['rescue'],
+        summary: 'Get a rescue by ID',
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.get({ rescueId: req.params.id }, buildMetadata(req));
@@ -127,7 +139,13 @@ export const registerRescueRoutes = async (
 
   app.post(
     '/api/v1/rescue',
-    { config: { rateLimit: RESCUE_RATE_LIMITS.create } },
+    {
+      config: { rateLimit: RESCUE_RATE_LIMITS.create },
+      schema: {
+        tags: ['rescue'],
+        summary: 'Create a rescue',
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as CreateRescueBody;
       const grpcReq: CreateRescueRequest = {
@@ -160,7 +178,13 @@ export const registerRescueRoutes = async (
 
   app.patch<{ Params: { id: string } }>(
     '/api/v1/rescue/:id',
-    { config: { rateLimit: RESCUE_RATE_LIMITS.update } },
+    {
+      config: { rateLimit: RESCUE_RATE_LIMITS.update },
+      schema: {
+        tags: ['rescue'],
+        summary: 'Update a rescue',
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as UpdateRescueBody;
       const grpcReq: UpdateRescueRequest = { rescueId: req.params.id, ...body };
@@ -175,7 +199,13 @@ export const registerRescueRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/rescue/:id/verify',
-    { config: { rateLimit: RESCUE_RATE_LIMITS.verify } },
+    {
+      config: { rateLimit: RESCUE_RATE_LIMITS.verify },
+      schema: {
+        tags: ['rescue'],
+        summary: 'Verify a rescue',
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as VerifyBody;
       const grpcReq: VerifyRescueRequest = {
@@ -195,7 +225,13 @@ export const registerRescueRoutes = async (
 
   app.post<{ Params: { id: string } }>(
     '/api/v1/rescue/:id/invitations',
-    { config: { rateLimit: RESCUE_RATE_LIMITS.inviteStaff } },
+    {
+      config: { rateLimit: RESCUE_RATE_LIMITS.inviteStaff },
+      schema: {
+        tags: ['rescue'],
+        summary: 'Invite staff to a rescue',
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as InviteStaffBody;
       const grpcReq: InviteStaffRequest = {
@@ -221,7 +257,13 @@ export const registerRescueRoutes = async (
 
   app.get<{ Params: { rescueId: string } }>(
     '/api/v1/rescues/:rescueId/questions',
-    { config: { rateLimit: RESCUE_RATE_LIMITS.get } },
+    {
+      config: { rateLimit: RESCUE_RATE_LIMITS.get },
+      schema: {
+        tags: ['rescue'],
+        summary: 'List application questions for a rescue',
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.listApplicationQuestions(
@@ -240,7 +282,13 @@ export const registerRescueRoutes = async (
 
   app.post<{ Params: { rescueId: string } }>(
     '/api/v1/rescues/:rescueId/questions',
-    { config: { rateLimit: RESCUE_RATE_LIMITS.update } },
+    {
+      config: { rateLimit: RESCUE_RATE_LIMITS.update },
+      schema: {
+        tags: ['rescue'],
+        summary: 'Create an application question for a rescue',
+      },
+    },
     async (req, reply) => {
       const body = (req.body ?? {}) as QuestionBody;
       const grpcReq: CreateApplicationQuestionRequest = {
@@ -274,7 +322,13 @@ export const registerRescueRoutes = async (
 
   app.delete<{ Params: { rescueId: string; questionId: string } }>(
     '/api/v1/rescues/:rescueId/questions/:questionId',
-    { config: { rateLimit: RESCUE_RATE_LIMITS.update } },
+    {
+      config: { rateLimit: RESCUE_RATE_LIMITS.update },
+      schema: {
+        tags: ['rescue'],
+        summary: 'Delete an application question',
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.deleteApplicationQuestion(

@@ -59,6 +59,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@adopt-dont-shop/test-utils": "workspace:*",
     "@pact-foundation/pact": "^13.1.4",
     "@types/pg": "^8.15.5",
     "socket.io-client": "^4.8.3"

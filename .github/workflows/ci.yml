@@ -73,6 +73,11 @@ jobs:
       - name: Verify prod/staging base images are digest-pinned
         run: node scripts/check-docker-pinning.mjs
 
+      # ADS-847: the nginx CSP baked into Dockerfile.app must not contain
+      # 'unsafe-inline' in style-src now that styled-components is gone.
+      - name: Verify CSP style-src has no unsafe-inline
+        run: node scripts/check-csp-headers.mjs
+
   # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes
   # ============================================================================

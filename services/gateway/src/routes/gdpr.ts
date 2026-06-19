@@ -68,7 +68,14 @@ export const registerGdprRoutes = async (
 
   app.post(
     '/api/v1/users/me/erasure-request',
-    { config: { rateLimit: ERASURE_RATE_LIMIT } },
+    {
+      config: { rateLimit: ERASURE_RATE_LIMIT },
+      schema: {
+        tags: ['gdpr'],
+        summary: 'Submit a GDPR erasure request for the authenticated user',
+        security: [],
+      },
+    },
     async (req, reply) => {
       const userId = principalUserId(req);
       if (!userId) {
@@ -158,6 +165,12 @@ export const registerGdprRoutes = async (
   if (auditClient) {
     app.get<{ Params: { correlationId: string } }>(
       '/api/v1/users/me/erasure-request/:correlationId',
+      {
+        schema: {
+          tags: ['gdpr'],
+          summary: 'Get the status of a GDPR erasure request by correlation ID',
+        },
+      },
       async (req, reply) => {
         try {
           const res = await auditClient.getGdprErasureRequest(

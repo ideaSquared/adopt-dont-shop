@@ -41,189 +41,262 @@ export const registerNotificationsRoutes = async (
 ): Promise<void> => {
   const { client } = opts;
 
-  app.get('/api/v1/notifications', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const query = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(query, { limit: 0 });
-    if (!pagination.ok) {
-      return reply.code(400).send({ error: pagination.error });
+  app.get(
+    '/api/v1/notifications',
+    {
+      schema: {
+        tags: ['notifications'],
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const query = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(query, { limit: 0 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+
+      const grpcReq: ListNotificationsRequest = {
+        cursor: query.cursor,
+        // Default 0 → handler clamps to the canonical default. Same shape
+        // service.notifications.handlers.listNotifications expects.
+        limit: pagination.limit,
+        statusFilter: parseStatus(query.status),
+        channelFilter: parseChannel(query.channel),
+        typeFilter: parseType(query.type),
+      };
+
+      try {
+        const res = await client.list(grpcReq, metadata);
+        return reply.send(NotificationsV1.ListNotificationsResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
+  );
 
-    const grpcReq: ListNotificationsRequest = {
-      cursor: query.cursor,
-      // Default 0 → handler clamps to the canonical default. Same shape
-      // service.notifications.handlers.listNotifications expects.
-      limit: pagination.limit,
-      statusFilter: parseStatus(query.status),
-      channelFilter: parseChannel(query.channel),
-      typeFilter: parseType(query.type),
-    };
+  app.post(
+    '/api/v1/notifications',
+    {
+      schema: {
+        tags: ['notifications'],
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as Partial<CreateNotificationRequest>;
 
-    try {
-      const res = await client.list(grpcReq, metadata);
-      return reply.send(NotificationsV1.ListNotificationsResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
+      // We accept the JSON shape that mirrors the proto fields directly.
+      // fromJSON would also work, but proto3 oneof JSON encoding rules
+      // change the structure; keeping a direct map is more predictable
+      // for the small set of fields the gateway needs to accept.
+      const grpcReq: CreateNotificationRequest = {
+        userId: body.userId ?? '',
+        type: body.type ?? NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED,
+        channel:
+          body.channel ?? NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_UNSPECIFIED,
+        priority:
+          body.priority ?? NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_UNSPECIFIED,
+        title: body.title ?? '',
+        message: body.message ?? '',
+        dataJson: body.dataJson ?? '{}',
+        templateId: body.templateId,
+        templateVariablesJson: body.templateVariablesJson ?? '{}',
+        relatedEntityType: body.relatedEntityType,
+        relatedEntityId: body.relatedEntityId,
+        scheduledFor: body.scheduledFor,
+        expiresAt: body.expiresAt,
+        externalId: body.externalId,
+      };
+
+      try {
+        const res = await client.create(grpcReq, metadata);
+        return reply.code(201).send(NotificationsV1.CreateNotificationResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
-
-  app.post('/api/v1/notifications', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const body = (req.body ?? {}) as Partial<CreateNotificationRequest>;
-
-    // We accept the JSON shape that mirrors the proto fields directly.
-    // fromJSON would also work, but proto3 oneof JSON encoding rules
-    // change the structure; keeping a direct map is more predictable
-    // for the small set of fields the gateway needs to accept.
-    const grpcReq: CreateNotificationRequest = {
-      userId: body.userId ?? '',
-      type: body.type ?? NotificationsV1.NotificationType.NOTIFICATION_TYPE_UNSPECIFIED,
-      channel: body.channel ?? NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_UNSPECIFIED,
-      priority:
-        body.priority ?? NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_UNSPECIFIED,
-      title: body.title ?? '',
-      message: body.message ?? '',
-      dataJson: body.dataJson ?? '{}',
-      templateId: body.templateId,
-      templateVariablesJson: body.templateVariablesJson ?? '{}',
-      relatedEntityType: body.relatedEntityType,
-      relatedEntityId: body.relatedEntityId,
-      scheduledFor: body.scheduledFor,
-      expiresAt: body.expiresAt,
-      externalId: body.externalId,
-    };
-
-    try {
-      const res = await client.create(grpcReq, metadata);
-      return reply.code(201).send(NotificationsV1.CreateNotificationResponse.toJSON(res));
-    } catch (err) {
-      return handleGrpcError(err, reply);
-    }
-  });
+  );
 
   // Unread count — must register before /:id so the static segment wins.
-  app.get('/api/v1/notifications/unread/count', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    try {
-      const res = await client.getUnreadCount({}, metadata);
-      return reply.send({ success: true, data: { count: res.count } });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.get(
+    '/api/v1/notifications/unread/count',
+    { schema: { tags: ['notifications'] } },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const res = await client.getUnreadCount({}, metadata);
+        return reply.send({ success: true, data: { count: res.count } });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // Admin cleanup — soft-delete notifications older than N days.
-  app.post('/api/v1/notifications/cleanup', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const body = (req.body ?? {}) as { daysToKeep?: number; days_to_keep?: number };
-    const daysToKeep = body.daysToKeep ?? body.days_to_keep ?? 0;
-    try {
-      const res = await client.cleanupExpiredNotifications({ daysToKeep }, metadata);
-      return reply.send({
-        success: true,
-        message: `Cleaned up ${res.deletedCount} expired notifications`,
-        data: { deletedCount: res.deletedCount },
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.post(
+    '/api/v1/notifications/cleanup',
+    {
+      schema: {
+        tags: ['notifications'],
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as { daysToKeep?: number; days_to_keep?: number };
+      const daysToKeep = body.daysToKeep ?? body.days_to_keep ?? 0;
+      try {
+        const res = await client.cleanupExpiredNotifications({ daysToKeep }, metadata);
+        return reply.send({
+          success: true,
+          message: `Cleaned up ${res.deletedCount} expired notifications`,
+          data: { deletedCount: res.deletedCount },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // Mark all unread as read.
-  app.post('/api/v1/notifications/read-all', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    try {
-      const res = await client.markAllRead({}, metadata);
-      return reply.send({
-        success: true,
-        message: `Marked ${res.affectedCount} notifications as read`,
-        data: { affectedCount: res.affectedCount },
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.post(
+    '/api/v1/notifications/read-all',
+    { schema: { tags: ['notifications'] } },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const res = await client.markAllRead({}, metadata);
+        return reply.send({
+          success: true,
+          message: `Marked ${res.affectedCount} notifications as read`,
+          data: { affectedCount: res.affectedCount },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // In-app notification preferences (user_notification_prefs).
-  app.get('/api/v1/notifications/preferences', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    try {
-      const res = await client.getNotificationPreferences({}, metadata);
-      return reply.send({
-        success: true,
-        data: NotificationsV1.NotificationPreferences.toJSON(res.preferences!),
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.get(
+    '/api/v1/notifications/preferences',
+    { schema: { tags: ['notifications'] } },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const res = await client.getNotificationPreferences({}, metadata);
+        return reply.send({
+          success: true,
+          data: NotificationsV1.NotificationPreferences.toJSON(res.preferences!),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
-  app.put('/api/v1/notifications/preferences', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const grpcReq: UpdateNotificationPreferencesRequest = buildPrefsPatch(body);
+  app.put(
+    '/api/v1/notifications/preferences',
+    {
+      schema: {
+        tags: ['notifications'],
+        body: { type: 'object', additionalProperties: true },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: UpdateNotificationPreferencesRequest = buildPrefsPatch(body);
 
-    try {
-      const res = await client.updateNotificationPreferences(grpcReq, metadata);
-      return reply.send({
-        success: true,
-        message: 'Notification preferences updated successfully',
-        data: NotificationsV1.NotificationPreferences.toJSON(res.preferences!),
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+      try {
+        const res = await client.updateNotificationPreferences(grpcReq, metadata);
+        return reply.send({
+          success: true,
+          message: 'Notification preferences updated successfully',
+          data: NotificationsV1.NotificationPreferences.toJSON(res.preferences!),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // Single notification fetch.
-  app.get<{ Params: { id: string } }>('/api/v1/notifications/:id', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    try {
-      const res = await client.getNotification({ notificationId: req.params.id }, metadata);
-      return reply.send({
-        success: true,
-        data: NotificationsV1.Notification.toJSON(res.notification!),
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/notifications/:id',
+    {
+      schema: {
+        tags: ['notifications'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        const res = await client.getNotification({ notificationId: req.params.id }, metadata);
+        return reply.send({
+          success: true,
+          data: NotificationsV1.Notification.toJSON(res.notification!),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // Mark single notification as read — matches the monolith path
   // /api/v1/notifications/:notificationId/read.
-  app.patch<{ Params: { id: string } }>('/api/v1/notifications/:id/read', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    try {
-      await client.dismiss({ notificationId: req.params.id }, metadata);
-      return reply.send({
-        success: true,
-        message: 'Notification marked as read',
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.patch<{ Params: { id: string } }>(
+    '/api/v1/notifications/:id/read',
+    {
+      schema: {
+        tags: ['notifications'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      try {
+        await client.dismiss({ notificationId: req.params.id }, metadata);
+        return reply.send({
+          success: true,
+          message: 'Notification marked as read',
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
-  app.delete<{ Params: { id: string } }>('/api/v1/notifications/:id', async (req, reply) => {
-    const metadata = buildMetadata(req);
-    const grpcReq: DismissNotificationRequest = { notificationId: req.params.id };
+  app.delete<{ Params: { id: string } }>(
+    '/api/v1/notifications/:id',
+    {
+      schema: {
+        tags: ['notifications'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
+    async (req, reply) => {
+      const metadata = buildMetadata(req);
+      const grpcReq: DismissNotificationRequest = { notificationId: req.params.id };
 
-    try {
-      // The monolith DELETE soft-deletes via deleted_at. We call the
-      // dedicated deleteNotification RPC (status untouched) for parity —
-      // the old proto contract used Dismiss(status='read') under DELETE,
-      // which would have lost the distinction between read-but-kept and
-      // deleted. Preserve the monolith semantics here.
-      const res = await client.deleteNotification(grpcReq, metadata);
-      return reply.send({
-        success: true,
-        message: 'Notification deleted successfully',
-        data: NotificationsV1.Notification.toJSON(res.notification!),
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+      try {
+        // The monolith DELETE soft-deletes via deleted_at. We call the
+        // dedicated deleteNotification RPC (status untouched) for parity —
+        // the old proto contract used Dismiss(status='read') under DELETE,
+        // which would have lost the distinction between read-but-kept and
+        // deleted. Preserve the monolith semantics here.
+        const res = await client.deleteNotification(grpcReq, metadata);
+        return reply.send({
+          success: true,
+          message: 'Notification deleted successfully',
+          data: NotificationsV1.Notification.toJSON(res.notification!),
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 };
 
 // --- Body parsing for prefs PUT --------------------------------------
