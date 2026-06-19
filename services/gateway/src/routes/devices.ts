@@ -1,11 +1,10 @@
 // REST → gRPC translation for /api/v1/devices/*.
 //
-// service.notifications owns device_tokens (PR #956). The monolith
-// has exposed POST/GET/DELETE /api/v1/devices since before the
-// extraction; this plugin reproduces the same SPA-facing shape so the
-// cutover can flip CUTOVER_NOTIFICATIONS=true without the SPA noticing.
+// service.notifications owns device_tokens (PR #956). This plugin
+// exposes POST/GET/DELETE /api/v1/devices with the SPA-facing shape the
+// frontend already expects.
 //
-// Path shapes (monolith parity):
+// Path shapes:
 //   POST   /api/v1/devices              register
 //   GET    /api/v1/devices              list-self
 //   DELETE /api/v1/devices/:tokenId     unregister

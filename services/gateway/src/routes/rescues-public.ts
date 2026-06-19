@@ -5,8 +5,8 @@
 // envelope).
 //
 // The pre-existing /api/v1/rescue/* (singular) routes are kept as an
-// internal/raw shape; this module is the SPA-facing layer. Both gated
-// on cutover.rescue.
+// internal/raw shape; this module is the SPA-facing layer. Both register
+// when the rescue service client is wired.
 
 import rateLimit from '@fastify/rate-limit';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';

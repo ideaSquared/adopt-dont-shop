@@ -156,8 +156,7 @@ services:
           cpus: '0.25'
           memory: 128m
 
-  # NATS JetStream — event backbone for the extracted services. Required once
-  # any CUTOVER_<DOMAIN> flag is flipped on; harmless when all are off.
+  # NATS JetStream — event backbone for the extracted services.
   nats:
     image: nats:2.10-alpine@sha256:b83efabe3e7def1e0a4a31ec6e078999bb17c80363f881df35edc70fcb6bb927
     container_name: ads_prod_nats
@@ -210,20 +209,6 @@ services:
       # ADS-800: the gateway signs the x-principal-token it forwards on
       # every downstream gRPC call.
       PRINCIPAL_SIGNING_KEY_FILE: /run/secrets/principal_signing_key
-      # ADS-813: forward CUTOVER_* flags so the gateway registers /api/v1/*
-      # routes. Without these the gateway boots healthy but 404s every API
-      # route (compose does not pass host env implicitly). Default true — all
-      # domains are extracted in phase 11 and the monolith is gone.
-      CUTOVER_AUTH: '${CUTOVER_AUTH:-true}'
-      CUTOVER_NOTIFICATIONS: '${CUTOVER_NOTIFICATIONS:-true}'
-      CUTOVER_PETS: '${CUTOVER_PETS:-true}'
-      CUTOVER_RESCUE: '${CUTOVER_RESCUE:-true}'
-      CUTOVER_APPLICATIONS: '${CUTOVER_APPLICATIONS:-true}'
-      CUTOVER_MODERATION: '${CUTOVER_MODERATION:-true}'
-      CUTOVER_MATCHING: '${CUTOVER_MATCHING:-true}'
-      CUTOVER_AUDIT: '${CUTOVER_AUDIT:-true}'
-      CUTOVER_CHAT: '${CUTOVER_CHAT:-true}'
-      CUTOVER_CMS: '${CUTOVER_CMS:-true}'
     # Gateway has no DB; it needs the upload-signing secret plus the
     # principal-signing key (ADS-800 — it is the token signer).
     secrets:

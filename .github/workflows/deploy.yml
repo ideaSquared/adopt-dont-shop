@@ -650,17 +650,17 @@ jobs:
               fi
             done
 
-            # ADS-813: smoke-check that the cutover-gated /api/v1/* routes are
-            # actually registered. /api/v1/auth/login only exists when
-            # CUTOVER_AUTH is on: an empty POST returns 400 when registered,
-            # 404 when the flags never reached the gateway.
-            echo "Smoke-checking POST /api/v1/auth/login (verifies CUTOVER flags are set)..."
+            # Smoke-check that the gateway registered its /api/v1/* routes.
+            # /api/v1/auth/login exists whenever the auth service client is
+            # wired: an empty POST returns 400 when registered, 404 if the
+            # gateway came up without its routes (e.g. a missing service URL).
+            echo "Smoke-checking POST /api/v1/auth/login (verifies gateway routes are registered)..."
             STATUS=$(docker compose -f $COMPOSE_FILE exec -T service-gateway \
               curl -o /dev/null -w '%{http_code}' -s -X POST \
               -H 'content-type: application/json' -d '{}' \
               http://localhost:4000/api/v1/auth/login 2>/dev/null || echo "000")
             if [ "$STATUS" = "404" ] || [ "$STATUS" = "000" ]; then
-              echo "ERROR: POST /api/v1/auth/login returned $STATUS — CUTOVER_* flags may be missing or gateway routes not registered."
+              echo "ERROR: POST /api/v1/auth/login returned $STATUS — gateway routes are not registered."
               exit 1
             fi
             echo "Smoke check passed (HTTP $STATUS)."

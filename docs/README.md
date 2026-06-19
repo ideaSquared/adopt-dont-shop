@@ -44,7 +44,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 ## Architecture
 
 - [ADR 0001 — entity detail pattern](./adr/0001-entity-detail-pattern.md) — canonical pattern for entity detail pages
-- [ADR 0002 — applications strangler cutover](./adr/0002-applications-strangler-cutover.md) — plan to move `/api/v1/applications/*` to the microservice
+- [ADR 0002 — applications strangler cutover](./adr/0002-applications-strangler-cutover.md) — _superseded_: historical plan to move `/api/v1/applications/*` to the microservice (cutover flags removed)
 - [ADR 0003 — idempotent event consumers](./adr/0003-idempotent-event-consumers.md) — at-least-once delivery + idempotent-consumer convention
 - [ADR 0004 — Postgres read-replica routing](./adr/0004-postgres-read-replica-routing.md) — optional read-replica pool in `@adopt-dont-shop/db`
 - [ADR — sticky sessions for Socket.IO](./architecture/adr-socket-sticky-sessions.md) — connection-cap mitigation for the WebSocket edge
@@ -167,7 +167,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Observability and alerting](./observability-alerting.md) — metrics, logs, alert routing (legacy — superseded by `slo.md`)
 - [Runbooks index](./runbooks/README.md) — runbook catalogue
 - [5xx spike runbook](./runbooks/5xx-spike.md) — diagnose elevated server errors
-- [Applications cutover runbook](./runbooks/applications-cutover.md) — route applications traffic to the microservice
+- [Applications cutover runbook](./runbooks/applications-cutover.md) — _obsolete_: the per-domain cutover mechanism has been removed
 - [DB pool exhaustion runbook](./runbooks/db-pool-exhaustion.md) — recover from connection saturation
 - [Deploy rollback runbook](./runbooks/deploy-rollback.md) — roll back a bad release
 - [GDPR erasure incident runbook](./runbooks/gdpr-erasure-incident.md) — recover a failed / timed-out erasure saga
