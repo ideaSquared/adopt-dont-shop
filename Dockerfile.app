@@ -179,9 +179,9 @@ add_header X-XSS-Protection "1; mode=block" always; \
 add_header Referrer-Policy "strict-origin-when-cross-origin" always; \
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always; \
 add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always; \
-# CSP without unsafe-inline / unsafe-eval on script-src. style-src keeps \
-# unsafe-inline only because styled-components injects runtime styles. [ADS-434] \
-add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"'; style-src '"'"'self'"'"' '"'"'unsafe-inline'"'"'; img-src '"'"'self'"'"' data: https:; font-src '"'"'self'"'"' data:; connect-src '"'"'self'"'"' wss: https:; frame-ancestors '"'"'none'"'"'; object-src '"'"'none'"'"'; base-uri '"'"'self'"'"'; form-action '"'"'self'"'"'; upgrade-insecure-requests" always;' > /etc/nginx/security-headers.conf
+# CSP without unsafe-inline / unsafe-eval. styled-components fully replaced \
+# by vanilla-extract (.css.ts) — style-src no longer needs unsafe-inline. [ADS-847] \
+add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"'; style-src '"'"'self'"'"'; img-src '"'"'self'"'"' data: https:; font-src '"'"'self'"'"' data:; connect-src '"'"'self'"'"' wss: https:; frame-ancestors '"'"'none'"'"'; object-src '"'"'none'"'"'; base-uri '"'"'self'"'"'; form-action '"'"'self'"'"'; upgrade-insecure-requests" always;' > /etc/nginx/security-headers.conf
 
 # Create optimized nginx config for SPA with security headers
 RUN echo 'events { \
