@@ -29,20 +29,28 @@ import { spawnSync } from 'node:child_process';
 
 const DOCKER = process.env.SEED_DOCKER ?? 'docker';
 
-// [compose service name, the package the seed lives in] in run order.
+// [compose service name, workspace package, label] in run order.
+// The package filter is REQUIRED: dev containers run with working_dir=/app
+// (the workspace root), so a bare `pnpm run db:seed` resolves the ROOT
+// db:seed script — i.e. this orchestrator — and recurses into a container
+// with no docker binary. `--filter` pins it to the service's own script.
 const SEED_TARGETS = [
-  ['service-auth', 'auth users (personas)'],
-  ['service-rescue', 'rescues + staff'],
-  ['service-pets', 'pet catalogue'],
-  ['service-applications', 'application read-model (references user/pet/rescue ids)'],
-  ['service-chat', 'adopter↔rescue chat + participants (references user/rescue ids)'],
+  ['service-auth', '@adopt-dont-shop/service.auth', 'auth users (personas)'],
+  ['service-rescue', '@adopt-dont-shop/service.rescue', 'rescues + staff'],
+  ['service-pets', '@adopt-dont-shop/service.pets', 'pet catalogue'],
+  ['service-applications', '@adopt-dont-shop/service.applications', 'application read-model (references user/pet/rescue ids)'],
+  ['service-chat', '@adopt-dont-shop/service.chat', 'adopter↔rescue chat + participants (references user/rescue ids)'],
 ];
 
-function runSeed(service, label) {
+function runSeed(service, pkg, label) {
   process.stdout.write(`\n→ seeding ${label} (${service})...\n`);
-  const result = spawnSync(DOCKER, ['compose', 'exec', '-T', service, 'pnpm', 'run', 'db:seed'], {
-    stdio: 'inherit',
-  });
+  const result = spawnSync(
+    DOCKER,
+    ['compose', 'exec', '-T', service, 'pnpm', '--filter', pkg, 'run', 'db:seed'],
+    {
+      stdio: 'inherit',
+    }
+  );
   if (result.error) {
     throw new Error(
       `failed to exec into ${service}: ${result.error.message}. ` +
@@ -55,8 +63,8 @@ function runSeed(service, label) {
 }
 
 function main() {
-  for (const [service, label] of SEED_TARGETS) {
-    runSeed(service, label);
+  for (const [service, pkg, label] of SEED_TARGETS) {
+    runSeed(service, pkg, label);
   }
   process.stdout.write('\n✓ seed complete — login as john.smith@gmail.com / DevPassword123!\n');
 }

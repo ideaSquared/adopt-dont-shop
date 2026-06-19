@@ -86,6 +86,7 @@ x-dev-volumes: &dev-volumes
   - /app/packages/lib.validation/node_modules
   - /app/packages/observability/node_modules
   - /app/packages/proto/node_modules
+  - /app/packages/seed-faker/node_modules
   - /app/packages/service-bootstrap/node_modules
   - /app/packages/storage/node_modules
   - /app/services/applications/node_modules
@@ -216,3 +217,10 @@ services:
       <<: *dev-env
     volumes: *dev-volumes
     command: sh -c "pnpm --filter @adopt-dont-shop/service.audit run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.audit run dev"
+
+  service-chat:
+    <<: *dev-build
+    environment:
+      <<: *dev-env
+    volumes: *dev-volumes
+    command: sh -c "pnpm --filter @adopt-dont-shop/service.chat run --if-present db:migrate && pnpm --filter @adopt-dont-shop/service.chat run --if-present db:seed && pnpm --filter @adopt-dont-shop/service.chat run dev"

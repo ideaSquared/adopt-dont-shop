@@ -24,6 +24,7 @@
     "docker:ps": "docker compose ps",
     "docker:shell:db": "docker compose exec database sh -c 'psql -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\"'",
     "db:seed": "node scripts/seed.mjs",
+    "db:spam": "node scripts/spam.mjs",
     "build": "turbo run build",
     "build:libs": "turbo run build --filter='@adopt-dont-shop/lib.*'",
     "build:apps": "turbo run build --filter='@adopt-dont-shop/app.*'",
