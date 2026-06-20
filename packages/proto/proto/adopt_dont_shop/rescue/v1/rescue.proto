@@ -76,8 +76,8 @@ service RescueService {
       returns (UpdateStaffMemberResponse);
 
   // Soft-delete a staff member's rescue membership. Caller MUST have
-  // `staff.delete` scoped to the rescue. Idempotent on an
-  // already-removed membership (NOT_FOUND). Publishes
+  // `staff.delete` scoped to the rescue. NOT_FOUND when the membership
+  // doesn't exist or was already removed. Publishes
   // `rescue.staffMemberRemoved` on NATS after commit.
   rpc RemoveStaffMember(RemoveStaffMemberRequest)
       returns (RemoveStaffMemberResponse);

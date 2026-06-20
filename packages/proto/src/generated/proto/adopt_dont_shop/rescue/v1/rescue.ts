@@ -6497,8 +6497,8 @@ export const RescueServiceService = {
   },
   /**
    * Soft-delete a staff member's rescue membership. Caller MUST have
-   * `staff.delete` scoped to the rescue. Idempotent on an
-   * already-removed membership (NOT_FOUND). Publishes
+   * `staff.delete` scoped to the rescue. NOT_FOUND when the membership
+   * doesn't exist or was already removed. Publishes
    * `rescue.staffMemberRemoved` on NATS after commit.
    */
   removeStaffMember: {
@@ -6745,8 +6745,8 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
   updateStaffMember: handleUnaryCall<UpdateStaffMemberRequest, UpdateStaffMemberResponse>;
   /**
    * Soft-delete a staff member's rescue membership. Caller MUST have
-   * `staff.delete` scoped to the rescue. Idempotent on an
-   * already-removed membership (NOT_FOUND). Publishes
+   * `staff.delete` scoped to the rescue. NOT_FOUND when the membership
+   * doesn't exist or was already removed. Publishes
    * `rescue.staffMemberRemoved` on NATS after commit.
    */
   removeStaffMember: handleUnaryCall<RemoveStaffMemberRequest, RemoveStaffMemberResponse>;
@@ -7025,8 +7025,8 @@ export interface RescueServiceClient extends Client {
   ): ClientUnaryCall;
   /**
    * Soft-delete a staff member's rescue membership. Caller MUST have
-   * `staff.delete` scoped to the rescue. Idempotent on an
-   * already-removed membership (NOT_FOUND). Publishes
+   * `staff.delete` scoped to the rescue. NOT_FOUND when the membership
+   * doesn't exist or was already removed. Publishes
    * `rescue.staffMemberRemoved` on NATS after commit.
    */
   removeStaffMember(
