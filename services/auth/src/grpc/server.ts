@@ -39,7 +39,9 @@ import {
 } from './handlers.js';
 import {
   adminGetUser,
+  adminLockAccount,
   adminResetPassword,
+  adminUnlockAccount,
   adminUpdateUser,
   bulkUpdateUsers,
   deactivateUser,
@@ -63,7 +65,13 @@ import {
   resetPrivacyPreferences,
   updatePrivacyPreferences,
 } from './privacy-prefs-handlers.js';
-import { listSessions, revokeSession } from './session-handlers.js';
+import {
+  adminListSessions,
+  adminRevokeAllUserSessions,
+  adminRevokeSession,
+  listSessions,
+  revokeSession,
+} from './session-handlers.js';
 
 export type CreateGrpcServerOptions = {
   config: AuthConfig;
@@ -124,6 +132,12 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     bulkUpdateUsers: adapt(bulkUpdateUsers, { deps, logger }),
     adminResetPassword: adapt(adminResetPassword, { deps, logger }),
     listUserIdsByCohort: adapt(listUserIdsByCohort, { deps, logger }),
+    // Admin security management — Security Center sessions + lockout.
+    adminListSessions: adapt(adminListSessions, { deps, logger }),
+    adminRevokeSession: adapt(adminRevokeSession, { deps, logger }),
+    adminRevokeAllUserSessions: adapt(adminRevokeAllUserSessions, { deps, logger }),
+    adminLockAccount: adapt(adminLockAccount, { deps, logger }),
+    adminUnlockAccount: adapt(adminUnlockAccount, { deps, logger }),
     // Field-level permissions admin — /api/v1/field-permissions/*.
     getFieldPermissionDefaults: adapt(getFieldPermissionDefaults, { deps, logger }),
     getFieldPermissionDefaultsForRole: adapt(getFieldPermissionDefaultsForRole, { deps, logger }),
@@ -168,6 +182,11 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'bulkUpdateUsers',
       'adminResetPassword',
       'listUserIdsByCohort',
+      'adminListSessions',
+      'adminRevokeSession',
+      'adminRevokeAllUserSessions',
+      'adminLockAccount',
+      'adminUnlockAccount',
       'getFieldPermissionDefaults',
       'getFieldPermissionDefaultsForRole',
       'listFieldPermissionOverrides',

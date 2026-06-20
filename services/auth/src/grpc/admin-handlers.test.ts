@@ -8,7 +8,9 @@ import { AuthV1 } from '@adopt-dont-shop/proto';
 
 import {
   adminGetUser,
+  adminLockAccount,
   adminResetPassword,
+  adminUnlockAccount,
   adminUpdateUser,
   bulkUpdateUsers,
   deactivateUser,
@@ -39,6 +41,12 @@ const NO_PERMS: Principal = {
   userId: 'usr-nobody' as UserId,
   roles: ['adopter'],
   permissions: [],
+};
+
+const SECURITY_ADMIN: Principal = {
+  userId: 'svc-security-admin' as UserId,
+  roles: ['admin'],
+  permissions: ['admin.security.manage' as Permission],
 };
 
 // --- Mocks ------------------------------------------------------------
@@ -350,6 +358,123 @@ describe('adminResetPassword', () => {
     expect(hashMock).toHaveBeenCalledTimes(1);
     expect(hashMock).toHaveBeenCalledWith(res.temporaryPassword);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.passwordResetByAdmin');
+  });
+});
+
+// --- adminLockAccount / adminUnlockAccount ----------------------------
+
+describe('adminLockAccount', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects a missing user_id', async () => {
+    await expect(
+      adminLockAccount(mocks.deps, SECURITY_ADMIN, { userId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects without admin.security.manage', async () => {
+    await expect(adminLockAccount(mocks.deps, ADMIN, { userId: 'usr-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('refuses locking your own account', async () => {
+    await expect(
+      adminLockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'svc-security-admin' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('maps a missing user to NOT_FOUND', async () => {
+    mocks.clientScript.push({ rows: [] }); // UPDATE auth.users returns no rows
+    await expect(
+      adminLockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'ghost' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('locks the account and publishes auth.accountLockedByAdmin', async () => {
+    mocks.clientScript.push({ rows: [userRow({ user_id: 'usr-1' })] });
+
+    const res = await adminLockAccount(mocks.deps, SECURITY_ADMIN, {
+      userId: 'usr-1',
+      reason: 'suspicious activity',
+    });
+
+    expect(res.user?.userId).toBe('usr-1');
+    const updateCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
+      ([sql]) => sql.includes('UPDATE auth.users')
+    );
+    expect(updateCall![0]).toMatch(/locked_until = now\(\) \+ interval/);
+    expect(updateCall![1]).toEqual(['usr-1']);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.accountLockedByAdmin');
+    const envelope = JSON.parse(
+      new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+    );
+    expect(envelope.payload).toMatchObject({
+      userId: 'usr-1',
+      lockedBy: 'svc-security-admin',
+      reason: 'suspicious activity',
+    });
+  });
+});
+
+describe('adminUnlockAccount', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects a missing user_id', async () => {
+    await expect(
+      adminUnlockAccount(mocks.deps, SECURITY_ADMIN, { userId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects without admin.security.manage', async () => {
+    await expect(adminUnlockAccount(mocks.deps, ADMIN, { userId: 'usr-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('maps a missing user to NOT_FOUND', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      adminUnlockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'ghost' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('is a no-op (no write, no publish) when the account is not locked', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ locked_until: null }] });
+    const res = await adminUnlockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'usr-1' });
+    expect(res.wasLocked).toBe(false);
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('clears a future lockout, resets login_attempts, and publishes auth.accountUnlockedByAdmin', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ locked_until: new Date('2099-01-01T00:00:00Z') }],
+    });
+    mocks.clientScript.push({ rows: [] });
+
+    const res = await adminUnlockAccount(mocks.deps, SECURITY_ADMIN, { userId: 'usr-1' });
+
+    expect(res.wasLocked).toBe(true);
+    const updateCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
+      ([sql]) => sql.includes('UPDATE auth.users')
+    );
+    expect(updateCall![0]).toMatch(/locked_until = NULL/);
+    expect(updateCall![0]).toMatch(/login_attempts = 0/);
+    expect(updateCall![1]).toEqual(['usr-1']);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.accountUnlockedByAdmin');
   });
 });
 
