@@ -106,6 +106,19 @@ service ApplicationService {
   // Document metadata — soft-delete one document. Caller MUST hold
   // applications.update for the application's rescue.
   rpc RemoveDocument(RemoveDocumentRequest) returns (RemoveDocumentResponse);
+
+  // Adopter's reusable application defaults (personal info / living
+  // situation / pet experience / references) used to pre-populate new
+  // applications. Always scoped to the calling principal's own
+  // user_id — there is no cross-adopter read or write.
+  rpc GetApplicationDefaults(GetApplicationDefaultsRequest)
+      returns (GetApplicationDefaultsResponse);
+
+  // Deep-merge a partial defaults patch into the adopter's saved
+  // defaults and return the merged result. Top-level keys absent from
+  // the patch are left untouched.
+  rpc UpdateApplicationDefaults(UpdateApplicationDefaultsRequest)
+      returns (UpdateApplicationDefaultsResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -399,3 +412,24 @@ message RemoveDocumentRequest {
 }
 
 message RemoveDocumentResponse {}
+
+// --- Application defaults ---------------------------------------------
+
+message GetApplicationDefaultsRequest {}
+
+message GetApplicationDefaultsResponse {
+  // JSON-stringified ApplicationDefaults. Empty string when the adopter
+  // has never saved any defaults.
+  string defaults_json = 1;
+}
+
+message UpdateApplicationDefaultsRequest {
+  // JSON-stringified partial ApplicationDefaults patch, deep-merged
+  // into the stored value.
+  string defaults_patch_json = 1;
+}
+
+message UpdateApplicationDefaultsResponse {
+  // JSON-stringified ApplicationDefaults after the merge.
+  string defaults_json = 1;
+}

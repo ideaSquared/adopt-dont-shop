@@ -62,6 +62,8 @@ const makeHandlers = (
   addDocument: unimplemented,
   listDocuments: unimplemented,
   removeDocument: unimplemented,
+  getApplicationDefaults: unimplemented,
+  updateApplicationDefaults: unimplemented,
   ...overrides,
 });
 

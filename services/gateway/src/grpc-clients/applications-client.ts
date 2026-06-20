@@ -17,6 +17,8 @@ import {
   type ApproveResponse,
   type CompleteHomeVisitRequest,
   type CompleteHomeVisitResponse,
+  type GetApplicationDefaultsRequest,
+  type GetApplicationDefaultsResponse,
   type GetApplicationRequest,
   type GetApplicationResponse,
   type GetStatsRequest,
@@ -41,6 +43,8 @@ import {
   type StartReviewResponse,
   type SubmitDraftRequest,
   type SubmitDraftResponse,
+  type UpdateApplicationDefaultsRequest,
+  type UpdateApplicationDefaultsResponse,
   type WithdrawRequest,
   type WithdrawResponse,
 } from '@adopt-dont-shop/proto';
@@ -75,6 +79,14 @@ export type ApplicationsClient = {
   addDocument(req: AddDocumentRequest, metadata: Metadata): Promise<AddDocumentResponse>;
   listDocuments(req: ListDocumentsRequest, metadata: Metadata): Promise<ListDocumentsResponse>;
   removeDocument(req: RemoveDocumentRequest, metadata: Metadata): Promise<RemoveDocumentResponse>;
+  getApplicationDefaults(
+    req: GetApplicationDefaultsRequest,
+    metadata: Metadata
+  ): Promise<GetApplicationDefaultsResponse>;
+  updateApplicationDefaults(
+    req: UpdateApplicationDefaultsRequest,
+    metadata: Metadata
+  ): Promise<UpdateApplicationDefaultsResponse>;
   close(): void;
 };
 
@@ -155,11 +167,15 @@ export const createApplicationsClient = (
     markAdopted: (req, metadata) => callUnary(stub.markAdopted, req, metadata, false),
     addDocument: (req, metadata) => callUnary(stub.addDocument, req, metadata, false),
     removeDocument: (req, metadata) => callUnary(stub.removeDocument, req, metadata, false),
+    updateApplicationDefaults: (req, metadata) =>
+      callUnary(stub.updateApplicationDefaults, req, metadata, false),
     // ── Idempotent (reads) ───────────────────────────────────────────
     get: (req, metadata) => callUnary(stub.get, req, metadata, true),
     list: (req, metadata) => callUnary(stub.list, req, metadata, true),
     getStats: (req, metadata) => callUnary(stub.getStats, req, metadata, true),
     listDocuments: (req, metadata) => callUnary(stub.listDocuments, req, metadata, true),
+    getApplicationDefaults: (req, metadata) =>
+      callUnary(stub.getApplicationDefaults, req, metadata, true),
     close: () => stub.close(),
   };
 };

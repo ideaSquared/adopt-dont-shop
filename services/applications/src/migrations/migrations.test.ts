@@ -47,6 +47,7 @@ describe('applications migrations', () => {
     '006_install_home_visit_status_propagation_trigger.ts',
     '007_create_application_drafts.ts',
     '008_create_application_documents.ts',
+    '009_create_application_defaults.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

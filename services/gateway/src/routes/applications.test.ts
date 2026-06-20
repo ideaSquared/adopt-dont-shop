@@ -42,6 +42,8 @@ function makeClient(): {
     'get',
     'list',
     'getStats',
+    'getApplicationDefaults',
+    'updateApplicationDefaults',
   ]) {
     mocks[m] = vi.fn();
   }
@@ -414,6 +416,64 @@ describe('applications routes', () => {
       headers: ADOPTER,
     });
     expect(missing.statusCode).toBe(404);
+  });
+
+  it('GET /api/v1/profile/application-defaults returns the parsed defaults in { data }', async () => {
+    mocks.getApplicationDefaults.mockResolvedValue({
+      defaultsJson: JSON.stringify({ personalInfo: { firstName: 'Jo' } }),
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/profile/application-defaults',
+      headers: ADOPTER,
+    });
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as { data: unknown }).data).toEqual({
+      personalInfo: { firstName: 'Jo' },
+    });
+    expect(mocks.getApplicationDefaults.mock.calls[0][0]).toEqual({});
+  });
+
+  it('GET /api/v1/profile/application-defaults returns {} when the adopter has no saved row', async () => {
+    mocks.getApplicationDefaults.mockResolvedValue({ defaultsJson: '' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/profile/application-defaults',
+      headers: ADOPTER,
+    });
+    expect((res.json() as { data: unknown }).data).toEqual({});
+  });
+
+  it('PUT /api/v1/profile/application-defaults sends the patch and returns the merged result', async () => {
+    mocks.updateApplicationDefaults.mockResolvedValue({
+      defaultsJson: JSON.stringify({ personalInfo: { firstName: 'Grace', lastName: 'Hopper' } }),
+    });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/profile/application-defaults',
+      headers: ADOPTER,
+      payload: { applicationDefaults: { personalInfo: { firstName: 'Grace' } } },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.updateApplicationDefaults.mock.calls[0][0]).toEqual({
+      defaultsPatchJson: JSON.stringify({ personalInfo: { firstName: 'Grace' } }),
+    });
+    expect((res.json() as { data: unknown }).data).toEqual({
+      personalInfo: { firstName: 'Grace', lastName: 'Hopper' },
+    });
+  });
+
+  it('maps PERMISSION_DENIED on GET /api/v1/profile/application-defaults → 403', async () => {
+    mocks.getApplicationDefaults.mockRejectedValue({
+      code: grpcStatus.PERMISSION_DENIED,
+      details: 'nope',
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/profile/application-defaults',
+      headers: ADOPTER,
+    });
+    expect(res.statusCode).toBe(403);
   });
 
   it('threads x-user-* metadata to the gRPC client', async () => {

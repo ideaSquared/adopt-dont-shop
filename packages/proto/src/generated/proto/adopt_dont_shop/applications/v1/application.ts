@@ -5,7 +5,7 @@
 // source: proto/adopt_dont_shop/applications/v1/application.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -17,9 +17,9 @@ import {
   type Metadata,
   type ServiceError,
   type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
+} from '@grpc/grpc-js';
 
-export const protobufPackage = "adopt_dont_shop.applications.v1";
+export const protobufPackage = 'adopt_dont_shop.applications.v1';
 
 export enum ApplicationStatus {
   APPLICATION_STATUS_UNSPECIFIED = 0,
@@ -38,37 +38,37 @@ export enum ApplicationStatus {
 export function applicationStatusFromJSON(object: any): ApplicationStatus {
   switch (object) {
     case 0:
-    case "APPLICATION_STATUS_UNSPECIFIED":
+    case 'APPLICATION_STATUS_UNSPECIFIED':
       return ApplicationStatus.APPLICATION_STATUS_UNSPECIFIED;
     case 1:
-    case "APPLICATION_STATUS_DRAFT":
+    case 'APPLICATION_STATUS_DRAFT':
       return ApplicationStatus.APPLICATION_STATUS_DRAFT;
     case 2:
-    case "APPLICATION_STATUS_SUBMITTED":
+    case 'APPLICATION_STATUS_SUBMITTED':
       return ApplicationStatus.APPLICATION_STATUS_SUBMITTED;
     case 3:
-    case "APPLICATION_STATUS_UNDER_REVIEW":
+    case 'APPLICATION_STATUS_UNDER_REVIEW':
       return ApplicationStatus.APPLICATION_STATUS_UNDER_REVIEW;
     case 4:
-    case "APPLICATION_STATUS_HOME_VISIT_SCHEDULED":
+    case 'APPLICATION_STATUS_HOME_VISIT_SCHEDULED':
       return ApplicationStatus.APPLICATION_STATUS_HOME_VISIT_SCHEDULED;
     case 5:
-    case "APPLICATION_STATUS_HOME_VISIT_COMPLETED":
+    case 'APPLICATION_STATUS_HOME_VISIT_COMPLETED':
       return ApplicationStatus.APPLICATION_STATUS_HOME_VISIT_COMPLETED;
     case 6:
-    case "APPLICATION_STATUS_APPROVED":
+    case 'APPLICATION_STATUS_APPROVED':
       return ApplicationStatus.APPLICATION_STATUS_APPROVED;
     case 7:
-    case "APPLICATION_STATUS_REJECTED":
+    case 'APPLICATION_STATUS_REJECTED':
       return ApplicationStatus.APPLICATION_STATUS_REJECTED;
     case 8:
-    case "APPLICATION_STATUS_WITHDRAWN":
+    case 'APPLICATION_STATUS_WITHDRAWN':
       return ApplicationStatus.APPLICATION_STATUS_WITHDRAWN;
     case 9:
-    case "APPLICATION_STATUS_ADOPTED":
+    case 'APPLICATION_STATUS_ADOPTED':
       return ApplicationStatus.APPLICATION_STATUS_ADOPTED;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return ApplicationStatus.UNRECOGNIZED;
   }
@@ -77,28 +77,28 @@ export function applicationStatusFromJSON(object: any): ApplicationStatus {
 export function applicationStatusToJSON(object: ApplicationStatus): string {
   switch (object) {
     case ApplicationStatus.APPLICATION_STATUS_UNSPECIFIED:
-      return "APPLICATION_STATUS_UNSPECIFIED";
+      return 'APPLICATION_STATUS_UNSPECIFIED';
     case ApplicationStatus.APPLICATION_STATUS_DRAFT:
-      return "APPLICATION_STATUS_DRAFT";
+      return 'APPLICATION_STATUS_DRAFT';
     case ApplicationStatus.APPLICATION_STATUS_SUBMITTED:
-      return "APPLICATION_STATUS_SUBMITTED";
+      return 'APPLICATION_STATUS_SUBMITTED';
     case ApplicationStatus.APPLICATION_STATUS_UNDER_REVIEW:
-      return "APPLICATION_STATUS_UNDER_REVIEW";
+      return 'APPLICATION_STATUS_UNDER_REVIEW';
     case ApplicationStatus.APPLICATION_STATUS_HOME_VISIT_SCHEDULED:
-      return "APPLICATION_STATUS_HOME_VISIT_SCHEDULED";
+      return 'APPLICATION_STATUS_HOME_VISIT_SCHEDULED';
     case ApplicationStatus.APPLICATION_STATUS_HOME_VISIT_COMPLETED:
-      return "APPLICATION_STATUS_HOME_VISIT_COMPLETED";
+      return 'APPLICATION_STATUS_HOME_VISIT_COMPLETED';
     case ApplicationStatus.APPLICATION_STATUS_APPROVED:
-      return "APPLICATION_STATUS_APPROVED";
+      return 'APPLICATION_STATUS_APPROVED';
     case ApplicationStatus.APPLICATION_STATUS_REJECTED:
-      return "APPLICATION_STATUS_REJECTED";
+      return 'APPLICATION_STATUS_REJECTED';
     case ApplicationStatus.APPLICATION_STATUS_WITHDRAWN:
-      return "APPLICATION_STATUS_WITHDRAWN";
+      return 'APPLICATION_STATUS_WITHDRAWN';
     case ApplicationStatus.APPLICATION_STATUS_ADOPTED:
-      return "APPLICATION_STATUS_ADOPTED";
+      return 'APPLICATION_STATUS_ADOPTED';
     case ApplicationStatus.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -113,19 +113,19 @@ export enum HomeVisitOutcome {
 export function homeVisitOutcomeFromJSON(object: any): HomeVisitOutcome {
   switch (object) {
     case 0:
-    case "HOME_VISIT_OUTCOME_UNSPECIFIED":
+    case 'HOME_VISIT_OUTCOME_UNSPECIFIED':
       return HomeVisitOutcome.HOME_VISIT_OUTCOME_UNSPECIFIED;
     case 1:
-    case "HOME_VISIT_OUTCOME_PASSED":
+    case 'HOME_VISIT_OUTCOME_PASSED':
       return HomeVisitOutcome.HOME_VISIT_OUTCOME_PASSED;
     case 2:
-    case "HOME_VISIT_OUTCOME_FAILED":
+    case 'HOME_VISIT_OUTCOME_FAILED':
       return HomeVisitOutcome.HOME_VISIT_OUTCOME_FAILED;
     case 3:
-    case "HOME_VISIT_OUTCOME_RESCHEDULE":
+    case 'HOME_VISIT_OUTCOME_RESCHEDULE':
       return HomeVisitOutcome.HOME_VISIT_OUTCOME_RESCHEDULE;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return HomeVisitOutcome.UNRECOGNIZED;
   }
@@ -134,16 +134,16 @@ export function homeVisitOutcomeFromJSON(object: any): HomeVisitOutcome {
 export function homeVisitOutcomeToJSON(object: HomeVisitOutcome): string {
   switch (object) {
     case HomeVisitOutcome.HOME_VISIT_OUTCOME_UNSPECIFIED:
-      return "HOME_VISIT_OUTCOME_UNSPECIFIED";
+      return 'HOME_VISIT_OUTCOME_UNSPECIFIED';
     case HomeVisitOutcome.HOME_VISIT_OUTCOME_PASSED:
-      return "HOME_VISIT_OUTCOME_PASSED";
+      return 'HOME_VISIT_OUTCOME_PASSED';
     case HomeVisitOutcome.HOME_VISIT_OUTCOME_FAILED:
-      return "HOME_VISIT_OUTCOME_FAILED";
+      return 'HOME_VISIT_OUTCOME_FAILED';
     case HomeVisitOutcome.HOME_VISIT_OUTCOME_RESCHEDULE:
-      return "HOME_VISIT_OUTCOME_RESCHEDULE";
+      return 'HOME_VISIT_OUTCOME_RESCHEDULE';
     case HomeVisitOutcome.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -319,16 +319,12 @@ export interface GetApplicationResponse {
 
 export interface ListApplicationsRequest {
   /** Opaque base64-JSON keyset cursor. */
-  cursor?:
-    | string
-    | undefined;
+  cursor?: string | undefined;
   /** Defaults to 20, max 100. */
   limit: number;
   /** Optional filters. UNSPECIFIED in each enum = "no filter". */
   statusFilter: ApplicationStatus;
-  rescueIdFilter?:
-    | string
-    | undefined;
+  rescueIdFilter?: string | undefined;
   /**
    * Adopters can only see their own (the handler enforces scope
    * from principal.userId); admins + super_admin can pass any
@@ -417,18 +413,40 @@ export interface RemoveDocumentRequest {
   documentId: string;
 }
 
-export interface RemoveDocumentResponse {
+export interface RemoveDocumentResponse {}
+
+export interface GetApplicationDefaultsRequest {}
+
+export interface GetApplicationDefaultsResponse {
+  /**
+   * JSON-stringified ApplicationDefaults. Empty string when the adopter
+   * has never saved any defaults.
+   */
+  defaultsJson: string;
+}
+
+export interface UpdateApplicationDefaultsRequest {
+  /**
+   * JSON-stringified partial ApplicationDefaults patch, deep-merged
+   * into the stored value.
+   */
+  defaultsPatchJson: string;
+}
+
+export interface UpdateApplicationDefaultsResponse {
+  /** JSON-stringified ApplicationDefaults after the merge. */
+  defaultsJson: string;
 }
 
 function createBaseApplication(): Application {
   return {
-    applicationId: "",
-    adopterId: "",
-    petId: "",
-    rescueId: "",
+    applicationId: '',
+    adopterId: '',
+    petId: '',
+    rescueId: '',
     status: 0,
-    answersJson: "",
-    referencesJson: "",
+    answersJson: '',
+    referencesJson: '',
     version: 0,
     submittedAt: undefined,
     reviewStartedAt: undefined,
@@ -441,32 +459,32 @@ function createBaseApplication(): Application {
     decisionNotes: undefined,
     rejectionReason: undefined,
     adoptedAt: undefined,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: '',
+    updatedAt: '',
   };
 }
 
 export const Application: MessageFns<Application> = {
   encode(message: Application, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
-    if (message.adopterId !== "") {
+    if (message.adopterId !== '') {
       writer.uint32(18).string(message.adopterId);
     }
-    if (message.petId !== "") {
+    if (message.petId !== '') {
       writer.uint32(26).string(message.petId);
     }
-    if (message.rescueId !== "") {
+    if (message.rescueId !== '') {
       writer.uint32(34).string(message.rescueId);
     }
     if (message.status !== 0) {
       writer.uint32(40).int32(message.status);
     }
-    if (message.answersJson !== "") {
+    if (message.answersJson !== '') {
       writer.uint32(50).string(message.answersJson);
     }
-    if (message.referencesJson !== "") {
+    if (message.referencesJson !== '') {
       writer.uint32(58).string(message.referencesJson);
     }
     if (message.version !== 0) {
@@ -505,10 +523,10 @@ export const Application: MessageFns<Application> = {
     if (message.adoptedAt !== undefined) {
       writer.uint32(154).string(message.adoptedAt);
     }
-    if (message.createdAt !== "") {
+    if (message.createdAt !== '') {
       writer.uint32(162).string(message.createdAt);
     }
-    if (message.updatedAt !== "") {
+    if (message.updatedAt !== '') {
       writer.uint32(170).string(message.updatedAt);
     }
     return writer;
@@ -703,124 +721,124 @@ export const Application: MessageFns<Application> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
       adopterId: isSet(object.adopterId)
         ? globalThis.String(object.adopterId)
         : isSet(object.adopter_id)
-        ? globalThis.String(object.adopter_id)
-        : "",
+          ? globalThis.String(object.adopter_id)
+          : '',
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-        ? globalThis.String(object.pet_id)
-        : "",
+          ? globalThis.String(object.pet_id)
+          : '',
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-        ? globalThis.String(object.rescue_id)
-        : "",
+          ? globalThis.String(object.rescue_id)
+          : '',
       status: isSet(object.status) ? applicationStatusFromJSON(object.status) : 0,
       answersJson: isSet(object.answersJson)
         ? globalThis.String(object.answersJson)
         : isSet(object.answers_json)
-        ? globalThis.String(object.answers_json)
-        : "",
+          ? globalThis.String(object.answers_json)
+          : '',
       referencesJson: isSet(object.referencesJson)
         ? globalThis.String(object.referencesJson)
         : isSet(object.references_json)
-        ? globalThis.String(object.references_json)
-        : "",
+          ? globalThis.String(object.references_json)
+          : '',
       version: isSet(object.version) ? globalThis.Number(object.version) : 0,
       submittedAt: isSet(object.submittedAt)
         ? globalThis.String(object.submittedAt)
         : isSet(object.submitted_at)
-        ? globalThis.String(object.submitted_at)
-        : undefined,
+          ? globalThis.String(object.submitted_at)
+          : undefined,
       reviewStartedAt: isSet(object.reviewStartedAt)
         ? globalThis.String(object.reviewStartedAt)
         : isSet(object.review_started_at)
-        ? globalThis.String(object.review_started_at)
-        : undefined,
+          ? globalThis.String(object.review_started_at)
+          : undefined,
       homeVisitScheduledAt: isSet(object.homeVisitScheduledAt)
         ? globalThis.String(object.homeVisitScheduledAt)
         : isSet(object.home_visit_scheduled_at)
-        ? globalThis.String(object.home_visit_scheduled_at)
-        : undefined,
+          ? globalThis.String(object.home_visit_scheduled_at)
+          : undefined,
       homeVisitCompletedAt: isSet(object.homeVisitCompletedAt)
         ? globalThis.String(object.homeVisitCompletedAt)
         : isSet(object.home_visit_completed_at)
-        ? globalThis.String(object.home_visit_completed_at)
-        : undefined,
+          ? globalThis.String(object.home_visit_completed_at)
+          : undefined,
       homeVisitOutcome: isSet(object.homeVisitOutcome)
         ? homeVisitOutcomeFromJSON(object.homeVisitOutcome)
         : isSet(object.home_visit_outcome)
-        ? homeVisitOutcomeFromJSON(object.home_visit_outcome)
-        : undefined,
+          ? homeVisitOutcomeFromJSON(object.home_visit_outcome)
+          : undefined,
       homeVisitNotes: isSet(object.homeVisitNotes)
         ? globalThis.String(object.homeVisitNotes)
         : isSet(object.home_visit_notes)
-        ? globalThis.String(object.home_visit_notes)
-        : undefined,
+          ? globalThis.String(object.home_visit_notes)
+          : undefined,
       decidedAt: isSet(object.decidedAt)
         ? globalThis.String(object.decidedAt)
         : isSet(object.decided_at)
-        ? globalThis.String(object.decided_at)
-        : undefined,
+          ? globalThis.String(object.decided_at)
+          : undefined,
       decidedBy: isSet(object.decidedBy)
         ? globalThis.String(object.decidedBy)
         : isSet(object.decided_by)
-        ? globalThis.String(object.decided_by)
-        : undefined,
+          ? globalThis.String(object.decided_by)
+          : undefined,
       decisionNotes: isSet(object.decisionNotes)
         ? globalThis.String(object.decisionNotes)
         : isSet(object.decision_notes)
-        ? globalThis.String(object.decision_notes)
-        : undefined,
+          ? globalThis.String(object.decision_notes)
+          : undefined,
       rejectionReason: isSet(object.rejectionReason)
         ? globalThis.String(object.rejectionReason)
         : isSet(object.rejection_reason)
-        ? globalThis.String(object.rejection_reason)
-        : undefined,
+          ? globalThis.String(object.rejection_reason)
+          : undefined,
       adoptedAt: isSet(object.adoptedAt)
         ? globalThis.String(object.adoptedAt)
         : isSet(object.adopted_at)
-        ? globalThis.String(object.adopted_at)
-        : undefined,
+          ? globalThis.String(object.adopted_at)
+          : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
+          ? globalThis.String(object.created_at)
+          : '',
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
+          ? globalThis.String(object.updated_at)
+          : '',
     };
   },
 
   toJSON(message: Application): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
-    if (message.adopterId !== "") {
+    if (message.adopterId !== '') {
       obj.adopterId = message.adopterId;
     }
-    if (message.petId !== "") {
+    if (message.petId !== '') {
       obj.petId = message.petId;
     }
-    if (message.rescueId !== "") {
+    if (message.rescueId !== '') {
       obj.rescueId = message.rescueId;
     }
     if (message.status !== 0) {
       obj.status = applicationStatusToJSON(message.status);
     }
-    if (message.answersJson !== "") {
+    if (message.answersJson !== '') {
       obj.answersJson = message.answersJson;
     }
-    if (message.referencesJson !== "") {
+    if (message.referencesJson !== '') {
       obj.referencesJson = message.referencesJson;
     }
     if (message.version !== 0) {
@@ -859,10 +877,10 @@ export const Application: MessageFns<Application> = {
     if (message.adoptedAt !== undefined) {
       obj.adoptedAt = message.adoptedAt;
     }
-    if (message.createdAt !== "") {
+    if (message.createdAt !== '') {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== "") {
+    if (message.updatedAt !== '') {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -873,13 +891,13 @@ export const Application: MessageFns<Application> = {
   },
   fromPartial<I extends Exact<DeepPartial<Application>, I>>(object: I): Application {
     const message = createBaseApplication();
-    message.applicationId = object.applicationId ?? "";
-    message.adopterId = object.adopterId ?? "";
-    message.petId = object.petId ?? "";
-    message.rescueId = object.rescueId ?? "";
+    message.applicationId = object.applicationId ?? '';
+    message.adopterId = object.adopterId ?? '';
+    message.petId = object.petId ?? '';
+    message.rescueId = object.rescueId ?? '';
     message.status = object.status ?? 0;
-    message.answersJson = object.answersJson ?? "";
-    message.referencesJson = object.referencesJson ?? "";
+    message.answersJson = object.answersJson ?? '';
+    message.referencesJson = object.referencesJson ?? '';
     message.version = object.version ?? 0;
     message.submittedAt = object.submittedAt ?? undefined;
     message.reviewStartedAt = object.reviewStartedAt ?? undefined;
@@ -892,30 +910,30 @@ export const Application: MessageFns<Application> = {
     message.decisionNotes = object.decisionNotes ?? undefined;
     message.rejectionReason = object.rejectionReason ?? undefined;
     message.adoptedAt = object.adoptedAt ?? undefined;
-    message.createdAt = object.createdAt ?? "";
-    message.updatedAt = object.updatedAt ?? "";
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
     return message;
   },
 };
 
 function createBaseTimelineEntry(): TimelineEntry {
   return {
-    entryId: "",
-    applicationId: "",
+    entryId: '',
+    applicationId: '',
     fromStatus: 0,
     toStatus: 0,
-    actorUserId: "",
-    occurredAt: "",
+    actorUserId: '',
+    occurredAt: '',
     note: undefined,
   };
 }
 
 export const TimelineEntry: MessageFns<TimelineEntry> = {
   encode(message: TimelineEntry, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.entryId !== "") {
+    if (message.entryId !== '') {
       writer.uint32(10).string(message.entryId);
     }
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(18).string(message.applicationId);
     }
     if (message.fromStatus !== 0) {
@@ -924,10 +942,10 @@ export const TimelineEntry: MessageFns<TimelineEntry> = {
     if (message.toStatus !== 0) {
       writer.uint32(32).int32(message.toStatus);
     }
-    if (message.actorUserId !== "") {
+    if (message.actorUserId !== '') {
       writer.uint32(42).string(message.actorUserId);
     }
-    if (message.occurredAt !== "") {
+    if (message.occurredAt !== '') {
       writer.uint32(50).string(message.occurredAt);
     }
     if (message.note !== undefined) {
@@ -1013,43 +1031,43 @@ export const TimelineEntry: MessageFns<TimelineEntry> = {
       entryId: isSet(object.entryId)
         ? globalThis.String(object.entryId)
         : isSet(object.entry_id)
-        ? globalThis.String(object.entry_id)
-        : "",
+          ? globalThis.String(object.entry_id)
+          : '',
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
       fromStatus: isSet(object.fromStatus)
         ? applicationStatusFromJSON(object.fromStatus)
         : isSet(object.from_status)
-        ? applicationStatusFromJSON(object.from_status)
-        : 0,
+          ? applicationStatusFromJSON(object.from_status)
+          : 0,
       toStatus: isSet(object.toStatus)
         ? applicationStatusFromJSON(object.toStatus)
         : isSet(object.to_status)
-        ? applicationStatusFromJSON(object.to_status)
-        : 0,
+          ? applicationStatusFromJSON(object.to_status)
+          : 0,
       actorUserId: isSet(object.actorUserId)
         ? globalThis.String(object.actorUserId)
         : isSet(object.actor_user_id)
-        ? globalThis.String(object.actor_user_id)
-        : "",
+          ? globalThis.String(object.actor_user_id)
+          : '',
       occurredAt: isSet(object.occurredAt)
         ? globalThis.String(object.occurredAt)
         : isSet(object.occurred_at)
-        ? globalThis.String(object.occurred_at)
-        : "",
+          ? globalThis.String(object.occurred_at)
+          : '',
       note: isSet(object.note) ? globalThis.String(object.note) : undefined,
     };
   },
 
   toJSON(message: TimelineEntry): unknown {
     const obj: any = {};
-    if (message.entryId !== "") {
+    if (message.entryId !== '') {
       obj.entryId = message.entryId;
     }
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
     if (message.fromStatus !== 0) {
@@ -1058,10 +1076,10 @@ export const TimelineEntry: MessageFns<TimelineEntry> = {
     if (message.toStatus !== 0) {
       obj.toStatus = applicationStatusToJSON(message.toStatus);
     }
-    if (message.actorUserId !== "") {
+    if (message.actorUserId !== '') {
       obj.actorUserId = message.actorUserId;
     }
-    if (message.occurredAt !== "") {
+    if (message.occurredAt !== '') {
       obj.occurredAt = message.occurredAt;
     }
     if (message.note !== undefined) {
@@ -1075,27 +1093,27 @@ export const TimelineEntry: MessageFns<TimelineEntry> = {
   },
   fromPartial<I extends Exact<DeepPartial<TimelineEntry>, I>>(object: I): TimelineEntry {
     const message = createBaseTimelineEntry();
-    message.entryId = object.entryId ?? "";
-    message.applicationId = object.applicationId ?? "";
+    message.entryId = object.entryId ?? '';
+    message.applicationId = object.applicationId ?? '';
     message.fromStatus = object.fromStatus ?? 0;
     message.toStatus = object.toStatus ?? 0;
-    message.actorUserId = object.actorUserId ?? "";
-    message.occurredAt = object.occurredAt ?? "";
+    message.actorUserId = object.actorUserId ?? '';
+    message.occurredAt = object.occurredAt ?? '';
     message.note = object.note ?? undefined;
     return message;
   },
 };
 
 function createBaseStartDraftRequest(): StartDraftRequest {
-  return { adopterId: "", petId: "" };
+  return { adopterId: '', petId: '' };
 }
 
 export const StartDraftRequest: MessageFns<StartDraftRequest> = {
   encode(message: StartDraftRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.adopterId !== "") {
+    if (message.adopterId !== '') {
       writer.uint32(10).string(message.adopterId);
     }
-    if (message.petId !== "") {
+    if (message.petId !== '') {
       writer.uint32(18).string(message.petId);
     }
     return writer;
@@ -1138,22 +1156,22 @@ export const StartDraftRequest: MessageFns<StartDraftRequest> = {
       adopterId: isSet(object.adopterId)
         ? globalThis.String(object.adopterId)
         : isSet(object.adopter_id)
-        ? globalThis.String(object.adopter_id)
-        : "",
+          ? globalThis.String(object.adopter_id)
+          : '',
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-        ? globalThis.String(object.pet_id)
-        : "",
+          ? globalThis.String(object.pet_id)
+          : '',
     };
   },
 
   toJSON(message: StartDraftRequest): unknown {
     const obj: any = {};
-    if (message.adopterId !== "") {
+    if (message.adopterId !== '') {
       obj.adopterId = message.adopterId;
     }
-    if (message.petId !== "") {
+    if (message.petId !== '') {
       obj.petId = message.petId;
     }
     return obj;
@@ -1164,8 +1182,8 @@ export const StartDraftRequest: MessageFns<StartDraftRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<StartDraftRequest>, I>>(object: I): StartDraftRequest {
     const message = createBaseStartDraftRequest();
-    message.adopterId = object.adopterId ?? "";
-    message.petId = object.petId ?? "";
+    message.adopterId = object.adopterId ?? '';
+    message.petId = object.petId ?? '';
     return message;
   },
 };
@@ -1207,7 +1225,9 @@ export const StartDraftResponse: MessageFns<StartDraftResponse> = {
   },
 
   fromJSON(object: any): StartDraftResponse {
-    return { application: isSet(object.application) ? Application.fromJSON(object.application) : undefined };
+    return {
+      application: isSet(object.application) ? Application.fromJSON(object.application) : undefined,
+    };
   },
 
   toJSON(message: StartDraftResponse): unknown {
@@ -1223,26 +1243,30 @@ export const StartDraftResponse: MessageFns<StartDraftResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<StartDraftResponse>, I>>(object: I): StartDraftResponse {
     const message = createBaseStartDraftResponse();
-    message.application = (object.application !== undefined && object.application !== null)
-      ? Application.fromPartial(object.application)
-      : undefined;
+    message.application =
+      object.application !== undefined && object.application !== null
+        ? Application.fromPartial(object.application)
+        : undefined;
     return message;
   },
 };
 
 function createBaseSaveDraftAnswersRequest(): SaveDraftAnswersRequest {
-  return { applicationId: "", expectedVersion: 0, answersPatchJson: "", referencesJson: undefined };
+  return { applicationId: '', expectedVersion: 0, answersPatchJson: '', referencesJson: undefined };
 }
 
 export const SaveDraftAnswersRequest: MessageFns<SaveDraftAnswersRequest> = {
-  encode(message: SaveDraftAnswersRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+  encode(
+    message: SaveDraftAnswersRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
     if (message.expectedVersion !== 0) {
       writer.uint32(16).uint32(message.expectedVersion);
     }
-    if (message.answersPatchJson !== "") {
+    if (message.answersPatchJson !== '') {
       writer.uint32(26).string(message.answersPatchJson);
     }
     if (message.referencesJson !== undefined) {
@@ -1304,35 +1328,35 @@ export const SaveDraftAnswersRequest: MessageFns<SaveDraftAnswersRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
       expectedVersion: isSet(object.expectedVersion)
         ? globalThis.Number(object.expectedVersion)
         : isSet(object.expected_version)
-        ? globalThis.Number(object.expected_version)
-        : 0,
+          ? globalThis.Number(object.expected_version)
+          : 0,
       answersPatchJson: isSet(object.answersPatchJson)
         ? globalThis.String(object.answersPatchJson)
         : isSet(object.answers_patch_json)
-        ? globalThis.String(object.answers_patch_json)
-        : "",
+          ? globalThis.String(object.answers_patch_json)
+          : '',
       referencesJson: isSet(object.referencesJson)
         ? globalThis.String(object.referencesJson)
         : isSet(object.references_json)
-        ? globalThis.String(object.references_json)
-        : undefined,
+          ? globalThis.String(object.references_json)
+          : undefined,
     };
   },
 
   toJSON(message: SaveDraftAnswersRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
     if (message.expectedVersion !== 0) {
       obj.expectedVersion = Math.round(message.expectedVersion);
     }
-    if (message.answersPatchJson !== "") {
+    if (message.answersPatchJson !== '') {
       obj.answersPatchJson = message.answersPatchJson;
     }
     if (message.referencesJson !== undefined) {
@@ -1341,14 +1365,18 @@ export const SaveDraftAnswersRequest: MessageFns<SaveDraftAnswersRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<SaveDraftAnswersRequest>, I>>(base?: I): SaveDraftAnswersRequest {
+  create<I extends Exact<DeepPartial<SaveDraftAnswersRequest>, I>>(
+    base?: I
+  ): SaveDraftAnswersRequest {
     return SaveDraftAnswersRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SaveDraftAnswersRequest>, I>>(object: I): SaveDraftAnswersRequest {
+  fromPartial<I extends Exact<DeepPartial<SaveDraftAnswersRequest>, I>>(
+    object: I
+  ): SaveDraftAnswersRequest {
     const message = createBaseSaveDraftAnswersRequest();
-    message.applicationId = object.applicationId ?? "";
+    message.applicationId = object.applicationId ?? '';
     message.expectedVersion = object.expectedVersion ?? 0;
-    message.answersPatchJson = object.answersPatchJson ?? "";
+    message.answersPatchJson = object.answersPatchJson ?? '';
     message.referencesJson = object.referencesJson ?? undefined;
     return message;
   },
@@ -1359,7 +1387,10 @@ function createBaseSaveDraftAnswersResponse(): SaveDraftAnswersResponse {
 }
 
 export const SaveDraftAnswersResponse: MessageFns<SaveDraftAnswersResponse> = {
-  encode(message: SaveDraftAnswersResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: SaveDraftAnswersResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.application !== undefined) {
       Application.encode(message.application, writer.uint32(10).fork()).join();
     }
@@ -1391,7 +1422,9 @@ export const SaveDraftAnswersResponse: MessageFns<SaveDraftAnswersResponse> = {
   },
 
   fromJSON(object: any): SaveDraftAnswersResponse {
-    return { application: isSet(object.application) ? Application.fromJSON(object.application) : undefined };
+    return {
+      application: isSet(object.application) ? Application.fromJSON(object.application) : undefined,
+    };
   },
 
   toJSON(message: SaveDraftAnswersResponse): unknown {
@@ -1402,25 +1435,30 @@ export const SaveDraftAnswersResponse: MessageFns<SaveDraftAnswersResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<SaveDraftAnswersResponse>, I>>(base?: I): SaveDraftAnswersResponse {
+  create<I extends Exact<DeepPartial<SaveDraftAnswersResponse>, I>>(
+    base?: I
+  ): SaveDraftAnswersResponse {
     return SaveDraftAnswersResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SaveDraftAnswersResponse>, I>>(object: I): SaveDraftAnswersResponse {
+  fromPartial<I extends Exact<DeepPartial<SaveDraftAnswersResponse>, I>>(
+    object: I
+  ): SaveDraftAnswersResponse {
     const message = createBaseSaveDraftAnswersResponse();
-    message.application = (object.application !== undefined && object.application !== null)
-      ? Application.fromPartial(object.application)
-      : undefined;
+    message.application =
+      object.application !== undefined && object.application !== null
+        ? Application.fromPartial(object.application)
+        : undefined;
     return message;
   },
 };
 
 function createBaseSubmitDraftRequest(): SubmitDraftRequest {
-  return { applicationId: "", expectedVersion: 0 };
+  return { applicationId: '', expectedVersion: 0 };
 }
 
 export const SubmitDraftRequest: MessageFns<SubmitDraftRequest> = {
   encode(message: SubmitDraftRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
     if (message.expectedVersion !== 0) {
@@ -1466,19 +1504,19 @@ export const SubmitDraftRequest: MessageFns<SubmitDraftRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
       expectedVersion: isSet(object.expectedVersion)
         ? globalThis.Number(object.expectedVersion)
         : isSet(object.expected_version)
-        ? globalThis.Number(object.expected_version)
-        : 0,
+          ? globalThis.Number(object.expected_version)
+          : 0,
     };
   },
 
   toJSON(message: SubmitDraftRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
     if (message.expectedVersion !== 0) {
@@ -1492,7 +1530,7 @@ export const SubmitDraftRequest: MessageFns<SubmitDraftRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<SubmitDraftRequest>, I>>(object: I): SubmitDraftRequest {
     const message = createBaseSubmitDraftRequest();
-    message.applicationId = object.applicationId ?? "";
+    message.applicationId = object.applicationId ?? '';
     message.expectedVersion = object.expectedVersion ?? 0;
     return message;
   },
@@ -1535,7 +1573,9 @@ export const SubmitDraftResponse: MessageFns<SubmitDraftResponse> = {
   },
 
   fromJSON(object: any): SubmitDraftResponse {
-    return { application: isSet(object.application) ? Application.fromJSON(object.application) : undefined };
+    return {
+      application: isSet(object.application) ? Application.fromJSON(object.application) : undefined,
+    };
   },
 
   toJSON(message: SubmitDraftResponse): unknown {
@@ -1549,22 +1589,25 @@ export const SubmitDraftResponse: MessageFns<SubmitDraftResponse> = {
   create<I extends Exact<DeepPartial<SubmitDraftResponse>, I>>(base?: I): SubmitDraftResponse {
     return SubmitDraftResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<SubmitDraftResponse>, I>>(object: I): SubmitDraftResponse {
+  fromPartial<I extends Exact<DeepPartial<SubmitDraftResponse>, I>>(
+    object: I
+  ): SubmitDraftResponse {
     const message = createBaseSubmitDraftResponse();
-    message.application = (object.application !== undefined && object.application !== null)
-      ? Application.fromPartial(object.application)
-      : undefined;
+    message.application =
+      object.application !== undefined && object.application !== null
+        ? Application.fromPartial(object.application)
+        : undefined;
     return message;
   },
 };
 
 function createBaseStartReviewRequest(): StartReviewRequest {
-  return { applicationId: "", note: undefined };
+  return { applicationId: '', note: undefined };
 }
 
 export const StartReviewRequest: MessageFns<StartReviewRequest> = {
   encode(message: StartReviewRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
     if (message.note !== undefined) {
@@ -1610,15 +1653,15 @@ export const StartReviewRequest: MessageFns<StartReviewRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
       note: isSet(object.note) ? globalThis.String(object.note) : undefined,
     };
   },
 
   toJSON(message: StartReviewRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
     if (message.note !== undefined) {
@@ -1632,7 +1675,7 @@ export const StartReviewRequest: MessageFns<StartReviewRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<StartReviewRequest>, I>>(object: I): StartReviewRequest {
     const message = createBaseStartReviewRequest();
-    message.applicationId = object.applicationId ?? "";
+    message.applicationId = object.applicationId ?? '';
     message.note = object.note ?? undefined;
     return message;
   },
@@ -1675,7 +1718,9 @@ export const StartReviewResponse: MessageFns<StartReviewResponse> = {
   },
 
   fromJSON(object: any): StartReviewResponse {
-    return { application: isSet(object.application) ? Application.fromJSON(object.application) : undefined };
+    return {
+      application: isSet(object.application) ? Application.fromJSON(object.application) : undefined,
+    };
   },
 
   toJSON(message: StartReviewResponse): unknown {
@@ -1689,25 +1734,31 @@ export const StartReviewResponse: MessageFns<StartReviewResponse> = {
   create<I extends Exact<DeepPartial<StartReviewResponse>, I>>(base?: I): StartReviewResponse {
     return StartReviewResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<StartReviewResponse>, I>>(object: I): StartReviewResponse {
+  fromPartial<I extends Exact<DeepPartial<StartReviewResponse>, I>>(
+    object: I
+  ): StartReviewResponse {
     const message = createBaseStartReviewResponse();
-    message.application = (object.application !== undefined && object.application !== null)
-      ? Application.fromPartial(object.application)
-      : undefined;
+    message.application =
+      object.application !== undefined && object.application !== null
+        ? Application.fromPartial(object.application)
+        : undefined;
     return message;
   },
 };
 
 function createBaseScheduleHomeVisitRequest(): ScheduleHomeVisitRequest {
-  return { applicationId: "", scheduledAt: "", note: undefined };
+  return { applicationId: '', scheduledAt: '', note: undefined };
 }
 
 export const ScheduleHomeVisitRequest: MessageFns<ScheduleHomeVisitRequest> = {
-  encode(message: ScheduleHomeVisitRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+  encode(
+    message: ScheduleHomeVisitRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
-    if (message.scheduledAt !== "") {
+    if (message.scheduledAt !== '') {
       writer.uint32(18).string(message.scheduledAt);
     }
     if (message.note !== undefined) {
@@ -1761,23 +1812,23 @@ export const ScheduleHomeVisitRequest: MessageFns<ScheduleHomeVisitRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
       scheduledAt: isSet(object.scheduledAt)
         ? globalThis.String(object.scheduledAt)
         : isSet(object.scheduled_at)
-        ? globalThis.String(object.scheduled_at)
-        : "",
+          ? globalThis.String(object.scheduled_at)
+          : '',
       note: isSet(object.note) ? globalThis.String(object.note) : undefined,
     };
   },
 
   toJSON(message: ScheduleHomeVisitRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
-    if (message.scheduledAt !== "") {
+    if (message.scheduledAt !== '') {
       obj.scheduledAt = message.scheduledAt;
     }
     if (message.note !== undefined) {
@@ -1786,13 +1837,17 @@ export const ScheduleHomeVisitRequest: MessageFns<ScheduleHomeVisitRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ScheduleHomeVisitRequest>, I>>(base?: I): ScheduleHomeVisitRequest {
+  create<I extends Exact<DeepPartial<ScheduleHomeVisitRequest>, I>>(
+    base?: I
+  ): ScheduleHomeVisitRequest {
     return ScheduleHomeVisitRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ScheduleHomeVisitRequest>, I>>(object: I): ScheduleHomeVisitRequest {
+  fromPartial<I extends Exact<DeepPartial<ScheduleHomeVisitRequest>, I>>(
+    object: I
+  ): ScheduleHomeVisitRequest {
     const message = createBaseScheduleHomeVisitRequest();
-    message.applicationId = object.applicationId ?? "";
-    message.scheduledAt = object.scheduledAt ?? "";
+    message.applicationId = object.applicationId ?? '';
+    message.scheduledAt = object.scheduledAt ?? '';
     message.note = object.note ?? undefined;
     return message;
   },
@@ -1803,7 +1858,10 @@ function createBaseScheduleHomeVisitResponse(): ScheduleHomeVisitResponse {
 }
 
 export const ScheduleHomeVisitResponse: MessageFns<ScheduleHomeVisitResponse> = {
-  encode(message: ScheduleHomeVisitResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ScheduleHomeVisitResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.application !== undefined) {
       Application.encode(message.application, writer.uint32(10).fork()).join();
     }
@@ -1835,7 +1893,9 @@ export const ScheduleHomeVisitResponse: MessageFns<ScheduleHomeVisitResponse> = 
   },
 
   fromJSON(object: any): ScheduleHomeVisitResponse {
-    return { application: isSet(object.application) ? Application.fromJSON(object.application) : undefined };
+    return {
+      application: isSet(object.application) ? Application.fromJSON(object.application) : undefined,
+    };
   },
 
   toJSON(message: ScheduleHomeVisitResponse): unknown {
@@ -1846,25 +1906,33 @@ export const ScheduleHomeVisitResponse: MessageFns<ScheduleHomeVisitResponse> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ScheduleHomeVisitResponse>, I>>(base?: I): ScheduleHomeVisitResponse {
+  create<I extends Exact<DeepPartial<ScheduleHomeVisitResponse>, I>>(
+    base?: I
+  ): ScheduleHomeVisitResponse {
     return ScheduleHomeVisitResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ScheduleHomeVisitResponse>, I>>(object: I): ScheduleHomeVisitResponse {
+  fromPartial<I extends Exact<DeepPartial<ScheduleHomeVisitResponse>, I>>(
+    object: I
+  ): ScheduleHomeVisitResponse {
     const message = createBaseScheduleHomeVisitResponse();
-    message.application = (object.application !== undefined && object.application !== null)
-      ? Application.fromPartial(object.application)
-      : undefined;
+    message.application =
+      object.application !== undefined && object.application !== null
+        ? Application.fromPartial(object.application)
+        : undefined;
     return message;
   },
 };
 
 function createBaseCompleteHomeVisitRequest(): CompleteHomeVisitRequest {
-  return { applicationId: "", outcome: 0, notes: undefined };
+  return { applicationId: '', outcome: 0, notes: undefined };
 }
 
 export const CompleteHomeVisitRequest: MessageFns<CompleteHomeVisitRequest> = {
-  encode(message: CompleteHomeVisitRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+  encode(
+    message: CompleteHomeVisitRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
     if (message.outcome !== 0) {
@@ -1921,8 +1989,8 @@ export const CompleteHomeVisitRequest: MessageFns<CompleteHomeVisitRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
       outcome: isSet(object.outcome) ? homeVisitOutcomeFromJSON(object.outcome) : 0,
       notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
     };
@@ -1930,7 +1998,7 @@ export const CompleteHomeVisitRequest: MessageFns<CompleteHomeVisitRequest> = {
 
   toJSON(message: CompleteHomeVisitRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
     if (message.outcome !== 0) {
@@ -1942,12 +2010,16 @@ export const CompleteHomeVisitRequest: MessageFns<CompleteHomeVisitRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CompleteHomeVisitRequest>, I>>(base?: I): CompleteHomeVisitRequest {
+  create<I extends Exact<DeepPartial<CompleteHomeVisitRequest>, I>>(
+    base?: I
+  ): CompleteHomeVisitRequest {
     return CompleteHomeVisitRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CompleteHomeVisitRequest>, I>>(object: I): CompleteHomeVisitRequest {
+  fromPartial<I extends Exact<DeepPartial<CompleteHomeVisitRequest>, I>>(
+    object: I
+  ): CompleteHomeVisitRequest {
     const message = createBaseCompleteHomeVisitRequest();
-    message.applicationId = object.applicationId ?? "";
+    message.applicationId = object.applicationId ?? '';
     message.outcome = object.outcome ?? 0;
     message.notes = object.notes ?? undefined;
     return message;
@@ -1959,7 +2031,10 @@ function createBaseCompleteHomeVisitResponse(): CompleteHomeVisitResponse {
 }
 
 export const CompleteHomeVisitResponse: MessageFns<CompleteHomeVisitResponse> = {
-  encode(message: CompleteHomeVisitResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: CompleteHomeVisitResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.application !== undefined) {
       Application.encode(message.application, writer.uint32(10).fork()).join();
     }
@@ -1991,7 +2066,9 @@ export const CompleteHomeVisitResponse: MessageFns<CompleteHomeVisitResponse> = 
   },
 
   fromJSON(object: any): CompleteHomeVisitResponse {
-    return { application: isSet(object.application) ? Application.fromJSON(object.application) : undefined };
+    return {
+      application: isSet(object.application) ? Application.fromJSON(object.application) : undefined,
+    };
   },
 
   toJSON(message: CompleteHomeVisitResponse): unknown {
@@ -2002,25 +2079,30 @@ export const CompleteHomeVisitResponse: MessageFns<CompleteHomeVisitResponse> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CompleteHomeVisitResponse>, I>>(base?: I): CompleteHomeVisitResponse {
+  create<I extends Exact<DeepPartial<CompleteHomeVisitResponse>, I>>(
+    base?: I
+  ): CompleteHomeVisitResponse {
     return CompleteHomeVisitResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CompleteHomeVisitResponse>, I>>(object: I): CompleteHomeVisitResponse {
+  fromPartial<I extends Exact<DeepPartial<CompleteHomeVisitResponse>, I>>(
+    object: I
+  ): CompleteHomeVisitResponse {
     const message = createBaseCompleteHomeVisitResponse();
-    message.application = (object.application !== undefined && object.application !== null)
-      ? Application.fromPartial(object.application)
-      : undefined;
+    message.application =
+      object.application !== undefined && object.application !== null
+        ? Application.fromPartial(object.application)
+        : undefined;
     return message;
   },
 };
 
 function createBaseApproveRequest(): ApproveRequest {
-  return { applicationId: "", notes: undefined };
+  return { applicationId: '', notes: undefined };
 }
 
 export const ApproveRequest: MessageFns<ApproveRequest> = {
   encode(message: ApproveRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
     if (message.notes !== undefined) {
@@ -2066,15 +2148,15 @@ export const ApproveRequest: MessageFns<ApproveRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
       notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
     };
   },
 
   toJSON(message: ApproveRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
     if (message.notes !== undefined) {
@@ -2088,7 +2170,7 @@ export const ApproveRequest: MessageFns<ApproveRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<ApproveRequest>, I>>(object: I): ApproveRequest {
     const message = createBaseApproveRequest();
-    message.applicationId = object.applicationId ?? "";
+    message.applicationId = object.applicationId ?? '';
     message.notes = object.notes ?? undefined;
     return message;
   },
@@ -2131,7 +2213,9 @@ export const ApproveResponse: MessageFns<ApproveResponse> = {
   },
 
   fromJSON(object: any): ApproveResponse {
-    return { application: isSet(object.application) ? Application.fromJSON(object.application) : undefined };
+    return {
+      application: isSet(object.application) ? Application.fromJSON(object.application) : undefined,
+    };
   },
 
   toJSON(message: ApproveResponse): unknown {
@@ -2147,23 +2231,24 @@ export const ApproveResponse: MessageFns<ApproveResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<ApproveResponse>, I>>(object: I): ApproveResponse {
     const message = createBaseApproveResponse();
-    message.application = (object.application !== undefined && object.application !== null)
-      ? Application.fromPartial(object.application)
-      : undefined;
+    message.application =
+      object.application !== undefined && object.application !== null
+        ? Application.fromPartial(object.application)
+        : undefined;
     return message;
   },
 };
 
 function createBaseRejectRequest(): RejectRequest {
-  return { applicationId: "", reason: "" };
+  return { applicationId: '', reason: '' };
 }
 
 export const RejectRequest: MessageFns<RejectRequest> = {
   encode(message: RejectRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
-    if (message.reason !== "") {
+    if (message.reason !== '') {
       writer.uint32(18).string(message.reason);
     }
     return writer;
@@ -2206,18 +2291,18 @@ export const RejectRequest: MessageFns<RejectRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
-      reason: isSet(object.reason) ? globalThis.String(object.reason) : "",
+          ? globalThis.String(object.application_id)
+          : '',
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : '',
     };
   },
 
   toJSON(message: RejectRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
-    if (message.reason !== "") {
+    if (message.reason !== '') {
       obj.reason = message.reason;
     }
     return obj;
@@ -2228,8 +2313,8 @@ export const RejectRequest: MessageFns<RejectRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<RejectRequest>, I>>(object: I): RejectRequest {
     const message = createBaseRejectRequest();
-    message.applicationId = object.applicationId ?? "";
-    message.reason = object.reason ?? "";
+    message.applicationId = object.applicationId ?? '';
+    message.reason = object.reason ?? '';
     return message;
   },
 };
@@ -2271,7 +2356,9 @@ export const RejectResponse: MessageFns<RejectResponse> = {
   },
 
   fromJSON(object: any): RejectResponse {
-    return { application: isSet(object.application) ? Application.fromJSON(object.application) : undefined };
+    return {
+      application: isSet(object.application) ? Application.fromJSON(object.application) : undefined,
+    };
   },
 
   toJSON(message: RejectResponse): unknown {
@@ -2287,20 +2374,21 @@ export const RejectResponse: MessageFns<RejectResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<RejectResponse>, I>>(object: I): RejectResponse {
     const message = createBaseRejectResponse();
-    message.application = (object.application !== undefined && object.application !== null)
-      ? Application.fromPartial(object.application)
-      : undefined;
+    message.application =
+      object.application !== undefined && object.application !== null
+        ? Application.fromPartial(object.application)
+        : undefined;
     return message;
   },
 };
 
 function createBaseWithdrawRequest(): WithdrawRequest {
-  return { applicationId: "", reason: undefined };
+  return { applicationId: '', reason: undefined };
 }
 
 export const WithdrawRequest: MessageFns<WithdrawRequest> = {
   encode(message: WithdrawRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
     if (message.reason !== undefined) {
@@ -2346,15 +2434,15 @@ export const WithdrawRequest: MessageFns<WithdrawRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
       reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
     };
   },
 
   toJSON(message: WithdrawRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
     if (message.reason !== undefined) {
@@ -2368,7 +2456,7 @@ export const WithdrawRequest: MessageFns<WithdrawRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<WithdrawRequest>, I>>(object: I): WithdrawRequest {
     const message = createBaseWithdrawRequest();
-    message.applicationId = object.applicationId ?? "";
+    message.applicationId = object.applicationId ?? '';
     message.reason = object.reason ?? undefined;
     return message;
   },
@@ -2411,7 +2499,9 @@ export const WithdrawResponse: MessageFns<WithdrawResponse> = {
   },
 
   fromJSON(object: any): WithdrawResponse {
-    return { application: isSet(object.application) ? Application.fromJSON(object.application) : undefined };
+    return {
+      application: isSet(object.application) ? Application.fromJSON(object.application) : undefined,
+    };
   },
 
   toJSON(message: WithdrawResponse): unknown {
@@ -2427,20 +2517,21 @@ export const WithdrawResponse: MessageFns<WithdrawResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<WithdrawResponse>, I>>(object: I): WithdrawResponse {
     const message = createBaseWithdrawResponse();
-    message.application = (object.application !== undefined && object.application !== null)
-      ? Application.fromPartial(object.application)
-      : undefined;
+    message.application =
+      object.application !== undefined && object.application !== null
+        ? Application.fromPartial(object.application)
+        : undefined;
     return message;
   },
 };
 
 function createBaseMarkAdoptedRequest(): MarkAdoptedRequest {
-  return { applicationId: "" };
+  return { applicationId: '' };
 }
 
 export const MarkAdoptedRequest: MessageFns<MarkAdoptedRequest> = {
   encode(message: MarkAdoptedRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
     return writer;
@@ -2475,14 +2566,14 @@ export const MarkAdoptedRequest: MessageFns<MarkAdoptedRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
     };
   },
 
   toJSON(message: MarkAdoptedRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
     return obj;
@@ -2493,7 +2584,7 @@ export const MarkAdoptedRequest: MessageFns<MarkAdoptedRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<MarkAdoptedRequest>, I>>(object: I): MarkAdoptedRequest {
     const message = createBaseMarkAdoptedRequest();
-    message.applicationId = object.applicationId ?? "";
+    message.applicationId = object.applicationId ?? '';
     return message;
   },
 };
@@ -2535,7 +2626,9 @@ export const MarkAdoptedResponse: MessageFns<MarkAdoptedResponse> = {
   },
 
   fromJSON(object: any): MarkAdoptedResponse {
-    return { application: isSet(object.application) ? Application.fromJSON(object.application) : undefined };
+    return {
+      application: isSet(object.application) ? Application.fromJSON(object.application) : undefined,
+    };
   },
 
   toJSON(message: MarkAdoptedResponse): unknown {
@@ -2549,22 +2642,25 @@ export const MarkAdoptedResponse: MessageFns<MarkAdoptedResponse> = {
   create<I extends Exact<DeepPartial<MarkAdoptedResponse>, I>>(base?: I): MarkAdoptedResponse {
     return MarkAdoptedResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<MarkAdoptedResponse>, I>>(object: I): MarkAdoptedResponse {
+  fromPartial<I extends Exact<DeepPartial<MarkAdoptedResponse>, I>>(
+    object: I
+  ): MarkAdoptedResponse {
     const message = createBaseMarkAdoptedResponse();
-    message.application = (object.application !== undefined && object.application !== null)
-      ? Application.fromPartial(object.application)
-      : undefined;
+    message.application =
+      object.application !== undefined && object.application !== null
+        ? Application.fromPartial(object.application)
+        : undefined;
     return message;
   },
 };
 
 function createBaseGetApplicationRequest(): GetApplicationRequest {
-  return { applicationId: "", includeTimeline: false };
+  return { applicationId: '', includeTimeline: false };
 }
 
 export const GetApplicationRequest: MessageFns<GetApplicationRequest> = {
   encode(message: GetApplicationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
     if (message.includeTimeline !== false) {
@@ -2610,19 +2706,19 @@ export const GetApplicationRequest: MessageFns<GetApplicationRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
       includeTimeline: isSet(object.includeTimeline)
         ? globalThis.Boolean(object.includeTimeline)
         : isSet(object.include_timeline)
-        ? globalThis.Boolean(object.include_timeline)
-        : false,
+          ? globalThis.Boolean(object.include_timeline)
+          : false,
     };
   },
 
   toJSON(message: GetApplicationRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
     if (message.includeTimeline !== false) {
@@ -2634,9 +2730,11 @@ export const GetApplicationRequest: MessageFns<GetApplicationRequest> = {
   create<I extends Exact<DeepPartial<GetApplicationRequest>, I>>(base?: I): GetApplicationRequest {
     return GetApplicationRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetApplicationRequest>, I>>(object: I): GetApplicationRequest {
+  fromPartial<I extends Exact<DeepPartial<GetApplicationRequest>, I>>(
+    object: I
+  ): GetApplicationRequest {
     const message = createBaseGetApplicationRequest();
-    message.applicationId = object.applicationId ?? "";
+    message.applicationId = object.applicationId ?? '';
     message.includeTimeline = object.includeTimeline ?? false;
     return message;
   },
@@ -2704,30 +2802,44 @@ export const GetApplicationResponse: MessageFns<GetApplicationResponse> = {
       obj.application = Application.toJSON(message.application);
     }
     if (message.timeline?.length) {
-      obj.timeline = message.timeline.map((e) => TimelineEntry.toJSON(e));
+      obj.timeline = message.timeline.map(e => TimelineEntry.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetApplicationResponse>, I>>(base?: I): GetApplicationResponse {
+  create<I extends Exact<DeepPartial<GetApplicationResponse>, I>>(
+    base?: I
+  ): GetApplicationResponse {
     return GetApplicationResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetApplicationResponse>, I>>(object: I): GetApplicationResponse {
+  fromPartial<I extends Exact<DeepPartial<GetApplicationResponse>, I>>(
+    object: I
+  ): GetApplicationResponse {
     const message = createBaseGetApplicationResponse();
-    message.application = (object.application !== undefined && object.application !== null)
-      ? Application.fromPartial(object.application)
-      : undefined;
-    message.timeline = object.timeline?.map((e) => TimelineEntry.fromPartial(e)) || [];
+    message.application =
+      object.application !== undefined && object.application !== null
+        ? Application.fromPartial(object.application)
+        : undefined;
+    message.timeline = object.timeline?.map(e => TimelineEntry.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseListApplicationsRequest(): ListApplicationsRequest {
-  return { cursor: undefined, limit: 0, statusFilter: 0, rescueIdFilter: undefined, adopterIdFilter: undefined };
+  return {
+    cursor: undefined,
+    limit: 0,
+    statusFilter: 0,
+    rescueIdFilter: undefined,
+    adopterIdFilter: undefined,
+  };
 }
 
 export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
-  encode(message: ListApplicationsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListApplicationsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.cursor !== undefined) {
       writer.uint32(10).string(message.cursor);
     }
@@ -2809,18 +2921,18 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
       statusFilter: isSet(object.statusFilter)
         ? applicationStatusFromJSON(object.statusFilter)
         : isSet(object.status_filter)
-        ? applicationStatusFromJSON(object.status_filter)
-        : 0,
+          ? applicationStatusFromJSON(object.status_filter)
+          : 0,
       rescueIdFilter: isSet(object.rescueIdFilter)
         ? globalThis.String(object.rescueIdFilter)
         : isSet(object.rescue_id_filter)
-        ? globalThis.String(object.rescue_id_filter)
-        : undefined,
+          ? globalThis.String(object.rescue_id_filter)
+          : undefined,
       adopterIdFilter: isSet(object.adopterIdFilter)
         ? globalThis.String(object.adopterIdFilter)
         : isSet(object.adopter_id_filter)
-        ? globalThis.String(object.adopter_id_filter)
-        : undefined,
+          ? globalThis.String(object.adopter_id_filter)
+          : undefined,
     };
   },
 
@@ -2844,10 +2956,14 @@ export const ListApplicationsRequest: MessageFns<ListApplicationsRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListApplicationsRequest>, I>>(base?: I): ListApplicationsRequest {
+  create<I extends Exact<DeepPartial<ListApplicationsRequest>, I>>(
+    base?: I
+  ): ListApplicationsRequest {
     return ListApplicationsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListApplicationsRequest>, I>>(object: I): ListApplicationsRequest {
+  fromPartial<I extends Exact<DeepPartial<ListApplicationsRequest>, I>>(
+    object: I
+  ): ListApplicationsRequest {
     const message = createBaseListApplicationsRequest();
     message.cursor = object.cursor ?? undefined;
     message.limit = object.limit ?? 0;
@@ -2863,7 +2979,10 @@ function createBaseListApplicationsResponse(): ListApplicationsResponse {
 }
 
 export const ListApplicationsResponse: MessageFns<ListApplicationsResponse> = {
-  encode(message: ListApplicationsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListApplicationsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.applications) {
       Application.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -2913,15 +3032,15 @@ export const ListApplicationsResponse: MessageFns<ListApplicationsResponse> = {
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-        ? globalThis.String(object.next_cursor)
-        : undefined,
+          ? globalThis.String(object.next_cursor)
+          : undefined,
     };
   },
 
   toJSON(message: ListApplicationsResponse): unknown {
     const obj: any = {};
     if (message.applications?.length) {
-      obj.applications = message.applications.map((e) => Application.toJSON(e));
+      obj.applications = message.applications.map(e => Application.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -2929,12 +3048,16 @@ export const ListApplicationsResponse: MessageFns<ListApplicationsResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListApplicationsResponse>, I>>(base?: I): ListApplicationsResponse {
+  create<I extends Exact<DeepPartial<ListApplicationsResponse>, I>>(
+    base?: I
+  ): ListApplicationsResponse {
     return ListApplicationsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListApplicationsResponse>, I>>(object: I): ListApplicationsResponse {
+  fromPartial<I extends Exact<DeepPartial<ListApplicationsResponse>, I>>(
+    object: I
+  ): ListApplicationsResponse {
     const message = createBaseListApplicationsResponse();
-    message.applications = object.applications?.map((e) => Application.fromPartial(e)) || [];
+    message.applications = object.applications?.map(e => Application.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
@@ -2992,13 +3115,13 @@ export const GetStatsRequest: MessageFns<GetStatsRequest> = {
       rescueIdFilter: isSet(object.rescueIdFilter)
         ? globalThis.String(object.rescueIdFilter)
         : isSet(object.rescue_id_filter)
-        ? globalThis.String(object.rescue_id_filter)
-        : undefined,
+          ? globalThis.String(object.rescue_id_filter)
+          : undefined,
       adopterIdFilter: isSet(object.adopterIdFilter)
         ? globalThis.String(object.adopterIdFilter)
         : isSet(object.adopter_id_filter)
-        ? globalThis.String(object.adopter_id_filter)
-        : undefined,
+          ? globalThis.String(object.adopter_id_filter)
+          : undefined,
     };
   },
 
@@ -3178,18 +3301,18 @@ export const GetStatsResponse: MessageFns<GetStatsResponse> = {
       underReview: isSet(object.underReview)
         ? globalThis.Number(object.underReview)
         : isSet(object.under_review)
-        ? globalThis.Number(object.under_review)
-        : 0,
+          ? globalThis.Number(object.under_review)
+          : 0,
       homeVisitScheduled: isSet(object.homeVisitScheduled)
         ? globalThis.Number(object.homeVisitScheduled)
         : isSet(object.home_visit_scheduled)
-        ? globalThis.Number(object.home_visit_scheduled)
-        : 0,
+          ? globalThis.Number(object.home_visit_scheduled)
+          : 0,
       homeVisitCompleted: isSet(object.homeVisitCompleted)
         ? globalThis.Number(object.homeVisitCompleted)
         : isSet(object.home_visit_completed)
-        ? globalThis.Number(object.home_visit_completed)
-        : 0,
+          ? globalThis.Number(object.home_visit_completed)
+          : 0,
       approved: isSet(object.approved) ? globalThis.Number(object.approved) : 0,
       rejected: isSet(object.rejected) ? globalThis.Number(object.rejected) : 0,
       withdrawn: isSet(object.withdrawn) ? globalThis.Number(object.withdrawn) : 0,
@@ -3253,32 +3376,32 @@ export const GetStatsResponse: MessageFns<GetStatsResponse> = {
 
 function createBaseDocument(): Document {
   return {
-    documentId: "",
-    applicationId: "",
-    type: "",
-    filename: "",
-    url: "",
+    documentId: '',
+    applicationId: '',
+    type: '',
+    filename: '',
+    url: '',
     size: undefined,
     mimeType: undefined,
-    uploadedAt: "",
+    uploadedAt: '',
   };
 }
 
 export const Document: MessageFns<Document> = {
   encode(message: Document, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.documentId !== "") {
+    if (message.documentId !== '') {
       writer.uint32(10).string(message.documentId);
     }
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(18).string(message.applicationId);
     }
-    if (message.type !== "") {
+    if (message.type !== '') {
       writer.uint32(26).string(message.type);
     }
-    if (message.filename !== "") {
+    if (message.filename !== '') {
       writer.uint32(34).string(message.filename);
     }
-    if (message.url !== "") {
+    if (message.url !== '') {
       writer.uint32(42).string(message.url);
     }
     if (message.size !== undefined) {
@@ -3287,7 +3410,7 @@ export const Document: MessageFns<Document> = {
     if (message.mimeType !== undefined) {
       writer.uint32(58).string(message.mimeType);
     }
-    if (message.uploadedAt !== "") {
+    if (message.uploadedAt !== '') {
       writer.uint32(66).string(message.uploadedAt);
     }
     return writer;
@@ -3378,45 +3501,45 @@ export const Document: MessageFns<Document> = {
       documentId: isSet(object.documentId)
         ? globalThis.String(object.documentId)
         : isSet(object.document_id)
-        ? globalThis.String(object.document_id)
-        : "",
+          ? globalThis.String(object.document_id)
+          : '',
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
-      type: isSet(object.type) ? globalThis.String(object.type) : "",
-      filename: isSet(object.filename) ? globalThis.String(object.filename) : "",
-      url: isSet(object.url) ? globalThis.String(object.url) : "",
+          ? globalThis.String(object.application_id)
+          : '',
+      type: isSet(object.type) ? globalThis.String(object.type) : '',
+      filename: isSet(object.filename) ? globalThis.String(object.filename) : '',
+      url: isSet(object.url) ? globalThis.String(object.url) : '',
       size: isSet(object.size) ? globalThis.Number(object.size) : undefined,
       mimeType: isSet(object.mimeType)
         ? globalThis.String(object.mimeType)
         : isSet(object.mime_type)
-        ? globalThis.String(object.mime_type)
-        : undefined,
+          ? globalThis.String(object.mime_type)
+          : undefined,
       uploadedAt: isSet(object.uploadedAt)
         ? globalThis.String(object.uploadedAt)
         : isSet(object.uploaded_at)
-        ? globalThis.String(object.uploaded_at)
-        : "",
+          ? globalThis.String(object.uploaded_at)
+          : '',
     };
   },
 
   toJSON(message: Document): unknown {
     const obj: any = {};
-    if (message.documentId !== "") {
+    if (message.documentId !== '') {
       obj.documentId = message.documentId;
     }
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
-    if (message.type !== "") {
+    if (message.type !== '') {
       obj.type = message.type;
     }
-    if (message.filename !== "") {
+    if (message.filename !== '') {
       obj.filename = message.filename;
     }
-    if (message.url !== "") {
+    if (message.url !== '') {
       obj.url = message.url;
     }
     if (message.size !== undefined) {
@@ -3425,7 +3548,7 @@ export const Document: MessageFns<Document> = {
     if (message.mimeType !== undefined) {
       obj.mimeType = message.mimeType;
     }
-    if (message.uploadedAt !== "") {
+    if (message.uploadedAt !== '') {
       obj.uploadedAt = message.uploadedAt;
     }
     return obj;
@@ -3436,34 +3559,41 @@ export const Document: MessageFns<Document> = {
   },
   fromPartial<I extends Exact<DeepPartial<Document>, I>>(object: I): Document {
     const message = createBaseDocument();
-    message.documentId = object.documentId ?? "";
-    message.applicationId = object.applicationId ?? "";
-    message.type = object.type ?? "";
-    message.filename = object.filename ?? "";
-    message.url = object.url ?? "";
+    message.documentId = object.documentId ?? '';
+    message.applicationId = object.applicationId ?? '';
+    message.type = object.type ?? '';
+    message.filename = object.filename ?? '';
+    message.url = object.url ?? '';
     message.size = object.size ?? undefined;
     message.mimeType = object.mimeType ?? undefined;
-    message.uploadedAt = object.uploadedAt ?? "";
+    message.uploadedAt = object.uploadedAt ?? '';
     return message;
   },
 };
 
 function createBaseAddDocumentRequest(): AddDocumentRequest {
-  return { applicationId: "", type: "", filename: "", url: "", size: undefined, mimeType: undefined };
+  return {
+    applicationId: '',
+    type: '',
+    filename: '',
+    url: '',
+    size: undefined,
+    mimeType: undefined,
+  };
 }
 
 export const AddDocumentRequest: MessageFns<AddDocumentRequest> = {
   encode(message: AddDocumentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
-    if (message.type !== "") {
+    if (message.type !== '') {
       writer.uint32(18).string(message.type);
     }
-    if (message.filename !== "") {
+    if (message.filename !== '') {
       writer.uint32(26).string(message.filename);
     }
-    if (message.url !== "") {
+    if (message.url !== '') {
       writer.uint32(34).string(message.url);
     }
     if (message.size !== undefined) {
@@ -3544,32 +3674,32 @@ export const AddDocumentRequest: MessageFns<AddDocumentRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
-      type: isSet(object.type) ? globalThis.String(object.type) : "",
-      filename: isSet(object.filename) ? globalThis.String(object.filename) : "",
-      url: isSet(object.url) ? globalThis.String(object.url) : "",
+          ? globalThis.String(object.application_id)
+          : '',
+      type: isSet(object.type) ? globalThis.String(object.type) : '',
+      filename: isSet(object.filename) ? globalThis.String(object.filename) : '',
+      url: isSet(object.url) ? globalThis.String(object.url) : '',
       size: isSet(object.size) ? globalThis.Number(object.size) : undefined,
       mimeType: isSet(object.mimeType)
         ? globalThis.String(object.mimeType)
         : isSet(object.mime_type)
-        ? globalThis.String(object.mime_type)
-        : undefined,
+          ? globalThis.String(object.mime_type)
+          : undefined,
     };
   },
 
   toJSON(message: AddDocumentRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
-    if (message.type !== "") {
+    if (message.type !== '') {
       obj.type = message.type;
     }
-    if (message.filename !== "") {
+    if (message.filename !== '') {
       obj.filename = message.filename;
     }
-    if (message.url !== "") {
+    if (message.url !== '') {
       obj.url = message.url;
     }
     if (message.size !== undefined) {
@@ -3586,10 +3716,10 @@ export const AddDocumentRequest: MessageFns<AddDocumentRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<AddDocumentRequest>, I>>(object: I): AddDocumentRequest {
     const message = createBaseAddDocumentRequest();
-    message.applicationId = object.applicationId ?? "";
-    message.type = object.type ?? "";
-    message.filename = object.filename ?? "";
-    message.url = object.url ?? "";
+    message.applicationId = object.applicationId ?? '';
+    message.type = object.type ?? '';
+    message.filename = object.filename ?? '';
+    message.url = object.url ?? '';
     message.size = object.size ?? undefined;
     message.mimeType = object.mimeType ?? undefined;
     return message;
@@ -3647,22 +3777,25 @@ export const AddDocumentResponse: MessageFns<AddDocumentResponse> = {
   create<I extends Exact<DeepPartial<AddDocumentResponse>, I>>(base?: I): AddDocumentResponse {
     return AddDocumentResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<AddDocumentResponse>, I>>(object: I): AddDocumentResponse {
+  fromPartial<I extends Exact<DeepPartial<AddDocumentResponse>, I>>(
+    object: I
+  ): AddDocumentResponse {
     const message = createBaseAddDocumentResponse();
-    message.document = (object.document !== undefined && object.document !== null)
-      ? Document.fromPartial(object.document)
-      : undefined;
+    message.document =
+      object.document !== undefined && object.document !== null
+        ? Document.fromPartial(object.document)
+        : undefined;
     return message;
   },
 };
 
 function createBaseListDocumentsRequest(): ListDocumentsRequest {
-  return { applicationId: "" };
+  return { applicationId: '' };
 }
 
 export const ListDocumentsRequest: MessageFns<ListDocumentsRequest> = {
   encode(message: ListDocumentsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
     return writer;
@@ -3697,14 +3830,14 @@ export const ListDocumentsRequest: MessageFns<ListDocumentsRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
     };
   },
 
   toJSON(message: ListDocumentsRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
     return obj;
@@ -3713,9 +3846,11 @@ export const ListDocumentsRequest: MessageFns<ListDocumentsRequest> = {
   create<I extends Exact<DeepPartial<ListDocumentsRequest>, I>>(base?: I): ListDocumentsRequest {
     return ListDocumentsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListDocumentsRequest>, I>>(object: I): ListDocumentsRequest {
+  fromPartial<I extends Exact<DeepPartial<ListDocumentsRequest>, I>>(
+    object: I
+  ): ListDocumentsRequest {
     const message = createBaseListDocumentsRequest();
-    message.applicationId = object.applicationId ?? "";
+    message.applicationId = object.applicationId ?? '';
     return message;
   },
 };
@@ -3767,7 +3902,7 @@ export const ListDocumentsResponse: MessageFns<ListDocumentsResponse> = {
   toJSON(message: ListDocumentsResponse): unknown {
     const obj: any = {};
     if (message.documents?.length) {
-      obj.documents = message.documents.map((e) => Document.toJSON(e));
+      obj.documents = message.documents.map(e => Document.toJSON(e));
     }
     return obj;
   },
@@ -3775,23 +3910,25 @@ export const ListDocumentsResponse: MessageFns<ListDocumentsResponse> = {
   create<I extends Exact<DeepPartial<ListDocumentsResponse>, I>>(base?: I): ListDocumentsResponse {
     return ListDocumentsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListDocumentsResponse>, I>>(object: I): ListDocumentsResponse {
+  fromPartial<I extends Exact<DeepPartial<ListDocumentsResponse>, I>>(
+    object: I
+  ): ListDocumentsResponse {
     const message = createBaseListDocumentsResponse();
-    message.documents = object.documents?.map((e) => Document.fromPartial(e)) || [];
+    message.documents = object.documents?.map(e => Document.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseRemoveDocumentRequest(): RemoveDocumentRequest {
-  return { applicationId: "", documentId: "" };
+  return { applicationId: '', documentId: '' };
 }
 
 export const RemoveDocumentRequest: MessageFns<RemoveDocumentRequest> = {
   encode(message: RemoveDocumentRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       writer.uint32(10).string(message.applicationId);
     }
-    if (message.documentId !== "") {
+    if (message.documentId !== '') {
       writer.uint32(18).string(message.documentId);
     }
     return writer;
@@ -3834,22 +3971,22 @@ export const RemoveDocumentRequest: MessageFns<RemoveDocumentRequest> = {
       applicationId: isSet(object.applicationId)
         ? globalThis.String(object.applicationId)
         : isSet(object.application_id)
-        ? globalThis.String(object.application_id)
-        : "",
+          ? globalThis.String(object.application_id)
+          : '',
       documentId: isSet(object.documentId)
         ? globalThis.String(object.documentId)
         : isSet(object.document_id)
-        ? globalThis.String(object.document_id)
-        : "",
+          ? globalThis.String(object.document_id)
+          : '',
     };
   },
 
   toJSON(message: RemoveDocumentRequest): unknown {
     const obj: any = {};
-    if (message.applicationId !== "") {
+    if (message.applicationId !== '') {
       obj.applicationId = message.applicationId;
     }
-    if (message.documentId !== "") {
+    if (message.documentId !== '') {
       obj.documentId = message.documentId;
     }
     return obj;
@@ -3858,10 +3995,12 @@ export const RemoveDocumentRequest: MessageFns<RemoveDocumentRequest> = {
   create<I extends Exact<DeepPartial<RemoveDocumentRequest>, I>>(base?: I): RemoveDocumentRequest {
     return RemoveDocumentRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RemoveDocumentRequest>, I>>(object: I): RemoveDocumentRequest {
+  fromPartial<I extends Exact<DeepPartial<RemoveDocumentRequest>, I>>(
+    object: I
+  ): RemoveDocumentRequest {
     const message = createBaseRemoveDocumentRequest();
-    message.applicationId = object.applicationId ?? "";
-    message.documentId = object.documentId ?? "";
+    message.applicationId = object.applicationId ?? '';
+    message.documentId = object.documentId ?? '';
     return message;
   },
 };
@@ -3900,11 +4039,278 @@ export const RemoveDocumentResponse: MessageFns<RemoveDocumentResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RemoveDocumentResponse>, I>>(base?: I): RemoveDocumentResponse {
+  create<I extends Exact<DeepPartial<RemoveDocumentResponse>, I>>(
+    base?: I
+  ): RemoveDocumentResponse {
     return RemoveDocumentResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RemoveDocumentResponse>, I>>(_: I): RemoveDocumentResponse {
+  fromPartial<I extends Exact<DeepPartial<RemoveDocumentResponse>, I>>(
+    _: I
+  ): RemoveDocumentResponse {
     const message = createBaseRemoveDocumentResponse();
+    return message;
+  },
+};
+
+function createBaseGetApplicationDefaultsRequest(): GetApplicationDefaultsRequest {
+  return {};
+}
+
+export const GetApplicationDefaultsRequest: MessageFns<GetApplicationDefaultsRequest> = {
+  encode(
+    _: GetApplicationDefaultsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetApplicationDefaultsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetApplicationDefaultsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): GetApplicationDefaultsRequest {
+    return {};
+  },
+
+  toJSON(_: GetApplicationDefaultsRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetApplicationDefaultsRequest>, I>>(
+    base?: I
+  ): GetApplicationDefaultsRequest {
+    return GetApplicationDefaultsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetApplicationDefaultsRequest>, I>>(
+    _: I
+  ): GetApplicationDefaultsRequest {
+    const message = createBaseGetApplicationDefaultsRequest();
+    return message;
+  },
+};
+
+function createBaseGetApplicationDefaultsResponse(): GetApplicationDefaultsResponse {
+  return { defaultsJson: '' };
+}
+
+export const GetApplicationDefaultsResponse: MessageFns<GetApplicationDefaultsResponse> = {
+  encode(
+    message: GetApplicationDefaultsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.defaultsJson !== '') {
+      writer.uint32(10).string(message.defaultsJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetApplicationDefaultsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetApplicationDefaultsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.defaultsJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetApplicationDefaultsResponse {
+    return {
+      defaultsJson: isSet(object.defaultsJson)
+        ? globalThis.String(object.defaultsJson)
+        : isSet(object.defaults_json)
+          ? globalThis.String(object.defaults_json)
+          : '',
+    };
+  },
+
+  toJSON(message: GetApplicationDefaultsResponse): unknown {
+    const obj: any = {};
+    if (message.defaultsJson !== '') {
+      obj.defaultsJson = message.defaultsJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetApplicationDefaultsResponse>, I>>(
+    base?: I
+  ): GetApplicationDefaultsResponse {
+    return GetApplicationDefaultsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetApplicationDefaultsResponse>, I>>(
+    object: I
+  ): GetApplicationDefaultsResponse {
+    const message = createBaseGetApplicationDefaultsResponse();
+    message.defaultsJson = object.defaultsJson ?? '';
+    return message;
+  },
+};
+
+function createBaseUpdateApplicationDefaultsRequest(): UpdateApplicationDefaultsRequest {
+  return { defaultsPatchJson: '' };
+}
+
+export const UpdateApplicationDefaultsRequest: MessageFns<UpdateApplicationDefaultsRequest> = {
+  encode(
+    message: UpdateApplicationDefaultsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.defaultsPatchJson !== '') {
+      writer.uint32(10).string(message.defaultsPatchJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateApplicationDefaultsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateApplicationDefaultsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.defaultsPatchJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateApplicationDefaultsRequest {
+    return {
+      defaultsPatchJson: isSet(object.defaultsPatchJson)
+        ? globalThis.String(object.defaultsPatchJson)
+        : isSet(object.defaults_patch_json)
+          ? globalThis.String(object.defaults_patch_json)
+          : '',
+    };
+  },
+
+  toJSON(message: UpdateApplicationDefaultsRequest): unknown {
+    const obj: any = {};
+    if (message.defaultsPatchJson !== '') {
+      obj.defaultsPatchJson = message.defaultsPatchJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateApplicationDefaultsRequest>, I>>(
+    base?: I
+  ): UpdateApplicationDefaultsRequest {
+    return UpdateApplicationDefaultsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateApplicationDefaultsRequest>, I>>(
+    object: I
+  ): UpdateApplicationDefaultsRequest {
+    const message = createBaseUpdateApplicationDefaultsRequest();
+    message.defaultsPatchJson = object.defaultsPatchJson ?? '';
+    return message;
+  },
+};
+
+function createBaseUpdateApplicationDefaultsResponse(): UpdateApplicationDefaultsResponse {
+  return { defaultsJson: '' };
+}
+
+export const UpdateApplicationDefaultsResponse: MessageFns<UpdateApplicationDefaultsResponse> = {
+  encode(
+    message: UpdateApplicationDefaultsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.defaultsJson !== '') {
+      writer.uint32(10).string(message.defaultsJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateApplicationDefaultsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateApplicationDefaultsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.defaultsJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateApplicationDefaultsResponse {
+    return {
+      defaultsJson: isSet(object.defaultsJson)
+        ? globalThis.String(object.defaultsJson)
+        : isSet(object.defaults_json)
+          ? globalThis.String(object.defaults_json)
+          : '',
+    };
+  },
+
+  toJSON(message: UpdateApplicationDefaultsResponse): unknown {
+    const obj: any = {};
+    if (message.defaultsJson !== '') {
+      obj.defaultsJson = message.defaultsJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateApplicationDefaultsResponse>, I>>(
+    base?: I
+  ): UpdateApplicationDefaultsResponse {
+    return UpdateApplicationDefaultsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateApplicationDefaultsResponse>, I>>(
+    object: I
+  ): UpdateApplicationDefaultsResponse {
+    const message = createBaseUpdateApplicationDefaultsResponse();
+    message.defaultsJson = object.defaultsJson ?? '';
     return message;
   },
 };
@@ -3939,12 +4345,14 @@ export const ApplicationServiceService = {
    * Publishes `applications.draftCreated` after commit.
    */
   startDraft: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/StartDraft" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/StartDraft' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: StartDraftRequest): Buffer => Buffer.from(StartDraftRequest.encode(value).finish()),
+    requestSerialize: (value: StartDraftRequest): Buffer =>
+      Buffer.from(StartDraftRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): StartDraftRequest => StartDraftRequest.decode(value),
-    responseSerialize: (value: StartDraftResponse): Buffer => Buffer.from(StartDraftResponse.encode(value).finish()),
+    responseSerialize: (value: StartDraftResponse): Buffer =>
+      Buffer.from(StartDraftResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): StartDraftResponse => StartDraftResponse.decode(value),
   },
   /**
@@ -3954,15 +4362,17 @@ export const ApplicationServiceService = {
    * super_admin.
    */
   saveDraftAnswers: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/SaveDraftAnswers" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/SaveDraftAnswers' as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: SaveDraftAnswersRequest): Buffer =>
       Buffer.from(SaveDraftAnswersRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): SaveDraftAnswersRequest => SaveDraftAnswersRequest.decode(value),
+    requestDeserialize: (value: Buffer): SaveDraftAnswersRequest =>
+      SaveDraftAnswersRequest.decode(value),
     responseSerialize: (value: SaveDraftAnswersResponse): Buffer =>
       Buffer.from(SaveDraftAnswersResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): SaveDraftAnswersResponse => SaveDraftAnswersResponse.decode(value),
+    responseDeserialize: (value: Buffer): SaveDraftAnswersResponse =>
+      SaveDraftAnswersResponse.decode(value),
   },
   /**
    * Transition draft → submitted. Validates that all required core
@@ -3972,12 +4382,14 @@ export const ApplicationServiceService = {
    * and rescue staff.
    */
   submitDraft: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/SubmitDraft" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/SubmitDraft' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: SubmitDraftRequest): Buffer => Buffer.from(SubmitDraftRequest.encode(value).finish()),
+    requestSerialize: (value: SubmitDraftRequest): Buffer =>
+      Buffer.from(SubmitDraftRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): SubmitDraftRequest => SubmitDraftRequest.decode(value),
-    responseSerialize: (value: SubmitDraftResponse): Buffer => Buffer.from(SubmitDraftResponse.encode(value).finish()),
+    responseSerialize: (value: SubmitDraftResponse): Buffer =>
+      Buffer.from(SubmitDraftResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): SubmitDraftResponse => SubmitDraftResponse.decode(value),
   },
   /**
@@ -3987,12 +4399,14 @@ export const ApplicationServiceService = {
    * application's rescue.
    */
   startReview: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/StartReview" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/StartReview' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: StartReviewRequest): Buffer => Buffer.from(StartReviewRequest.encode(value).finish()),
+    requestSerialize: (value: StartReviewRequest): Buffer =>
+      Buffer.from(StartReviewRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): StartReviewRequest => StartReviewRequest.decode(value),
-    responseSerialize: (value: StartReviewResponse): Buffer => Buffer.from(StartReviewResponse.encode(value).finish()),
+    responseSerialize: (value: StartReviewResponse): Buffer =>
+      Buffer.from(StartReviewResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): StartReviewResponse => StartReviewResponse.decode(value),
   },
   /**
@@ -4001,15 +4415,17 @@ export const ApplicationServiceService = {
    * `applications.homeVisitScheduled`.
    */
   scheduleHomeVisit: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/ScheduleHomeVisit" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/ScheduleHomeVisit' as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ScheduleHomeVisitRequest): Buffer =>
       Buffer.from(ScheduleHomeVisitRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ScheduleHomeVisitRequest => ScheduleHomeVisitRequest.decode(value),
+    requestDeserialize: (value: Buffer): ScheduleHomeVisitRequest =>
+      ScheduleHomeVisitRequest.decode(value),
     responseSerialize: (value: ScheduleHomeVisitResponse): Buffer =>
       Buffer.from(ScheduleHomeVisitResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ScheduleHomeVisitResponse => ScheduleHomeVisitResponse.decode(value),
+    responseDeserialize: (value: Buffer): ScheduleHomeVisitResponse =>
+      ScheduleHomeVisitResponse.decode(value),
   },
   /**
    * Transition home_visit_scheduled → home_visit_completed. Carries
@@ -4017,27 +4433,31 @@ export const ApplicationServiceService = {
    * `applications.homeVisitCompleted`.
    */
   completeHomeVisit: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/CompleteHomeVisit" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/CompleteHomeVisit' as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: CompleteHomeVisitRequest): Buffer =>
       Buffer.from(CompleteHomeVisitRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CompleteHomeVisitRequest => CompleteHomeVisitRequest.decode(value),
+    requestDeserialize: (value: Buffer): CompleteHomeVisitRequest =>
+      CompleteHomeVisitRequest.decode(value),
     responseSerialize: (value: CompleteHomeVisitResponse): Buffer =>
       Buffer.from(CompleteHomeVisitResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CompleteHomeVisitResponse => CompleteHomeVisitResponse.decode(value),
+    responseDeserialize: (value: Buffer): CompleteHomeVisitResponse =>
+      CompleteHomeVisitResponse.decode(value),
   },
   /**
    * Terminal: approve the application. Carries optional notes for
    * the adopter. Publishes `applications.approved`.
    */
   approve: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/Approve" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/Approve' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ApproveRequest): Buffer => Buffer.from(ApproveRequest.encode(value).finish()),
+    requestSerialize: (value: ApproveRequest): Buffer =>
+      Buffer.from(ApproveRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ApproveRequest => ApproveRequest.decode(value),
-    responseSerialize: (value: ApproveResponse): Buffer => Buffer.from(ApproveResponse.encode(value).finish()),
+    responseSerialize: (value: ApproveResponse): Buffer =>
+      Buffer.from(ApproveResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): ApproveResponse => ApproveResponse.decode(value),
   },
   /**
@@ -4045,12 +4465,14 @@ export const ApplicationServiceService = {
    * `applications.rejected`.
    */
   reject: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/Reject" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/Reject' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: RejectRequest): Buffer => Buffer.from(RejectRequest.encode(value).finish()),
+    requestSerialize: (value: RejectRequest): Buffer =>
+      Buffer.from(RejectRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): RejectRequest => RejectRequest.decode(value),
-    responseSerialize: (value: RejectResponse): Buffer => Buffer.from(RejectResponse.encode(value).finish()),
+    responseSerialize: (value: RejectResponse): Buffer =>
+      Buffer.from(RejectResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): RejectResponse => RejectResponse.decode(value),
   },
   /**
@@ -4058,12 +4480,14 @@ export const ApplicationServiceService = {
    * pre-decision state. Publishes `applications.withdrawn`.
    */
   withdraw: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/Withdraw" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/Withdraw' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: WithdrawRequest): Buffer => Buffer.from(WithdrawRequest.encode(value).finish()),
+    requestSerialize: (value: WithdrawRequest): Buffer =>
+      Buffer.from(WithdrawRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): WithdrawRequest => WithdrawRequest.decode(value),
-    responseSerialize: (value: WithdrawResponse): Buffer => Buffer.from(WithdrawResponse.encode(value).finish()),
+    responseSerialize: (value: WithdrawResponse): Buffer =>
+      Buffer.from(WithdrawResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): WithdrawResponse => WithdrawResponse.decode(value),
   },
   /**
@@ -4073,12 +4497,14 @@ export const ApplicationServiceService = {
    * `applications.adopted`.
    */
   markAdopted: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/MarkAdopted" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/MarkAdopted' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: MarkAdoptedRequest): Buffer => Buffer.from(MarkAdoptedRequest.encode(value).finish()),
+    requestSerialize: (value: MarkAdoptedRequest): Buffer =>
+      Buffer.from(MarkAdoptedRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): MarkAdoptedRequest => MarkAdoptedRequest.decode(value),
-    responseSerialize: (value: MarkAdoptedResponse): Buffer => Buffer.from(MarkAdoptedResponse.encode(value).finish()),
+    responseSerialize: (value: MarkAdoptedResponse): Buffer =>
+      Buffer.from(MarkAdoptedResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): MarkAdoptedResponse => MarkAdoptedResponse.decode(value),
   },
   /**
@@ -4087,15 +4513,17 @@ export const ApplicationServiceService = {
    * deleted.
    */
   get: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/Get" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/Get' as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetApplicationRequest): Buffer =>
       Buffer.from(GetApplicationRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetApplicationRequest => GetApplicationRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetApplicationRequest =>
+      GetApplicationRequest.decode(value),
     responseSerialize: (value: GetApplicationResponse): Buffer =>
       Buffer.from(GetApplicationResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetApplicationResponse => GetApplicationResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetApplicationResponse =>
+      GetApplicationResponse.decode(value),
   },
   /**
    * Read-side: keyset paginated list, scoped by status or rescue
@@ -4103,15 +4531,17 @@ export const ApplicationServiceService = {
    * staff see their rescue's; admins see all.
    */
   list: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/List" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/List' as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListApplicationsRequest): Buffer =>
       Buffer.from(ListApplicationsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListApplicationsRequest => ListApplicationsRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListApplicationsRequest =>
+      ListApplicationsRequest.decode(value),
     responseSerialize: (value: ListApplicationsResponse): Buffer =>
       Buffer.from(ListApplicationsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListApplicationsResponse => ListApplicationsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListApplicationsResponse =>
+      ListApplicationsResponse.decode(value),
   },
   /**
    * Read-side: application counts grouped by status, scoped the same
@@ -4121,12 +4551,14 @@ export const ApplicationServiceService = {
    * counts — the gateway collapses them to the SPA's 4-state shape.
    */
   getStats: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/GetStats" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/GetStats' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: GetStatsRequest): Buffer => Buffer.from(GetStatsRequest.encode(value).finish()),
+    requestSerialize: (value: GetStatsRequest): Buffer =>
+      Buffer.from(GetStatsRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): GetStatsRequest => GetStatsRequest.decode(value),
-    responseSerialize: (value: GetStatsResponse): Buffer => Buffer.from(GetStatsResponse.encode(value).finish()),
+    responseSerialize: (value: GetStatsResponse): Buffer =>
+      Buffer.from(GetStatsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): GetStatsResponse => GetStatsResponse.decode(value),
   },
   /**
@@ -4136,12 +4568,14 @@ export const ApplicationServiceService = {
    * applications.update for the application's rescue.
    */
   addDocument: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/AddDocument" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/AddDocument' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: AddDocumentRequest): Buffer => Buffer.from(AddDocumentRequest.encode(value).finish()),
+    requestSerialize: (value: AddDocumentRequest): Buffer =>
+      Buffer.from(AddDocumentRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): AddDocumentRequest => AddDocumentRequest.decode(value),
-    responseSerialize: (value: AddDocumentResponse): Buffer => Buffer.from(AddDocumentResponse.encode(value).finish()),
+    responseSerialize: (value: AddDocumentResponse): Buffer =>
+      Buffer.from(AddDocumentResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): AddDocumentResponse => AddDocumentResponse.decode(value),
   },
   /**
@@ -4150,29 +4584,70 @@ export const ApplicationServiceService = {
    * staff-of-the-app's-rescue OR admin).
    */
   listDocuments: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/ListDocuments" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/ListDocuments' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: ListDocumentsRequest): Buffer => Buffer.from(ListDocumentsRequest.encode(value).finish()),
+    requestSerialize: (value: ListDocumentsRequest): Buffer =>
+      Buffer.from(ListDocumentsRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): ListDocumentsRequest => ListDocumentsRequest.decode(value),
     responseSerialize: (value: ListDocumentsResponse): Buffer =>
       Buffer.from(ListDocumentsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListDocumentsResponse => ListDocumentsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListDocumentsResponse =>
+      ListDocumentsResponse.decode(value),
   },
   /**
    * Document metadata — soft-delete one document. Caller MUST hold
    * applications.update for the application's rescue.
    */
   removeDocument: {
-    path: "/adopt_dont_shop.applications.v1.ApplicationService/RemoveDocument" as const,
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/RemoveDocument' as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: RemoveDocumentRequest): Buffer =>
       Buffer.from(RemoveDocumentRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): RemoveDocumentRequest => RemoveDocumentRequest.decode(value),
+    requestDeserialize: (value: Buffer): RemoveDocumentRequest =>
+      RemoveDocumentRequest.decode(value),
     responseSerialize: (value: RemoveDocumentResponse): Buffer =>
       Buffer.from(RemoveDocumentResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RemoveDocumentResponse => RemoveDocumentResponse.decode(value),
+    responseDeserialize: (value: Buffer): RemoveDocumentResponse =>
+      RemoveDocumentResponse.decode(value),
+  },
+  /**
+   * Adopter's reusable application defaults (personal info / living
+   * situation / pet experience / references) used to pre-populate new
+   * applications. Always scoped to the calling principal's own
+   * user_id — there is no cross-adopter read or write.
+   */
+  getApplicationDefaults: {
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/GetApplicationDefaults' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetApplicationDefaultsRequest): Buffer =>
+      Buffer.from(GetApplicationDefaultsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetApplicationDefaultsRequest =>
+      GetApplicationDefaultsRequest.decode(value),
+    responseSerialize: (value: GetApplicationDefaultsResponse): Buffer =>
+      Buffer.from(GetApplicationDefaultsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetApplicationDefaultsResponse =>
+      GetApplicationDefaultsResponse.decode(value),
+  },
+  /**
+   * Deep-merge a partial defaults patch into the adopter's saved
+   * defaults and return the merged result. Top-level keys absent from
+   * the patch are left untouched.
+   */
+  updateApplicationDefaults: {
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/UpdateApplicationDefaults' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateApplicationDefaultsRequest): Buffer =>
+      Buffer.from(UpdateApplicationDefaultsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateApplicationDefaultsRequest =>
+      UpdateApplicationDefaultsRequest.decode(value),
+    responseSerialize: (value: UpdateApplicationDefaultsResponse): Buffer =>
+      Buffer.from(UpdateApplicationDefaultsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateApplicationDefaultsResponse =>
+      UpdateApplicationDefaultsResponse.decode(value),
   },
 } as const;
 
@@ -4277,6 +4752,25 @@ export interface ApplicationServiceServer extends UntypedServiceImplementation {
    * applications.update for the application's rescue.
    */
   removeDocument: handleUnaryCall<RemoveDocumentRequest, RemoveDocumentResponse>;
+  /**
+   * Adopter's reusable application defaults (personal info / living
+   * situation / pet experience / references) used to pre-populate new
+   * applications. Always scoped to the calling principal's own
+   * user_id — there is no cross-adopter read or write.
+   */
+  getApplicationDefaults: handleUnaryCall<
+    GetApplicationDefaultsRequest,
+    GetApplicationDefaultsResponse
+  >;
+  /**
+   * Deep-merge a partial defaults patch into the adopter's saved
+   * defaults and return the merged result. Top-level keys absent from
+   * the patch are left untouched.
+   */
+  updateApplicationDefaults: handleUnaryCall<
+    UpdateApplicationDefaultsRequest,
+    UpdateApplicationDefaultsResponse
+  >;
 }
 
 export interface ApplicationServiceClient extends Client {
@@ -4287,18 +4781,18 @@ export interface ApplicationServiceClient extends Client {
    */
   startDraft(
     request: StartDraftRequest,
-    callback: (error: ServiceError | null, response: StartDraftResponse) => void,
+    callback: (error: ServiceError | null, response: StartDraftResponse) => void
   ): ClientUnaryCall;
   startDraft(
     request: StartDraftRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: StartDraftResponse) => void,
+    callback: (error: ServiceError | null, response: StartDraftResponse) => void
   ): ClientUnaryCall;
   startDraft(
     request: StartDraftRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: StartDraftResponse) => void,
+    callback: (error: ServiceError | null, response: StartDraftResponse) => void
   ): ClientUnaryCall;
   /**
    * Persist answers / reference contacts to an existing draft.
@@ -4308,18 +4802,18 @@ export interface ApplicationServiceClient extends Client {
    */
   saveDraftAnswers(
     request: SaveDraftAnswersRequest,
-    callback: (error: ServiceError | null, response: SaveDraftAnswersResponse) => void,
+    callback: (error: ServiceError | null, response: SaveDraftAnswersResponse) => void
   ): ClientUnaryCall;
   saveDraftAnswers(
     request: SaveDraftAnswersRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: SaveDraftAnswersResponse) => void,
+    callback: (error: ServiceError | null, response: SaveDraftAnswersResponse) => void
   ): ClientUnaryCall;
   saveDraftAnswers(
     request: SaveDraftAnswersRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: SaveDraftAnswersResponse) => void,
+    callback: (error: ServiceError | null, response: SaveDraftAnswersResponse) => void
   ): ClientUnaryCall;
   /**
    * Transition draft → submitted. Validates that all required core
@@ -4330,18 +4824,18 @@ export interface ApplicationServiceClient extends Client {
    */
   submitDraft(
     request: SubmitDraftRequest,
-    callback: (error: ServiceError | null, response: SubmitDraftResponse) => void,
+    callback: (error: ServiceError | null, response: SubmitDraftResponse) => void
   ): ClientUnaryCall;
   submitDraft(
     request: SubmitDraftRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: SubmitDraftResponse) => void,
+    callback: (error: ServiceError | null, response: SubmitDraftResponse) => void
   ): ClientUnaryCall;
   submitDraft(
     request: SubmitDraftRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: SubmitDraftResponse) => void,
+    callback: (error: ServiceError | null, response: SubmitDraftResponse) => void
   ): ClientUnaryCall;
   /**
    * Transition submitted → under_review (rescue staff opens the
@@ -4351,18 +4845,18 @@ export interface ApplicationServiceClient extends Client {
    */
   startReview(
     request: StartReviewRequest,
-    callback: (error: ServiceError | null, response: StartReviewResponse) => void,
+    callback: (error: ServiceError | null, response: StartReviewResponse) => void
   ): ClientUnaryCall;
   startReview(
     request: StartReviewRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: StartReviewResponse) => void,
+    callback: (error: ServiceError | null, response: StartReviewResponse) => void
   ): ClientUnaryCall;
   startReview(
     request: StartReviewRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: StartReviewResponse) => void,
+    callback: (error: ServiceError | null, response: StartReviewResponse) => void
   ): ClientUnaryCall;
   /**
    * Transition under_review → home_visit_scheduled. Carries the
@@ -4371,18 +4865,18 @@ export interface ApplicationServiceClient extends Client {
    */
   scheduleHomeVisit(
     request: ScheduleHomeVisitRequest,
-    callback: (error: ServiceError | null, response: ScheduleHomeVisitResponse) => void,
+    callback: (error: ServiceError | null, response: ScheduleHomeVisitResponse) => void
   ): ClientUnaryCall;
   scheduleHomeVisit(
     request: ScheduleHomeVisitRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ScheduleHomeVisitResponse) => void,
+    callback: (error: ServiceError | null, response: ScheduleHomeVisitResponse) => void
   ): ClientUnaryCall;
   scheduleHomeVisit(
     request: ScheduleHomeVisitRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ScheduleHomeVisitResponse) => void,
+    callback: (error: ServiceError | null, response: ScheduleHomeVisitResponse) => void
   ): ClientUnaryCall;
   /**
    * Transition home_visit_scheduled → home_visit_completed. Carries
@@ -4391,18 +4885,18 @@ export interface ApplicationServiceClient extends Client {
    */
   completeHomeVisit(
     request: CompleteHomeVisitRequest,
-    callback: (error: ServiceError | null, response: CompleteHomeVisitResponse) => void,
+    callback: (error: ServiceError | null, response: CompleteHomeVisitResponse) => void
   ): ClientUnaryCall;
   completeHomeVisit(
     request: CompleteHomeVisitRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CompleteHomeVisitResponse) => void,
+    callback: (error: ServiceError | null, response: CompleteHomeVisitResponse) => void
   ): ClientUnaryCall;
   completeHomeVisit(
     request: CompleteHomeVisitRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CompleteHomeVisitResponse) => void,
+    callback: (error: ServiceError | null, response: CompleteHomeVisitResponse) => void
   ): ClientUnaryCall;
   /**
    * Terminal: approve the application. Carries optional notes for
@@ -4410,18 +4904,18 @@ export interface ApplicationServiceClient extends Client {
    */
   approve(
     request: ApproveRequest,
-    callback: (error: ServiceError | null, response: ApproveResponse) => void,
+    callback: (error: ServiceError | null, response: ApproveResponse) => void
   ): ClientUnaryCall;
   approve(
     request: ApproveRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ApproveResponse) => void,
+    callback: (error: ServiceError | null, response: ApproveResponse) => void
   ): ClientUnaryCall;
   approve(
     request: ApproveRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ApproveResponse) => void,
+    callback: (error: ServiceError | null, response: ApproveResponse) => void
   ): ClientUnaryCall;
   /**
    * Terminal: reject with a reason. Publishes
@@ -4429,18 +4923,18 @@ export interface ApplicationServiceClient extends Client {
    */
   reject(
     request: RejectRequest,
-    callback: (error: ServiceError | null, response: RejectResponse) => void,
+    callback: (error: ServiceError | null, response: RejectResponse) => void
   ): ClientUnaryCall;
   reject(
     request: RejectRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RejectResponse) => void,
+    callback: (error: ServiceError | null, response: RejectResponse) => void
   ): ClientUnaryCall;
   reject(
     request: RejectRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RejectResponse) => void,
+    callback: (error: ServiceError | null, response: RejectResponse) => void
   ): ClientUnaryCall;
   /**
    * Terminal (adopter-initiated): withdraw an application from any
@@ -4448,18 +4942,18 @@ export interface ApplicationServiceClient extends Client {
    */
   withdraw(
     request: WithdrawRequest,
-    callback: (error: ServiceError | null, response: WithdrawResponse) => void,
+    callback: (error: ServiceError | null, response: WithdrawResponse) => void
   ): ClientUnaryCall;
   withdraw(
     request: WithdrawRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: WithdrawResponse) => void,
+    callback: (error: ServiceError | null, response: WithdrawResponse) => void
   ): ClientUnaryCall;
   withdraw(
     request: WithdrawRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: WithdrawResponse) => void,
+    callback: (error: ServiceError | null, response: WithdrawResponse) => void
   ): ClientUnaryCall;
   /**
    * Final-terminal: mark the pet adopted. Triggered when the
@@ -4469,18 +4963,18 @@ export interface ApplicationServiceClient extends Client {
    */
   markAdopted(
     request: MarkAdoptedRequest,
-    callback: (error: ServiceError | null, response: MarkAdoptedResponse) => void,
+    callback: (error: ServiceError | null, response: MarkAdoptedResponse) => void
   ): ClientUnaryCall;
   markAdopted(
     request: MarkAdoptedRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: MarkAdoptedResponse) => void,
+    callback: (error: ServiceError | null, response: MarkAdoptedResponse) => void
   ): ClientUnaryCall;
   markAdopted(
     request: MarkAdoptedRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: MarkAdoptedResponse) => void,
+    callback: (error: ServiceError | null, response: MarkAdoptedResponse) => void
   ): ClientUnaryCall;
   /**
    * Read-side: fetch a single application's current projected state
@@ -4489,18 +4983,18 @@ export interface ApplicationServiceClient extends Client {
    */
   get(
     request: GetApplicationRequest,
-    callback: (error: ServiceError | null, response: GetApplicationResponse) => void,
+    callback: (error: ServiceError | null, response: GetApplicationResponse) => void
   ): ClientUnaryCall;
   get(
     request: GetApplicationRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetApplicationResponse) => void,
+    callback: (error: ServiceError | null, response: GetApplicationResponse) => void
   ): ClientUnaryCall;
   get(
     request: GetApplicationRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetApplicationResponse) => void,
+    callback: (error: ServiceError | null, response: GetApplicationResponse) => void
   ): ClientUnaryCall;
   /**
    * Read-side: keyset paginated list, scoped by status or rescue
@@ -4509,18 +5003,18 @@ export interface ApplicationServiceClient extends Client {
    */
   list(
     request: ListApplicationsRequest,
-    callback: (error: ServiceError | null, response: ListApplicationsResponse) => void,
+    callback: (error: ServiceError | null, response: ListApplicationsResponse) => void
   ): ClientUnaryCall;
   list(
     request: ListApplicationsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListApplicationsResponse) => void,
+    callback: (error: ServiceError | null, response: ListApplicationsResponse) => void
   ): ClientUnaryCall;
   list(
     request: ListApplicationsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListApplicationsResponse) => void,
+    callback: (error: ServiceError | null, response: ListApplicationsResponse) => void
   ): ClientUnaryCall;
   /**
    * Read-side: application counts grouped by status, scoped the same
@@ -4531,18 +5025,18 @@ export interface ApplicationServiceClient extends Client {
    */
   getStats(
     request: GetStatsRequest,
-    callback: (error: ServiceError | null, response: GetStatsResponse) => void,
+    callback: (error: ServiceError | null, response: GetStatsResponse) => void
   ): ClientUnaryCall;
   getStats(
     request: GetStatsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetStatsResponse) => void,
+    callback: (error: ServiceError | null, response: GetStatsResponse) => void
   ): ClientUnaryCall;
   getStats(
     request: GetStatsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetStatsResponse) => void,
+    callback: (error: ServiceError | null, response: GetStatsResponse) => void
   ): ClientUnaryCall;
   /**
    * Document metadata — append a row referencing an already-stored
@@ -4552,18 +5046,18 @@ export interface ApplicationServiceClient extends Client {
    */
   addDocument(
     request: AddDocumentRequest,
-    callback: (error: ServiceError | null, response: AddDocumentResponse) => void,
+    callback: (error: ServiceError | null, response: AddDocumentResponse) => void
   ): ClientUnaryCall;
   addDocument(
     request: AddDocumentRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: AddDocumentResponse) => void,
+    callback: (error: ServiceError | null, response: AddDocumentResponse) => void
   ): ClientUnaryCall;
   addDocument(
     request: AddDocumentRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: AddDocumentResponse) => void,
+    callback: (error: ServiceError | null, response: AddDocumentResponse) => void
   ): ClientUnaryCall;
   /**
    * Document metadata — list the non-deleted documents attached to an
@@ -4572,18 +5066,18 @@ export interface ApplicationServiceClient extends Client {
    */
   listDocuments(
     request: ListDocumentsRequest,
-    callback: (error: ServiceError | null, response: ListDocumentsResponse) => void,
+    callback: (error: ServiceError | null, response: ListDocumentsResponse) => void
   ): ClientUnaryCall;
   listDocuments(
     request: ListDocumentsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListDocumentsResponse) => void,
+    callback: (error: ServiceError | null, response: ListDocumentsResponse) => void
   ): ClientUnaryCall;
   listDocuments(
     request: ListDocumentsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListDocumentsResponse) => void,
+    callback: (error: ServiceError | null, response: ListDocumentsResponse) => void
   ): ClientUnaryCall;
   /**
    * Document metadata — soft-delete one document. Caller MUST hold
@@ -4591,40 +5085,90 @@ export interface ApplicationServiceClient extends Client {
    */
   removeDocument(
     request: RemoveDocumentRequest,
-    callback: (error: ServiceError | null, response: RemoveDocumentResponse) => void,
+    callback: (error: ServiceError | null, response: RemoveDocumentResponse) => void
   ): ClientUnaryCall;
   removeDocument(
     request: RemoveDocumentRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RemoveDocumentResponse) => void,
+    callback: (error: ServiceError | null, response: RemoveDocumentResponse) => void
   ): ClientUnaryCall;
   removeDocument(
     request: RemoveDocumentRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RemoveDocumentResponse) => void,
+    callback: (error: ServiceError | null, response: RemoveDocumentResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Adopter's reusable application defaults (personal info / living
+   * situation / pet experience / references) used to pre-populate new
+   * applications. Always scoped to the calling principal's own
+   * user_id — there is no cross-adopter read or write.
+   */
+  getApplicationDefaults(
+    request: GetApplicationDefaultsRequest,
+    callback: (error: ServiceError | null, response: GetApplicationDefaultsResponse) => void
+  ): ClientUnaryCall;
+  getApplicationDefaults(
+    request: GetApplicationDefaultsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetApplicationDefaultsResponse) => void
+  ): ClientUnaryCall;
+  getApplicationDefaults(
+    request: GetApplicationDefaultsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetApplicationDefaultsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Deep-merge a partial defaults patch into the adopter's saved
+   * defaults and return the merged result. Top-level keys absent from
+   * the patch are left untouched.
+   */
+  updateApplicationDefaults(
+    request: UpdateApplicationDefaultsRequest,
+    callback: (error: ServiceError | null, response: UpdateApplicationDefaultsResponse) => void
+  ): ClientUnaryCall;
+  updateApplicationDefaults(
+    request: UpdateApplicationDefaultsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateApplicationDefaultsResponse) => void
+  ): ClientUnaryCall;
+  updateApplicationDefaults(
+    request: UpdateApplicationDefaultsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateApplicationDefaultsResponse) => void
   ): ClientUnaryCall;
 }
 
 export const ApplicationServiceClient = makeGenericClientConstructor(
   ApplicationServiceService,
-  "adopt_dont_shop.applications.v1.ApplicationService",
+  'adopt_dont_shop.applications.v1.ApplicationService'
 ) as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): ApplicationServiceClient;
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): ApplicationServiceClient;
   service: typeof ApplicationServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends globalThis.Array<infer U>
+    ? globalThis.Array<DeepPartial<U>>
+    : T extends ReadonlyArray<infer U>
+      ? ReadonlyArray<DeepPartial<U>>
+      : T extends {}
+        ? { [K in keyof T]?: DeepPartial<T[K]> }
+        : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {
