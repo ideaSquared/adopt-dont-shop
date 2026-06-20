@@ -1268,6 +1268,9 @@ importers:
 
   packages/lib.matching:
     dependencies:
+      '@adopt-dont-shop/lib.api':
+        specifier: workspace:*
+        version: link:../lib.api
       typescript:
         specifier: ^6.0.0
         version: 6.0.3

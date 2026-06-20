@@ -30,6 +30,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import {
   MatchingV1,
   type EndSessionRequest,
+  type GetTopPicksRequest,
   type ListSwipeHistoryRequest,
   type RecommendRequest,
   type RecordSwipeRequest,
@@ -39,7 +40,7 @@ import {
 
 import type { MatchingClient } from '../grpc-clients/matching-client.js';
 
-import { recommendToQueue, searchToView } from './matching-view.js';
+import { recommendToQueue, searchToView, topPicksToView } from './matching-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
@@ -61,6 +62,8 @@ const MATCHING_RATE_LIMITS = {
   // Discovery + search are the chatty browse paths.
   recommend: { max: 120, timeWindow: '1 minute' },
   search: { max: 120, timeWindow: '1 minute' },
+  // Top picks is a curated read the SPA loads on the home + picks pages.
+  topPicks: { max: 60, timeWindow: '1 minute' },
 } as const;
 
 type StartSessionBody = {
@@ -345,6 +348,28 @@ export const registerMatchingRoutes = async (
     }
   );
 
+  // ---- Top picks ---------------------------------------------------
+  // GET /api/v1/match/top-picks?limit=N — a short, personalised picks
+  // list scored against the adopter's stored match profile. Returns the
+  // SPA's MatchTopPick[] under a { success, data } envelope.
+  app.get(
+    '/api/v1/match/top-picks',
+    {
+      config: { rateLimit: MATCHING_RATE_LIMITS.topPicks },
+      schema: { tags: ['matching'] },
+    },
+    async (req, reply) => {
+      const query = req.query as Record<string, string | undefined>;
+      const grpcReq: GetTopPicksRequest = { limit: parseTopPicksLimit(query.limit) };
+      try {
+        const res = await client.getTopPicks(grpcReq, buildMetadata(req));
+        return reply.send({ success: true, data: topPicksToView(res) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // ---- Swipe statistics --------------------------------------------
   // GET /api/v1/discovery/swipe/stats/:userId
   app.get<{ Params: { userId: string } }>(
@@ -480,6 +505,17 @@ function clampLimit(raw: number | undefined): number {
     return 20;
   }
   return Math.min(Math.max(Math.trunc(raw), 1), 100);
+}
+
+// Top picks is a short curated list: default 10, capped at 50. An absent
+// or unparseable query param falls back to the default. The matching
+// service re-clamps with the same bounds as defence-in-depth.
+function parseTopPicksLimit(raw: string | undefined): number {
+  const parsed = raw === undefined ? NaN : Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 10;
+  }
+  return Math.min(parsed, 50);
 }
 
 // Implicit-session helper: when the SPA doesn't carry a sessionId on

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import type { AdopterMatchProfile } from '@adopt-dont-shop/lib.matching';
-import { apiService } from '@/services';
+import { matchingService } from '@/services';
 
 type UseMatchPreferencesReturn = {
   hasPreferences: boolean;
@@ -46,11 +46,9 @@ export const useMatchPreferences = (): UseMatchPreferencesReturn => {
     const load = async () => {
       try {
         setIsLoading(true);
-        const res = await apiService.get<{ data: Partial<AdopterMatchProfile> }>(
-          '/api/v1/match/profile'
-        );
+        const profile = await matchingService.getMatchProfile();
         if (!cancelled) {
-          setHasPreferences(hasAnyPreference(res.data));
+          setHasPreferences(hasAnyPreference(profile));
         }
       } catch {
         if (!cancelled) {

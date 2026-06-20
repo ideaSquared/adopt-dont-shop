@@ -17,9 +17,9 @@ const getMock = vi.fn();
 const putMock = vi.fn();
 
 vi.mock('@/services', () => ({
-  apiService: {
-    get: (...args: unknown[]) => getMock(...args),
-    put: (...args: unknown[]) => putMock(...args),
+  matchingService: {
+    getMatchProfile: (...args: unknown[]) => getMock(...args),
+    updateMatchProfile: (...args: unknown[]) => putMock(...args),
   },
 }));
 
@@ -68,17 +68,15 @@ describe('OnboardingWizardPage', () => {
     getMock.mockReset();
     putMock.mockReset();
     getMock.mockResolvedValue({
-      data: {
-        preferred_types: [],
-        preferred_sizes: [],
-        preferred_age_groups: [],
-        preferred_energy: [],
-        lifestyle: {},
-        max_distance_km: null,
-        open_to_special_needs: false,
-        notify_new_matches: false,
-        allergies: null,
-      },
+      preferred_types: [],
+      preferred_sizes: [],
+      preferred_age_groups: [],
+      preferred_energy: [],
+      lifestyle: {},
+      max_distance_km: null,
+      open_to_special_needs: false,
+      notify_new_matches: false,
+      allergies: null,
     });
   });
 
@@ -157,7 +155,7 @@ describe('OnboardingWizardPage', () => {
 
   it('submits all data to PUT /api/v1/match/profile on step 4 and navigates to top-picks', async () => {
     const user = userEvent.setup();
-    putMock.mockResolvedValue({ data: {} });
+    putMock.mockResolvedValue(undefined);
     renderPage();
 
     await waitFor(() => {
@@ -184,8 +182,7 @@ describe('OnboardingWizardPage', () => {
       expect(putMock).toHaveBeenCalledTimes(1);
     });
 
-    const [url, payload] = putMock.mock.calls[0] as [string, Record<string, unknown>];
-    expect(url).toBe('/api/v1/match/profile');
+    const [payload] = putMock.mock.calls[0] as [Record<string, unknown>];
     expect(payload).toHaveProperty('lifestyle');
     expect(payload).toHaveProperty('allergies');
     expect(payload).toHaveProperty('preferred_types');
@@ -221,17 +218,15 @@ describe('OnboardingWizardPage', () => {
 
   it('loads existing match profile data on mount', async () => {
     getMock.mockResolvedValue({
-      data: {
-        preferred_types: ['dog', 'cat'],
-        preferred_sizes: ['medium'],
-        preferred_age_groups: ['adult'],
-        preferred_energy: ['medium'],
-        lifestyle: { housing_type: 'apartment', has_children: false, yard: false },
-        max_distance_km: 25,
-        open_to_special_needs: true,
-        notify_new_matches: true,
-        allergies: 'cats',
-      },
+      preferred_types: ['dog', 'cat'],
+      preferred_sizes: ['medium'],
+      preferred_age_groups: ['adult'],
+      preferred_energy: ['medium'],
+      lifestyle: { housing_type: 'apartment', has_children: false, yard: false },
+      max_distance_km: 25,
+      open_to_special_needs: true,
+      notify_new_matches: true,
+      allergies: 'cats',
     });
 
     renderPage();
@@ -259,17 +254,15 @@ describe('OnboardingWizardPage', () => {
   describe('ADS-688 persistence fixes', () => {
     it('restores the original children_type selection on reload', async () => {
       getMock.mockResolvedValue({
-        data: {
-          preferred_types: [],
-          preferred_sizes: [],
-          preferred_age_groups: [],
-          preferred_energy: [],
-          lifestyle: { children_type: 'older', has_children: true },
-          max_distance_km: null,
-          open_to_special_needs: false,
-          notify_new_matches: false,
-          allergies: null,
-        },
+        preferred_types: [],
+        preferred_sizes: [],
+        preferred_age_groups: [],
+        preferred_energy: [],
+        lifestyle: { children_type: 'older', has_children: true },
+        max_distance_km: null,
+        open_to_special_needs: false,
+        notify_new_matches: false,
+        allergies: null,
       });
 
       renderPage();
@@ -284,17 +277,15 @@ describe('OnboardingWizardPage', () => {
 
     it('restores the original other_pets_type selection on reload', async () => {
       getMock.mockResolvedValue({
-        data: {
-          preferred_types: [],
-          preferred_sizes: [],
-          preferred_age_groups: [],
-          preferred_energy: [],
-          lifestyle: { other_pets_type: 'cats', has_other_pets: true },
-          max_distance_km: null,
-          open_to_special_needs: false,
-          notify_new_matches: false,
-          allergies: null,
-        },
+        preferred_types: [],
+        preferred_sizes: [],
+        preferred_age_groups: [],
+        preferred_energy: [],
+        lifestyle: { other_pets_type: 'cats', has_other_pets: true },
+        max_distance_km: null,
+        open_to_special_needs: false,
+        notify_new_matches: false,
+        allergies: null,
       });
 
       renderPage();
@@ -308,17 +299,15 @@ describe('OnboardingWizardPage', () => {
 
     it('restores "A mix" selection on reload', async () => {
       getMock.mockResolvedValue({
-        data: {
-          preferred_types: [],
-          preferred_sizes: [],
-          preferred_age_groups: [],
-          preferred_energy: [],
-          lifestyle: { other_pets_type: 'mixed', has_other_pets: true },
-          max_distance_km: null,
-          open_to_special_needs: false,
-          notify_new_matches: false,
-          allergies: null,
-        },
+        preferred_types: [],
+        preferred_sizes: [],
+        preferred_age_groups: [],
+        preferred_energy: [],
+        lifestyle: { other_pets_type: 'mixed', has_other_pets: true },
+        max_distance_km: null,
+        open_to_special_needs: false,
+        notify_new_matches: false,
+        allergies: null,
       });
 
       renderPage();
@@ -332,7 +321,7 @@ describe('OnboardingWizardPage', () => {
 
     it('includes activity_level and children_type/other_pets_type in the submitted payload', async () => {
       const user = userEvent.setup();
-      putMock.mockResolvedValue({ data: {} });
+      putMock.mockResolvedValue(undefined);
       renderPage();
 
       await waitFor(() => {
@@ -352,7 +341,7 @@ describe('OnboardingWizardPage', () => {
         expect(putMock).toHaveBeenCalledTimes(1);
       });
 
-      const [, payload] = putMock.mock.calls[0] as [string, { lifestyle: Record<string, unknown> }];
+      const [payload] = putMock.mock.calls[0] as [{ lifestyle: Record<string, unknown> }];
       expect(payload.lifestyle.children_type).toBe('older');
       expect(payload.lifestyle.other_pets_type).toBe('cats');
       expect(payload.lifestyle.activity_level).toBe('high');

@@ -11,6 +11,7 @@ import { DiscoveryService } from '@adopt-dont-shop/lib.discovery';
 import { PetsService } from '@adopt-dont-shop/lib.pets';
 import { RescueService } from '@adopt-dont-shop/lib.rescue';
 import { ChatService } from '@adopt-dont-shop/lib.chat';
+import { MatchingService } from '@adopt-dont-shop/lib.matching';
 import { SearchService } from '@adopt-dont-shop/lib.search';
 import { NotificationsService } from '@adopt-dont-shop/lib.notifications';
 import { PermissionsService } from '@adopt-dont-shop/lib.permissions';
@@ -43,6 +44,10 @@ export const applicationService = new ApplicationsService(globalApiService, serv
 export const discoveryService = new DiscoveryService(serviceConfig);
 
 export const petService = new PetsService(globalApiService);
+
+// Shares the global apiService so top-picks / match-profile calls carry
+// the same auth + CSRF state as the rest of the app.
+export const matchingService = new MatchingService(globalApiService);
 
 export const rescueService = new RescueService(globalApiService, serviceConfig);
 

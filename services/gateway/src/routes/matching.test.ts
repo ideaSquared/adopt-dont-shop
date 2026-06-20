@@ -28,6 +28,7 @@ function makeClient(): {
   upsertMatchProfileMock: ReturnType<typeof vi.fn>;
   getUserSwipeStatsMock: ReturnType<typeof vi.fn>;
   getSessionStatsMock: ReturnType<typeof vi.fn>;
+  getTopPicksMock: ReturnType<typeof vi.fn>;
 } {
   const startSessionMock = vi.fn();
   const endSessionMock = vi.fn();
@@ -39,6 +40,7 @@ function makeClient(): {
   const upsertMatchProfileMock = vi.fn();
   const getUserSwipeStatsMock = vi.fn();
   const getSessionStatsMock = vi.fn();
+  const getTopPicksMock = vi.fn();
   const client: MatchingClient = {
     startSession: startSessionMock,
     endSession: endSessionMock,
@@ -50,6 +52,7 @@ function makeClient(): {
     upsertMatchProfile: upsertMatchProfileMock,
     getUserSwipeStats: getUserSwipeStatsMock,
     getSessionStats: getSessionStatsMock,
+    getTopPicks: getTopPicksMock,
     close: vi.fn(),
   };
   return {
@@ -64,6 +67,7 @@ function makeClient(): {
     upsertMatchProfileMock,
     getUserSwipeStatsMock,
     getSessionStatsMock,
+    getTopPicksMock,
   };
 }
 
@@ -642,6 +646,86 @@ describe('match profile + swipe stats', () => {
       const res = await app.inject({
         method: 'GET',
         url: '/api/v1/discovery/swipe/stats/usr-other',
+        headers: ADOPTER_HEADERS,
+      });
+      expect(res.statusCode).toBe(403);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('GET /api/v1/match/top-picks (GetTopPicks)', () => {
+  it('returns the SPA-shaped top picks under a data envelope', async () => {
+    const m = makeClient();
+    m.getTopPicksMock.mockResolvedValue({
+      picks: [
+        {
+          petId: 'pet-1',
+          name: 'Bella',
+          type: 'cat',
+          ageGroup: 'baby',
+          size: 'small',
+          score: 0.74,
+          reasons: [{ kind: 'pref_match', label: 'Matches your preferences' }],
+          rescueName: 'Happy Tails',
+        },
+      ],
+    });
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/match/top-picks?limit=3',
+        headers: ADOPTER_HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body) as { success: boolean; data: unknown[] };
+      expect(body.success).toBe(true);
+      expect(body.data).toEqual([
+        {
+          petId: 'pet-1',
+          name: 'Bella',
+          type: 'cat',
+          ageGroup: 'baby',
+          size: 'small',
+          score: 0.74,
+          reasons: [{ kind: 'pref_match', label: 'Matches your preferences' }],
+          rescueName: 'Happy Tails',
+        },
+      ]);
+      // The query limit is forwarded to the gRPC request.
+      expect(m.getTopPicksMock.mock.calls[0][0]).toEqual({ limit: 3 });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('defaults the limit to 10 when the query param is absent', async () => {
+    const m = makeClient();
+    m.getTopPicksMock.mockResolvedValue({ picks: [] });
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/match/top-picks',
+        headers: ADOPTER_HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(m.getTopPicksMock.mock.calls[0][0]).toEqual({ limit: 10 });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps an upstream PERMISSION_DENIED to 403', async () => {
+    const m = makeClient();
+    m.getTopPicksMock.mockRejectedValue({ code: grpcStatus.PERMISSION_DENIED, details: 'no' });
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/match/top-picks',
         headers: ADOPTER_HEADERS,
       });
       expect(res.statusCode).toBe(403);

@@ -21,6 +21,8 @@ import {
   type GetMatchProfileResponse,
   type GetSessionStatsRequest,
   type GetSessionStatsResponse,
+  type GetTopPicksRequest,
+  type GetTopPicksResponse,
   type GetUserSwipeStatsRequest,
   type GetUserSwipeStatsResponse,
   type ListSwipeHistoryRequest,
@@ -67,6 +69,7 @@ export type MatchingClient = {
     req: GetSessionStatsRequest,
     metadata: Metadata
   ): Promise<GetSessionStatsResponse>;
+  getTopPicks(req: GetTopPicksRequest, metadata: Metadata): Promise<GetTopPicksResponse>;
   close(): void;
 };
 
@@ -141,6 +144,7 @@ export const createMatchingClient = (opts: CreateMatchingClientOptions): Matchin
     getMatchProfile: (req, metadata) => callUnary(stub.getMatchProfile, req, metadata, true),
     getUserSwipeStats: (req, metadata) => callUnary(stub.getUserSwipeStats, req, metadata, true),
     getSessionStats: (req, metadata) => callUnary(stub.getSessionStats, req, metadata, true),
+    getTopPicks: (req, metadata) => callUnary(stub.getTopPicks, req, metadata, true),
     close: () => stub.close(),
   };
 };

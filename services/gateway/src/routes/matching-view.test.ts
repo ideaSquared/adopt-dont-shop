@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PetCandidate, RecommendResponse, SearchPetsResponse } from '@adopt-dont-shop/proto';
+import type {
+  GetTopPicksResponse,
+  PetCandidate,
+  RecommendResponse,
+  SearchPetsResponse,
+} from '@adopt-dont-shop/proto';
 
-import { petCandidateToView, recommendToQueue, searchToView } from './matching-view.js';
+import {
+  petCandidateToView,
+  recommendToQueue,
+  searchToView,
+  topPicksToView,
+} from './matching-view.js';
 
 function makeCandidate(overrides: Partial<PetCandidate> = {}): PetCandidate {
   return {
@@ -89,5 +99,77 @@ describe('searchToView', () => {
   it('omits next_cursor when absent or empty', () => {
     const env = searchToView({ results: [], nextCursor: '' } as SearchPetsResponse);
     expect('next_cursor' in env).toBe(false);
+  });
+});
+
+describe('topPicksToView', () => {
+  it('maps proto TopPicks to the SPA MatchTopPick shape, preserving default fields', () => {
+    const view = topPicksToView({
+      picks: [
+        {
+          petId: 'pet-1',
+          name: 'Bella',
+          type: 'cat',
+          ageGroup: 'baby',
+          size: 'small',
+          score: 0.74,
+          reasons: [{ kind: 'pref_match', label: 'Matches your preferences' }],
+          rescueName: 'Happy Tails',
+        },
+      ],
+    } as GetTopPicksResponse);
+
+    expect(view).toEqual([
+      {
+        petId: 'pet-1',
+        name: 'Bella',
+        type: 'cat',
+        ageGroup: 'baby',
+        size: 'small',
+        score: 0.74,
+        reasons: [{ kind: 'pref_match', label: 'Matches your preferences' }],
+        rescueName: 'Happy Tails',
+      },
+    ]);
+  });
+
+  it('keeps zero score, empty rescue name and empty reasons rather than dropping them', () => {
+    const view = topPicksToView({
+      picks: [
+        {
+          petId: 'pet-2',
+          name: 'Rex',
+          type: 'dog',
+          ageGroup: 'adult',
+          size: 'medium',
+          score: 0,
+          reasons: [],
+          rescueName: '',
+        },
+      ],
+    } as GetTopPicksResponse);
+
+    expect(view[0]).toMatchObject({ petId: 'pet-2', score: 0, rescueName: '', reasons: [] });
+  });
+
+  it('forwards breedName and photoUrl when present', () => {
+    const view = topPicksToView({
+      picks: [
+        {
+          petId: 'pet-3',
+          name: 'Max',
+          type: 'dog',
+          ageGroup: 'young',
+          size: 'large',
+          score: 0.5,
+          reasons: [],
+          rescueName: 'Rescue',
+          breedName: 'Labrador',
+          photoUrl: '/uploads/pets/pet-3.jpg',
+        },
+      ],
+    } as GetTopPicksResponse);
+
+    expect(view[0]).toMatchObject({ breedName: 'Labrador', photoUrl: '/uploads/pets/pet-3.jpg' });
   });
 });
