@@ -21,6 +21,7 @@
 //   GET /api/v1/admin/security/login-history        AuditQueryService.Query
 //   GET /api/v1/admin/security/suspicious-activity   AuditQueryService.Query (aggregated)
 
+import rateLimit from '@fastify/rate-limit';
 import type { FastifyInstance } from 'fastify';
 
 import {
@@ -42,6 +43,14 @@ export type SecurityRoutesOptions = {
 };
 
 const LOGIN_HISTORY_SUBJECT = 'auth.actionTaken';
+
+// Per-route rate limits for the audit-backed reads. Admin-only and sized
+// for human use, not bulk scraping — mirrors routes/audit.ts (the handler's
+// own LIMIT clamp is the secondary guard).
+const SECURITY_AUDIT_RATE_LIMITS = {
+  loginHistory: { max: 60, timeWindow: '1 minute' },
+  suspiciousActivity: { max: 60, timeWindow: '1 minute' },
+} as const;
 
 // auth.actionTaken only ever publishes 'success' or 'denied' for login
 // (no exception path raises 'failure') — the SPA's binary
@@ -334,6 +343,8 @@ export const registerSecurityRoutes = async (
     return;
   }
 
+  await app.register(rateLimit, { global: false });
+
   // GET /api/v1/admin/security/login-history — auth.actionTaken events,
   // newest first. The SPA fetches once per filter change with no "next
   // page" control, so pagination is synthesised from the query's
@@ -341,6 +352,7 @@ export const registerSecurityRoutes = async (
   app.get(
     '/api/v1/admin/security/login-history',
     {
+      config: { rateLimit: SECURITY_AUDIT_RATE_LIMITS.loginHistory },
       schema: {
         tags: ['security', 'admin'],
         summary: 'List login history from the audit log (admin)',
@@ -396,6 +408,7 @@ export const registerSecurityRoutes = async (
   app.get(
     '/api/v1/admin/security/suspicious-activity',
     {
+      config: { rateLimit: SECURITY_AUDIT_RATE_LIMITS.suspiciousActivity },
       schema: {
         tags: ['security', 'admin'],
         summary: 'List suspicious login activity from the audit log (admin)',
