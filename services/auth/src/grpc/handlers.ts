@@ -320,6 +320,48 @@ const LOGIN_LOCK_THRESHOLD = 5;
 const LOGIN_LOCK_BASE_SECONDS = 60;
 const LOGIN_LOCK_MAX_SECONDS = 900;
 
+// Forensic record of a login attempt, published as `auth.actionTaken` so
+// service.audit's wildcard `*.actionTaken` subscriber persists it to
+// audit_events — the durable trail the Security Center's login-history
+// and suspicious-activity views read. Routed through withTransaction
+// (even on branches with no DB write) so every publish in this module
+// follows the same publish-after-commit discipline documented at the
+// top of this file. `outcome` is 'denied' rather than 'failure' for
+// every rejected attempt — none of these are server-side exceptions,
+// they're all the system declining the login.
+async function publishLoginActionTaken(
+  deps: HandlerDeps,
+  params: {
+    outcome: 'success' | 'denied';
+    aggregateId: string;
+    actorUserId?: string;
+    actorEmailSnapshot?: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }
+): Promise<void> {
+  await withTransaction(deps, async ({ publish }) => {
+    publish({
+      type: 'auth.actionTaken',
+      id: `auth.actionTaken.${randomUUID()}`,
+      payload: {
+        eventId: randomUUID(),
+        service: 'service.auth',
+        subject: 'auth.actionTaken',
+        aggregateType: 'user',
+        aggregateId: params.aggregateId,
+        actorUserId: params.actorUserId,
+        actorEmailSnapshot: params.actorEmailSnapshot,
+        action: 'login',
+        outcome: params.outcome,
+        occurredAt: new Date().toISOString(),
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+      },
+    });
+  });
+}
+
 export async function login(
   deps: HandlerDeps,
   _principal: Principal | null,
@@ -348,6 +390,16 @@ export async function login(
     // early return is a user-enumeration timing oracle.
     await deps.passwordHasher.compare(req.password, DUMMY_PASSWORD_HASH);
     loginCounter.inc({ outcome: 'invalid_credentials' });
+    await publishLoginActionTaken(deps, {
+      outcome: 'denied',
+      // No real user aggregate exists for an unknown email — mint a
+      // fresh id to satisfy audit_events.aggregate_id's NOT NULL
+      // constraint. actorEmailSnapshot still records what was tried.
+      aggregateId: randomUUID(),
+      actorEmailSnapshot: req.email,
+      ipAddress: req.ipAddress,
+      userAgent: req.userAgent,
+    });
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
   const user = userRes.rows[0];
@@ -356,10 +408,26 @@ export async function login(
   // correct password shouldn't reveal the account is back online.
   if (user.locked_until && user.locked_until > new Date()) {
     loginCounter.inc({ outcome: 'account_locked' });
+    await publishLoginActionTaken(deps, {
+      outcome: 'denied',
+      aggregateId: user.user_id,
+      actorUserId: user.user_id,
+      actorEmailSnapshot: user.email,
+      ipAddress: req.ipAddress,
+      userAgent: req.userAgent,
+    });
     throw new HandlerError('PERMISSION_DENIED', 'account is temporarily locked');
   }
   if (user.status === 'suspended' || user.status === 'deactivated') {
     loginCounter.inc({ outcome: 'account_suspended' });
+    await publishLoginActionTaken(deps, {
+      outcome: 'denied',
+      aggregateId: user.user_id,
+      actorUserId: user.user_id,
+      actorEmailSnapshot: user.email,
+      ipAddress: req.ipAddress,
+      userAgent: req.userAgent,
+    });
     throw new HandlerError('PERMISSION_DENIED', `account is ${user.status}`);
   }
 
@@ -370,23 +438,43 @@ export async function login(
     // incremented count so a burst of concurrent failures can't race the
     // lock open, and from `login_attempts` (not wall clock) so it grows
     // deterministically.
-    await deps.pool.query(
-      `UPDATE auth.users
-          SET login_attempts = login_attempts + 1,
-              locked_until = CASE
-                WHEN login_attempts + 1 >= $2
-                THEN now() + make_interval(
-                  secs => LEAST(
-                    $3::double precision * power(2, login_attempts + 1 - $2),
-                    $4::double precision
+    await withTransaction(deps, async ({ client, publish }) => {
+      await client.query(
+        `UPDATE auth.users
+            SET login_attempts = login_attempts + 1,
+                locked_until = CASE
+                  WHEN login_attempts + 1 >= $2
+                  THEN now() + make_interval(
+                    secs => LEAST(
+                      $3::double precision * power(2, login_attempts + 1 - $2),
+                      $4::double precision
+                    )
                   )
-                )
-                ELSE locked_until
-              END,
-              updated_at = now()
-        WHERE user_id = $1`,
-      [user.user_id, LOGIN_LOCK_THRESHOLD, LOGIN_LOCK_BASE_SECONDS, LOGIN_LOCK_MAX_SECONDS]
-    );
+                  ELSE locked_until
+                END,
+                updated_at = now()
+          WHERE user_id = $1`,
+        [user.user_id, LOGIN_LOCK_THRESHOLD, LOGIN_LOCK_BASE_SECONDS, LOGIN_LOCK_MAX_SECONDS]
+      );
+      publish({
+        type: 'auth.actionTaken',
+        id: `auth.actionTaken.${randomUUID()}`,
+        payload: {
+          eventId: randomUUID(),
+          service: 'service.auth',
+          subject: 'auth.actionTaken',
+          aggregateType: 'user',
+          aggregateId: user.user_id,
+          actorUserId: user.user_id,
+          actorEmailSnapshot: user.email,
+          action: 'login',
+          outcome: 'denied',
+          occurredAt: new Date().toISOString(),
+          ipAddress: req.ipAddress,
+          userAgent: req.userAgent,
+        },
+      });
+    });
     loginCounter.inc({ outcome: 'invalid_credentials' });
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
@@ -411,6 +499,14 @@ export async function login(
     }
     if (!user.two_factor_secret || !verifyTotp(req.twoFactorToken, user.two_factor_secret)) {
       loginCounter.inc({ outcome: 'invalid_credentials' });
+      await publishLoginActionTaken(deps, {
+        outcome: 'denied',
+        aggregateId: user.user_id,
+        actorUserId: user.user_id,
+        actorEmailSnapshot: user.email,
+        ipAddress: req.ipAddress,
+        userAgent: req.userAgent,
+      });
       throw new HandlerError('UNAUTHENTICATED', 'invalid two-factor code');
     }
   }
@@ -437,6 +533,24 @@ export async function login(
         userId: user.user_id,
         ipAddress: req.ipAddress ?? null,
         userAgent: req.userAgent ?? null,
+      },
+    });
+    publish({
+      type: 'auth.actionTaken',
+      id: `auth.actionTaken.${minted.accessJti}`,
+      payload: {
+        eventId: randomUUID(),
+        service: 'service.auth',
+        subject: 'auth.actionTaken',
+        aggregateType: 'user',
+        aggregateId: user.user_id,
+        actorUserId: user.user_id,
+        actorEmailSnapshot: user.email,
+        action: 'login',
+        outcome: 'success',
+        occurredAt: new Date().toISOString(),
+        ipAddress: req.ipAddress,
+        userAgent: req.userAgent,
       },
     });
   });
