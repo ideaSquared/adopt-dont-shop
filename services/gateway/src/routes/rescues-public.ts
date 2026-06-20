@@ -15,6 +15,7 @@ import {
   RescueV1,
   type CreateRescueRequest,
   type ListRescuesRequest,
+  type UpdateRescueRequest,
 } from '@adopt-dont-shop/proto';
 
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
@@ -234,7 +235,35 @@ export const registerRescuesPublicRoutes = async (
       }
     }
   );
+
+  // PUT /api/v1/rescues/:id — profile update. lib.rescue / app.rescue's
+  // Settings page write to the plural base path (matching the read routes
+  // above), unlike the singular /api/v1/rescue/:id PATCH route.
+  app.put<{ Params: { id: string }; Body: UpdateRescueBody }>(
+    '/api/v1/rescues/:id',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Update a rescue profile',
+      },
+    },
+    async (req, reply) => {
+      const grpcReq: UpdateRescueRequest = { rescueId: req.params.id, ...(req.body ?? {}) };
+      try {
+        const res = await client.update(grpcReq, buildMetadata(req));
+        if (res.rescue === undefined) {
+          return reply.code(404).send({ success: false, error: 'rescue not found' });
+        }
+        return reply.send(rescueDataEnvelope(res.rescue));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
 };
+
+type UpdateRescueBody = Partial<Omit<UpdateRescueRequest, 'rescueId'>>;
 
 // --- Helpers ---------------------------------------------------------
 

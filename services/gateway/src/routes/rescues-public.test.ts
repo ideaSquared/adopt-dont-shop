@@ -156,4 +156,22 @@ describe('rescues public routes', () => {
     });
     expect(res.statusCode).toBe(201);
   });
+
+  it('PUT /api/v1/rescues/:id forwards the update payload and returns the envelope', async () => {
+    mocks.update.mockResolvedValueOnce({ rescue: RESCUE });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/rescues/rsc-1',
+      payload: { name: 'Happy Tails Renamed', city: 'Leeds' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { success: boolean; data: { rescue_id: string } };
+    expect(body.success).toBe(true);
+    expect(body.data.rescue_id).toBe('rsc-1');
+    expect(mocks.update.mock.calls[0][0]).toMatchObject({
+      rescueId: 'rsc-1',
+      name: 'Happy Tails Renamed',
+      city: 'Leeds',
+    });
+  });
 });
