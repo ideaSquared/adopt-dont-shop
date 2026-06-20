@@ -13,9 +13,12 @@ import {
   adminUnlockAccount,
   adminUpdateUser,
   bulkUpdateUsers,
+  createIpRule,
   deactivateUser,
+  deleteIpRule,
   getUserPermissions,
   getUserStatistics,
+  listIpRules,
   listUserIdsByCohort,
   reactivateUser,
   searchUsers,
@@ -47,6 +50,12 @@ const SECURITY_ADMIN: Principal = {
   userId: 'svc-security-admin' as UserId,
   roles: ['admin'],
   permissions: ['admin.security.manage' as Permission],
+};
+
+const SECURITY_READER: Principal = {
+  userId: 'svc-security-reader' as UserId,
+  roles: ['admin'],
+  permissions: ['admin.security.read' as Permission],
 };
 
 // --- Mocks ------------------------------------------------------------
@@ -110,6 +119,19 @@ const userRow = (overrides: Record<string, unknown> = {}) => ({
   last_login_at: null,
   locked_until: null,
   login_attempts: 0,
+  created_at: new Date('2026-06-01T00:00:00Z'),
+  updated_at: new Date('2026-06-01T00:00:00Z'),
+  ...overrides,
+});
+
+const ipRuleRow = (overrides: Record<string, unknown> = {}) => ({
+  ip_rule_id: 'rule-1',
+  type: 'block',
+  cidr: '203.0.113.0/24',
+  label: 'known bad actor',
+  is_active: true,
+  expires_at: null,
+  created_by: 'svc-security-admin',
   created_at: new Date('2026-06-01T00:00:00Z'),
   updated_at: new Date('2026-06-01T00:00:00Z'),
   ...overrides,
@@ -475,6 +497,152 @@ describe('adminUnlockAccount', () => {
     expect(updateCall![0]).toMatch(/login_attempts = 0/);
     expect(updateCall![1]).toEqual(['usr-1']);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.accountUnlockedByAdmin');
+  });
+});
+
+// --- listIpRules / createIpRule / deleteIpRule ------------------------
+
+describe('listIpRules', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects without admin.security.read', async () => {
+    await expect(listIpRules(mocks.deps, NO_PERMS, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('returns rules reshaped into the proto IpRule shape', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [ipRuleRow()] });
+    const res = await listIpRules(mocks.deps, SECURITY_READER, {});
+    expect(res.rules).toEqual([
+      {
+        ipRuleId: 'rule-1',
+        type: AuthV1.IpRuleType.IP_RULE_TYPE_BLOCK,
+        cidr: '203.0.113.0/24',
+        label: 'known bad actor',
+        isActive: true,
+        expiresAt: undefined,
+        createdBy: 'svc-security-admin',
+        createdAt: '2026-06-01T00:00:00.000Z',
+        updatedAt: '2026-06-01T00:00:00.000Z',
+      },
+    ]);
+  });
+});
+
+describe('createIpRule', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects without admin.security.manage', async () => {
+    await expect(
+      createIpRule(mocks.deps, SECURITY_READER, {
+        type: AuthV1.IpRuleType.IP_RULE_TYPE_BLOCK,
+        cidr: '203.0.113.0/24',
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects a malformed cidr', async () => {
+    await expect(
+      createIpRule(mocks.deps, SECURITY_ADMIN, {
+        type: AuthV1.IpRuleType.IP_RULE_TYPE_BLOCK,
+        cidr: 'not-a-cidr',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects an unspecified type', async () => {
+    await expect(
+      createIpRule(mocks.deps, SECURITY_ADMIN, {
+        type: AuthV1.IpRuleType.IP_RULE_TYPE_UNSPECIFIED,
+        cidr: '203.0.113.0/24',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('creates the rule and publishes auth.ipRuleCreated', async () => {
+    mocks.clientScript.push({ rows: [ipRuleRow()] });
+
+    const res = await createIpRule(mocks.deps, SECURITY_ADMIN, {
+      type: AuthV1.IpRuleType.IP_RULE_TYPE_BLOCK,
+      cidr: '203.0.113.0/24',
+      label: 'known bad actor',
+    });
+
+    expect(res.rule?.ipRuleId).toBe('rule-1');
+    const insertCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
+      ([sql]) => sql.includes('INSERT INTO auth.ip_rules')
+    );
+    expect(insertCall![1]).toEqual([
+      'block',
+      '203.0.113.0/24',
+      'known bad actor',
+      null,
+      'svc-security-admin',
+    ]);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.ipRuleCreated');
+    const envelope = JSON.parse(
+      new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+    );
+    expect(envelope.payload).toMatchObject({
+      ipRuleId: 'rule-1',
+      type: 'block',
+      cidr: '203.0.113.0/24',
+      createdBy: 'svc-security-admin',
+    });
+  });
+});
+
+describe('deleteIpRule', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects a missing ip_rule_id', async () => {
+    await expect(deleteIpRule(mocks.deps, SECURITY_ADMIN, { ipRuleId: '' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('rejects without admin.security.manage', async () => {
+    await expect(
+      deleteIpRule(mocks.deps, SECURITY_READER, { ipRuleId: 'rule-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('maps a missing rule to NOT_FOUND', async () => {
+    mocks.clientScript.push({ rows: [], rowCount: 0 });
+    await expect(
+      deleteIpRule(mocks.deps, SECURITY_ADMIN, { ipRuleId: 'ghost' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('deletes the rule and publishes auth.ipRuleDeleted', async () => {
+    mocks.clientScript.push({ rows: [], rowCount: 1 });
+
+    await deleteIpRule(mocks.deps, SECURITY_ADMIN, { ipRuleId: 'rule-1' });
+
+    const deleteCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
+      ([sql]) => sql.includes('DELETE FROM auth.ip_rules')
+    );
+    expect(deleteCall![1]).toEqual(['rule-1']);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.ipRuleDeleted');
   });
 });
 

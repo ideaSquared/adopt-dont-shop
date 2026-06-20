@@ -7,16 +7,19 @@
 //   DELETE /api/v1/admin/security/users/:userId/sessions  adminRevokeAllUserSessions
 //   POST   /api/v1/admin/security/users/:userId/lock      adminLockAccount (204)
 //   POST   /api/v1/admin/security/users/:userId/unlock    adminUnlockAccount
+//   GET    /api/v1/admin/security/ip-rules                listIpRules
+//   POST   /api/v1/admin/security/ip-rules                createIpRule
+//   DELETE /api/v1/admin/security/ip-rules/:ipRuleId       deleteIpRule (204)
 //
 // Permission gating (admin.security.read / admin.security.manage) lives in
-// the gRPC handlers; the gateway just forwards principal metadata. IP-rule,
+// the gRPC handlers; the gateway just forwards principal metadata.
 // login-history and suspicious-activity endpoints the SPA also references
-// are not wired here — they need durable infrastructure that does not yet
-// exist (no ip_rules table, no failed-login audit trail).
+// are not wired here — they need a durable failed-login audit trail that
+// does not yet exist (currently only a Prometheus counter).
 
 import type { FastifyInstance } from 'fastify';
 
-import type { AdminListSessionsRequest } from '@adopt-dont-shop/proto';
+import { AuthV1, type AdminListSessionsRequest } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
@@ -26,6 +29,36 @@ import { parsePagination } from '../middleware/pagination.js';
 export type SecurityRoutesOptions = {
   client: AuthClient;
 };
+
+// IpRuleType proto enum <-> the 'allow'|'block' string the SPA's
+// securityService.ts contract uses.
+const ipRuleTypeToProto = (type: string): AuthV1.IpRuleType =>
+  type === 'block' ? AuthV1.IpRuleType.IP_RULE_TYPE_BLOCK : AuthV1.IpRuleType.IP_RULE_TYPE_ALLOW;
+
+const ipRuleTypeFromProto = (type: AuthV1.IpRuleType): 'allow' | 'block' =>
+  type === AuthV1.IpRuleType.IP_RULE_TYPE_BLOCK ? 'block' : 'allow';
+
+const toApiIpRule = (rule: {
+  ipRuleId: string;
+  type: AuthV1.IpRuleType;
+  cidr: string;
+  label?: string;
+  isActive: boolean;
+  expiresAt?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}) => ({
+  ipRuleId: rule.ipRuleId,
+  type: ipRuleTypeFromProto(rule.type),
+  cidr: rule.cidr,
+  label: rule.label ?? null,
+  isActive: rule.isActive,
+  expiresAt: rule.expiresAt ?? null,
+  createdBy: rule.createdBy ?? null,
+  createdAt: rule.createdAt,
+  updatedAt: rule.updatedAt,
+});
 
 export const registerSecurityRoutes = async (
   app: FastifyInstance,
@@ -168,6 +201,77 @@ export const registerSecurityRoutes = async (
           buildMetadata(req)
         );
         return reply.send({ success: true, data: { wasLocked: res.wasLocked } });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /api/v1/admin/security/ip-rules — list all allow/block rules.
+  app.get(
+    '/api/v1/admin/security/ip-rules',
+    {
+      schema: {
+        tags: ['security', 'admin'],
+        summary: 'List IP allow/block rules (admin)',
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.listIpRules({}, buildMetadata(req));
+        return reply.send({ success: true, data: (res.rules ?? []).map(toApiIpRule) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // POST /api/v1/admin/security/ip-rules — add an allow/block rule.
+  app.post<{
+    Body: { type: string; cidr: string; label?: string | null; expiresAt?: string | null };
+  }>(
+    '/api/v1/admin/security/ip-rules',
+    {
+      schema: {
+        tags: ['security', 'admin'],
+        summary: 'Create an IP allow/block rule (admin)',
+      },
+    },
+    async (req, reply) => {
+      const body = req.body;
+      try {
+        const res = await client.createIpRule(
+          {
+            type: ipRuleTypeToProto(body.type),
+            cidr: body.cidr,
+            label: body.label ?? undefined,
+            expiresAt: body.expiresAt ?? undefined,
+          },
+          buildMetadata(req)
+        );
+        if (!res.rule) {
+          return reply.code(500).send({ error: 'createIpRule returned no rule' });
+        }
+        return reply.send({ success: true, data: toApiIpRule(res.rule) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // DELETE /api/v1/admin/security/ip-rules/:ipRuleId — remove a rule.
+  app.delete<{ Params: { ipRuleId: string } }>(
+    '/api/v1/admin/security/ip-rules/:ipRuleId',
+    {
+      schema: {
+        tags: ['security', 'admin'],
+        summary: 'Delete an IP allow/block rule (admin)',
+      },
+    },
+    async (req, reply) => {
+      try {
+        await client.deleteIpRule({ ipRuleId: req.params.ipRuleId }, buildMetadata(req));
+        return reply.code(204).send();
       } catch (err) {
         return handleGrpcError(err, reply);
       }

@@ -61,6 +61,12 @@ import {
   type AdminLockAccountResponse,
   type AdminUnlockAccountRequest,
   type AdminUnlockAccountResponse,
+  type ListIpRulesRequest,
+  type ListIpRulesResponse,
+  type CreateIpRuleRequest,
+  type CreateIpRuleResponse,
+  type DeleteIpRuleRequest,
+  type DeleteIpRuleResponse,
   type GetPrivacyPreferencesRequest,
   type GetPrivacyPreferencesResponse,
   type UpdatePrivacyPreferencesRequest,
@@ -157,6 +163,9 @@ export type AuthClient = {
     req: AdminUnlockAccountRequest,
     metadata: Metadata
   ): Promise<AdminUnlockAccountResponse>;
+  listIpRules(req: ListIpRulesRequest, metadata: Metadata): Promise<ListIpRulesResponse>;
+  createIpRule(req: CreateIpRuleRequest, metadata: Metadata): Promise<CreateIpRuleResponse>;
+  deleteIpRule(req: DeleteIpRuleRequest, metadata: Metadata): Promise<DeleteIpRuleResponse>;
   getPrivacyPreferences(
     req: GetPrivacyPreferencesRequest,
     metadata: Metadata
@@ -305,6 +314,8 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
       callUnary(stub.adminRevokeAllUserSessions, req, metadata, false),
     adminLockAccount: (req, metadata) => callUnary(stub.adminLockAccount, req, metadata, false),
     adminUnlockAccount: (req, metadata) => callUnary(stub.adminUnlockAccount, req, metadata, false),
+    createIpRule: (req, metadata) => callUnary(stub.createIpRule, req, metadata, false),
+    deleteIpRule: (req, metadata) => callUnary(stub.deleteIpRule, req, metadata, false),
     updatePrivacyPreferences: (req, metadata) =>
       callUnary(stub.updatePrivacyPreferences, req, metadata, false),
     resetPrivacyPreferences: (req, metadata) =>
@@ -326,6 +337,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     getMe: (req, metadata) => callUnary(stub.getMe, req, metadata, true),
     listSessions: (req, metadata) => callUnary(stub.listSessions, req, metadata, true),
     adminListSessions: (req, metadata) => callUnary(stub.adminListSessions, req, metadata, true),
+    listIpRules: (req, metadata) => callUnary(stub.listIpRules, req, metadata, true),
     getPrivacyPreferences: (req, metadata) =>
       callUnary(stub.getPrivacyPreferences, req, metadata, true),
     searchUsers: (req, metadata) => callUnary(stub.searchUsers, req, metadata, true),

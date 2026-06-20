@@ -213,6 +213,15 @@ service AuthService {
   // the failure counter. admin.security.manage.
   rpc AdminUnlockAccount(AdminUnlockAccountRequest) returns (AdminUnlockAccountResponse);
 
+  // List all IP allow/block rules. admin.security.read.
+  rpc ListIpRules(ListIpRulesRequest) returns (ListIpRulesResponse);
+
+  // Create an IP allow/block rule. admin.security.manage.
+  rpc CreateIpRule(CreateIpRuleRequest) returns (CreateIpRuleResponse);
+
+  // Delete an IP allow/block rule. admin.security.manage.
+  rpc DeleteIpRule(DeleteIpRuleRequest) returns (DeleteIpRuleResponse);
+
   // --- Field permissions admin -----------------------------------------
 
   // Returns the full default field-permission configuration (the
@@ -878,6 +887,51 @@ message AdminUnlockAccountResponse {
   // before this call; false if it was a no-op.
   bool was_locked = 1;
 }
+
+// --- IP allow/block rules ----------------------------------------------
+// Mirrors auth.ip_rules. Evaluated by the gateway's connecting-IP
+// middleware (not yet wired); this surface is the admin CRUD only.
+
+enum IpRuleType {
+  IP_RULE_TYPE_UNSPECIFIED = 0;
+  IP_RULE_TYPE_ALLOW = 1;
+  IP_RULE_TYPE_BLOCK = 2;
+}
+
+message IpRule {
+  string ip_rule_id = 1;
+  IpRuleType type = 2;
+  string cidr = 3;
+  optional string label = 4;
+  bool is_active = 5;
+  optional string expires_at = 6;
+  optional string created_by = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message ListIpRulesRequest {}
+
+message ListIpRulesResponse {
+  repeated IpRule rules = 1;
+}
+
+message CreateIpRuleRequest {
+  IpRuleType type = 1;
+  string cidr = 2;
+  optional string label = 3;
+  optional string expires_at = 4;
+}
+
+message CreateIpRuleResponse {
+  IpRule rule = 1;
+}
+
+message DeleteIpRuleRequest {
+  string ip_rule_id = 1;
+}
+
+message DeleteIpRuleResponse {}
 
 // --- Field permissions -----------------------------------------------
 

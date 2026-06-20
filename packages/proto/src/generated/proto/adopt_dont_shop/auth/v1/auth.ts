@@ -195,6 +195,45 @@ export function profileVisibilityToJSON(object: ProfileVisibility): string {
   }
 }
 
+export enum IpRuleType {
+  IP_RULE_TYPE_UNSPECIFIED = 0,
+  IP_RULE_TYPE_ALLOW = 1,
+  IP_RULE_TYPE_BLOCK = 2,
+  UNRECOGNIZED = -1,
+}
+
+export function ipRuleTypeFromJSON(object: any): IpRuleType {
+  switch (object) {
+    case 0:
+    case 'IP_RULE_TYPE_UNSPECIFIED':
+      return IpRuleType.IP_RULE_TYPE_UNSPECIFIED;
+    case 1:
+    case 'IP_RULE_TYPE_ALLOW':
+      return IpRuleType.IP_RULE_TYPE_ALLOW;
+    case 2:
+    case 'IP_RULE_TYPE_BLOCK':
+      return IpRuleType.IP_RULE_TYPE_BLOCK;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return IpRuleType.UNRECOGNIZED;
+  }
+}
+
+export function ipRuleTypeToJSON(object: IpRuleType): string {
+  switch (object) {
+    case IpRuleType.IP_RULE_TYPE_UNSPECIFIED:
+      return 'IP_RULE_TYPE_UNSPECIFIED';
+    case IpRuleType.IP_RULE_TYPE_ALLOW:
+      return 'IP_RULE_TYPE_ALLOW';
+    case IpRuleType.IP_RULE_TYPE_BLOCK:
+      return 'IP_RULE_TYPE_BLOCK';
+    case IpRuleType.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
 /**
  * Mirrors the lib.types `FieldAccessLevel` union. Mapped 1:1 with the
  * `field_access_level` Postgres enum.
@@ -919,6 +958,41 @@ export interface AdminUnlockAccountResponse {
    */
   wasLocked: boolean;
 }
+
+export interface IpRule {
+  ipRuleId: string;
+  type: IpRuleType;
+  cidr: string;
+  label?: string | undefined;
+  isActive: boolean;
+  expiresAt?: string | undefined;
+  createdBy?: string | undefined;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListIpRulesRequest {}
+
+export interface ListIpRulesResponse {
+  rules: IpRule[];
+}
+
+export interface CreateIpRuleRequest {
+  type: IpRuleType;
+  cidr: string;
+  label?: string | undefined;
+  expiresAt?: string | undefined;
+}
+
+export interface CreateIpRuleResponse {
+  rule?: IpRule | undefined;
+}
+
+export interface DeleteIpRuleRequest {
+  ipRuleId: string;
+}
+
+export interface DeleteIpRuleResponse {}
 
 /**
  * A single stored override row. role is a free-text string (matches the
@@ -8747,6 +8821,621 @@ export const AdminUnlockAccountResponse: MessageFns<AdminUnlockAccountResponse> 
   },
 };
 
+function createBaseIpRule(): IpRule {
+  return {
+    ipRuleId: '',
+    type: 0,
+    cidr: '',
+    label: undefined,
+    isActive: false,
+    expiresAt: undefined,
+    createdBy: undefined,
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
+export const IpRule: MessageFns<IpRule> = {
+  encode(message: IpRule, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ipRuleId !== '') {
+      writer.uint32(10).string(message.ipRuleId);
+    }
+    if (message.type !== 0) {
+      writer.uint32(16).int32(message.type);
+    }
+    if (message.cidr !== '') {
+      writer.uint32(26).string(message.cidr);
+    }
+    if (message.label !== undefined) {
+      writer.uint32(34).string(message.label);
+    }
+    if (message.isActive !== false) {
+      writer.uint32(40).bool(message.isActive);
+    }
+    if (message.expiresAt !== undefined) {
+      writer.uint32(50).string(message.expiresAt);
+    }
+    if (message.createdBy !== undefined) {
+      writer.uint32(58).string(message.createdBy);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(66).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(74).string(message.updatedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): IpRule {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseIpRule();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.ipRuleId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.cidr = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.label = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.isActive = reader.bool();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.expiresAt = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.createdBy = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): IpRule {
+    return {
+      ipRuleId: isSet(object.ipRuleId)
+        ? globalThis.String(object.ipRuleId)
+        : isSet(object.ip_rule_id)
+          ? globalThis.String(object.ip_rule_id)
+          : '',
+      type: isSet(object.type) ? ipRuleTypeFromJSON(object.type) : 0,
+      cidr: isSet(object.cidr) ? globalThis.String(object.cidr) : '',
+      label: isSet(object.label) ? globalThis.String(object.label) : undefined,
+      isActive: isSet(object.isActive)
+        ? globalThis.Boolean(object.isActive)
+        : isSet(object.is_active)
+          ? globalThis.Boolean(object.is_active)
+          : false,
+      expiresAt: isSet(object.expiresAt)
+        ? globalThis.String(object.expiresAt)
+        : isSet(object.expires_at)
+          ? globalThis.String(object.expires_at)
+          : undefined,
+      createdBy: isSet(object.createdBy)
+        ? globalThis.String(object.createdBy)
+        : isSet(object.created_by)
+          ? globalThis.String(object.created_by)
+          : undefined,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+    };
+  },
+
+  toJSON(message: IpRule): unknown {
+    const obj: any = {};
+    if (message.ipRuleId !== '') {
+      obj.ipRuleId = message.ipRuleId;
+    }
+    if (message.type !== 0) {
+      obj.type = ipRuleTypeToJSON(message.type);
+    }
+    if (message.cidr !== '') {
+      obj.cidr = message.cidr;
+    }
+    if (message.label !== undefined) {
+      obj.label = message.label;
+    }
+    if (message.isActive !== false) {
+      obj.isActive = message.isActive;
+    }
+    if (message.expiresAt !== undefined) {
+      obj.expiresAt = message.expiresAt;
+    }
+    if (message.createdBy !== undefined) {
+      obj.createdBy = message.createdBy;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<IpRule>, I>>(base?: I): IpRule {
+    return IpRule.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<IpRule>, I>>(object: I): IpRule {
+    const message = createBaseIpRule();
+    message.ipRuleId = object.ipRuleId ?? '';
+    message.type = object.type ?? 0;
+    message.cidr = object.cidr ?? '';
+    message.label = object.label ?? undefined;
+    message.isActive = object.isActive ?? false;
+    message.expiresAt = object.expiresAt ?? undefined;
+    message.createdBy = object.createdBy ?? undefined;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseListIpRulesRequest(): ListIpRulesRequest {
+  return {};
+}
+
+export const ListIpRulesRequest: MessageFns<ListIpRulesRequest> = {
+  encode(_: ListIpRulesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListIpRulesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListIpRulesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): ListIpRulesRequest {
+    return {};
+  },
+
+  toJSON(_: ListIpRulesRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListIpRulesRequest>, I>>(base?: I): ListIpRulesRequest {
+    return ListIpRulesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListIpRulesRequest>, I>>(_: I): ListIpRulesRequest {
+    const message = createBaseListIpRulesRequest();
+    return message;
+  },
+};
+
+function createBaseListIpRulesResponse(): ListIpRulesResponse {
+  return { rules: [] };
+}
+
+export const ListIpRulesResponse: MessageFns<ListIpRulesResponse> = {
+  encode(message: ListIpRulesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.rules) {
+      IpRule.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListIpRulesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListIpRulesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rules.push(IpRule.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListIpRulesResponse {
+    return {
+      rules: globalThis.Array.isArray(object?.rules)
+        ? object.rules.map((e: any) => IpRule.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListIpRulesResponse): unknown {
+    const obj: any = {};
+    if (message.rules?.length) {
+      obj.rules = message.rules.map(e => IpRule.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListIpRulesResponse>, I>>(base?: I): ListIpRulesResponse {
+    return ListIpRulesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListIpRulesResponse>, I>>(
+    object: I
+  ): ListIpRulesResponse {
+    const message = createBaseListIpRulesResponse();
+    message.rules = object.rules?.map(e => IpRule.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseCreateIpRuleRequest(): CreateIpRuleRequest {
+  return { type: 0, cidr: '', label: undefined, expiresAt: undefined };
+}
+
+export const CreateIpRuleRequest: MessageFns<CreateIpRuleRequest> = {
+  encode(message: CreateIpRuleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.type !== 0) {
+      writer.uint32(8).int32(message.type);
+    }
+    if (message.cidr !== '') {
+      writer.uint32(18).string(message.cidr);
+    }
+    if (message.label !== undefined) {
+      writer.uint32(26).string(message.label);
+    }
+    if (message.expiresAt !== undefined) {
+      writer.uint32(34).string(message.expiresAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateIpRuleRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateIpRuleRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.cidr = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.label = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.expiresAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateIpRuleRequest {
+    return {
+      type: isSet(object.type) ? ipRuleTypeFromJSON(object.type) : 0,
+      cidr: isSet(object.cidr) ? globalThis.String(object.cidr) : '',
+      label: isSet(object.label) ? globalThis.String(object.label) : undefined,
+      expiresAt: isSet(object.expiresAt)
+        ? globalThis.String(object.expiresAt)
+        : isSet(object.expires_at)
+          ? globalThis.String(object.expires_at)
+          : undefined,
+    };
+  },
+
+  toJSON(message: CreateIpRuleRequest): unknown {
+    const obj: any = {};
+    if (message.type !== 0) {
+      obj.type = ipRuleTypeToJSON(message.type);
+    }
+    if (message.cidr !== '') {
+      obj.cidr = message.cidr;
+    }
+    if (message.label !== undefined) {
+      obj.label = message.label;
+    }
+    if (message.expiresAt !== undefined) {
+      obj.expiresAt = message.expiresAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateIpRuleRequest>, I>>(base?: I): CreateIpRuleRequest {
+    return CreateIpRuleRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateIpRuleRequest>, I>>(
+    object: I
+  ): CreateIpRuleRequest {
+    const message = createBaseCreateIpRuleRequest();
+    message.type = object.type ?? 0;
+    message.cidr = object.cidr ?? '';
+    message.label = object.label ?? undefined;
+    message.expiresAt = object.expiresAt ?? undefined;
+    return message;
+  },
+};
+
+function createBaseCreateIpRuleResponse(): CreateIpRuleResponse {
+  return { rule: undefined };
+}
+
+export const CreateIpRuleResponse: MessageFns<CreateIpRuleResponse> = {
+  encode(message: CreateIpRuleResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rule !== undefined) {
+      IpRule.encode(message.rule, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateIpRuleResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateIpRuleResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rule = IpRule.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateIpRuleResponse {
+    return { rule: isSet(object.rule) ? IpRule.fromJSON(object.rule) : undefined };
+  },
+
+  toJSON(message: CreateIpRuleResponse): unknown {
+    const obj: any = {};
+    if (message.rule !== undefined) {
+      obj.rule = IpRule.toJSON(message.rule);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateIpRuleResponse>, I>>(base?: I): CreateIpRuleResponse {
+    return CreateIpRuleResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateIpRuleResponse>, I>>(
+    object: I
+  ): CreateIpRuleResponse {
+    const message = createBaseCreateIpRuleResponse();
+    message.rule =
+      object.rule !== undefined && object.rule !== null
+        ? IpRule.fromPartial(object.rule)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseDeleteIpRuleRequest(): DeleteIpRuleRequest {
+  return { ipRuleId: '' };
+}
+
+export const DeleteIpRuleRequest: MessageFns<DeleteIpRuleRequest> = {
+  encode(message: DeleteIpRuleRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.ipRuleId !== '') {
+      writer.uint32(10).string(message.ipRuleId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteIpRuleRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteIpRuleRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.ipRuleId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteIpRuleRequest {
+    return {
+      ipRuleId: isSet(object.ipRuleId)
+        ? globalThis.String(object.ipRuleId)
+        : isSet(object.ip_rule_id)
+          ? globalThis.String(object.ip_rule_id)
+          : '',
+    };
+  },
+
+  toJSON(message: DeleteIpRuleRequest): unknown {
+    const obj: any = {};
+    if (message.ipRuleId !== '') {
+      obj.ipRuleId = message.ipRuleId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteIpRuleRequest>, I>>(base?: I): DeleteIpRuleRequest {
+    return DeleteIpRuleRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteIpRuleRequest>, I>>(
+    object: I
+  ): DeleteIpRuleRequest {
+    const message = createBaseDeleteIpRuleRequest();
+    message.ipRuleId = object.ipRuleId ?? '';
+    return message;
+  },
+};
+
+function createBaseDeleteIpRuleResponse(): DeleteIpRuleResponse {
+  return {};
+}
+
+export const DeleteIpRuleResponse: MessageFns<DeleteIpRuleResponse> = {
+  encode(_: DeleteIpRuleResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteIpRuleResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteIpRuleResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): DeleteIpRuleResponse {
+    return {};
+  },
+
+  toJSON(_: DeleteIpRuleResponse): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteIpRuleResponse>, I>>(base?: I): DeleteIpRuleResponse {
+    return DeleteIpRuleResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteIpRuleResponse>, I>>(_: I): DeleteIpRuleResponse {
+    const message = createBaseDeleteIpRuleResponse();
+    return message;
+  },
+};
+
 function createBaseFieldPermission(): FieldPermission {
   return {
     fieldPermissionId: 0,
@@ -11032,6 +11721,44 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): AdminUnlockAccountResponse =>
       AdminUnlockAccountResponse.decode(value),
   },
+  /** List all IP allow/block rules. admin.security.read. */
+  listIpRules: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ListIpRules' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListIpRulesRequest): Buffer =>
+      Buffer.from(ListIpRulesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListIpRulesRequest => ListIpRulesRequest.decode(value),
+    responseSerialize: (value: ListIpRulesResponse): Buffer =>
+      Buffer.from(ListIpRulesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListIpRulesResponse => ListIpRulesResponse.decode(value),
+  },
+  /** Create an IP allow/block rule. admin.security.manage. */
+  createIpRule: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/CreateIpRule' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CreateIpRuleRequest): Buffer =>
+      Buffer.from(CreateIpRuleRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateIpRuleRequest => CreateIpRuleRequest.decode(value),
+    responseSerialize: (value: CreateIpRuleResponse): Buffer =>
+      Buffer.from(CreateIpRuleResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateIpRuleResponse =>
+      CreateIpRuleResponse.decode(value),
+  },
+  /** Delete an IP allow/block rule. admin.security.manage. */
+  deleteIpRule: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/DeleteIpRule' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteIpRuleRequest): Buffer =>
+      Buffer.from(DeleteIpRuleRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteIpRuleRequest => DeleteIpRuleRequest.decode(value),
+    responseSerialize: (value: DeleteIpRuleResponse): Buffer =>
+      Buffer.from(DeleteIpRuleResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteIpRuleResponse =>
+      DeleteIpRuleResponse.decode(value),
+  },
   /**
    * Returns the full default field-permission configuration (the
    * hard-coded source-of-truth lib.types ships). Admin-only.
@@ -11360,6 +12087,12 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * the failure counter. admin.security.manage.
    */
   adminUnlockAccount: handleUnaryCall<AdminUnlockAccountRequest, AdminUnlockAccountResponse>;
+  /** List all IP allow/block rules. admin.security.read. */
+  listIpRules: handleUnaryCall<ListIpRulesRequest, ListIpRulesResponse>;
+  /** Create an IP allow/block rule. admin.security.manage. */
+  createIpRule: handleUnaryCall<CreateIpRuleRequest, CreateIpRuleResponse>;
+  /** Delete an IP allow/block rule. admin.security.manage. */
+  deleteIpRule: handleUnaryCall<DeleteIpRuleRequest, DeleteIpRuleResponse>;
   /**
    * Returns the full default field-permission configuration (the
    * hard-coded source-of-truth lib.types ships). Admin-only.
@@ -12104,6 +12837,54 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: AdminUnlockAccountResponse) => void
+  ): ClientUnaryCall;
+  /** List all IP allow/block rules. admin.security.read. */
+  listIpRules(
+    request: ListIpRulesRequest,
+    callback: (error: ServiceError | null, response: ListIpRulesResponse) => void
+  ): ClientUnaryCall;
+  listIpRules(
+    request: ListIpRulesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListIpRulesResponse) => void
+  ): ClientUnaryCall;
+  listIpRules(
+    request: ListIpRulesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListIpRulesResponse) => void
+  ): ClientUnaryCall;
+  /** Create an IP allow/block rule. admin.security.manage. */
+  createIpRule(
+    request: CreateIpRuleRequest,
+    callback: (error: ServiceError | null, response: CreateIpRuleResponse) => void
+  ): ClientUnaryCall;
+  createIpRule(
+    request: CreateIpRuleRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateIpRuleResponse) => void
+  ): ClientUnaryCall;
+  createIpRule(
+    request: CreateIpRuleRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreateIpRuleResponse) => void
+  ): ClientUnaryCall;
+  /** Delete an IP allow/block rule. admin.security.manage. */
+  deleteIpRule(
+    request: DeleteIpRuleRequest,
+    callback: (error: ServiceError | null, response: DeleteIpRuleResponse) => void
+  ): ClientUnaryCall;
+  deleteIpRule(
+    request: DeleteIpRuleRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteIpRuleResponse) => void
+  ): ClientUnaryCall;
+  deleteIpRule(
+    request: DeleteIpRuleRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteIpRuleResponse) => void
   ): ClientUnaryCall;
   /**
    * Returns the full default field-permission configuration (the
