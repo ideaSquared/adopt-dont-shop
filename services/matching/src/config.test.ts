@@ -11,6 +11,7 @@ describe('loadConfig', () => {
     expect(config.grpcPort).toBe(6008);
     expect(config.schema).toBe('matching');
     expect(config.petsGrpcUrl).toBe('service-pets:6003');
+    expect(config.rescueGrpcUrl).toBe('service-rescue:6004');
   });
 
   it('honours all env overrides when set', () => {
@@ -23,11 +24,13 @@ describe('loadConfig', () => {
       DATABASE_URL: 'postgres://x',
       NATS_URL: 'nats://nats.internal:4222',
       PETS_GRPC_URL: 'pets.internal:6003',
+      RESCUE_GRPC_URL: 'rescue.internal:6004',
     });
     expect(config.port).toBe(5500);
     expect(config.grpcPort).toBe(6500);
     expect(config.schema).toBe('matching_test');
     expect(config.petsGrpcUrl).toBe('pets.internal:6003');
+    expect(config.rescueGrpcUrl).toBe('rescue.internal:6004');
   });
 
   it('rejects a non-numeric MATCHING_PORT', () => {

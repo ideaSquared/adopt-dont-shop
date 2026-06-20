@@ -73,3 +73,5 @@ export type MatchTopPick = {
   breedName?: string | null;
   photoUrl?: string | null;
 };
+
+export { MatchingService } from './matching-service';

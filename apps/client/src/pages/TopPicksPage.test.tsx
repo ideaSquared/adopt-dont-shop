@@ -10,13 +10,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderWithProviders, screen, waitFor, fireEvent } from '@/test-utils';
 
-const apiGet = vi.fn();
+const getTopPicks = vi.fn();
 const mockNavigate = vi.fn();
 let mockIsAuthenticated = true;
 
 vi.mock('@/services', () => ({
-  apiService: {
-    get: (...args: unknown[]) => apiGet(...args),
+  matchingService: {
+    getTopPicks: (...args: unknown[]) => getTopPicks(...args),
   },
 }));
 
@@ -65,13 +65,13 @@ describe('TopPicksPage (signed out)', () => {
       screen.getByRole('heading', { name: /sign in for your top picks/i })
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
-    expect(apiGet).not.toHaveBeenCalled();
+    expect(getTopPicks).not.toHaveBeenCalled();
   });
 });
 
 describe('TopPicksPage (signed in)', () => {
   it('shows a loading spinner while picks are being fetched', () => {
-    apiGet.mockReturnValue(new Promise(() => {}));
+    getTopPicks.mockReturnValue(new Promise(() => {}));
 
     renderWithProviders(<TopPicksPage />);
 
@@ -79,7 +79,7 @@ describe('TopPicksPage (signed in)', () => {
   });
 
   it('renders an error message when the request fails', async () => {
-    apiGet.mockRejectedValue(new Error('boom'));
+    getTopPicks.mockRejectedValue(new Error('boom'));
 
     renderWithProviders(<TopPicksPage />);
 
@@ -87,7 +87,7 @@ describe('TopPicksPage (signed in)', () => {
   });
 
   it('nudges the user to set preferences when there are no picks', async () => {
-    apiGet.mockResolvedValue({ data: [] });
+    getTopPicks.mockResolvedValue([]);
 
     renderWithProviders(<TopPicksPage />);
 
@@ -96,7 +96,7 @@ describe('TopPicksPage (signed in)', () => {
   });
 
   it('renders the picks grid with the pet name and a match-quality badge', async () => {
-    apiGet.mockResolvedValue({ data: [buildPick({ score: 80 })] });
+    getTopPicks.mockResolvedValue([buildPick({ score: 80 })]);
 
     renderWithProviders(<TopPicksPage />);
 
@@ -106,15 +106,15 @@ describe('TopPicksPage (signed in)', () => {
   });
 
   it('requests the top-picks endpoint with a limit', async () => {
-    apiGet.mockResolvedValue({ data: [] });
+    getTopPicks.mockResolvedValue([]);
 
     renderWithProviders(<TopPicksPage />);
 
-    await waitFor(() => expect(apiGet).toHaveBeenCalledWith('/api/v1/match/top-picks?limit=10'));
+    await waitFor(() => expect(getTopPicks).toHaveBeenCalledWith(10));
   });
 
   it('navigates to the pet details page when a card is activated', async () => {
-    apiGet.mockResolvedValue({ data: [buildPick({ petId: 'pet-42' })] });
+    getTopPicks.mockResolvedValue([buildPick({ petId: 'pet-42' })]);
 
     renderWithProviders(<TopPicksPage />);
 

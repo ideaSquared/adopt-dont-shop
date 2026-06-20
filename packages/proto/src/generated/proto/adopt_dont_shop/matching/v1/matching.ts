@@ -5,7 +5,7 @@
 // source: proto/adopt_dont_shop/matching/v1/matching.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
+import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -17,9 +17,9 @@ import {
   type Metadata,
   type ServiceError,
   type UntypedServiceImplementation,
-} from "@grpc/grpc-js";
+} from '@grpc/grpc-js';
 
-export const protobufPackage = "adopt_dont_shop.matching.v1";
+export const protobufPackage = 'adopt_dont_shop.matching.v1';
 
 export enum SwipeAction {
   SWIPE_ACTION_UNSPECIFIED = 0,
@@ -39,22 +39,22 @@ export enum SwipeAction {
 export function swipeActionFromJSON(object: any): SwipeAction {
   switch (object) {
     case 0:
-    case "SWIPE_ACTION_UNSPECIFIED":
+    case 'SWIPE_ACTION_UNSPECIFIED':
       return SwipeAction.SWIPE_ACTION_UNSPECIFIED;
     case 1:
-    case "SWIPE_ACTION_LIKE":
+    case 'SWIPE_ACTION_LIKE':
       return SwipeAction.SWIPE_ACTION_LIKE;
     case 2:
-    case "SWIPE_ACTION_PASS":
+    case 'SWIPE_ACTION_PASS':
       return SwipeAction.SWIPE_ACTION_PASS;
     case 3:
-    case "SWIPE_ACTION_SUPER_LIKE":
+    case 'SWIPE_ACTION_SUPER_LIKE':
       return SwipeAction.SWIPE_ACTION_SUPER_LIKE;
     case 4:
-    case "SWIPE_ACTION_INFO":
+    case 'SWIPE_ACTION_INFO':
       return SwipeAction.SWIPE_ACTION_INFO;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return SwipeAction.UNRECOGNIZED;
   }
@@ -63,18 +63,18 @@ export function swipeActionFromJSON(object: any): SwipeAction {
 export function swipeActionToJSON(object: SwipeAction): string {
   switch (object) {
     case SwipeAction.SWIPE_ACTION_UNSPECIFIED:
-      return "SWIPE_ACTION_UNSPECIFIED";
+      return 'SWIPE_ACTION_UNSPECIFIED';
     case SwipeAction.SWIPE_ACTION_LIKE:
-      return "SWIPE_ACTION_LIKE";
+      return 'SWIPE_ACTION_LIKE';
     case SwipeAction.SWIPE_ACTION_PASS:
-      return "SWIPE_ACTION_PASS";
+      return 'SWIPE_ACTION_PASS';
     case SwipeAction.SWIPE_ACTION_SUPER_LIKE:
-      return "SWIPE_ACTION_SUPER_LIKE";
+      return 'SWIPE_ACTION_SUPER_LIKE';
     case SwipeAction.SWIPE_ACTION_INFO:
-      return "SWIPE_ACTION_INFO";
+      return 'SWIPE_ACTION_INFO';
     case SwipeAction.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -90,22 +90,22 @@ export enum DeviceType {
 export function deviceTypeFromJSON(object: any): DeviceType {
   switch (object) {
     case 0:
-    case "DEVICE_TYPE_UNSPECIFIED":
+    case 'DEVICE_TYPE_UNSPECIFIED':
       return DeviceType.DEVICE_TYPE_UNSPECIFIED;
     case 1:
-    case "DEVICE_TYPE_DESKTOP":
+    case 'DEVICE_TYPE_DESKTOP':
       return DeviceType.DEVICE_TYPE_DESKTOP;
     case 2:
-    case "DEVICE_TYPE_MOBILE":
+    case 'DEVICE_TYPE_MOBILE':
       return DeviceType.DEVICE_TYPE_MOBILE;
     case 3:
-    case "DEVICE_TYPE_TABLET":
+    case 'DEVICE_TYPE_TABLET':
       return DeviceType.DEVICE_TYPE_TABLET;
     case 4:
-    case "DEVICE_TYPE_UNKNOWN":
+    case 'DEVICE_TYPE_UNKNOWN':
       return DeviceType.DEVICE_TYPE_UNKNOWN;
     case -1:
-    case "UNRECOGNIZED":
+    case 'UNRECOGNIZED':
     default:
       return DeviceType.UNRECOGNIZED;
   }
@@ -114,18 +114,18 @@ export function deviceTypeFromJSON(object: any): DeviceType {
 export function deviceTypeToJSON(object: DeviceType): string {
   switch (object) {
     case DeviceType.DEVICE_TYPE_UNSPECIFIED:
-      return "DEVICE_TYPE_UNSPECIFIED";
+      return 'DEVICE_TYPE_UNSPECIFIED';
     case DeviceType.DEVICE_TYPE_DESKTOP:
-      return "DEVICE_TYPE_DESKTOP";
+      return 'DEVICE_TYPE_DESKTOP';
     case DeviceType.DEVICE_TYPE_MOBILE:
-      return "DEVICE_TYPE_MOBILE";
+      return 'DEVICE_TYPE_MOBILE';
     case DeviceType.DEVICE_TYPE_TABLET:
-      return "DEVICE_TYPE_TABLET";
+      return 'DEVICE_TYPE_TABLET';
     case DeviceType.DEVICE_TYPE_UNKNOWN:
-      return "DEVICE_TYPE_UNKNOWN";
+      return 'DEVICE_TYPE_UNKNOWN';
     case DeviceType.UNRECOGNIZED:
     default:
-      return "UNRECOGNIZED";
+      return 'UNRECOGNIZED';
   }
 }
 
@@ -167,13 +167,9 @@ export interface PetCandidate {
   age?: string | undefined;
   rescueId: string;
   /** Primary image URL the SPA renders first. */
-  primaryImageUrl?:
-    | string
-    | undefined;
+  primaryImageUrl?: string | undefined;
   /** Short description the swipe card surfaces. */
-  shortDescription?:
-    | string
-    | undefined;
+  shortDescription?: string | undefined;
   /**
    * The recommender's score for this candidate, on [0.0, 1.0].
    * Higher = better fit. SPA may render this as a heart-meter or
@@ -212,9 +208,7 @@ export interface StartSessionRequest {
 }
 
 export interface StartSessionResponse {
-  session?:
-    | SwipeSession
-    | undefined;
+  session?: SwipeSession | undefined;
   /**
    * True when this call created the session; false when an existing
    * active session was returned (idempotency signal).
@@ -268,18 +262,14 @@ export interface RecordSwipeRequest {
 }
 
 export interface RecordSwipeResponse {
-  action?:
-    | SwipeActionRecord
-    | undefined;
+  action?: SwipeActionRecord | undefined;
   /** Echo of the updated session counters for the SPA's HUD. */
   session?: SwipeSession | undefined;
 }
 
 export interface SearchPetsRequest {
   /** Free-text query (matched against pet name + description). */
-  query?:
-    | string
-    | undefined;
+  query?: string | undefined;
   /** Same JSONB filters shape as a session. */
   filtersJson?: string | undefined;
   cursor?: string | undefined;
@@ -338,8 +328,7 @@ export interface MatchProfile {
   updatedAt: string;
 }
 
-export interface GetMatchProfileRequest {
-}
+export interface GetMatchProfileRequest {}
 
 export interface GetMatchProfileResponse {
   profile?: MatchProfile | undefined;
@@ -377,6 +366,58 @@ export interface UpsertMatchProfileResponse {
   profile?: MatchProfile | undefined;
 }
 
+/**
+ * A reason chip explaining why a pick was surfaced. `kind` mirrors the
+ * SPA's ReasonChipKind vocabulary (pref_match, lifestyle, distance,
+ * similar_to_liked, fresh) as a lowercase string rather than an enum —
+ * the chip set is presentation-driven and may grow without a proto
+ * regen; `label` is the human-readable text the SPA renders verbatim.
+ */
+export interface TopPickReasonChip {
+  kind: string;
+  label: string;
+}
+
+/**
+ * TopPick is the top-picks surface's per-pet payload — a superset of
+ * PetCandidate's intent but independently shaped since top picks carries
+ * size/age_group/reasons/rescue_name that PetCandidate does not.
+ */
+export interface TopPick {
+  petId: string;
+  name: string;
+  /**
+   * Lowercase species/size/age-group tokens (same vocabulary as the
+   * filters_json the SPA sends elsewhere — e.g. 'dog', 'medium', 'adult').
+   */
+  type: string;
+  ageGroup: string;
+  size: string;
+  /** The scorer's result for this pick, on [0.0, 1.0]. */
+  score: number;
+  reasons: TopPickReasonChip[];
+  rescueName: string;
+  /**
+   * Pets has no breed NAME (only breed_id) and no photo/image field, so
+   * these stay unset until that data is available — both are optional in
+   * the SPA's MatchTopPick type for exactly this reason.
+   */
+  breedName?: string | undefined;
+  photoUrl?: string | undefined;
+}
+
+export interface GetTopPicksRequest {
+  /**
+   * Defaults to 10, max 50 — top picks is a short curated list, not a
+   * paginated feed.
+   */
+  limit: number;
+}
+
+export interface GetTopPicksResponse {
+  picks: TopPick[];
+}
+
 export interface SwipeStats {
   totalSwipes: number;
   likes: number;
@@ -407,33 +448,33 @@ export interface GetSessionStatsResponse {
 
 function createBaseSwipeSession(): SwipeSession {
   return {
-    sessionId: "",
+    sessionId: '',
     userId: undefined,
-    startTime: "",
+    startTime: '',
     endTime: undefined,
     totalSwipes: 0,
     likes: 0,
     passes: 0,
     superLikes: 0,
-    filtersJson: "",
+    filtersJson: '',
     ipAddress: undefined,
     userAgent: undefined,
     deviceType: 0,
     isActive: false,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: '',
+    updatedAt: '',
   };
 }
 
 export const SwipeSession: MessageFns<SwipeSession> = {
   encode(message: SwipeSession, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     if (message.userId !== undefined) {
       writer.uint32(18).string(message.userId);
     }
-    if (message.startTime !== "") {
+    if (message.startTime !== '') {
       writer.uint32(26).string(message.startTime);
     }
     if (message.endTime !== undefined) {
@@ -451,7 +492,7 @@ export const SwipeSession: MessageFns<SwipeSession> = {
     if (message.superLikes !== 0) {
       writer.uint32(64).uint32(message.superLikes);
     }
-    if (message.filtersJson !== "") {
+    if (message.filtersJson !== '') {
       writer.uint32(74).string(message.filtersJson);
     }
     if (message.ipAddress !== undefined) {
@@ -466,10 +507,10 @@ export const SwipeSession: MessageFns<SwipeSession> = {
     if (message.isActive !== false) {
       writer.uint32(104).bool(message.isActive);
     }
-    if (message.createdAt !== "") {
+    if (message.createdAt !== '') {
       writer.uint32(114).string(message.createdAt);
     }
-    if (message.updatedAt !== "") {
+    if (message.updatedAt !== '') {
       writer.uint32(122).string(message.updatedAt);
     }
     return writer;
@@ -616,82 +657,82 @@ export const SwipeSession: MessageFns<SwipeSession> = {
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-        ? globalThis.String(object.session_id)
-        : "",
+          ? globalThis.String(object.session_id)
+          : '',
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-        ? globalThis.String(object.user_id)
-        : undefined,
+          ? globalThis.String(object.user_id)
+          : undefined,
       startTime: isSet(object.startTime)
         ? globalThis.String(object.startTime)
         : isSet(object.start_time)
-        ? globalThis.String(object.start_time)
-        : "",
+          ? globalThis.String(object.start_time)
+          : '',
       endTime: isSet(object.endTime)
         ? globalThis.String(object.endTime)
         : isSet(object.end_time)
-        ? globalThis.String(object.end_time)
-        : undefined,
+          ? globalThis.String(object.end_time)
+          : undefined,
       totalSwipes: isSet(object.totalSwipes)
         ? globalThis.Number(object.totalSwipes)
         : isSet(object.total_swipes)
-        ? globalThis.Number(object.total_swipes)
-        : 0,
+          ? globalThis.Number(object.total_swipes)
+          : 0,
       likes: isSet(object.likes) ? globalThis.Number(object.likes) : 0,
       passes: isSet(object.passes) ? globalThis.Number(object.passes) : 0,
       superLikes: isSet(object.superLikes)
         ? globalThis.Number(object.superLikes)
         : isSet(object.super_likes)
-        ? globalThis.Number(object.super_likes)
-        : 0,
+          ? globalThis.Number(object.super_likes)
+          : 0,
       filtersJson: isSet(object.filtersJson)
         ? globalThis.String(object.filtersJson)
         : isSet(object.filters_json)
-        ? globalThis.String(object.filters_json)
-        : "",
+          ? globalThis.String(object.filters_json)
+          : '',
       ipAddress: isSet(object.ipAddress)
         ? globalThis.String(object.ipAddress)
         : isSet(object.ip_address)
-        ? globalThis.String(object.ip_address)
-        : undefined,
+          ? globalThis.String(object.ip_address)
+          : undefined,
       userAgent: isSet(object.userAgent)
         ? globalThis.String(object.userAgent)
         : isSet(object.user_agent)
-        ? globalThis.String(object.user_agent)
-        : undefined,
+          ? globalThis.String(object.user_agent)
+          : undefined,
       deviceType: isSet(object.deviceType)
         ? deviceTypeFromJSON(object.deviceType)
         : isSet(object.device_type)
-        ? deviceTypeFromJSON(object.device_type)
-        : 0,
+          ? deviceTypeFromJSON(object.device_type)
+          : 0,
       isActive: isSet(object.isActive)
         ? globalThis.Boolean(object.isActive)
         : isSet(object.is_active)
-        ? globalThis.Boolean(object.is_active)
-        : false,
+          ? globalThis.Boolean(object.is_active)
+          : false,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
+          ? globalThis.String(object.created_at)
+          : '',
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
+          ? globalThis.String(object.updated_at)
+          : '',
     };
   },
 
   toJSON(message: SwipeSession): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.userId !== undefined) {
       obj.userId = message.userId;
     }
-    if (message.startTime !== "") {
+    if (message.startTime !== '') {
       obj.startTime = message.startTime;
     }
     if (message.endTime !== undefined) {
@@ -709,7 +750,7 @@ export const SwipeSession: MessageFns<SwipeSession> = {
     if (message.superLikes !== 0) {
       obj.superLikes = Math.round(message.superLikes);
     }
-    if (message.filtersJson !== "") {
+    if (message.filtersJson !== '') {
       obj.filtersJson = message.filtersJson;
     }
     if (message.ipAddress !== undefined) {
@@ -724,10 +765,10 @@ export const SwipeSession: MessageFns<SwipeSession> = {
     if (message.isActive !== false) {
       obj.isActive = message.isActive;
     }
-    if (message.createdAt !== "") {
+    if (message.createdAt !== '') {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== "") {
+    if (message.updatedAt !== '') {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -738,33 +779,33 @@ export const SwipeSession: MessageFns<SwipeSession> = {
   },
   fromPartial<I extends Exact<DeepPartial<SwipeSession>, I>>(object: I): SwipeSession {
     const message = createBaseSwipeSession();
-    message.sessionId = object.sessionId ?? "";
+    message.sessionId = object.sessionId ?? '';
     message.userId = object.userId ?? undefined;
-    message.startTime = object.startTime ?? "";
+    message.startTime = object.startTime ?? '';
     message.endTime = object.endTime ?? undefined;
     message.totalSwipes = object.totalSwipes ?? 0;
     message.likes = object.likes ?? 0;
     message.passes = object.passes ?? 0;
     message.superLikes = object.superLikes ?? 0;
-    message.filtersJson = object.filtersJson ?? "";
+    message.filtersJson = object.filtersJson ?? '';
     message.ipAddress = object.ipAddress ?? undefined;
     message.userAgent = object.userAgent ?? undefined;
     message.deviceType = object.deviceType ?? 0;
     message.isActive = object.isActive ?? false;
-    message.createdAt = object.createdAt ?? "";
-    message.updatedAt = object.updatedAt ?? "";
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
     return message;
   },
 };
 
 function createBasePetCandidate(): PetCandidate {
   return {
-    petId: "",
-    name: "",
-    species: "",
+    petId: '',
+    name: '',
+    species: '',
     breed: undefined,
     age: undefined,
-    rescueId: "",
+    rescueId: '',
     primaryImageUrl: undefined,
     shortDescription: undefined,
     score: 0,
@@ -773,13 +814,13 @@ function createBasePetCandidate(): PetCandidate {
 
 export const PetCandidate: MessageFns<PetCandidate> = {
   encode(message: PetCandidate, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.petId !== "") {
+    if (message.petId !== '') {
       writer.uint32(10).string(message.petId);
     }
-    if (message.name !== "") {
+    if (message.name !== '') {
       writer.uint32(18).string(message.name);
     }
-    if (message.species !== "") {
+    if (message.species !== '') {
       writer.uint32(26).string(message.species);
     }
     if (message.breed !== undefined) {
@@ -788,7 +829,7 @@ export const PetCandidate: MessageFns<PetCandidate> = {
     if (message.age !== undefined) {
       writer.uint32(42).string(message.age);
     }
-    if (message.rescueId !== "") {
+    if (message.rescueId !== '') {
       writer.uint32(50).string(message.rescueId);
     }
     if (message.primaryImageUrl !== undefined) {
@@ -896,40 +937,40 @@ export const PetCandidate: MessageFns<PetCandidate> = {
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-        ? globalThis.String(object.pet_id)
-        : "",
-      name: isSet(object.name) ? globalThis.String(object.name) : "",
-      species: isSet(object.species) ? globalThis.String(object.species) : "",
+          ? globalThis.String(object.pet_id)
+          : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      species: isSet(object.species) ? globalThis.String(object.species) : '',
       breed: isSet(object.breed) ? globalThis.String(object.breed) : undefined,
       age: isSet(object.age) ? globalThis.String(object.age) : undefined,
       rescueId: isSet(object.rescueId)
         ? globalThis.String(object.rescueId)
         : isSet(object.rescue_id)
-        ? globalThis.String(object.rescue_id)
-        : "",
+          ? globalThis.String(object.rescue_id)
+          : '',
       primaryImageUrl: isSet(object.primaryImageUrl)
         ? globalThis.String(object.primaryImageUrl)
         : isSet(object.primary_image_url)
-        ? globalThis.String(object.primary_image_url)
-        : undefined,
+          ? globalThis.String(object.primary_image_url)
+          : undefined,
       shortDescription: isSet(object.shortDescription)
         ? globalThis.String(object.shortDescription)
         : isSet(object.short_description)
-        ? globalThis.String(object.short_description)
-        : undefined,
+          ? globalThis.String(object.short_description)
+          : undefined,
       score: isSet(object.score) ? globalThis.Number(object.score) : 0,
     };
   },
 
   toJSON(message: PetCandidate): unknown {
     const obj: any = {};
-    if (message.petId !== "") {
+    if (message.petId !== '') {
       obj.petId = message.petId;
     }
-    if (message.name !== "") {
+    if (message.name !== '') {
       obj.name = message.name;
     }
-    if (message.species !== "") {
+    if (message.species !== '') {
       obj.species = message.species;
     }
     if (message.breed !== undefined) {
@@ -938,7 +979,7 @@ export const PetCandidate: MessageFns<PetCandidate> = {
     if (message.age !== undefined) {
       obj.age = message.age;
     }
-    if (message.rescueId !== "") {
+    if (message.rescueId !== '') {
       obj.rescueId = message.rescueId;
     }
     if (message.primaryImageUrl !== undefined) {
@@ -958,12 +999,12 @@ export const PetCandidate: MessageFns<PetCandidate> = {
   },
   fromPartial<I extends Exact<DeepPartial<PetCandidate>, I>>(object: I): PetCandidate {
     const message = createBasePetCandidate();
-    message.petId = object.petId ?? "";
-    message.name = object.name ?? "";
-    message.species = object.species ?? "";
+    message.petId = object.petId ?? '';
+    message.name = object.name ?? '';
+    message.species = object.species ?? '';
     message.breed = object.breed ?? undefined;
     message.age = object.age ?? undefined;
-    message.rescueId = object.rescueId ?? "";
+    message.rescueId = object.rescueId ?? '';
     message.primaryImageUrl = object.primaryImageUrl ?? undefined;
     message.shortDescription = object.shortDescription ?? undefined;
     message.score = object.score ?? 0;
@@ -973,12 +1014,12 @@ export const PetCandidate: MessageFns<PetCandidate> = {
 
 function createBaseSwipeActionRecord(): SwipeActionRecord {
   return {
-    swipeActionId: "",
-    sessionId: "",
-    petId: "",
+    swipeActionId: '',
+    sessionId: '',
+    petId: '',
     userId: undefined,
     action: 0,
-    timestamp: "",
+    timestamp: '',
     responseTime: undefined,
     deviceType: undefined,
   };
@@ -986,13 +1027,13 @@ function createBaseSwipeActionRecord(): SwipeActionRecord {
 
 export const SwipeActionRecord: MessageFns<SwipeActionRecord> = {
   encode(message: SwipeActionRecord, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.swipeActionId !== "") {
+    if (message.swipeActionId !== '') {
       writer.uint32(10).string(message.swipeActionId);
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(18).string(message.sessionId);
     }
-    if (message.petId !== "") {
+    if (message.petId !== '') {
       writer.uint32(26).string(message.petId);
     }
     if (message.userId !== undefined) {
@@ -1001,7 +1042,7 @@ export const SwipeActionRecord: MessageFns<SwipeActionRecord> = {
     if (message.action !== 0) {
       writer.uint32(40).int32(message.action);
     }
-    if (message.timestamp !== "") {
+    if (message.timestamp !== '') {
       writer.uint32(50).string(message.timestamp);
     }
     if (message.responseTime !== undefined) {
@@ -1098,47 +1139,47 @@ export const SwipeActionRecord: MessageFns<SwipeActionRecord> = {
       swipeActionId: isSet(object.swipeActionId)
         ? globalThis.String(object.swipeActionId)
         : isSet(object.swipe_action_id)
-        ? globalThis.String(object.swipe_action_id)
-        : "",
+          ? globalThis.String(object.swipe_action_id)
+          : '',
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-        ? globalThis.String(object.session_id)
-        : "",
+          ? globalThis.String(object.session_id)
+          : '',
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-        ? globalThis.String(object.pet_id)
-        : "",
+          ? globalThis.String(object.pet_id)
+          : '',
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-        ? globalThis.String(object.user_id)
-        : undefined,
+          ? globalThis.String(object.user_id)
+          : undefined,
       action: isSet(object.action) ? swipeActionFromJSON(object.action) : 0,
-      timestamp: isSet(object.timestamp) ? globalThis.String(object.timestamp) : "",
+      timestamp: isSet(object.timestamp) ? globalThis.String(object.timestamp) : '',
       responseTime: isSet(object.responseTime)
         ? globalThis.Number(object.responseTime)
         : isSet(object.response_time)
-        ? globalThis.Number(object.response_time)
-        : undefined,
+          ? globalThis.Number(object.response_time)
+          : undefined,
       deviceType: isSet(object.deviceType)
         ? globalThis.String(object.deviceType)
         : isSet(object.device_type)
-        ? globalThis.String(object.device_type)
-        : undefined,
+          ? globalThis.String(object.device_type)
+          : undefined,
     };
   },
 
   toJSON(message: SwipeActionRecord): unknown {
     const obj: any = {};
-    if (message.swipeActionId !== "") {
+    if (message.swipeActionId !== '') {
       obj.swipeActionId = message.swipeActionId;
     }
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
-    if (message.petId !== "") {
+    if (message.petId !== '') {
       obj.petId = message.petId;
     }
     if (message.userId !== undefined) {
@@ -1147,7 +1188,7 @@ export const SwipeActionRecord: MessageFns<SwipeActionRecord> = {
     if (message.action !== 0) {
       obj.action = swipeActionToJSON(message.action);
     }
-    if (message.timestamp !== "") {
+    if (message.timestamp !== '') {
       obj.timestamp = message.timestamp;
     }
     if (message.responseTime !== undefined) {
@@ -1164,12 +1205,12 @@ export const SwipeActionRecord: MessageFns<SwipeActionRecord> = {
   },
   fromPartial<I extends Exact<DeepPartial<SwipeActionRecord>, I>>(object: I): SwipeActionRecord {
     const message = createBaseSwipeActionRecord();
-    message.swipeActionId = object.swipeActionId ?? "";
-    message.sessionId = object.sessionId ?? "";
-    message.petId = object.petId ?? "";
+    message.swipeActionId = object.swipeActionId ?? '';
+    message.sessionId = object.sessionId ?? '';
+    message.petId = object.petId ?? '';
     message.userId = object.userId ?? undefined;
     message.action = object.action ?? 0;
-    message.timestamp = object.timestamp ?? "";
+    message.timestamp = object.timestamp ?? '';
     message.responseTime = object.responseTime ?? undefined;
     message.deviceType = object.deviceType ?? undefined;
     return message;
@@ -1250,23 +1291,23 @@ export const StartSessionRequest: MessageFns<StartSessionRequest> = {
       filtersJson: isSet(object.filtersJson)
         ? globalThis.String(object.filtersJson)
         : isSet(object.filters_json)
-        ? globalThis.String(object.filters_json)
-        : undefined,
+          ? globalThis.String(object.filters_json)
+          : undefined,
       deviceType: isSet(object.deviceType)
         ? deviceTypeFromJSON(object.deviceType)
         : isSet(object.device_type)
-        ? deviceTypeFromJSON(object.device_type)
-        : 0,
+          ? deviceTypeFromJSON(object.device_type)
+          : 0,
       userAgent: isSet(object.userAgent)
         ? globalThis.String(object.userAgent)
         : isSet(object.user_agent)
-        ? globalThis.String(object.user_agent)
-        : undefined,
+          ? globalThis.String(object.user_agent)
+          : undefined,
       ipAddress: isSet(object.ipAddress)
         ? globalThis.String(object.ipAddress)
         : isSet(object.ip_address)
-        ? globalThis.String(object.ip_address)
-        : undefined,
+          ? globalThis.String(object.ip_address)
+          : undefined,
     };
   },
 
@@ -1290,7 +1331,9 @@ export const StartSessionRequest: MessageFns<StartSessionRequest> = {
   create<I extends Exact<DeepPartial<StartSessionRequest>, I>>(base?: I): StartSessionRequest {
     return StartSessionRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<StartSessionRequest>, I>>(object: I): StartSessionRequest {
+  fromPartial<I extends Exact<DeepPartial<StartSessionRequest>, I>>(
+    object: I
+  ): StartSessionRequest {
     const message = createBaseStartSessionRequest();
     message.filtersJson = object.filtersJson ?? undefined;
     message.deviceType = object.deviceType ?? 0;
@@ -1368,23 +1411,26 @@ export const StartSessionResponse: MessageFns<StartSessionResponse> = {
   create<I extends Exact<DeepPartial<StartSessionResponse>, I>>(base?: I): StartSessionResponse {
     return StartSessionResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<StartSessionResponse>, I>>(object: I): StartSessionResponse {
+  fromPartial<I extends Exact<DeepPartial<StartSessionResponse>, I>>(
+    object: I
+  ): StartSessionResponse {
     const message = createBaseStartSessionResponse();
-    message.session = (object.session !== undefined && object.session !== null)
-      ? SwipeSession.fromPartial(object.session)
-      : undefined;
+    message.session =
+      object.session !== undefined && object.session !== null
+        ? SwipeSession.fromPartial(object.session)
+        : undefined;
     message.created = object.created ?? false;
     return message;
   },
 };
 
 function createBaseEndSessionRequest(): EndSessionRequest {
-  return { sessionId: "" };
+  return { sessionId: '' };
 }
 
 export const EndSessionRequest: MessageFns<EndSessionRequest> = {
   encode(message: EndSessionRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     return writer;
@@ -1419,14 +1465,14 @@ export const EndSessionRequest: MessageFns<EndSessionRequest> = {
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-        ? globalThis.String(object.session_id)
-        : "",
+          ? globalThis.String(object.session_id)
+          : '',
     };
   },
 
   toJSON(message: EndSessionRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     return obj;
@@ -1437,7 +1483,7 @@ export const EndSessionRequest: MessageFns<EndSessionRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<EndSessionRequest>, I>>(object: I): EndSessionRequest {
     const message = createBaseEndSessionRequest();
-    message.sessionId = object.sessionId ?? "";
+    message.sessionId = object.sessionId ?? '';
     return message;
   },
 };
@@ -1495,20 +1541,21 @@ export const EndSessionResponse: MessageFns<EndSessionResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<EndSessionResponse>, I>>(object: I): EndSessionResponse {
     const message = createBaseEndSessionResponse();
-    message.session = (object.session !== undefined && object.session !== null)
-      ? SwipeSession.fromPartial(object.session)
-      : undefined;
+    message.session =
+      object.session !== undefined && object.session !== null
+        ? SwipeSession.fromPartial(object.session)
+        : undefined;
     return message;
   },
 };
 
 function createBaseRecommendRequest(): RecommendRequest {
-  return { sessionId: "", limit: 0, filtersJsonOverride: undefined };
+  return { sessionId: '', limit: 0, filtersJsonOverride: undefined };
 }
 
 export const RecommendRequest: MessageFns<RecommendRequest> = {
   encode(message: RecommendRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     if (message.limit !== 0) {
@@ -1565,20 +1612,20 @@ export const RecommendRequest: MessageFns<RecommendRequest> = {
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-        ? globalThis.String(object.session_id)
-        : "",
+          ? globalThis.String(object.session_id)
+          : '',
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
       filtersJsonOverride: isSet(object.filtersJsonOverride)
         ? globalThis.String(object.filtersJsonOverride)
         : isSet(object.filters_json_override)
-        ? globalThis.String(object.filters_json_override)
-        : undefined,
+          ? globalThis.String(object.filters_json_override)
+          : undefined,
     };
   },
 
   toJSON(message: RecommendRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     if (message.limit !== 0) {
@@ -1595,7 +1642,7 @@ export const RecommendRequest: MessageFns<RecommendRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<RecommendRequest>, I>>(object: I): RecommendRequest {
     const message = createBaseRecommendRequest();
-    message.sessionId = object.sessionId ?? "";
+    message.sessionId = object.sessionId ?? '';
     message.limit = object.limit ?? 0;
     message.filtersJsonOverride = object.filtersJsonOverride ?? undefined;
     return message;
@@ -1661,7 +1708,7 @@ export const RecommendResponse: MessageFns<RecommendResponse> = {
   toJSON(message: RecommendResponse): unknown {
     const obj: any = {};
     if (message.candidates?.length) {
-      obj.candidates = message.candidates.map((e) => PetCandidate.toJSON(e));
+      obj.candidates = message.candidates.map(e => PetCandidate.toJSON(e));
     }
     if (message.exhausted !== false) {
       obj.exhausted = message.exhausted;
@@ -1674,22 +1721,22 @@ export const RecommendResponse: MessageFns<RecommendResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<RecommendResponse>, I>>(object: I): RecommendResponse {
     const message = createBaseRecommendResponse();
-    message.candidates = object.candidates?.map((e) => PetCandidate.fromPartial(e)) || [];
+    message.candidates = object.candidates?.map(e => PetCandidate.fromPartial(e)) || [];
     message.exhausted = object.exhausted ?? false;
     return message;
   },
 };
 
 function createBaseRecordSwipeRequest(): RecordSwipeRequest {
-  return { sessionId: "", petId: "", action: 0, responseTime: undefined, deviceType: undefined };
+  return { sessionId: '', petId: '', action: 0, responseTime: undefined, deviceType: undefined };
 }
 
 export const RecordSwipeRequest: MessageFns<RecordSwipeRequest> = {
   encode(message: RecordSwipeRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
-    if (message.petId !== "") {
+    if (message.petId !== '') {
       writer.uint32(18).string(message.petId);
     }
     if (message.action !== 0) {
@@ -1765,33 +1812,33 @@ export const RecordSwipeRequest: MessageFns<RecordSwipeRequest> = {
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-        ? globalThis.String(object.session_id)
-        : "",
+          ? globalThis.String(object.session_id)
+          : '',
       petId: isSet(object.petId)
         ? globalThis.String(object.petId)
         : isSet(object.pet_id)
-        ? globalThis.String(object.pet_id)
-        : "",
+          ? globalThis.String(object.pet_id)
+          : '',
       action: isSet(object.action) ? swipeActionFromJSON(object.action) : 0,
       responseTime: isSet(object.responseTime)
         ? globalThis.Number(object.responseTime)
         : isSet(object.response_time)
-        ? globalThis.Number(object.response_time)
-        : undefined,
+          ? globalThis.Number(object.response_time)
+          : undefined,
       deviceType: isSet(object.deviceType)
         ? globalThis.String(object.deviceType)
         : isSet(object.device_type)
-        ? globalThis.String(object.device_type)
-        : undefined,
+          ? globalThis.String(object.device_type)
+          : undefined,
     };
   },
 
   toJSON(message: RecordSwipeRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
-    if (message.petId !== "") {
+    if (message.petId !== '') {
       obj.petId = message.petId;
     }
     if (message.action !== 0) {
@@ -1811,8 +1858,8 @@ export const RecordSwipeRequest: MessageFns<RecordSwipeRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<RecordSwipeRequest>, I>>(object: I): RecordSwipeRequest {
     const message = createBaseRecordSwipeRequest();
-    message.sessionId = object.sessionId ?? "";
-    message.petId = object.petId ?? "";
+    message.sessionId = object.sessionId ?? '';
+    message.petId = object.petId ?? '';
     message.action = object.action ?? 0;
     message.responseTime = object.responseTime ?? undefined;
     message.deviceType = object.deviceType ?? undefined;
@@ -1888,14 +1935,18 @@ export const RecordSwipeResponse: MessageFns<RecordSwipeResponse> = {
   create<I extends Exact<DeepPartial<RecordSwipeResponse>, I>>(base?: I): RecordSwipeResponse {
     return RecordSwipeResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RecordSwipeResponse>, I>>(object: I): RecordSwipeResponse {
+  fromPartial<I extends Exact<DeepPartial<RecordSwipeResponse>, I>>(
+    object: I
+  ): RecordSwipeResponse {
     const message = createBaseRecordSwipeResponse();
-    message.action = (object.action !== undefined && object.action !== null)
-      ? SwipeActionRecord.fromPartial(object.action)
-      : undefined;
-    message.session = (object.session !== undefined && object.session !== null)
-      ? SwipeSession.fromPartial(object.session)
-      : undefined;
+    message.action =
+      object.action !== undefined && object.action !== null
+        ? SwipeActionRecord.fromPartial(object.action)
+        : undefined;
+    message.session =
+      object.session !== undefined && object.session !== null
+        ? SwipeSession.fromPartial(object.session)
+        : undefined;
     return message;
   },
 };
@@ -1975,8 +2026,8 @@ export const SearchPetsRequest: MessageFns<SearchPetsRequest> = {
       filtersJson: isSet(object.filtersJson)
         ? globalThis.String(object.filtersJson)
         : isSet(object.filters_json)
-        ? globalThis.String(object.filters_json)
-        : undefined,
+          ? globalThis.String(object.filters_json)
+          : undefined,
       cursor: isSet(object.cursor) ? globalThis.String(object.cursor) : undefined,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
     };
@@ -2067,15 +2118,15 @@ export const SearchPetsResponse: MessageFns<SearchPetsResponse> = {
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-        ? globalThis.String(object.next_cursor)
-        : undefined,
+          ? globalThis.String(object.next_cursor)
+          : undefined,
     };
   },
 
   toJSON(message: SearchPetsResponse): unknown {
     const obj: any = {};
     if (message.results?.length) {
-      obj.results = message.results.map((e) => PetCandidate.toJSON(e));
+      obj.results = message.results.map(e => PetCandidate.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -2088,7 +2139,7 @@ export const SearchPetsResponse: MessageFns<SearchPetsResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<SearchPetsResponse>, I>>(object: I): SearchPetsResponse {
     const message = createBaseSearchPetsResponse();
-    message.results = object.results?.map((e) => PetCandidate.fromPartial(e)) || [];
+    message.results = object.results?.map(e => PetCandidate.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
@@ -2099,7 +2150,10 @@ function createBaseListSwipeHistoryRequest(): ListSwipeHistoryRequest {
 }
 
 export const ListSwipeHistoryRequest: MessageFns<ListSwipeHistoryRequest> = {
-  encode(message: ListSwipeHistoryRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListSwipeHistoryRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.actionFilter !== undefined) {
       writer.uint32(8).int32(message.actionFilter);
     }
@@ -2157,8 +2211,8 @@ export const ListSwipeHistoryRequest: MessageFns<ListSwipeHistoryRequest> = {
       actionFilter: isSet(object.actionFilter)
         ? swipeActionFromJSON(object.actionFilter)
         : isSet(object.action_filter)
-        ? swipeActionFromJSON(object.action_filter)
-        : undefined,
+          ? swipeActionFromJSON(object.action_filter)
+          : undefined,
       cursor: isSet(object.cursor) ? globalThis.String(object.cursor) : undefined,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
     };
@@ -2178,10 +2232,14 @@ export const ListSwipeHistoryRequest: MessageFns<ListSwipeHistoryRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListSwipeHistoryRequest>, I>>(base?: I): ListSwipeHistoryRequest {
+  create<I extends Exact<DeepPartial<ListSwipeHistoryRequest>, I>>(
+    base?: I
+  ): ListSwipeHistoryRequest {
     return ListSwipeHistoryRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListSwipeHistoryRequest>, I>>(object: I): ListSwipeHistoryRequest {
+  fromPartial<I extends Exact<DeepPartial<ListSwipeHistoryRequest>, I>>(
+    object: I
+  ): ListSwipeHistoryRequest {
     const message = createBaseListSwipeHistoryRequest();
     message.actionFilter = object.actionFilter ?? undefined;
     message.cursor = object.cursor ?? undefined;
@@ -2195,7 +2253,10 @@ function createBaseListSwipeHistoryResponse(): ListSwipeHistoryResponse {
 }
 
 export const ListSwipeHistoryResponse: MessageFns<ListSwipeHistoryResponse> = {
-  encode(message: ListSwipeHistoryResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: ListSwipeHistoryResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     for (const v of message.actions) {
       SwipeActionRecord.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -2245,15 +2306,15 @@ export const ListSwipeHistoryResponse: MessageFns<ListSwipeHistoryResponse> = {
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-        ? globalThis.String(object.next_cursor)
-        : undefined,
+          ? globalThis.String(object.next_cursor)
+          : undefined,
     };
   },
 
   toJSON(message: ListSwipeHistoryResponse): unknown {
     const obj: any = {};
     if (message.actions?.length) {
-      obj.actions = message.actions.map((e) => SwipeActionRecord.toJSON(e));
+      obj.actions = message.actions.map(e => SwipeActionRecord.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -2261,12 +2322,16 @@ export const ListSwipeHistoryResponse: MessageFns<ListSwipeHistoryResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListSwipeHistoryResponse>, I>>(base?: I): ListSwipeHistoryResponse {
+  create<I extends Exact<DeepPartial<ListSwipeHistoryResponse>, I>>(
+    base?: I
+  ): ListSwipeHistoryResponse {
     return ListSwipeHistoryResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListSwipeHistoryResponse>, I>>(object: I): ListSwipeHistoryResponse {
+  fromPartial<I extends Exact<DeepPartial<ListSwipeHistoryResponse>, I>>(
+    object: I
+  ): ListSwipeHistoryResponse {
     const message = createBaseListSwipeHistoryResponse();
-    message.actions = object.actions?.map((e) => SwipeActionRecord.fromPartial(e)) || [];
+    message.actions = object.actions?.map(e => SwipeActionRecord.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
@@ -2274,47 +2339,47 @@ export const ListSwipeHistoryResponse: MessageFns<ListSwipeHistoryResponse> = {
 
 function createBaseMatchProfile(): MatchProfile {
   return {
-    userId: "",
-    preferredTypesJson: "",
-    preferredSizesJson: "",
-    preferredAgeGroupsJson: "",
-    preferredEnergyJson: "",
-    preferredTemperamentJson: "",
-    lifestyleJson: "",
+    userId: '',
+    preferredTypesJson: '',
+    preferredSizesJson: '',
+    preferredAgeGroupsJson: '',
+    preferredEnergyJson: '',
+    preferredTemperamentJson: '',
+    lifestyleJson: '',
     maxDistanceKm: undefined,
     openToSpecialNeeds: false,
     notifyNewMatches: false,
     minNotificationScore: 0,
     lastNotifiedAt: undefined,
-    inferredPrefsJson: "",
+    inferredPrefsJson: '',
     prefsUpdatedAt: undefined,
     allergies: undefined,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: '',
+    updatedAt: '',
   };
 }
 
 export const MatchProfile: MessageFns<MatchProfile> = {
   encode(message: MatchProfile, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.userId !== "") {
+    if (message.userId !== '') {
       writer.uint32(10).string(message.userId);
     }
-    if (message.preferredTypesJson !== "") {
+    if (message.preferredTypesJson !== '') {
       writer.uint32(18).string(message.preferredTypesJson);
     }
-    if (message.preferredSizesJson !== "") {
+    if (message.preferredSizesJson !== '') {
       writer.uint32(26).string(message.preferredSizesJson);
     }
-    if (message.preferredAgeGroupsJson !== "") {
+    if (message.preferredAgeGroupsJson !== '') {
       writer.uint32(34).string(message.preferredAgeGroupsJson);
     }
-    if (message.preferredEnergyJson !== "") {
+    if (message.preferredEnergyJson !== '') {
       writer.uint32(42).string(message.preferredEnergyJson);
     }
-    if (message.preferredTemperamentJson !== "") {
+    if (message.preferredTemperamentJson !== '') {
       writer.uint32(50).string(message.preferredTemperamentJson);
     }
-    if (message.lifestyleJson !== "") {
+    if (message.lifestyleJson !== '') {
       writer.uint32(58).string(message.lifestyleJson);
     }
     if (message.maxDistanceKm !== undefined) {
@@ -2332,7 +2397,7 @@ export const MatchProfile: MessageFns<MatchProfile> = {
     if (message.lastNotifiedAt !== undefined) {
       writer.uint32(98).string(message.lastNotifiedAt);
     }
-    if (message.inferredPrefsJson !== "") {
+    if (message.inferredPrefsJson !== '') {
       writer.uint32(106).string(message.inferredPrefsJson);
     }
     if (message.prefsUpdatedAt !== undefined) {
@@ -2341,10 +2406,10 @@ export const MatchProfile: MessageFns<MatchProfile> = {
     if (message.allergies !== undefined) {
       writer.uint32(122).string(message.allergies);
     }
-    if (message.createdAt !== "") {
+    if (message.createdAt !== '') {
       writer.uint32(130).string(message.createdAt);
     }
-    if (message.updatedAt !== "") {
+    if (message.updatedAt !== '') {
       writer.uint32(138).string(message.updatedAt);
     }
     return writer;
@@ -2507,108 +2572,108 @@ export const MatchProfile: MessageFns<MatchProfile> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-        ? globalThis.String(object.user_id)
-        : "",
+          ? globalThis.String(object.user_id)
+          : '',
       preferredTypesJson: isSet(object.preferredTypesJson)
         ? globalThis.String(object.preferredTypesJson)
         : isSet(object.preferred_types_json)
-        ? globalThis.String(object.preferred_types_json)
-        : "",
+          ? globalThis.String(object.preferred_types_json)
+          : '',
       preferredSizesJson: isSet(object.preferredSizesJson)
         ? globalThis.String(object.preferredSizesJson)
         : isSet(object.preferred_sizes_json)
-        ? globalThis.String(object.preferred_sizes_json)
-        : "",
+          ? globalThis.String(object.preferred_sizes_json)
+          : '',
       preferredAgeGroupsJson: isSet(object.preferredAgeGroupsJson)
         ? globalThis.String(object.preferredAgeGroupsJson)
         : isSet(object.preferred_age_groups_json)
-        ? globalThis.String(object.preferred_age_groups_json)
-        : "",
+          ? globalThis.String(object.preferred_age_groups_json)
+          : '',
       preferredEnergyJson: isSet(object.preferredEnergyJson)
         ? globalThis.String(object.preferredEnergyJson)
         : isSet(object.preferred_energy_json)
-        ? globalThis.String(object.preferred_energy_json)
-        : "",
+          ? globalThis.String(object.preferred_energy_json)
+          : '',
       preferredTemperamentJson: isSet(object.preferredTemperamentJson)
         ? globalThis.String(object.preferredTemperamentJson)
         : isSet(object.preferred_temperament_json)
-        ? globalThis.String(object.preferred_temperament_json)
-        : "",
+          ? globalThis.String(object.preferred_temperament_json)
+          : '',
       lifestyleJson: isSet(object.lifestyleJson)
         ? globalThis.String(object.lifestyleJson)
         : isSet(object.lifestyle_json)
-        ? globalThis.String(object.lifestyle_json)
-        : "",
+          ? globalThis.String(object.lifestyle_json)
+          : '',
       maxDistanceKm: isSet(object.maxDistanceKm)
         ? globalThis.Number(object.maxDistanceKm)
         : isSet(object.max_distance_km)
-        ? globalThis.Number(object.max_distance_km)
-        : undefined,
+          ? globalThis.Number(object.max_distance_km)
+          : undefined,
       openToSpecialNeeds: isSet(object.openToSpecialNeeds)
         ? globalThis.Boolean(object.openToSpecialNeeds)
         : isSet(object.open_to_special_needs)
-        ? globalThis.Boolean(object.open_to_special_needs)
-        : false,
+          ? globalThis.Boolean(object.open_to_special_needs)
+          : false,
       notifyNewMatches: isSet(object.notifyNewMatches)
         ? globalThis.Boolean(object.notifyNewMatches)
         : isSet(object.notify_new_matches)
-        ? globalThis.Boolean(object.notify_new_matches)
-        : false,
+          ? globalThis.Boolean(object.notify_new_matches)
+          : false,
       minNotificationScore: isSet(object.minNotificationScore)
         ? globalThis.Number(object.minNotificationScore)
         : isSet(object.min_notification_score)
-        ? globalThis.Number(object.min_notification_score)
-        : 0,
+          ? globalThis.Number(object.min_notification_score)
+          : 0,
       lastNotifiedAt: isSet(object.lastNotifiedAt)
         ? globalThis.String(object.lastNotifiedAt)
         : isSet(object.last_notified_at)
-        ? globalThis.String(object.last_notified_at)
-        : undefined,
+          ? globalThis.String(object.last_notified_at)
+          : undefined,
       inferredPrefsJson: isSet(object.inferredPrefsJson)
         ? globalThis.String(object.inferredPrefsJson)
         : isSet(object.inferred_prefs_json)
-        ? globalThis.String(object.inferred_prefs_json)
-        : "",
+          ? globalThis.String(object.inferred_prefs_json)
+          : '',
       prefsUpdatedAt: isSet(object.prefsUpdatedAt)
         ? globalThis.String(object.prefsUpdatedAt)
         : isSet(object.prefs_updated_at)
-        ? globalThis.String(object.prefs_updated_at)
-        : undefined,
+          ? globalThis.String(object.prefs_updated_at)
+          : undefined,
       allergies: isSet(object.allergies) ? globalThis.String(object.allergies) : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-        ? globalThis.String(object.created_at)
-        : "",
+          ? globalThis.String(object.created_at)
+          : '',
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-        ? globalThis.String(object.updated_at)
-        : "",
+          ? globalThis.String(object.updated_at)
+          : '',
     };
   },
 
   toJSON(message: MatchProfile): unknown {
     const obj: any = {};
-    if (message.userId !== "") {
+    if (message.userId !== '') {
       obj.userId = message.userId;
     }
-    if (message.preferredTypesJson !== "") {
+    if (message.preferredTypesJson !== '') {
       obj.preferredTypesJson = message.preferredTypesJson;
     }
-    if (message.preferredSizesJson !== "") {
+    if (message.preferredSizesJson !== '') {
       obj.preferredSizesJson = message.preferredSizesJson;
     }
-    if (message.preferredAgeGroupsJson !== "") {
+    if (message.preferredAgeGroupsJson !== '') {
       obj.preferredAgeGroupsJson = message.preferredAgeGroupsJson;
     }
-    if (message.preferredEnergyJson !== "") {
+    if (message.preferredEnergyJson !== '') {
       obj.preferredEnergyJson = message.preferredEnergyJson;
     }
-    if (message.preferredTemperamentJson !== "") {
+    if (message.preferredTemperamentJson !== '') {
       obj.preferredTemperamentJson = message.preferredTemperamentJson;
     }
-    if (message.lifestyleJson !== "") {
+    if (message.lifestyleJson !== '') {
       obj.lifestyleJson = message.lifestyleJson;
     }
     if (message.maxDistanceKm !== undefined) {
@@ -2626,7 +2691,7 @@ export const MatchProfile: MessageFns<MatchProfile> = {
     if (message.lastNotifiedAt !== undefined) {
       obj.lastNotifiedAt = message.lastNotifiedAt;
     }
-    if (message.inferredPrefsJson !== "") {
+    if (message.inferredPrefsJson !== '') {
       obj.inferredPrefsJson = message.inferredPrefsJson;
     }
     if (message.prefsUpdatedAt !== undefined) {
@@ -2635,10 +2700,10 @@ export const MatchProfile: MessageFns<MatchProfile> = {
     if (message.allergies !== undefined) {
       obj.allergies = message.allergies;
     }
-    if (message.createdAt !== "") {
+    if (message.createdAt !== '') {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== "") {
+    if (message.updatedAt !== '') {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -2649,23 +2714,23 @@ export const MatchProfile: MessageFns<MatchProfile> = {
   },
   fromPartial<I extends Exact<DeepPartial<MatchProfile>, I>>(object: I): MatchProfile {
     const message = createBaseMatchProfile();
-    message.userId = object.userId ?? "";
-    message.preferredTypesJson = object.preferredTypesJson ?? "";
-    message.preferredSizesJson = object.preferredSizesJson ?? "";
-    message.preferredAgeGroupsJson = object.preferredAgeGroupsJson ?? "";
-    message.preferredEnergyJson = object.preferredEnergyJson ?? "";
-    message.preferredTemperamentJson = object.preferredTemperamentJson ?? "";
-    message.lifestyleJson = object.lifestyleJson ?? "";
+    message.userId = object.userId ?? '';
+    message.preferredTypesJson = object.preferredTypesJson ?? '';
+    message.preferredSizesJson = object.preferredSizesJson ?? '';
+    message.preferredAgeGroupsJson = object.preferredAgeGroupsJson ?? '';
+    message.preferredEnergyJson = object.preferredEnergyJson ?? '';
+    message.preferredTemperamentJson = object.preferredTemperamentJson ?? '';
+    message.lifestyleJson = object.lifestyleJson ?? '';
     message.maxDistanceKm = object.maxDistanceKm ?? undefined;
     message.openToSpecialNeeds = object.openToSpecialNeeds ?? false;
     message.notifyNewMatches = object.notifyNewMatches ?? false;
     message.minNotificationScore = object.minNotificationScore ?? 0;
     message.lastNotifiedAt = object.lastNotifiedAt ?? undefined;
-    message.inferredPrefsJson = object.inferredPrefsJson ?? "";
+    message.inferredPrefsJson = object.inferredPrefsJson ?? '';
     message.prefsUpdatedAt = object.prefsUpdatedAt ?? undefined;
     message.allergies = object.allergies ?? undefined;
-    message.createdAt = object.createdAt ?? "";
-    message.updatedAt = object.updatedAt ?? "";
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
     return message;
   },
 };
@@ -2704,10 +2769,14 @@ export const GetMatchProfileRequest: MessageFns<GetMatchProfileRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetMatchProfileRequest>, I>>(base?: I): GetMatchProfileRequest {
+  create<I extends Exact<DeepPartial<GetMatchProfileRequest>, I>>(
+    base?: I
+  ): GetMatchProfileRequest {
     return GetMatchProfileRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetMatchProfileRequest>, I>>(_: I): GetMatchProfileRequest {
+  fromPartial<I extends Exact<DeepPartial<GetMatchProfileRequest>, I>>(
+    _: I
+  ): GetMatchProfileRequest {
     const message = createBaseGetMatchProfileRequest();
     return message;
   },
@@ -2718,7 +2787,10 @@ function createBaseGetMatchProfileResponse(): GetMatchProfileResponse {
 }
 
 export const GetMatchProfileResponse: MessageFns<GetMatchProfileResponse> = {
-  encode(message: GetMatchProfileResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: GetMatchProfileResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.profile !== undefined) {
       MatchProfile.encode(message.profile, writer.uint32(10).fork()).join();
     }
@@ -2761,31 +2833,36 @@ export const GetMatchProfileResponse: MessageFns<GetMatchProfileResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetMatchProfileResponse>, I>>(base?: I): GetMatchProfileResponse {
+  create<I extends Exact<DeepPartial<GetMatchProfileResponse>, I>>(
+    base?: I
+  ): GetMatchProfileResponse {
     return GetMatchProfileResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetMatchProfileResponse>, I>>(object: I): GetMatchProfileResponse {
+  fromPartial<I extends Exact<DeepPartial<GetMatchProfileResponse>, I>>(
+    object: I
+  ): GetMatchProfileResponse {
     const message = createBaseGetMatchProfileResponse();
-    message.profile = (object.profile !== undefined && object.profile !== null)
-      ? MatchProfile.fromPartial(object.profile)
-      : undefined;
+    message.profile =
+      object.profile !== undefined && object.profile !== null
+        ? MatchProfile.fromPartial(object.profile)
+        : undefined;
     return message;
   },
 };
 
 function createBaseUpsertMatchProfileRequest(): UpsertMatchProfileRequest {
   return {
-    preferredTypesJson: "",
+    preferredTypesJson: '',
     setPreferredTypes: false,
-    preferredSizesJson: "",
+    preferredSizesJson: '',
     setPreferredSizes: false,
-    preferredAgeGroupsJson: "",
+    preferredAgeGroupsJson: '',
     setPreferredAgeGroups: false,
-    preferredEnergyJson: "",
+    preferredEnergyJson: '',
     setPreferredEnergy: false,
-    preferredTemperamentJson: "",
+    preferredTemperamentJson: '',
     setPreferredTemperament: false,
-    lifestyleJson: "",
+    lifestyleJson: '',
     setLifestyle: false,
     maxDistanceKm: undefined,
     openToSpecialNeeds: undefined,
@@ -2797,38 +2874,41 @@ function createBaseUpsertMatchProfileRequest(): UpsertMatchProfileRequest {
 }
 
 export const UpsertMatchProfileRequest: MessageFns<UpsertMatchProfileRequest> = {
-  encode(message: UpsertMatchProfileRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.preferredTypesJson !== "") {
+  encode(
+    message: UpsertMatchProfileRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.preferredTypesJson !== '') {
       writer.uint32(10).string(message.preferredTypesJson);
     }
     if (message.setPreferredTypes !== false) {
       writer.uint32(16).bool(message.setPreferredTypes);
     }
-    if (message.preferredSizesJson !== "") {
+    if (message.preferredSizesJson !== '') {
       writer.uint32(26).string(message.preferredSizesJson);
     }
     if (message.setPreferredSizes !== false) {
       writer.uint32(32).bool(message.setPreferredSizes);
     }
-    if (message.preferredAgeGroupsJson !== "") {
+    if (message.preferredAgeGroupsJson !== '') {
       writer.uint32(42).string(message.preferredAgeGroupsJson);
     }
     if (message.setPreferredAgeGroups !== false) {
       writer.uint32(48).bool(message.setPreferredAgeGroups);
     }
-    if (message.preferredEnergyJson !== "") {
+    if (message.preferredEnergyJson !== '') {
       writer.uint32(58).string(message.preferredEnergyJson);
     }
     if (message.setPreferredEnergy !== false) {
       writer.uint32(64).bool(message.setPreferredEnergy);
     }
-    if (message.preferredTemperamentJson !== "") {
+    if (message.preferredTemperamentJson !== '') {
       writer.uint32(74).string(message.preferredTemperamentJson);
     }
     if (message.setPreferredTemperament !== false) {
       writer.uint32(80).bool(message.setPreferredTemperament);
     }
-    if (message.lifestyleJson !== "") {
+    if (message.lifestyleJson !== '') {
       writer.uint32(90).string(message.lifestyleJson);
     }
     if (message.setLifestyle !== false) {
@@ -3020,125 +3100,125 @@ export const UpsertMatchProfileRequest: MessageFns<UpsertMatchProfileRequest> = 
       preferredTypesJson: isSet(object.preferredTypesJson)
         ? globalThis.String(object.preferredTypesJson)
         : isSet(object.preferred_types_json)
-        ? globalThis.String(object.preferred_types_json)
-        : "",
+          ? globalThis.String(object.preferred_types_json)
+          : '',
       setPreferredTypes: isSet(object.setPreferredTypes)
         ? globalThis.Boolean(object.setPreferredTypes)
         : isSet(object.set_preferred_types)
-        ? globalThis.Boolean(object.set_preferred_types)
-        : false,
+          ? globalThis.Boolean(object.set_preferred_types)
+          : false,
       preferredSizesJson: isSet(object.preferredSizesJson)
         ? globalThis.String(object.preferredSizesJson)
         : isSet(object.preferred_sizes_json)
-        ? globalThis.String(object.preferred_sizes_json)
-        : "",
+          ? globalThis.String(object.preferred_sizes_json)
+          : '',
       setPreferredSizes: isSet(object.setPreferredSizes)
         ? globalThis.Boolean(object.setPreferredSizes)
         : isSet(object.set_preferred_sizes)
-        ? globalThis.Boolean(object.set_preferred_sizes)
-        : false,
+          ? globalThis.Boolean(object.set_preferred_sizes)
+          : false,
       preferredAgeGroupsJson: isSet(object.preferredAgeGroupsJson)
         ? globalThis.String(object.preferredAgeGroupsJson)
         : isSet(object.preferred_age_groups_json)
-        ? globalThis.String(object.preferred_age_groups_json)
-        : "",
+          ? globalThis.String(object.preferred_age_groups_json)
+          : '',
       setPreferredAgeGroups: isSet(object.setPreferredAgeGroups)
         ? globalThis.Boolean(object.setPreferredAgeGroups)
         : isSet(object.set_preferred_age_groups)
-        ? globalThis.Boolean(object.set_preferred_age_groups)
-        : false,
+          ? globalThis.Boolean(object.set_preferred_age_groups)
+          : false,
       preferredEnergyJson: isSet(object.preferredEnergyJson)
         ? globalThis.String(object.preferredEnergyJson)
         : isSet(object.preferred_energy_json)
-        ? globalThis.String(object.preferred_energy_json)
-        : "",
+          ? globalThis.String(object.preferred_energy_json)
+          : '',
       setPreferredEnergy: isSet(object.setPreferredEnergy)
         ? globalThis.Boolean(object.setPreferredEnergy)
         : isSet(object.set_preferred_energy)
-        ? globalThis.Boolean(object.set_preferred_energy)
-        : false,
+          ? globalThis.Boolean(object.set_preferred_energy)
+          : false,
       preferredTemperamentJson: isSet(object.preferredTemperamentJson)
         ? globalThis.String(object.preferredTemperamentJson)
         : isSet(object.preferred_temperament_json)
-        ? globalThis.String(object.preferred_temperament_json)
-        : "",
+          ? globalThis.String(object.preferred_temperament_json)
+          : '',
       setPreferredTemperament: isSet(object.setPreferredTemperament)
         ? globalThis.Boolean(object.setPreferredTemperament)
         : isSet(object.set_preferred_temperament)
-        ? globalThis.Boolean(object.set_preferred_temperament)
-        : false,
+          ? globalThis.Boolean(object.set_preferred_temperament)
+          : false,
       lifestyleJson: isSet(object.lifestyleJson)
         ? globalThis.String(object.lifestyleJson)
         : isSet(object.lifestyle_json)
-        ? globalThis.String(object.lifestyle_json)
-        : "",
+          ? globalThis.String(object.lifestyle_json)
+          : '',
       setLifestyle: isSet(object.setLifestyle)
         ? globalThis.Boolean(object.setLifestyle)
         : isSet(object.set_lifestyle)
-        ? globalThis.Boolean(object.set_lifestyle)
-        : false,
+          ? globalThis.Boolean(object.set_lifestyle)
+          : false,
       maxDistanceKm: isSet(object.maxDistanceKm)
         ? globalThis.Number(object.maxDistanceKm)
         : isSet(object.max_distance_km)
-        ? globalThis.Number(object.max_distance_km)
-        : undefined,
+          ? globalThis.Number(object.max_distance_km)
+          : undefined,
       openToSpecialNeeds: isSet(object.openToSpecialNeeds)
         ? globalThis.Boolean(object.openToSpecialNeeds)
         : isSet(object.open_to_special_needs)
-        ? globalThis.Boolean(object.open_to_special_needs)
-        : undefined,
+          ? globalThis.Boolean(object.open_to_special_needs)
+          : undefined,
       notifyNewMatches: isSet(object.notifyNewMatches)
         ? globalThis.Boolean(object.notifyNewMatches)
         : isSet(object.notify_new_matches)
-        ? globalThis.Boolean(object.notify_new_matches)
-        : undefined,
+          ? globalThis.Boolean(object.notify_new_matches)
+          : undefined,
       minNotificationScore: isSet(object.minNotificationScore)
         ? globalThis.Number(object.minNotificationScore)
         : isSet(object.min_notification_score)
-        ? globalThis.Number(object.min_notification_score)
-        : undefined,
+          ? globalThis.Number(object.min_notification_score)
+          : undefined,
       allergies: isSet(object.allergies) ? globalThis.String(object.allergies) : undefined,
       setAllergies: isSet(object.setAllergies)
         ? globalThis.Boolean(object.setAllergies)
         : isSet(object.set_allergies)
-        ? globalThis.Boolean(object.set_allergies)
-        : false,
+          ? globalThis.Boolean(object.set_allergies)
+          : false,
     };
   },
 
   toJSON(message: UpsertMatchProfileRequest): unknown {
     const obj: any = {};
-    if (message.preferredTypesJson !== "") {
+    if (message.preferredTypesJson !== '') {
       obj.preferredTypesJson = message.preferredTypesJson;
     }
     if (message.setPreferredTypes !== false) {
       obj.setPreferredTypes = message.setPreferredTypes;
     }
-    if (message.preferredSizesJson !== "") {
+    if (message.preferredSizesJson !== '') {
       obj.preferredSizesJson = message.preferredSizesJson;
     }
     if (message.setPreferredSizes !== false) {
       obj.setPreferredSizes = message.setPreferredSizes;
     }
-    if (message.preferredAgeGroupsJson !== "") {
+    if (message.preferredAgeGroupsJson !== '') {
       obj.preferredAgeGroupsJson = message.preferredAgeGroupsJson;
     }
     if (message.setPreferredAgeGroups !== false) {
       obj.setPreferredAgeGroups = message.setPreferredAgeGroups;
     }
-    if (message.preferredEnergyJson !== "") {
+    if (message.preferredEnergyJson !== '') {
       obj.preferredEnergyJson = message.preferredEnergyJson;
     }
     if (message.setPreferredEnergy !== false) {
       obj.setPreferredEnergy = message.setPreferredEnergy;
     }
-    if (message.preferredTemperamentJson !== "") {
+    if (message.preferredTemperamentJson !== '') {
       obj.preferredTemperamentJson = message.preferredTemperamentJson;
     }
     if (message.setPreferredTemperament !== false) {
       obj.setPreferredTemperament = message.setPreferredTemperament;
     }
-    if (message.lifestyleJson !== "") {
+    if (message.lifestyleJson !== '') {
       obj.lifestyleJson = message.lifestyleJson;
     }
     if (message.setLifestyle !== false) {
@@ -3165,22 +3245,26 @@ export const UpsertMatchProfileRequest: MessageFns<UpsertMatchProfileRequest> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpsertMatchProfileRequest>, I>>(base?: I): UpsertMatchProfileRequest {
+  create<I extends Exact<DeepPartial<UpsertMatchProfileRequest>, I>>(
+    base?: I
+  ): UpsertMatchProfileRequest {
     return UpsertMatchProfileRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpsertMatchProfileRequest>, I>>(object: I): UpsertMatchProfileRequest {
+  fromPartial<I extends Exact<DeepPartial<UpsertMatchProfileRequest>, I>>(
+    object: I
+  ): UpsertMatchProfileRequest {
     const message = createBaseUpsertMatchProfileRequest();
-    message.preferredTypesJson = object.preferredTypesJson ?? "";
+    message.preferredTypesJson = object.preferredTypesJson ?? '';
     message.setPreferredTypes = object.setPreferredTypes ?? false;
-    message.preferredSizesJson = object.preferredSizesJson ?? "";
+    message.preferredSizesJson = object.preferredSizesJson ?? '';
     message.setPreferredSizes = object.setPreferredSizes ?? false;
-    message.preferredAgeGroupsJson = object.preferredAgeGroupsJson ?? "";
+    message.preferredAgeGroupsJson = object.preferredAgeGroupsJson ?? '';
     message.setPreferredAgeGroups = object.setPreferredAgeGroups ?? false;
-    message.preferredEnergyJson = object.preferredEnergyJson ?? "";
+    message.preferredEnergyJson = object.preferredEnergyJson ?? '';
     message.setPreferredEnergy = object.setPreferredEnergy ?? false;
-    message.preferredTemperamentJson = object.preferredTemperamentJson ?? "";
+    message.preferredTemperamentJson = object.preferredTemperamentJson ?? '';
     message.setPreferredTemperament = object.setPreferredTemperament ?? false;
-    message.lifestyleJson = object.lifestyleJson ?? "";
+    message.lifestyleJson = object.lifestyleJson ?? '';
     message.setLifestyle = object.setLifestyle ?? false;
     message.maxDistanceKm = object.maxDistanceKm ?? undefined;
     message.openToSpecialNeeds = object.openToSpecialNeeds ?? undefined;
@@ -3197,7 +3281,10 @@ function createBaseUpsertMatchProfileResponse(): UpsertMatchProfileResponse {
 }
 
 export const UpsertMatchProfileResponse: MessageFns<UpsertMatchProfileResponse> = {
-  encode(message: UpsertMatchProfileResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: UpsertMatchProfileResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.profile !== undefined) {
       MatchProfile.encode(message.profile, writer.uint32(10).fork()).join();
     }
@@ -3240,14 +3327,454 @@ export const UpsertMatchProfileResponse: MessageFns<UpsertMatchProfileResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpsertMatchProfileResponse>, I>>(base?: I): UpsertMatchProfileResponse {
+  create<I extends Exact<DeepPartial<UpsertMatchProfileResponse>, I>>(
+    base?: I
+  ): UpsertMatchProfileResponse {
     return UpsertMatchProfileResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpsertMatchProfileResponse>, I>>(object: I): UpsertMatchProfileResponse {
+  fromPartial<I extends Exact<DeepPartial<UpsertMatchProfileResponse>, I>>(
+    object: I
+  ): UpsertMatchProfileResponse {
     const message = createBaseUpsertMatchProfileResponse();
-    message.profile = (object.profile !== undefined && object.profile !== null)
-      ? MatchProfile.fromPartial(object.profile)
-      : undefined;
+    message.profile =
+      object.profile !== undefined && object.profile !== null
+        ? MatchProfile.fromPartial(object.profile)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseTopPickReasonChip(): TopPickReasonChip {
+  return { kind: '', label: '' };
+}
+
+export const TopPickReasonChip: MessageFns<TopPickReasonChip> = {
+  encode(message: TopPickReasonChip, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.kind !== '') {
+      writer.uint32(10).string(message.kind);
+    }
+    if (message.label !== '') {
+      writer.uint32(18).string(message.label);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): TopPickReasonChip {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseTopPickReasonChip();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.kind = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.label = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): TopPickReasonChip {
+    return {
+      kind: isSet(object.kind) ? globalThis.String(object.kind) : '',
+      label: isSet(object.label) ? globalThis.String(object.label) : '',
+    };
+  },
+
+  toJSON(message: TopPickReasonChip): unknown {
+    const obj: any = {};
+    if (message.kind !== '') {
+      obj.kind = message.kind;
+    }
+    if (message.label !== '') {
+      obj.label = message.label;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<TopPickReasonChip>, I>>(base?: I): TopPickReasonChip {
+    return TopPickReasonChip.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<TopPickReasonChip>, I>>(object: I): TopPickReasonChip {
+    const message = createBaseTopPickReasonChip();
+    message.kind = object.kind ?? '';
+    message.label = object.label ?? '';
+    return message;
+  },
+};
+
+function createBaseTopPick(): TopPick {
+  return {
+    petId: '',
+    name: '',
+    type: '',
+    ageGroup: '',
+    size: '',
+    score: 0,
+    reasons: [],
+    rescueName: '',
+    breedName: undefined,
+    photoUrl: undefined,
+  };
+}
+
+export const TopPick: MessageFns<TopPick> = {
+  encode(message: TopPick, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.petId !== '') {
+      writer.uint32(10).string(message.petId);
+    }
+    if (message.name !== '') {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.type !== '') {
+      writer.uint32(26).string(message.type);
+    }
+    if (message.ageGroup !== '') {
+      writer.uint32(34).string(message.ageGroup);
+    }
+    if (message.size !== '') {
+      writer.uint32(42).string(message.size);
+    }
+    if (message.score !== 0) {
+      writer.uint32(53).float(message.score);
+    }
+    for (const v of message.reasons) {
+      TopPickReasonChip.encode(v!, writer.uint32(58).fork()).join();
+    }
+    if (message.rescueName !== '') {
+      writer.uint32(66).string(message.rescueName);
+    }
+    if (message.breedName !== undefined) {
+      writer.uint32(74).string(message.breedName);
+    }
+    if (message.photoUrl !== undefined) {
+      writer.uint32(82).string(message.photoUrl);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): TopPick {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseTopPick();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.type = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.ageGroup = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.size = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 53) {
+            break;
+          }
+
+          message.score = reader.float();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.reasons.push(TopPickReasonChip.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.rescueName = reader.string();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.breedName = reader.string();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.photoUrl = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): TopPick {
+    return {
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+          ? globalThis.String(object.pet_id)
+          : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      type: isSet(object.type) ? globalThis.String(object.type) : '',
+      ageGroup: isSet(object.ageGroup)
+        ? globalThis.String(object.ageGroup)
+        : isSet(object.age_group)
+          ? globalThis.String(object.age_group)
+          : '',
+      size: isSet(object.size) ? globalThis.String(object.size) : '',
+      score: isSet(object.score) ? globalThis.Number(object.score) : 0,
+      reasons: globalThis.Array.isArray(object?.reasons)
+        ? object.reasons.map((e: any) => TopPickReasonChip.fromJSON(e))
+        : [],
+      rescueName: isSet(object.rescueName)
+        ? globalThis.String(object.rescueName)
+        : isSet(object.rescue_name)
+          ? globalThis.String(object.rescue_name)
+          : '',
+      breedName: isSet(object.breedName)
+        ? globalThis.String(object.breedName)
+        : isSet(object.breed_name)
+          ? globalThis.String(object.breed_name)
+          : undefined,
+      photoUrl: isSet(object.photoUrl)
+        ? globalThis.String(object.photoUrl)
+        : isSet(object.photo_url)
+          ? globalThis.String(object.photo_url)
+          : undefined,
+    };
+  },
+
+  toJSON(message: TopPick): unknown {
+    const obj: any = {};
+    if (message.petId !== '') {
+      obj.petId = message.petId;
+    }
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.type !== '') {
+      obj.type = message.type;
+    }
+    if (message.ageGroup !== '') {
+      obj.ageGroup = message.ageGroup;
+    }
+    if (message.size !== '') {
+      obj.size = message.size;
+    }
+    if (message.score !== 0) {
+      obj.score = message.score;
+    }
+    if (message.reasons?.length) {
+      obj.reasons = message.reasons.map(e => TopPickReasonChip.toJSON(e));
+    }
+    if (message.rescueName !== '') {
+      obj.rescueName = message.rescueName;
+    }
+    if (message.breedName !== undefined) {
+      obj.breedName = message.breedName;
+    }
+    if (message.photoUrl !== undefined) {
+      obj.photoUrl = message.photoUrl;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<TopPick>, I>>(base?: I): TopPick {
+    return TopPick.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<TopPick>, I>>(object: I): TopPick {
+    const message = createBaseTopPick();
+    message.petId = object.petId ?? '';
+    message.name = object.name ?? '';
+    message.type = object.type ?? '';
+    message.ageGroup = object.ageGroup ?? '';
+    message.size = object.size ?? '';
+    message.score = object.score ?? 0;
+    message.reasons = object.reasons?.map(e => TopPickReasonChip.fromPartial(e)) || [];
+    message.rescueName = object.rescueName ?? '';
+    message.breedName = object.breedName ?? undefined;
+    message.photoUrl = object.photoUrl ?? undefined;
+    return message;
+  },
+};
+
+function createBaseGetTopPicksRequest(): GetTopPicksRequest {
+  return { limit: 0 };
+}
+
+export const GetTopPicksRequest: MessageFns<GetTopPicksRequest> = {
+  encode(message: GetTopPicksRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.limit !== 0) {
+      writer.uint32(8).uint32(message.limit);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetTopPicksRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetTopPicksRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetTopPicksRequest {
+    return { limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0 };
+  },
+
+  toJSON(message: GetTopPicksRequest): unknown {
+    const obj: any = {};
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetTopPicksRequest>, I>>(base?: I): GetTopPicksRequest {
+    return GetTopPicksRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetTopPicksRequest>, I>>(object: I): GetTopPicksRequest {
+    const message = createBaseGetTopPicksRequest();
+    message.limit = object.limit ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetTopPicksResponse(): GetTopPicksResponse {
+  return { picks: [] };
+}
+
+export const GetTopPicksResponse: MessageFns<GetTopPicksResponse> = {
+  encode(message: GetTopPicksResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.picks) {
+      TopPick.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetTopPicksResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetTopPicksResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.picks.push(TopPick.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetTopPicksResponse {
+    return {
+      picks: globalThis.Array.isArray(object?.picks)
+        ? object.picks.map((e: any) => TopPick.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetTopPicksResponse): unknown {
+    const obj: any = {};
+    if (message.picks?.length) {
+      obj.picks = message.picks.map(e => TopPick.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetTopPicksResponse>, I>>(base?: I): GetTopPicksResponse {
+    return GetTopPicksResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetTopPicksResponse>, I>>(
+    object: I
+  ): GetTopPicksResponse {
+    const message = createBaseGetTopPicksResponse();
+    message.picks = object.picks?.map(e => TopPick.fromPartial(e)) || [];
     return message;
   },
 };
@@ -3337,20 +3864,20 @@ export const SwipeStats: MessageFns<SwipeStats> = {
       totalSwipes: isSet(object.totalSwipes)
         ? globalThis.Number(object.totalSwipes)
         : isSet(object.total_swipes)
-        ? globalThis.Number(object.total_swipes)
-        : 0,
+          ? globalThis.Number(object.total_swipes)
+          : 0,
       likes: isSet(object.likes) ? globalThis.Number(object.likes) : 0,
       passes: isSet(object.passes) ? globalThis.Number(object.passes) : 0,
       superLikes: isSet(object.superLikes)
         ? globalThis.Number(object.superLikes)
         : isSet(object.super_likes)
-        ? globalThis.Number(object.super_likes)
-        : 0,
+          ? globalThis.Number(object.super_likes)
+          : 0,
       infoViews: isSet(object.infoViews)
         ? globalThis.Number(object.infoViews)
         : isSet(object.info_views)
-        ? globalThis.Number(object.info_views)
-        : 0,
+          ? globalThis.Number(object.info_views)
+          : 0,
     };
   },
 
@@ -3393,7 +3920,10 @@ function createBaseGetUserSwipeStatsRequest(): GetUserSwipeStatsRequest {
 }
 
 export const GetUserSwipeStatsRequest: MessageFns<GetUserSwipeStatsRequest> = {
-  encode(message: GetUserSwipeStatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: GetUserSwipeStatsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.userId !== undefined) {
       writer.uint32(10).string(message.userId);
     }
@@ -3429,8 +3959,8 @@ export const GetUserSwipeStatsRequest: MessageFns<GetUserSwipeStatsRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-        ? globalThis.String(object.user_id)
-        : undefined,
+          ? globalThis.String(object.user_id)
+          : undefined,
     };
   },
 
@@ -3442,10 +3972,14 @@ export const GetUserSwipeStatsRequest: MessageFns<GetUserSwipeStatsRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUserSwipeStatsRequest>, I>>(base?: I): GetUserSwipeStatsRequest {
+  create<I extends Exact<DeepPartial<GetUserSwipeStatsRequest>, I>>(
+    base?: I
+  ): GetUserSwipeStatsRequest {
     return GetUserSwipeStatsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUserSwipeStatsRequest>, I>>(object: I): GetUserSwipeStatsRequest {
+  fromPartial<I extends Exact<DeepPartial<GetUserSwipeStatsRequest>, I>>(
+    object: I
+  ): GetUserSwipeStatsRequest {
     const message = createBaseGetUserSwipeStatsRequest();
     message.userId = object.userId ?? undefined;
     return message;
@@ -3457,7 +3991,10 @@ function createBaseGetUserSwipeStatsResponse(): GetUserSwipeStatsResponse {
 }
 
 export const GetUserSwipeStatsResponse: MessageFns<GetUserSwipeStatsResponse> = {
-  encode(message: GetUserSwipeStatsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: GetUserSwipeStatsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.stats !== undefined) {
       SwipeStats.encode(message.stats, writer.uint32(10).fork()).join();
     }
@@ -3500,25 +4037,30 @@ export const GetUserSwipeStatsResponse: MessageFns<GetUserSwipeStatsResponse> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUserSwipeStatsResponse>, I>>(base?: I): GetUserSwipeStatsResponse {
+  create<I extends Exact<DeepPartial<GetUserSwipeStatsResponse>, I>>(
+    base?: I
+  ): GetUserSwipeStatsResponse {
     return GetUserSwipeStatsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUserSwipeStatsResponse>, I>>(object: I): GetUserSwipeStatsResponse {
+  fromPartial<I extends Exact<DeepPartial<GetUserSwipeStatsResponse>, I>>(
+    object: I
+  ): GetUserSwipeStatsResponse {
     const message = createBaseGetUserSwipeStatsResponse();
-    message.stats = (object.stats !== undefined && object.stats !== null)
-      ? SwipeStats.fromPartial(object.stats)
-      : undefined;
+    message.stats =
+      object.stats !== undefined && object.stats !== null
+        ? SwipeStats.fromPartial(object.stats)
+        : undefined;
     return message;
   },
 };
 
 function createBaseGetSessionStatsRequest(): GetSessionStatsRequest {
-  return { sessionId: "" };
+  return { sessionId: '' };
 }
 
 export const GetSessionStatsRequest: MessageFns<GetSessionStatsRequest> = {
   encode(message: GetSessionStatsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       writer.uint32(10).string(message.sessionId);
     }
     return writer;
@@ -3553,25 +4095,29 @@ export const GetSessionStatsRequest: MessageFns<GetSessionStatsRequest> = {
       sessionId: isSet(object.sessionId)
         ? globalThis.String(object.sessionId)
         : isSet(object.session_id)
-        ? globalThis.String(object.session_id)
-        : "",
+          ? globalThis.String(object.session_id)
+          : '',
     };
   },
 
   toJSON(message: GetSessionStatsRequest): unknown {
     const obj: any = {};
-    if (message.sessionId !== "") {
+    if (message.sessionId !== '') {
       obj.sessionId = message.sessionId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetSessionStatsRequest>, I>>(base?: I): GetSessionStatsRequest {
+  create<I extends Exact<DeepPartial<GetSessionStatsRequest>, I>>(
+    base?: I
+  ): GetSessionStatsRequest {
     return GetSessionStatsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetSessionStatsRequest>, I>>(object: I): GetSessionStatsRequest {
+  fromPartial<I extends Exact<DeepPartial<GetSessionStatsRequest>, I>>(
+    object: I
+  ): GetSessionStatsRequest {
     const message = createBaseGetSessionStatsRequest();
-    message.sessionId = object.sessionId ?? "";
+    message.sessionId = object.sessionId ?? '';
     return message;
   },
 };
@@ -3581,7 +4127,10 @@ function createBaseGetSessionStatsResponse(): GetSessionStatsResponse {
 }
 
 export const GetSessionStatsResponse: MessageFns<GetSessionStatsResponse> = {
-  encode(message: GetSessionStatsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(
+    message: GetSessionStatsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
     if (message.stats !== undefined) {
       SwipeStats.encode(message.stats, writer.uint32(10).fork()).join();
     }
@@ -3624,14 +4173,19 @@ export const GetSessionStatsResponse: MessageFns<GetSessionStatsResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetSessionStatsResponse>, I>>(base?: I): GetSessionStatsResponse {
+  create<I extends Exact<DeepPartial<GetSessionStatsResponse>, I>>(
+    base?: I
+  ): GetSessionStatsResponse {
     return GetSessionStatsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetSessionStatsResponse>, I>>(object: I): GetSessionStatsResponse {
+  fromPartial<I extends Exact<DeepPartial<GetSessionStatsResponse>, I>>(
+    object: I
+  ): GetSessionStatsResponse {
     const message = createBaseGetSessionStatsResponse();
-    message.stats = (object.stats !== undefined && object.stats !== null)
-      ? SwipeStats.fromPartial(object.stats)
-      : undefined;
+    message.stats =
+      object.stats !== undefined && object.stats !== null
+        ? SwipeStats.fromPartial(object.stats)
+        : undefined;
     return message;
   },
 };
@@ -3662,26 +4216,30 @@ export const MatchingServiceService = {
    * filters here.
    */
   startSession: {
-    path: "/adopt_dont_shop.matching.v1.MatchingService/StartSession" as const,
+    path: '/adopt_dont_shop.matching.v1.MatchingService/StartSession' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: StartSessionRequest): Buffer => Buffer.from(StartSessionRequest.encode(value).finish()),
+    requestSerialize: (value: StartSessionRequest): Buffer =>
+      Buffer.from(StartSessionRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): StartSessionRequest => StartSessionRequest.decode(value),
     responseSerialize: (value: StartSessionResponse): Buffer =>
       Buffer.from(StartSessionResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): StartSessionResponse => StartSessionResponse.decode(value),
+    responseDeserialize: (value: Buffer): StartSessionResponse =>
+      StartSessionResponse.decode(value),
   },
   /**
    * Close an open session. Marks is_active=false and stamps end_time.
    * Idempotent on already-closed sessions.
    */
   endSession: {
-    path: "/adopt_dont_shop.matching.v1.MatchingService/EndSession" as const,
+    path: '/adopt_dont_shop.matching.v1.MatchingService/EndSession' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: EndSessionRequest): Buffer => Buffer.from(EndSessionRequest.encode(value).finish()),
+    requestSerialize: (value: EndSessionRequest): Buffer =>
+      Buffer.from(EndSessionRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): EndSessionRequest => EndSessionRequest.decode(value),
-    responseSerialize: (value: EndSessionResponse): Buffer => Buffer.from(EndSessionResponse.encode(value).finish()),
+    responseSerialize: (value: EndSessionResponse): Buffer =>
+      Buffer.from(EndSessionResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): EndSessionResponse => EndSessionResponse.decode(value),
   },
   /**
@@ -3693,12 +4251,14 @@ export const MatchingServiceService = {
    * the queue runs low.
    */
   recommend: {
-    path: "/adopt_dont_shop.matching.v1.MatchingService/Recommend" as const,
+    path: '/adopt_dont_shop.matching.v1.MatchingService/Recommend' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: RecommendRequest): Buffer => Buffer.from(RecommendRequest.encode(value).finish()),
+    requestSerialize: (value: RecommendRequest): Buffer =>
+      Buffer.from(RecommendRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): RecommendRequest => RecommendRequest.decode(value),
-    responseSerialize: (value: RecommendResponse): Buffer => Buffer.from(RecommendResponse.encode(value).finish()),
+    responseSerialize: (value: RecommendResponse): Buffer =>
+      Buffer.from(RecommendResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): RecommendResponse => RecommendResponse.decode(value),
   },
   /**
@@ -3709,12 +4269,14 @@ export const MatchingServiceService = {
    * surface "user X super-liked your pet" notifications.
    */
   recordSwipe: {
-    path: "/adopt_dont_shop.matching.v1.MatchingService/RecordSwipe" as const,
+    path: '/adopt_dont_shop.matching.v1.MatchingService/RecordSwipe' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: RecordSwipeRequest): Buffer => Buffer.from(RecordSwipeRequest.encode(value).finish()),
+    requestSerialize: (value: RecordSwipeRequest): Buffer =>
+      Buffer.from(RecordSwipeRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): RecordSwipeRequest => RecordSwipeRequest.decode(value),
-    responseSerialize: (value: RecordSwipeResponse): Buffer => Buffer.from(RecordSwipeResponse.encode(value).finish()),
+    responseSerialize: (value: RecordSwipeResponse): Buffer =>
+      Buffer.from(RecordSwipeResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): RecordSwipeResponse => RecordSwipeResponse.decode(value),
   },
   /**
@@ -3725,12 +4287,14 @@ export const MatchingServiceService = {
    * service.pets via gRPC; matching service is stateless on this RPC.
    */
   searchPets: {
-    path: "/adopt_dont_shop.matching.v1.MatchingService/SearchPets" as const,
+    path: '/adopt_dont_shop.matching.v1.MatchingService/SearchPets' as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: SearchPetsRequest): Buffer => Buffer.from(SearchPetsRequest.encode(value).finish()),
+    requestSerialize: (value: SearchPetsRequest): Buffer =>
+      Buffer.from(SearchPetsRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): SearchPetsRequest => SearchPetsRequest.decode(value),
-    responseSerialize: (value: SearchPetsResponse): Buffer => Buffer.from(SearchPetsResponse.encode(value).finish()),
+    responseSerialize: (value: SearchPetsResponse): Buffer =>
+      Buffer.from(SearchPetsResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): SearchPetsResponse => SearchPetsResponse.decode(value),
   },
   /**
@@ -3739,30 +4303,34 @@ export const MatchingServiceService = {
    * in the SPA. Filterable by action type.
    */
   listSwipeHistory: {
-    path: "/adopt_dont_shop.matching.v1.MatchingService/ListSwipeHistory" as const,
+    path: '/adopt_dont_shop.matching.v1.MatchingService/ListSwipeHistory' as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListSwipeHistoryRequest): Buffer =>
       Buffer.from(ListSwipeHistoryRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListSwipeHistoryRequest => ListSwipeHistoryRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListSwipeHistoryRequest =>
+      ListSwipeHistoryRequest.decode(value),
     responseSerialize: (value: ListSwipeHistoryResponse): Buffer =>
       Buffer.from(ListSwipeHistoryResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListSwipeHistoryResponse => ListSwipeHistoryResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListSwipeHistoryResponse =>
+      ListSwipeHistoryResponse.decode(value),
   },
   /**
    * Read the calling principal's match profile, returning empty defaults
    * when the row doesn't exist yet (the SPA renders an empty form).
    */
   getMatchProfile: {
-    path: "/adopt_dont_shop.matching.v1.MatchingService/GetMatchProfile" as const,
+    path: '/adopt_dont_shop.matching.v1.MatchingService/GetMatchProfile' as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetMatchProfileRequest): Buffer =>
       Buffer.from(GetMatchProfileRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetMatchProfileRequest => GetMatchProfileRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetMatchProfileRequest =>
+      GetMatchProfileRequest.decode(value),
     responseSerialize: (value: GetMatchProfileResponse): Buffer =>
       Buffer.from(GetMatchProfileResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetMatchProfileResponse => GetMatchProfileResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetMatchProfileResponse =>
+      GetMatchProfileResponse.decode(value),
   },
   /**
    * Create-or-update the calling principal's match profile. Only the
@@ -3770,15 +4338,17 @@ export const MatchingServiceService = {
    * current value (or the column default on first insert).
    */
   upsertMatchProfile: {
-    path: "/adopt_dont_shop.matching.v1.MatchingService/UpsertMatchProfile" as const,
+    path: '/adopt_dont_shop.matching.v1.MatchingService/UpsertMatchProfile' as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: UpsertMatchProfileRequest): Buffer =>
       Buffer.from(UpsertMatchProfileRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UpsertMatchProfileRequest => UpsertMatchProfileRequest.decode(value),
+    requestDeserialize: (value: Buffer): UpsertMatchProfileRequest =>
+      UpsertMatchProfileRequest.decode(value),
     responseSerialize: (value: UpsertMatchProfileResponse): Buffer =>
       Buffer.from(UpsertMatchProfileResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpsertMatchProfileResponse => UpsertMatchProfileResponse.decode(value),
+    responseDeserialize: (value: Buffer): UpsertMatchProfileResponse =>
+      UpsertMatchProfileResponse.decode(value),
   },
   /**
    * Aggregate swipe counts for a user (total / likes / passes /
@@ -3786,30 +4356,53 @@ export const MatchingServiceService = {
    * via swipes:read:any.
    */
   getUserSwipeStats: {
-    path: "/adopt_dont_shop.matching.v1.MatchingService/GetUserSwipeStats" as const,
+    path: '/adopt_dont_shop.matching.v1.MatchingService/GetUserSwipeStats' as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetUserSwipeStatsRequest): Buffer =>
       Buffer.from(GetUserSwipeStatsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetUserSwipeStatsRequest => GetUserSwipeStatsRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetUserSwipeStatsRequest =>
+      GetUserSwipeStatsRequest.decode(value),
     responseSerialize: (value: GetUserSwipeStatsResponse): Buffer =>
       Buffer.from(GetUserSwipeStatsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetUserSwipeStatsResponse => GetUserSwipeStatsResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetUserSwipeStatsResponse =>
+      GetUserSwipeStatsResponse.decode(value),
   },
   /**
    * Aggregate swipe counts for a single session. Caller MUST own the
    * session (or be admin).
    */
   getSessionStats: {
-    path: "/adopt_dont_shop.matching.v1.MatchingService/GetSessionStats" as const,
+    path: '/adopt_dont_shop.matching.v1.MatchingService/GetSessionStats' as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetSessionStatsRequest): Buffer =>
       Buffer.from(GetSessionStatsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetSessionStatsRequest => GetSessionStatsRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetSessionStatsRequest =>
+      GetSessionStatsRequest.decode(value),
     responseSerialize: (value: GetSessionStatsResponse): Buffer =>
       Buffer.from(GetSessionStatsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetSessionStatsResponse => GetSessionStatsResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetSessionStatsResponse =>
+      GetSessionStatsResponse.decode(value),
+  },
+  /**
+   * Get a short, personalised "top picks" list for the calling principal —
+   * distinct from Recommend (the swipe-queue feed): top picks reads the
+   * user's STORED match profile (preferred types/sizes/age groups/energy/
+   * temperament) rather than session filters, excludes already-swiped pets,
+   * and attaches reason chips explaining each pick. Stateless — no session
+   * required, no mutation.
+   */
+  getTopPicks: {
+    path: '/adopt_dont_shop.matching.v1.MatchingService/GetTopPicks' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetTopPicksRequest): Buffer =>
+      Buffer.from(GetTopPicksRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetTopPicksRequest => GetTopPicksRequest.decode(value),
+    responseSerialize: (value: GetTopPicksResponse): Buffer =>
+      Buffer.from(GetTopPicksResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetTopPicksResponse => GetTopPicksResponse.decode(value),
   },
 } as const;
 
@@ -3880,6 +4473,15 @@ export interface MatchingServiceServer extends UntypedServiceImplementation {
    * session (or be admin).
    */
   getSessionStats: handleUnaryCall<GetSessionStatsRequest, GetSessionStatsResponse>;
+  /**
+   * Get a short, personalised "top picks" list for the calling principal —
+   * distinct from Recommend (the swipe-queue feed): top picks reads the
+   * user's STORED match profile (preferred types/sizes/age groups/energy/
+   * temperament) rather than session filters, excludes already-swiped pets,
+   * and attaches reason chips explaining each pick. Stateless — no session
+   * required, no mutation.
+   */
+  getTopPicks: handleUnaryCall<GetTopPicksRequest, GetTopPicksResponse>;
 }
 
 export interface MatchingServiceClient extends Client {
@@ -3892,18 +4494,18 @@ export interface MatchingServiceClient extends Client {
    */
   startSession(
     request: StartSessionRequest,
-    callback: (error: ServiceError | null, response: StartSessionResponse) => void,
+    callback: (error: ServiceError | null, response: StartSessionResponse) => void
   ): ClientUnaryCall;
   startSession(
     request: StartSessionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: StartSessionResponse) => void,
+    callback: (error: ServiceError | null, response: StartSessionResponse) => void
   ): ClientUnaryCall;
   startSession(
     request: StartSessionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: StartSessionResponse) => void,
+    callback: (error: ServiceError | null, response: StartSessionResponse) => void
   ): ClientUnaryCall;
   /**
    * Close an open session. Marks is_active=false and stamps end_time.
@@ -3911,18 +4513,18 @@ export interface MatchingServiceClient extends Client {
    */
   endSession(
     request: EndSessionRequest,
-    callback: (error: ServiceError | null, response: EndSessionResponse) => void,
+    callback: (error: ServiceError | null, response: EndSessionResponse) => void
   ): ClientUnaryCall;
   endSession(
     request: EndSessionRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: EndSessionResponse) => void,
+    callback: (error: ServiceError | null, response: EndSessionResponse) => void
   ): ClientUnaryCall;
   endSession(
     request: EndSessionRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: EndSessionResponse) => void,
+    callback: (error: ServiceError | null, response: EndSessionResponse) => void
   ): ClientUnaryCall;
   /**
    * Get the top-K recommendations for the calling principal. Reads
@@ -3934,18 +4536,18 @@ export interface MatchingServiceClient extends Client {
    */
   recommend(
     request: RecommendRequest,
-    callback: (error: ServiceError | null, response: RecommendResponse) => void,
+    callback: (error: ServiceError | null, response: RecommendResponse) => void
   ): ClientUnaryCall;
   recommend(
     request: RecommendRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RecommendResponse) => void,
+    callback: (error: ServiceError | null, response: RecommendResponse) => void
   ): ClientUnaryCall;
   recommend(
     request: RecommendRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RecommendResponse) => void,
+    callback: (error: ServiceError | null, response: RecommendResponse) => void
   ): ClientUnaryCall;
   /**
    * Record a swipe action and tick the session's counters
@@ -3956,18 +4558,18 @@ export interface MatchingServiceClient extends Client {
    */
   recordSwipe(
     request: RecordSwipeRequest,
-    callback: (error: ServiceError | null, response: RecordSwipeResponse) => void,
+    callback: (error: ServiceError | null, response: RecordSwipeResponse) => void
   ): ClientUnaryCall;
   recordSwipe(
     request: RecordSwipeRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RecordSwipeResponse) => void,
+    callback: (error: ServiceError | null, response: RecordSwipeResponse) => void
   ): ClientUnaryCall;
   recordSwipe(
     request: RecordSwipeRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RecordSwipeResponse) => void,
+    callback: (error: ServiceError | null, response: RecordSwipeResponse) => void
   ): ClientUnaryCall;
   /**
    * Search pets — the explicit search surface that absorbs the
@@ -3978,18 +4580,18 @@ export interface MatchingServiceClient extends Client {
    */
   searchPets(
     request: SearchPetsRequest,
-    callback: (error: ServiceError | null, response: SearchPetsResponse) => void,
+    callback: (error: ServiceError | null, response: SearchPetsResponse) => void
   ): ClientUnaryCall;
   searchPets(
     request: SearchPetsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: SearchPetsResponse) => void,
+    callback: (error: ServiceError | null, response: SearchPetsResponse) => void
   ): ClientUnaryCall;
   searchPets(
     request: SearchPetsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: SearchPetsResponse) => void,
+    callback: (error: ServiceError | null, response: SearchPetsResponse) => void
   ): ClientUnaryCall;
   /**
    * List the calling principal's swipe history — what they liked,
@@ -3998,18 +4600,18 @@ export interface MatchingServiceClient extends Client {
    */
   listSwipeHistory(
     request: ListSwipeHistoryRequest,
-    callback: (error: ServiceError | null, response: ListSwipeHistoryResponse) => void,
+    callback: (error: ServiceError | null, response: ListSwipeHistoryResponse) => void
   ): ClientUnaryCall;
   listSwipeHistory(
     request: ListSwipeHistoryRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListSwipeHistoryResponse) => void,
+    callback: (error: ServiceError | null, response: ListSwipeHistoryResponse) => void
   ): ClientUnaryCall;
   listSwipeHistory(
     request: ListSwipeHistoryRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListSwipeHistoryResponse) => void,
+    callback: (error: ServiceError | null, response: ListSwipeHistoryResponse) => void
   ): ClientUnaryCall;
   /**
    * Read the calling principal's match profile, returning empty defaults
@@ -4017,18 +4619,18 @@ export interface MatchingServiceClient extends Client {
    */
   getMatchProfile(
     request: GetMatchProfileRequest,
-    callback: (error: ServiceError | null, response: GetMatchProfileResponse) => void,
+    callback: (error: ServiceError | null, response: GetMatchProfileResponse) => void
   ): ClientUnaryCall;
   getMatchProfile(
     request: GetMatchProfileRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetMatchProfileResponse) => void,
+    callback: (error: ServiceError | null, response: GetMatchProfileResponse) => void
   ): ClientUnaryCall;
   getMatchProfile(
     request: GetMatchProfileRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetMatchProfileResponse) => void,
+    callback: (error: ServiceError | null, response: GetMatchProfileResponse) => void
   ): ClientUnaryCall;
   /**
    * Create-or-update the calling principal's match profile. Only the
@@ -4037,18 +4639,18 @@ export interface MatchingServiceClient extends Client {
    */
   upsertMatchProfile(
     request: UpsertMatchProfileRequest,
-    callback: (error: ServiceError | null, response: UpsertMatchProfileResponse) => void,
+    callback: (error: ServiceError | null, response: UpsertMatchProfileResponse) => void
   ): ClientUnaryCall;
   upsertMatchProfile(
     request: UpsertMatchProfileRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpsertMatchProfileResponse) => void,
+    callback: (error: ServiceError | null, response: UpsertMatchProfileResponse) => void
   ): ClientUnaryCall;
   upsertMatchProfile(
     request: UpsertMatchProfileRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpsertMatchProfileResponse) => void,
+    callback: (error: ServiceError | null, response: UpsertMatchProfileResponse) => void
   ): ClientUnaryCall;
   /**
    * Aggregate swipe counts for a user (total / likes / passes /
@@ -4057,18 +4659,18 @@ export interface MatchingServiceClient extends Client {
    */
   getUserSwipeStats(
     request: GetUserSwipeStatsRequest,
-    callback: (error: ServiceError | null, response: GetUserSwipeStatsResponse) => void,
+    callback: (error: ServiceError | null, response: GetUserSwipeStatsResponse) => void
   ): ClientUnaryCall;
   getUserSwipeStats(
     request: GetUserSwipeStatsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetUserSwipeStatsResponse) => void,
+    callback: (error: ServiceError | null, response: GetUserSwipeStatsResponse) => void
   ): ClientUnaryCall;
   getUserSwipeStats(
     request: GetUserSwipeStatsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetUserSwipeStatsResponse) => void,
+    callback: (error: ServiceError | null, response: GetUserSwipeStatsResponse) => void
   ): ClientUnaryCall;
   /**
    * Aggregate swipe counts for a single session. Caller MUST own the
@@ -4076,40 +4678,72 @@ export interface MatchingServiceClient extends Client {
    */
   getSessionStats(
     request: GetSessionStatsRequest,
-    callback: (error: ServiceError | null, response: GetSessionStatsResponse) => void,
+    callback: (error: ServiceError | null, response: GetSessionStatsResponse) => void
   ): ClientUnaryCall;
   getSessionStats(
     request: GetSessionStatsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetSessionStatsResponse) => void,
+    callback: (error: ServiceError | null, response: GetSessionStatsResponse) => void
   ): ClientUnaryCall;
   getSessionStats(
     request: GetSessionStatsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetSessionStatsResponse) => void,
+    callback: (error: ServiceError | null, response: GetSessionStatsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Get a short, personalised "top picks" list for the calling principal —
+   * distinct from Recommend (the swipe-queue feed): top picks reads the
+   * user's STORED match profile (preferred types/sizes/age groups/energy/
+   * temperament) rather than session filters, excludes already-swiped pets,
+   * and attaches reason chips explaining each pick. Stateless — no session
+   * required, no mutation.
+   */
+  getTopPicks(
+    request: GetTopPicksRequest,
+    callback: (error: ServiceError | null, response: GetTopPicksResponse) => void
+  ): ClientUnaryCall;
+  getTopPicks(
+    request: GetTopPicksRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetTopPicksResponse) => void
+  ): ClientUnaryCall;
+  getTopPicks(
+    request: GetTopPicksRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetTopPicksResponse) => void
   ): ClientUnaryCall;
 }
 
 export const MatchingServiceClient = makeGenericClientConstructor(
   MatchingServiceService,
-  "adopt_dont_shop.matching.v1.MatchingService",
+  'adopt_dont_shop.matching.v1.MatchingService'
 ) as unknown as {
-  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): MatchingServiceClient;
+  new (
+    address: string,
+    credentials: ChannelCredentials,
+    options?: Partial<ClientOptions>
+  ): MatchingServiceClient;
   service: typeof MatchingServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin ? T
-  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
-  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
-  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : Partial<T>;
+export type DeepPartial<T> = T extends Builtin
+  ? T
+  : T extends globalThis.Array<infer U>
+    ? globalThis.Array<DeepPartial<U>>
+    : T extends ReadonlyArray<infer U>
+      ? ReadonlyArray<DeepPartial<U>>
+      : T extends {}
+        ? { [K in keyof T]?: DeepPartial<T[K]> }
+        : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin ? P
+export type Exact<P, I extends P> = P extends Builtin
+  ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {

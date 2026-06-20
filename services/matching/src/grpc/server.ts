@@ -26,6 +26,8 @@ import {
   upsertMatchProfile,
 } from './profile-stats-handlers.js';
 import { makeRecommend, makeSearchPets } from './recommend-handlers.js';
+import { createRescueClient, type RescueNameClient } from './rescue-client.js';
+import { makeGetTopPicks } from './top-picks-handlers.js';
 
 export type CreateGrpcServerOptions = {
   config: MatchingConfig;
@@ -37,6 +39,10 @@ export type CreateGrpcServerOptions = {
   // client is built from config.petsGrpcUrl. startGrpcServer always
   // builds + owns one so it can close it on shutdown.
   petsClient?: PetsClient;
+  // Injected for GetTopPicks's rescue-name resolution. Same lifecycle as
+  // petsClient: optional for direct/test construction, built + owned by
+  // startGrpcServer from config.rescueGrpcUrl in production.
+  rescueClient?: RescueNameClient;
 };
 
 export type { RunningGrpcServer };
@@ -45,6 +51,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger } = opts;
   const deps = { pool, nats };
   const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
+  const rescueClient = opts.rescueClient ?? createRescueClient({ address: config.rescueGrpcUrl });
   const server = new Server();
 
   server.addService(MatchingV1.MatchingServiceService, {
@@ -58,6 +65,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     upsertMatchProfile: adapt(upsertMatchProfile, { deps, logger }),
     getUserSwipeStats: adapt(getUserSwipeStats, { deps, logger }),
     getSessionStats: adapt(getSessionStats, { deps, logger }),
+    getTopPicks: adapt(makeGetTopPicks(petsClient, rescueClient), { deps, logger }),
   });
 
   logger.info('gRPC MatchingService registered', {
@@ -72,6 +80,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'upsertMatchProfile',
       'getUserSwipeStats',
       'getSessionStats',
+      'getTopPicks',
     ],
     grpcPort: config.grpcPort,
   });
@@ -83,9 +92,10 @@ export const startGrpcServer = async (
   opts: CreateGrpcServerOptions
 ): Promise<RunningGrpcServer> => {
   const { config, logger } = opts;
-  // Build + own the pets client here so it's closed on shutdown.
+  // Build + own the downstream clients here so they're closed on shutdown.
   const petsClient = opts.petsClient ?? createPetsClient({ address: config.petsGrpcUrl });
-  const server = createGrpcServer({ ...opts, petsClient });
+  const rescueClient = opts.rescueClient ?? createRescueClient({ address: config.rescueGrpcUrl });
+  const server = createGrpcServer({ ...opts, petsClient, rescueClient });
   const running = await startGrpcServerShared(server, config, logger);
 
   return {
@@ -96,10 +106,15 @@ export const startGrpcServer = async (
           if (err) {
             logger.error('gRPC server shutdown error', { err });
           }
-          try {
-            petsClient.close();
-          } catch (closeErr) {
-            logger.error('pets client close error', { err: closeErr });
+          for (const [name, client] of [
+            ['pets', petsClient],
+            ['rescue', rescueClient],
+          ] as const) {
+            try {
+              client.close();
+            } catch (closeErr) {
+              logger.error(`${name} client close error`, { err: closeErr });
+            }
           }
           resolve();
         });

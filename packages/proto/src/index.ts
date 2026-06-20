@@ -357,6 +357,10 @@ export type {
   GetUserSwipeStatsResponse,
   GetSessionStatsRequest,
   GetSessionStatsResponse,
+  TopPick,
+  TopPickReasonChip,
+  GetTopPicksRequest,
+  GetTopPicksResponse,
   MatchingServiceServer,
   MatchingServiceClient,
 } from './generated/proto/adopt_dont_shop/matching/v1/matching.js';

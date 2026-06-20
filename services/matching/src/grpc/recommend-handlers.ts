@@ -27,6 +27,13 @@ import {
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
+import {
+  AGE_GROUP_TO_ENUM,
+  lookupToken,
+  SIZE_TO_ENUM,
+  SPECIES_TO_TYPE,
+  TYPE_TO_SPECIES,
+} from './pet-tokens.js';
 import type { PetsClient } from './pets-client.js';
 import { principalToMetadata } from './principal.js';
 import { scoreCandidates, type RecommendPreferences } from './recommend-scoring.js';
@@ -176,7 +183,8 @@ async function listPetsResponse(
 // — where the same pet can have many rows from repeat swipes — collapses
 // to one exclusion per pet. 'info' actions are trace views, not
 // decisions, so they don't exclude a pet from future recommendations.
-async function fetchSwipedPetIds(deps: HandlerDeps, userId: string): Promise<Set<string>> {
+// Exported so GetTopPicks applies the exact same exclusion rule.
+export async function fetchSwipedPetIds(deps: HandlerDeps, userId: string): Promise<Set<string>> {
   const { rows } = await deps.pool.query<{ pet_id: string }>(
     `SELECT DISTINCT pet_id
        FROM matching.swipe_actions
@@ -223,32 +231,6 @@ function readField(obj: object, key: string): unknown {
     : undefined;
 }
 
-const SPECIES_TO_TYPE: Record<string, PetsV1.PetType> = {
-  dog: PetsV1.PetType.PET_TYPE_DOG,
-  cat: PetsV1.PetType.PET_TYPE_CAT,
-  rabbit: PetsV1.PetType.PET_TYPE_RABBIT,
-  bird: PetsV1.PetType.PET_TYPE_BIRD,
-  reptile: PetsV1.PetType.PET_TYPE_REPTILE,
-  small_mammal: PetsV1.PetType.PET_TYPE_SMALL_MAMMAL,
-  fish: PetsV1.PetType.PET_TYPE_FISH,
-  other: PetsV1.PetType.PET_TYPE_OTHER,
-};
-
-const SIZE_TO_ENUM: Record<string, PetsV1.PetSize> = {
-  extra_small: PetsV1.PetSize.PET_SIZE_EXTRA_SMALL,
-  small: PetsV1.PetSize.PET_SIZE_SMALL,
-  medium: PetsV1.PetSize.PET_SIZE_MEDIUM,
-  large: PetsV1.PetSize.PET_SIZE_LARGE,
-  extra_large: PetsV1.PetSize.PET_SIZE_EXTRA_LARGE,
-};
-
-const AGE_GROUP_TO_ENUM: Record<string, PetsV1.PetAgeGroup> = {
-  baby: PetsV1.PetAgeGroup.PET_AGE_GROUP_BABY,
-  young: PetsV1.PetAgeGroup.PET_AGE_GROUP_YOUNG,
-  adult: PetsV1.PetAgeGroup.PET_AGE_GROUP_ADULT,
-  senior: PetsV1.PetAgeGroup.PET_AGE_GROUP_SENIOR,
-};
-
 function mapSpecies(value: unknown): PetsV1.PetType | undefined {
   return lookupToken(value, SPECIES_TO_TYPE);
 }
@@ -260,28 +242,6 @@ function mapSize(value: unknown): PetsV1.PetSize | undefined {
 function mapAgeGroup(value: unknown): PetsV1.PetAgeGroup | undefined {
   return lookupToken(value, AGE_GROUP_TO_ENUM);
 }
-
-function lookupToken<T>(value: unknown, table: Record<string, T>): T | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-  return table[value.trim().toLowerCase()];
-}
-
-// PetType enum → the lowercase species token PetCandidate.species
-// carries. UNSPECIFIED / UNRECOGNIZED fall back to 'unknown'.
-const TYPE_TO_SPECIES: Record<PetsV1.PetType, string> = {
-  [PetsV1.PetType.PET_TYPE_UNSPECIFIED]: 'unknown',
-  [PetsV1.PetType.PET_TYPE_DOG]: 'dog',
-  [PetsV1.PetType.PET_TYPE_CAT]: 'cat',
-  [PetsV1.PetType.PET_TYPE_RABBIT]: 'rabbit',
-  [PetsV1.PetType.PET_TYPE_BIRD]: 'bird',
-  [PetsV1.PetType.PET_TYPE_REPTILE]: 'reptile',
-  [PetsV1.PetType.PET_TYPE_SMALL_MAMMAL]: 'small_mammal',
-  [PetsV1.PetType.PET_TYPE_FISH]: 'fish',
-  [PetsV1.PetType.PET_TYPE_OTHER]: 'other',
-  [PetsV1.PetType.UNRECOGNIZED]: 'unknown',
-};
 
 // Pet (pets vertical) → PetCandidate (matching's swipe-card subset).
 // The pets Pet message has no plain `breed` name (only breedId) nor an

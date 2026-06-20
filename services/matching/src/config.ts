@@ -27,6 +27,10 @@ export type MatchingConfig = {
   // stateless compute, not a denormalised projection of pets).
   // Defaults to the same service-pets:6003 address the gateway uses.
   petsGrpcUrl: string;
+  // service.rescue gRPC URL — GetTopPicks resolves each pick's rescue
+  // name via RescueService.Get. Defaults to the same service-rescue:6004
+  // address the gateway uses.
+  rescueGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 5008;
@@ -35,6 +39,7 @@ const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_SCHEMA = 'matching';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
 const DEFAULT_PETS_GRPC_URL = 'service-pets:6003';
+const DEFAULT_RESCUE_GRPC_URL = 'service-rescue:6004';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): MatchingConfig => {
   const port = parsePort(env.MATCHING_PORT, DEFAULT_PORT, 'MATCHING_PORT');
@@ -51,5 +56,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): MatchingConfig
     schema: env.MATCHING_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     petsGrpcUrl: env.PETS_GRPC_URL?.trim() || DEFAULT_PETS_GRPC_URL,
+    rescueGrpcUrl: env.RESCUE_GRPC_URL?.trim() || DEFAULT_RESCUE_GRPC_URL,
   };
 };

@@ -3,6 +3,7 @@ export {
   analyticsService,
   applicationService,
   discoveryService,
+  matchingService,
   petService,
   rescueService,
   authService,

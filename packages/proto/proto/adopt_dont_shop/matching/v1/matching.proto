@@ -78,6 +78,16 @@ service MatchingService {
   // Aggregate swipe counts for a single session. Caller MUST own the
   // session (or be admin).
   rpc GetSessionStats(GetSessionStatsRequest) returns (GetSessionStatsResponse);
+
+  // --- Top picks ---------------------------------------------------------
+
+  // Get a short, personalised "top picks" list for the calling principal —
+  // distinct from Recommend (the swipe-queue feed): top picks reads the
+  // user's STORED match profile (preferred types/sizes/age groups/energy/
+  // temperament) rather than session filters, excludes already-swiped pets,
+  // and attaches reason chips explaining each pick. Stateless — no session
+  // required, no mutation.
+  rpc GetTopPicks(GetTopPicksRequest) returns (GetTopPicksResponse);
 }
 
 // ===== Enums =========================================================
@@ -325,6 +335,50 @@ message UpsertMatchProfileRequest {
 
 message UpsertMatchProfileResponse {
   MatchProfile profile = 1;
+}
+
+// ===== Top picks ======================================================
+
+// A reason chip explaining why a pick was surfaced. `kind` mirrors the
+// SPA's ReasonChipKind vocabulary (pref_match, lifestyle, distance,
+// similar_to_liked, fresh) as a lowercase string rather than an enum —
+// the chip set is presentation-driven and may grow without a proto
+// regen; `label` is the human-readable text the SPA renders verbatim.
+message TopPickReasonChip {
+  string kind = 1;
+  string label = 2;
+}
+
+// TopPick is the top-picks surface's per-pet payload — a superset of
+// PetCandidate's intent but independently shaped since top picks carries
+// size/age_group/reasons/rescue_name that PetCandidate does not.
+message TopPick {
+  string pet_id = 1;
+  string name = 2;
+  // Lowercase species/size/age-group tokens (same vocabulary as the
+  // filters_json the SPA sends elsewhere — e.g. 'dog', 'medium', 'adult').
+  string type = 3;
+  string age_group = 4;
+  string size = 5;
+  // The scorer's result for this pick, on [0.0, 1.0].
+  float score = 6;
+  repeated TopPickReasonChip reasons = 7;
+  string rescue_name = 8;
+  // Pets has no breed NAME (only breed_id) and no photo/image field, so
+  // these stay unset until that data is available — both are optional in
+  // the SPA's MatchTopPick type for exactly this reason.
+  optional string breed_name = 9;
+  optional string photo_url = 10;
+}
+
+message GetTopPicksRequest {
+  // Defaults to 10, max 50 — top picks is a short curated list, not a
+  // paginated feed.
+  uint32 limit = 1;
+}
+
+message GetTopPicksResponse {
+  repeated TopPick picks = 1;
 }
 
 // ===== Swipe statistics ==============================================

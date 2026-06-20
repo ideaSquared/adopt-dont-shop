@@ -10,7 +10,7 @@ import { PetCardSkeletonGrid } from '@/components/skeletons';
 import { useAuth } from '@adopt-dont-shop/lib.auth';
 import type { MatchTopPick } from '@adopt-dont-shop/lib.matching';
 import { useMatchPreferences } from '@/hooks/useMatchPreferences';
-import { apiService } from '@/services';
+import { matchingService } from '@/services';
 import { resolveFileUrl } from '@/utils/fileUtils';
 import * as styles from './TopPicksHomeModule.css';
 
@@ -55,11 +55,9 @@ export const TopPicksHomeModule: React.FC = () => {
       try {
         setLoading(true);
         setErrored(false);
-        const res = await apiService.get<{ data: MatchTopPick[] }>(
-          '/api/v1/match/top-picks?limit=3'
-        );
+        const data = await matchingService.getTopPicks(3);
         if (!cancelled) {
-          setPicks(res.data ?? []);
+          setPicks(data);
         }
       } catch {
         if (!cancelled) {

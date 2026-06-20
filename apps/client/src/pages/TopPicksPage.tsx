@@ -10,7 +10,7 @@ import {
 import type { MatchTopPick } from '@adopt-dont-shop/lib.matching';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { apiService } from '@/services';
+import { matchingService } from '@/services';
 import { resolveFileUrl } from '@/utils/fileUtils';
 import * as styles from './TopPicksPage.css';
 
@@ -51,11 +51,9 @@ export const TopPicksPage: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await apiService.get<{ data: MatchTopPick[] }>(
-          '/api/v1/match/top-picks?limit=10'
-        );
+        const data = await matchingService.getTopPicks(10);
         if (!cancelled) {
-          setPicks(res.data ?? []);
+          setPicks(data);
         }
       } catch (err) {
         if (!cancelled) {

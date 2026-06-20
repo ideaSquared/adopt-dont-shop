@@ -3,7 +3,7 @@ import { Alert, Button, Card, Spinner } from '@adopt-dont-shop/lib.components';
 import type { AdopterLifestyle } from '@adopt-dont-shop/lib.matching';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { apiService } from '@/services';
+import { matchingService } from '@/services';
 import * as styles from './OnboardingWizardPage.css';
 
 /**
@@ -230,44 +230,33 @@ export const OnboardingWizardPage: React.FC = () => {
     }
     const load = async () => {
       try {
-        const res = await apiService.get<{
-          data: {
-            preferred_types: string[] | null;
-            preferred_sizes: string[] | null;
-            preferred_age_groups: string[] | null;
-            preferred_energy: string[] | null;
-            lifestyle: AdopterLifestyle;
-            max_distance_km: number | null;
-            open_to_special_needs: boolean;
-            notify_new_matches: boolean;
-            allergies: string | null;
-          };
-        }>('/api/v1/match/profile');
-        const p = res.data;
-        // ADS-688: prefer the granular `*_type` field the wizard now persists.
-        // Fall back to the boolean for profiles created before that field
-        // existed (true → first non-"none" choice; false → "none").
-        const restoredChildren =
-          p.lifestyle?.children_type ?? (p.lifestyle?.has_children ? 'young' : 'none');
-        const restoredOtherPets =
-          p.lifestyle?.other_pets_type ?? (p.lifestyle?.has_other_pets ? 'dogs' : 'none');
-        setForm(f => ({
-          ...f,
-          preferred_types: p.preferred_types ?? [],
-          preferred_sizes: p.preferred_sizes ?? [],
-          preferred_age_groups: p.preferred_age_groups ?? [],
-          preferred_energy: p.preferred_energy ?? [],
-          housing_type: p.lifestyle?.housing_type ?? '',
-          has_children: restoredChildren,
-          has_other_pets: restoredOtherPets,
-          activity_level: p.lifestyle?.activity_level ?? '',
-          hours_alone_daily: p.lifestyle?.hours_alone_daily ?? 0,
-          yard: p.lifestyle?.yard ?? false,
-          max_distance_km: p.max_distance_km ?? '',
-          open_to_special_needs: !!p.open_to_special_needs,
-          notify_new_matches: !!p.notify_new_matches,
-          allergies: p.allergies ?? '',
-        }));
+        const p = await matchingService.getMatchProfile();
+        if (p) {
+          // ADS-688: prefer the granular `*_type` field the wizard now persists.
+          // Fall back to the boolean for profiles created before that field
+          // existed (true → first non-"none" choice; false → "none").
+          const restoredChildren =
+            p.lifestyle?.children_type ?? (p.lifestyle?.has_children ? 'young' : 'none');
+          const restoredOtherPets =
+            p.lifestyle?.other_pets_type ?? (p.lifestyle?.has_other_pets ? 'dogs' : 'none');
+          setForm(f => ({
+            ...f,
+            preferred_types: p.preferred_types ?? [],
+            preferred_sizes: p.preferred_sizes ?? [],
+            preferred_age_groups: p.preferred_age_groups ?? [],
+            preferred_energy: p.preferred_energy ?? [],
+            housing_type: p.lifestyle?.housing_type ?? '',
+            has_children: restoredChildren,
+            has_other_pets: restoredOtherPets,
+            activity_level: p.lifestyle?.activity_level ?? '',
+            hours_alone_daily: p.lifestyle?.hours_alone_daily ?? 0,
+            yard: p.lifestyle?.yard ?? false,
+            max_distance_km: p.max_distance_km ?? '',
+            open_to_special_needs: !!p.open_to_special_needs,
+            notify_new_matches: !!p.notify_new_matches,
+            allergies: p.allergies ?? '',
+          }));
+        }
       } catch {
         // First-time load — empty profile is fine.
       } finally {
@@ -361,7 +350,7 @@ export const OnboardingWizardPage: React.FC = () => {
     try {
       setSaving(true);
       setError(null);
-      await apiService.put('/api/v1/match/profile', buildPayload());
+      await matchingService.updateMatchProfile(buildPayload());
       navigate('/match/top-picks');
     } catch (err) {
       console.error('Failed to save match profile', err);
