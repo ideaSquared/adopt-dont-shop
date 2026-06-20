@@ -17,6 +17,10 @@ import { ApplicationsV1 } from '@adopt-dont-shop/proto';
 import type { ApplicationsConfig } from '../config.js';
 
 import { adapt } from './adapter.js';
+import {
+  getApplicationDefaults,
+  updateApplicationDefaults,
+} from './application-defaults-handlers.js';
 import { makeStartDraft, saveDraftAnswers, submitDraft } from './handlers.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
 import { addDocument, listDocuments, removeDocument } from './document-handlers.js';
@@ -74,6 +78,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     addDocument: adapt(addDocument, { deps, logger }),
     listDocuments: adapt(listDocuments, { deps, logger }),
     removeDocument: adapt(removeDocument, { deps, logger }),
+    // Application defaults (application-defaults-handlers.ts)
+    getApplicationDefaults: adapt(getApplicationDefaults, { deps, logger }),
+    updateApplicationDefaults: adapt(updateApplicationDefaults, { deps, logger }),
   });
 
   logger.info('gRPC ApplicationService registered', {
@@ -94,6 +101,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'addDocument',
       'listDocuments',
       'removeDocument',
+      'getApplicationDefaults',
+      'updateApplicationDefaults',
     ],
     grpcPort: config.grpcPort,
   });

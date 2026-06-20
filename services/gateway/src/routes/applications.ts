@@ -526,6 +526,55 @@ export const registerApplicationsRoutes = async (
       }
     }
   );
+
+  // ---------- Adopter application defaults ----------
+  //
+  // Reusable personal-info / living-situation / pet-experience / references
+  // data the SPA uses to pre-populate new applications (applicationProfileService.ts).
+  // Always scoped to the caller via x-user-id metadata — no id in the URL or body.
+
+  app.get(
+    '/api/v1/profile/application-defaults',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['applications'],
+        summary: "Get the caller's saved application defaults",
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.getApplicationDefaults({}, buildMetadata(req));
+        return reply.send({ data: res.defaultsJson === '' ? {} : JSON.parse(res.defaultsJson) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.put(
+    '/api/v1/profile/application-defaults',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: "Deep-merge a patch into the caller's saved application defaults",
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const patch = b.applicationDefaults ?? {};
+      try {
+        const res = await client.updateApplicationDefaults(
+          { defaultsPatchJson: JSON.stringify(patch) },
+          buildMetadata(req)
+        );
+        return reply.send({ data: JSON.parse(res.defaultsJson) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
 };
 
 // --- Helpers ---------------------------------------------------------

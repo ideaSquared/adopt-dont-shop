@@ -294,6 +294,10 @@ export type {
   ListDocumentsResponse,
   RemoveDocumentRequest,
   RemoveDocumentResponse,
+  GetApplicationDefaultsRequest,
+  GetApplicationDefaultsResponse,
+  UpdateApplicationDefaultsRequest,
+  UpdateApplicationDefaultsResponse,
   ApplicationServiceServer,
   ApplicationServiceClient,
 } from './generated/proto/adopt_dont_shop/applications/v1/application.js';
