@@ -51,6 +51,16 @@ import {
   type ListSessionsResponse,
   type RevokeSessionRequest,
   type RevokeSessionResponse,
+  type AdminListSessionsRequest,
+  type AdminListSessionsResponse,
+  type AdminRevokeSessionRequest,
+  type AdminRevokeSessionResponse,
+  type AdminRevokeAllUserSessionsRequest,
+  type AdminRevokeAllUserSessionsResponse,
+  type AdminLockAccountRequest,
+  type AdminLockAccountResponse,
+  type AdminUnlockAccountRequest,
+  type AdminUnlockAccountResponse,
   type GetPrivacyPreferencesRequest,
   type GetPrivacyPreferencesResponse,
   type UpdatePrivacyPreferencesRequest,
@@ -127,6 +137,26 @@ export type AuthClient = {
   updateAccount(req: UpdateAccountRequest, metadata: Metadata): Promise<UpdateAccountResponse>;
   listSessions(req: ListSessionsRequest, metadata: Metadata): Promise<ListSessionsResponse>;
   revokeSession(req: RevokeSessionRequest, metadata: Metadata): Promise<RevokeSessionResponse>;
+  adminListSessions(
+    req: AdminListSessionsRequest,
+    metadata: Metadata
+  ): Promise<AdminListSessionsResponse>;
+  adminRevokeSession(
+    req: AdminRevokeSessionRequest,
+    metadata: Metadata
+  ): Promise<AdminRevokeSessionResponse>;
+  adminRevokeAllUserSessions(
+    req: AdminRevokeAllUserSessionsRequest,
+    metadata: Metadata
+  ): Promise<AdminRevokeAllUserSessionsResponse>;
+  adminLockAccount(
+    req: AdminLockAccountRequest,
+    metadata: Metadata
+  ): Promise<AdminLockAccountResponse>;
+  adminUnlockAccount(
+    req: AdminUnlockAccountRequest,
+    metadata: Metadata
+  ): Promise<AdminUnlockAccountResponse>;
   getPrivacyPreferences(
     req: GetPrivacyPreferencesRequest,
     metadata: Metadata
@@ -270,6 +300,11 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     disableTwoFactor: (req, metadata) => callUnary(stub.disableTwoFactor, req, metadata, false),
     updateAccount: (req, metadata) => callUnary(stub.updateAccount, req, metadata, false),
     revokeSession: (req, metadata) => callUnary(stub.revokeSession, req, metadata, false),
+    adminRevokeSession: (req, metadata) => callUnary(stub.adminRevokeSession, req, metadata, false),
+    adminRevokeAllUserSessions: (req, metadata) =>
+      callUnary(stub.adminRevokeAllUserSessions, req, metadata, false),
+    adminLockAccount: (req, metadata) => callUnary(stub.adminLockAccount, req, metadata, false),
+    adminUnlockAccount: (req, metadata) => callUnary(stub.adminUnlockAccount, req, metadata, false),
     updatePrivacyPreferences: (req, metadata) =>
       callUnary(stub.updatePrivacyPreferences, req, metadata, false),
     resetPrivacyPreferences: (req, metadata) =>
@@ -290,6 +325,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     validateToken: (req, metadata) => callUnary(stub.validateToken, req, metadata, true),
     getMe: (req, metadata) => callUnary(stub.getMe, req, metadata, true),
     listSessions: (req, metadata) => callUnary(stub.listSessions, req, metadata, true),
+    adminListSessions: (req, metadata) => callUnary(stub.adminListSessions, req, metadata, true),
     getPrivacyPreferences: (req, metadata) =>
       callUnary(stub.getPrivacyPreferences, req, metadata, true),
     searchUsers: (req, metadata) => callUnary(stub.searchUsers, req, metadata, true),

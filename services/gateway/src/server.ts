@@ -74,6 +74,7 @@ import { registerReportsRoutes } from './routes/reports.js';
 import { registerRescueRoutes } from './routes/rescue.js';
 import { registerInvitationAcceptRoutes } from './routes/invitation-accept.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
+import { registerSecurityRoutes } from './routes/security.js';
 import { registerSessionsRoutes } from './routes/sessions.js';
 import { registerStaffFosterRoutes } from './routes/staff-foster.js';
 import { registerTestTokenPeekRoutes } from './routes/test-token-peek.js';
@@ -412,6 +413,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // service.auth (which owns the field_permissions table + lib.types
     // defaults).
     await registerFieldPermissionsRoutes(server, { client: opts.authClient });
+    // /api/v1/admin/security/* — Security Center sessions + account
+    // lockout. Same auth client; permission gating lives in the handlers.
+    await registerSecurityRoutes(server, { client: opts.authClient });
   }
   if (opts.notificationsClient) {
     await registerNotificationsRoutes(server, { client: opts.notificationsClient });

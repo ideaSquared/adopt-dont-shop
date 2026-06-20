@@ -5,12 +5,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 
-import { listSessions, revokeSession } from './session-handlers.js';
+import {
+  adminListSessions,
+  adminRevokeAllUserSessions,
+  adminRevokeSession,
+  listSessions,
+  revokeSession,
+} from './session-handlers.js';
 
 const PRINCIPAL: Principal = {
   userId: 'usr-1' as UserId,
   roles: ['adopter'],
   permissions: ['notifications.read' as Permission],
+};
+
+const SECURITY_ADMIN: Principal = {
+  userId: 'usr-admin' as UserId,
+  roles: ['admin'],
+  permissions: ['admin.security.read' as Permission, 'admin.security.manage' as Permission],
 };
 
 function makeClientQuery(): { fn: ReturnType<typeof vi.fn>; script: (rows: unknown[]) => void } {
@@ -153,5 +165,119 @@ describe('revokeSession', () => {
     });
     expect(watermarkCall?.[1]).toEqual(['usr-1']);
     expect(String(watermarkCall?.[0])).toMatch(/tokens_valid_from = now\(\)/);
+  });
+});
+
+const ADMIN_SESSION_ROW = {
+  token_id: 'tok-1',
+  family_id: 'fam-1',
+  user_id: 'usr-2',
+  email: 'target@example.com',
+  first_name: 'Target',
+  last_name: 'User',
+  expires_at: new Date('2026-12-31T00:00:00Z'),
+  created_at: new Date('2026-06-01T00:00:00Z'),
+};
+
+describe('adminListSessions', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('rejects without admin.security.read', async () => {
+    await expect(adminListSessions(mocks.deps, PRINCIPAL, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('lists sessions across all users with pagination', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ total: '1' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [ADMIN_SESSION_ROW] });
+
+    const res = await adminListSessions(mocks.deps, SECURITY_ADMIN, { page: 1, limit: 20 });
+    expect(res.total).toBe(1);
+    expect(res.sessions).toHaveLength(1);
+    expect(res.sessions?.[0]).toMatchObject({
+      sessionId: 'tok-1',
+      userId: 'usr-2',
+      email: 'target@example.com',
+      firstName: 'Target',
+    });
+    // No user_id filter param when omitted.
+    expect(mocks.poolMock.query.mock.calls[0][1]).toEqual([]);
+  });
+
+  it('filters to a single user when user_id is provided', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ total: '1' }] });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [ADMIN_SESSION_ROW] });
+
+    await adminListSessions(mocks.deps, SECURITY_ADMIN, { userId: 'usr-2', page: 1, limit: 20 });
+    expect(mocks.poolMock.query.mock.calls[0][1]).toEqual(['usr-2']);
+    expect(mocks.poolMock.query.mock.calls[1][1]).toEqual(['usr-2', 20, 0]);
+  });
+});
+
+describe('adminRevokeSession', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('rejects without admin.security.manage', async () => {
+    await expect(
+      adminRevokeSession(mocks.deps, PRINCIPAL, { sessionId: 'tok-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns NOT_FOUND for an unknown session id, regardless of owner', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      adminRevokeSession(mocks.deps, SECURITY_ADMIN, { sessionId: 'ghost' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it("revokes another user's session and publishes auth.sessionRevokedByAdmin", async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ family_id: 'fam-1', user_id: 'usr-2', is_revoked: false }],
+    });
+    mocks.clientScript([]);
+
+    const res = await adminRevokeSession(mocks.deps, SECURITY_ADMIN, { sessionId: 'tok-1' });
+    expect(res.sessionId).toBe('tok-1');
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.sessionRevokedByAdmin');
+    const watermarkCall = mocks.clientMock.query.mock.calls.find(c => {
+      const sql = String(c[0]);
+      return sql.includes('UPDATE') && sql.includes('auth.users');
+    });
+    expect(watermarkCall?.[1]).toEqual(['usr-2']);
+  });
+});
+
+describe('adminRevokeAllUserSessions', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('rejects without admin.security.manage', async () => {
+    await expect(
+      adminRevokeAllUserSessions(mocks.deps, PRINCIPAL, { userId: 'usr-2' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns revoked_count 0 and skips the update when there are no active chains', async () => {
+    mocks.clientScript([]);
+    const res = await adminRevokeAllUserSessions(mocks.deps, SECURITY_ADMIN, { userId: 'usr-2' });
+    expect(res.revokedCount).toBe(0);
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('revokes every active chain and publishes auth.allSessionsRevokedByAdmin', async () => {
+    mocks.clientScript([{ family_id: 'fam-1' }, { family_id: 'fam-2' }]);
+
+    const res = await adminRevokeAllUserSessions(mocks.deps, SECURITY_ADMIN, { userId: 'usr-2' });
+    expect(res.revokedCount).toBe(2);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.allSessionsRevokedByAdmin');
   });
 });

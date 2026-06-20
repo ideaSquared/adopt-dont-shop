@@ -854,6 +854,73 @@ export interface BulkUpdateUsersResponse {
 }
 
 /**
+ * A session row joined with the owning user's identity, for the admin
+ * cross-user view. session_id/family_id/expires_at/created_at mirror
+ * Session; the rest is denormalised from auth.users.
+ */
+export interface AdminSessionInfo {
+  sessionId: string;
+  familyId: string;
+  userId: string;
+  email: string;
+  firstName?: string | undefined;
+  lastName?: string | undefined;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface AdminListSessionsRequest {
+  /** Omit to list across all users. */
+  userId?: string | undefined;
+  page: number;
+  limit: number;
+}
+
+export interface AdminListSessionsResponse {
+  sessions: AdminSessionInfo[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface AdminRevokeSessionRequest {
+  sessionId: string;
+}
+
+export interface AdminRevokeSessionResponse {
+  sessionId: string;
+}
+
+export interface AdminRevokeAllUserSessionsRequest {
+  userId: string;
+}
+
+export interface AdminRevokeAllUserSessionsResponse {
+  revokedCount: number;
+}
+
+export interface AdminLockAccountRequest {
+  userId: string;
+  reason?: string | undefined;
+}
+
+export interface AdminLockAccountResponse {
+  user?: User | undefined;
+}
+
+export interface AdminUnlockAccountRequest {
+  userId: string;
+}
+
+export interface AdminUnlockAccountResponse {
+  /**
+   * True if the account was actually locked (manually or via soft-lock)
+   * before this call; false if it was a no-op.
+   */
+  wasLocked: boolean;
+}
+
+/**
  * A single stored override row. role is a free-text string (matches the
  * monolith's `field_permissions.role` varchar) since the role universe
  * is wider than the gRPC UserRole enum (e.g. moderator, support_agent).
@@ -7668,6 +7735,1018 @@ export const BulkUpdateUsersResponse: MessageFns<BulkUpdateUsersResponse> = {
   },
 };
 
+function createBaseAdminSessionInfo(): AdminSessionInfo {
+  return {
+    sessionId: '',
+    familyId: '',
+    userId: '',
+    email: '',
+    firstName: undefined,
+    lastName: undefined,
+    expiresAt: '',
+    createdAt: '',
+  };
+}
+
+export const AdminSessionInfo: MessageFns<AdminSessionInfo> = {
+  encode(message: AdminSessionInfo, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.sessionId !== '') {
+      writer.uint32(10).string(message.sessionId);
+    }
+    if (message.familyId !== '') {
+      writer.uint32(18).string(message.familyId);
+    }
+    if (message.userId !== '') {
+      writer.uint32(26).string(message.userId);
+    }
+    if (message.email !== '') {
+      writer.uint32(34).string(message.email);
+    }
+    if (message.firstName !== undefined) {
+      writer.uint32(42).string(message.firstName);
+    }
+    if (message.lastName !== undefined) {
+      writer.uint32(50).string(message.lastName);
+    }
+    if (message.expiresAt !== '') {
+      writer.uint32(58).string(message.expiresAt);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(66).string(message.createdAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminSessionInfo {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminSessionInfo();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.familyId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.expiresAt = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminSessionInfo {
+    return {
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+          ? globalThis.String(object.session_id)
+          : '',
+      familyId: isSet(object.familyId)
+        ? globalThis.String(object.familyId)
+        : isSet(object.family_id)
+          ? globalThis.String(object.family_id)
+          : '',
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      email: isSet(object.email) ? globalThis.String(object.email) : '',
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+          ? globalThis.String(object.first_name)
+          : undefined,
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+          ? globalThis.String(object.last_name)
+          : undefined,
+      expiresAt: isSet(object.expiresAt)
+        ? globalThis.String(object.expiresAt)
+        : isSet(object.expires_at)
+          ? globalThis.String(object.expires_at)
+          : '',
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+    };
+  },
+
+  toJSON(message: AdminSessionInfo): unknown {
+    const obj: any = {};
+    if (message.sessionId !== '') {
+      obj.sessionId = message.sessionId;
+    }
+    if (message.familyId !== '') {
+      obj.familyId = message.familyId;
+    }
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.email !== '') {
+      obj.email = message.email;
+    }
+    if (message.firstName !== undefined) {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== undefined) {
+      obj.lastName = message.lastName;
+    }
+    if (message.expiresAt !== '') {
+      obj.expiresAt = message.expiresAt;
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminSessionInfo>, I>>(base?: I): AdminSessionInfo {
+    return AdminSessionInfo.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminSessionInfo>, I>>(object: I): AdminSessionInfo {
+    const message = createBaseAdminSessionInfo();
+    message.sessionId = object.sessionId ?? '';
+    message.familyId = object.familyId ?? '';
+    message.userId = object.userId ?? '';
+    message.email = object.email ?? '';
+    message.firstName = object.firstName ?? undefined;
+    message.lastName = object.lastName ?? undefined;
+    message.expiresAt = object.expiresAt ?? '';
+    message.createdAt = object.createdAt ?? '';
+    return message;
+  },
+};
+
+function createBaseAdminListSessionsRequest(): AdminListSessionsRequest {
+  return { userId: undefined, page: 0, limit: 0 };
+}
+
+export const AdminListSessionsRequest: MessageFns<AdminListSessionsRequest> = {
+  encode(
+    message: AdminListSessionsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.page !== 0) {
+      writer.uint32(16).uint32(message.page);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(24).uint32(message.limit);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminListSessionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminListSessionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminListSessionsRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : undefined,
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+    };
+  },
+
+  toJSON(message: AdminListSessionsRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminListSessionsRequest>, I>>(
+    base?: I
+  ): AdminListSessionsRequest {
+    return AdminListSessionsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminListSessionsRequest>, I>>(
+    object: I
+  ): AdminListSessionsRequest {
+    const message = createBaseAdminListSessionsRequest();
+    message.userId = object.userId ?? undefined;
+    message.page = object.page ?? 0;
+    message.limit = object.limit ?? 0;
+    return message;
+  },
+};
+
+function createBaseAdminListSessionsResponse(): AdminListSessionsResponse {
+  return { sessions: [], total: 0, page: 0, totalPages: 0 };
+}
+
+export const AdminListSessionsResponse: MessageFns<AdminListSessionsResponse> = {
+  encode(
+    message: AdminListSessionsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.sessions) {
+      AdminSessionInfo.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.total !== 0) {
+      writer.uint32(16).uint32(message.total);
+    }
+    if (message.page !== 0) {
+      writer.uint32(24).uint32(message.page);
+    }
+    if (message.totalPages !== 0) {
+      writer.uint32(32).uint32(message.totalPages);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminListSessionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminListSessionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sessions.push(AdminSessionInfo.decode(reader, reader.uint32()));
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.page = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.totalPages = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminListSessionsResponse {
+    return {
+      sessions: globalThis.Array.isArray(object?.sessions)
+        ? object.sessions.map((e: any) => AdminSessionInfo.fromJSON(e))
+        : [],
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+      page: isSet(object.page) ? globalThis.Number(object.page) : 0,
+      totalPages: isSet(object.totalPages)
+        ? globalThis.Number(object.totalPages)
+        : isSet(object.total_pages)
+          ? globalThis.Number(object.total_pages)
+          : 0,
+    };
+  },
+
+  toJSON(message: AdminListSessionsResponse): unknown {
+    const obj: any = {};
+    if (message.sessions?.length) {
+      obj.sessions = message.sessions.map(e => AdminSessionInfo.toJSON(e));
+    }
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    if (message.page !== 0) {
+      obj.page = Math.round(message.page);
+    }
+    if (message.totalPages !== 0) {
+      obj.totalPages = Math.round(message.totalPages);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminListSessionsResponse>, I>>(
+    base?: I
+  ): AdminListSessionsResponse {
+    return AdminListSessionsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminListSessionsResponse>, I>>(
+    object: I
+  ): AdminListSessionsResponse {
+    const message = createBaseAdminListSessionsResponse();
+    message.sessions = object.sessions?.map(e => AdminSessionInfo.fromPartial(e)) || [];
+    message.total = object.total ?? 0;
+    message.page = object.page ?? 0;
+    message.totalPages = object.totalPages ?? 0;
+    return message;
+  },
+};
+
+function createBaseAdminRevokeSessionRequest(): AdminRevokeSessionRequest {
+  return { sessionId: '' };
+}
+
+export const AdminRevokeSessionRequest: MessageFns<AdminRevokeSessionRequest> = {
+  encode(
+    message: AdminRevokeSessionRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
+      writer.uint32(10).string(message.sessionId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminRevokeSessionRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminRevokeSessionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminRevokeSessionRequest {
+    return {
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+          ? globalThis.String(object.session_id)
+          : '',
+    };
+  },
+
+  toJSON(message: AdminRevokeSessionRequest): unknown {
+    const obj: any = {};
+    if (message.sessionId !== '') {
+      obj.sessionId = message.sessionId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminRevokeSessionRequest>, I>>(
+    base?: I
+  ): AdminRevokeSessionRequest {
+    return AdminRevokeSessionRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminRevokeSessionRequest>, I>>(
+    object: I
+  ): AdminRevokeSessionRequest {
+    const message = createBaseAdminRevokeSessionRequest();
+    message.sessionId = object.sessionId ?? '';
+    return message;
+  },
+};
+
+function createBaseAdminRevokeSessionResponse(): AdminRevokeSessionResponse {
+  return { sessionId: '' };
+}
+
+export const AdminRevokeSessionResponse: MessageFns<AdminRevokeSessionResponse> = {
+  encode(
+    message: AdminRevokeSessionResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sessionId !== '') {
+      writer.uint32(10).string(message.sessionId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminRevokeSessionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminRevokeSessionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sessionId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminRevokeSessionResponse {
+    return {
+      sessionId: isSet(object.sessionId)
+        ? globalThis.String(object.sessionId)
+        : isSet(object.session_id)
+          ? globalThis.String(object.session_id)
+          : '',
+    };
+  },
+
+  toJSON(message: AdminRevokeSessionResponse): unknown {
+    const obj: any = {};
+    if (message.sessionId !== '') {
+      obj.sessionId = message.sessionId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminRevokeSessionResponse>, I>>(
+    base?: I
+  ): AdminRevokeSessionResponse {
+    return AdminRevokeSessionResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminRevokeSessionResponse>, I>>(
+    object: I
+  ): AdminRevokeSessionResponse {
+    const message = createBaseAdminRevokeSessionResponse();
+    message.sessionId = object.sessionId ?? '';
+    return message;
+  },
+};
+
+function createBaseAdminRevokeAllUserSessionsRequest(): AdminRevokeAllUserSessionsRequest {
+  return { userId: '' };
+}
+
+export const AdminRevokeAllUserSessionsRequest: MessageFns<AdminRevokeAllUserSessionsRequest> = {
+  encode(
+    message: AdminRevokeAllUserSessionsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminRevokeAllUserSessionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminRevokeAllUserSessionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminRevokeAllUserSessionsRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+    };
+  },
+
+  toJSON(message: AdminRevokeAllUserSessionsRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminRevokeAllUserSessionsRequest>, I>>(
+    base?: I
+  ): AdminRevokeAllUserSessionsRequest {
+    return AdminRevokeAllUserSessionsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminRevokeAllUserSessionsRequest>, I>>(
+    object: I
+  ): AdminRevokeAllUserSessionsRequest {
+    const message = createBaseAdminRevokeAllUserSessionsRequest();
+    message.userId = object.userId ?? '';
+    return message;
+  },
+};
+
+function createBaseAdminRevokeAllUserSessionsResponse(): AdminRevokeAllUserSessionsResponse {
+  return { revokedCount: 0 };
+}
+
+export const AdminRevokeAllUserSessionsResponse: MessageFns<AdminRevokeAllUserSessionsResponse> = {
+  encode(
+    message: AdminRevokeAllUserSessionsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.revokedCount !== 0) {
+      writer.uint32(8).uint32(message.revokedCount);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminRevokeAllUserSessionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminRevokeAllUserSessionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.revokedCount = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminRevokeAllUserSessionsResponse {
+    return {
+      revokedCount: isSet(object.revokedCount)
+        ? globalThis.Number(object.revokedCount)
+        : isSet(object.revoked_count)
+          ? globalThis.Number(object.revoked_count)
+          : 0,
+    };
+  },
+
+  toJSON(message: AdminRevokeAllUserSessionsResponse): unknown {
+    const obj: any = {};
+    if (message.revokedCount !== 0) {
+      obj.revokedCount = Math.round(message.revokedCount);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminRevokeAllUserSessionsResponse>, I>>(
+    base?: I
+  ): AdminRevokeAllUserSessionsResponse {
+    return AdminRevokeAllUserSessionsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminRevokeAllUserSessionsResponse>, I>>(
+    object: I
+  ): AdminRevokeAllUserSessionsResponse {
+    const message = createBaseAdminRevokeAllUserSessionsResponse();
+    message.revokedCount = object.revokedCount ?? 0;
+    return message;
+  },
+};
+
+function createBaseAdminLockAccountRequest(): AdminLockAccountRequest {
+  return { userId: '', reason: undefined };
+}
+
+export const AdminLockAccountRequest: MessageFns<AdminLockAccountRequest> = {
+  encode(
+    message: AdminLockAccountRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.reason !== undefined) {
+      writer.uint32(18).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminLockAccountRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminLockAccountRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminLockAccountRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
+    };
+  },
+
+  toJSON(message: AdminLockAccountRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.reason !== undefined) {
+      obj.reason = message.reason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminLockAccountRequest>, I>>(
+    base?: I
+  ): AdminLockAccountRequest {
+    return AdminLockAccountRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminLockAccountRequest>, I>>(
+    object: I
+  ): AdminLockAccountRequest {
+    const message = createBaseAdminLockAccountRequest();
+    message.userId = object.userId ?? '';
+    message.reason = object.reason ?? undefined;
+    return message;
+  },
+};
+
+function createBaseAdminLockAccountResponse(): AdminLockAccountResponse {
+  return { user: undefined };
+}
+
+export const AdminLockAccountResponse: MessageFns<AdminLockAccountResponse> = {
+  encode(
+    message: AdminLockAccountResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminLockAccountResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminLockAccountResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminLockAccountResponse {
+    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+  },
+
+  toJSON(message: AdminLockAccountResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminLockAccountResponse>, I>>(
+    base?: I
+  ): AdminLockAccountResponse {
+    return AdminLockAccountResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminLockAccountResponse>, I>>(
+    object: I
+  ): AdminLockAccountResponse {
+    const message = createBaseAdminLockAccountResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    return message;
+  },
+};
+
+function createBaseAdminUnlockAccountRequest(): AdminUnlockAccountRequest {
+  return { userId: '' };
+}
+
+export const AdminUnlockAccountRequest: MessageFns<AdminUnlockAccountRequest> = {
+  encode(
+    message: AdminUnlockAccountRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminUnlockAccountRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminUnlockAccountRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminUnlockAccountRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+    };
+  },
+
+  toJSON(message: AdminUnlockAccountRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminUnlockAccountRequest>, I>>(
+    base?: I
+  ): AdminUnlockAccountRequest {
+    return AdminUnlockAccountRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminUnlockAccountRequest>, I>>(
+    object: I
+  ): AdminUnlockAccountRequest {
+    const message = createBaseAdminUnlockAccountRequest();
+    message.userId = object.userId ?? '';
+    return message;
+  },
+};
+
+function createBaseAdminUnlockAccountResponse(): AdminUnlockAccountResponse {
+  return { wasLocked: false };
+}
+
+export const AdminUnlockAccountResponse: MessageFns<AdminUnlockAccountResponse> = {
+  encode(
+    message: AdminUnlockAccountResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.wasLocked !== false) {
+      writer.uint32(8).bool(message.wasLocked);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminUnlockAccountResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminUnlockAccountResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.wasLocked = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminUnlockAccountResponse {
+    return {
+      wasLocked: isSet(object.wasLocked)
+        ? globalThis.Boolean(object.wasLocked)
+        : isSet(object.was_locked)
+          ? globalThis.Boolean(object.was_locked)
+          : false,
+    };
+  },
+
+  toJSON(message: AdminUnlockAccountResponse): unknown {
+    const obj: any = {};
+    if (message.wasLocked !== false) {
+      obj.wasLocked = message.wasLocked;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminUnlockAccountResponse>, I>>(
+    base?: I
+  ): AdminUnlockAccountResponse {
+    return AdminUnlockAccountResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminUnlockAccountResponse>, I>>(
+    object: I
+  ): AdminUnlockAccountResponse {
+    const message = createBaseAdminUnlockAccountResponse();
+    message.wasLocked = object.wasLocked ?? false;
+    return message;
+  },
+};
+
 function createBaseFieldPermission(): FieldPermission {
   return {
     fieldPermissionId: 0,
@@ -9871,6 +10950,89 @@ export const AuthServiceService = {
       AdminResetPasswordResponse.decode(value),
   },
   /**
+   * List sessions across all users (optionally filtered to one), paginated.
+   * Same chain-root semantics as ListSessions. admin.security.read.
+   */
+  adminListSessions: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/AdminListSessions' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AdminListSessionsRequest): Buffer =>
+      Buffer.from(AdminListSessionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AdminListSessionsRequest =>
+      AdminListSessionsRequest.decode(value),
+    responseSerialize: (value: AdminListSessionsResponse): Buffer =>
+      Buffer.from(AdminListSessionsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AdminListSessionsResponse =>
+      AdminListSessionsResponse.decode(value),
+  },
+  /**
+   * Revoke any session by id, regardless of owner. admin.security.manage.
+   * Unlike the self-service RevokeSession, a missing id is NOT_FOUND (no
+   * need to hide cross-user existence from an admin caller).
+   */
+  adminRevokeSession: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/AdminRevokeSession' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AdminRevokeSessionRequest): Buffer =>
+      Buffer.from(AdminRevokeSessionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AdminRevokeSessionRequest =>
+      AdminRevokeSessionRequest.decode(value),
+    responseSerialize: (value: AdminRevokeSessionResponse): Buffer =>
+      Buffer.from(AdminRevokeSessionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AdminRevokeSessionResponse =>
+      AdminRevokeSessionResponse.decode(value),
+  },
+  /** Revoke every active session a user has. admin.security.manage. */
+  adminRevokeAllUserSessions: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/AdminRevokeAllUserSessions' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AdminRevokeAllUserSessionsRequest): Buffer =>
+      Buffer.from(AdminRevokeAllUserSessionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AdminRevokeAllUserSessionsRequest =>
+      AdminRevokeAllUserSessionsRequest.decode(value),
+    responseSerialize: (value: AdminRevokeAllUserSessionsResponse): Buffer =>
+      Buffer.from(AdminRevokeAllUserSessionsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AdminRevokeAllUserSessionsResponse =>
+      AdminRevokeAllUserSessionsResponse.decode(value),
+  },
+  /**
+   * Force-lock an account (sets locked_until far in the future, blocking
+   * Login regardless of password correctness). admin.security.manage.
+   */
+  adminLockAccount: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/AdminLockAccount' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AdminLockAccountRequest): Buffer =>
+      Buffer.from(AdminLockAccountRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AdminLockAccountRequest =>
+      AdminLockAccountRequest.decode(value),
+    responseSerialize: (value: AdminLockAccountResponse): Buffer =>
+      Buffer.from(AdminLockAccountResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AdminLockAccountResponse =>
+      AdminLockAccountResponse.decode(value),
+  },
+  /**
+   * Clear a lockout (manual or soft-lock from failed attempts) and reset
+   * the failure counter. admin.security.manage.
+   */
+  adminUnlockAccount: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/AdminUnlockAccount' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AdminUnlockAccountRequest): Buffer =>
+      Buffer.from(AdminUnlockAccountRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AdminUnlockAccountRequest =>
+      AdminUnlockAccountRequest.decode(value),
+    responseSerialize: (value: AdminUnlockAccountResponse): Buffer =>
+      Buffer.from(AdminUnlockAccountResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AdminUnlockAccountResponse =>
+      AdminUnlockAccountResponse.decode(value),
+  },
+  /**
    * Returns the full default field-permission configuration (the
    * hard-coded source-of-truth lib.types ships). Admin-only.
    * admin.field_permissions.read.
@@ -10172,6 +11334,32 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * admin.users.update. Refuses resetting your own account via this path.
    */
   adminResetPassword: handleUnaryCall<AdminResetPasswordRequest, AdminResetPasswordResponse>;
+  /**
+   * List sessions across all users (optionally filtered to one), paginated.
+   * Same chain-root semantics as ListSessions. admin.security.read.
+   */
+  adminListSessions: handleUnaryCall<AdminListSessionsRequest, AdminListSessionsResponse>;
+  /**
+   * Revoke any session by id, regardless of owner. admin.security.manage.
+   * Unlike the self-service RevokeSession, a missing id is NOT_FOUND (no
+   * need to hide cross-user existence from an admin caller).
+   */
+  adminRevokeSession: handleUnaryCall<AdminRevokeSessionRequest, AdminRevokeSessionResponse>;
+  /** Revoke every active session a user has. admin.security.manage. */
+  adminRevokeAllUserSessions: handleUnaryCall<
+    AdminRevokeAllUserSessionsRequest,
+    AdminRevokeAllUserSessionsResponse
+  >;
+  /**
+   * Force-lock an account (sets locked_until far in the future, blocking
+   * Login regardless of password correctness). admin.security.manage.
+   */
+  adminLockAccount: handleUnaryCall<AdminLockAccountRequest, AdminLockAccountResponse>;
+  /**
+   * Clear a lockout (manual or soft-lock from failed attempts) and reset
+   * the failure counter. admin.security.manage.
+   */
+  adminUnlockAccount: handleUnaryCall<AdminUnlockAccountRequest, AdminUnlockAccountResponse>;
   /**
    * Returns the full default field-permission configuration (the
    * hard-coded source-of-truth lib.types ships). Admin-only.
@@ -10823,6 +12011,99 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: AdminResetPasswordResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * List sessions across all users (optionally filtered to one), paginated.
+   * Same chain-root semantics as ListSessions. admin.security.read.
+   */
+  adminListSessions(
+    request: AdminListSessionsRequest,
+    callback: (error: ServiceError | null, response: AdminListSessionsResponse) => void
+  ): ClientUnaryCall;
+  adminListSessions(
+    request: AdminListSessionsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AdminListSessionsResponse) => void
+  ): ClientUnaryCall;
+  adminListSessions(
+    request: AdminListSessionsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AdminListSessionsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Revoke any session by id, regardless of owner. admin.security.manage.
+   * Unlike the self-service RevokeSession, a missing id is NOT_FOUND (no
+   * need to hide cross-user existence from an admin caller).
+   */
+  adminRevokeSession(
+    request: AdminRevokeSessionRequest,
+    callback: (error: ServiceError | null, response: AdminRevokeSessionResponse) => void
+  ): ClientUnaryCall;
+  adminRevokeSession(
+    request: AdminRevokeSessionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AdminRevokeSessionResponse) => void
+  ): ClientUnaryCall;
+  adminRevokeSession(
+    request: AdminRevokeSessionRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AdminRevokeSessionResponse) => void
+  ): ClientUnaryCall;
+  /** Revoke every active session a user has. admin.security.manage. */
+  adminRevokeAllUserSessions(
+    request: AdminRevokeAllUserSessionsRequest,
+    callback: (error: ServiceError | null, response: AdminRevokeAllUserSessionsResponse) => void
+  ): ClientUnaryCall;
+  adminRevokeAllUserSessions(
+    request: AdminRevokeAllUserSessionsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AdminRevokeAllUserSessionsResponse) => void
+  ): ClientUnaryCall;
+  adminRevokeAllUserSessions(
+    request: AdminRevokeAllUserSessionsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AdminRevokeAllUserSessionsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Force-lock an account (sets locked_until far in the future, blocking
+   * Login regardless of password correctness). admin.security.manage.
+   */
+  adminLockAccount(
+    request: AdminLockAccountRequest,
+    callback: (error: ServiceError | null, response: AdminLockAccountResponse) => void
+  ): ClientUnaryCall;
+  adminLockAccount(
+    request: AdminLockAccountRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AdminLockAccountResponse) => void
+  ): ClientUnaryCall;
+  adminLockAccount(
+    request: AdminLockAccountRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AdminLockAccountResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Clear a lockout (manual or soft-lock from failed attempts) and reset
+   * the failure counter. admin.security.manage.
+   */
+  adminUnlockAccount(
+    request: AdminUnlockAccountRequest,
+    callback: (error: ServiceError | null, response: AdminUnlockAccountResponse) => void
+  ): ClientUnaryCall;
+  adminUnlockAccount(
+    request: AdminUnlockAccountRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AdminUnlockAccountResponse) => void
+  ): ClientUnaryCall;
+  adminUnlockAccount(
+    request: AdminUnlockAccountRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AdminUnlockAccountResponse) => void
   ): ClientUnaryCall;
   /**
    * Returns the full default field-permission configuration (the

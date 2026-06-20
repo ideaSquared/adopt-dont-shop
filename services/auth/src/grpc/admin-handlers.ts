@@ -16,8 +16,12 @@ import {
   AuthV1,
   type AdminGetUserRequest,
   type AdminGetUserResponse,
+  type AdminLockAccountRequest,
+  type AdminLockAccountResponse,
   type AdminResetPasswordRequest,
   type AdminResetPasswordResponse,
+  type AdminUnlockAccountRequest,
+  type AdminUnlockAccountResponse,
   type AdminUpdateUserRequest,
   type AdminUpdateUserResponse,
   type BulkUpdateUsersRequest,
@@ -53,6 +57,7 @@ const ADMIN_USERS_UPDATE: Permission = 'admin.users.update' as Permission;
 const ADMIN_USERS_DEACTIVATE: Permission = 'admin.users.deactivate' as Permission;
 const ADMIN_USERS_REACTIVATE: Permission = 'admin.users.reactivate' as Permission;
 const ADMIN_USERS_BULK_UPDATE: Permission = 'admin.users.bulk_update' as Permission;
+const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;
 
 // Columns the admin view selects — same set rowToProtoUser reads.
 const USER_SELECT = `
@@ -408,6 +413,103 @@ export async function adminResetPassword(
   });
 
   return { temporaryPassword };
+}
+
+// --- AdminLockAccount / AdminUnlockAccount ----------------------------
+// Manual lockout control for the Security Center. Reuses the same
+// locked_until column the login soft-lock backoff writes — a far-future
+// timestamp blocks Login regardless of password correctness (see
+// handlers.ts login()), and clearing it (+ resetting login_attempts)
+// undoes either a manual or soft-lock.
+
+const FORCE_LOCK_DURATION = '100 years';
+
+export async function adminLockAccount(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: AdminLockAccountRequest
+): Promise<AdminLockAccountResponse> {
+  if (!req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
+  }
+  if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
+  }
+  if (req.userId === principal.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'cannot lock your own account');
+  }
+
+  let updated: UserRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    const res = await client.query<UserRow>(
+      `
+      UPDATE auth.users
+      SET locked_until = now() + interval '${FORCE_LOCK_DURATION}', updated_at = now()
+      WHERE user_id = $1 AND deleted_at IS NULL
+      RETURNING ${USER_SELECT}
+      `,
+      [req.userId]
+    );
+    if (res.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
+    }
+    updated = res.rows[0];
+
+    publish({
+      type: 'auth.accountLockedByAdmin',
+      id: `auth.accountLockedByAdmin.${req.userId}.${Date.now()}`,
+      payload: { userId: req.userId, lockedBy: principal.userId, reason: req.reason ?? null },
+    });
+  });
+
+  if (!updated) {
+    throw new HandlerError('INTERNAL', 'lock update returned no rows');
+  }
+  return { user: rowToProtoUser(updated) };
+}
+
+export async function adminUnlockAccount(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: AdminUnlockAccountRequest
+): Promise<AdminUnlockAccountResponse> {
+  if (!req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
+  }
+  if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
+  }
+
+  const current = await deps.pool.query<{ locked_until: Date | null }>(
+    `SELECT locked_until FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
+    [req.userId]
+  );
+  if (current.rows.length === 0) {
+    throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
+  }
+  const wasLocked = Boolean(
+    current.rows[0].locked_until && current.rows[0].locked_until > new Date()
+  );
+  if (!wasLocked) {
+    return { wasLocked: false };
+  }
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    await client.query(
+      `UPDATE auth.users
+       SET locked_until = NULL, login_attempts = 0, updated_at = now()
+       WHERE user_id = $1`,
+      [req.userId]
+    );
+
+    publish({
+      type: 'auth.accountUnlockedByAdmin',
+      id: `auth.accountUnlockedByAdmin.${req.userId}.${Date.now()}`,
+      payload: { userId: req.userId, unlockedBy: principal.userId },
+    });
+  });
+
+  return { wasLocked: true };
 }
 
 // --- GetUserStatistics -----------------------------------------------

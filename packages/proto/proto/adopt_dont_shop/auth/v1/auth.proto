@@ -188,6 +188,31 @@ service AuthService {
   // admin.users.update. Refuses resetting your own account via this path.
   rpc AdminResetPassword(AdminResetPasswordRequest) returns (AdminResetPasswordResponse);
 
+  // --- Admin security management ---------------------------------------
+  // Security Center surface: cross-user session visibility/revocation
+  // plus manual lockout control. All gated on admin.security.*.
+
+  // List sessions across all users (optionally filtered to one), paginated.
+  // Same chain-root semantics as ListSessions. admin.security.read.
+  rpc AdminListSessions(AdminListSessionsRequest) returns (AdminListSessionsResponse);
+
+  // Revoke any session by id, regardless of owner. admin.security.manage.
+  // Unlike the self-service RevokeSession, a missing id is NOT_FOUND (no
+  // need to hide cross-user existence from an admin caller).
+  rpc AdminRevokeSession(AdminRevokeSessionRequest) returns (AdminRevokeSessionResponse);
+
+  // Revoke every active session a user has. admin.security.manage.
+  rpc AdminRevokeAllUserSessions(AdminRevokeAllUserSessionsRequest)
+    returns (AdminRevokeAllUserSessionsResponse);
+
+  // Force-lock an account (sets locked_until far in the future, blocking
+  // Login regardless of password correctness). admin.security.manage.
+  rpc AdminLockAccount(AdminLockAccountRequest) returns (AdminLockAccountResponse);
+
+  // Clear a lockout (manual or soft-lock from failed attempts) and reset
+  // the failure counter. admin.security.manage.
+  rpc AdminUnlockAccount(AdminUnlockAccountRequest) returns (AdminUnlockAccountResponse);
+
   // --- Field permissions admin -----------------------------------------
 
   // Returns the full default field-permission configuration (the
@@ -787,6 +812,71 @@ message BulkUpdateUsersResponse {
   uint32 success_count = 1;
   uint32 failed_count = 2;
   repeated BulkUpdateUserResult results = 3;
+}
+
+// --- Admin security management ----------------------------------------
+
+// A session row joined with the owning user's identity, for the admin
+// cross-user view. session_id/family_id/expires_at/created_at mirror
+// Session; the rest is denormalised from auth.users.
+message AdminSessionInfo {
+  string session_id = 1;
+  string family_id = 2;
+  string user_id = 3;
+  string email = 4;
+  optional string first_name = 5;
+  optional string last_name = 6;
+  string expires_at = 7;
+  string created_at = 8;
+}
+
+message AdminListSessionsRequest {
+  // Omit to list across all users.
+  optional string user_id = 1;
+  uint32 page = 2;
+  uint32 limit = 3;
+}
+
+message AdminListSessionsResponse {
+  repeated AdminSessionInfo sessions = 1;
+  uint32 total = 2;
+  uint32 page = 3;
+  uint32 total_pages = 4;
+}
+
+message AdminRevokeSessionRequest {
+  string session_id = 1;
+}
+
+message AdminRevokeSessionResponse {
+  string session_id = 1;
+}
+
+message AdminRevokeAllUserSessionsRequest {
+  string user_id = 1;
+}
+
+message AdminRevokeAllUserSessionsResponse {
+  uint32 revoked_count = 1;
+}
+
+message AdminLockAccountRequest {
+  string user_id = 1;
+  optional string reason = 2;
+}
+
+message AdminLockAccountResponse {
+  User user = 1;
+}
+
+message AdminUnlockAccountRequest {
+  string user_id = 1;
+}
+
+message AdminUnlockAccountResponse {
+  // True if the account was actually locked (manually or via soft-lock)
+  // before this call; false if it was a no-op.
+  bool was_locked = 1;
 }
 
 // --- Field permissions -----------------------------------------------
