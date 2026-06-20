@@ -62,6 +62,26 @@ service RescueService {
   // view.
   rpc ListStaffMembers(ListStaffMembersRequest) returns (ListStaffMembersResponse);
 
+  // Directly add an existing user as a verified staff member of a
+  // rescue (no invitation round-trip). Caller MUST have `staff.create`
+  // scoped to the rescue. Publishes `rescue.staffMemberCreated` on NATS
+  // after commit.
+  rpc CreateStaffMember(CreateStaffMemberRequest)
+      returns (CreateStaffMemberResponse);
+
+  // Update a staff member's mutable fields (currently just `title`).
+  // Caller MUST have `staff.update` scoped to the rescue.
+  // Publishes `rescue.staffMemberUpdated` on NATS after commit.
+  rpc UpdateStaffMember(UpdateStaffMemberRequest)
+      returns (UpdateStaffMemberResponse);
+
+  // Soft-delete a staff member's rescue membership. Caller MUST have
+  // `staff.delete` scoped to the rescue. Idempotent on an
+  // already-removed membership (NOT_FOUND). Publishes
+  // `rescue.staffMemberRemoved` on NATS after commit.
+  rpc RemoveStaffMember(RemoveStaffMemberRequest)
+      returns (RemoveStaffMemberResponse);
+
   // --- Foster placements ----------------------------------------------
 
   // Create a foster placement. Caller MUST have `foster.create` scoped
@@ -361,6 +381,44 @@ message ListStaffMembersRequest {
 
 message ListStaffMembersResponse {
   repeated StaffMember staff_members = 1;
+}
+
+// --- CreateStaffMember --------------------------------------------------
+
+message CreateStaffMemberRequest {
+  string rescue_id = 1;
+  // Existing auth user to add as staff. Caller is responsible for
+  // ensuring the user exists; the service does not provision accounts.
+  string user_id = 2;
+  optional string title = 3;
+}
+
+message CreateStaffMemberResponse {
+  StaffMember staff_member = 1;
+}
+
+// --- UpdateStaffMember --------------------------------------------------
+
+message UpdateStaffMemberRequest {
+  string rescue_id = 1;
+  string user_id = 2;
+  // Only the supplied fields are written.
+  optional string title = 3;
+}
+
+message UpdateStaffMemberResponse {
+  StaffMember staff_member = 1;
+}
+
+// --- RemoveStaffMember --------------------------------------------------
+
+message RemoveStaffMemberRequest {
+  string rescue_id = 1;
+  string user_id = 2;
+}
+
+message RemoveStaffMemberResponse {
+  bool removed = 1;
 }
 
 // --- FosterPlacement --------------------------------------------------
