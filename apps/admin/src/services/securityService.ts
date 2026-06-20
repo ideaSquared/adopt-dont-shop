@@ -38,7 +38,7 @@ export type CreateIpRuleRequest = {
 };
 
 export type LoginHistoryEntry = {
-  id: number;
+  id: string;
   timestamp: string;
   action: string;
   status: 'success' | 'failure' | null;

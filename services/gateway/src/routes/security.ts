@@ -13,22 +13,74 @@
 //
 // Permission gating (admin.security.read / admin.security.manage) lives in
 // the gRPC handlers; the gateway just forwards principal metadata.
-// login-history and suspicious-activity endpoints the SPA also references
-// are not wired here — they need a durable failed-login audit trail that
-// does not yet exist (currently only a Prometheus counter).
+//
+// login-history and suspicious-activity are backed by service.audit's
+// AuditQueryService.Query, reading the auth.actionTaken events
+// service.auth now publishes for every login outcome (success, unknown
+// email, locked, suspended, wrong password, bad 2FA):
+//   GET /api/v1/admin/security/login-history        AuditQueryService.Query
+//   GET /api/v1/admin/security/suspicious-activity   AuditQueryService.Query (aggregated)
 
 import type { FastifyInstance } from 'fastify';
 
-import { AuthV1, type AdminListSessionsRequest } from '@adopt-dont-shop/proto';
+import {
+  AuditV1,
+  AuthV1,
+  type AdminListSessionsRequest,
+  type AuditQueryRequest,
+} from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { AuditClient } from '../grpc-clients/audit-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
 
 export type SecurityRoutesOptions = {
   client: AuthClient;
+  auditClient?: AuditClient;
 };
+
+const LOGIN_HISTORY_SUBJECT = 'auth.actionTaken';
+
+// auth.actionTaken only ever publishes 'success' or 'denied' for login
+// (no exception path raises 'failure') — the SPA's binary
+// 'success'|'failure' status maps onto that one-to-one.
+const loginStatusToOutcome = (status: string | undefined): AuditV1.AuditOutcome | undefined => {
+  if (status === 'success') {
+    return AuditV1.AuditOutcome.AUDIT_OUTCOME_SUCCESS;
+  }
+  if (status === 'failure') {
+    return AuditV1.AuditOutcome.AUDIT_OUTCOME_DENIED;
+  }
+  return undefined;
+};
+
+const outcomeToLoginStatus = (outcome: AuditV1.AuditOutcome): 'success' | 'failure' | null => {
+  if (outcome === AuditV1.AuditOutcome.AUDIT_OUTCOME_SUCCESS) {
+    return 'success';
+  }
+  if (
+    outcome === AuditV1.AuditOutcome.AUDIT_OUTCOME_DENIED ||
+    outcome === AuditV1.AuditOutcome.AUDIT_OUTCOME_FAILURE
+  ) {
+    return 'failure';
+  }
+  return null;
+};
+
+const parsePayloadJson = (raw: string): Record<string, unknown> | null => {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+};
+
+// Suspicious-activity scans a rolling window of denied logins, so an
+// unbounded query is never issued — this is the proto's documented max.
+const SUSPICIOUS_ACTIVITY_QUERY_LIMIT = 200;
 
 // IpRuleType proto enum <-> the 'allow'|'block' string the SPA's
 // securityService.ts contract uses.
@@ -64,7 +116,7 @@ export const registerSecurityRoutes = async (
   app: FastifyInstance,
   opts: SecurityRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, auditClient } = opts;
 
   // GET /api/v1/admin/security/sessions — cross-user active sessions,
   // paginated. The SPA's Session shape denormalises the owning user under
@@ -277,4 +329,147 @@ export const registerSecurityRoutes = async (
       }
     }
   );
+
+  if (!auditClient) {
+    return;
+  }
+
+  // GET /api/v1/admin/security/login-history — auth.actionTaken events,
+  // newest first. The SPA fetches once per filter change with no "next
+  // page" control, so pagination is synthesised from the query's
+  // next_cursor rather than wired to true offset paging.
+  app.get(
+    '/api/v1/admin/security/login-history',
+    {
+      schema: {
+        tags: ['security', 'admin'],
+        summary: 'List login history from the audit log (admin)',
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { limit: 50 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+      const grpcReq: AuditQueryRequest = {
+        subject: LOGIN_HISTORY_SUBJECT,
+        actorUserId: q.userId ?? q.user_id,
+        outcome: loginStatusToOutcome(q.status),
+        occurredAtFrom: q.startDate,
+        occurredAtTo: q.endDate,
+        limit: pagination.limit,
+      };
+      try {
+        const res = await auditClient.query(grpcReq, buildMetadata(req));
+        const data = res.events.map(event => ({
+          id: event.eventId,
+          timestamp: event.occurredAt,
+          action: event.action,
+          status: outcomeToLoginStatus(event.outcome),
+          userId: event.actorUserId ?? null,
+          userEmail: event.actorEmailSnapshot ?? null,
+          ipAddress: event.ipAddress ?? null,
+          userAgent: event.userAgent ?? null,
+          metadata: parsePayloadJson(event.payloadJson),
+        }));
+        return reply.send({
+          data,
+          pagination: {
+            page: 1,
+            limit: pagination.limit,
+            total: data.length,
+            totalPages: res.nextCursor ? 2 : 1,
+            hasNext: Boolean(res.nextCursor),
+            hasPrev: false,
+          },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // GET /api/v1/admin/security/suspicious-activity — denied logins within
+  // a rolling window, aggregated per user (or per IP for unknown-email
+  // attempts), filtered to groups at/above failureThreshold.
+  app.get(
+    '/api/v1/admin/security/suspicious-activity',
+    {
+      schema: {
+        tags: ['security', 'admin'],
+        summary: 'List suspicious login activity from the audit log (admin)',
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const failureThreshold = parsePositiveInt(q.failureThreshold, 5);
+      const windowHours = parsePositiveInt(q.windowHours, 24);
+      if (failureThreshold === undefined || windowHours === undefined) {
+        return reply
+          .code(400)
+          .send({ error: 'failureThreshold and windowHours must be positive integers' });
+      }
+      const occurredAtFrom = new Date(Date.now() - windowHours * 60 * 60 * 1000).toISOString();
+      const grpcReq: AuditQueryRequest = {
+        subject: LOGIN_HISTORY_SUBJECT,
+        outcome: AuditV1.AuditOutcome.AUDIT_OUTCOME_DENIED,
+        occurredAtFrom,
+        limit: SUSPICIOUS_ACTIVITY_QUERY_LIMIT,
+      };
+      try {
+        const res = await auditClient.query(grpcReq, buildMetadata(req));
+        const groups = new Map<
+          string,
+          {
+            userId: string | null;
+            userEmail: string | null;
+            failureCount: number;
+            lastAttempt: string;
+            lastIp: string | null;
+          }
+        >();
+        for (const event of res.events) {
+          const key = event.actorUserId ?? event.ipAddress ?? 'unknown';
+          const existing = groups.get(key);
+          if (!existing) {
+            groups.set(key, {
+              userId: event.actorUserId ?? null,
+              userEmail: event.actorEmailSnapshot ?? null,
+              failureCount: 1,
+              lastAttempt: event.occurredAt,
+              lastIp: event.ipAddress ?? null,
+            });
+            continue;
+          }
+          existing.failureCount += 1;
+          if (event.occurredAt > existing.lastAttempt) {
+            existing.lastAttempt = event.occurredAt;
+            existing.lastIp = event.ipAddress ?? existing.lastIp;
+            existing.userEmail = event.actorEmailSnapshot ?? existing.userEmail;
+          }
+        }
+        const data = Array.from(groups.values())
+          .filter(g => g.failureCount >= failureThreshold)
+          .sort((a, b) => b.failureCount - a.failureCount);
+        return reply.send({ success: true, data });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
 };
+
+// parsePositiveInt accepts an undefined raw value (falls back to
+// `fallback`) or a positive-integer string; anything else is invalid.
+const POSITIVE_INTEGER_PATTERN = /^\d+$/;
+function parsePositiveInt(raw: string | undefined, fallback: number): number | undefined {
+  if (raw === undefined || raw.trim() === '') {
+    return fallback;
+  }
+  if (!POSITIVE_INTEGER_PATTERN.test(raw.trim())) {
+    return undefined;
+  }
+  const n = Number.parseInt(raw, 10);
+  return n > 0 ? n : undefined;
+}

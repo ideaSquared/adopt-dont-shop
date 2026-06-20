@@ -3,15 +3,18 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  AuditV1,
   AuthV1,
   type AdminListSessionsRequest,
   type AdminLockAccountRequest,
   type AdminRevokeSessionRequest,
+  type AuditQueryRequest,
   type CreateIpRuleRequest,
   type DeleteIpRuleRequest,
 } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { AuditClient } from '../grpc-clients/audit-client.js';
 
 import { registerSecurityRoutes } from './security.js';
 
@@ -40,9 +43,16 @@ function makeClient() {
   return { client: mocks as unknown as AuthClient, mocks };
 }
 
-async function buildApp(client: AuthClient): Promise<FastifyInstance> {
+function makeAuditClient() {
+  const mocks = {
+    query: vi.fn(),
+  };
+  return { auditClient: mocks as unknown as AuditClient, mocks };
+}
+
+async function buildApp(client: AuthClient, auditClient?: AuditClient): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
-  await registerSecurityRoutes(app, { client });
+  await registerSecurityRoutes(app, { client, auditClient });
   return app;
 }
 
@@ -428,5 +438,246 @@ describe('DELETE /api/v1/admin/security/ip-rules/:ipRuleId', () => {
       headers: ADMIN_HEADERS,
     });
     expect(res.statusCode).toBe(404);
+  });
+});
+
+const LOGIN_SUCCESS_EVENT = {
+  eventId: 'evt-1',
+  service: 'service.auth',
+  subject: 'auth.actionTaken',
+  aggregateType: 'user',
+  aggregateId: 'usr-2',
+  actorUserId: 'usr-2',
+  actorEmailSnapshot: 'target@example.com',
+  action: 'login',
+  outcome: AuditV1.AuditOutcome.AUDIT_OUTCOME_SUCCESS,
+  occurredAt: '2026-06-19T12:00:00.000Z',
+  recordedAt: '2026-06-19T12:00:00.100Z',
+  payloadJson: JSON.stringify({ action: 'login', outcome: 'success' }),
+  ipAddress: '203.0.113.5',
+  userAgent: 'curl/8.0',
+};
+
+const LOGIN_DENIED_EVENT = {
+  ...LOGIN_SUCCESS_EVENT,
+  eventId: 'evt-2',
+  outcome: AuditV1.AuditOutcome.AUDIT_OUTCOME_DENIED,
+  payloadJson: JSON.stringify({ action: 'login', outcome: 'denied' }),
+};
+
+describe('GET /api/v1/admin/security/login-history', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof makeAuditClient>['mocks'];
+
+  beforeEach(async () => {
+    const c = makeClient();
+    const a = makeAuditClient();
+    mocks = a.mocks;
+    app = await buildApp(c.client, a.auditClient);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('reshapes audit events into the SPA LoginHistoryEntry shape', async () => {
+    mocks.query.mockResolvedValueOnce({ events: [LOGIN_SUCCESS_EVENT] });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/login-history',
+      headers: ADMIN_HEADERS,
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as {
+      data: Array<Record<string, unknown>>;
+      pagination: Record<string, unknown>;
+    };
+    expect(body.data[0]).toEqual({
+      id: 'evt-1',
+      timestamp: '2026-06-19T12:00:00.000Z',
+      action: 'login',
+      status: 'success',
+      userId: 'usr-2',
+      userEmail: 'target@example.com',
+      ipAddress: '203.0.113.5',
+      userAgent: 'curl/8.0',
+      metadata: { action: 'login', outcome: 'success' },
+    });
+    expect(body.pagination).toEqual({
+      page: 1,
+      limit: 50,
+      total: 1,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
+    });
+  });
+
+  it('maps a denied outcome to failure status', async () => {
+    mocks.query.mockResolvedValueOnce({ events: [LOGIN_DENIED_EVENT] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/login-history',
+      headers: ADMIN_HEADERS,
+    });
+    expect(JSON.parse(res.body).data[0].status).toBe('failure');
+  });
+
+  it('forwards userId and status filters to the gRPC request', async () => {
+    mocks.query.mockResolvedValueOnce({ events: [] });
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/login-history?userId=usr-2&status=failure',
+      headers: ADMIN_HEADERS,
+    });
+    const [grpcReq] = mocks.query.mock.calls[0] as [AuditQueryRequest, Metadata];
+    expect(grpcReq.subject).toBe('auth.actionTaken');
+    expect(grpcReq.actorUserId).toBe('usr-2');
+    expect(grpcReq.outcome).toBe(AuditV1.AuditOutcome.AUDIT_OUTCOME_DENIED);
+  });
+
+  it('reports hasNext when the query returns a cursor', async () => {
+    mocks.query.mockResolvedValueOnce({ events: [], nextCursor: 'opaque-cursor' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/login-history',
+      headers: ADMIN_HEADERS,
+    });
+    expect(JSON.parse(res.body).pagination).toMatchObject({ hasNext: true, totalPages: 2 });
+  });
+
+  it('rejects a non-integer limit with 400', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/login-history?limit=abc',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('maps gRPC PERMISSION_DENIED to HTTP 403', async () => {
+    mocks.query.mockRejectedValueOnce({
+      code: status.PERMISSION_DENIED,
+      details: "'admin.security.read' required",
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/login-history',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+});
+
+describe('GET /api/v1/admin/security/suspicious-activity', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof makeAuditClient>['mocks'];
+
+  beforeEach(async () => {
+    const c = makeClient();
+    const a = makeAuditClient();
+    mocks = a.mocks;
+    app = await buildApp(c.client, a.auditClient);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('aggregates denied events per actor and filters by failureThreshold', async () => {
+    mocks.query.mockResolvedValueOnce({
+      events: [LOGIN_DENIED_EVENT, LOGIN_DENIED_EVENT, LOGIN_DENIED_EVENT],
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/suspicious-activity?failureThreshold=2',
+      headers: ADMIN_HEADERS,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({
+      success: true,
+      data: [
+        {
+          userId: 'usr-2',
+          userEmail: 'target@example.com',
+          failureCount: 3,
+          lastAttempt: '2026-06-19T12:00:00.000Z',
+          lastIp: '203.0.113.5',
+        },
+      ],
+    });
+  });
+
+  it('excludes actors below the failure threshold', async () => {
+    mocks.query.mockResolvedValueOnce({ events: [LOGIN_DENIED_EVENT] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/suspicious-activity?failureThreshold=5',
+      headers: ADMIN_HEADERS,
+    });
+    expect(JSON.parse(res.body)).toEqual({ success: true, data: [] });
+  });
+
+  it('forwards windowHours as an occurred_at_from lower bound', async () => {
+    mocks.query.mockResolvedValueOnce({ events: [] });
+    await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/suspicious-activity?windowHours=1',
+      headers: ADMIN_HEADERS,
+    });
+    const [grpcReq] = mocks.query.mock.calls[0] as [AuditQueryRequest, Metadata];
+    expect(grpcReq.outcome).toBe(AuditV1.AuditOutcome.AUDIT_OUTCOME_DENIED);
+    expect(grpcReq.occurredAtFrom).toBeDefined();
+    const fromMs = new Date(grpcReq.occurredAtFrom as string).getTime();
+    expect(Date.now() - fromMs).toBeGreaterThanOrEqual(60 * 60 * 1000 - 1000);
+    expect(Date.now() - fromMs).toBeLessThan(60 * 60 * 1000 + 5000);
+  });
+
+  it('rejects a non-integer failureThreshold with 400', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/suspicious-activity?failureThreshold=abc',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('maps gRPC PERMISSION_DENIED to HTTP 403', async () => {
+    mocks.query.mockRejectedValueOnce({
+      code: status.PERMISSION_DENIED,
+      details: "'admin.security.read' required",
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/suspicious-activity',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+});
+
+describe('registerSecurityRoutes without an auditClient', () => {
+  it('does not register login-history or suspicious-activity routes', async () => {
+    const c = makeClient();
+    const app = await buildApp(c.client);
+
+    const loginHistoryRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/login-history',
+      headers: ADMIN_HEADERS,
+    });
+    const suspiciousRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/suspicious-activity',
+      headers: ADMIN_HEADERS,
+    });
+
+    expect(loginHistoryRes.statusCode).toBe(404);
+    expect(suspiciousRes.statusCode).toBe(404);
+    await app.close();
   });
 });
