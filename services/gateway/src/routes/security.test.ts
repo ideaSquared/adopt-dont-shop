@@ -2,10 +2,13 @@ import { Metadata, status } from '@grpc/grpc-js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type {
-  AdminListSessionsRequest,
-  AdminLockAccountRequest,
-  AdminRevokeSessionRequest,
+import {
+  AuthV1,
+  type AdminListSessionsRequest,
+  type AdminLockAccountRequest,
+  type AdminRevokeSessionRequest,
+  type CreateIpRuleRequest,
+  type DeleteIpRuleRequest,
 } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
@@ -30,6 +33,9 @@ function makeClient() {
     adminRevokeAllUserSessions: vi.fn(),
     adminLockAccount: vi.fn(),
     adminUnlockAccount: vi.fn(),
+    listIpRules: vi.fn(),
+    createIpRule: vi.fn(),
+    deleteIpRule: vi.fn(),
   };
   return { client: mocks as unknown as AuthClient, mocks };
 }
@@ -273,5 +279,154 @@ describe('POST /api/v1/admin/security/users/:userId/unlock', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual({ success: true, data: { wasLocked: true } });
+  });
+});
+
+const IP_RULE = {
+  ipRuleId: 'rule-1',
+  type: AuthV1.IpRuleType.IP_RULE_TYPE_BLOCK,
+  cidr: '10.0.0.0/8',
+  label: 'office',
+  isActive: true,
+  expiresAt: undefined,
+  createdBy: 'usr-admin',
+  createdAt: '2026-06-01T00:00:00.000Z',
+  updatedAt: '2026-06-01T00:00:00.000Z',
+};
+
+describe('GET /api/v1/admin/security/ip-rules', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof makeClient>['mocks'];
+
+  beforeEach(async () => {
+    const c = makeClient();
+    mocks = c.mocks;
+    app = await buildApp(c.client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('reshapes rules into the SPA IpRule shape', async () => {
+    mocks.listIpRules.mockResolvedValueOnce({ rules: [IP_RULE] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/ip-rules',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({
+      success: true,
+      data: [
+        {
+          ipRuleId: 'rule-1',
+          type: 'block',
+          cidr: '10.0.0.0/8',
+          label: 'office',
+          isActive: true,
+          expiresAt: null,
+          createdBy: 'usr-admin',
+          createdAt: '2026-06-01T00:00:00.000Z',
+          updatedAt: '2026-06-01T00:00:00.000Z',
+        },
+      ],
+    });
+  });
+
+  it('maps gRPC PERMISSION_DENIED to HTTP 403', async () => {
+    mocks.listIpRules.mockRejectedValueOnce({
+      code: status.PERMISSION_DENIED,
+      details: "'admin.security.read' required",
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/security/ip-rules',
+      headers: { 'x-user-id': 'usr-1', 'x-user-roles': 'adopter' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+});
+
+describe('POST /api/v1/admin/security/ip-rules', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof makeClient>['mocks'];
+
+  beforeEach(async () => {
+    const c = makeClient();
+    mocks = c.mocks;
+    app = await buildApp(c.client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('maps the allow/block string to the proto enum and returns the created rule', async () => {
+    mocks.createIpRule.mockResolvedValueOnce({ rule: IP_RULE });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/security/ip-rules',
+      headers: ADMIN_HEADERS,
+      payload: { type: 'block', cidr: '10.0.0.0/8', label: 'office' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).data.ipRuleId).toBe('rule-1');
+    const [grpcReq] = mocks.createIpRule.mock.calls[0] as [CreateIpRuleRequest, Metadata];
+    expect(grpcReq.type).toBe(AuthV1.IpRuleType.IP_RULE_TYPE_BLOCK);
+    expect(grpcReq.cidr).toBe('10.0.0.0/8');
+    expect(grpcReq.label).toBe('office');
+  });
+
+  it('maps gRPC INVALID_ARGUMENT (bad CIDR) to HTTP 400', async () => {
+    mocks.createIpRule.mockRejectedValueOnce({
+      code: status.INVALID_ARGUMENT,
+      details: 'invalid CIDR',
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/security/ip-rules',
+      headers: ADMIN_HEADERS,
+      payload: { type: 'allow', cidr: 'garbage' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('DELETE /api/v1/admin/security/ip-rules/:ipRuleId', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof makeClient>['mocks'];
+
+  beforeEach(async () => {
+    const c = makeClient();
+    mocks = c.mocks;
+    app = await buildApp(c.client);
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns 204 on success', async () => {
+    mocks.deleteIpRule.mockResolvedValueOnce({});
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/admin/security/ip-rules/rule-1',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(204);
+    expect(res.body).toBe('');
+    const [grpcReq] = mocks.deleteIpRule.mock.calls[0] as [DeleteIpRuleRequest, Metadata];
+    expect(grpcReq.ipRuleId).toBe('rule-1');
+  });
+
+  it('maps gRPC NOT_FOUND to HTTP 404', async () => {
+    mocks.deleteIpRule.mockRejectedValueOnce({
+      code: status.NOT_FOUND,
+      details: 'not found',
+    });
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/admin/security/ip-rules/ghost',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(404);
   });
 });

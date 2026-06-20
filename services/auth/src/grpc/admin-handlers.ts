@@ -7,11 +7,12 @@
 // Reuses rowToProtoUser + UserRow + the enum maps from handlers.ts so
 // the admin view returns the same User shape GetMe does.
 
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
 import type { Permission } from '@adopt-dont-shop/lib.types';
+
 import {
   AuthV1,
   type AdminGetUserRequest,
@@ -26,12 +27,19 @@ import {
   type AdminUpdateUserResponse,
   type BulkUpdateUsersRequest,
   type BulkUpdateUsersResponse,
+  type CreateIpRuleRequest,
+  type CreateIpRuleResponse,
   type DeactivateUserRequest,
   type DeactivateUserResponse,
+  type DeleteIpRuleRequest,
+  type DeleteIpRuleResponse,
   type GetUserPermissionsRequest,
   type GetUserPermissionsResponse,
   type GetUserStatisticsRequest,
   type GetUserStatisticsResponse,
+  type IpRule,
+  type ListIpRulesRequest,
+  type ListIpRulesResponse,
   type ReactivateUserRequest,
   type ReactivateUserResponse,
   type ListUserIdsByCohortRequest,
@@ -58,6 +66,7 @@ const ADMIN_USERS_DEACTIVATE: Permission = 'admin.users.deactivate' as Permissio
 const ADMIN_USERS_REACTIVATE: Permission = 'admin.users.reactivate' as Permission;
 const ADMIN_USERS_BULK_UPDATE: Permission = 'admin.users.bulk_update' as Permission;
 const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;
+const ADMIN_SECURITY_READ: Permission = 'admin.security.read' as Permission;
 
 // Columns the admin view selects — same set rowToProtoUser reads.
 const USER_SELECT = `
@@ -510,6 +519,140 @@ export async function adminUnlockAccount(
   });
 
   return { wasLocked: true };
+}
+
+// --- IP allow/block rules ---------------------------------------------
+// Admin CRUD over auth.ip_rules. Evaluation (the gateway actually
+// enforcing these against the connecting IP) is not wired yet — this is
+// storage + the Security Center's management surface only.
+
+type IpRuleRow = {
+  ip_rule_id: string;
+  type: 'allow' | 'block';
+  cidr: string;
+  label: string | null;
+  is_active: boolean;
+  expires_at: Date | null;
+  created_by: string | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+function ipRuleTypeToDb(type: AuthV1.IpRuleType): 'allow' | 'block' {
+  if (type === AuthV1.IpRuleType.IP_RULE_TYPE_ALLOW) {
+    return 'allow';
+  }
+  if (type === AuthV1.IpRuleType.IP_RULE_TYPE_BLOCK) {
+    return 'block';
+  }
+  throw new HandlerError('INVALID_ARGUMENT', 'type is required');
+}
+
+function ipRuleTypeFromDb(type: 'allow' | 'block'): AuthV1.IpRuleType {
+  return type === 'allow'
+    ? AuthV1.IpRuleType.IP_RULE_TYPE_ALLOW
+    : AuthV1.IpRuleType.IP_RULE_TYPE_BLOCK;
+}
+
+function rowToProtoIpRule(row: IpRuleRow): IpRule {
+  return {
+    ipRuleId: row.ip_rule_id,
+    type: ipRuleTypeFromDb(row.type),
+    cidr: row.cidr,
+    label: row.label ?? undefined,
+    isActive: row.is_active,
+    expiresAt: row.expires_at?.toISOString(),
+    createdBy: row.created_by ?? undefined,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
+}
+
+// Loose IPv4/IPv6 CIDR shape check — just enough to reject obvious
+// garbage before it lands in the table; not a full RFC validator.
+const CIDR_PATTERN = /^([0-9a-fA-F:.]+)\/(\d{1,3})$/;
+
+export async function listIpRules(
+  deps: HandlerDeps,
+  principal: Principal,
+  _req: ListIpRulesRequest
+): Promise<ListIpRulesResponse> {
+  if (!hasPermission(principal, ADMIN_SECURITY_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_READ}' required`);
+  }
+
+  const res = await deps.pool.query<IpRuleRow>(
+    `SELECT * FROM auth.ip_rules ORDER BY created_at DESC`
+  );
+  return { rules: res.rows.map(rowToProtoIpRule) };
+}
+
+export async function createIpRule(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: CreateIpRuleRequest
+): Promise<CreateIpRuleResponse> {
+  if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
+  }
+  if (!req.cidr || !CIDR_PATTERN.test(req.cidr)) {
+    throw new HandlerError('INVALID_ARGUMENT', 'cidr must be a valid CIDR block');
+  }
+  const type = ipRuleTypeToDb(req.type);
+
+  let created: IpRuleRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    const res = await client.query<IpRuleRow>(
+      `
+      INSERT INTO auth.ip_rules (type, cidr, label, expires_at, created_by, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, now(), now())
+      RETURNING *
+      `,
+      [type, req.cidr, req.label ?? null, req.expiresAt ?? null, principal.userId]
+    );
+    created = res.rows[0];
+
+    publish({
+      type: 'auth.ipRuleCreated',
+      id: `auth.ipRuleCreated.${created.ip_rule_id}`,
+      payload: { ipRuleId: created.ip_rule_id, type, cidr: req.cidr, createdBy: principal.userId },
+    });
+  });
+
+  if (!created) {
+    throw new HandlerError('INTERNAL', 'insert returned no rows');
+  }
+  return { rule: rowToProtoIpRule(created) };
+}
+
+export async function deleteIpRule(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: DeleteIpRuleRequest
+): Promise<DeleteIpRuleResponse> {
+  if (!req.ipRuleId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'ip_rule_id is required');
+  }
+  if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
+  }
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    const res = await client.query(`DELETE FROM auth.ip_rules WHERE ip_rule_id = $1`, [
+      req.ipRuleId,
+    ]);
+    if (res.rowCount === 0) {
+      throw new HandlerError('NOT_FOUND', `ip rule ${req.ipRuleId} not found`);
+    }
+
+    publish({
+      type: 'auth.ipRuleDeleted',
+      id: `auth.ipRuleDeleted.${req.ipRuleId}.${randomUUID()}`,
+      payload: { ipRuleId: req.ipRuleId, deletedBy: principal.userId },
+    });
+  });
+
+  return {};
 }
 
 // --- GetUserStatistics -----------------------------------------------
