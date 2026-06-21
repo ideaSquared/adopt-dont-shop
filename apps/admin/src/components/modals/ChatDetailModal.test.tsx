@@ -79,7 +79,7 @@ describe('ChatDetailModal — EntityInspector shell', () => {
     mockUseEntityActivity.mockReturnValue({
       data: [
         {
-          activityId: 1,
+          activityId: '1',
           activityType: 'chat',
           action: 'CREATE',
           description: 'Created chat: Buddy',

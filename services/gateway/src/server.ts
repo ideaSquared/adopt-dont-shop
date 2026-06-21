@@ -61,6 +61,7 @@ import { registerDashboardRoutes } from './routes/dashboard.js';
 import { registerDevicesRoutes } from './routes/devices.js';
 import { registerBroadcastRoutes } from './routes/broadcast.js';
 import { registerEmailRoutes } from './routes/email.js';
+import { registerEntityActivityRoutes } from './routes/entity-activity.js';
 import { registerFieldPermissionsRoutes } from './routes/field-permissions.js';
 import { registerGdprRoutes } from './routes/gdpr.js';
 import { registerLegalRoutes } from './routes/legal.js';
@@ -472,6 +473,10 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // service.audit (same gRPC stub) because the audit service ships the
     // rows.
     await registerReportsRoutes(server, { client: opts.auditClient });
+    // Per-entity GET .../:id/activity — the admin SPA's EntityInspector
+    // "Activity" tab. Same gRPC stub (GetByTarget), different REST shape
+    // than /api/v1/audit/targets/:type/:id.
+    await registerEntityActivityRoutes(server, { client: opts.auditClient });
   }
   if (opts.matchingClient) {
     await registerMatchingRoutes(server, { client: opts.matchingClient });

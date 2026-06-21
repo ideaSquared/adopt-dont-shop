@@ -331,7 +331,7 @@ describe('ReportDetailModal — activity tab', () => {
     mockUseEntityActivity.mockReturnValue({
       data: [
         {
-          activityId: 7,
+          activityId: '7',
           activityType: 'other',
           action: 'REPORT_ASSIGNED',
           description: 'Updated report: assigned to moderator',

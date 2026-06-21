@@ -32,7 +32,7 @@ export type EntityActivityType =
   | 'other';
 
 export type EntityActivity = {
-  activityId: number;
+  activityId: string;
   activityType: EntityActivityType;
   action: string;
   description: string;

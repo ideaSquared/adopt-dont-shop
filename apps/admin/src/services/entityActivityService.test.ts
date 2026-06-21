@@ -12,7 +12,7 @@ import { entityActivityService } from './entityActivityService';
 
 const sampleActivity = [
   {
-    activityId: 1,
+    activityId: '1',
     activityType: 'login' as const,
     action: 'USER_LOGIN',
     description: 'Logged into account',
