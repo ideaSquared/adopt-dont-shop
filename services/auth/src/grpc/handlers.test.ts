@@ -162,6 +162,27 @@ describe('login', () => {
     });
   });
 
+  it('publishes a denied auth.actionTaken for an unknown email, with no actorUserId', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');
+    const envelope = JSON.parse(
+      new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+    );
+    expect(envelope.payload).toMatchObject({
+      action: 'login',
+      outcome: 'denied',
+      actorEmailSnapshot: BASE_LOGIN_REQ.email,
+      ipAddress: BASE_LOGIN_REQ.ipAddress,
+      userAgent: BASE_LOGIN_REQ.userAgent,
+    });
+    expect(envelope.payload.actorUserId).toBeUndefined();
+  });
+
   it('performs a password comparison even when the email is unknown (no enumeration timing leak)', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     mocks.hasherMock.compare.mockResolvedValueOnce(false);
@@ -186,6 +207,17 @@ describe('login', () => {
     await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
+
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');
+    const envelope = JSON.parse(
+      new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+    );
+    expect(envelope.payload).toMatchObject({
+      action: 'login',
+      outcome: 'denied',
+      actorUserId: 'usr-adopter',
+      actorEmailSnapshot: BASE_LOGIN_REQ.email,
+    });
   });
 
   it('returns PERMISSION_DENIED when account is suspended', async () => {
@@ -195,31 +227,57 @@ describe('login', () => {
     await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
+
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');
+    const envelope = JSON.parse(
+      new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+    );
+    expect(envelope.payload).toMatchObject({
+      action: 'login',
+      outcome: 'denied',
+      actorUserId: 'usr-adopter',
+      actorEmailSnapshot: BASE_LOGIN_REQ.email,
+    });
   });
 
   it('returns UNAUTHENTICATED on wrong password and increments login_attempts', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture()] });
     mocks.hasherMock.compare.mockResolvedValueOnce(false);
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // bump
+    mocks.clientMock.query.mockResolvedValue({ rows: [] }); // bump, inside withTransaction
 
     await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
       code: 'UNAUTHENTICATED',
     });
 
-    const bumpCall = mocks.poolMock.query.mock.calls[1][0] as string;
-    expect(bumpCall).toMatch(/UPDATE auth\.users.*login_attempts = login_attempts \+ 1/s);
+    const bumpCall = mocks.clientMock.query.mock.calls
+      .map(c => c[0] as string)
+      .find(sql => /login_attempts = login_attempts \+ 1/.test(sql));
+    expect(bumpCall).toBeDefined();
+
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');
+    const envelope = JSON.parse(
+      new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+    );
+    expect(envelope.payload).toMatchObject({
+      action: 'login',
+      outcome: 'denied',
+      actorUserId: 'usr-adopter',
+      actorEmailSnapshot: 'alex@example.com',
+    });
   });
 
   it('applies a progressive, capped soft-lock in the same failed-login UPDATE', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture()] });
     mocks.hasherMock.compare.mockResolvedValueOnce(false);
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // bump + lock
+    mocks.clientMock.query.mockResolvedValue({ rows: [] }); // bump + lock
 
     await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
       code: 'UNAUTHENTICATED',
     });
 
-    const [sql, params] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    const [sql, params] = mocks.clientMock.query.mock.calls.find(([s]) =>
+      /login_attempts = login_attempts \+ 1/.test(s as string)
+    ) as [string, unknown[]];
     // The lock is set atomically in the same UPDATE, only once the count
     // crosses the threshold, and is capped — so a victim cannot be locked
     // out indefinitely by deliberate failed logins.
@@ -275,8 +333,43 @@ describe('login', () => {
     expect(res.user.email).toBe('alex@example.com');
     expect(res.permissions).toContain('pets.read');
 
-    // BEGIN → INSERT → UPDATE → COMMIT → NATS_PUBLISH
-    expect(callOrder).toEqual(['BEGIN', 'INSERT', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+    // BEGIN → INSERT → UPDATE → COMMIT → NATS_PUBLISH (userLoggedIn) →
+    // NATS_PUBLISH (actionTaken) — both staged events publish after commit.
+    expect(callOrder).toEqual([
+      'BEGIN',
+      'INSERT',
+      'UPDATE',
+      'COMMIT',
+      'NATS_PUBLISH',
+      'NATS_PUBLISH',
+    ]);
+  });
+
+  it('publishes a successful auth.actionTaken alongside auth.userLoggedIn', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture()] });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
+
+    await login(mocks.deps, null, BASE_LOGIN_REQ);
+
+    const actionTakenCall = mocks.natsMock.publish.mock.calls.find(
+      c => c[0] === 'auth.actionTaken'
+    );
+    expect(actionTakenCall).toBeDefined();
+    const envelope = JSON.parse(new TextDecoder().decode(actionTakenCall![1] as Uint8Array));
+    expect(envelope.payload).toMatchObject({
+      action: 'login',
+      outcome: 'success',
+      actorUserId: 'usr-adopter',
+      actorEmailSnapshot: 'alex@example.com',
+      ipAddress: BASE_LOGIN_REQ.ipAddress,
+      userAgent: BASE_LOGIN_REQ.userAgent,
+    });
   });
 
   // --- Two-factor enforcement ----------------------------------------
@@ -308,6 +401,12 @@ describe('login', () => {
       login(mocks.deps, null, { ...BASE_LOGIN_REQ, twoFactorToken: '000000' })
     ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
     expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');
+    const envelope = JSON.parse(
+      new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+    );
+    expect(envelope.payload).toMatchObject({ action: 'login', outcome: 'denied' });
   });
 
   it('completes the login when a valid 2FA code is supplied', async () => {

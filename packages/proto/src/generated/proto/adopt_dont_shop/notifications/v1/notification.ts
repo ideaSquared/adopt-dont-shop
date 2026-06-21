@@ -5,7 +5,7 @@
 // source: proto/adopt_dont_shop/notifications/v1/notification.proto
 
 /* eslint-disable */
-import { BinaryReader, BinaryWriter } from '@bufbuild/protobuf/wire';
+import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 import {
   type CallOptions,
   type ChannelCredentials,
@@ -17,9 +17,9 @@ import {
   type Metadata,
   type ServiceError,
   type UntypedServiceImplementation,
-} from '@grpc/grpc-js';
+} from "@grpc/grpc-js";
 
-export const protobufPackage = 'adopt_dont_shop.notifications.v1';
+export const protobufPackage = "adopt_dont_shop.notifications.v1";
 
 export enum NotificationType {
   NOTIFICATION_TYPE_UNSPECIFIED = 0,
@@ -45,58 +45,58 @@ export enum NotificationType {
 export function notificationTypeFromJSON(object: any): NotificationType {
   switch (object) {
     case 0:
-    case 'NOTIFICATION_TYPE_UNSPECIFIED':
+    case "NOTIFICATION_TYPE_UNSPECIFIED":
       return NotificationType.NOTIFICATION_TYPE_UNSPECIFIED;
     case 1:
-    case 'NOTIFICATION_TYPE_APPLICATION_STATUS':
+    case "NOTIFICATION_TYPE_APPLICATION_STATUS":
       return NotificationType.NOTIFICATION_TYPE_APPLICATION_STATUS;
     case 2:
-    case 'NOTIFICATION_TYPE_MESSAGE_RECEIVED':
+    case "NOTIFICATION_TYPE_MESSAGE_RECEIVED":
       return NotificationType.NOTIFICATION_TYPE_MESSAGE_RECEIVED;
     case 3:
-    case 'NOTIFICATION_TYPE_PET_AVAILABLE':
+    case "NOTIFICATION_TYPE_PET_AVAILABLE":
       return NotificationType.NOTIFICATION_TYPE_PET_AVAILABLE;
     case 4:
-    case 'NOTIFICATION_TYPE_INTERVIEW_SCHEDULED':
+    case "NOTIFICATION_TYPE_INTERVIEW_SCHEDULED":
       return NotificationType.NOTIFICATION_TYPE_INTERVIEW_SCHEDULED;
     case 5:
-    case 'NOTIFICATION_TYPE_HOME_VISIT_SCHEDULED':
+    case "NOTIFICATION_TYPE_HOME_VISIT_SCHEDULED":
       return NotificationType.NOTIFICATION_TYPE_HOME_VISIT_SCHEDULED;
     case 6:
-    case 'NOTIFICATION_TYPE_ADOPTION_APPROVED':
+    case "NOTIFICATION_TYPE_ADOPTION_APPROVED":
       return NotificationType.NOTIFICATION_TYPE_ADOPTION_APPROVED;
     case 7:
-    case 'NOTIFICATION_TYPE_ADOPTION_REJECTED':
+    case "NOTIFICATION_TYPE_ADOPTION_REJECTED":
       return NotificationType.NOTIFICATION_TYPE_ADOPTION_REJECTED;
     case 8:
-    case 'NOTIFICATION_TYPE_REFERENCE_REQUEST':
+    case "NOTIFICATION_TYPE_REFERENCE_REQUEST":
       return NotificationType.NOTIFICATION_TYPE_REFERENCE_REQUEST;
     case 9:
-    case 'NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT':
+    case "NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT":
       return NotificationType.NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT;
     case 10:
-    case 'NOTIFICATION_TYPE_ACCOUNT_SECURITY':
+    case "NOTIFICATION_TYPE_ACCOUNT_SECURITY":
       return NotificationType.NOTIFICATION_TYPE_ACCOUNT_SECURITY;
     case 11:
-    case 'NOTIFICATION_TYPE_REMINDER':
+    case "NOTIFICATION_TYPE_REMINDER":
       return NotificationType.NOTIFICATION_TYPE_REMINDER;
     case 12:
-    case 'NOTIFICATION_TYPE_MARKETING':
+    case "NOTIFICATION_TYPE_MARKETING":
       return NotificationType.NOTIFICATION_TYPE_MARKETING;
     case 13:
-    case 'NOTIFICATION_TYPE_RESCUE_INVITATION':
+    case "NOTIFICATION_TYPE_RESCUE_INVITATION":
       return NotificationType.NOTIFICATION_TYPE_RESCUE_INVITATION;
     case 14:
-    case 'NOTIFICATION_TYPE_STAFF_ASSIGNMENT':
+    case "NOTIFICATION_TYPE_STAFF_ASSIGNMENT":
       return NotificationType.NOTIFICATION_TYPE_STAFF_ASSIGNMENT;
     case 15:
-    case 'NOTIFICATION_TYPE_PET_UPDATE':
+    case "NOTIFICATION_TYPE_PET_UPDATE":
       return NotificationType.NOTIFICATION_TYPE_PET_UPDATE;
     case 16:
-    case 'NOTIFICATION_TYPE_FOLLOW_UP':
+    case "NOTIFICATION_TYPE_FOLLOW_UP":
       return NotificationType.NOTIFICATION_TYPE_FOLLOW_UP;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return NotificationType.UNRECOGNIZED;
   }
@@ -105,42 +105,42 @@ export function notificationTypeFromJSON(object: any): NotificationType {
 export function notificationTypeToJSON(object: NotificationType): string {
   switch (object) {
     case NotificationType.NOTIFICATION_TYPE_UNSPECIFIED:
-      return 'NOTIFICATION_TYPE_UNSPECIFIED';
+      return "NOTIFICATION_TYPE_UNSPECIFIED";
     case NotificationType.NOTIFICATION_TYPE_APPLICATION_STATUS:
-      return 'NOTIFICATION_TYPE_APPLICATION_STATUS';
+      return "NOTIFICATION_TYPE_APPLICATION_STATUS";
     case NotificationType.NOTIFICATION_TYPE_MESSAGE_RECEIVED:
-      return 'NOTIFICATION_TYPE_MESSAGE_RECEIVED';
+      return "NOTIFICATION_TYPE_MESSAGE_RECEIVED";
     case NotificationType.NOTIFICATION_TYPE_PET_AVAILABLE:
-      return 'NOTIFICATION_TYPE_PET_AVAILABLE';
+      return "NOTIFICATION_TYPE_PET_AVAILABLE";
     case NotificationType.NOTIFICATION_TYPE_INTERVIEW_SCHEDULED:
-      return 'NOTIFICATION_TYPE_INTERVIEW_SCHEDULED';
+      return "NOTIFICATION_TYPE_INTERVIEW_SCHEDULED";
     case NotificationType.NOTIFICATION_TYPE_HOME_VISIT_SCHEDULED:
-      return 'NOTIFICATION_TYPE_HOME_VISIT_SCHEDULED';
+      return "NOTIFICATION_TYPE_HOME_VISIT_SCHEDULED";
     case NotificationType.NOTIFICATION_TYPE_ADOPTION_APPROVED:
-      return 'NOTIFICATION_TYPE_ADOPTION_APPROVED';
+      return "NOTIFICATION_TYPE_ADOPTION_APPROVED";
     case NotificationType.NOTIFICATION_TYPE_ADOPTION_REJECTED:
-      return 'NOTIFICATION_TYPE_ADOPTION_REJECTED';
+      return "NOTIFICATION_TYPE_ADOPTION_REJECTED";
     case NotificationType.NOTIFICATION_TYPE_REFERENCE_REQUEST:
-      return 'NOTIFICATION_TYPE_REFERENCE_REQUEST';
+      return "NOTIFICATION_TYPE_REFERENCE_REQUEST";
     case NotificationType.NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT:
-      return 'NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT';
+      return "NOTIFICATION_TYPE_SYSTEM_ANNOUNCEMENT";
     case NotificationType.NOTIFICATION_TYPE_ACCOUNT_SECURITY:
-      return 'NOTIFICATION_TYPE_ACCOUNT_SECURITY';
+      return "NOTIFICATION_TYPE_ACCOUNT_SECURITY";
     case NotificationType.NOTIFICATION_TYPE_REMINDER:
-      return 'NOTIFICATION_TYPE_REMINDER';
+      return "NOTIFICATION_TYPE_REMINDER";
     case NotificationType.NOTIFICATION_TYPE_MARKETING:
-      return 'NOTIFICATION_TYPE_MARKETING';
+      return "NOTIFICATION_TYPE_MARKETING";
     case NotificationType.NOTIFICATION_TYPE_RESCUE_INVITATION:
-      return 'NOTIFICATION_TYPE_RESCUE_INVITATION';
+      return "NOTIFICATION_TYPE_RESCUE_INVITATION";
     case NotificationType.NOTIFICATION_TYPE_STAFF_ASSIGNMENT:
-      return 'NOTIFICATION_TYPE_STAFF_ASSIGNMENT';
+      return "NOTIFICATION_TYPE_STAFF_ASSIGNMENT";
     case NotificationType.NOTIFICATION_TYPE_PET_UPDATE:
-      return 'NOTIFICATION_TYPE_PET_UPDATE';
+      return "NOTIFICATION_TYPE_PET_UPDATE";
     case NotificationType.NOTIFICATION_TYPE_FOLLOW_UP:
-      return 'NOTIFICATION_TYPE_FOLLOW_UP';
+      return "NOTIFICATION_TYPE_FOLLOW_UP";
     case NotificationType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -156,22 +156,22 @@ export enum NotificationChannel {
 export function notificationChannelFromJSON(object: any): NotificationChannel {
   switch (object) {
     case 0:
-    case 'NOTIFICATION_CHANNEL_UNSPECIFIED':
+    case "NOTIFICATION_CHANNEL_UNSPECIFIED":
       return NotificationChannel.NOTIFICATION_CHANNEL_UNSPECIFIED;
     case 1:
-    case 'NOTIFICATION_CHANNEL_IN_APP':
+    case "NOTIFICATION_CHANNEL_IN_APP":
       return NotificationChannel.NOTIFICATION_CHANNEL_IN_APP;
     case 2:
-    case 'NOTIFICATION_CHANNEL_EMAIL':
+    case "NOTIFICATION_CHANNEL_EMAIL":
       return NotificationChannel.NOTIFICATION_CHANNEL_EMAIL;
     case 3:
-    case 'NOTIFICATION_CHANNEL_PUSH':
+    case "NOTIFICATION_CHANNEL_PUSH":
       return NotificationChannel.NOTIFICATION_CHANNEL_PUSH;
     case 4:
-    case 'NOTIFICATION_CHANNEL_SMS':
+    case "NOTIFICATION_CHANNEL_SMS":
       return NotificationChannel.NOTIFICATION_CHANNEL_SMS;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return NotificationChannel.UNRECOGNIZED;
   }
@@ -180,18 +180,18 @@ export function notificationChannelFromJSON(object: any): NotificationChannel {
 export function notificationChannelToJSON(object: NotificationChannel): string {
   switch (object) {
     case NotificationChannel.NOTIFICATION_CHANNEL_UNSPECIFIED:
-      return 'NOTIFICATION_CHANNEL_UNSPECIFIED';
+      return "NOTIFICATION_CHANNEL_UNSPECIFIED";
     case NotificationChannel.NOTIFICATION_CHANNEL_IN_APP:
-      return 'NOTIFICATION_CHANNEL_IN_APP';
+      return "NOTIFICATION_CHANNEL_IN_APP";
     case NotificationChannel.NOTIFICATION_CHANNEL_EMAIL:
-      return 'NOTIFICATION_CHANNEL_EMAIL';
+      return "NOTIFICATION_CHANNEL_EMAIL";
     case NotificationChannel.NOTIFICATION_CHANNEL_PUSH:
-      return 'NOTIFICATION_CHANNEL_PUSH';
+      return "NOTIFICATION_CHANNEL_PUSH";
     case NotificationChannel.NOTIFICATION_CHANNEL_SMS:
-      return 'NOTIFICATION_CHANNEL_SMS';
+      return "NOTIFICATION_CHANNEL_SMS";
     case NotificationChannel.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -207,22 +207,22 @@ export enum NotificationPriority {
 export function notificationPriorityFromJSON(object: any): NotificationPriority {
   switch (object) {
     case 0:
-    case 'NOTIFICATION_PRIORITY_UNSPECIFIED':
+    case "NOTIFICATION_PRIORITY_UNSPECIFIED":
       return NotificationPriority.NOTIFICATION_PRIORITY_UNSPECIFIED;
     case 1:
-    case 'NOTIFICATION_PRIORITY_LOW':
+    case "NOTIFICATION_PRIORITY_LOW":
       return NotificationPriority.NOTIFICATION_PRIORITY_LOW;
     case 2:
-    case 'NOTIFICATION_PRIORITY_NORMAL':
+    case "NOTIFICATION_PRIORITY_NORMAL":
       return NotificationPriority.NOTIFICATION_PRIORITY_NORMAL;
     case 3:
-    case 'NOTIFICATION_PRIORITY_HIGH':
+    case "NOTIFICATION_PRIORITY_HIGH":
       return NotificationPriority.NOTIFICATION_PRIORITY_HIGH;
     case 4:
-    case 'NOTIFICATION_PRIORITY_URGENT':
+    case "NOTIFICATION_PRIORITY_URGENT":
       return NotificationPriority.NOTIFICATION_PRIORITY_URGENT;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return NotificationPriority.UNRECOGNIZED;
   }
@@ -231,18 +231,18 @@ export function notificationPriorityFromJSON(object: any): NotificationPriority 
 export function notificationPriorityToJSON(object: NotificationPriority): string {
   switch (object) {
     case NotificationPriority.NOTIFICATION_PRIORITY_UNSPECIFIED:
-      return 'NOTIFICATION_PRIORITY_UNSPECIFIED';
+      return "NOTIFICATION_PRIORITY_UNSPECIFIED";
     case NotificationPriority.NOTIFICATION_PRIORITY_LOW:
-      return 'NOTIFICATION_PRIORITY_LOW';
+      return "NOTIFICATION_PRIORITY_LOW";
     case NotificationPriority.NOTIFICATION_PRIORITY_NORMAL:
-      return 'NOTIFICATION_PRIORITY_NORMAL';
+      return "NOTIFICATION_PRIORITY_NORMAL";
     case NotificationPriority.NOTIFICATION_PRIORITY_HIGH:
-      return 'NOTIFICATION_PRIORITY_HIGH';
+      return "NOTIFICATION_PRIORITY_HIGH";
     case NotificationPriority.NOTIFICATION_PRIORITY_URGENT:
-      return 'NOTIFICATION_PRIORITY_URGENT';
+      return "NOTIFICATION_PRIORITY_URGENT";
     case NotificationPriority.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -260,28 +260,28 @@ export enum NotificationStatus {
 export function notificationStatusFromJSON(object: any): NotificationStatus {
   switch (object) {
     case 0:
-    case 'NOTIFICATION_STATUS_UNSPECIFIED':
+    case "NOTIFICATION_STATUS_UNSPECIFIED":
       return NotificationStatus.NOTIFICATION_STATUS_UNSPECIFIED;
     case 1:
-    case 'NOTIFICATION_STATUS_PENDING':
+    case "NOTIFICATION_STATUS_PENDING":
       return NotificationStatus.NOTIFICATION_STATUS_PENDING;
     case 2:
-    case 'NOTIFICATION_STATUS_SENT':
+    case "NOTIFICATION_STATUS_SENT":
       return NotificationStatus.NOTIFICATION_STATUS_SENT;
     case 3:
-    case 'NOTIFICATION_STATUS_DELIVERED':
+    case "NOTIFICATION_STATUS_DELIVERED":
       return NotificationStatus.NOTIFICATION_STATUS_DELIVERED;
     case 4:
-    case 'NOTIFICATION_STATUS_READ':
+    case "NOTIFICATION_STATUS_READ":
       return NotificationStatus.NOTIFICATION_STATUS_READ;
     case 5:
-    case 'NOTIFICATION_STATUS_FAILED':
+    case "NOTIFICATION_STATUS_FAILED":
       return NotificationStatus.NOTIFICATION_STATUS_FAILED;
     case 6:
-    case 'NOTIFICATION_STATUS_CANCELLED':
+    case "NOTIFICATION_STATUS_CANCELLED":
       return NotificationStatus.NOTIFICATION_STATUS_CANCELLED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return NotificationStatus.UNRECOGNIZED;
   }
@@ -290,22 +290,22 @@ export function notificationStatusFromJSON(object: any): NotificationStatus {
 export function notificationStatusToJSON(object: NotificationStatus): string {
   switch (object) {
     case NotificationStatus.NOTIFICATION_STATUS_UNSPECIFIED:
-      return 'NOTIFICATION_STATUS_UNSPECIFIED';
+      return "NOTIFICATION_STATUS_UNSPECIFIED";
     case NotificationStatus.NOTIFICATION_STATUS_PENDING:
-      return 'NOTIFICATION_STATUS_PENDING';
+      return "NOTIFICATION_STATUS_PENDING";
     case NotificationStatus.NOTIFICATION_STATUS_SENT:
-      return 'NOTIFICATION_STATUS_SENT';
+      return "NOTIFICATION_STATUS_SENT";
     case NotificationStatus.NOTIFICATION_STATUS_DELIVERED:
-      return 'NOTIFICATION_STATUS_DELIVERED';
+      return "NOTIFICATION_STATUS_DELIVERED";
     case NotificationStatus.NOTIFICATION_STATUS_READ:
-      return 'NOTIFICATION_STATUS_READ';
+      return "NOTIFICATION_STATUS_READ";
     case NotificationStatus.NOTIFICATION_STATUS_FAILED:
-      return 'NOTIFICATION_STATUS_FAILED';
+      return "NOTIFICATION_STATUS_FAILED";
     case NotificationStatus.NOTIFICATION_STATUS_CANCELLED:
-      return 'NOTIFICATION_STATUS_CANCELLED';
+      return "NOTIFICATION_STATUS_CANCELLED";
     case NotificationStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -331,52 +331,52 @@ export enum NotificationRelatedEntityType {
 export function notificationRelatedEntityTypeFromJSON(object: any): NotificationRelatedEntityType {
   switch (object) {
     case 0:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_UNSPECIFIED':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_UNSPECIFIED":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_UNSPECIFIED;
     case 1:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION;
     case 2:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_PET':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_PET":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_PET;
     case 3:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE;
     case 4:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_USER':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_USER":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_USER;
     case 5:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE;
     case 6:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_CONVERSATION':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_CONVERSATION":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_CONVERSATION;
     case 7:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_INTERVIEW':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_INTERVIEW":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_INTERVIEW;
     case 8:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT;
     case 9:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_REMINDER':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_REMINDER":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_REMINDER;
     case 10:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_ANNOUNCEMENT':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_ANNOUNCEMENT":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_ANNOUNCEMENT;
     case 11:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION;
     case 12:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_EVENT':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_EVENT":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_EVENT;
     case 13:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_REFERENCE':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_REFERENCE":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_REFERENCE;
     case 14:
-    case 'NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY':
+    case "NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY":
       return NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return NotificationRelatedEntityType.UNRECOGNIZED;
   }
@@ -385,38 +385,38 @@ export function notificationRelatedEntityTypeFromJSON(object: any): Notification
 export function notificationRelatedEntityTypeToJSON(object: NotificationRelatedEntityType): string {
   switch (object) {
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_UNSPECIFIED:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_UNSPECIFIED';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_UNSPECIFIED";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_APPLICATION";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_PET:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_PET';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_PET";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_MESSAGE";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_USER:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_USER';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_USER";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_RESCUE";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_CONVERSATION:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_CONVERSATION';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_CONVERSATION";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_INTERVIEW:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_INTERVIEW';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_INTERVIEW";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_HOME_VISIT";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_REMINDER:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_REMINDER';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_REMINDER";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_ANNOUNCEMENT:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_ANNOUNCEMENT';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_ANNOUNCEMENT";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_ADOPTION";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_EVENT:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_EVENT';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_EVENT";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_REFERENCE:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_REFERENCE';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_REFERENCE";
     case NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY:
-      return 'NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY';
+      return "NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY";
     case NotificationRelatedEntityType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -432,22 +432,22 @@ export enum EmailType {
 export function emailTypeFromJSON(object: any): EmailType {
   switch (object) {
     case 0:
-    case 'EMAIL_TYPE_UNSPECIFIED':
+    case "EMAIL_TYPE_UNSPECIFIED":
       return EmailType.EMAIL_TYPE_UNSPECIFIED;
     case 1:
-    case 'EMAIL_TYPE_TRANSACTIONAL':
+    case "EMAIL_TYPE_TRANSACTIONAL":
       return EmailType.EMAIL_TYPE_TRANSACTIONAL;
     case 2:
-    case 'EMAIL_TYPE_NOTIFICATION':
+    case "EMAIL_TYPE_NOTIFICATION":
       return EmailType.EMAIL_TYPE_NOTIFICATION;
     case 3:
-    case 'EMAIL_TYPE_MARKETING':
+    case "EMAIL_TYPE_MARKETING":
       return EmailType.EMAIL_TYPE_MARKETING;
     case 4:
-    case 'EMAIL_TYPE_SYSTEM':
+    case "EMAIL_TYPE_SYSTEM":
       return EmailType.EMAIL_TYPE_SYSTEM;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return EmailType.UNRECOGNIZED;
   }
@@ -456,18 +456,18 @@ export function emailTypeFromJSON(object: any): EmailType {
 export function emailTypeToJSON(object: EmailType): string {
   switch (object) {
     case EmailType.EMAIL_TYPE_UNSPECIFIED:
-      return 'EMAIL_TYPE_UNSPECIFIED';
+      return "EMAIL_TYPE_UNSPECIFIED";
     case EmailType.EMAIL_TYPE_TRANSACTIONAL:
-      return 'EMAIL_TYPE_TRANSACTIONAL';
+      return "EMAIL_TYPE_TRANSACTIONAL";
     case EmailType.EMAIL_TYPE_NOTIFICATION:
-      return 'EMAIL_TYPE_NOTIFICATION';
+      return "EMAIL_TYPE_NOTIFICATION";
     case EmailType.EMAIL_TYPE_MARKETING:
-      return 'EMAIL_TYPE_MARKETING';
+      return "EMAIL_TYPE_MARKETING";
     case EmailType.EMAIL_TYPE_SYSTEM:
-      return 'EMAIL_TYPE_SYSTEM';
+      return "EMAIL_TYPE_SYSTEM";
     case EmailType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -483,22 +483,22 @@ export enum EmailPriority {
 export function emailPriorityFromJSON(object: any): EmailPriority {
   switch (object) {
     case 0:
-    case 'EMAIL_PRIORITY_UNSPECIFIED':
+    case "EMAIL_PRIORITY_UNSPECIFIED":
       return EmailPriority.EMAIL_PRIORITY_UNSPECIFIED;
     case 1:
-    case 'EMAIL_PRIORITY_LOW':
+    case "EMAIL_PRIORITY_LOW":
       return EmailPriority.EMAIL_PRIORITY_LOW;
     case 2:
-    case 'EMAIL_PRIORITY_NORMAL':
+    case "EMAIL_PRIORITY_NORMAL":
       return EmailPriority.EMAIL_PRIORITY_NORMAL;
     case 3:
-    case 'EMAIL_PRIORITY_HIGH':
+    case "EMAIL_PRIORITY_HIGH":
       return EmailPriority.EMAIL_PRIORITY_HIGH;
     case 4:
-    case 'EMAIL_PRIORITY_URGENT':
+    case "EMAIL_PRIORITY_URGENT":
       return EmailPriority.EMAIL_PRIORITY_URGENT;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return EmailPriority.UNRECOGNIZED;
   }
@@ -507,18 +507,18 @@ export function emailPriorityFromJSON(object: any): EmailPriority {
 export function emailPriorityToJSON(object: EmailPriority): string {
   switch (object) {
     case EmailPriority.EMAIL_PRIORITY_UNSPECIFIED:
-      return 'EMAIL_PRIORITY_UNSPECIFIED';
+      return "EMAIL_PRIORITY_UNSPECIFIED";
     case EmailPriority.EMAIL_PRIORITY_LOW:
-      return 'EMAIL_PRIORITY_LOW';
+      return "EMAIL_PRIORITY_LOW";
     case EmailPriority.EMAIL_PRIORITY_NORMAL:
-      return 'EMAIL_PRIORITY_NORMAL';
+      return "EMAIL_PRIORITY_NORMAL";
     case EmailPriority.EMAIL_PRIORITY_HIGH:
-      return 'EMAIL_PRIORITY_HIGH';
+      return "EMAIL_PRIORITY_HIGH";
     case EmailPriority.EMAIL_PRIORITY_URGENT:
-      return 'EMAIL_PRIORITY_URGENT';
+      return "EMAIL_PRIORITY_URGENT";
     case EmailPriority.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -539,37 +539,37 @@ export enum EmailStatus {
 export function emailStatusFromJSON(object: any): EmailStatus {
   switch (object) {
     case 0:
-    case 'EMAIL_STATUS_UNSPECIFIED':
+    case "EMAIL_STATUS_UNSPECIFIED":
       return EmailStatus.EMAIL_STATUS_UNSPECIFIED;
     case 1:
-    case 'EMAIL_STATUS_QUEUED':
+    case "EMAIL_STATUS_QUEUED":
       return EmailStatus.EMAIL_STATUS_QUEUED;
     case 2:
-    case 'EMAIL_STATUS_SENDING':
+    case "EMAIL_STATUS_SENDING":
       return EmailStatus.EMAIL_STATUS_SENDING;
     case 3:
-    case 'EMAIL_STATUS_SENT':
+    case "EMAIL_STATUS_SENT":
       return EmailStatus.EMAIL_STATUS_SENT;
     case 4:
-    case 'EMAIL_STATUS_DELIVERED':
+    case "EMAIL_STATUS_DELIVERED":
       return EmailStatus.EMAIL_STATUS_DELIVERED;
     case 5:
-    case 'EMAIL_STATUS_OPENED':
+    case "EMAIL_STATUS_OPENED":
       return EmailStatus.EMAIL_STATUS_OPENED;
     case 6:
-    case 'EMAIL_STATUS_CLICKED':
+    case "EMAIL_STATUS_CLICKED":
       return EmailStatus.EMAIL_STATUS_CLICKED;
     case 7:
-    case 'EMAIL_STATUS_FAILED':
+    case "EMAIL_STATUS_FAILED":
       return EmailStatus.EMAIL_STATUS_FAILED;
     case 8:
-    case 'EMAIL_STATUS_BOUNCED':
+    case "EMAIL_STATUS_BOUNCED":
       return EmailStatus.EMAIL_STATUS_BOUNCED;
     case 9:
-    case 'EMAIL_STATUS_UNSUBSCRIBED':
+    case "EMAIL_STATUS_UNSUBSCRIBED":
       return EmailStatus.EMAIL_STATUS_UNSUBSCRIBED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return EmailStatus.UNRECOGNIZED;
   }
@@ -578,28 +578,28 @@ export function emailStatusFromJSON(object: any): EmailStatus {
 export function emailStatusToJSON(object: EmailStatus): string {
   switch (object) {
     case EmailStatus.EMAIL_STATUS_UNSPECIFIED:
-      return 'EMAIL_STATUS_UNSPECIFIED';
+      return "EMAIL_STATUS_UNSPECIFIED";
     case EmailStatus.EMAIL_STATUS_QUEUED:
-      return 'EMAIL_STATUS_QUEUED';
+      return "EMAIL_STATUS_QUEUED";
     case EmailStatus.EMAIL_STATUS_SENDING:
-      return 'EMAIL_STATUS_SENDING';
+      return "EMAIL_STATUS_SENDING";
     case EmailStatus.EMAIL_STATUS_SENT:
-      return 'EMAIL_STATUS_SENT';
+      return "EMAIL_STATUS_SENT";
     case EmailStatus.EMAIL_STATUS_DELIVERED:
-      return 'EMAIL_STATUS_DELIVERED';
+      return "EMAIL_STATUS_DELIVERED";
     case EmailStatus.EMAIL_STATUS_OPENED:
-      return 'EMAIL_STATUS_OPENED';
+      return "EMAIL_STATUS_OPENED";
     case EmailStatus.EMAIL_STATUS_CLICKED:
-      return 'EMAIL_STATUS_CLICKED';
+      return "EMAIL_STATUS_CLICKED";
     case EmailStatus.EMAIL_STATUS_FAILED:
-      return 'EMAIL_STATUS_FAILED';
+      return "EMAIL_STATUS_FAILED";
     case EmailStatus.EMAIL_STATUS_BOUNCED:
-      return 'EMAIL_STATUS_BOUNCED';
+      return "EMAIL_STATUS_BOUNCED";
     case EmailStatus.EMAIL_STATUS_UNSUBSCRIBED:
-      return 'EMAIL_STATUS_UNSUBSCRIBED';
+      return "EMAIL_STATUS_UNSUBSCRIBED";
     case EmailStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -616,25 +616,25 @@ export enum EmailDigestFrequency {
 export function emailDigestFrequencyFromJSON(object: any): EmailDigestFrequency {
   switch (object) {
     case 0:
-    case 'EMAIL_DIGEST_FREQUENCY_UNSPECIFIED':
+    case "EMAIL_DIGEST_FREQUENCY_UNSPECIFIED":
       return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_UNSPECIFIED;
     case 1:
-    case 'EMAIL_DIGEST_FREQUENCY_IMMEDIATE':
+    case "EMAIL_DIGEST_FREQUENCY_IMMEDIATE":
       return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_IMMEDIATE;
     case 2:
-    case 'EMAIL_DIGEST_FREQUENCY_DAILY':
+    case "EMAIL_DIGEST_FREQUENCY_DAILY":
       return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_DAILY;
     case 3:
-    case 'EMAIL_DIGEST_FREQUENCY_WEEKLY':
+    case "EMAIL_DIGEST_FREQUENCY_WEEKLY":
       return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_WEEKLY;
     case 4:
-    case 'EMAIL_DIGEST_FREQUENCY_MONTHLY':
+    case "EMAIL_DIGEST_FREQUENCY_MONTHLY":
       return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_MONTHLY;
     case 5:
-    case 'EMAIL_DIGEST_FREQUENCY_NEVER':
+    case "EMAIL_DIGEST_FREQUENCY_NEVER":
       return EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_NEVER;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return EmailDigestFrequency.UNRECOGNIZED;
   }
@@ -643,20 +643,20 @@ export function emailDigestFrequencyFromJSON(object: any): EmailDigestFrequency 
 export function emailDigestFrequencyToJSON(object: EmailDigestFrequency): string {
   switch (object) {
     case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_UNSPECIFIED:
-      return 'EMAIL_DIGEST_FREQUENCY_UNSPECIFIED';
+      return "EMAIL_DIGEST_FREQUENCY_UNSPECIFIED";
     case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_IMMEDIATE:
-      return 'EMAIL_DIGEST_FREQUENCY_IMMEDIATE';
+      return "EMAIL_DIGEST_FREQUENCY_IMMEDIATE";
     case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_DAILY:
-      return 'EMAIL_DIGEST_FREQUENCY_DAILY';
+      return "EMAIL_DIGEST_FREQUENCY_DAILY";
     case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_WEEKLY:
-      return 'EMAIL_DIGEST_FREQUENCY_WEEKLY';
+      return "EMAIL_DIGEST_FREQUENCY_WEEKLY";
     case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_MONTHLY:
-      return 'EMAIL_DIGEST_FREQUENCY_MONTHLY';
+      return "EMAIL_DIGEST_FREQUENCY_MONTHLY";
     case EmailDigestFrequency.EMAIL_DIGEST_FREQUENCY_NEVER:
-      return 'EMAIL_DIGEST_FREQUENCY_NEVER';
+      return "EMAIL_DIGEST_FREQUENCY_NEVER";
     case EmailDigestFrequency.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -671,19 +671,19 @@ export enum EmailFormat {
 export function emailFormatFromJSON(object: any): EmailFormat {
   switch (object) {
     case 0:
-    case 'EMAIL_FORMAT_UNSPECIFIED':
+    case "EMAIL_FORMAT_UNSPECIFIED":
       return EmailFormat.EMAIL_FORMAT_UNSPECIFIED;
     case 1:
-    case 'EMAIL_FORMAT_HTML':
+    case "EMAIL_FORMAT_HTML":
       return EmailFormat.EMAIL_FORMAT_HTML;
     case 2:
-    case 'EMAIL_FORMAT_TEXT':
+    case "EMAIL_FORMAT_TEXT":
       return EmailFormat.EMAIL_FORMAT_TEXT;
     case 3:
-    case 'EMAIL_FORMAT_BOTH':
+    case "EMAIL_FORMAT_BOTH":
       return EmailFormat.EMAIL_FORMAT_BOTH;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return EmailFormat.UNRECOGNIZED;
   }
@@ -692,16 +692,16 @@ export function emailFormatFromJSON(object: any): EmailFormat {
 export function emailFormatToJSON(object: EmailFormat): string {
   switch (object) {
     case EmailFormat.EMAIL_FORMAT_UNSPECIFIED:
-      return 'EMAIL_FORMAT_UNSPECIFIED';
+      return "EMAIL_FORMAT_UNSPECIFIED";
     case EmailFormat.EMAIL_FORMAT_HTML:
-      return 'EMAIL_FORMAT_HTML';
+      return "EMAIL_FORMAT_HTML";
     case EmailFormat.EMAIL_FORMAT_TEXT:
-      return 'EMAIL_FORMAT_TEXT';
+      return "EMAIL_FORMAT_TEXT";
     case EmailFormat.EMAIL_FORMAT_BOTH:
-      return 'EMAIL_FORMAT_BOTH';
+      return "EMAIL_FORMAT_BOTH";
     case EmailFormat.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -716,19 +716,19 @@ export enum DevicePlatform {
 export function devicePlatformFromJSON(object: any): DevicePlatform {
   switch (object) {
     case 0:
-    case 'DEVICE_PLATFORM_UNSPECIFIED':
+    case "DEVICE_PLATFORM_UNSPECIFIED":
       return DevicePlatform.DEVICE_PLATFORM_UNSPECIFIED;
     case 1:
-    case 'DEVICE_PLATFORM_IOS':
+    case "DEVICE_PLATFORM_IOS":
       return DevicePlatform.DEVICE_PLATFORM_IOS;
     case 2:
-    case 'DEVICE_PLATFORM_ANDROID':
+    case "DEVICE_PLATFORM_ANDROID":
       return DevicePlatform.DEVICE_PLATFORM_ANDROID;
     case 3:
-    case 'DEVICE_PLATFORM_WEB':
+    case "DEVICE_PLATFORM_WEB":
       return DevicePlatform.DEVICE_PLATFORM_WEB;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return DevicePlatform.UNRECOGNIZED;
   }
@@ -737,16 +737,16 @@ export function devicePlatformFromJSON(object: any): DevicePlatform {
 export function devicePlatformToJSON(object: DevicePlatform): string {
   switch (object) {
     case DevicePlatform.DEVICE_PLATFORM_UNSPECIFIED:
-      return 'DEVICE_PLATFORM_UNSPECIFIED';
+      return "DEVICE_PLATFORM_UNSPECIFIED";
     case DevicePlatform.DEVICE_PLATFORM_IOS:
-      return 'DEVICE_PLATFORM_IOS';
+      return "DEVICE_PLATFORM_IOS";
     case DevicePlatform.DEVICE_PLATFORM_ANDROID:
-      return 'DEVICE_PLATFORM_ANDROID';
+      return "DEVICE_PLATFORM_ANDROID";
     case DevicePlatform.DEVICE_PLATFORM_WEB:
-      return 'DEVICE_PLATFORM_WEB';
+      return "DEVICE_PLATFORM_WEB";
     case DevicePlatform.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -762,22 +762,22 @@ export enum DeviceTokenStatus {
 export function deviceTokenStatusFromJSON(object: any): DeviceTokenStatus {
   switch (object) {
     case 0:
-    case 'DEVICE_TOKEN_STATUS_UNSPECIFIED':
+    case "DEVICE_TOKEN_STATUS_UNSPECIFIED":
       return DeviceTokenStatus.DEVICE_TOKEN_STATUS_UNSPECIFIED;
     case 1:
-    case 'DEVICE_TOKEN_STATUS_ACTIVE':
+    case "DEVICE_TOKEN_STATUS_ACTIVE":
       return DeviceTokenStatus.DEVICE_TOKEN_STATUS_ACTIVE;
     case 2:
-    case 'DEVICE_TOKEN_STATUS_INACTIVE':
+    case "DEVICE_TOKEN_STATUS_INACTIVE":
       return DeviceTokenStatus.DEVICE_TOKEN_STATUS_INACTIVE;
     case 3:
-    case 'DEVICE_TOKEN_STATUS_EXPIRED':
+    case "DEVICE_TOKEN_STATUS_EXPIRED":
       return DeviceTokenStatus.DEVICE_TOKEN_STATUS_EXPIRED;
     case 4:
-    case 'DEVICE_TOKEN_STATUS_INVALID':
+    case "DEVICE_TOKEN_STATUS_INVALID":
       return DeviceTokenStatus.DEVICE_TOKEN_STATUS_INVALID;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return DeviceTokenStatus.UNRECOGNIZED;
   }
@@ -786,18 +786,18 @@ export function deviceTokenStatusFromJSON(object: any): DeviceTokenStatus {
 export function deviceTokenStatusToJSON(object: DeviceTokenStatus): string {
   switch (object) {
     case DeviceTokenStatus.DEVICE_TOKEN_STATUS_UNSPECIFIED:
-      return 'DEVICE_TOKEN_STATUS_UNSPECIFIED';
+      return "DEVICE_TOKEN_STATUS_UNSPECIFIED";
     case DeviceTokenStatus.DEVICE_TOKEN_STATUS_ACTIVE:
-      return 'DEVICE_TOKEN_STATUS_ACTIVE';
+      return "DEVICE_TOKEN_STATUS_ACTIVE";
     case DeviceTokenStatus.DEVICE_TOKEN_STATUS_INACTIVE:
-      return 'DEVICE_TOKEN_STATUS_INACTIVE';
+      return "DEVICE_TOKEN_STATUS_INACTIVE";
     case DeviceTokenStatus.DEVICE_TOKEN_STATUS_EXPIRED:
-      return 'DEVICE_TOKEN_STATUS_EXPIRED';
+      return "DEVICE_TOKEN_STATUS_EXPIRED";
     case DeviceTokenStatus.DEVICE_TOKEN_STATUS_INVALID:
-      return 'DEVICE_TOKEN_STATUS_INVALID';
+      return "DEVICE_TOKEN_STATUS_INVALID";
     case DeviceTokenStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -813,22 +813,22 @@ export enum NotificationDigestFrequency {
 export function notificationDigestFrequencyFromJSON(object: any): NotificationDigestFrequency {
   switch (object) {
     case 0:
-    case 'NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED':
+    case "NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED":
       return NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED;
     case 1:
-    case 'NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE':
+    case "NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE":
       return NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE;
     case 2:
-    case 'NOTIFICATION_DIGEST_FREQUENCY_DAILY':
+    case "NOTIFICATION_DIGEST_FREQUENCY_DAILY":
       return NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_DAILY;
     case 3:
-    case 'NOTIFICATION_DIGEST_FREQUENCY_WEEKLY':
+    case "NOTIFICATION_DIGEST_FREQUENCY_WEEKLY":
       return NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_WEEKLY;
     case 4:
-    case 'NOTIFICATION_DIGEST_FREQUENCY_NEVER':
+    case "NOTIFICATION_DIGEST_FREQUENCY_NEVER":
       return NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_NEVER;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return NotificationDigestFrequency.UNRECOGNIZED;
   }
@@ -837,18 +837,18 @@ export function notificationDigestFrequencyFromJSON(object: any): NotificationDi
 export function notificationDigestFrequencyToJSON(object: NotificationDigestFrequency): string {
   switch (object) {
     case NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED:
-      return 'NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED';
+      return "NOTIFICATION_DIGEST_FREQUENCY_UNSPECIFIED";
     case NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE:
-      return 'NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE';
+      return "NOTIFICATION_DIGEST_FREQUENCY_IMMEDIATE";
     case NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_DAILY:
-      return 'NOTIFICATION_DIGEST_FREQUENCY_DAILY';
+      return "NOTIFICATION_DIGEST_FREQUENCY_DAILY";
     case NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_WEEKLY:
-      return 'NOTIFICATION_DIGEST_FREQUENCY_WEEKLY';
+      return "NOTIFICATION_DIGEST_FREQUENCY_WEEKLY";
     case NotificationDigestFrequency.NOTIFICATION_DIGEST_FREQUENCY_NEVER:
-      return 'NOTIFICATION_DIGEST_FREQUENCY_NEVER';
+      return "NOTIFICATION_DIGEST_FREQUENCY_NEVER";
     case NotificationDigestFrequency.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -865,25 +865,25 @@ export enum EmailTemplateType {
 export function emailTemplateTypeFromJSON(object: any): EmailTemplateType {
   switch (object) {
     case 0:
-    case 'EMAIL_TEMPLATE_TYPE_UNSPECIFIED':
+    case "EMAIL_TEMPLATE_TYPE_UNSPECIFIED":
       return EmailTemplateType.EMAIL_TEMPLATE_TYPE_UNSPECIFIED;
     case 1:
-    case 'EMAIL_TEMPLATE_TYPE_TRANSACTIONAL':
+    case "EMAIL_TEMPLATE_TYPE_TRANSACTIONAL":
       return EmailTemplateType.EMAIL_TEMPLATE_TYPE_TRANSACTIONAL;
     case 2:
-    case 'EMAIL_TEMPLATE_TYPE_NOTIFICATION':
+    case "EMAIL_TEMPLATE_TYPE_NOTIFICATION":
       return EmailTemplateType.EMAIL_TEMPLATE_TYPE_NOTIFICATION;
     case 3:
-    case 'EMAIL_TEMPLATE_TYPE_MARKETING':
+    case "EMAIL_TEMPLATE_TYPE_MARKETING":
       return EmailTemplateType.EMAIL_TEMPLATE_TYPE_MARKETING;
     case 4:
-    case 'EMAIL_TEMPLATE_TYPE_SYSTEM':
+    case "EMAIL_TEMPLATE_TYPE_SYSTEM":
       return EmailTemplateType.EMAIL_TEMPLATE_TYPE_SYSTEM;
     case 5:
-    case 'EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE':
+    case "EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE":
       return EmailTemplateType.EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return EmailTemplateType.UNRECOGNIZED;
   }
@@ -892,20 +892,20 @@ export function emailTemplateTypeFromJSON(object: any): EmailTemplateType {
 export function emailTemplateTypeToJSON(object: EmailTemplateType): string {
   switch (object) {
     case EmailTemplateType.EMAIL_TEMPLATE_TYPE_UNSPECIFIED:
-      return 'EMAIL_TEMPLATE_TYPE_UNSPECIFIED';
+      return "EMAIL_TEMPLATE_TYPE_UNSPECIFIED";
     case EmailTemplateType.EMAIL_TEMPLATE_TYPE_TRANSACTIONAL:
-      return 'EMAIL_TEMPLATE_TYPE_TRANSACTIONAL';
+      return "EMAIL_TEMPLATE_TYPE_TRANSACTIONAL";
     case EmailTemplateType.EMAIL_TEMPLATE_TYPE_NOTIFICATION:
-      return 'EMAIL_TEMPLATE_TYPE_NOTIFICATION';
+      return "EMAIL_TEMPLATE_TYPE_NOTIFICATION";
     case EmailTemplateType.EMAIL_TEMPLATE_TYPE_MARKETING:
-      return 'EMAIL_TEMPLATE_TYPE_MARKETING';
+      return "EMAIL_TEMPLATE_TYPE_MARKETING";
     case EmailTemplateType.EMAIL_TEMPLATE_TYPE_SYSTEM:
-      return 'EMAIL_TEMPLATE_TYPE_SYSTEM';
+      return "EMAIL_TEMPLATE_TYPE_SYSTEM";
     case EmailTemplateType.EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE:
-      return 'EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE';
+      return "EMAIL_TEMPLATE_TYPE_ADMINISTRATIVE";
     case EmailTemplateType.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -921,22 +921,22 @@ export enum EmailTemplateStatus {
 export function emailTemplateStatusFromJSON(object: any): EmailTemplateStatus {
   switch (object) {
     case 0:
-    case 'EMAIL_TEMPLATE_STATUS_UNSPECIFIED':
+    case "EMAIL_TEMPLATE_STATUS_UNSPECIFIED":
       return EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_UNSPECIFIED;
     case 1:
-    case 'EMAIL_TEMPLATE_STATUS_DRAFT':
+    case "EMAIL_TEMPLATE_STATUS_DRAFT":
       return EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_DRAFT;
     case 2:
-    case 'EMAIL_TEMPLATE_STATUS_ACTIVE':
+    case "EMAIL_TEMPLATE_STATUS_ACTIVE":
       return EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_ACTIVE;
     case 3:
-    case 'EMAIL_TEMPLATE_STATUS_INACTIVE':
+    case "EMAIL_TEMPLATE_STATUS_INACTIVE":
       return EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_INACTIVE;
     case 4:
-    case 'EMAIL_TEMPLATE_STATUS_ARCHIVED':
+    case "EMAIL_TEMPLATE_STATUS_ARCHIVED":
       return EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_ARCHIVED;
     case -1:
-    case 'UNRECOGNIZED':
+    case "UNRECOGNIZED":
     default:
       return EmailTemplateStatus.UNRECOGNIZED;
   }
@@ -945,18 +945,18 @@ export function emailTemplateStatusFromJSON(object: any): EmailTemplateStatus {
 export function emailTemplateStatusToJSON(object: EmailTemplateStatus): string {
   switch (object) {
     case EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_UNSPECIFIED:
-      return 'EMAIL_TEMPLATE_STATUS_UNSPECIFIED';
+      return "EMAIL_TEMPLATE_STATUS_UNSPECIFIED";
     case EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_DRAFT:
-      return 'EMAIL_TEMPLATE_STATUS_DRAFT';
+      return "EMAIL_TEMPLATE_STATUS_DRAFT";
     case EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_ACTIVE:
-      return 'EMAIL_TEMPLATE_STATUS_ACTIVE';
+      return "EMAIL_TEMPLATE_STATUS_ACTIVE";
     case EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_INACTIVE:
-      return 'EMAIL_TEMPLATE_STATUS_INACTIVE';
+      return "EMAIL_TEMPLATE_STATUS_INACTIVE";
     case EmailTemplateStatus.EMAIL_TEMPLATE_STATUS_ARCHIVED:
-      return 'EMAIL_TEMPLATE_STATUS_ARCHIVED';
+      return "EMAIL_TEMPLATE_STATUS_ARCHIVED";
     case EmailTemplateStatus.UNRECOGNIZED:
     default:
-      return 'UNRECOGNIZED';
+      return "UNRECOGNIZED";
   }
 }
 
@@ -980,7 +980,9 @@ export interface Notification {
   templateId?: string | undefined;
   templateVariablesJson: string;
   relatedEntityType?: NotificationRelatedEntityType | undefined;
-  relatedEntityId?: string | undefined;
+  relatedEntityId?:
+    | string
+    | undefined;
   /**
    * RFC 3339 timestamps — `optional` markers mirror the table's
    * NULL columns. created_at / updated_at are never null.
@@ -1018,7 +1020,9 @@ export interface CreateNotificationRequest {
   relatedEntityType?: NotificationRelatedEntityType | undefined;
   relatedEntityId?: string | undefined;
   scheduledFor?: string | undefined;
-  expiresAt?: string | undefined;
+  expiresAt?:
+    | string
+    | undefined;
   /**
    * External tracking id (e.g. SendGrid message id). Optional at create
    * time; the email/SMS workers stamp it later when they ship the message.
@@ -1036,7 +1040,9 @@ export interface ListNotificationsRequest {
    * audit query. Callers pass the previous response's next_cursor
    * back here; the format is the service's private concern.
    */
-  cursor?: string | undefined;
+  cursor?:
+    | string
+    | undefined;
   /**
    * Defaults to 20, max 100 — server enforces the bound, returns
    * INVALID_ARGUMENT on overflow.
@@ -1075,11 +1081,15 @@ export interface DismissNotificationResponse {
 export interface SendEmailRequest {
   /** Recipient. Required. */
   toEmail: string;
-  toName?: string | undefined;
+  toName?:
+    | string
+    | undefined;
   /** Sender override (defaults to the service's configured From). */
   fromEmail?: string | undefined;
   fromName?: string | undefined;
-  replyToEmail?: string | undefined;
+  replyToEmail?:
+    | string
+    | undefined;
   /** CC / BCC. Empty when omitted. */
   ccEmails: string[];
   bccEmails: string[];
@@ -1090,7 +1100,9 @@ export interface SendEmailRequest {
   subject?: string | undefined;
   htmlContent?: string | undefined;
   textContent?: string | undefined;
-  templateId?: string | undefined;
+  templateId?:
+    | string
+    | undefined;
   /**
    * JSON-stringified payload for template variable substitution.
    * Empty string == `{}`.
@@ -1102,13 +1114,17 @@ export interface SendEmailRequest {
    * Schedule for a future delivery. Absent = send as soon as the worker
    * picks it up.
    */
-  scheduledFor?: string | undefined;
+  scheduledFor?:
+    | string
+    | undefined;
   /** Free-form metadata + tags for the row. JSON-stringified; empty string == `{}`. */
   metadataJson: string;
   tags: string[];
   /** Tie the row to a user (for prefs enforcement + audit). Optional. */
   userId?: string | undefined;
-  campaignId?: string | undefined;
+  campaignId?:
+    | string
+    | undefined;
   /**
    * Opt-in idempotency. When set, a duplicate SendEmail with the same
    * key returns the same email_id without enqueueing a second row.
@@ -1167,7 +1183,9 @@ export interface GetEmailPreferencesResponse {
 }
 
 export interface UpdateEmailPreferencesRequest {
-  userId?: string | undefined;
+  userId?:
+    | string
+    | undefined;
   /** All fields optional — only present fields are written. */
   isEmailEnabled?: boolean | undefined;
   globalUnsubscribe?: boolean | undefined;
@@ -1188,7 +1206,9 @@ export interface DeviceToken {
   userId: string;
   deviceToken: string;
   platform: DevicePlatform;
-  appVersion?: string | undefined;
+  appVersion?:
+    | string
+    | undefined;
   /** JSON-stringified jsonb payload. Empty string == `{}`. */
   deviceInfoJson: string;
   status: DeviceTokenStatus;
@@ -1206,7 +1226,9 @@ export interface RegisterDeviceTokenRequest {
   userId?: string | undefined;
   deviceToken: string;
   platform: DevicePlatform;
-  appVersion?: string | undefined;
+  appVersion?:
+    | string
+    | undefined;
   /**
    * Optional jsonb metadata (model, OS version, app build, etc.).
    * Empty string == `{}`.
@@ -1215,7 +1237,9 @@ export interface RegisterDeviceTokenRequest {
 }
 
 export interface RegisterDeviceTokenResponse {
-  token?: DeviceToken | undefined;
+  token?:
+    | DeviceToken
+    | undefined;
   /**
    * True when the (user_id, device_token) pair was already present
    * and the call just refreshed last_used_at.
@@ -1240,7 +1264,9 @@ export interface ListDeviceTokensRequest {
    * Optional target. Defaults to the calling principal. Callers without
    * device-tokens:list:any may only list their own tokens.
    */
-  userId?: string | undefined;
+  userId?:
+    | string
+    | undefined;
   /**
    * When true, include soft-deleted (deleted_at IS NOT NULL) rows.
    * Default false.
@@ -1260,13 +1286,15 @@ export interface GetNotificationResponse {
   notification?: Notification | undefined;
 }
 
-export interface GetUnreadCountRequest {}
+export interface GetUnreadCountRequest {
+}
 
 export interface GetUnreadCountResponse {
   count: number;
 }
 
-export interface MarkAllReadRequest {}
+export interface MarkAllReadRequest {
+}
 
 export interface MarkAllReadResponse {
   affectedCount: number;
@@ -1315,7 +1343,9 @@ export interface GetNotificationPreferencesResponse {
 }
 
 export interface UpdateNotificationPreferencesRequest {
-  userId?: string | undefined;
+  userId?:
+    | string
+    | undefined;
   /**
    * Scalar booleans don't carry proto3 presence by default, so each is
    * optional + paired with the `set_<field>` companion flag below. The
@@ -1330,7 +1360,9 @@ export interface UpdateNotificationPreferencesRequest {
   applicationUpdates?: boolean | undefined;
   petMatches?: boolean | undefined;
   rescueUpdates?: boolean | undefined;
-  chatMessages?: boolean | undefined;
+  chatMessages?:
+    | boolean
+    | undefined;
   /**
    * Empty string clears the column (NULL). Absent leaves it untouched —
    * distinguished via the set_ flag.
@@ -1381,7 +1413,9 @@ export interface EmailTemplate {
   status: EmailTemplateStatus;
   subject: string;
   htmlContent: string;
-  textContent?: string | undefined;
+  textContent?:
+    | string
+    | undefined;
   /** JSON-stringified array of declared variables. Empty string == []. */
   variablesJson: string;
   locale: string;
@@ -1491,7 +1525,9 @@ export interface BroadcastCohort {
 
 export interface BroadcastRequest {
   /** The cohort that should receive the notification. */
-  cohort?: BroadcastCohort | undefined;
+  cohort?:
+    | BroadcastCohort
+    | undefined;
   /**
    * Type tag — drives the per-user channel toggle on the prefs check
    * (e.g. NOTIFICATION_TYPE_ANNOUNCEMENT is admin-broadcast). Defaults
@@ -1501,24 +1537,21 @@ export interface BroadcastRequest {
   title: string;
   message: string;
   /** Per-notification action URL embedded into the row. */
-  actionUrl?: string | undefined;
+  actionUrl?:
+    | string
+    | undefined;
   /**
    * Free-form JSON-encoded blob the SPA may render alongside the
    * message.
    */
-  dataJson?: string | undefined;
+  dataJson?:
+    | string
+    | undefined;
   /**
    * Defer delivery to a future timestamp (server stores; worker fires
    * when due). Empty = send immediately.
    */
   scheduledFor?: string | undefined;
-  /**
-   * When true, resolve the cohort and return the would-be `targeted`
-   * count without writing any notification rows or publishing events.
-   * Used by the admin UI's broadcast preview step. title/message are
-   * not validated in this mode.
-   */
-  dryRun: boolean;
 }
 
 export interface BroadcastResponse {
@@ -1540,17 +1573,17 @@ export interface BroadcastResponse {
 
 function createBaseNotification(): Notification {
   return {
-    notificationId: '',
-    userId: '',
+    notificationId: "",
+    userId: "",
     type: 0,
     channel: 0,
     priority: 0,
     status: 0,
-    title: '',
-    message: '',
-    dataJson: '',
+    title: "",
+    message: "",
+    dataJson: "",
     templateId: undefined,
-    templateVariablesJson: '',
+    templateVariablesJson: "",
     relatedEntityType: undefined,
     relatedEntityId: undefined,
     scheduledFor: undefined,
@@ -1563,17 +1596,17 @@ function createBaseNotification(): Notification {
     maxRetries: 0,
     errorMessage: undefined,
     externalId: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const Notification: MessageFns<Notification> = {
   encode(message: Notification, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.notificationId !== '') {
+    if (message.notificationId !== "") {
       writer.uint32(10).string(message.notificationId);
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(18).string(message.userId);
     }
     if (message.type !== 0) {
@@ -1588,19 +1621,19 @@ export const Notification: MessageFns<Notification> = {
     if (message.status !== 0) {
       writer.uint32(48).int32(message.status);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       writer.uint32(58).string(message.title);
     }
-    if (message.message !== '') {
+    if (message.message !== "") {
       writer.uint32(66).string(message.message);
     }
-    if (message.dataJson !== '') {
+    if (message.dataJson !== "") {
       writer.uint32(74).string(message.dataJson);
     }
     if (message.templateId !== undefined) {
       writer.uint32(82).string(message.templateId);
     }
-    if (message.templateVariablesJson !== '') {
+    if (message.templateVariablesJson !== "") {
       writer.uint32(90).string(message.templateVariablesJson);
     }
     if (message.relatedEntityType !== undefined) {
@@ -1639,10 +1672,10 @@ export const Notification: MessageFns<Notification> = {
     if (message.externalId !== undefined) {
       writer.uint32(186).string(message.externalId);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(194).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(202).string(message.updatedAt);
     }
     return writer;
@@ -1869,113 +1902,113 @@ export const Notification: MessageFns<Notification> = {
       notificationId: isSet(object.notificationId)
         ? globalThis.String(object.notificationId)
         : isSet(object.notification_id)
-          ? globalThis.String(object.notification_id)
-          : '',
+        ? globalThis.String(object.notification_id)
+        : "",
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       type: isSet(object.type) ? notificationTypeFromJSON(object.type) : 0,
       channel: isSet(object.channel) ? notificationChannelFromJSON(object.channel) : 0,
       priority: isSet(object.priority) ? notificationPriorityFromJSON(object.priority) : 0,
       status: isSet(object.status) ? notificationStatusFromJSON(object.status) : 0,
-      title: isSet(object.title) ? globalThis.String(object.title) : '',
-      message: isSet(object.message) ? globalThis.String(object.message) : '',
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
       dataJson: isSet(object.dataJson)
         ? globalThis.String(object.dataJson)
         : isSet(object.data_json)
-          ? globalThis.String(object.data_json)
-          : '',
+        ? globalThis.String(object.data_json)
+        : "",
       templateId: isSet(object.templateId)
         ? globalThis.String(object.templateId)
         : isSet(object.template_id)
-          ? globalThis.String(object.template_id)
-          : undefined,
+        ? globalThis.String(object.template_id)
+        : undefined,
       templateVariablesJson: isSet(object.templateVariablesJson)
         ? globalThis.String(object.templateVariablesJson)
         : isSet(object.template_variables_json)
-          ? globalThis.String(object.template_variables_json)
-          : '',
+        ? globalThis.String(object.template_variables_json)
+        : "",
       relatedEntityType: isSet(object.relatedEntityType)
         ? notificationRelatedEntityTypeFromJSON(object.relatedEntityType)
         : isSet(object.related_entity_type)
-          ? notificationRelatedEntityTypeFromJSON(object.related_entity_type)
-          : undefined,
+        ? notificationRelatedEntityTypeFromJSON(object.related_entity_type)
+        : undefined,
       relatedEntityId: isSet(object.relatedEntityId)
         ? globalThis.String(object.relatedEntityId)
         : isSet(object.related_entity_id)
-          ? globalThis.String(object.related_entity_id)
-          : undefined,
+        ? globalThis.String(object.related_entity_id)
+        : undefined,
       scheduledFor: isSet(object.scheduledFor)
         ? globalThis.String(object.scheduledFor)
         : isSet(object.scheduled_for)
-          ? globalThis.String(object.scheduled_for)
-          : undefined,
+        ? globalThis.String(object.scheduled_for)
+        : undefined,
       sentAt: isSet(object.sentAt)
         ? globalThis.String(object.sentAt)
         : isSet(object.sent_at)
-          ? globalThis.String(object.sent_at)
-          : undefined,
+        ? globalThis.String(object.sent_at)
+        : undefined,
       deliveredAt: isSet(object.deliveredAt)
         ? globalThis.String(object.deliveredAt)
         : isSet(object.delivered_at)
-          ? globalThis.String(object.delivered_at)
-          : undefined,
+        ? globalThis.String(object.delivered_at)
+        : undefined,
       readAt: isSet(object.readAt)
         ? globalThis.String(object.readAt)
         : isSet(object.read_at)
-          ? globalThis.String(object.read_at)
-          : undefined,
+        ? globalThis.String(object.read_at)
+        : undefined,
       clickedAt: isSet(object.clickedAt)
         ? globalThis.String(object.clickedAt)
         : isSet(object.clicked_at)
-          ? globalThis.String(object.clicked_at)
-          : undefined,
+        ? globalThis.String(object.clicked_at)
+        : undefined,
       expiresAt: isSet(object.expiresAt)
         ? globalThis.String(object.expiresAt)
         : isSet(object.expires_at)
-          ? globalThis.String(object.expires_at)
-          : undefined,
+        ? globalThis.String(object.expires_at)
+        : undefined,
       retryCount: isSet(object.retryCount)
         ? globalThis.Number(object.retryCount)
         : isSet(object.retry_count)
-          ? globalThis.Number(object.retry_count)
-          : 0,
+        ? globalThis.Number(object.retry_count)
+        : 0,
       maxRetries: isSet(object.maxRetries)
         ? globalThis.Number(object.maxRetries)
         : isSet(object.max_retries)
-          ? globalThis.Number(object.max_retries)
-          : 0,
+        ? globalThis.Number(object.max_retries)
+        : 0,
       errorMessage: isSet(object.errorMessage)
         ? globalThis.String(object.errorMessage)
         : isSet(object.error_message)
-          ? globalThis.String(object.error_message)
-          : undefined,
+        ? globalThis.String(object.error_message)
+        : undefined,
       externalId: isSet(object.externalId)
         ? globalThis.String(object.externalId)
         : isSet(object.external_id)
-          ? globalThis.String(object.external_id)
-          : undefined,
+        ? globalThis.String(object.external_id)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: Notification): unknown {
     const obj: any = {};
-    if (message.notificationId !== '') {
+    if (message.notificationId !== "") {
       obj.notificationId = message.notificationId;
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.type !== 0) {
@@ -1990,19 +2023,19 @@ export const Notification: MessageFns<Notification> = {
     if (message.status !== 0) {
       obj.status = notificationStatusToJSON(message.status);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       obj.title = message.title;
     }
-    if (message.message !== '') {
+    if (message.message !== "") {
       obj.message = message.message;
     }
-    if (message.dataJson !== '') {
+    if (message.dataJson !== "") {
       obj.dataJson = message.dataJson;
     }
     if (message.templateId !== undefined) {
       obj.templateId = message.templateId;
     }
-    if (message.templateVariablesJson !== '') {
+    if (message.templateVariablesJson !== "") {
       obj.templateVariablesJson = message.templateVariablesJson;
     }
     if (message.relatedEntityType !== undefined) {
@@ -2041,10 +2074,10 @@ export const Notification: MessageFns<Notification> = {
     if (message.externalId !== undefined) {
       obj.externalId = message.externalId;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -2055,17 +2088,17 @@ export const Notification: MessageFns<Notification> = {
   },
   fromPartial<I extends Exact<DeepPartial<Notification>, I>>(object: I): Notification {
     const message = createBaseNotification();
-    message.notificationId = object.notificationId ?? '';
-    message.userId = object.userId ?? '';
+    message.notificationId = object.notificationId ?? "";
+    message.userId = object.userId ?? "";
     message.type = object.type ?? 0;
     message.channel = object.channel ?? 0;
     message.priority = object.priority ?? 0;
     message.status = object.status ?? 0;
-    message.title = object.title ?? '';
-    message.message = object.message ?? '';
-    message.dataJson = object.dataJson ?? '';
+    message.title = object.title ?? "";
+    message.message = object.message ?? "";
+    message.dataJson = object.dataJson ?? "";
     message.templateId = object.templateId ?? undefined;
-    message.templateVariablesJson = object.templateVariablesJson ?? '';
+    message.templateVariablesJson = object.templateVariablesJson ?? "";
     message.relatedEntityType = object.relatedEntityType ?? undefined;
     message.relatedEntityId = object.relatedEntityId ?? undefined;
     message.scheduledFor = object.scheduledFor ?? undefined;
@@ -2078,23 +2111,23 @@ export const Notification: MessageFns<Notification> = {
     message.maxRetries = object.maxRetries ?? 0;
     message.errorMessage = object.errorMessage ?? undefined;
     message.externalId = object.externalId ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseCreateNotificationRequest(): CreateNotificationRequest {
   return {
-    userId: '',
+    userId: "",
     type: 0,
     channel: 0,
     priority: 0,
-    title: '',
-    message: '',
-    dataJson: '',
+    title: "",
+    message: "",
+    dataJson: "",
     templateId: undefined,
-    templateVariablesJson: '',
+    templateVariablesJson: "",
     relatedEntityType: undefined,
     relatedEntityId: undefined,
     scheduledFor: undefined,
@@ -2104,11 +2137,8 @@ function createBaseCreateNotificationRequest(): CreateNotificationRequest {
 }
 
 export const CreateNotificationRequest: MessageFns<CreateNotificationRequest> = {
-  encode(
-    message: CreateNotificationRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.userId !== '') {
+  encode(message: CreateNotificationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     if (message.type !== 0) {
@@ -2120,19 +2150,19 @@ export const CreateNotificationRequest: MessageFns<CreateNotificationRequest> = 
     if (message.priority !== 0) {
       writer.uint32(32).int32(message.priority);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       writer.uint32(42).string(message.title);
     }
-    if (message.message !== '') {
+    if (message.message !== "") {
       writer.uint32(50).string(message.message);
     }
-    if (message.dataJson !== '') {
+    if (message.dataJson !== "") {
       writer.uint32(58).string(message.dataJson);
     }
     if (message.templateId !== undefined) {
       writer.uint32(66).string(message.templateId);
     }
-    if (message.templateVariablesJson !== '') {
+    if (message.templateVariablesJson !== "") {
       writer.uint32(74).string(message.templateVariablesJson);
     }
     if (message.relatedEntityType !== undefined) {
@@ -2286,59 +2316,59 @@ export const CreateNotificationRequest: MessageFns<CreateNotificationRequest> = 
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       type: isSet(object.type) ? notificationTypeFromJSON(object.type) : 0,
       channel: isSet(object.channel) ? notificationChannelFromJSON(object.channel) : 0,
       priority: isSet(object.priority) ? notificationPriorityFromJSON(object.priority) : 0,
-      title: isSet(object.title) ? globalThis.String(object.title) : '',
-      message: isSet(object.message) ? globalThis.String(object.message) : '',
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
       dataJson: isSet(object.dataJson)
         ? globalThis.String(object.dataJson)
         : isSet(object.data_json)
-          ? globalThis.String(object.data_json)
-          : '',
+        ? globalThis.String(object.data_json)
+        : "",
       templateId: isSet(object.templateId)
         ? globalThis.String(object.templateId)
         : isSet(object.template_id)
-          ? globalThis.String(object.template_id)
-          : undefined,
+        ? globalThis.String(object.template_id)
+        : undefined,
       templateVariablesJson: isSet(object.templateVariablesJson)
         ? globalThis.String(object.templateVariablesJson)
         : isSet(object.template_variables_json)
-          ? globalThis.String(object.template_variables_json)
-          : '',
+        ? globalThis.String(object.template_variables_json)
+        : "",
       relatedEntityType: isSet(object.relatedEntityType)
         ? notificationRelatedEntityTypeFromJSON(object.relatedEntityType)
         : isSet(object.related_entity_type)
-          ? notificationRelatedEntityTypeFromJSON(object.related_entity_type)
-          : undefined,
+        ? notificationRelatedEntityTypeFromJSON(object.related_entity_type)
+        : undefined,
       relatedEntityId: isSet(object.relatedEntityId)
         ? globalThis.String(object.relatedEntityId)
         : isSet(object.related_entity_id)
-          ? globalThis.String(object.related_entity_id)
-          : undefined,
+        ? globalThis.String(object.related_entity_id)
+        : undefined,
       scheduledFor: isSet(object.scheduledFor)
         ? globalThis.String(object.scheduledFor)
         : isSet(object.scheduled_for)
-          ? globalThis.String(object.scheduled_for)
-          : undefined,
+        ? globalThis.String(object.scheduled_for)
+        : undefined,
       expiresAt: isSet(object.expiresAt)
         ? globalThis.String(object.expiresAt)
         : isSet(object.expires_at)
-          ? globalThis.String(object.expires_at)
-          : undefined,
+        ? globalThis.String(object.expires_at)
+        : undefined,
       externalId: isSet(object.externalId)
         ? globalThis.String(object.externalId)
         : isSet(object.external_id)
-          ? globalThis.String(object.external_id)
-          : undefined,
+        ? globalThis.String(object.external_id)
+        : undefined,
     };
   },
 
   toJSON(message: CreateNotificationRequest): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.type !== 0) {
@@ -2350,19 +2380,19 @@ export const CreateNotificationRequest: MessageFns<CreateNotificationRequest> = 
     if (message.priority !== 0) {
       obj.priority = notificationPriorityToJSON(message.priority);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       obj.title = message.title;
     }
-    if (message.message !== '') {
+    if (message.message !== "") {
       obj.message = message.message;
     }
-    if (message.dataJson !== '') {
+    if (message.dataJson !== "") {
       obj.dataJson = message.dataJson;
     }
     if (message.templateId !== undefined) {
       obj.templateId = message.templateId;
     }
-    if (message.templateVariablesJson !== '') {
+    if (message.templateVariablesJson !== "") {
       obj.templateVariablesJson = message.templateVariablesJson;
     }
     if (message.relatedEntityType !== undefined) {
@@ -2383,24 +2413,20 @@ export const CreateNotificationRequest: MessageFns<CreateNotificationRequest> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateNotificationRequest>, I>>(
-    base?: I
-  ): CreateNotificationRequest {
+  create<I extends Exact<DeepPartial<CreateNotificationRequest>, I>>(base?: I): CreateNotificationRequest {
     return CreateNotificationRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateNotificationRequest>, I>>(
-    object: I
-  ): CreateNotificationRequest {
+  fromPartial<I extends Exact<DeepPartial<CreateNotificationRequest>, I>>(object: I): CreateNotificationRequest {
     const message = createBaseCreateNotificationRequest();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     message.type = object.type ?? 0;
     message.channel = object.channel ?? 0;
     message.priority = object.priority ?? 0;
-    message.title = object.title ?? '';
-    message.message = object.message ?? '';
-    message.dataJson = object.dataJson ?? '';
+    message.title = object.title ?? "";
+    message.message = object.message ?? "";
+    message.dataJson = object.dataJson ?? "";
     message.templateId = object.templateId ?? undefined;
-    message.templateVariablesJson = object.templateVariablesJson ?? '';
+    message.templateVariablesJson = object.templateVariablesJson ?? "";
     message.relatedEntityType = object.relatedEntityType ?? undefined;
     message.relatedEntityId = object.relatedEntityId ?? undefined;
     message.scheduledFor = object.scheduledFor ?? undefined;
@@ -2415,10 +2441,7 @@ function createBaseCreateNotificationResponse(): CreateNotificationResponse {
 }
 
 export const CreateNotificationResponse: MessageFns<CreateNotificationResponse> = {
-  encode(
-    message: CreateNotificationResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: CreateNotificationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.notification !== undefined) {
       Notification.encode(message.notification, writer.uint32(10).fork()).join();
     }
@@ -2450,11 +2473,7 @@ export const CreateNotificationResponse: MessageFns<CreateNotificationResponse> 
   },
 
   fromJSON(object: any): CreateNotificationResponse {
-    return {
-      notification: isSet(object.notification)
-        ? Notification.fromJSON(object.notification)
-        : undefined,
-    };
+    return { notification: isSet(object.notification) ? Notification.fromJSON(object.notification) : undefined };
   },
 
   toJSON(message: CreateNotificationResponse): unknown {
@@ -2465,19 +2484,14 @@ export const CreateNotificationResponse: MessageFns<CreateNotificationResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateNotificationResponse>, I>>(
-    base?: I
-  ): CreateNotificationResponse {
+  create<I extends Exact<DeepPartial<CreateNotificationResponse>, I>>(base?: I): CreateNotificationResponse {
     return CreateNotificationResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateNotificationResponse>, I>>(
-    object: I
-  ): CreateNotificationResponse {
+  fromPartial<I extends Exact<DeepPartial<CreateNotificationResponse>, I>>(object: I): CreateNotificationResponse {
     const message = createBaseCreateNotificationResponse();
-    message.notification =
-      object.notification !== undefined && object.notification !== null
-        ? Notification.fromPartial(object.notification)
-        : undefined;
+    message.notification = (object.notification !== undefined && object.notification !== null)
+      ? Notification.fromPartial(object.notification)
+      : undefined;
     return message;
   },
 };
@@ -2487,10 +2501,7 @@ function createBaseListNotificationsRequest(): ListNotificationsRequest {
 }
 
 export const ListNotificationsRequest: MessageFns<ListNotificationsRequest> = {
-  encode(
-    message: ListNotificationsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListNotificationsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.cursor !== undefined) {
       writer.uint32(10).string(message.cursor);
     }
@@ -2572,18 +2583,18 @@ export const ListNotificationsRequest: MessageFns<ListNotificationsRequest> = {
       statusFilter: isSet(object.statusFilter)
         ? notificationStatusFromJSON(object.statusFilter)
         : isSet(object.status_filter)
-          ? notificationStatusFromJSON(object.status_filter)
-          : 0,
+        ? notificationStatusFromJSON(object.status_filter)
+        : 0,
       channelFilter: isSet(object.channelFilter)
         ? notificationChannelFromJSON(object.channelFilter)
         : isSet(object.channel_filter)
-          ? notificationChannelFromJSON(object.channel_filter)
-          : 0,
+        ? notificationChannelFromJSON(object.channel_filter)
+        : 0,
       typeFilter: isSet(object.typeFilter)
         ? notificationTypeFromJSON(object.typeFilter)
         : isSet(object.type_filter)
-          ? notificationTypeFromJSON(object.type_filter)
-          : 0,
+        ? notificationTypeFromJSON(object.type_filter)
+        : 0,
     };
   },
 
@@ -2607,14 +2618,10 @@ export const ListNotificationsRequest: MessageFns<ListNotificationsRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListNotificationsRequest>, I>>(
-    base?: I
-  ): ListNotificationsRequest {
+  create<I extends Exact<DeepPartial<ListNotificationsRequest>, I>>(base?: I): ListNotificationsRequest {
     return ListNotificationsRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListNotificationsRequest>, I>>(
-    object: I
-  ): ListNotificationsRequest {
+  fromPartial<I extends Exact<DeepPartial<ListNotificationsRequest>, I>>(object: I): ListNotificationsRequest {
     const message = createBaseListNotificationsRequest();
     message.cursor = object.cursor ?? undefined;
     message.limit = object.limit ?? 0;
@@ -2630,10 +2637,7 @@ function createBaseListNotificationsResponse(): ListNotificationsResponse {
 }
 
 export const ListNotificationsResponse: MessageFns<ListNotificationsResponse> = {
-  encode(
-    message: ListNotificationsResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListNotificationsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.notifications) {
       Notification.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -2683,15 +2687,15 @@ export const ListNotificationsResponse: MessageFns<ListNotificationsResponse> = 
       nextCursor: isSet(object.nextCursor)
         ? globalThis.String(object.nextCursor)
         : isSet(object.next_cursor)
-          ? globalThis.String(object.next_cursor)
-          : undefined,
+        ? globalThis.String(object.next_cursor)
+        : undefined,
     };
   },
 
   toJSON(message: ListNotificationsResponse): unknown {
     const obj: any = {};
     if (message.notifications?.length) {
-      obj.notifications = message.notifications.map(e => Notification.toJSON(e));
+      obj.notifications = message.notifications.map((e) => Notification.toJSON(e));
     }
     if (message.nextCursor !== undefined) {
       obj.nextCursor = message.nextCursor;
@@ -2699,31 +2703,24 @@ export const ListNotificationsResponse: MessageFns<ListNotificationsResponse> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListNotificationsResponse>, I>>(
-    base?: I
-  ): ListNotificationsResponse {
+  create<I extends Exact<DeepPartial<ListNotificationsResponse>, I>>(base?: I): ListNotificationsResponse {
     return ListNotificationsResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListNotificationsResponse>, I>>(
-    object: I
-  ): ListNotificationsResponse {
+  fromPartial<I extends Exact<DeepPartial<ListNotificationsResponse>, I>>(object: I): ListNotificationsResponse {
     const message = createBaseListNotificationsResponse();
-    message.notifications = object.notifications?.map(e => Notification.fromPartial(e)) || [];
+    message.notifications = object.notifications?.map((e) => Notification.fromPartial(e)) || [];
     message.nextCursor = object.nextCursor ?? undefined;
     return message;
   },
 };
 
 function createBaseDismissNotificationRequest(): DismissNotificationRequest {
-  return { notificationId: '' };
+  return { notificationId: "" };
 }
 
 export const DismissNotificationRequest: MessageFns<DismissNotificationRequest> = {
-  encode(
-    message: DismissNotificationRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.notificationId !== '') {
+  encode(message: DismissNotificationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.notificationId !== "") {
       writer.uint32(10).string(message.notificationId);
     }
     return writer;
@@ -2758,29 +2755,25 @@ export const DismissNotificationRequest: MessageFns<DismissNotificationRequest> 
       notificationId: isSet(object.notificationId)
         ? globalThis.String(object.notificationId)
         : isSet(object.notification_id)
-          ? globalThis.String(object.notification_id)
-          : '',
+        ? globalThis.String(object.notification_id)
+        : "",
     };
   },
 
   toJSON(message: DismissNotificationRequest): unknown {
     const obj: any = {};
-    if (message.notificationId !== '') {
+    if (message.notificationId !== "") {
       obj.notificationId = message.notificationId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DismissNotificationRequest>, I>>(
-    base?: I
-  ): DismissNotificationRequest {
+  create<I extends Exact<DeepPartial<DismissNotificationRequest>, I>>(base?: I): DismissNotificationRequest {
     return DismissNotificationRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DismissNotificationRequest>, I>>(
-    object: I
-  ): DismissNotificationRequest {
+  fromPartial<I extends Exact<DeepPartial<DismissNotificationRequest>, I>>(object: I): DismissNotificationRequest {
     const message = createBaseDismissNotificationRequest();
-    message.notificationId = object.notificationId ?? '';
+    message.notificationId = object.notificationId ?? "";
     return message;
   },
 };
@@ -2790,10 +2783,7 @@ function createBaseDismissNotificationResponse(): DismissNotificationResponse {
 }
 
 export const DismissNotificationResponse: MessageFns<DismissNotificationResponse> = {
-  encode(
-    message: DismissNotificationResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: DismissNotificationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.notification !== undefined) {
       Notification.encode(message.notification, writer.uint32(10).fork()).join();
     }
@@ -2825,11 +2815,7 @@ export const DismissNotificationResponse: MessageFns<DismissNotificationResponse
   },
 
   fromJSON(object: any): DismissNotificationResponse {
-    return {
-      notification: isSet(object.notification)
-        ? Notification.fromJSON(object.notification)
-        : undefined,
-    };
+    return { notification: isSet(object.notification) ? Notification.fromJSON(object.notification) : undefined };
   },
 
   toJSON(message: DismissNotificationResponse): unknown {
@@ -2840,26 +2826,21 @@ export const DismissNotificationResponse: MessageFns<DismissNotificationResponse
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DismissNotificationResponse>, I>>(
-    base?: I
-  ): DismissNotificationResponse {
+  create<I extends Exact<DeepPartial<DismissNotificationResponse>, I>>(base?: I): DismissNotificationResponse {
     return DismissNotificationResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DismissNotificationResponse>, I>>(
-    object: I
-  ): DismissNotificationResponse {
+  fromPartial<I extends Exact<DeepPartial<DismissNotificationResponse>, I>>(object: I): DismissNotificationResponse {
     const message = createBaseDismissNotificationResponse();
-    message.notification =
-      object.notification !== undefined && object.notification !== null
-        ? Notification.fromPartial(object.notification)
-        : undefined;
+    message.notification = (object.notification !== undefined && object.notification !== null)
+      ? Notification.fromPartial(object.notification)
+      : undefined;
     return message;
   },
 };
 
 function createBaseSendEmailRequest(): SendEmailRequest {
   return {
-    toEmail: '',
+    toEmail: "",
     toName: undefined,
     fromEmail: undefined,
     fromName: undefined,
@@ -2870,11 +2851,11 @@ function createBaseSendEmailRequest(): SendEmailRequest {
     htmlContent: undefined,
     textContent: undefined,
     templateId: undefined,
-    templateDataJson: '',
+    templateDataJson: "",
     type: 0,
     priority: 0,
     scheduledFor: undefined,
-    metadataJson: '',
+    metadataJson: "",
     tags: [],
     userId: undefined,
     campaignId: undefined,
@@ -2884,7 +2865,7 @@ function createBaseSendEmailRequest(): SendEmailRequest {
 
 export const SendEmailRequest: MessageFns<SendEmailRequest> = {
   encode(message: SendEmailRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.toEmail !== '') {
+    if (message.toEmail !== "") {
       writer.uint32(10).string(message.toEmail);
     }
     if (message.toName !== undefined) {
@@ -2917,7 +2898,7 @@ export const SendEmailRequest: MessageFns<SendEmailRequest> = {
     if (message.templateId !== undefined) {
       writer.uint32(90).string(message.templateId);
     }
-    if (message.templateDataJson !== '') {
+    if (message.templateDataJson !== "") {
       writer.uint32(98).string(message.templateDataJson);
     }
     if (message.type !== 0) {
@@ -2929,7 +2910,7 @@ export const SendEmailRequest: MessageFns<SendEmailRequest> = {
     if (message.scheduledFor !== undefined) {
       writer.uint32(122).string(message.scheduledFor);
     }
-    if (message.metadataJson !== '') {
+    if (message.metadataJson !== "") {
       writer.uint32(130).string(message.metadataJson);
     }
     for (const v of message.tags) {
@@ -3128,95 +3109,95 @@ export const SendEmailRequest: MessageFns<SendEmailRequest> = {
       toEmail: isSet(object.toEmail)
         ? globalThis.String(object.toEmail)
         : isSet(object.to_email)
-          ? globalThis.String(object.to_email)
-          : '',
+        ? globalThis.String(object.to_email)
+        : "",
       toName: isSet(object.toName)
         ? globalThis.String(object.toName)
         : isSet(object.to_name)
-          ? globalThis.String(object.to_name)
-          : undefined,
+        ? globalThis.String(object.to_name)
+        : undefined,
       fromEmail: isSet(object.fromEmail)
         ? globalThis.String(object.fromEmail)
         : isSet(object.from_email)
-          ? globalThis.String(object.from_email)
-          : undefined,
+        ? globalThis.String(object.from_email)
+        : undefined,
       fromName: isSet(object.fromName)
         ? globalThis.String(object.fromName)
         : isSet(object.from_name)
-          ? globalThis.String(object.from_name)
-          : undefined,
+        ? globalThis.String(object.from_name)
+        : undefined,
       replyToEmail: isSet(object.replyToEmail)
         ? globalThis.String(object.replyToEmail)
         : isSet(object.reply_to_email)
-          ? globalThis.String(object.reply_to_email)
-          : undefined,
+        ? globalThis.String(object.reply_to_email)
+        : undefined,
       ccEmails: globalThis.Array.isArray(object?.ccEmails)
         ? object.ccEmails.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.cc_emails)
-          ? object.cc_emails.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.cc_emails.map((e: any) => globalThis.String(e))
+        : [],
       bccEmails: globalThis.Array.isArray(object?.bccEmails)
         ? object.bccEmails.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.bcc_emails)
-          ? object.bcc_emails.map((e: any) => globalThis.String(e))
-          : [],
+        ? object.bcc_emails.map((e: any) => globalThis.String(e))
+        : [],
       subject: isSet(object.subject) ? globalThis.String(object.subject) : undefined,
       htmlContent: isSet(object.htmlContent)
         ? globalThis.String(object.htmlContent)
         : isSet(object.html_content)
-          ? globalThis.String(object.html_content)
-          : undefined,
+        ? globalThis.String(object.html_content)
+        : undefined,
       textContent: isSet(object.textContent)
         ? globalThis.String(object.textContent)
         : isSet(object.text_content)
-          ? globalThis.String(object.text_content)
-          : undefined,
+        ? globalThis.String(object.text_content)
+        : undefined,
       templateId: isSet(object.templateId)
         ? globalThis.String(object.templateId)
         : isSet(object.template_id)
-          ? globalThis.String(object.template_id)
-          : undefined,
+        ? globalThis.String(object.template_id)
+        : undefined,
       templateDataJson: isSet(object.templateDataJson)
         ? globalThis.String(object.templateDataJson)
         : isSet(object.template_data_json)
-          ? globalThis.String(object.template_data_json)
-          : '',
+        ? globalThis.String(object.template_data_json)
+        : "",
       type: isSet(object.type) ? emailTypeFromJSON(object.type) : 0,
       priority: isSet(object.priority) ? emailPriorityFromJSON(object.priority) : 0,
       scheduledFor: isSet(object.scheduledFor)
         ? globalThis.String(object.scheduledFor)
         : isSet(object.scheduled_for)
-          ? globalThis.String(object.scheduled_for)
-          : undefined,
+        ? globalThis.String(object.scheduled_for)
+        : undefined,
       metadataJson: isSet(object.metadataJson)
         ? globalThis.String(object.metadataJson)
         : isSet(object.metadata_json)
-          ? globalThis.String(object.metadata_json)
-          : '',
+        ? globalThis.String(object.metadata_json)
+        : "",
       tags: globalThis.Array.isArray(object?.tags)
         ? object.tags.map((e: any) => globalThis.String(e))
         : [],
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
       campaignId: isSet(object.campaignId)
         ? globalThis.String(object.campaignId)
         : isSet(object.campaign_id)
-          ? globalThis.String(object.campaign_id)
-          : undefined,
+        ? globalThis.String(object.campaign_id)
+        : undefined,
       idempotencyKey: isSet(object.idempotencyKey)
         ? globalThis.String(object.idempotencyKey)
         : isSet(object.idempotency_key)
-          ? globalThis.String(object.idempotency_key)
-          : undefined,
+        ? globalThis.String(object.idempotency_key)
+        : undefined,
     };
   },
 
   toJSON(message: SendEmailRequest): unknown {
     const obj: any = {};
-    if (message.toEmail !== '') {
+    if (message.toEmail !== "") {
       obj.toEmail = message.toEmail;
     }
     if (message.toName !== undefined) {
@@ -3249,7 +3230,7 @@ export const SendEmailRequest: MessageFns<SendEmailRequest> = {
     if (message.templateId !== undefined) {
       obj.templateId = message.templateId;
     }
-    if (message.templateDataJson !== '') {
+    if (message.templateDataJson !== "") {
       obj.templateDataJson = message.templateDataJson;
     }
     if (message.type !== 0) {
@@ -3261,7 +3242,7 @@ export const SendEmailRequest: MessageFns<SendEmailRequest> = {
     if (message.scheduledFor !== undefined) {
       obj.scheduledFor = message.scheduledFor;
     }
-    if (message.metadataJson !== '') {
+    if (message.metadataJson !== "") {
       obj.metadataJson = message.metadataJson;
     }
     if (message.tags?.length) {
@@ -3284,23 +3265,23 @@ export const SendEmailRequest: MessageFns<SendEmailRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<SendEmailRequest>, I>>(object: I): SendEmailRequest {
     const message = createBaseSendEmailRequest();
-    message.toEmail = object.toEmail ?? '';
+    message.toEmail = object.toEmail ?? "";
     message.toName = object.toName ?? undefined;
     message.fromEmail = object.fromEmail ?? undefined;
     message.fromName = object.fromName ?? undefined;
     message.replyToEmail = object.replyToEmail ?? undefined;
-    message.ccEmails = object.ccEmails?.map(e => e) || [];
-    message.bccEmails = object.bccEmails?.map(e => e) || [];
+    message.ccEmails = object.ccEmails?.map((e) => e) || [];
+    message.bccEmails = object.bccEmails?.map((e) => e) || [];
     message.subject = object.subject ?? undefined;
     message.htmlContent = object.htmlContent ?? undefined;
     message.textContent = object.textContent ?? undefined;
     message.templateId = object.templateId ?? undefined;
-    message.templateDataJson = object.templateDataJson ?? '';
+    message.templateDataJson = object.templateDataJson ?? "";
     message.type = object.type ?? 0;
     message.priority = object.priority ?? 0;
     message.scheduledFor = object.scheduledFor ?? undefined;
-    message.metadataJson = object.metadataJson ?? '';
-    message.tags = object.tags?.map(e => e) || [];
+    message.metadataJson = object.metadataJson ?? "";
+    message.tags = object.tags?.map((e) => e) || [];
     message.userId = object.userId ?? undefined;
     message.campaignId = object.campaignId ?? undefined;
     message.idempotencyKey = object.idempotencyKey ?? undefined;
@@ -3309,12 +3290,12 @@ export const SendEmailRequest: MessageFns<SendEmailRequest> = {
 };
 
 function createBaseSendEmailResponse(): SendEmailResponse {
-  return { emailId: '', alreadyQueued: false };
+  return { emailId: "", alreadyQueued: false };
 }
 
 export const SendEmailResponse: MessageFns<SendEmailResponse> = {
   encode(message: SendEmailResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.emailId !== '') {
+    if (message.emailId !== "") {
       writer.uint32(10).string(message.emailId);
     }
     if (message.alreadyQueued !== false) {
@@ -3360,19 +3341,19 @@ export const SendEmailResponse: MessageFns<SendEmailResponse> = {
       emailId: isSet(object.emailId)
         ? globalThis.String(object.emailId)
         : isSet(object.email_id)
-          ? globalThis.String(object.email_id)
-          : '',
+        ? globalThis.String(object.email_id)
+        : "",
       alreadyQueued: isSet(object.alreadyQueued)
         ? globalThis.Boolean(object.alreadyQueued)
         : isSet(object.already_queued)
-          ? globalThis.Boolean(object.already_queued)
-          : false,
+        ? globalThis.Boolean(object.already_queued)
+        : false,
     };
   },
 
   toJSON(message: SendEmailResponse): unknown {
     const obj: any = {};
-    if (message.emailId !== '') {
+    if (message.emailId !== "") {
       obj.emailId = message.emailId;
     }
     if (message.alreadyQueued !== false) {
@@ -3386,7 +3367,7 @@ export const SendEmailResponse: MessageFns<SendEmailResponse> = {
   },
   fromPartial<I extends Exact<DeepPartial<SendEmailResponse>, I>>(object: I): SendEmailResponse {
     const message = createBaseSendEmailResponse();
-    message.emailId = object.emailId ?? '';
+    message.emailId = object.emailId ?? "";
     message.alreadyQueued = object.alreadyQueued ?? false;
     return message;
   },
@@ -3394,35 +3375,35 @@ export const SendEmailResponse: MessageFns<SendEmailResponse> = {
 
 function createBaseEmailPreferences(): EmailPreferences {
   return {
-    preferenceId: '',
-    userId: '',
+    preferenceId: "",
+    userId: "",
     isEmailEnabled: false,
     globalUnsubscribe: false,
-    preferencesJson: '',
-    language: '',
-    timezone: '',
+    preferencesJson: "",
+    language: "",
+    timezone: "",
     emailFormat: 0,
     digestFrequency: 0,
-    digestTime: '',
-    unsubscribeToken: '',
+    digestTime: "",
+    unsubscribeToken: "",
     lastDigestSent: undefined,
     bounceCount: 0,
     lastBounceAt: undefined,
     isBlacklisted: false,
     blacklistReason: undefined,
     blacklistedAt: undefined,
-    metadataJson: '',
-    createdAt: '',
-    updatedAt: '',
+    metadataJson: "",
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const EmailPreferences: MessageFns<EmailPreferences> = {
   encode(message: EmailPreferences, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.preferenceId !== '') {
+    if (message.preferenceId !== "") {
       writer.uint32(10).string(message.preferenceId);
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(18).string(message.userId);
     }
     if (message.isEmailEnabled !== false) {
@@ -3431,13 +3412,13 @@ export const EmailPreferences: MessageFns<EmailPreferences> = {
     if (message.globalUnsubscribe !== false) {
       writer.uint32(32).bool(message.globalUnsubscribe);
     }
-    if (message.preferencesJson !== '') {
+    if (message.preferencesJson !== "") {
       writer.uint32(42).string(message.preferencesJson);
     }
-    if (message.language !== '') {
+    if (message.language !== "") {
       writer.uint32(50).string(message.language);
     }
-    if (message.timezone !== '') {
+    if (message.timezone !== "") {
       writer.uint32(58).string(message.timezone);
     }
     if (message.emailFormat !== 0) {
@@ -3446,10 +3427,10 @@ export const EmailPreferences: MessageFns<EmailPreferences> = {
     if (message.digestFrequency !== 0) {
       writer.uint32(72).int32(message.digestFrequency);
     }
-    if (message.digestTime !== '') {
+    if (message.digestTime !== "") {
       writer.uint32(82).string(message.digestTime);
     }
-    if (message.unsubscribeToken !== '') {
+    if (message.unsubscribeToken !== "") {
       writer.uint32(90).string(message.unsubscribeToken);
     }
     if (message.lastDigestSent !== undefined) {
@@ -3470,13 +3451,13 @@ export const EmailPreferences: MessageFns<EmailPreferences> = {
     if (message.blacklistedAt !== undefined) {
       writer.uint32(138).string(message.blacklistedAt);
     }
-    if (message.metadataJson !== '') {
+    if (message.metadataJson !== "") {
       writer.uint32(146).string(message.metadataJson);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(154).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(162).string(message.updatedAt);
     }
     return writer;
@@ -3663,104 +3644,104 @@ export const EmailPreferences: MessageFns<EmailPreferences> = {
       preferenceId: isSet(object.preferenceId)
         ? globalThis.String(object.preferenceId)
         : isSet(object.preference_id)
-          ? globalThis.String(object.preference_id)
-          : '',
+        ? globalThis.String(object.preference_id)
+        : "",
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       isEmailEnabled: isSet(object.isEmailEnabled)
         ? globalThis.Boolean(object.isEmailEnabled)
         : isSet(object.is_email_enabled)
-          ? globalThis.Boolean(object.is_email_enabled)
-          : false,
+        ? globalThis.Boolean(object.is_email_enabled)
+        : false,
       globalUnsubscribe: isSet(object.globalUnsubscribe)
         ? globalThis.Boolean(object.globalUnsubscribe)
         : isSet(object.global_unsubscribe)
-          ? globalThis.Boolean(object.global_unsubscribe)
-          : false,
+        ? globalThis.Boolean(object.global_unsubscribe)
+        : false,
       preferencesJson: isSet(object.preferencesJson)
         ? globalThis.String(object.preferencesJson)
         : isSet(object.preferences_json)
-          ? globalThis.String(object.preferences_json)
-          : '',
-      language: isSet(object.language) ? globalThis.String(object.language) : '',
-      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : '',
+        ? globalThis.String(object.preferences_json)
+        : "",
+      language: isSet(object.language) ? globalThis.String(object.language) : "",
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : "",
       emailFormat: isSet(object.emailFormat)
         ? emailFormatFromJSON(object.emailFormat)
         : isSet(object.email_format)
-          ? emailFormatFromJSON(object.email_format)
-          : 0,
+        ? emailFormatFromJSON(object.email_format)
+        : 0,
       digestFrequency: isSet(object.digestFrequency)
         ? emailDigestFrequencyFromJSON(object.digestFrequency)
         : isSet(object.digest_frequency)
-          ? emailDigestFrequencyFromJSON(object.digest_frequency)
-          : 0,
+        ? emailDigestFrequencyFromJSON(object.digest_frequency)
+        : 0,
       digestTime: isSet(object.digestTime)
         ? globalThis.String(object.digestTime)
         : isSet(object.digest_time)
-          ? globalThis.String(object.digest_time)
-          : '',
+        ? globalThis.String(object.digest_time)
+        : "",
       unsubscribeToken: isSet(object.unsubscribeToken)
         ? globalThis.String(object.unsubscribeToken)
         : isSet(object.unsubscribe_token)
-          ? globalThis.String(object.unsubscribe_token)
-          : '',
+        ? globalThis.String(object.unsubscribe_token)
+        : "",
       lastDigestSent: isSet(object.lastDigestSent)
         ? globalThis.String(object.lastDigestSent)
         : isSet(object.last_digest_sent)
-          ? globalThis.String(object.last_digest_sent)
-          : undefined,
+        ? globalThis.String(object.last_digest_sent)
+        : undefined,
       bounceCount: isSet(object.bounceCount)
         ? globalThis.Number(object.bounceCount)
         : isSet(object.bounce_count)
-          ? globalThis.Number(object.bounce_count)
-          : 0,
+        ? globalThis.Number(object.bounce_count)
+        : 0,
       lastBounceAt: isSet(object.lastBounceAt)
         ? globalThis.String(object.lastBounceAt)
         : isSet(object.last_bounce_at)
-          ? globalThis.String(object.last_bounce_at)
-          : undefined,
+        ? globalThis.String(object.last_bounce_at)
+        : undefined,
       isBlacklisted: isSet(object.isBlacklisted)
         ? globalThis.Boolean(object.isBlacklisted)
         : isSet(object.is_blacklisted)
-          ? globalThis.Boolean(object.is_blacklisted)
-          : false,
+        ? globalThis.Boolean(object.is_blacklisted)
+        : false,
       blacklistReason: isSet(object.blacklistReason)
         ? globalThis.String(object.blacklistReason)
         : isSet(object.blacklist_reason)
-          ? globalThis.String(object.blacklist_reason)
-          : undefined,
+        ? globalThis.String(object.blacklist_reason)
+        : undefined,
       blacklistedAt: isSet(object.blacklistedAt)
         ? globalThis.String(object.blacklistedAt)
         : isSet(object.blacklisted_at)
-          ? globalThis.String(object.blacklisted_at)
-          : undefined,
+        ? globalThis.String(object.blacklisted_at)
+        : undefined,
       metadataJson: isSet(object.metadataJson)
         ? globalThis.String(object.metadataJson)
         : isSet(object.metadata_json)
-          ? globalThis.String(object.metadata_json)
-          : '',
+        ? globalThis.String(object.metadata_json)
+        : "",
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: EmailPreferences): unknown {
     const obj: any = {};
-    if (message.preferenceId !== '') {
+    if (message.preferenceId !== "") {
       obj.preferenceId = message.preferenceId;
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.isEmailEnabled !== false) {
@@ -3769,13 +3750,13 @@ export const EmailPreferences: MessageFns<EmailPreferences> = {
     if (message.globalUnsubscribe !== false) {
       obj.globalUnsubscribe = message.globalUnsubscribe;
     }
-    if (message.preferencesJson !== '') {
+    if (message.preferencesJson !== "") {
       obj.preferencesJson = message.preferencesJson;
     }
-    if (message.language !== '') {
+    if (message.language !== "") {
       obj.language = message.language;
     }
-    if (message.timezone !== '') {
+    if (message.timezone !== "") {
       obj.timezone = message.timezone;
     }
     if (message.emailFormat !== 0) {
@@ -3784,10 +3765,10 @@ export const EmailPreferences: MessageFns<EmailPreferences> = {
     if (message.digestFrequency !== 0) {
       obj.digestFrequency = emailDigestFrequencyToJSON(message.digestFrequency);
     }
-    if (message.digestTime !== '') {
+    if (message.digestTime !== "") {
       obj.digestTime = message.digestTime;
     }
-    if (message.unsubscribeToken !== '') {
+    if (message.unsubscribeToken !== "") {
       obj.unsubscribeToken = message.unsubscribeToken;
     }
     if (message.lastDigestSent !== undefined) {
@@ -3808,13 +3789,13 @@ export const EmailPreferences: MessageFns<EmailPreferences> = {
     if (message.blacklistedAt !== undefined) {
       obj.blacklistedAt = message.blacklistedAt;
     }
-    if (message.metadataJson !== '') {
+    if (message.metadataJson !== "") {
       obj.metadataJson = message.metadataJson;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -3825,26 +3806,26 @@ export const EmailPreferences: MessageFns<EmailPreferences> = {
   },
   fromPartial<I extends Exact<DeepPartial<EmailPreferences>, I>>(object: I): EmailPreferences {
     const message = createBaseEmailPreferences();
-    message.preferenceId = object.preferenceId ?? '';
-    message.userId = object.userId ?? '';
+    message.preferenceId = object.preferenceId ?? "";
+    message.userId = object.userId ?? "";
     message.isEmailEnabled = object.isEmailEnabled ?? false;
     message.globalUnsubscribe = object.globalUnsubscribe ?? false;
-    message.preferencesJson = object.preferencesJson ?? '';
-    message.language = object.language ?? '';
-    message.timezone = object.timezone ?? '';
+    message.preferencesJson = object.preferencesJson ?? "";
+    message.language = object.language ?? "";
+    message.timezone = object.timezone ?? "";
     message.emailFormat = object.emailFormat ?? 0;
     message.digestFrequency = object.digestFrequency ?? 0;
-    message.digestTime = object.digestTime ?? '';
-    message.unsubscribeToken = object.unsubscribeToken ?? '';
+    message.digestTime = object.digestTime ?? "";
+    message.unsubscribeToken = object.unsubscribeToken ?? "";
     message.lastDigestSent = object.lastDigestSent ?? undefined;
     message.bounceCount = object.bounceCount ?? 0;
     message.lastBounceAt = object.lastBounceAt ?? undefined;
     message.isBlacklisted = object.isBlacklisted ?? false;
     message.blacklistReason = object.blacklistReason ?? undefined;
     message.blacklistedAt = object.blacklistedAt ?? undefined;
-    message.metadataJson = object.metadataJson ?? '';
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.metadataJson = object.metadataJson ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
@@ -3854,10 +3835,7 @@ function createBaseGetEmailPreferencesRequest(): GetEmailPreferencesRequest {
 }
 
 export const GetEmailPreferencesRequest: MessageFns<GetEmailPreferencesRequest> = {
-  encode(
-    message: GetEmailPreferencesRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetEmailPreferencesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.userId !== undefined) {
       writer.uint32(10).string(message.userId);
     }
@@ -3893,8 +3871,8 @@ export const GetEmailPreferencesRequest: MessageFns<GetEmailPreferencesRequest> 
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
     };
   },
 
@@ -3906,14 +3884,10 @@ export const GetEmailPreferencesRequest: MessageFns<GetEmailPreferencesRequest> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetEmailPreferencesRequest>, I>>(
-    base?: I
-  ): GetEmailPreferencesRequest {
+  create<I extends Exact<DeepPartial<GetEmailPreferencesRequest>, I>>(base?: I): GetEmailPreferencesRequest {
     return GetEmailPreferencesRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetEmailPreferencesRequest>, I>>(
-    object: I
-  ): GetEmailPreferencesRequest {
+  fromPartial<I extends Exact<DeepPartial<GetEmailPreferencesRequest>, I>>(object: I): GetEmailPreferencesRequest {
     const message = createBaseGetEmailPreferencesRequest();
     message.userId = object.userId ?? undefined;
     return message;
@@ -3925,10 +3899,7 @@ function createBaseGetEmailPreferencesResponse(): GetEmailPreferencesResponse {
 }
 
 export const GetEmailPreferencesResponse: MessageFns<GetEmailPreferencesResponse> = {
-  encode(
-    message: GetEmailPreferencesResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetEmailPreferencesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.preferences !== undefined) {
       EmailPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
     }
@@ -3960,11 +3931,7 @@ export const GetEmailPreferencesResponse: MessageFns<GetEmailPreferencesResponse
   },
 
   fromJSON(object: any): GetEmailPreferencesResponse {
-    return {
-      preferences: isSet(object.preferences)
-        ? EmailPreferences.fromJSON(object.preferences)
-        : undefined,
-    };
+    return { preferences: isSet(object.preferences) ? EmailPreferences.fromJSON(object.preferences) : undefined };
   },
 
   toJSON(message: GetEmailPreferencesResponse): unknown {
@@ -3975,19 +3942,14 @@ export const GetEmailPreferencesResponse: MessageFns<GetEmailPreferencesResponse
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetEmailPreferencesResponse>, I>>(
-    base?: I
-  ): GetEmailPreferencesResponse {
+  create<I extends Exact<DeepPartial<GetEmailPreferencesResponse>, I>>(base?: I): GetEmailPreferencesResponse {
     return GetEmailPreferencesResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetEmailPreferencesResponse>, I>>(
-    object: I
-  ): GetEmailPreferencesResponse {
+  fromPartial<I extends Exact<DeepPartial<GetEmailPreferencesResponse>, I>>(object: I): GetEmailPreferencesResponse {
     const message = createBaseGetEmailPreferencesResponse();
-    message.preferences =
-      object.preferences !== undefined && object.preferences !== null
-        ? EmailPreferences.fromPartial(object.preferences)
-        : undefined;
+    message.preferences = (object.preferences !== undefined && object.preferences !== null)
+      ? EmailPreferences.fromPartial(object.preferences)
+      : undefined;
     return message;
   },
 };
@@ -4007,10 +3969,7 @@ function createBaseUpdateEmailPreferencesRequest(): UpdateEmailPreferencesReques
 }
 
 export const UpdateEmailPreferencesRequest: MessageFns<UpdateEmailPreferencesRequest> = {
-  encode(
-    message: UpdateEmailPreferencesRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UpdateEmailPreferencesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.userId !== undefined) {
       writer.uint32(10).string(message.userId);
     }
@@ -4134,40 +4093,40 @@ export const UpdateEmailPreferencesRequest: MessageFns<UpdateEmailPreferencesReq
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
       isEmailEnabled: isSet(object.isEmailEnabled)
         ? globalThis.Boolean(object.isEmailEnabled)
         : isSet(object.is_email_enabled)
-          ? globalThis.Boolean(object.is_email_enabled)
-          : undefined,
+        ? globalThis.Boolean(object.is_email_enabled)
+        : undefined,
       globalUnsubscribe: isSet(object.globalUnsubscribe)
         ? globalThis.Boolean(object.globalUnsubscribe)
         : isSet(object.global_unsubscribe)
-          ? globalThis.Boolean(object.global_unsubscribe)
-          : undefined,
+        ? globalThis.Boolean(object.global_unsubscribe)
+        : undefined,
       preferencesJson: isSet(object.preferencesJson)
         ? globalThis.String(object.preferencesJson)
         : isSet(object.preferences_json)
-          ? globalThis.String(object.preferences_json)
-          : undefined,
+        ? globalThis.String(object.preferences_json)
+        : undefined,
       language: isSet(object.language) ? globalThis.String(object.language) : undefined,
       timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : undefined,
       emailFormat: isSet(object.emailFormat)
         ? emailFormatFromJSON(object.emailFormat)
         : isSet(object.email_format)
-          ? emailFormatFromJSON(object.email_format)
-          : 0,
+        ? emailFormatFromJSON(object.email_format)
+        : 0,
       digestFrequency: isSet(object.digestFrequency)
         ? emailDigestFrequencyFromJSON(object.digestFrequency)
         : isSet(object.digest_frequency)
-          ? emailDigestFrequencyFromJSON(object.digest_frequency)
-          : 0,
+        ? emailDigestFrequencyFromJSON(object.digest_frequency)
+        : 0,
       digestTime: isSet(object.digestTime)
         ? globalThis.String(object.digestTime)
         : isSet(object.digest_time)
-          ? globalThis.String(object.digest_time)
-          : undefined,
+        ? globalThis.String(object.digest_time)
+        : undefined,
     };
   },
 
@@ -4203,13 +4162,11 @@ export const UpdateEmailPreferencesRequest: MessageFns<UpdateEmailPreferencesReq
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpdateEmailPreferencesRequest>, I>>(
-    base?: I
-  ): UpdateEmailPreferencesRequest {
+  create<I extends Exact<DeepPartial<UpdateEmailPreferencesRequest>, I>>(base?: I): UpdateEmailPreferencesRequest {
     return UpdateEmailPreferencesRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<UpdateEmailPreferencesRequest>, I>>(
-    object: I
+    object: I,
   ): UpdateEmailPreferencesRequest {
     const message = createBaseUpdateEmailPreferencesRequest();
     message.userId = object.userId ?? undefined;
@@ -4230,10 +4187,7 @@ function createBaseUpdateEmailPreferencesResponse(): UpdateEmailPreferencesRespo
 }
 
 export const UpdateEmailPreferencesResponse: MessageFns<UpdateEmailPreferencesResponse> = {
-  encode(
-    message: UpdateEmailPreferencesResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UpdateEmailPreferencesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.preferences !== undefined) {
       EmailPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
     }
@@ -4265,11 +4219,7 @@ export const UpdateEmailPreferencesResponse: MessageFns<UpdateEmailPreferencesRe
   },
 
   fromJSON(object: any): UpdateEmailPreferencesResponse {
-    return {
-      preferences: isSet(object.preferences)
-        ? EmailPreferences.fromJSON(object.preferences)
-        : undefined,
-    };
+    return { preferences: isSet(object.preferences) ? EmailPreferences.fromJSON(object.preferences) : undefined };
   },
 
   toJSON(message: UpdateEmailPreferencesResponse): unknown {
@@ -4280,48 +4230,45 @@ export const UpdateEmailPreferencesResponse: MessageFns<UpdateEmailPreferencesRe
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpdateEmailPreferencesResponse>, I>>(
-    base?: I
-  ): UpdateEmailPreferencesResponse {
+  create<I extends Exact<DeepPartial<UpdateEmailPreferencesResponse>, I>>(base?: I): UpdateEmailPreferencesResponse {
     return UpdateEmailPreferencesResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<UpdateEmailPreferencesResponse>, I>>(
-    object: I
+    object: I,
   ): UpdateEmailPreferencesResponse {
     const message = createBaseUpdateEmailPreferencesResponse();
-    message.preferences =
-      object.preferences !== undefined && object.preferences !== null
-        ? EmailPreferences.fromPartial(object.preferences)
-        : undefined;
+    message.preferences = (object.preferences !== undefined && object.preferences !== null)
+      ? EmailPreferences.fromPartial(object.preferences)
+      : undefined;
     return message;
   },
 };
 
 function createBaseDeviceToken(): DeviceToken {
   return {
-    tokenId: '',
-    userId: '',
-    deviceToken: '',
+    tokenId: "",
+    userId: "",
+    deviceToken: "",
     platform: 0,
     appVersion: undefined,
-    deviceInfoJson: '',
+    deviceInfoJson: "",
     status: 0,
     lastUsedAt: undefined,
     expiresAt: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const DeviceToken: MessageFns<DeviceToken> = {
   encode(message: DeviceToken, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.tokenId !== '') {
+    if (message.tokenId !== "") {
       writer.uint32(10).string(message.tokenId);
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       writer.uint32(18).string(message.userId);
     }
-    if (message.deviceToken !== '') {
+    if (message.deviceToken !== "") {
       writer.uint32(26).string(message.deviceToken);
     }
     if (message.platform !== 0) {
@@ -4330,7 +4277,7 @@ export const DeviceToken: MessageFns<DeviceToken> = {
     if (message.appVersion !== undefined) {
       writer.uint32(42).string(message.appVersion);
     }
-    if (message.deviceInfoJson !== '') {
+    if (message.deviceInfoJson !== "") {
       writer.uint32(50).string(message.deviceInfoJson);
     }
     if (message.status !== 0) {
@@ -4342,10 +4289,10 @@ export const DeviceToken: MessageFns<DeviceToken> = {
     if (message.expiresAt !== undefined) {
       writer.uint32(74).string(message.expiresAt);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(82).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(90).string(message.updatedAt);
     }
     return writer;
@@ -4460,62 +4407,62 @@ export const DeviceToken: MessageFns<DeviceToken> = {
       tokenId: isSet(object.tokenId)
         ? globalThis.String(object.tokenId)
         : isSet(object.token_id)
-          ? globalThis.String(object.token_id)
-          : '',
+        ? globalThis.String(object.token_id)
+        : "",
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       deviceToken: isSet(object.deviceToken)
         ? globalThis.String(object.deviceToken)
         : isSet(object.device_token)
-          ? globalThis.String(object.device_token)
-          : '',
+        ? globalThis.String(object.device_token)
+        : "",
       platform: isSet(object.platform) ? devicePlatformFromJSON(object.platform) : 0,
       appVersion: isSet(object.appVersion)
         ? globalThis.String(object.appVersion)
         : isSet(object.app_version)
-          ? globalThis.String(object.app_version)
-          : undefined,
+        ? globalThis.String(object.app_version)
+        : undefined,
       deviceInfoJson: isSet(object.deviceInfoJson)
         ? globalThis.String(object.deviceInfoJson)
         : isSet(object.device_info_json)
-          ? globalThis.String(object.device_info_json)
-          : '',
+        ? globalThis.String(object.device_info_json)
+        : "",
       status: isSet(object.status) ? deviceTokenStatusFromJSON(object.status) : 0,
       lastUsedAt: isSet(object.lastUsedAt)
         ? globalThis.String(object.lastUsedAt)
         : isSet(object.last_used_at)
-          ? globalThis.String(object.last_used_at)
-          : undefined,
+        ? globalThis.String(object.last_used_at)
+        : undefined,
       expiresAt: isSet(object.expiresAt)
         ? globalThis.String(object.expiresAt)
         : isSet(object.expires_at)
-          ? globalThis.String(object.expires_at)
-          : undefined,
+        ? globalThis.String(object.expires_at)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: DeviceToken): unknown {
     const obj: any = {};
-    if (message.tokenId !== '') {
+    if (message.tokenId !== "") {
       obj.tokenId = message.tokenId;
     }
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
-    if (message.deviceToken !== '') {
+    if (message.deviceToken !== "") {
       obj.deviceToken = message.deviceToken;
     }
     if (message.platform !== 0) {
@@ -4524,7 +4471,7 @@ export const DeviceToken: MessageFns<DeviceToken> = {
     if (message.appVersion !== undefined) {
       obj.appVersion = message.appVersion;
     }
-    if (message.deviceInfoJson !== '') {
+    if (message.deviceInfoJson !== "") {
       obj.deviceInfoJson = message.deviceInfoJson;
     }
     if (message.status !== 0) {
@@ -4536,10 +4483,10 @@ export const DeviceToken: MessageFns<DeviceToken> = {
     if (message.expiresAt !== undefined) {
       obj.expiresAt = message.expiresAt;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -4550,40 +4497,31 @@ export const DeviceToken: MessageFns<DeviceToken> = {
   },
   fromPartial<I extends Exact<DeepPartial<DeviceToken>, I>>(object: I): DeviceToken {
     const message = createBaseDeviceToken();
-    message.tokenId = object.tokenId ?? '';
-    message.userId = object.userId ?? '';
-    message.deviceToken = object.deviceToken ?? '';
+    message.tokenId = object.tokenId ?? "";
+    message.userId = object.userId ?? "";
+    message.deviceToken = object.deviceToken ?? "";
     message.platform = object.platform ?? 0;
     message.appVersion = object.appVersion ?? undefined;
-    message.deviceInfoJson = object.deviceInfoJson ?? '';
+    message.deviceInfoJson = object.deviceInfoJson ?? "";
     message.status = object.status ?? 0;
     message.lastUsedAt = object.lastUsedAt ?? undefined;
     message.expiresAt = object.expiresAt ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseRegisterDeviceTokenRequest(): RegisterDeviceTokenRequest {
-  return {
-    userId: undefined,
-    deviceToken: '',
-    platform: 0,
-    appVersion: undefined,
-    deviceInfoJson: '',
-  };
+  return { userId: undefined, deviceToken: "", platform: 0, appVersion: undefined, deviceInfoJson: "" };
 }
 
 export const RegisterDeviceTokenRequest: MessageFns<RegisterDeviceTokenRequest> = {
-  encode(
-    message: RegisterDeviceTokenRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RegisterDeviceTokenRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.userId !== undefined) {
       writer.uint32(10).string(message.userId);
     }
-    if (message.deviceToken !== '') {
+    if (message.deviceToken !== "") {
       writer.uint32(18).string(message.deviceToken);
     }
     if (message.platform !== 0) {
@@ -4592,7 +4530,7 @@ export const RegisterDeviceTokenRequest: MessageFns<RegisterDeviceTokenRequest> 
     if (message.appVersion !== undefined) {
       writer.uint32(34).string(message.appVersion);
     }
-    if (message.deviceInfoJson !== '') {
+    if (message.deviceInfoJson !== "") {
       writer.uint32(42).string(message.deviceInfoJson);
     }
     return writer;
@@ -4659,24 +4597,24 @@ export const RegisterDeviceTokenRequest: MessageFns<RegisterDeviceTokenRequest> 
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
       deviceToken: isSet(object.deviceToken)
         ? globalThis.String(object.deviceToken)
         : isSet(object.device_token)
-          ? globalThis.String(object.device_token)
-          : '',
+        ? globalThis.String(object.device_token)
+        : "",
       platform: isSet(object.platform) ? devicePlatformFromJSON(object.platform) : 0,
       appVersion: isSet(object.appVersion)
         ? globalThis.String(object.appVersion)
         : isSet(object.app_version)
-          ? globalThis.String(object.app_version)
-          : undefined,
+        ? globalThis.String(object.app_version)
+        : undefined,
       deviceInfoJson: isSet(object.deviceInfoJson)
         ? globalThis.String(object.deviceInfoJson)
         : isSet(object.device_info_json)
-          ? globalThis.String(object.device_info_json)
-          : '',
+        ? globalThis.String(object.device_info_json)
+        : "",
     };
   },
 
@@ -4685,7 +4623,7 @@ export const RegisterDeviceTokenRequest: MessageFns<RegisterDeviceTokenRequest> 
     if (message.userId !== undefined) {
       obj.userId = message.userId;
     }
-    if (message.deviceToken !== '') {
+    if (message.deviceToken !== "") {
       obj.deviceToken = message.deviceToken;
     }
     if (message.platform !== 0) {
@@ -4694,26 +4632,22 @@ export const RegisterDeviceTokenRequest: MessageFns<RegisterDeviceTokenRequest> 
     if (message.appVersion !== undefined) {
       obj.appVersion = message.appVersion;
     }
-    if (message.deviceInfoJson !== '') {
+    if (message.deviceInfoJson !== "") {
       obj.deviceInfoJson = message.deviceInfoJson;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RegisterDeviceTokenRequest>, I>>(
-    base?: I
-  ): RegisterDeviceTokenRequest {
+  create<I extends Exact<DeepPartial<RegisterDeviceTokenRequest>, I>>(base?: I): RegisterDeviceTokenRequest {
     return RegisterDeviceTokenRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RegisterDeviceTokenRequest>, I>>(
-    object: I
-  ): RegisterDeviceTokenRequest {
+  fromPartial<I extends Exact<DeepPartial<RegisterDeviceTokenRequest>, I>>(object: I): RegisterDeviceTokenRequest {
     const message = createBaseRegisterDeviceTokenRequest();
     message.userId = object.userId ?? undefined;
-    message.deviceToken = object.deviceToken ?? '';
+    message.deviceToken = object.deviceToken ?? "";
     message.platform = object.platform ?? 0;
     message.appVersion = object.appVersion ?? undefined;
-    message.deviceInfoJson = object.deviceInfoJson ?? '';
+    message.deviceInfoJson = object.deviceInfoJson ?? "";
     return message;
   },
 };
@@ -4723,10 +4657,7 @@ function createBaseRegisterDeviceTokenResponse(): RegisterDeviceTokenResponse {
 }
 
 export const RegisterDeviceTokenResponse: MessageFns<RegisterDeviceTokenResponse> = {
-  encode(
-    message: RegisterDeviceTokenResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: RegisterDeviceTokenResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.token !== undefined) {
       DeviceToken.encode(message.token, writer.uint32(10).fork()).join();
     }
@@ -4774,8 +4705,8 @@ export const RegisterDeviceTokenResponse: MessageFns<RegisterDeviceTokenResponse
       alreadyRegistered: isSet(object.alreadyRegistered)
         ? globalThis.Boolean(object.alreadyRegistered)
         : isSet(object.already_registered)
-          ? globalThis.Boolean(object.already_registered)
-          : false,
+        ? globalThis.Boolean(object.already_registered)
+        : false,
     };
   },
 
@@ -4790,34 +4721,26 @@ export const RegisterDeviceTokenResponse: MessageFns<RegisterDeviceTokenResponse
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<RegisterDeviceTokenResponse>, I>>(
-    base?: I
-  ): RegisterDeviceTokenResponse {
+  create<I extends Exact<DeepPartial<RegisterDeviceTokenResponse>, I>>(base?: I): RegisterDeviceTokenResponse {
     return RegisterDeviceTokenResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<RegisterDeviceTokenResponse>, I>>(
-    object: I
-  ): RegisterDeviceTokenResponse {
+  fromPartial<I extends Exact<DeepPartial<RegisterDeviceTokenResponse>, I>>(object: I): RegisterDeviceTokenResponse {
     const message = createBaseRegisterDeviceTokenResponse();
-    message.token =
-      object.token !== undefined && object.token !== null
-        ? DeviceToken.fromPartial(object.token)
-        : undefined;
+    message.token = (object.token !== undefined && object.token !== null)
+      ? DeviceToken.fromPartial(object.token)
+      : undefined;
     message.alreadyRegistered = object.alreadyRegistered ?? false;
     return message;
   },
 };
 
 function createBaseUnregisterDeviceTokenRequest(): UnregisterDeviceTokenRequest {
-  return { tokenId: '' };
+  return { tokenId: "" };
 }
 
 export const UnregisterDeviceTokenRequest: MessageFns<UnregisterDeviceTokenRequest> = {
-  encode(
-    message: UnregisterDeviceTokenRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.tokenId !== '') {
+  encode(message: UnregisterDeviceTokenRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.tokenId !== "") {
       writer.uint32(10).string(message.tokenId);
     }
     return writer;
@@ -4852,29 +4775,25 @@ export const UnregisterDeviceTokenRequest: MessageFns<UnregisterDeviceTokenReque
       tokenId: isSet(object.tokenId)
         ? globalThis.String(object.tokenId)
         : isSet(object.token_id)
-          ? globalThis.String(object.token_id)
-          : '',
+        ? globalThis.String(object.token_id)
+        : "",
     };
   },
 
   toJSON(message: UnregisterDeviceTokenRequest): unknown {
     const obj: any = {};
-    if (message.tokenId !== '') {
+    if (message.tokenId !== "") {
       obj.tokenId = message.tokenId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UnregisterDeviceTokenRequest>, I>>(
-    base?: I
-  ): UnregisterDeviceTokenRequest {
+  create<I extends Exact<DeepPartial<UnregisterDeviceTokenRequest>, I>>(base?: I): UnregisterDeviceTokenRequest {
     return UnregisterDeviceTokenRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UnregisterDeviceTokenRequest>, I>>(
-    object: I
-  ): UnregisterDeviceTokenRequest {
+  fromPartial<I extends Exact<DeepPartial<UnregisterDeviceTokenRequest>, I>>(object: I): UnregisterDeviceTokenRequest {
     const message = createBaseUnregisterDeviceTokenRequest();
-    message.tokenId = object.tokenId ?? '';
+    message.tokenId = object.tokenId ?? "";
     return message;
   },
 };
@@ -4884,10 +4803,7 @@ function createBaseUnregisterDeviceTokenResponse(): UnregisterDeviceTokenRespons
 }
 
 export const UnregisterDeviceTokenResponse: MessageFns<UnregisterDeviceTokenResponse> = {
-  encode(
-    message: UnregisterDeviceTokenResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UnregisterDeviceTokenResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.token !== undefined) {
       DeviceToken.encode(message.token, writer.uint32(10).fork()).join();
     }
@@ -4930,19 +4846,16 @@ export const UnregisterDeviceTokenResponse: MessageFns<UnregisterDeviceTokenResp
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UnregisterDeviceTokenResponse>, I>>(
-    base?: I
-  ): UnregisterDeviceTokenResponse {
+  create<I extends Exact<DeepPartial<UnregisterDeviceTokenResponse>, I>>(base?: I): UnregisterDeviceTokenResponse {
     return UnregisterDeviceTokenResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<UnregisterDeviceTokenResponse>, I>>(
-    object: I
+    object: I,
   ): UnregisterDeviceTokenResponse {
     const message = createBaseUnregisterDeviceTokenResponse();
-    message.token =
-      object.token !== undefined && object.token !== null
-        ? DeviceToken.fromPartial(object.token)
-        : undefined;
+    message.token = (object.token !== undefined && object.token !== null)
+      ? DeviceToken.fromPartial(object.token)
+      : undefined;
     return message;
   },
 };
@@ -4952,10 +4865,7 @@ function createBaseListDeviceTokensRequest(): ListDeviceTokensRequest {
 }
 
 export const ListDeviceTokensRequest: MessageFns<ListDeviceTokensRequest> = {
-  encode(
-    message: ListDeviceTokensRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListDeviceTokensRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.userId !== undefined) {
       writer.uint32(10).string(message.userId);
     }
@@ -5002,13 +4912,13 @@ export const ListDeviceTokensRequest: MessageFns<ListDeviceTokensRequest> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
       includeInactive: isSet(object.includeInactive)
         ? globalThis.Boolean(object.includeInactive)
         : isSet(object.include_inactive)
-          ? globalThis.Boolean(object.include_inactive)
-          : false,
+        ? globalThis.Boolean(object.include_inactive)
+        : false,
     };
   },
 
@@ -5023,14 +4933,10 @@ export const ListDeviceTokensRequest: MessageFns<ListDeviceTokensRequest> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListDeviceTokensRequest>, I>>(
-    base?: I
-  ): ListDeviceTokensRequest {
+  create<I extends Exact<DeepPartial<ListDeviceTokensRequest>, I>>(base?: I): ListDeviceTokensRequest {
     return ListDeviceTokensRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListDeviceTokensRequest>, I>>(
-    object: I
-  ): ListDeviceTokensRequest {
+  fromPartial<I extends Exact<DeepPartial<ListDeviceTokensRequest>, I>>(object: I): ListDeviceTokensRequest {
     const message = createBaseListDeviceTokensRequest();
     message.userId = object.userId ?? undefined;
     message.includeInactive = object.includeInactive ?? false;
@@ -5043,10 +4949,7 @@ function createBaseListDeviceTokensResponse(): ListDeviceTokensResponse {
 }
 
 export const ListDeviceTokensResponse: MessageFns<ListDeviceTokensResponse> = {
-  encode(
-    message: ListDeviceTokensResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListDeviceTokensResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.tokens) {
       DeviceToken.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -5079,41 +4982,35 @@ export const ListDeviceTokensResponse: MessageFns<ListDeviceTokensResponse> = {
 
   fromJSON(object: any): ListDeviceTokensResponse {
     return {
-      tokens: globalThis.Array.isArray(object?.tokens)
-        ? object.tokens.map((e: any) => DeviceToken.fromJSON(e))
-        : [],
+      tokens: globalThis.Array.isArray(object?.tokens) ? object.tokens.map((e: any) => DeviceToken.fromJSON(e)) : [],
     };
   },
 
   toJSON(message: ListDeviceTokensResponse): unknown {
     const obj: any = {};
     if (message.tokens?.length) {
-      obj.tokens = message.tokens.map(e => DeviceToken.toJSON(e));
+      obj.tokens = message.tokens.map((e) => DeviceToken.toJSON(e));
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListDeviceTokensResponse>, I>>(
-    base?: I
-  ): ListDeviceTokensResponse {
+  create<I extends Exact<DeepPartial<ListDeviceTokensResponse>, I>>(base?: I): ListDeviceTokensResponse {
     return ListDeviceTokensResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListDeviceTokensResponse>, I>>(
-    object: I
-  ): ListDeviceTokensResponse {
+  fromPartial<I extends Exact<DeepPartial<ListDeviceTokensResponse>, I>>(object: I): ListDeviceTokensResponse {
     const message = createBaseListDeviceTokensResponse();
-    message.tokens = object.tokens?.map(e => DeviceToken.fromPartial(e)) || [];
+    message.tokens = object.tokens?.map((e) => DeviceToken.fromPartial(e)) || [];
     return message;
   },
 };
 
 function createBaseGetNotificationRequest(): GetNotificationRequest {
-  return { notificationId: '' };
+  return { notificationId: "" };
 }
 
 export const GetNotificationRequest: MessageFns<GetNotificationRequest> = {
   encode(message: GetNotificationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.notificationId !== '') {
+    if (message.notificationId !== "") {
       writer.uint32(10).string(message.notificationId);
     }
     return writer;
@@ -5148,29 +5045,25 @@ export const GetNotificationRequest: MessageFns<GetNotificationRequest> = {
       notificationId: isSet(object.notificationId)
         ? globalThis.String(object.notificationId)
         : isSet(object.notification_id)
-          ? globalThis.String(object.notification_id)
-          : '',
+        ? globalThis.String(object.notification_id)
+        : "",
     };
   },
 
   toJSON(message: GetNotificationRequest): unknown {
     const obj: any = {};
-    if (message.notificationId !== '') {
+    if (message.notificationId !== "") {
       obj.notificationId = message.notificationId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetNotificationRequest>, I>>(
-    base?: I
-  ): GetNotificationRequest {
+  create<I extends Exact<DeepPartial<GetNotificationRequest>, I>>(base?: I): GetNotificationRequest {
     return GetNotificationRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetNotificationRequest>, I>>(
-    object: I
-  ): GetNotificationRequest {
+  fromPartial<I extends Exact<DeepPartial<GetNotificationRequest>, I>>(object: I): GetNotificationRequest {
     const message = createBaseGetNotificationRequest();
-    message.notificationId = object.notificationId ?? '';
+    message.notificationId = object.notificationId ?? "";
     return message;
   },
 };
@@ -5180,10 +5073,7 @@ function createBaseGetNotificationResponse(): GetNotificationResponse {
 }
 
 export const GetNotificationResponse: MessageFns<GetNotificationResponse> = {
-  encode(
-    message: GetNotificationResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetNotificationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.notification !== undefined) {
       Notification.encode(message.notification, writer.uint32(10).fork()).join();
     }
@@ -5215,11 +5105,7 @@ export const GetNotificationResponse: MessageFns<GetNotificationResponse> = {
   },
 
   fromJSON(object: any): GetNotificationResponse {
-    return {
-      notification: isSet(object.notification)
-        ? Notification.fromJSON(object.notification)
-        : undefined,
-    };
+    return { notification: isSet(object.notification) ? Notification.fromJSON(object.notification) : undefined };
   },
 
   toJSON(message: GetNotificationResponse): unknown {
@@ -5230,19 +5116,14 @@ export const GetNotificationResponse: MessageFns<GetNotificationResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetNotificationResponse>, I>>(
-    base?: I
-  ): GetNotificationResponse {
+  create<I extends Exact<DeepPartial<GetNotificationResponse>, I>>(base?: I): GetNotificationResponse {
     return GetNotificationResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetNotificationResponse>, I>>(
-    object: I
-  ): GetNotificationResponse {
+  fromPartial<I extends Exact<DeepPartial<GetNotificationResponse>, I>>(object: I): GetNotificationResponse {
     const message = createBaseGetNotificationResponse();
-    message.notification =
-      object.notification !== undefined && object.notification !== null
-        ? Notification.fromPartial(object.notification)
-        : undefined;
+    message.notification = (object.notification !== undefined && object.notification !== null)
+      ? Notification.fromPartial(object.notification)
+      : undefined;
     return message;
   },
 };
@@ -5338,14 +5219,10 @@ export const GetUnreadCountResponse: MessageFns<GetUnreadCountResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetUnreadCountResponse>, I>>(
-    base?: I
-  ): GetUnreadCountResponse {
+  create<I extends Exact<DeepPartial<GetUnreadCountResponse>, I>>(base?: I): GetUnreadCountResponse {
     return GetUnreadCountResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetUnreadCountResponse>, I>>(
-    object: I
-  ): GetUnreadCountResponse {
+  fromPartial<I extends Exact<DeepPartial<GetUnreadCountResponse>, I>>(object: I): GetUnreadCountResponse {
     const message = createBaseGetUnreadCountResponse();
     message.count = object.count ?? 0;
     return message;
@@ -5436,8 +5313,8 @@ export const MarkAllReadResponse: MessageFns<MarkAllReadResponse> = {
       affectedCount: isSet(object.affectedCount)
         ? globalThis.Number(object.affectedCount)
         : isSet(object.affected_count)
-          ? globalThis.Number(object.affected_count)
-          : 0,
+        ? globalThis.Number(object.affected_count)
+        : 0,
     };
   },
 
@@ -5452,9 +5329,7 @@ export const MarkAllReadResponse: MessageFns<MarkAllReadResponse> = {
   create<I extends Exact<DeepPartial<MarkAllReadResponse>, I>>(base?: I): MarkAllReadResponse {
     return MarkAllReadResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<MarkAllReadResponse>, I>>(
-    object: I
-  ): MarkAllReadResponse {
+  fromPartial<I extends Exact<DeepPartial<MarkAllReadResponse>, I>>(object: I): MarkAllReadResponse {
     const message = createBaseMarkAllReadResponse();
     message.affectedCount = object.affectedCount ?? 0;
     return message;
@@ -5462,15 +5337,12 @@ export const MarkAllReadResponse: MessageFns<MarkAllReadResponse> = {
 };
 
 function createBaseDeleteNotificationRequest(): DeleteNotificationRequest {
-  return { notificationId: '' };
+  return { notificationId: "" };
 }
 
 export const DeleteNotificationRequest: MessageFns<DeleteNotificationRequest> = {
-  encode(
-    message: DeleteNotificationRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.notificationId !== '') {
+  encode(message: DeleteNotificationRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.notificationId !== "") {
       writer.uint32(10).string(message.notificationId);
     }
     return writer;
@@ -5505,29 +5377,25 @@ export const DeleteNotificationRequest: MessageFns<DeleteNotificationRequest> = 
       notificationId: isSet(object.notificationId)
         ? globalThis.String(object.notificationId)
         : isSet(object.notification_id)
-          ? globalThis.String(object.notification_id)
-          : '',
+        ? globalThis.String(object.notification_id)
+        : "",
     };
   },
 
   toJSON(message: DeleteNotificationRequest): unknown {
     const obj: any = {};
-    if (message.notificationId !== '') {
+    if (message.notificationId !== "") {
       obj.notificationId = message.notificationId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DeleteNotificationRequest>, I>>(
-    base?: I
-  ): DeleteNotificationRequest {
+  create<I extends Exact<DeepPartial<DeleteNotificationRequest>, I>>(base?: I): DeleteNotificationRequest {
     return DeleteNotificationRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteNotificationRequest>, I>>(
-    object: I
-  ): DeleteNotificationRequest {
+  fromPartial<I extends Exact<DeepPartial<DeleteNotificationRequest>, I>>(object: I): DeleteNotificationRequest {
     const message = createBaseDeleteNotificationRequest();
-    message.notificationId = object.notificationId ?? '';
+    message.notificationId = object.notificationId ?? "";
     return message;
   },
 };
@@ -5537,10 +5405,7 @@ function createBaseDeleteNotificationResponse(): DeleteNotificationResponse {
 }
 
 export const DeleteNotificationResponse: MessageFns<DeleteNotificationResponse> = {
-  encode(
-    message: DeleteNotificationResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: DeleteNotificationResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.notification !== undefined) {
       Notification.encode(message.notification, writer.uint32(10).fork()).join();
     }
@@ -5572,11 +5437,7 @@ export const DeleteNotificationResponse: MessageFns<DeleteNotificationResponse> 
   },
 
   fromJSON(object: any): DeleteNotificationResponse {
-    return {
-      notification: isSet(object.notification)
-        ? Notification.fromJSON(object.notification)
-        : undefined,
-    };
+    return { notification: isSet(object.notification) ? Notification.fromJSON(object.notification) : undefined };
   },
 
   toJSON(message: DeleteNotificationResponse): unknown {
@@ -5587,26 +5448,21 @@ export const DeleteNotificationResponse: MessageFns<DeleteNotificationResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DeleteNotificationResponse>, I>>(
-    base?: I
-  ): DeleteNotificationResponse {
+  create<I extends Exact<DeepPartial<DeleteNotificationResponse>, I>>(base?: I): DeleteNotificationResponse {
     return DeleteNotificationResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteNotificationResponse>, I>>(
-    object: I
-  ): DeleteNotificationResponse {
+  fromPartial<I extends Exact<DeepPartial<DeleteNotificationResponse>, I>>(object: I): DeleteNotificationResponse {
     const message = createBaseDeleteNotificationResponse();
-    message.notification =
-      object.notification !== undefined && object.notification !== null
-        ? Notification.fromPartial(object.notification)
-        : undefined;
+    message.notification = (object.notification !== undefined && object.notification !== null)
+      ? Notification.fromPartial(object.notification)
+      : undefined;
     return message;
   },
 };
 
 function createBaseNotificationPreferences(): NotificationPreferences {
   return {
-    userId: '',
+    userId: "",
     emailEnabled: false,
     pushEnabled: false,
     smsEnabled: false,
@@ -5617,18 +5473,15 @@ function createBaseNotificationPreferences(): NotificationPreferences {
     chatMessages: false,
     quietHoursStart: undefined,
     quietHoursEnd: undefined,
-    timezone: '',
-    createdAt: '',
-    updatedAt: '',
+    timezone: "",
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const NotificationPreferences: MessageFns<NotificationPreferences> = {
-  encode(
-    message: NotificationPreferences,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.userId !== '') {
+  encode(message: NotificationPreferences, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== "") {
       writer.uint32(10).string(message.userId);
     }
     if (message.emailEnabled !== false) {
@@ -5661,13 +5514,13 @@ export const NotificationPreferences: MessageFns<NotificationPreferences> = {
     if (message.quietHoursEnd !== undefined) {
       writer.uint32(90).string(message.quietHoursEnd);
     }
-    if (message.timezone !== '') {
+    if (message.timezone !== "") {
       writer.uint32(98).string(message.timezone);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(106).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(114).string(message.updatedAt);
     }
     return writer;
@@ -5806,75 +5659,75 @@ export const NotificationPreferences: MessageFns<NotificationPreferences> = {
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : '',
+        ? globalThis.String(object.user_id)
+        : "",
       emailEnabled: isSet(object.emailEnabled)
         ? globalThis.Boolean(object.emailEnabled)
         : isSet(object.email_enabled)
-          ? globalThis.Boolean(object.email_enabled)
-          : false,
+        ? globalThis.Boolean(object.email_enabled)
+        : false,
       pushEnabled: isSet(object.pushEnabled)
         ? globalThis.Boolean(object.pushEnabled)
         : isSet(object.push_enabled)
-          ? globalThis.Boolean(object.push_enabled)
-          : false,
+        ? globalThis.Boolean(object.push_enabled)
+        : false,
       smsEnabled: isSet(object.smsEnabled)
         ? globalThis.Boolean(object.smsEnabled)
         : isSet(object.sms_enabled)
-          ? globalThis.Boolean(object.sms_enabled)
-          : false,
+        ? globalThis.Boolean(object.sms_enabled)
+        : false,
       digestFrequency: isSet(object.digestFrequency)
         ? notificationDigestFrequencyFromJSON(object.digestFrequency)
         : isSet(object.digest_frequency)
-          ? notificationDigestFrequencyFromJSON(object.digest_frequency)
-          : 0,
+        ? notificationDigestFrequencyFromJSON(object.digest_frequency)
+        : 0,
       applicationUpdates: isSet(object.applicationUpdates)
         ? globalThis.Boolean(object.applicationUpdates)
         : isSet(object.application_updates)
-          ? globalThis.Boolean(object.application_updates)
-          : false,
+        ? globalThis.Boolean(object.application_updates)
+        : false,
       petMatches: isSet(object.petMatches)
         ? globalThis.Boolean(object.petMatches)
         : isSet(object.pet_matches)
-          ? globalThis.Boolean(object.pet_matches)
-          : false,
+        ? globalThis.Boolean(object.pet_matches)
+        : false,
       rescueUpdates: isSet(object.rescueUpdates)
         ? globalThis.Boolean(object.rescueUpdates)
         : isSet(object.rescue_updates)
-          ? globalThis.Boolean(object.rescue_updates)
-          : false,
+        ? globalThis.Boolean(object.rescue_updates)
+        : false,
       chatMessages: isSet(object.chatMessages)
         ? globalThis.Boolean(object.chatMessages)
         : isSet(object.chat_messages)
-          ? globalThis.Boolean(object.chat_messages)
-          : false,
+        ? globalThis.Boolean(object.chat_messages)
+        : false,
       quietHoursStart: isSet(object.quietHoursStart)
         ? globalThis.String(object.quietHoursStart)
         : isSet(object.quiet_hours_start)
-          ? globalThis.String(object.quiet_hours_start)
-          : undefined,
+        ? globalThis.String(object.quiet_hours_start)
+        : undefined,
       quietHoursEnd: isSet(object.quietHoursEnd)
         ? globalThis.String(object.quietHoursEnd)
         : isSet(object.quiet_hours_end)
-          ? globalThis.String(object.quiet_hours_end)
-          : undefined,
-      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : '',
+        ? globalThis.String(object.quiet_hours_end)
+        : undefined,
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : "",
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: NotificationPreferences): unknown {
     const obj: any = {};
-    if (message.userId !== '') {
+    if (message.userId !== "") {
       obj.userId = message.userId;
     }
     if (message.emailEnabled !== false) {
@@ -5907,28 +5760,24 @@ export const NotificationPreferences: MessageFns<NotificationPreferences> = {
     if (message.quietHoursEnd !== undefined) {
       obj.quietHoursEnd = message.quietHoursEnd;
     }
-    if (message.timezone !== '') {
+    if (message.timezone !== "") {
       obj.timezone = message.timezone;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<NotificationPreferences>, I>>(
-    base?: I
-  ): NotificationPreferences {
+  create<I extends Exact<DeepPartial<NotificationPreferences>, I>>(base?: I): NotificationPreferences {
     return NotificationPreferences.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<NotificationPreferences>, I>>(
-    object: I
-  ): NotificationPreferences {
+  fromPartial<I extends Exact<DeepPartial<NotificationPreferences>, I>>(object: I): NotificationPreferences {
     const message = createBaseNotificationPreferences();
-    message.userId = object.userId ?? '';
+    message.userId = object.userId ?? "";
     message.emailEnabled = object.emailEnabled ?? false;
     message.pushEnabled = object.pushEnabled ?? false;
     message.smsEnabled = object.smsEnabled ?? false;
@@ -5939,9 +5788,9 @@ export const NotificationPreferences: MessageFns<NotificationPreferences> = {
     message.chatMessages = object.chatMessages ?? false;
     message.quietHoursStart = object.quietHoursStart ?? undefined;
     message.quietHoursEnd = object.quietHoursEnd ?? undefined;
-    message.timezone = object.timezone ?? '';
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.timezone = object.timezone ?? "";
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
@@ -5951,10 +5800,7 @@ function createBaseGetNotificationPreferencesRequest(): GetNotificationPreferenc
 }
 
 export const GetNotificationPreferencesRequest: MessageFns<GetNotificationPreferencesRequest> = {
-  encode(
-    message: GetNotificationPreferencesRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetNotificationPreferencesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.userId !== undefined) {
       writer.uint32(10).string(message.userId);
     }
@@ -5990,8 +5836,8 @@ export const GetNotificationPreferencesRequest: MessageFns<GetNotificationPrefer
       userId: isSet(object.userId)
         ? globalThis.String(object.userId)
         : isSet(object.user_id)
-          ? globalThis.String(object.user_id)
-          : undefined,
+        ? globalThis.String(object.user_id)
+        : undefined,
     };
   },
 
@@ -6004,12 +5850,12 @@ export const GetNotificationPreferencesRequest: MessageFns<GetNotificationPrefer
   },
 
   create<I extends Exact<DeepPartial<GetNotificationPreferencesRequest>, I>>(
-    base?: I
+    base?: I,
   ): GetNotificationPreferencesRequest {
     return GetNotificationPreferencesRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetNotificationPreferencesRequest>, I>>(
-    object: I
+    object: I,
   ): GetNotificationPreferencesRequest {
     const message = createBaseGetNotificationPreferencesRequest();
     message.userId = object.userId ?? undefined;
@@ -6022,10 +5868,7 @@ function createBaseGetNotificationPreferencesResponse(): GetNotificationPreferen
 }
 
 export const GetNotificationPreferencesResponse: MessageFns<GetNotificationPreferencesResponse> = {
-  encode(
-    message: GetNotificationPreferencesResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetNotificationPreferencesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.preferences !== undefined) {
       NotificationPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
     }
@@ -6058,9 +5901,7 @@ export const GetNotificationPreferencesResponse: MessageFns<GetNotificationPrefe
 
   fromJSON(object: any): GetNotificationPreferencesResponse {
     return {
-      preferences: isSet(object.preferences)
-        ? NotificationPreferences.fromJSON(object.preferences)
-        : undefined,
+      preferences: isSet(object.preferences) ? NotificationPreferences.fromJSON(object.preferences) : undefined,
     };
   },
 
@@ -6073,18 +5914,17 @@ export const GetNotificationPreferencesResponse: MessageFns<GetNotificationPrefe
   },
 
   create<I extends Exact<DeepPartial<GetNotificationPreferencesResponse>, I>>(
-    base?: I
+    base?: I,
   ): GetNotificationPreferencesResponse {
     return GetNotificationPreferencesResponse.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<GetNotificationPreferencesResponse>, I>>(
-    object: I
+    object: I,
   ): GetNotificationPreferencesResponse {
     const message = createBaseGetNotificationPreferencesResponse();
-    message.preferences =
-      object.preferences !== undefined && object.preferences !== null
-        ? NotificationPreferences.fromPartial(object.preferences)
-        : undefined;
+    message.preferences = (object.preferences !== undefined && object.preferences !== null)
+      ? NotificationPreferences.fromPartial(object.preferences)
+      : undefined;
     return message;
   },
 };
@@ -6106,526 +5946,492 @@ function createBaseUpdateNotificationPreferencesRequest(): UpdateNotificationPre
   };
 }
 
-export const UpdateNotificationPreferencesRequest: MessageFns<UpdateNotificationPreferencesRequest> =
-  {
-    encode(
-      message: UpdateNotificationPreferencesRequest,
-      writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-      if (message.userId !== undefined) {
-        writer.uint32(10).string(message.userId);
-      }
-      if (message.emailEnabled !== undefined) {
-        writer.uint32(16).bool(message.emailEnabled);
-      }
-      if (message.pushEnabled !== undefined) {
-        writer.uint32(24).bool(message.pushEnabled);
-      }
-      if (message.smsEnabled !== undefined) {
-        writer.uint32(32).bool(message.smsEnabled);
-      }
-      if (message.digestFrequency !== 0) {
-        writer.uint32(40).int32(message.digestFrequency);
-      }
-      if (message.applicationUpdates !== undefined) {
-        writer.uint32(48).bool(message.applicationUpdates);
-      }
-      if (message.petMatches !== undefined) {
-        writer.uint32(56).bool(message.petMatches);
-      }
-      if (message.rescueUpdates !== undefined) {
-        writer.uint32(64).bool(message.rescueUpdates);
-      }
-      if (message.chatMessages !== undefined) {
-        writer.uint32(72).bool(message.chatMessages);
-      }
-      if (message.quietHoursStart !== undefined) {
-        writer.uint32(82).string(message.quietHoursStart);
-      }
-      if (message.quietHoursEnd !== undefined) {
-        writer.uint32(90).string(message.quietHoursEnd);
-      }
-      if (message.timezone !== undefined) {
-        writer.uint32(98).string(message.timezone);
-      }
-      return writer;
-    },
+export const UpdateNotificationPreferencesRequest: MessageFns<UpdateNotificationPreferencesRequest> = {
+  encode(message: UpdateNotificationPreferencesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.emailEnabled !== undefined) {
+      writer.uint32(16).bool(message.emailEnabled);
+    }
+    if (message.pushEnabled !== undefined) {
+      writer.uint32(24).bool(message.pushEnabled);
+    }
+    if (message.smsEnabled !== undefined) {
+      writer.uint32(32).bool(message.smsEnabled);
+    }
+    if (message.digestFrequency !== 0) {
+      writer.uint32(40).int32(message.digestFrequency);
+    }
+    if (message.applicationUpdates !== undefined) {
+      writer.uint32(48).bool(message.applicationUpdates);
+    }
+    if (message.petMatches !== undefined) {
+      writer.uint32(56).bool(message.petMatches);
+    }
+    if (message.rescueUpdates !== undefined) {
+      writer.uint32(64).bool(message.rescueUpdates);
+    }
+    if (message.chatMessages !== undefined) {
+      writer.uint32(72).bool(message.chatMessages);
+    }
+    if (message.quietHoursStart !== undefined) {
+      writer.uint32(82).string(message.quietHoursStart);
+    }
+    if (message.quietHoursEnd !== undefined) {
+      writer.uint32(90).string(message.quietHoursEnd);
+    }
+    if (message.timezone !== undefined) {
+      writer.uint32(98).string(message.timezone);
+    }
+    return writer;
+  },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number
-    ): UpdateNotificationPreferencesRequest {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseUpdateNotificationPreferencesRequest();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 10) {
-              break;
-            }
-
-            message.userId = reader.string();
-            continue;
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateNotificationPreferencesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateNotificationPreferencesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
           }
-          case 2: {
-            if (tag !== 16) {
-              break;
-            }
 
-            message.emailEnabled = reader.bool();
-            continue;
-          }
-          case 3: {
-            if (tag !== 24) {
-              break;
-            }
-
-            message.pushEnabled = reader.bool();
-            continue;
-          }
-          case 4: {
-            if (tag !== 32) {
-              break;
-            }
-
-            message.smsEnabled = reader.bool();
-            continue;
-          }
-          case 5: {
-            if (tag !== 40) {
-              break;
-            }
-
-            message.digestFrequency = reader.int32() as any;
-            continue;
-          }
-          case 6: {
-            if (tag !== 48) {
-              break;
-            }
-
-            message.applicationUpdates = reader.bool();
-            continue;
-          }
-          case 7: {
-            if (tag !== 56) {
-              break;
-            }
-
-            message.petMatches = reader.bool();
-            continue;
-          }
-          case 8: {
-            if (tag !== 64) {
-              break;
-            }
-
-            message.rescueUpdates = reader.bool();
-            continue;
-          }
-          case 9: {
-            if (tag !== 72) {
-              break;
-            }
-
-            message.chatMessages = reader.bool();
-            continue;
-          }
-          case 10: {
-            if (tag !== 82) {
-              break;
-            }
-
-            message.quietHoursStart = reader.string();
-            continue;
-          }
-          case 11: {
-            if (tag !== 90) {
-              break;
-            }
-
-            message.quietHoursEnd = reader.string();
-            continue;
-          }
-          case 12: {
-            if (tag !== 98) {
-              break;
-            }
-
-            message.timezone = reader.string();
-            continue;
-          }
+          message.userId = reader.string();
+          continue;
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.emailEnabled = reader.bool();
+          continue;
         }
-        reader.skip(tag & 7);
-      }
-      return message;
-    },
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
 
-    fromJSON(object: any): UpdateNotificationPreferencesRequest {
-      return {
-        userId: isSet(object.userId)
-          ? globalThis.String(object.userId)
-          : isSet(object.user_id)
-            ? globalThis.String(object.user_id)
-            : undefined,
-        emailEnabled: isSet(object.emailEnabled)
-          ? globalThis.Boolean(object.emailEnabled)
-          : isSet(object.email_enabled)
-            ? globalThis.Boolean(object.email_enabled)
-            : undefined,
-        pushEnabled: isSet(object.pushEnabled)
-          ? globalThis.Boolean(object.pushEnabled)
-          : isSet(object.push_enabled)
-            ? globalThis.Boolean(object.push_enabled)
-            : undefined,
-        smsEnabled: isSet(object.smsEnabled)
-          ? globalThis.Boolean(object.smsEnabled)
-          : isSet(object.sms_enabled)
-            ? globalThis.Boolean(object.sms_enabled)
-            : undefined,
-        digestFrequency: isSet(object.digestFrequency)
-          ? notificationDigestFrequencyFromJSON(object.digestFrequency)
-          : isSet(object.digest_frequency)
-            ? notificationDigestFrequencyFromJSON(object.digest_frequency)
-            : 0,
-        applicationUpdates: isSet(object.applicationUpdates)
-          ? globalThis.Boolean(object.applicationUpdates)
-          : isSet(object.application_updates)
-            ? globalThis.Boolean(object.application_updates)
-            : undefined,
-        petMatches: isSet(object.petMatches)
-          ? globalThis.Boolean(object.petMatches)
-          : isSet(object.pet_matches)
-            ? globalThis.Boolean(object.pet_matches)
-            : undefined,
-        rescueUpdates: isSet(object.rescueUpdates)
-          ? globalThis.Boolean(object.rescueUpdates)
-          : isSet(object.rescue_updates)
-            ? globalThis.Boolean(object.rescue_updates)
-            : undefined,
-        chatMessages: isSet(object.chatMessages)
-          ? globalThis.Boolean(object.chatMessages)
-          : isSet(object.chat_messages)
-            ? globalThis.Boolean(object.chat_messages)
-            : undefined,
-        quietHoursStart: isSet(object.quietHoursStart)
-          ? globalThis.String(object.quietHoursStart)
-          : isSet(object.quiet_hours_start)
-            ? globalThis.String(object.quiet_hours_start)
-            : undefined,
-        quietHoursEnd: isSet(object.quietHoursEnd)
-          ? globalThis.String(object.quietHoursEnd)
-          : isSet(object.quiet_hours_end)
-            ? globalThis.String(object.quiet_hours_end)
-            : undefined,
-        timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : undefined,
-      };
-    },
+          message.pushEnabled = reader.bool();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
 
-    toJSON(message: UpdateNotificationPreferencesRequest): unknown {
-      const obj: any = {};
-      if (message.userId !== undefined) {
-        obj.userId = message.userId;
-      }
-      if (message.emailEnabled !== undefined) {
-        obj.emailEnabled = message.emailEnabled;
-      }
-      if (message.pushEnabled !== undefined) {
-        obj.pushEnabled = message.pushEnabled;
-      }
-      if (message.smsEnabled !== undefined) {
-        obj.smsEnabled = message.smsEnabled;
-      }
-      if (message.digestFrequency !== 0) {
-        obj.digestFrequency = notificationDigestFrequencyToJSON(message.digestFrequency);
-      }
-      if (message.applicationUpdates !== undefined) {
-        obj.applicationUpdates = message.applicationUpdates;
-      }
-      if (message.petMatches !== undefined) {
-        obj.petMatches = message.petMatches;
-      }
-      if (message.rescueUpdates !== undefined) {
-        obj.rescueUpdates = message.rescueUpdates;
-      }
-      if (message.chatMessages !== undefined) {
-        obj.chatMessages = message.chatMessages;
-      }
-      if (message.quietHoursStart !== undefined) {
-        obj.quietHoursStart = message.quietHoursStart;
-      }
-      if (message.quietHoursEnd !== undefined) {
-        obj.quietHoursEnd = message.quietHoursEnd;
-      }
-      if (message.timezone !== undefined) {
-        obj.timezone = message.timezone;
-      }
-      return obj;
-    },
+          message.smsEnabled = reader.bool();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
 
-    create<I extends Exact<DeepPartial<UpdateNotificationPreferencesRequest>, I>>(
-      base?: I
-    ): UpdateNotificationPreferencesRequest {
-      return UpdateNotificationPreferencesRequest.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<UpdateNotificationPreferencesRequest>, I>>(
-      object: I
-    ): UpdateNotificationPreferencesRequest {
-      const message = createBaseUpdateNotificationPreferencesRequest();
-      message.userId = object.userId ?? undefined;
-      message.emailEnabled = object.emailEnabled ?? undefined;
-      message.pushEnabled = object.pushEnabled ?? undefined;
-      message.smsEnabled = object.smsEnabled ?? undefined;
-      message.digestFrequency = object.digestFrequency ?? 0;
-      message.applicationUpdates = object.applicationUpdates ?? undefined;
-      message.petMatches = object.petMatches ?? undefined;
-      message.rescueUpdates = object.rescueUpdates ?? undefined;
-      message.chatMessages = object.chatMessages ?? undefined;
-      message.quietHoursStart = object.quietHoursStart ?? undefined;
-      message.quietHoursEnd = object.quietHoursEnd ?? undefined;
-      message.timezone = object.timezone ?? undefined;
-      return message;
-    },
-  };
+          message.digestFrequency = reader.int32() as any;
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.applicationUpdates = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.petMatches = reader.bool();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.rescueUpdates = reader.bool();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.chatMessages = reader.bool();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.quietHoursStart = reader.string();
+          continue;
+        }
+        case 11: {
+          if (tag !== 90) {
+            break;
+          }
+
+          message.quietHoursEnd = reader.string();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.timezone = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateNotificationPreferencesRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : undefined,
+      emailEnabled: isSet(object.emailEnabled)
+        ? globalThis.Boolean(object.emailEnabled)
+        : isSet(object.email_enabled)
+        ? globalThis.Boolean(object.email_enabled)
+        : undefined,
+      pushEnabled: isSet(object.pushEnabled)
+        ? globalThis.Boolean(object.pushEnabled)
+        : isSet(object.push_enabled)
+        ? globalThis.Boolean(object.push_enabled)
+        : undefined,
+      smsEnabled: isSet(object.smsEnabled)
+        ? globalThis.Boolean(object.smsEnabled)
+        : isSet(object.sms_enabled)
+        ? globalThis.Boolean(object.sms_enabled)
+        : undefined,
+      digestFrequency: isSet(object.digestFrequency)
+        ? notificationDigestFrequencyFromJSON(object.digestFrequency)
+        : isSet(object.digest_frequency)
+        ? notificationDigestFrequencyFromJSON(object.digest_frequency)
+        : 0,
+      applicationUpdates: isSet(object.applicationUpdates)
+        ? globalThis.Boolean(object.applicationUpdates)
+        : isSet(object.application_updates)
+        ? globalThis.Boolean(object.application_updates)
+        : undefined,
+      petMatches: isSet(object.petMatches)
+        ? globalThis.Boolean(object.petMatches)
+        : isSet(object.pet_matches)
+        ? globalThis.Boolean(object.pet_matches)
+        : undefined,
+      rescueUpdates: isSet(object.rescueUpdates)
+        ? globalThis.Boolean(object.rescueUpdates)
+        : isSet(object.rescue_updates)
+        ? globalThis.Boolean(object.rescue_updates)
+        : undefined,
+      chatMessages: isSet(object.chatMessages)
+        ? globalThis.Boolean(object.chatMessages)
+        : isSet(object.chat_messages)
+        ? globalThis.Boolean(object.chat_messages)
+        : undefined,
+      quietHoursStart: isSet(object.quietHoursStart)
+        ? globalThis.String(object.quietHoursStart)
+        : isSet(object.quiet_hours_start)
+        ? globalThis.String(object.quiet_hours_start)
+        : undefined,
+      quietHoursEnd: isSet(object.quietHoursEnd)
+        ? globalThis.String(object.quietHoursEnd)
+        : isSet(object.quiet_hours_end)
+        ? globalThis.String(object.quiet_hours_end)
+        : undefined,
+      timezone: isSet(object.timezone) ? globalThis.String(object.timezone) : undefined,
+    };
+  },
+
+  toJSON(message: UpdateNotificationPreferencesRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    if (message.emailEnabled !== undefined) {
+      obj.emailEnabled = message.emailEnabled;
+    }
+    if (message.pushEnabled !== undefined) {
+      obj.pushEnabled = message.pushEnabled;
+    }
+    if (message.smsEnabled !== undefined) {
+      obj.smsEnabled = message.smsEnabled;
+    }
+    if (message.digestFrequency !== 0) {
+      obj.digestFrequency = notificationDigestFrequencyToJSON(message.digestFrequency);
+    }
+    if (message.applicationUpdates !== undefined) {
+      obj.applicationUpdates = message.applicationUpdates;
+    }
+    if (message.petMatches !== undefined) {
+      obj.petMatches = message.petMatches;
+    }
+    if (message.rescueUpdates !== undefined) {
+      obj.rescueUpdates = message.rescueUpdates;
+    }
+    if (message.chatMessages !== undefined) {
+      obj.chatMessages = message.chatMessages;
+    }
+    if (message.quietHoursStart !== undefined) {
+      obj.quietHoursStart = message.quietHoursStart;
+    }
+    if (message.quietHoursEnd !== undefined) {
+      obj.quietHoursEnd = message.quietHoursEnd;
+    }
+    if (message.timezone !== undefined) {
+      obj.timezone = message.timezone;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateNotificationPreferencesRequest>, I>>(
+    base?: I,
+  ): UpdateNotificationPreferencesRequest {
+    return UpdateNotificationPreferencesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateNotificationPreferencesRequest>, I>>(
+    object: I,
+  ): UpdateNotificationPreferencesRequest {
+    const message = createBaseUpdateNotificationPreferencesRequest();
+    message.userId = object.userId ?? undefined;
+    message.emailEnabled = object.emailEnabled ?? undefined;
+    message.pushEnabled = object.pushEnabled ?? undefined;
+    message.smsEnabled = object.smsEnabled ?? undefined;
+    message.digestFrequency = object.digestFrequency ?? 0;
+    message.applicationUpdates = object.applicationUpdates ?? undefined;
+    message.petMatches = object.petMatches ?? undefined;
+    message.rescueUpdates = object.rescueUpdates ?? undefined;
+    message.chatMessages = object.chatMessages ?? undefined;
+    message.quietHoursStart = object.quietHoursStart ?? undefined;
+    message.quietHoursEnd = object.quietHoursEnd ?? undefined;
+    message.timezone = object.timezone ?? undefined;
+    return message;
+  },
+};
 
 function createBaseUpdateNotificationPreferencesResponse(): UpdateNotificationPreferencesResponse {
   return { preferences: undefined };
 }
 
-export const UpdateNotificationPreferencesResponse: MessageFns<UpdateNotificationPreferencesResponse> =
-  {
-    encode(
-      message: UpdateNotificationPreferencesResponse,
-      writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-      if (message.preferences !== undefined) {
-        NotificationPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
-      }
-      return writer;
-    },
+export const UpdateNotificationPreferencesResponse: MessageFns<UpdateNotificationPreferencesResponse> = {
+  encode(message: UpdateNotificationPreferencesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.preferences !== undefined) {
+      NotificationPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number
-    ): UpdateNotificationPreferencesResponse {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseUpdateNotificationPreferencesResponse();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 10) {
-              break;
-            }
-
-            message.preferences = NotificationPreferences.decode(reader, reader.uint32());
-            continue;
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateNotificationPreferencesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateNotificationPreferencesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
           }
+
+          message.preferences = NotificationPreferences.decode(reader, reader.uint32());
+          continue;
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
       }
-      return message;
-    },
-
-    fromJSON(object: any): UpdateNotificationPreferencesResponse {
-      return {
-        preferences: isSet(object.preferences)
-          ? NotificationPreferences.fromJSON(object.preferences)
-          : undefined,
-      };
-    },
-
-    toJSON(message: UpdateNotificationPreferencesResponse): unknown {
-      const obj: any = {};
-      if (message.preferences !== undefined) {
-        obj.preferences = NotificationPreferences.toJSON(message.preferences);
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
       }
-      return obj;
-    },
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    create<I extends Exact<DeepPartial<UpdateNotificationPreferencesResponse>, I>>(
-      base?: I
-    ): UpdateNotificationPreferencesResponse {
-      return UpdateNotificationPreferencesResponse.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<UpdateNotificationPreferencesResponse>, I>>(
-      object: I
-    ): UpdateNotificationPreferencesResponse {
-      const message = createBaseUpdateNotificationPreferencesResponse();
-      message.preferences =
-        object.preferences !== undefined && object.preferences !== null
-          ? NotificationPreferences.fromPartial(object.preferences)
-          : undefined;
-      return message;
-    },
-  };
+  fromJSON(object: any): UpdateNotificationPreferencesResponse {
+    return {
+      preferences: isSet(object.preferences) ? NotificationPreferences.fromJSON(object.preferences) : undefined,
+    };
+  },
+
+  toJSON(message: UpdateNotificationPreferencesResponse): unknown {
+    const obj: any = {};
+    if (message.preferences !== undefined) {
+      obj.preferences = NotificationPreferences.toJSON(message.preferences);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateNotificationPreferencesResponse>, I>>(
+    base?: I,
+  ): UpdateNotificationPreferencesResponse {
+    return UpdateNotificationPreferencesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateNotificationPreferencesResponse>, I>>(
+    object: I,
+  ): UpdateNotificationPreferencesResponse {
+    const message = createBaseUpdateNotificationPreferencesResponse();
+    message.preferences = (object.preferences !== undefined && object.preferences !== null)
+      ? NotificationPreferences.fromPartial(object.preferences)
+      : undefined;
+    return message;
+  },
+};
 
 function createBaseResetNotificationPreferencesRequest(): ResetNotificationPreferencesRequest {
   return { userId: undefined };
 }
 
-export const ResetNotificationPreferencesRequest: MessageFns<ResetNotificationPreferencesRequest> =
-  {
-    encode(
-      message: ResetNotificationPreferencesRequest,
-      writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-      if (message.userId !== undefined) {
-        writer.uint32(10).string(message.userId);
-      }
-      return writer;
-    },
+export const ResetNotificationPreferencesRequest: MessageFns<ResetNotificationPreferencesRequest> = {
+  encode(message: ResetNotificationPreferencesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== undefined) {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): ResetNotificationPreferencesRequest {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseResetNotificationPreferencesRequest();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 10) {
-              break;
-            }
-
-            message.userId = reader.string();
-            continue;
+  decode(input: BinaryReader | Uint8Array, length?: number): ResetNotificationPreferencesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseResetNotificationPreferencesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
           }
+
+          message.userId = reader.string();
+          continue;
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
       }
-      return message;
-    },
-
-    fromJSON(object: any): ResetNotificationPreferencesRequest {
-      return {
-        userId: isSet(object.userId)
-          ? globalThis.String(object.userId)
-          : isSet(object.user_id)
-            ? globalThis.String(object.user_id)
-            : undefined,
-      };
-    },
-
-    toJSON(message: ResetNotificationPreferencesRequest): unknown {
-      const obj: any = {};
-      if (message.userId !== undefined) {
-        obj.userId = message.userId;
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
       }
-      return obj;
-    },
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    create<I extends Exact<DeepPartial<ResetNotificationPreferencesRequest>, I>>(
-      base?: I
-    ): ResetNotificationPreferencesRequest {
-      return ResetNotificationPreferencesRequest.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<ResetNotificationPreferencesRequest>, I>>(
-      object: I
-    ): ResetNotificationPreferencesRequest {
-      const message = createBaseResetNotificationPreferencesRequest();
-      message.userId = object.userId ?? undefined;
-      return message;
-    },
-  };
+  fromJSON(object: any): ResetNotificationPreferencesRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+        ? globalThis.String(object.user_id)
+        : undefined,
+    };
+  },
+
+  toJSON(message: ResetNotificationPreferencesRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== undefined) {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ResetNotificationPreferencesRequest>, I>>(
+    base?: I,
+  ): ResetNotificationPreferencesRequest {
+    return ResetNotificationPreferencesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ResetNotificationPreferencesRequest>, I>>(
+    object: I,
+  ): ResetNotificationPreferencesRequest {
+    const message = createBaseResetNotificationPreferencesRequest();
+    message.userId = object.userId ?? undefined;
+    return message;
+  },
+};
 
 function createBaseResetNotificationPreferencesResponse(): ResetNotificationPreferencesResponse {
   return { preferences: undefined };
 }
 
-export const ResetNotificationPreferencesResponse: MessageFns<ResetNotificationPreferencesResponse> =
-  {
-    encode(
-      message: ResetNotificationPreferencesResponse,
-      writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-      if (message.preferences !== undefined) {
-        NotificationPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
-      }
-      return writer;
-    },
+export const ResetNotificationPreferencesResponse: MessageFns<ResetNotificationPreferencesResponse> = {
+  encode(message: ResetNotificationPreferencesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.preferences !== undefined) {
+      NotificationPreferences.encode(message.preferences, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
 
-    decode(
-      input: BinaryReader | Uint8Array,
-      length?: number
-    ): ResetNotificationPreferencesResponse {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseResetNotificationPreferencesResponse();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 10) {
-              break;
-            }
-
-            message.preferences = NotificationPreferences.decode(reader, reader.uint32());
-            continue;
+  decode(input: BinaryReader | Uint8Array, length?: number): ResetNotificationPreferencesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseResetNotificationPreferencesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
           }
+
+          message.preferences = NotificationPreferences.decode(reader, reader.uint32());
+          continue;
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
       }
-      return message;
-    },
-
-    fromJSON(object: any): ResetNotificationPreferencesResponse {
-      return {
-        preferences: isSet(object.preferences)
-          ? NotificationPreferences.fromJSON(object.preferences)
-          : undefined,
-      };
-    },
-
-    toJSON(message: ResetNotificationPreferencesResponse): unknown {
-      const obj: any = {};
-      if (message.preferences !== undefined) {
-        obj.preferences = NotificationPreferences.toJSON(message.preferences);
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
       }
-      return obj;
-    },
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    create<I extends Exact<DeepPartial<ResetNotificationPreferencesResponse>, I>>(
-      base?: I
-    ): ResetNotificationPreferencesResponse {
-      return ResetNotificationPreferencesResponse.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<ResetNotificationPreferencesResponse>, I>>(
-      object: I
-    ): ResetNotificationPreferencesResponse {
-      const message = createBaseResetNotificationPreferencesResponse();
-      message.preferences =
-        object.preferences !== undefined && object.preferences !== null
-          ? NotificationPreferences.fromPartial(object.preferences)
-          : undefined;
-      return message;
-    },
-  };
+  fromJSON(object: any): ResetNotificationPreferencesResponse {
+    return {
+      preferences: isSet(object.preferences) ? NotificationPreferences.fromJSON(object.preferences) : undefined,
+    };
+  },
+
+  toJSON(message: ResetNotificationPreferencesResponse): unknown {
+    const obj: any = {};
+    if (message.preferences !== undefined) {
+      obj.preferences = NotificationPreferences.toJSON(message.preferences);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ResetNotificationPreferencesResponse>, I>>(
+    base?: I,
+  ): ResetNotificationPreferencesResponse {
+    return ResetNotificationPreferencesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ResetNotificationPreferencesResponse>, I>>(
+    object: I,
+  ): ResetNotificationPreferencesResponse {
+    const message = createBaseResetNotificationPreferencesResponse();
+    message.preferences = (object.preferences !== undefined && object.preferences !== null)
+      ? NotificationPreferences.fromPartial(object.preferences)
+      : undefined;
+    return message;
+  },
+};
 
 function createBaseCleanupExpiredNotificationsRequest(): CleanupExpiredNotificationsRequest {
   return { daysToKeep: 0 };
 }
 
 export const CleanupExpiredNotificationsRequest: MessageFns<CleanupExpiredNotificationsRequest> = {
-  encode(
-    message: CleanupExpiredNotificationsRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: CleanupExpiredNotificationsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.daysToKeep !== 0) {
       writer.uint32(8).uint32(message.daysToKeep);
     }
@@ -6661,8 +6467,8 @@ export const CleanupExpiredNotificationsRequest: MessageFns<CleanupExpiredNotifi
       daysToKeep: isSet(object.daysToKeep)
         ? globalThis.Number(object.daysToKeep)
         : isSet(object.days_to_keep)
-          ? globalThis.Number(object.days_to_keep)
-          : 0,
+        ? globalThis.Number(object.days_to_keep)
+        : 0,
     };
   },
 
@@ -6675,12 +6481,12 @@ export const CleanupExpiredNotificationsRequest: MessageFns<CleanupExpiredNotifi
   },
 
   create<I extends Exact<DeepPartial<CleanupExpiredNotificationsRequest>, I>>(
-    base?: I
+    base?: I,
   ): CleanupExpiredNotificationsRequest {
     return CleanupExpiredNotificationsRequest.fromPartial(base ?? ({} as any));
   },
   fromPartial<I extends Exact<DeepPartial<CleanupExpiredNotificationsRequest>, I>>(
-    object: I
+    object: I,
   ): CleanupExpiredNotificationsRequest {
     const message = createBaseCleanupExpiredNotificationsRequest();
     message.daysToKeep = object.daysToKeep ?? 0;
@@ -6692,100 +6498,96 @@ function createBaseCleanupExpiredNotificationsResponse(): CleanupExpiredNotifica
   return { deletedCount: 0 };
 }
 
-export const CleanupExpiredNotificationsResponse: MessageFns<CleanupExpiredNotificationsResponse> =
-  {
-    encode(
-      message: CleanupExpiredNotificationsResponse,
-      writer: BinaryWriter = new BinaryWriter()
-    ): BinaryWriter {
-      if (message.deletedCount !== 0) {
-        writer.uint32(8).uint32(message.deletedCount);
-      }
-      return writer;
-    },
+export const CleanupExpiredNotificationsResponse: MessageFns<CleanupExpiredNotificationsResponse> = {
+  encode(message: CleanupExpiredNotificationsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.deletedCount !== 0) {
+      writer.uint32(8).uint32(message.deletedCount);
+    }
+    return writer;
+  },
 
-    decode(input: BinaryReader | Uint8Array, length?: number): CleanupExpiredNotificationsResponse {
-      const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-      const end = length === undefined ? reader.len : reader.pos + length;
-      const message = createBaseCleanupExpiredNotificationsResponse();
-      while (reader.pos < end) {
-        const tag = reader.uint32();
-        switch (tag >>> 3) {
-          case 1: {
-            if (tag !== 8) {
-              break;
-            }
-
-            message.deletedCount = reader.uint32();
-            continue;
+  decode(input: BinaryReader | Uint8Array, length?: number): CleanupExpiredNotificationsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCleanupExpiredNotificationsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
           }
+
+          message.deletedCount = reader.uint32();
+          continue;
         }
-        if ((tag & 7) === 4 || tag === 0) {
-          break;
-        }
-        reader.skip(tag & 7);
       }
-      return message;
-    },
-
-    fromJSON(object: any): CleanupExpiredNotificationsResponse {
-      return {
-        deletedCount: isSet(object.deletedCount)
-          ? globalThis.Number(object.deletedCount)
-          : isSet(object.deleted_count)
-            ? globalThis.Number(object.deleted_count)
-            : 0,
-      };
-    },
-
-    toJSON(message: CleanupExpiredNotificationsResponse): unknown {
-      const obj: any = {};
-      if (message.deletedCount !== 0) {
-        obj.deletedCount = Math.round(message.deletedCount);
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
       }
-      return obj;
-    },
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
 
-    create<I extends Exact<DeepPartial<CleanupExpiredNotificationsResponse>, I>>(
-      base?: I
-    ): CleanupExpiredNotificationsResponse {
-      return CleanupExpiredNotificationsResponse.fromPartial(base ?? ({} as any));
-    },
-    fromPartial<I extends Exact<DeepPartial<CleanupExpiredNotificationsResponse>, I>>(
-      object: I
-    ): CleanupExpiredNotificationsResponse {
-      const message = createBaseCleanupExpiredNotificationsResponse();
-      message.deletedCount = object.deletedCount ?? 0;
-      return message;
-    },
-  };
+  fromJSON(object: any): CleanupExpiredNotificationsResponse {
+    return {
+      deletedCount: isSet(object.deletedCount)
+        ? globalThis.Number(object.deletedCount)
+        : isSet(object.deleted_count)
+        ? globalThis.Number(object.deleted_count)
+        : 0,
+    };
+  },
+
+  toJSON(message: CleanupExpiredNotificationsResponse): unknown {
+    const obj: any = {};
+    if (message.deletedCount !== 0) {
+      obj.deletedCount = Math.round(message.deletedCount);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CleanupExpiredNotificationsResponse>, I>>(
+    base?: I,
+  ): CleanupExpiredNotificationsResponse {
+    return CleanupExpiredNotificationsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CleanupExpiredNotificationsResponse>, I>>(
+    object: I,
+  ): CleanupExpiredNotificationsResponse {
+    const message = createBaseCleanupExpiredNotificationsResponse();
+    message.deletedCount = object.deletedCount ?? 0;
+    return message;
+  },
+};
 
 function createBaseEmailTemplate(): EmailTemplate {
   return {
-    templateId: '',
-    name: '',
+    templateId: "",
+    name: "",
     description: undefined,
     type: 0,
-    category: '',
+    category: "",
     status: 0,
-    subject: '',
-    htmlContent: '',
+    subject: "",
+    htmlContent: "",
     textContent: undefined,
-    variablesJson: '',
-    locale: '',
+    variablesJson: "",
+    locale: "",
     usageCount: 0,
     lastUsedAt: undefined,
-    createdAt: '',
-    updatedAt: '',
+    createdAt: "",
+    updatedAt: "",
   };
 }
 
 export const EmailTemplate: MessageFns<EmailTemplate> = {
   encode(message: EmailTemplate, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.templateId !== '') {
+    if (message.templateId !== "") {
       writer.uint32(10).string(message.templateId);
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       writer.uint32(18).string(message.name);
     }
     if (message.description !== undefined) {
@@ -6794,25 +6596,25 @@ export const EmailTemplate: MessageFns<EmailTemplate> = {
     if (message.type !== 0) {
       writer.uint32(32).int32(message.type);
     }
-    if (message.category !== '') {
+    if (message.category !== "") {
       writer.uint32(42).string(message.category);
     }
     if (message.status !== 0) {
       writer.uint32(48).int32(message.status);
     }
-    if (message.subject !== '') {
+    if (message.subject !== "") {
       writer.uint32(58).string(message.subject);
     }
-    if (message.htmlContent !== '') {
+    if (message.htmlContent !== "") {
       writer.uint32(66).string(message.htmlContent);
     }
     if (message.textContent !== undefined) {
       writer.uint32(74).string(message.textContent);
     }
-    if (message.variablesJson !== '') {
+    if (message.variablesJson !== "") {
       writer.uint32(82).string(message.variablesJson);
     }
-    if (message.locale !== '') {
+    if (message.locale !== "") {
       writer.uint32(90).string(message.locale);
     }
     if (message.usageCount !== 0) {
@@ -6821,10 +6623,10 @@ export const EmailTemplate: MessageFns<EmailTemplate> = {
     if (message.lastUsedAt !== undefined) {
       writer.uint32(106).string(message.lastUsedAt);
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       writer.uint32(114).string(message.createdAt);
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       writer.uint32(122).string(message.updatedAt);
     }
     return writer;
@@ -6971,59 +6773,59 @@ export const EmailTemplate: MessageFns<EmailTemplate> = {
       templateId: isSet(object.templateId)
         ? globalThis.String(object.templateId)
         : isSet(object.template_id)
-          ? globalThis.String(object.template_id)
-          : '',
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
+        ? globalThis.String(object.template_id)
+        : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
       type: isSet(object.type) ? emailTemplateTypeFromJSON(object.type) : 0,
-      category: isSet(object.category) ? globalThis.String(object.category) : '',
+      category: isSet(object.category) ? globalThis.String(object.category) : "",
       status: isSet(object.status) ? emailTemplateStatusFromJSON(object.status) : 0,
-      subject: isSet(object.subject) ? globalThis.String(object.subject) : '',
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : "",
       htmlContent: isSet(object.htmlContent)
         ? globalThis.String(object.htmlContent)
         : isSet(object.html_content)
-          ? globalThis.String(object.html_content)
-          : '',
+        ? globalThis.String(object.html_content)
+        : "",
       textContent: isSet(object.textContent)
         ? globalThis.String(object.textContent)
         : isSet(object.text_content)
-          ? globalThis.String(object.text_content)
-          : undefined,
+        ? globalThis.String(object.text_content)
+        : undefined,
       variablesJson: isSet(object.variablesJson)
         ? globalThis.String(object.variablesJson)
         : isSet(object.variables_json)
-          ? globalThis.String(object.variables_json)
-          : '',
-      locale: isSet(object.locale) ? globalThis.String(object.locale) : '',
+        ? globalThis.String(object.variables_json)
+        : "",
+      locale: isSet(object.locale) ? globalThis.String(object.locale) : "",
       usageCount: isSet(object.usageCount)
         ? globalThis.Number(object.usageCount)
         : isSet(object.usage_count)
-          ? globalThis.Number(object.usage_count)
-          : 0,
+        ? globalThis.Number(object.usage_count)
+        : 0,
       lastUsedAt: isSet(object.lastUsedAt)
         ? globalThis.String(object.lastUsedAt)
         : isSet(object.last_used_at)
-          ? globalThis.String(object.last_used_at)
-          : undefined,
+        ? globalThis.String(object.last_used_at)
+        : undefined,
       createdAt: isSet(object.createdAt)
         ? globalThis.String(object.createdAt)
         : isSet(object.created_at)
-          ? globalThis.String(object.created_at)
-          : '',
+        ? globalThis.String(object.created_at)
+        : "",
       updatedAt: isSet(object.updatedAt)
         ? globalThis.String(object.updatedAt)
         : isSet(object.updated_at)
-          ? globalThis.String(object.updated_at)
-          : '',
+        ? globalThis.String(object.updated_at)
+        : "",
     };
   },
 
   toJSON(message: EmailTemplate): unknown {
     const obj: any = {};
-    if (message.templateId !== '') {
+    if (message.templateId !== "") {
       obj.templateId = message.templateId;
     }
-    if (message.name !== '') {
+    if (message.name !== "") {
       obj.name = message.name;
     }
     if (message.description !== undefined) {
@@ -7032,25 +6834,25 @@ export const EmailTemplate: MessageFns<EmailTemplate> = {
     if (message.type !== 0) {
       obj.type = emailTemplateTypeToJSON(message.type);
     }
-    if (message.category !== '') {
+    if (message.category !== "") {
       obj.category = message.category;
     }
     if (message.status !== 0) {
       obj.status = emailTemplateStatusToJSON(message.status);
     }
-    if (message.subject !== '') {
+    if (message.subject !== "") {
       obj.subject = message.subject;
     }
-    if (message.htmlContent !== '') {
+    if (message.htmlContent !== "") {
       obj.htmlContent = message.htmlContent;
     }
     if (message.textContent !== undefined) {
       obj.textContent = message.textContent;
     }
-    if (message.variablesJson !== '') {
+    if (message.variablesJson !== "") {
       obj.variablesJson = message.variablesJson;
     }
-    if (message.locale !== '') {
+    if (message.locale !== "") {
       obj.locale = message.locale;
     }
     if (message.usageCount !== 0) {
@@ -7059,10 +6861,10 @@ export const EmailTemplate: MessageFns<EmailTemplate> = {
     if (message.lastUsedAt !== undefined) {
       obj.lastUsedAt = message.lastUsedAt;
     }
-    if (message.createdAt !== '') {
+    if (message.createdAt !== "") {
       obj.createdAt = message.createdAt;
     }
-    if (message.updatedAt !== '') {
+    if (message.updatedAt !== "") {
       obj.updatedAt = message.updatedAt;
     }
     return obj;
@@ -7073,41 +6875,31 @@ export const EmailTemplate: MessageFns<EmailTemplate> = {
   },
   fromPartial<I extends Exact<DeepPartial<EmailTemplate>, I>>(object: I): EmailTemplate {
     const message = createBaseEmailTemplate();
-    message.templateId = object.templateId ?? '';
-    message.name = object.name ?? '';
+    message.templateId = object.templateId ?? "";
+    message.name = object.name ?? "";
     message.description = object.description ?? undefined;
     message.type = object.type ?? 0;
-    message.category = object.category ?? '';
+    message.category = object.category ?? "";
     message.status = object.status ?? 0;
-    message.subject = object.subject ?? '';
-    message.htmlContent = object.htmlContent ?? '';
+    message.subject = object.subject ?? "";
+    message.htmlContent = object.htmlContent ?? "";
     message.textContent = object.textContent ?? undefined;
-    message.variablesJson = object.variablesJson ?? '';
-    message.locale = object.locale ?? '';
+    message.variablesJson = object.variablesJson ?? "";
+    message.locale = object.locale ?? "";
     message.usageCount = object.usageCount ?? 0;
     message.lastUsedAt = object.lastUsedAt ?? undefined;
-    message.createdAt = object.createdAt ?? '';
-    message.updatedAt = object.updatedAt ?? '';
+    message.createdAt = object.createdAt ?? "";
+    message.updatedAt = object.updatedAt ?? "";
     return message;
   },
 };
 
 function createBaseListEmailTemplatesRequest(): ListEmailTemplatesRequest {
-  return {
-    typeFilter: 0,
-    statusFilter: 0,
-    categoryFilter: undefined,
-    search: undefined,
-    page: 0,
-    limit: 0,
-  };
+  return { typeFilter: 0, statusFilter: 0, categoryFilter: undefined, search: undefined, page: 0, limit: 0 };
 }
 
 export const ListEmailTemplatesRequest: MessageFns<ListEmailTemplatesRequest> = {
-  encode(
-    message: ListEmailTemplatesRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListEmailTemplatesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.typeFilter !== 0) {
       writer.uint32(8).int32(message.typeFilter);
     }
@@ -7198,18 +6990,18 @@ export const ListEmailTemplatesRequest: MessageFns<ListEmailTemplatesRequest> = 
       typeFilter: isSet(object.typeFilter)
         ? emailTemplateTypeFromJSON(object.typeFilter)
         : isSet(object.type_filter)
-          ? emailTemplateTypeFromJSON(object.type_filter)
-          : 0,
+        ? emailTemplateTypeFromJSON(object.type_filter)
+        : 0,
       statusFilter: isSet(object.statusFilter)
         ? emailTemplateStatusFromJSON(object.statusFilter)
         : isSet(object.status_filter)
-          ? emailTemplateStatusFromJSON(object.status_filter)
-          : 0,
+        ? emailTemplateStatusFromJSON(object.status_filter)
+        : 0,
       categoryFilter: isSet(object.categoryFilter)
         ? globalThis.String(object.categoryFilter)
         : isSet(object.category_filter)
-          ? globalThis.String(object.category_filter)
-          : undefined,
+        ? globalThis.String(object.category_filter)
+        : undefined,
       search: isSet(object.search) ? globalThis.String(object.search) : undefined,
       page: isSet(object.page) ? globalThis.Number(object.page) : 0,
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
@@ -7239,14 +7031,10 @@ export const ListEmailTemplatesRequest: MessageFns<ListEmailTemplatesRequest> = 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListEmailTemplatesRequest>, I>>(
-    base?: I
-  ): ListEmailTemplatesRequest {
+  create<I extends Exact<DeepPartial<ListEmailTemplatesRequest>, I>>(base?: I): ListEmailTemplatesRequest {
     return ListEmailTemplatesRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListEmailTemplatesRequest>, I>>(
-    object: I
-  ): ListEmailTemplatesRequest {
+  fromPartial<I extends Exact<DeepPartial<ListEmailTemplatesRequest>, I>>(object: I): ListEmailTemplatesRequest {
     const message = createBaseListEmailTemplatesRequest();
     message.typeFilter = object.typeFilter ?? 0;
     message.statusFilter = object.statusFilter ?? 0;
@@ -7263,10 +7051,7 @@ function createBaseListEmailTemplatesResponse(): ListEmailTemplatesResponse {
 }
 
 export const ListEmailTemplatesResponse: MessageFns<ListEmailTemplatesResponse> = {
-  encode(
-    message: ListEmailTemplatesResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: ListEmailTemplatesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.templates) {
       EmailTemplate.encode(v!, writer.uint32(10).fork()).join();
     }
@@ -7340,15 +7125,15 @@ export const ListEmailTemplatesResponse: MessageFns<ListEmailTemplatesResponse> 
       totalPages: isSet(object.totalPages)
         ? globalThis.Number(object.totalPages)
         : isSet(object.total_pages)
-          ? globalThis.Number(object.total_pages)
-          : 0,
+        ? globalThis.Number(object.total_pages)
+        : 0,
     };
   },
 
   toJSON(message: ListEmailTemplatesResponse): unknown {
     const obj: any = {};
     if (message.templates?.length) {
-      obj.templates = message.templates.map(e => EmailTemplate.toJSON(e));
+      obj.templates = message.templates.map((e) => EmailTemplate.toJSON(e));
     }
     if (message.total !== 0) {
       obj.total = Math.round(message.total);
@@ -7362,16 +7147,12 @@ export const ListEmailTemplatesResponse: MessageFns<ListEmailTemplatesResponse> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<ListEmailTemplatesResponse>, I>>(
-    base?: I
-  ): ListEmailTemplatesResponse {
+  create<I extends Exact<DeepPartial<ListEmailTemplatesResponse>, I>>(base?: I): ListEmailTemplatesResponse {
     return ListEmailTemplatesResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<ListEmailTemplatesResponse>, I>>(
-    object: I
-  ): ListEmailTemplatesResponse {
+  fromPartial<I extends Exact<DeepPartial<ListEmailTemplatesResponse>, I>>(object: I): ListEmailTemplatesResponse {
     const message = createBaseListEmailTemplatesResponse();
-    message.templates = object.templates?.map(e => EmailTemplate.fromPartial(e)) || [];
+    message.templates = object.templates?.map((e) => EmailTemplate.fromPartial(e)) || [];
     message.total = object.total ?? 0;
     message.page = object.page ?? 0;
     message.totalPages = object.totalPages ?? 0;
@@ -7380,15 +7161,12 @@ export const ListEmailTemplatesResponse: MessageFns<ListEmailTemplatesResponse> 
 };
 
 function createBaseGetEmailTemplateRequest(): GetEmailTemplateRequest {
-  return { templateId: '' };
+  return { templateId: "" };
 }
 
 export const GetEmailTemplateRequest: MessageFns<GetEmailTemplateRequest> = {
-  encode(
-    message: GetEmailTemplateRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.templateId !== '') {
+  encode(message: GetEmailTemplateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.templateId !== "") {
       writer.uint32(10).string(message.templateId);
     }
     return writer;
@@ -7423,29 +7201,25 @@ export const GetEmailTemplateRequest: MessageFns<GetEmailTemplateRequest> = {
       templateId: isSet(object.templateId)
         ? globalThis.String(object.templateId)
         : isSet(object.template_id)
-          ? globalThis.String(object.template_id)
-          : '',
+        ? globalThis.String(object.template_id)
+        : "",
     };
   },
 
   toJSON(message: GetEmailTemplateRequest): unknown {
     const obj: any = {};
-    if (message.templateId !== '') {
+    if (message.templateId !== "") {
       obj.templateId = message.templateId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetEmailTemplateRequest>, I>>(
-    base?: I
-  ): GetEmailTemplateRequest {
+  create<I extends Exact<DeepPartial<GetEmailTemplateRequest>, I>>(base?: I): GetEmailTemplateRequest {
     return GetEmailTemplateRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetEmailTemplateRequest>, I>>(
-    object: I
-  ): GetEmailTemplateRequest {
+  fromPartial<I extends Exact<DeepPartial<GetEmailTemplateRequest>, I>>(object: I): GetEmailTemplateRequest {
     const message = createBaseGetEmailTemplateRequest();
-    message.templateId = object.templateId ?? '';
+    message.templateId = object.templateId ?? "";
     return message;
   },
 };
@@ -7455,10 +7229,7 @@ function createBaseGetEmailTemplateResponse(): GetEmailTemplateResponse {
 }
 
 export const GetEmailTemplateResponse: MessageFns<GetEmailTemplateResponse> = {
-  encode(
-    message: GetEmailTemplateResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: GetEmailTemplateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.template !== undefined) {
       EmailTemplate.encode(message.template, writer.uint32(10).fork()).join();
     }
@@ -7490,9 +7261,7 @@ export const GetEmailTemplateResponse: MessageFns<GetEmailTemplateResponse> = {
   },
 
   fromJSON(object: any): GetEmailTemplateResponse {
-    return {
-      template: isSet(object.template) ? EmailTemplate.fromJSON(object.template) : undefined,
-    };
+    return { template: isSet(object.template) ? EmailTemplate.fromJSON(object.template) : undefined };
   },
 
   toJSON(message: GetEmailTemplateResponse): unknown {
@@ -7503,44 +7272,36 @@ export const GetEmailTemplateResponse: MessageFns<GetEmailTemplateResponse> = {
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<GetEmailTemplateResponse>, I>>(
-    base?: I
-  ): GetEmailTemplateResponse {
+  create<I extends Exact<DeepPartial<GetEmailTemplateResponse>, I>>(base?: I): GetEmailTemplateResponse {
     return GetEmailTemplateResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<GetEmailTemplateResponse>, I>>(
-    object: I
-  ): GetEmailTemplateResponse {
+  fromPartial<I extends Exact<DeepPartial<GetEmailTemplateResponse>, I>>(object: I): GetEmailTemplateResponse {
     const message = createBaseGetEmailTemplateResponse();
-    message.template =
-      object.template !== undefined && object.template !== null
-        ? EmailTemplate.fromPartial(object.template)
-        : undefined;
+    message.template = (object.template !== undefined && object.template !== null)
+      ? EmailTemplate.fromPartial(object.template)
+      : undefined;
     return message;
   },
 };
 
 function createBaseCreateEmailTemplateRequest(): CreateEmailTemplateRequest {
   return {
-    name: '',
+    name: "",
     description: undefined,
     type: 0,
-    category: '',
+    category: "",
     status: 0,
-    subject: '',
-    htmlContent: '',
+    subject: "",
+    htmlContent: "",
     textContent: undefined,
-    variablesJson: '',
+    variablesJson: "",
     locale: undefined,
   };
 }
 
 export const CreateEmailTemplateRequest: MessageFns<CreateEmailTemplateRequest> = {
-  encode(
-    message: CreateEmailTemplateRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.name !== '') {
+  encode(message: CreateEmailTemplateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.name !== "") {
       writer.uint32(10).string(message.name);
     }
     if (message.description !== undefined) {
@@ -7549,22 +7310,22 @@ export const CreateEmailTemplateRequest: MessageFns<CreateEmailTemplateRequest> 
     if (message.type !== 0) {
       writer.uint32(24).int32(message.type);
     }
-    if (message.category !== '') {
+    if (message.category !== "") {
       writer.uint32(34).string(message.category);
     }
     if (message.status !== 0) {
       writer.uint32(40).int32(message.status);
     }
-    if (message.subject !== '') {
+    if (message.subject !== "") {
       writer.uint32(50).string(message.subject);
     }
-    if (message.htmlContent !== '') {
+    if (message.htmlContent !== "") {
       writer.uint32(58).string(message.htmlContent);
     }
     if (message.textContent !== undefined) {
       writer.uint32(66).string(message.textContent);
     }
-    if (message.variablesJson !== '') {
+    if (message.variablesJson !== "") {
       writer.uint32(74).string(message.variablesJson);
     }
     if (message.locale !== undefined) {
@@ -7671,34 +7432,34 @@ export const CreateEmailTemplateRequest: MessageFns<CreateEmailTemplateRequest> 
 
   fromJSON(object: any): CreateEmailTemplateRequest {
     return {
-      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
       type: isSet(object.type) ? emailTemplateTypeFromJSON(object.type) : 0,
-      category: isSet(object.category) ? globalThis.String(object.category) : '',
+      category: isSet(object.category) ? globalThis.String(object.category) : "",
       status: isSet(object.status) ? emailTemplateStatusFromJSON(object.status) : 0,
-      subject: isSet(object.subject) ? globalThis.String(object.subject) : '',
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : "",
       htmlContent: isSet(object.htmlContent)
         ? globalThis.String(object.htmlContent)
         : isSet(object.html_content)
-          ? globalThis.String(object.html_content)
-          : '',
+        ? globalThis.String(object.html_content)
+        : "",
       textContent: isSet(object.textContent)
         ? globalThis.String(object.textContent)
         : isSet(object.text_content)
-          ? globalThis.String(object.text_content)
-          : undefined,
+        ? globalThis.String(object.text_content)
+        : undefined,
       variablesJson: isSet(object.variablesJson)
         ? globalThis.String(object.variablesJson)
         : isSet(object.variables_json)
-          ? globalThis.String(object.variables_json)
-          : '',
+        ? globalThis.String(object.variables_json)
+        : "",
       locale: isSet(object.locale) ? globalThis.String(object.locale) : undefined,
     };
   },
 
   toJSON(message: CreateEmailTemplateRequest): unknown {
     const obj: any = {};
-    if (message.name !== '') {
+    if (message.name !== "") {
       obj.name = message.name;
     }
     if (message.description !== undefined) {
@@ -7707,22 +7468,22 @@ export const CreateEmailTemplateRequest: MessageFns<CreateEmailTemplateRequest> 
     if (message.type !== 0) {
       obj.type = emailTemplateTypeToJSON(message.type);
     }
-    if (message.category !== '') {
+    if (message.category !== "") {
       obj.category = message.category;
     }
     if (message.status !== 0) {
       obj.status = emailTemplateStatusToJSON(message.status);
     }
-    if (message.subject !== '') {
+    if (message.subject !== "") {
       obj.subject = message.subject;
     }
-    if (message.htmlContent !== '') {
+    if (message.htmlContent !== "") {
       obj.htmlContent = message.htmlContent;
     }
     if (message.textContent !== undefined) {
       obj.textContent = message.textContent;
     }
-    if (message.variablesJson !== '') {
+    if (message.variablesJson !== "") {
       obj.variablesJson = message.variablesJson;
     }
     if (message.locale !== undefined) {
@@ -7731,24 +7492,20 @@ export const CreateEmailTemplateRequest: MessageFns<CreateEmailTemplateRequest> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateEmailTemplateRequest>, I>>(
-    base?: I
-  ): CreateEmailTemplateRequest {
+  create<I extends Exact<DeepPartial<CreateEmailTemplateRequest>, I>>(base?: I): CreateEmailTemplateRequest {
     return CreateEmailTemplateRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateEmailTemplateRequest>, I>>(
-    object: I
-  ): CreateEmailTemplateRequest {
+  fromPartial<I extends Exact<DeepPartial<CreateEmailTemplateRequest>, I>>(object: I): CreateEmailTemplateRequest {
     const message = createBaseCreateEmailTemplateRequest();
-    message.name = object.name ?? '';
+    message.name = object.name ?? "";
     message.description = object.description ?? undefined;
     message.type = object.type ?? 0;
-    message.category = object.category ?? '';
+    message.category = object.category ?? "";
     message.status = object.status ?? 0;
-    message.subject = object.subject ?? '';
-    message.htmlContent = object.htmlContent ?? '';
+    message.subject = object.subject ?? "";
+    message.htmlContent = object.htmlContent ?? "";
     message.textContent = object.textContent ?? undefined;
-    message.variablesJson = object.variablesJson ?? '';
+    message.variablesJson = object.variablesJson ?? "";
     message.locale = object.locale ?? undefined;
     return message;
   },
@@ -7759,10 +7516,7 @@ function createBaseCreateEmailTemplateResponse(): CreateEmailTemplateResponse {
 }
 
 export const CreateEmailTemplateResponse: MessageFns<CreateEmailTemplateResponse> = {
-  encode(
-    message: CreateEmailTemplateResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: CreateEmailTemplateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.template !== undefined) {
       EmailTemplate.encode(message.template, writer.uint32(10).fork()).join();
     }
@@ -7794,9 +7548,7 @@ export const CreateEmailTemplateResponse: MessageFns<CreateEmailTemplateResponse
   },
 
   fromJSON(object: any): CreateEmailTemplateResponse {
-    return {
-      template: isSet(object.template) ? EmailTemplate.fromJSON(object.template) : undefined,
-    };
+    return { template: isSet(object.template) ? EmailTemplate.fromJSON(object.template) : undefined };
   },
 
   toJSON(message: CreateEmailTemplateResponse): unknown {
@@ -7807,26 +7559,21 @@ export const CreateEmailTemplateResponse: MessageFns<CreateEmailTemplateResponse
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<CreateEmailTemplateResponse>, I>>(
-    base?: I
-  ): CreateEmailTemplateResponse {
+  create<I extends Exact<DeepPartial<CreateEmailTemplateResponse>, I>>(base?: I): CreateEmailTemplateResponse {
     return CreateEmailTemplateResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<CreateEmailTemplateResponse>, I>>(
-    object: I
-  ): CreateEmailTemplateResponse {
+  fromPartial<I extends Exact<DeepPartial<CreateEmailTemplateResponse>, I>>(object: I): CreateEmailTemplateResponse {
     const message = createBaseCreateEmailTemplateResponse();
-    message.template =
-      object.template !== undefined && object.template !== null
-        ? EmailTemplate.fromPartial(object.template)
-        : undefined;
+    message.template = (object.template !== undefined && object.template !== null)
+      ? EmailTemplate.fromPartial(object.template)
+      : undefined;
     return message;
   },
 };
 
 function createBaseUpdateEmailTemplateRequest(): UpdateEmailTemplateRequest {
   return {
-    templateId: '',
+    templateId: "",
     name: undefined,
     description: undefined,
     type: 0,
@@ -7840,11 +7587,8 @@ function createBaseUpdateEmailTemplateRequest(): UpdateEmailTemplateRequest {
 }
 
 export const UpdateEmailTemplateRequest: MessageFns<UpdateEmailTemplateRequest> = {
-  encode(
-    message: UpdateEmailTemplateRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.templateId !== '') {
+  encode(message: UpdateEmailTemplateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.templateId !== "") {
       writer.uint32(10).string(message.templateId);
     }
     if (message.name !== undefined) {
@@ -7978,8 +7722,8 @@ export const UpdateEmailTemplateRequest: MessageFns<UpdateEmailTemplateRequest> 
       templateId: isSet(object.templateId)
         ? globalThis.String(object.templateId)
         : isSet(object.template_id)
-          ? globalThis.String(object.template_id)
-          : '',
+        ? globalThis.String(object.template_id)
+        : "",
       name: isSet(object.name) ? globalThis.String(object.name) : undefined,
       description: isSet(object.description) ? globalThis.String(object.description) : undefined,
       type: isSet(object.type) ? emailTemplateTypeFromJSON(object.type) : 0,
@@ -7989,24 +7733,24 @@ export const UpdateEmailTemplateRequest: MessageFns<UpdateEmailTemplateRequest> 
       htmlContent: isSet(object.htmlContent)
         ? globalThis.String(object.htmlContent)
         : isSet(object.html_content)
-          ? globalThis.String(object.html_content)
-          : undefined,
+        ? globalThis.String(object.html_content)
+        : undefined,
       textContent: isSet(object.textContent)
         ? globalThis.String(object.textContent)
         : isSet(object.text_content)
-          ? globalThis.String(object.text_content)
-          : undefined,
+        ? globalThis.String(object.text_content)
+        : undefined,
       variablesJson: isSet(object.variablesJson)
         ? globalThis.String(object.variablesJson)
         : isSet(object.variables_json)
-          ? globalThis.String(object.variables_json)
-          : undefined,
+        ? globalThis.String(object.variables_json)
+        : undefined,
     };
   },
 
   toJSON(message: UpdateEmailTemplateRequest): unknown {
     const obj: any = {};
-    if (message.templateId !== '') {
+    if (message.templateId !== "") {
       obj.templateId = message.templateId;
     }
     if (message.name !== undefined) {
@@ -8039,16 +7783,12 @@ export const UpdateEmailTemplateRequest: MessageFns<UpdateEmailTemplateRequest> 
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpdateEmailTemplateRequest>, I>>(
-    base?: I
-  ): UpdateEmailTemplateRequest {
+  create<I extends Exact<DeepPartial<UpdateEmailTemplateRequest>, I>>(base?: I): UpdateEmailTemplateRequest {
     return UpdateEmailTemplateRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdateEmailTemplateRequest>, I>>(
-    object: I
-  ): UpdateEmailTemplateRequest {
+  fromPartial<I extends Exact<DeepPartial<UpdateEmailTemplateRequest>, I>>(object: I): UpdateEmailTemplateRequest {
     const message = createBaseUpdateEmailTemplateRequest();
-    message.templateId = object.templateId ?? '';
+    message.templateId = object.templateId ?? "";
     message.name = object.name ?? undefined;
     message.description = object.description ?? undefined;
     message.type = object.type ?? 0;
@@ -8067,10 +7807,7 @@ function createBaseUpdateEmailTemplateResponse(): UpdateEmailTemplateResponse {
 }
 
 export const UpdateEmailTemplateResponse: MessageFns<UpdateEmailTemplateResponse> = {
-  encode(
-    message: UpdateEmailTemplateResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: UpdateEmailTemplateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.template !== undefined) {
       EmailTemplate.encode(message.template, writer.uint32(10).fork()).join();
     }
@@ -8102,9 +7839,7 @@ export const UpdateEmailTemplateResponse: MessageFns<UpdateEmailTemplateResponse
   },
 
   fromJSON(object: any): UpdateEmailTemplateResponse {
-    return {
-      template: isSet(object.template) ? EmailTemplate.fromJSON(object.template) : undefined,
-    };
+    return { template: isSet(object.template) ? EmailTemplate.fromJSON(object.template) : undefined };
   },
 
   toJSON(message: UpdateEmailTemplateResponse): unknown {
@@ -8115,33 +7850,25 @@ export const UpdateEmailTemplateResponse: MessageFns<UpdateEmailTemplateResponse
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<UpdateEmailTemplateResponse>, I>>(
-    base?: I
-  ): UpdateEmailTemplateResponse {
+  create<I extends Exact<DeepPartial<UpdateEmailTemplateResponse>, I>>(base?: I): UpdateEmailTemplateResponse {
     return UpdateEmailTemplateResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<UpdateEmailTemplateResponse>, I>>(
-    object: I
-  ): UpdateEmailTemplateResponse {
+  fromPartial<I extends Exact<DeepPartial<UpdateEmailTemplateResponse>, I>>(object: I): UpdateEmailTemplateResponse {
     const message = createBaseUpdateEmailTemplateResponse();
-    message.template =
-      object.template !== undefined && object.template !== null
-        ? EmailTemplate.fromPartial(object.template)
-        : undefined;
+    message.template = (object.template !== undefined && object.template !== null)
+      ? EmailTemplate.fromPartial(object.template)
+      : undefined;
     return message;
   },
 };
 
 function createBaseDeleteEmailTemplateRequest(): DeleteEmailTemplateRequest {
-  return { templateId: '' };
+  return { templateId: "" };
 }
 
 export const DeleteEmailTemplateRequest: MessageFns<DeleteEmailTemplateRequest> = {
-  encode(
-    message: DeleteEmailTemplateRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.templateId !== '') {
+  encode(message: DeleteEmailTemplateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.templateId !== "") {
       writer.uint32(10).string(message.templateId);
     }
     return writer;
@@ -8176,29 +7903,25 @@ export const DeleteEmailTemplateRequest: MessageFns<DeleteEmailTemplateRequest> 
       templateId: isSet(object.templateId)
         ? globalThis.String(object.templateId)
         : isSet(object.template_id)
-          ? globalThis.String(object.template_id)
-          : '',
+        ? globalThis.String(object.template_id)
+        : "",
     };
   },
 
   toJSON(message: DeleteEmailTemplateRequest): unknown {
     const obj: any = {};
-    if (message.templateId !== '') {
+    if (message.templateId !== "") {
       obj.templateId = message.templateId;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DeleteEmailTemplateRequest>, I>>(
-    base?: I
-  ): DeleteEmailTemplateRequest {
+  create<I extends Exact<DeepPartial<DeleteEmailTemplateRequest>, I>>(base?: I): DeleteEmailTemplateRequest {
     return DeleteEmailTemplateRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteEmailTemplateRequest>, I>>(
-    object: I
-  ): DeleteEmailTemplateRequest {
+  fromPartial<I extends Exact<DeepPartial<DeleteEmailTemplateRequest>, I>>(object: I): DeleteEmailTemplateRequest {
     const message = createBaseDeleteEmailTemplateRequest();
-    message.templateId = object.templateId ?? '';
+    message.templateId = object.templateId ?? "";
     return message;
   },
 };
@@ -8208,10 +7931,7 @@ function createBaseDeleteEmailTemplateResponse(): DeleteEmailTemplateResponse {
 }
 
 export const DeleteEmailTemplateResponse: MessageFns<DeleteEmailTemplateResponse> = {
-  encode(
-    message: DeleteEmailTemplateResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
+  encode(message: DeleteEmailTemplateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     if (message.deleted !== false) {
       writer.uint32(8).bool(message.deleted);
     }
@@ -8254,14 +7974,10 @@ export const DeleteEmailTemplateResponse: MessageFns<DeleteEmailTemplateResponse
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<DeleteEmailTemplateResponse>, I>>(
-    base?: I
-  ): DeleteEmailTemplateResponse {
+  create<I extends Exact<DeepPartial<DeleteEmailTemplateResponse>, I>>(base?: I): DeleteEmailTemplateResponse {
     return DeleteEmailTemplateResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<DeleteEmailTemplateResponse>, I>>(
-    object: I
-  ): DeleteEmailTemplateResponse {
+  fromPartial<I extends Exact<DeepPartial<DeleteEmailTemplateResponse>, I>>(object: I): DeleteEmailTemplateResponse {
     const message = createBaseDeleteEmailTemplateResponse();
     message.deleted = object.deleted ?? false;
     return message;
@@ -8269,18 +7985,15 @@ export const DeleteEmailTemplateResponse: MessageFns<DeleteEmailTemplateResponse
 };
 
 function createBasePreviewEmailTemplateRequest(): PreviewEmailTemplateRequest {
-  return { templateId: '', variablesJson: '' };
+  return { templateId: "", variablesJson: "" };
 }
 
 export const PreviewEmailTemplateRequest: MessageFns<PreviewEmailTemplateRequest> = {
-  encode(
-    message: PreviewEmailTemplateRequest,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.templateId !== '') {
+  encode(message: PreviewEmailTemplateRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.templateId !== "") {
       writer.uint32(10).string(message.templateId);
     }
-    if (message.variablesJson !== '') {
+    if (message.variablesJson !== "") {
       writer.uint32(18).string(message.variablesJson);
     }
     return writer;
@@ -8323,55 +8036,48 @@ export const PreviewEmailTemplateRequest: MessageFns<PreviewEmailTemplateRequest
       templateId: isSet(object.templateId)
         ? globalThis.String(object.templateId)
         : isSet(object.template_id)
-          ? globalThis.String(object.template_id)
-          : '',
+        ? globalThis.String(object.template_id)
+        : "",
       variablesJson: isSet(object.variablesJson)
         ? globalThis.String(object.variablesJson)
         : isSet(object.variables_json)
-          ? globalThis.String(object.variables_json)
-          : '',
+        ? globalThis.String(object.variables_json)
+        : "",
     };
   },
 
   toJSON(message: PreviewEmailTemplateRequest): unknown {
     const obj: any = {};
-    if (message.templateId !== '') {
+    if (message.templateId !== "") {
       obj.templateId = message.templateId;
     }
-    if (message.variablesJson !== '') {
+    if (message.variablesJson !== "") {
       obj.variablesJson = message.variablesJson;
     }
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PreviewEmailTemplateRequest>, I>>(
-    base?: I
-  ): PreviewEmailTemplateRequest {
+  create<I extends Exact<DeepPartial<PreviewEmailTemplateRequest>, I>>(base?: I): PreviewEmailTemplateRequest {
     return PreviewEmailTemplateRequest.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PreviewEmailTemplateRequest>, I>>(
-    object: I
-  ): PreviewEmailTemplateRequest {
+  fromPartial<I extends Exact<DeepPartial<PreviewEmailTemplateRequest>, I>>(object: I): PreviewEmailTemplateRequest {
     const message = createBasePreviewEmailTemplateRequest();
-    message.templateId = object.templateId ?? '';
-    message.variablesJson = object.variablesJson ?? '';
+    message.templateId = object.templateId ?? "";
+    message.variablesJson = object.variablesJson ?? "";
     return message;
   },
 };
 
 function createBasePreviewEmailTemplateResponse(): PreviewEmailTemplateResponse {
-  return { subject: '', htmlContent: '', textContent: undefined };
+  return { subject: "", htmlContent: "", textContent: undefined };
 }
 
 export const PreviewEmailTemplateResponse: MessageFns<PreviewEmailTemplateResponse> = {
-  encode(
-    message: PreviewEmailTemplateResponse,
-    writer: BinaryWriter = new BinaryWriter()
-  ): BinaryWriter {
-    if (message.subject !== '') {
+  encode(message: PreviewEmailTemplateResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.subject !== "") {
       writer.uint32(10).string(message.subject);
     }
-    if (message.htmlContent !== '') {
+    if (message.htmlContent !== "") {
       writer.uint32(18).string(message.htmlContent);
     }
     if (message.textContent !== undefined) {
@@ -8422,26 +8128,26 @@ export const PreviewEmailTemplateResponse: MessageFns<PreviewEmailTemplateRespon
 
   fromJSON(object: any): PreviewEmailTemplateResponse {
     return {
-      subject: isSet(object.subject) ? globalThis.String(object.subject) : '',
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : "",
       htmlContent: isSet(object.htmlContent)
         ? globalThis.String(object.htmlContent)
         : isSet(object.html_content)
-          ? globalThis.String(object.html_content)
-          : '',
+        ? globalThis.String(object.html_content)
+        : "",
       textContent: isSet(object.textContent)
         ? globalThis.String(object.textContent)
         : isSet(object.text_content)
-          ? globalThis.String(object.text_content)
-          : undefined,
+        ? globalThis.String(object.text_content)
+        : undefined,
     };
   },
 
   toJSON(message: PreviewEmailTemplateResponse): unknown {
     const obj: any = {};
-    if (message.subject !== '') {
+    if (message.subject !== "") {
       obj.subject = message.subject;
     }
-    if (message.htmlContent !== '') {
+    if (message.htmlContent !== "") {
       obj.htmlContent = message.htmlContent;
     }
     if (message.textContent !== undefined) {
@@ -8450,17 +8156,13 @@ export const PreviewEmailTemplateResponse: MessageFns<PreviewEmailTemplateRespon
     return obj;
   },
 
-  create<I extends Exact<DeepPartial<PreviewEmailTemplateResponse>, I>>(
-    base?: I
-  ): PreviewEmailTemplateResponse {
+  create<I extends Exact<DeepPartial<PreviewEmailTemplateResponse>, I>>(base?: I): PreviewEmailTemplateResponse {
     return PreviewEmailTemplateResponse.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<PreviewEmailTemplateResponse>, I>>(
-    object: I
-  ): PreviewEmailTemplateResponse {
+  fromPartial<I extends Exact<DeepPartial<PreviewEmailTemplateResponse>, I>>(object: I): PreviewEmailTemplateResponse {
     const message = createBasePreviewEmailTemplateResponse();
-    message.subject = object.subject ?? '';
-    message.htmlContent = object.htmlContent ?? '';
+    message.subject = object.subject ?? "";
+    message.htmlContent = object.htmlContent ?? "";
     message.textContent = object.textContent ?? undefined;
     return message;
   },
@@ -8529,16 +8231,14 @@ export const BroadcastCohort: MessageFns<BroadcastCohort> = {
       userTypes: globalThis.Array.isArray(object?.userTypes)
         ? object.userTypes.map((e: any) => globalThis.String(e))
         : globalThis.Array.isArray(object?.user_types)
-          ? object.user_types.map((e: any) => globalThis.String(e))
-          : [],
-      statuses: globalThis.Array.isArray(object?.statuses)
-        ? object.statuses.map((e: any) => globalThis.String(e))
+        ? object.user_types.map((e: any) => globalThis.String(e))
         : [],
+      statuses: globalThis.Array.isArray(object?.statuses) ? object.statuses.map((e: any) => globalThis.String(e)) : [],
       emailVerified: isSet(object.emailVerified)
         ? globalThis.Boolean(object.emailVerified)
         : isSet(object.email_verified)
-          ? globalThis.Boolean(object.email_verified)
-          : undefined,
+        ? globalThis.Boolean(object.email_verified)
+        : undefined,
     };
   },
 
@@ -8561,8 +8261,8 @@ export const BroadcastCohort: MessageFns<BroadcastCohort> = {
   },
   fromPartial<I extends Exact<DeepPartial<BroadcastCohort>, I>>(object: I): BroadcastCohort {
     const message = createBaseBroadcastCohort();
-    message.userTypes = object.userTypes?.map(e => e) || [];
-    message.statuses = object.statuses?.map(e => e) || [];
+    message.userTypes = object.userTypes?.map((e) => e) || [];
+    message.statuses = object.statuses?.map((e) => e) || [];
     message.emailVerified = object.emailVerified ?? undefined;
     return message;
   },
@@ -8572,12 +8272,11 @@ function createBaseBroadcastRequest(): BroadcastRequest {
   return {
     cohort: undefined,
     type: 0,
-    title: '',
-    message: '',
+    title: "",
+    message: "",
     actionUrl: undefined,
     dataJson: undefined,
     scheduledFor: undefined,
-    dryRun: false,
   };
 }
 
@@ -8589,10 +8288,10 @@ export const BroadcastRequest: MessageFns<BroadcastRequest> = {
     if (message.type !== 0) {
       writer.uint32(16).int32(message.type);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       writer.uint32(26).string(message.title);
     }
-    if (message.message !== '') {
+    if (message.message !== "") {
       writer.uint32(34).string(message.message);
     }
     if (message.actionUrl !== undefined) {
@@ -8603,9 +8302,6 @@ export const BroadcastRequest: MessageFns<BroadcastRequest> = {
     }
     if (message.scheduledFor !== undefined) {
       writer.uint32(58).string(message.scheduledFor);
-    }
-    if (message.dryRun !== false) {
-      writer.uint32(64).bool(message.dryRun);
     }
     return writer;
   },
@@ -8673,14 +8369,6 @@ export const BroadcastRequest: MessageFns<BroadcastRequest> = {
           message.scheduledFor = reader.string();
           continue;
         }
-        case 8: {
-          if (tag !== 64) {
-            break;
-          }
-
-          message.dryRun = reader.bool();
-          continue;
-        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -8694,28 +8382,23 @@ export const BroadcastRequest: MessageFns<BroadcastRequest> = {
     return {
       cohort: isSet(object.cohort) ? BroadcastCohort.fromJSON(object.cohort) : undefined,
       type: isSet(object.type) ? notificationTypeFromJSON(object.type) : 0,
-      title: isSet(object.title) ? globalThis.String(object.title) : '',
-      message: isSet(object.message) ? globalThis.String(object.message) : '',
+      title: isSet(object.title) ? globalThis.String(object.title) : "",
+      message: isSet(object.message) ? globalThis.String(object.message) : "",
       actionUrl: isSet(object.actionUrl)
         ? globalThis.String(object.actionUrl)
         : isSet(object.action_url)
-          ? globalThis.String(object.action_url)
-          : undefined,
+        ? globalThis.String(object.action_url)
+        : undefined,
       dataJson: isSet(object.dataJson)
         ? globalThis.String(object.dataJson)
         : isSet(object.data_json)
-          ? globalThis.String(object.data_json)
-          : undefined,
+        ? globalThis.String(object.data_json)
+        : undefined,
       scheduledFor: isSet(object.scheduledFor)
         ? globalThis.String(object.scheduledFor)
         : isSet(object.scheduled_for)
-          ? globalThis.String(object.scheduled_for)
-          : undefined,
-      dryRun: isSet(object.dryRun)
-        ? globalThis.Boolean(object.dryRun)
-        : isSet(object.dry_run)
-          ? globalThis.Boolean(object.dry_run)
-          : false,
+        ? globalThis.String(object.scheduled_for)
+        : undefined,
     };
   },
 
@@ -8727,10 +8410,10 @@ export const BroadcastRequest: MessageFns<BroadcastRequest> = {
     if (message.type !== 0) {
       obj.type = notificationTypeToJSON(message.type);
     }
-    if (message.title !== '') {
+    if (message.title !== "") {
       obj.title = message.title;
     }
-    if (message.message !== '') {
+    if (message.message !== "") {
       obj.message = message.message;
     }
     if (message.actionUrl !== undefined) {
@@ -8742,9 +8425,6 @@ export const BroadcastRequest: MessageFns<BroadcastRequest> = {
     if (message.scheduledFor !== undefined) {
       obj.scheduledFor = message.scheduledFor;
     }
-    if (message.dryRun !== false) {
-      obj.dryRun = message.dryRun;
-    }
     return obj;
   },
 
@@ -8753,17 +8433,15 @@ export const BroadcastRequest: MessageFns<BroadcastRequest> = {
   },
   fromPartial<I extends Exact<DeepPartial<BroadcastRequest>, I>>(object: I): BroadcastRequest {
     const message = createBaseBroadcastRequest();
-    message.cohort =
-      object.cohort !== undefined && object.cohort !== null
-        ? BroadcastCohort.fromPartial(object.cohort)
-        : undefined;
+    message.cohort = (object.cohort !== undefined && object.cohort !== null)
+      ? BroadcastCohort.fromPartial(object.cohort)
+      : undefined;
     message.type = object.type ?? 0;
-    message.title = object.title ?? '';
-    message.message = object.message ?? '';
+    message.title = object.title ?? "";
+    message.message = object.message ?? "";
     message.actionUrl = object.actionUrl ?? undefined;
     message.dataJson = object.dataJson ?? undefined;
     message.scheduledFor = object.scheduledFor ?? undefined;
-    message.dryRun = object.dryRun ?? false;
     return message;
   },
 };
@@ -8898,17 +8576,15 @@ export const NotificationServiceService = {
    * `notifications.create` permission (only system services + admins).
    */
   create: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/Create' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/Create" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: CreateNotificationRequest): Buffer =>
       Buffer.from(CreateNotificationRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateNotificationRequest =>
-      CreateNotificationRequest.decode(value),
+    requestDeserialize: (value: Buffer): CreateNotificationRequest => CreateNotificationRequest.decode(value),
     responseSerialize: (value: CreateNotificationResponse): Buffer =>
       Buffer.from(CreateNotificationResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateNotificationResponse =>
-      CreateNotificationResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateNotificationResponse => CreateNotificationResponse.decode(value),
   },
   /**
    * List notifications for the calling principal with keyset pagination.
@@ -8917,17 +8593,15 @@ export const NotificationServiceService = {
    * the scope check.
    */
   list: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/List' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/List" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListNotificationsRequest): Buffer =>
       Buffer.from(ListNotificationsRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListNotificationsRequest =>
-      ListNotificationsRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListNotificationsRequest => ListNotificationsRequest.decode(value),
     responseSerialize: (value: ListNotificationsResponse): Buffer =>
       Buffer.from(ListNotificationsResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListNotificationsResponse =>
-      ListNotificationsResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListNotificationsResponse => ListNotificationsResponse.decode(value),
   },
   /**
    * Mark a notification as dismissed (status -> read, read_at -> now).
@@ -8936,17 +8610,15 @@ export const NotificationServiceService = {
    * on NATS after the DB commits.
    */
   dismiss: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/Dismiss' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/Dismiss" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: DismissNotificationRequest): Buffer =>
       Buffer.from(DismissNotificationRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): DismissNotificationRequest =>
-      DismissNotificationRequest.decode(value),
+    requestDeserialize: (value: Buffer): DismissNotificationRequest => DismissNotificationRequest.decode(value),
     responseSerialize: (value: DismissNotificationResponse): Buffer =>
       Buffer.from(DismissNotificationResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DismissNotificationResponse =>
-      DismissNotificationResponse.decode(value),
+    responseDeserialize: (value: Buffer): DismissNotificationResponse => DismissNotificationResponse.decode(value),
   },
   /**
    * Fetch a single notification by id. Ownership-scoped — adopters can
@@ -8954,17 +8626,15 @@ export const NotificationServiceService = {
    * notifications owned by another user (no enumeration).
    */
   getNotification: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/GetNotification' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/GetNotification" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetNotificationRequest): Buffer =>
       Buffer.from(GetNotificationRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetNotificationRequest =>
-      GetNotificationRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetNotificationRequest => GetNotificationRequest.decode(value),
     responseSerialize: (value: GetNotificationResponse): Buffer =>
       Buffer.from(GetNotificationResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetNotificationResponse =>
-      GetNotificationResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetNotificationResponse => GetNotificationResponse.decode(value),
   },
   /**
    * Count unread (read_at IS NULL, not expired) for the calling
@@ -8972,17 +8642,15 @@ export const NotificationServiceService = {
    * pins it to the principal.
    */
   getUnreadCount: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/GetUnreadCount' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/GetUnreadCount" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetUnreadCountRequest): Buffer =>
       Buffer.from(GetUnreadCountRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetUnreadCountRequest =>
-      GetUnreadCountRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetUnreadCountRequest => GetUnreadCountRequest.decode(value),
     responseSerialize: (value: GetUnreadCountResponse): Buffer =>
       Buffer.from(GetUnreadCountResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetUnreadCountResponse =>
-      GetUnreadCountResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetUnreadCountResponse => GetUnreadCountResponse.decode(value),
   },
   /**
    * Mark every unread notification owned by the calling principal as
@@ -8990,14 +8658,12 @@ export const NotificationServiceService = {
    * returns affected_count = 0.
    */
   markAllRead: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/MarkAllRead' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/MarkAllRead" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: MarkAllReadRequest): Buffer =>
-      Buffer.from(MarkAllReadRequest.encode(value).finish()),
+    requestSerialize: (value: MarkAllReadRequest): Buffer => Buffer.from(MarkAllReadRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): MarkAllReadRequest => MarkAllReadRequest.decode(value),
-    responseSerialize: (value: MarkAllReadResponse): Buffer =>
-      Buffer.from(MarkAllReadResponse.encode(value).finish()),
+    responseSerialize: (value: MarkAllReadResponse): Buffer => Buffer.from(MarkAllReadResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): MarkAllReadResponse => MarkAllReadResponse.decode(value),
   },
   /**
@@ -9006,20 +8672,18 @@ export const NotificationServiceService = {
    * the already-deleted row without error.
    */
   deleteNotification: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/DeleteNotification' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/DeleteNotification" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: DeleteNotificationRequest): Buffer =>
       Buffer.from(DeleteNotificationRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): DeleteNotificationRequest =>
-      DeleteNotificationRequest.decode(value),
+    requestDeserialize: (value: Buffer): DeleteNotificationRequest => DeleteNotificationRequest.decode(value),
     responseSerialize: (value: DeleteNotificationResponse): Buffer =>
       Buffer.from(DeleteNotificationResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DeleteNotificationResponse =>
-      DeleteNotificationResponse.decode(value),
+    responseDeserialize: (value: Buffer): DeleteNotificationResponse => DeleteNotificationResponse.decode(value),
   },
   getNotificationPreferences: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/GetNotificationPreferences' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/GetNotificationPreferences" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetNotificationPreferencesRequest): Buffer =>
@@ -9032,7 +8696,7 @@ export const NotificationServiceService = {
       GetNotificationPreferencesResponse.decode(value),
   },
   updateNotificationPreferences: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/UpdateNotificationPreferences' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/UpdateNotificationPreferences" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: UpdateNotificationPreferencesRequest): Buffer =>
@@ -9049,7 +8713,7 @@ export const NotificationServiceService = {
    * source of truth for "factory settings". Idempotent.
    */
   resetNotificationPreferences: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/ResetNotificationPreferences' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/ResetNotificationPreferences" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ResetNotificationPreferencesRequest): Buffer =>
@@ -9068,7 +8732,7 @@ export const NotificationServiceService = {
    * for already-cleaned rows.
    */
   cleanupExpiredNotifications: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/CleanupExpiredNotifications' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/CleanupExpiredNotifications" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: CleanupExpiredNotificationsRequest): Buffer =>
@@ -9088,14 +8752,12 @@ export const NotificationServiceService = {
    * a duplicate Send with the same key returns the same email_id.
    */
   sendEmail: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/SendEmail' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/SendEmail" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: SendEmailRequest): Buffer =>
-      Buffer.from(SendEmailRequest.encode(value).finish()),
+    requestSerialize: (value: SendEmailRequest): Buffer => Buffer.from(SendEmailRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): SendEmailRequest => SendEmailRequest.decode(value),
-    responseSerialize: (value: SendEmailResponse): Buffer =>
-      Buffer.from(SendEmailResponse.encode(value).finish()),
+    responseSerialize: (value: SendEmailResponse): Buffer => Buffer.from(SendEmailResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): SendEmailResponse => SendEmailResponse.decode(value),
   },
   /**
@@ -9104,133 +8766,116 @@ export const NotificationServiceService = {
    * row, creating defaults on first read.
    */
   getEmailPreferences: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/GetEmailPreferences' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/GetEmailPreferences" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetEmailPreferencesRequest): Buffer =>
       Buffer.from(GetEmailPreferencesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetEmailPreferencesRequest =>
-      GetEmailPreferencesRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetEmailPreferencesRequest => GetEmailPreferencesRequest.decode(value),
     responseSerialize: (value: GetEmailPreferencesResponse): Buffer =>
       Buffer.from(GetEmailPreferencesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetEmailPreferencesResponse =>
-      GetEmailPreferencesResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetEmailPreferencesResponse => GetEmailPreferencesResponse.decode(value),
   },
   /**
    * Partially update email preferences. Only provided fields are
    * touched — unset fields keep their current value.
    */
   updateEmailPreferences: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/UpdateEmailPreferences' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/UpdateEmailPreferences" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: UpdateEmailPreferencesRequest): Buffer =>
       Buffer.from(UpdateEmailPreferencesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UpdateEmailPreferencesRequest =>
-      UpdateEmailPreferencesRequest.decode(value),
+    requestDeserialize: (value: Buffer): UpdateEmailPreferencesRequest => UpdateEmailPreferencesRequest.decode(value),
     responseSerialize: (value: UpdateEmailPreferencesResponse): Buffer =>
       Buffer.from(UpdateEmailPreferencesResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): UpdateEmailPreferencesResponse =>
       UpdateEmailPreferencesResponse.decode(value),
   },
   listEmailTemplates: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/ListEmailTemplates' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/ListEmailTemplates" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListEmailTemplatesRequest): Buffer =>
       Buffer.from(ListEmailTemplatesRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListEmailTemplatesRequest =>
-      ListEmailTemplatesRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListEmailTemplatesRequest => ListEmailTemplatesRequest.decode(value),
     responseSerialize: (value: ListEmailTemplatesResponse): Buffer =>
       Buffer.from(ListEmailTemplatesResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListEmailTemplatesResponse =>
-      ListEmailTemplatesResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListEmailTemplatesResponse => ListEmailTemplatesResponse.decode(value),
   },
   getEmailTemplate: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/GetEmailTemplate' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/GetEmailTemplate" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: GetEmailTemplateRequest): Buffer =>
       Buffer.from(GetEmailTemplateRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): GetEmailTemplateRequest =>
-      GetEmailTemplateRequest.decode(value),
+    requestDeserialize: (value: Buffer): GetEmailTemplateRequest => GetEmailTemplateRequest.decode(value),
     responseSerialize: (value: GetEmailTemplateResponse): Buffer =>
       Buffer.from(GetEmailTemplateResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): GetEmailTemplateResponse =>
-      GetEmailTemplateResponse.decode(value),
+    responseDeserialize: (value: Buffer): GetEmailTemplateResponse => GetEmailTemplateResponse.decode(value),
   },
   createEmailTemplate: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/CreateEmailTemplate' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/CreateEmailTemplate" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: CreateEmailTemplateRequest): Buffer =>
       Buffer.from(CreateEmailTemplateRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): CreateEmailTemplateRequest =>
-      CreateEmailTemplateRequest.decode(value),
+    requestDeserialize: (value: Buffer): CreateEmailTemplateRequest => CreateEmailTemplateRequest.decode(value),
     responseSerialize: (value: CreateEmailTemplateResponse): Buffer =>
       Buffer.from(CreateEmailTemplateResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): CreateEmailTemplateResponse =>
-      CreateEmailTemplateResponse.decode(value),
+    responseDeserialize: (value: Buffer): CreateEmailTemplateResponse => CreateEmailTemplateResponse.decode(value),
   },
   updateEmailTemplate: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/UpdateEmailTemplate' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/UpdateEmailTemplate" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: UpdateEmailTemplateRequest): Buffer =>
       Buffer.from(UpdateEmailTemplateRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UpdateEmailTemplateRequest =>
-      UpdateEmailTemplateRequest.decode(value),
+    requestDeserialize: (value: Buffer): UpdateEmailTemplateRequest => UpdateEmailTemplateRequest.decode(value),
     responseSerialize: (value: UpdateEmailTemplateResponse): Buffer =>
       Buffer.from(UpdateEmailTemplateResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UpdateEmailTemplateResponse =>
-      UpdateEmailTemplateResponse.decode(value),
+    responseDeserialize: (value: Buffer): UpdateEmailTemplateResponse => UpdateEmailTemplateResponse.decode(value),
   },
   deleteEmailTemplate: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/DeleteEmailTemplate' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/DeleteEmailTemplate" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: DeleteEmailTemplateRequest): Buffer =>
       Buffer.from(DeleteEmailTemplateRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): DeleteEmailTemplateRequest =>
-      DeleteEmailTemplateRequest.decode(value),
+    requestDeserialize: (value: Buffer): DeleteEmailTemplateRequest => DeleteEmailTemplateRequest.decode(value),
     responseSerialize: (value: DeleteEmailTemplateResponse): Buffer =>
       Buffer.from(DeleteEmailTemplateResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): DeleteEmailTemplateResponse =>
-      DeleteEmailTemplateResponse.decode(value),
+    responseDeserialize: (value: Buffer): DeleteEmailTemplateResponse => DeleteEmailTemplateResponse.decode(value),
   },
   /**
    * Render a template with caller-supplied sample variables — returns the
    * resolved subject + html without queueing anything.
    */
   previewEmailTemplate: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/PreviewEmailTemplate' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/PreviewEmailTemplate" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: PreviewEmailTemplateRequest): Buffer =>
       Buffer.from(PreviewEmailTemplateRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): PreviewEmailTemplateRequest =>
-      PreviewEmailTemplateRequest.decode(value),
+    requestDeserialize: (value: Buffer): PreviewEmailTemplateRequest => PreviewEmailTemplateRequest.decode(value),
     responseSerialize: (value: PreviewEmailTemplateResponse): Buffer =>
       Buffer.from(PreviewEmailTemplateResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): PreviewEmailTemplateResponse =>
-      PreviewEmailTemplateResponse.decode(value),
+    responseDeserialize: (value: Buffer): PreviewEmailTemplateResponse => PreviewEmailTemplateResponse.decode(value),
   },
   /**
    * Idempotent on (user_id, device_token): a second Register with the
    * same pair refreshes `last_used_at` and returns the existing row.
    */
   registerDeviceToken: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/RegisterDeviceToken' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/RegisterDeviceToken" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: RegisterDeviceTokenRequest): Buffer =>
       Buffer.from(RegisterDeviceTokenRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): RegisterDeviceTokenRequest =>
-      RegisterDeviceTokenRequest.decode(value),
+    requestDeserialize: (value: Buffer): RegisterDeviceTokenRequest => RegisterDeviceTokenRequest.decode(value),
     responseSerialize: (value: RegisterDeviceTokenResponse): Buffer =>
       Buffer.from(RegisterDeviceTokenResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): RegisterDeviceTokenResponse =>
-      RegisterDeviceTokenResponse.decode(value),
+    responseDeserialize: (value: Buffer): RegisterDeviceTokenResponse => RegisterDeviceTokenResponse.decode(value),
   },
   /**
    * Soft-delete by token_id. Called when the client logs out or the
@@ -9238,34 +8883,30 @@ export const NotificationServiceService = {
    * token_id returns the same row without error.
    */
   unregisterDeviceToken: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/UnregisterDeviceToken' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/UnregisterDeviceToken" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: UnregisterDeviceTokenRequest): Buffer =>
       Buffer.from(UnregisterDeviceTokenRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): UnregisterDeviceTokenRequest =>
-      UnregisterDeviceTokenRequest.decode(value),
+    requestDeserialize: (value: Buffer): UnregisterDeviceTokenRequest => UnregisterDeviceTokenRequest.decode(value),
     responseSerialize: (value: UnregisterDeviceTokenResponse): Buffer =>
       Buffer.from(UnregisterDeviceTokenResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): UnregisterDeviceTokenResponse =>
-      UnregisterDeviceTokenResponse.decode(value),
+    responseDeserialize: (value: Buffer): UnregisterDeviceTokenResponse => UnregisterDeviceTokenResponse.decode(value),
   },
   /**
    * List active tokens for the calling principal. Self-scoped (admins
    * need device-tokens:list:any to read another user's tokens).
    */
   listDeviceTokens: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/ListDeviceTokens' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/ListDeviceTokens" as const,
     requestStream: false as const,
     responseStream: false as const,
     requestSerialize: (value: ListDeviceTokensRequest): Buffer =>
       Buffer.from(ListDeviceTokensRequest.encode(value).finish()),
-    requestDeserialize: (value: Buffer): ListDeviceTokensRequest =>
-      ListDeviceTokensRequest.decode(value),
+    requestDeserialize: (value: Buffer): ListDeviceTokensRequest => ListDeviceTokensRequest.decode(value),
     responseSerialize: (value: ListDeviceTokensResponse): Buffer =>
       Buffer.from(ListDeviceTokensResponse.encode(value).finish()),
-    responseDeserialize: (value: Buffer): ListDeviceTokensResponse =>
-      ListDeviceTokensResponse.decode(value),
+    responseDeserialize: (value: Buffer): ListDeviceTokensResponse => ListDeviceTokensResponse.decode(value),
   },
   /**
    * Fan a single in-app notification across a cohort of users. The
@@ -9276,14 +8917,12 @@ export const NotificationServiceService = {
    * confirm the reach. admin.notifications.broadcast.
    */
   broadcast: {
-    path: '/adopt_dont_shop.notifications.v1.NotificationService/Broadcast' as const,
+    path: "/adopt_dont_shop.notifications.v1.NotificationService/Broadcast" as const,
     requestStream: false as const,
     responseStream: false as const,
-    requestSerialize: (value: BroadcastRequest): Buffer =>
-      Buffer.from(BroadcastRequest.encode(value).finish()),
+    requestSerialize: (value: BroadcastRequest): Buffer => Buffer.from(BroadcastRequest.encode(value).finish()),
     requestDeserialize: (value: Buffer): BroadcastRequest => BroadcastRequest.decode(value),
-    responseSerialize: (value: BroadcastResponse): Buffer =>
-      Buffer.from(BroadcastResponse.encode(value).finish()),
+    responseSerialize: (value: BroadcastResponse): Buffer => Buffer.from(BroadcastResponse.encode(value).finish()),
     responseDeserialize: (value: Buffer): BroadcastResponse => BroadcastResponse.decode(value),
   },
 } as const;
@@ -9334,10 +8973,7 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
    * the already-deleted row without error.
    */
   deleteNotification: handleUnaryCall<DeleteNotificationRequest, DeleteNotificationResponse>;
-  getNotificationPreferences: handleUnaryCall<
-    GetNotificationPreferencesRequest,
-    GetNotificationPreferencesResponse
-  >;
+  getNotificationPreferences: handleUnaryCall<GetNotificationPreferencesRequest, GetNotificationPreferencesResponse>;
   updateNotificationPreferences: handleUnaryCall<
     UpdateNotificationPreferencesRequest,
     UpdateNotificationPreferencesResponse
@@ -9356,10 +8992,7 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
    * Operates on rows where `deleted_at IS NULL` so a re-run is a no-op
    * for already-cleaned rows.
    */
-  cleanupExpiredNotifications: handleUnaryCall<
-    CleanupExpiredNotificationsRequest,
-    CleanupExpiredNotificationsResponse
-  >;
+  cleanupExpiredNotifications: handleUnaryCall<CleanupExpiredNotificationsRequest, CleanupExpiredNotificationsResponse>;
   /**
    * Enqueue an email. Returns the email_id immediately; delivery happens
    * asynchronously in the worker. Callers can supply a templateId +
@@ -9378,10 +9011,7 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
    * Partially update email preferences. Only provided fields are
    * touched — unset fields keep their current value.
    */
-  updateEmailPreferences: handleUnaryCall<
-    UpdateEmailPreferencesRequest,
-    UpdateEmailPreferencesResponse
-  >;
+  updateEmailPreferences: handleUnaryCall<UpdateEmailPreferencesRequest, UpdateEmailPreferencesResponse>;
   listEmailTemplates: handleUnaryCall<ListEmailTemplatesRequest, ListEmailTemplatesResponse>;
   getEmailTemplate: handleUnaryCall<GetEmailTemplateRequest, GetEmailTemplateResponse>;
   createEmailTemplate: handleUnaryCall<CreateEmailTemplateRequest, CreateEmailTemplateResponse>;
@@ -9402,10 +9032,7 @@ export interface NotificationServiceServer extends UntypedServiceImplementation 
    * user disables push. Idempotent: a second Unregister on the same
    * token_id returns the same row without error.
    */
-  unregisterDeviceToken: handleUnaryCall<
-    UnregisterDeviceTokenRequest,
-    UnregisterDeviceTokenResponse
-  >;
+  unregisterDeviceToken: handleUnaryCall<UnregisterDeviceTokenRequest, UnregisterDeviceTokenResponse>;
   /**
    * List active tokens for the calling principal. Self-scoped (admins
    * need device-tokens:list:any to read another user's tokens).
@@ -9431,18 +9058,18 @@ export interface NotificationServiceClient extends Client {
    */
   create(
     request: CreateNotificationRequest,
-    callback: (error: ServiceError | null, response: CreateNotificationResponse) => void
+    callback: (error: ServiceError | null, response: CreateNotificationResponse) => void,
   ): ClientUnaryCall;
   create(
     request: CreateNotificationRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateNotificationResponse) => void
+    callback: (error: ServiceError | null, response: CreateNotificationResponse) => void,
   ): ClientUnaryCall;
   create(
     request: CreateNotificationRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateNotificationResponse) => void
+    callback: (error: ServiceError | null, response: CreateNotificationResponse) => void,
   ): ClientUnaryCall;
   /**
    * List notifications for the calling principal with keyset pagination.
@@ -9452,18 +9079,18 @@ export interface NotificationServiceClient extends Client {
    */
   list(
     request: ListNotificationsRequest,
-    callback: (error: ServiceError | null, response: ListNotificationsResponse) => void
+    callback: (error: ServiceError | null, response: ListNotificationsResponse) => void,
   ): ClientUnaryCall;
   list(
     request: ListNotificationsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListNotificationsResponse) => void
+    callback: (error: ServiceError | null, response: ListNotificationsResponse) => void,
   ): ClientUnaryCall;
   list(
     request: ListNotificationsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListNotificationsResponse) => void
+    callback: (error: ServiceError | null, response: ListNotificationsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Mark a notification as dismissed (status -> read, read_at -> now).
@@ -9473,18 +9100,18 @@ export interface NotificationServiceClient extends Client {
    */
   dismiss(
     request: DismissNotificationRequest,
-    callback: (error: ServiceError | null, response: DismissNotificationResponse) => void
+    callback: (error: ServiceError | null, response: DismissNotificationResponse) => void,
   ): ClientUnaryCall;
   dismiss(
     request: DismissNotificationRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DismissNotificationResponse) => void
+    callback: (error: ServiceError | null, response: DismissNotificationResponse) => void,
   ): ClientUnaryCall;
   dismiss(
     request: DismissNotificationRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DismissNotificationResponse) => void
+    callback: (error: ServiceError | null, response: DismissNotificationResponse) => void,
   ): ClientUnaryCall;
   /**
    * Fetch a single notification by id. Ownership-scoped — adopters can
@@ -9493,18 +9120,18 @@ export interface NotificationServiceClient extends Client {
    */
   getNotification(
     request: GetNotificationRequest,
-    callback: (error: ServiceError | null, response: GetNotificationResponse) => void
+    callback: (error: ServiceError | null, response: GetNotificationResponse) => void,
   ): ClientUnaryCall;
   getNotification(
     request: GetNotificationRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetNotificationResponse) => void
+    callback: (error: ServiceError | null, response: GetNotificationResponse) => void,
   ): ClientUnaryCall;
   getNotification(
     request: GetNotificationRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetNotificationResponse) => void
+    callback: (error: ServiceError | null, response: GetNotificationResponse) => void,
   ): ClientUnaryCall;
   /**
    * Count unread (read_at IS NULL, not expired) for the calling
@@ -9513,18 +9140,18 @@ export interface NotificationServiceClient extends Client {
    */
   getUnreadCount(
     request: GetUnreadCountRequest,
-    callback: (error: ServiceError | null, response: GetUnreadCountResponse) => void
+    callback: (error: ServiceError | null, response: GetUnreadCountResponse) => void,
   ): ClientUnaryCall;
   getUnreadCount(
     request: GetUnreadCountRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetUnreadCountResponse) => void
+    callback: (error: ServiceError | null, response: GetUnreadCountResponse) => void,
   ): ClientUnaryCall;
   getUnreadCount(
     request: GetUnreadCountRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetUnreadCountResponse) => void
+    callback: (error: ServiceError | null, response: GetUnreadCountResponse) => void,
   ): ClientUnaryCall;
   /**
    * Mark every unread notification owned by the calling principal as
@@ -9533,18 +9160,18 @@ export interface NotificationServiceClient extends Client {
    */
   markAllRead(
     request: MarkAllReadRequest,
-    callback: (error: ServiceError | null, response: MarkAllReadResponse) => void
+    callback: (error: ServiceError | null, response: MarkAllReadResponse) => void,
   ): ClientUnaryCall;
   markAllRead(
     request: MarkAllReadRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: MarkAllReadResponse) => void
+    callback: (error: ServiceError | null, response: MarkAllReadResponse) => void,
   ): ClientUnaryCall;
   markAllRead(
     request: MarkAllReadRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: MarkAllReadResponse) => void
+    callback: (error: ServiceError | null, response: MarkAllReadResponse) => void,
   ): ClientUnaryCall;
   /**
    * Soft-delete a notification (deleted_at stamped). Ownership-scoped.
@@ -9553,48 +9180,48 @@ export interface NotificationServiceClient extends Client {
    */
   deleteNotification(
     request: DeleteNotificationRequest,
-    callback: (error: ServiceError | null, response: DeleteNotificationResponse) => void
+    callback: (error: ServiceError | null, response: DeleteNotificationResponse) => void,
   ): ClientUnaryCall;
   deleteNotification(
     request: DeleteNotificationRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DeleteNotificationResponse) => void
+    callback: (error: ServiceError | null, response: DeleteNotificationResponse) => void,
   ): ClientUnaryCall;
   deleteNotification(
     request: DeleteNotificationRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DeleteNotificationResponse) => void
+    callback: (error: ServiceError | null, response: DeleteNotificationResponse) => void,
   ): ClientUnaryCall;
   getNotificationPreferences(
     request: GetNotificationPreferencesRequest,
-    callback: (error: ServiceError | null, response: GetNotificationPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: GetNotificationPreferencesResponse) => void,
   ): ClientUnaryCall;
   getNotificationPreferences(
     request: GetNotificationPreferencesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetNotificationPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: GetNotificationPreferencesResponse) => void,
   ): ClientUnaryCall;
   getNotificationPreferences(
     request: GetNotificationPreferencesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetNotificationPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: GetNotificationPreferencesResponse) => void,
   ): ClientUnaryCall;
   updateNotificationPreferences(
     request: UpdateNotificationPreferencesRequest,
-    callback: (error: ServiceError | null, response: UpdateNotificationPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: UpdateNotificationPreferencesResponse) => void,
   ): ClientUnaryCall;
   updateNotificationPreferences(
     request: UpdateNotificationPreferencesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdateNotificationPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: UpdateNotificationPreferencesResponse) => void,
   ): ClientUnaryCall;
   updateNotificationPreferences(
     request: UpdateNotificationPreferencesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdateNotificationPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: UpdateNotificationPreferencesResponse) => void,
   ): ClientUnaryCall;
   /**
    * Destroy + recreate so the table-level defaults are the single
@@ -9602,18 +9229,18 @@ export interface NotificationServiceClient extends Client {
    */
   resetNotificationPreferences(
     request: ResetNotificationPreferencesRequest,
-    callback: (error: ServiceError | null, response: ResetNotificationPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: ResetNotificationPreferencesResponse) => void,
   ): ClientUnaryCall;
   resetNotificationPreferences(
     request: ResetNotificationPreferencesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ResetNotificationPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: ResetNotificationPreferencesResponse) => void,
   ): ClientUnaryCall;
   resetNotificationPreferences(
     request: ResetNotificationPreferencesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ResetNotificationPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: ResetNotificationPreferencesResponse) => void,
   ): ClientUnaryCall;
   /**
    * Admin-only: soft-delete notifications older than N days (default 30).
@@ -9623,18 +9250,18 @@ export interface NotificationServiceClient extends Client {
    */
   cleanupExpiredNotifications(
     request: CleanupExpiredNotificationsRequest,
-    callback: (error: ServiceError | null, response: CleanupExpiredNotificationsResponse) => void
+    callback: (error: ServiceError | null, response: CleanupExpiredNotificationsResponse) => void,
   ): ClientUnaryCall;
   cleanupExpiredNotifications(
     request: CleanupExpiredNotificationsRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CleanupExpiredNotificationsResponse) => void
+    callback: (error: ServiceError | null, response: CleanupExpiredNotificationsResponse) => void,
   ): ClientUnaryCall;
   cleanupExpiredNotifications(
     request: CleanupExpiredNotificationsRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CleanupExpiredNotificationsResponse) => void
+    callback: (error: ServiceError | null, response: CleanupExpiredNotificationsResponse) => void,
   ): ClientUnaryCall;
   /**
    * Enqueue an email. Returns the email_id immediately; delivery happens
@@ -9645,18 +9272,18 @@ export interface NotificationServiceClient extends Client {
    */
   sendEmail(
     request: SendEmailRequest,
-    callback: (error: ServiceError | null, response: SendEmailResponse) => void
+    callback: (error: ServiceError | null, response: SendEmailResponse) => void,
   ): ClientUnaryCall;
   sendEmail(
     request: SendEmailRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: SendEmailResponse) => void
+    callback: (error: ServiceError | null, response: SendEmailResponse) => void,
   ): ClientUnaryCall;
   sendEmail(
     request: SendEmailRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: SendEmailResponse) => void
+    callback: (error: ServiceError | null, response: SendEmailResponse) => void,
   ): ClientUnaryCall;
   /**
    * Read the calling principal's email preferences (or a target user's
@@ -9665,18 +9292,18 @@ export interface NotificationServiceClient extends Client {
    */
   getEmailPreferences(
     request: GetEmailPreferencesRequest,
-    callback: (error: ServiceError | null, response: GetEmailPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: GetEmailPreferencesResponse) => void,
   ): ClientUnaryCall;
   getEmailPreferences(
     request: GetEmailPreferencesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetEmailPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: GetEmailPreferencesResponse) => void,
   ): ClientUnaryCall;
   getEmailPreferences(
     request: GetEmailPreferencesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetEmailPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: GetEmailPreferencesResponse) => void,
   ): ClientUnaryCall;
   /**
    * Partially update email preferences. Only provided fields are
@@ -9684,93 +9311,93 @@ export interface NotificationServiceClient extends Client {
    */
   updateEmailPreferences(
     request: UpdateEmailPreferencesRequest,
-    callback: (error: ServiceError | null, response: UpdateEmailPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: UpdateEmailPreferencesResponse) => void,
   ): ClientUnaryCall;
   updateEmailPreferences(
     request: UpdateEmailPreferencesRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdateEmailPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: UpdateEmailPreferencesResponse) => void,
   ): ClientUnaryCall;
   updateEmailPreferences(
     request: UpdateEmailPreferencesRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdateEmailPreferencesResponse) => void
+    callback: (error: ServiceError | null, response: UpdateEmailPreferencesResponse) => void,
   ): ClientUnaryCall;
   listEmailTemplates(
     request: ListEmailTemplatesRequest,
-    callback: (error: ServiceError | null, response: ListEmailTemplatesResponse) => void
-  ): ClientUnaryCall;
-  listEmailTemplates(
-    request: ListEmailTemplatesRequest,
-    metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListEmailTemplatesResponse) => void
+    callback: (error: ServiceError | null, response: ListEmailTemplatesResponse) => void,
   ): ClientUnaryCall;
   listEmailTemplates(
     request: ListEmailTemplatesRequest,
     metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListEmailTemplatesResponse) => void,
+  ): ClientUnaryCall;
+  listEmailTemplates(
+    request: ListEmailTemplatesRequest,
+    metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListEmailTemplatesResponse) => void
+    callback: (error: ServiceError | null, response: ListEmailTemplatesResponse) => void,
   ): ClientUnaryCall;
   getEmailTemplate(
     request: GetEmailTemplateRequest,
-    callback: (error: ServiceError | null, response: GetEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: GetEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   getEmailTemplate(
     request: GetEmailTemplateRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: GetEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: GetEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   getEmailTemplate(
     request: GetEmailTemplateRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: GetEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: GetEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   createEmailTemplate(
     request: CreateEmailTemplateRequest,
-    callback: (error: ServiceError | null, response: CreateEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: CreateEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   createEmailTemplate(
     request: CreateEmailTemplateRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: CreateEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: CreateEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   createEmailTemplate(
     request: CreateEmailTemplateRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: CreateEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: CreateEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   updateEmailTemplate(
     request: UpdateEmailTemplateRequest,
-    callback: (error: ServiceError | null, response: UpdateEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: UpdateEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   updateEmailTemplate(
     request: UpdateEmailTemplateRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UpdateEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: UpdateEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   updateEmailTemplate(
     request: UpdateEmailTemplateRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UpdateEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: UpdateEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   deleteEmailTemplate(
     request: DeleteEmailTemplateRequest,
-    callback: (error: ServiceError | null, response: DeleteEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: DeleteEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   deleteEmailTemplate(
     request: DeleteEmailTemplateRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: DeleteEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: DeleteEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   deleteEmailTemplate(
     request: DeleteEmailTemplateRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: DeleteEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: DeleteEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   /**
    * Render a template with caller-supplied sample variables — returns the
@@ -9778,18 +9405,18 @@ export interface NotificationServiceClient extends Client {
    */
   previewEmailTemplate(
     request: PreviewEmailTemplateRequest,
-    callback: (error: ServiceError | null, response: PreviewEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: PreviewEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   previewEmailTemplate(
     request: PreviewEmailTemplateRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: PreviewEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: PreviewEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   previewEmailTemplate(
     request: PreviewEmailTemplateRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: PreviewEmailTemplateResponse) => void
+    callback: (error: ServiceError | null, response: PreviewEmailTemplateResponse) => void,
   ): ClientUnaryCall;
   /**
    * Idempotent on (user_id, device_token): a second Register with the
@@ -9797,18 +9424,18 @@ export interface NotificationServiceClient extends Client {
    */
   registerDeviceToken(
     request: RegisterDeviceTokenRequest,
-    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void
+    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void,
   ): ClientUnaryCall;
   registerDeviceToken(
     request: RegisterDeviceTokenRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void
+    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void,
   ): ClientUnaryCall;
   registerDeviceToken(
     request: RegisterDeviceTokenRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void
+    callback: (error: ServiceError | null, response: RegisterDeviceTokenResponse) => void,
   ): ClientUnaryCall;
   /**
    * Soft-delete by token_id. Called when the client logs out or the
@@ -9817,18 +9444,18 @@ export interface NotificationServiceClient extends Client {
    */
   unregisterDeviceToken(
     request: UnregisterDeviceTokenRequest,
-    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void
+    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void,
   ): ClientUnaryCall;
   unregisterDeviceToken(
     request: UnregisterDeviceTokenRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void
+    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void,
   ): ClientUnaryCall;
   unregisterDeviceToken(
     request: UnregisterDeviceTokenRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void
+    callback: (error: ServiceError | null, response: UnregisterDeviceTokenResponse) => void,
   ): ClientUnaryCall;
   /**
    * List active tokens for the calling principal. Self-scoped (admins
@@ -9836,18 +9463,18 @@ export interface NotificationServiceClient extends Client {
    */
   listDeviceTokens(
     request: ListDeviceTokensRequest,
-    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void
+    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void,
   ): ClientUnaryCall;
   listDeviceTokens(
     request: ListDeviceTokensRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void
+    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void,
   ): ClientUnaryCall;
   listDeviceTokens(
     request: ListDeviceTokensRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void
+    callback: (error: ServiceError | null, response: ListDeviceTokensResponse) => void,
   ): ClientUnaryCall;
   /**
    * Fan a single in-app notification across a cohort of users. The
@@ -9859,49 +9486,40 @@ export interface NotificationServiceClient extends Client {
    */
   broadcast(
     request: BroadcastRequest,
-    callback: (error: ServiceError | null, response: BroadcastResponse) => void
+    callback: (error: ServiceError | null, response: BroadcastResponse) => void,
   ): ClientUnaryCall;
   broadcast(
     request: BroadcastRequest,
     metadata: Metadata,
-    callback: (error: ServiceError | null, response: BroadcastResponse) => void
+    callback: (error: ServiceError | null, response: BroadcastResponse) => void,
   ): ClientUnaryCall;
   broadcast(
     request: BroadcastRequest,
     metadata: Metadata,
     options: Partial<CallOptions>,
-    callback: (error: ServiceError | null, response: BroadcastResponse) => void
+    callback: (error: ServiceError | null, response: BroadcastResponse) => void,
   ): ClientUnaryCall;
 }
 
 export const NotificationServiceClient = makeGenericClientConstructor(
   NotificationServiceService,
-  'adopt_dont_shop.notifications.v1.NotificationService'
+  "adopt_dont_shop.notifications.v1.NotificationService",
 ) as unknown as {
-  new (
-    address: string,
-    credentials: ChannelCredentials,
-    options?: Partial<ClientOptions>
-  ): NotificationServiceClient;
+  new (address: string, credentials: ChannelCredentials, options?: Partial<ClientOptions>): NotificationServiceClient;
   service: typeof NotificationServiceService;
   serviceName: string;
 };
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
 
-export type DeepPartial<T> = T extends Builtin
-  ? T
-  : T extends globalThis.Array<infer U>
-    ? globalThis.Array<DeepPartial<U>>
-    : T extends ReadonlyArray<infer U>
-      ? ReadonlyArray<DeepPartial<U>>
-      : T extends {}
-        ? { [K in keyof T]?: DeepPartial<T[K]> }
-        : Partial<T>;
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
-export type Exact<P, I extends P> = P extends Builtin
-  ? P
+export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {

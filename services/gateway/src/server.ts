@@ -414,8 +414,12 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // defaults).
     await registerFieldPermissionsRoutes(server, { client: opts.authClient });
     // /api/v1/admin/security/* — Security Center sessions + account
-    // lockout. Same auth client; permission gating lives in the handlers.
-    await registerSecurityRoutes(server, { client: opts.authClient });
+    // lockout, plus login-history / suspicious-activity (auditClient) when
+    // available. Permission gating lives in the auth/audit handlers.
+    await registerSecurityRoutes(server, {
+      client: opts.authClient,
+      auditClient: opts.auditClient,
+    });
   }
   if (opts.notificationsClient) {
     await registerNotificationsRoutes(server, { client: opts.notificationsClient });

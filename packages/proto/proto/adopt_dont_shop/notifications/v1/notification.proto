@@ -834,11 +834,6 @@ message BroadcastRequest {
   // Defer delivery to a future timestamp (server stores; worker fires
   // when due). Empty = send immediately.
   optional string scheduled_for = 7;
-  // When true, resolve the cohort and return the would-be `targeted`
-  // count without writing any notification rows or publishing events.
-  // Used by the admin UI's broadcast preview step. title/message are
-  // not validated in this mode.
-  bool dry_run = 8;
 }
 
 message BroadcastResponse {

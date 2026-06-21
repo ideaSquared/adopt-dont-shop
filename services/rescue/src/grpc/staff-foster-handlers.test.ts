@@ -10,7 +10,6 @@ import type { HandlerDeps } from './handlers.js';
 import type { PetsClient } from './pets-client.js';
 import {
   acceptInvitation,
-  createStaffMember,
   endFosterPlacement,
   getFosterPlacement,
   getInvitationByToken,
@@ -18,8 +17,6 @@ import {
   listFosterPlacements,
   listStaffMembers,
   makeCreateFosterPlacement,
-  removeStaffMember,
-  updateStaffMember,
 } from './staff-foster-handlers.js';
 
 const RESCUE_ID = 'rsc-1';
@@ -32,17 +29,6 @@ const STAFF: Principal = {
     'foster.create' as Permission,
     'foster.read' as Permission,
     'foster.update' as Permission,
-  ],
-  rescueId: RESCUE_ID as RescueId,
-};
-
-const STAFF_MANAGER: Principal = {
-  userId: 'usr-admin' as UserId,
-  roles: ['rescue_admin'],
-  permissions: [
-    'staff.create' as Permission,
-    'staff.update' as Permission,
-    'staff.delete' as Permission,
   ],
   rescueId: RESCUE_ID as RescueId,
 };
@@ -183,145 +169,6 @@ describe('listStaffMembers', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [staffRow()] });
     const res = await listStaffMembers(mocks.deps, superWithRead, { rescueId: 'rsc-any' });
     expect(res.staffMembers).toHaveLength(1);
-  });
-});
-
-// --- CreateStaffMember ------------------------------------------------
-
-describe('createStaffMember', () => {
-  let mocks: ReturnType<typeof makeMocks>;
-  beforeEach(() => {
-    mocks = makeMocks();
-  });
-
-  const baseReq = { rescueId: RESCUE_ID, userId: 'usr-new', title: 'Volunteer' };
-
-  it('rejects missing rescue_id', async () => {
-    await expect(
-      createStaffMember(mocks.deps, STAFF_MANAGER, { ...baseReq, rescueId: '' })
-    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
-  });
-
-  it('rejects missing user_id', async () => {
-    await expect(
-      createStaffMember(mocks.deps, STAFF_MANAGER, { ...baseReq, userId: '' })
-    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
-  });
-
-  it('rejects callers without staff.create for the rescue', async () => {
-    await expect(createStaffMember(mocks.deps, UNPRIVILEGED, baseReq)).rejects.toMatchObject({
-      code: 'PERMISSION_DENIED',
-    });
-  });
-
-  it('rejects a user who is already a staff member of the rescue', async () => {
-    mocks.clientScript([staffRow({ user_id: 'usr-new' })]);
-    await expect(createStaffMember(mocks.deps, STAFF_MANAGER, baseReq)).rejects.toMatchObject({
-      code: 'ALREADY_EXISTS',
-    });
-  });
-
-  it('inserts a verified staff member + publishes rescue.staffMemberCreated', async () => {
-    mocks.clientScript([]); // existing membership check → none
-    mocks.clientScript([staffRow({ user_id: 'usr-new', title: 'Volunteer' })]); // insert
-
-    const res = await createStaffMember(mocks.deps, STAFF_MANAGER, baseReq);
-
-    expect(res.staffMember?.userId).toBe('usr-new');
-    expect(res.staffMember?.isVerified).toBe(true);
-    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.staffMemberCreated');
-  });
-});
-
-// --- UpdateStaffMember ------------------------------------------------
-
-describe('updateStaffMember', () => {
-  let mocks: ReturnType<typeof makeMocks>;
-  beforeEach(() => {
-    mocks = makeMocks();
-  });
-
-  const baseReq = { rescueId: RESCUE_ID, userId: 'usr-staff', title: 'Lead Volunteer' };
-
-  it('rejects missing rescue_id', async () => {
-    await expect(
-      updateStaffMember(mocks.deps, STAFF_MANAGER, { ...baseReq, rescueId: '' })
-    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
-  });
-
-  it('rejects missing user_id', async () => {
-    await expect(
-      updateStaffMember(mocks.deps, STAFF_MANAGER, { ...baseReq, userId: '' })
-    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
-  });
-
-  it('rejects callers without staff.update for the rescue', async () => {
-    await expect(updateStaffMember(mocks.deps, UNPRIVILEGED, baseReq)).rejects.toMatchObject({
-      code: 'PERMISSION_DENIED',
-    });
-  });
-
-  it('returns NOT_FOUND when the membership does not exist', async () => {
-    mocks.clientScript([]);
-    await expect(updateStaffMember(mocks.deps, STAFF_MANAGER, baseReq)).rejects.toMatchObject({
-      code: 'NOT_FOUND',
-    });
-  });
-
-  it('updates the title + publishes rescue.staffMemberUpdated', async () => {
-    mocks.clientScript([staffRow()]); // existing
-    mocks.clientScript([staffRow({ title: 'Lead Volunteer' })]); // update
-
-    const res = await updateStaffMember(mocks.deps, STAFF_MANAGER, baseReq);
-
-    expect(res.staffMember?.title).toBe('Lead Volunteer');
-    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.staffMemberUpdated');
-  });
-});
-
-// --- RemoveStaffMember ------------------------------------------------
-
-describe('removeStaffMember', () => {
-  let mocks: ReturnType<typeof makeMocks>;
-  beforeEach(() => {
-    mocks = makeMocks();
-  });
-
-  const baseReq = { rescueId: RESCUE_ID, userId: 'usr-staff' };
-
-  it('rejects missing rescue_id', async () => {
-    await expect(
-      removeStaffMember(mocks.deps, STAFF_MANAGER, { ...baseReq, rescueId: '' })
-    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
-  });
-
-  it('rejects missing user_id', async () => {
-    await expect(
-      removeStaffMember(mocks.deps, STAFF_MANAGER, { ...baseReq, userId: '' })
-    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
-  });
-
-  it('rejects callers without staff.delete for the rescue', async () => {
-    await expect(removeStaffMember(mocks.deps, UNPRIVILEGED, baseReq)).rejects.toMatchObject({
-      code: 'PERMISSION_DENIED',
-    });
-  });
-
-  it('returns NOT_FOUND when the membership does not exist or was already removed', async () => {
-    mocks.clientScript([]);
-    await expect(removeStaffMember(mocks.deps, STAFF_MANAGER, baseReq)).rejects.toMatchObject({
-      code: 'NOT_FOUND',
-    });
-  });
-
-  it('soft-deletes the membership + publishes rescue.staffMemberRemoved', async () => {
-    mocks.clientScript([staffRow()]); // existing
-    mocks.clientScript([]); // UPDATE ... SET deleted_at
-
-    const res = await removeStaffMember(mocks.deps, STAFF_MANAGER, baseReq);
-
-    expect(res.removed).toBe(true);
-    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.staffMemberRemoved');
   });
 });
 

@@ -59,8 +59,6 @@ export type HandlerErrorCode =
   | 'UNAUTHENTICATED'
   | 'PERMISSION_DENIED'
   | 'NOT_FOUND'
-  | 'ALREADY_EXISTS'
-  | 'FAILED_PRECONDITION'
   | 'INTERNAL';
 
 export class HandlerError extends Error {

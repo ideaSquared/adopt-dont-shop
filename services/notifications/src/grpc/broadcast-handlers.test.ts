@@ -111,30 +111,6 @@ describe('broadcast', () => {
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
   });
 
-  it('dryRun returns the cohort size without writing or paging further', async () => {
-    const authClient: AuthCohortClient = {
-      listUserIdsByCohort: vi.fn().mockResolvedValue({
-        userIds: ['u-1', 'u-2'],
-        total: 42,
-        page: 1,
-        totalPages: 1,
-      }),
-    };
-    const mocks = makeMocks(authClient);
-
-    const res = await broadcast(mocks.deps, BROADCASTER, {
-      cohort: { userTypes: [], statuses: [] },
-      type: 0,
-      title: '',
-      message: '',
-      dryRun: true,
-    });
-
-    expect(res).toEqual({ targeted: 42, delivered: 0, suppressed: 0, failed: 0 });
-    expect(authClient.listUserIdsByCohort).toHaveBeenCalledTimes(1);
-    expect(mocks.poolMock.connect).not.toHaveBeenCalled();
-  });
-
   it('fans out to the cohort and counts delivered / suppressed / failed', async () => {
     const authClient: AuthCohortClient = {
       listUserIdsByCohort: vi.fn().mockResolvedValue({

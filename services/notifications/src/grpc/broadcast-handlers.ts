@@ -128,13 +128,12 @@ export async function broadcast(
       'broadcast requires auth client; service.notifications was not wired with one'
     );
   }
-  const dryRun = req.dryRun ?? false;
   const title = req.title?.trim() ?? '';
   const message = req.message?.trim() ?? '';
-  if (!dryRun && title === '') {
+  if (title === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'title is required');
   }
-  if (!dryRun && message === '') {
+  if (message === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'message is required');
   }
 
@@ -181,11 +180,6 @@ export async function broadcast(
     });
     if (page === 1) {
       total = lookup.total;
-      // dryRun (preview) only needs the cohort size, already known after
-      // page 1's `total` — skip writes and further pages entirely.
-      if (dryRun) {
-        return { targeted: total, delivered: 0, suppressed: 0, failed: 0 };
-      }
     }
     targeted += lookup.userIds.length;
     for (const userId of lookup.userIds) {
