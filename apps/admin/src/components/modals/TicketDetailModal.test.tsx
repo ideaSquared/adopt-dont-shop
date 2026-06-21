@@ -209,7 +209,7 @@ describe('TicketDetailModal — EntityInspector tabs', () => {
     mockUseEntityActivity.mockReturnValue({
       data: [
         {
-          activityId: 1,
+          activityId: '1',
           activityType: 'other',
           action: 'UPDATE',
           description: 'Updated support_ticket: Unable to upload pet photos',
