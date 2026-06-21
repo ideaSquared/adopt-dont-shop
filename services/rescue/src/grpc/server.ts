@@ -27,6 +27,7 @@ import {
 } from './handlers.js';
 import {
   acceptInvitation,
+  createStaffMember,
   endFosterPlacement,
   getFosterPlacement,
   getInvitationByToken,
@@ -34,6 +35,8 @@ import {
   listFosterPlacements,
   listStaffMembers,
   makeCreateFosterPlacement,
+  removeStaffMember,
+  updateStaffMember,
 } from './staff-foster-handlers.js';
 import {
   createApplicationQuestion,
@@ -68,6 +71,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     inviteStaff: adapt(inviteStaff, { deps, logger }),
     getMyStaffMembership: adapt(getMyStaffMembership, { deps, logger }),
     listStaffMembers: adapt(listStaffMembers, { deps, logger }),
+    createStaffMember: adapt(createStaffMember, { deps, logger }),
+    updateStaffMember: adapt(updateStaffMember, { deps, logger }),
+    removeStaffMember: adapt(removeStaffMember, { deps, logger }),
     createFosterPlacement: adapt(makeCreateFosterPlacement(petsClient), { deps, logger }),
     listFosterPlacements: adapt(listFosterPlacements, { deps, logger }),
     getFosterPlacement: adapt(getFosterPlacement, { deps, logger }),
@@ -90,6 +96,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'inviteStaff',
       'getMyStaffMembership',
       'listStaffMembers',
+      'createStaffMember',
+      'updateStaffMember',
+      'removeStaffMember',
       'createFosterPlacement',
       'listFosterPlacements',
       'getFosterPlacement',
