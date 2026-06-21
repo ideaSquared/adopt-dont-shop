@@ -204,4 +204,94 @@ describe('POST /api/v1/notifications/broadcast', () => {
     expect(metadata.get('x-user-id')).toEqual(['usr-admin']);
     expect(metadata.get('x-user-permissions')).toEqual(['admin.notifications.broadcast']);
   });
+
+  it('accepts the admin SPA shape: a named `audience` string and a `body` message field', async () => {
+    broadcast.mockResolvedValue({ targeted: 5, delivered: 4, suppressed: 1, failed: 0 });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/broadcast',
+      headers: ADMIN_HEADERS,
+      payload: {
+        audience: 'all-adopters',
+        title: 'Hello',
+        body: 'Heads up',
+        channels: ['in_app', 'email'],
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const [grpcReq] = broadcast.mock.calls[0];
+    expect(grpcReq.cohort).toEqual({ userTypes: ['adopter'], statuses: [] });
+    expect(grpcReq.message).toBe('Heads up');
+    expect(res.json()).toMatchObject({
+      success: true,
+      data: {
+        audience: 'all-adopters',
+        targetCount: 5,
+        deliveredInApp: 4,
+        skippedByPrefs: 0,
+        skippedByDnd: 1,
+        channels: ['in_app', 'email'],
+      },
+    });
+  });
+
+  it('an explicit `cohort` takes precedence over `audience` when both are sent', async () => {
+    broadcast.mockResolvedValue({ targeted: 0, delivered: 0, suppressed: 0, failed: 0 });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/notifications/broadcast',
+      headers: ADMIN_HEADERS,
+      payload: {
+        audience: 'all-staff',
+        cohort: { userTypes: ['adopter'] },
+        title: 't',
+        message: 'm',
+      },
+    });
+    const [grpcReq] = broadcast.mock.calls[0];
+    expect(grpcReq.cohort.userTypes).toEqual(['adopter']);
+  });
+});
+
+describe('GET /api/v1/notifications/broadcast/preview', () => {
+  let app: FastifyInstance;
+  let broadcast: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    app = Fastify({ logger: false });
+    const { client, broadcast: b } = makeClient();
+    broadcast = b;
+    await registerBroadcastRoutes(app, { client });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('resolves a named audience to a cohort size via a dry-run broadcast call', async () => {
+    broadcast.mockResolvedValue({ targeted: 42, delivered: 0, suppressed: 0, failed: 0 });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/broadcast/preview?audience=all-rescues',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      success: true,
+      data: { audience: 'all-rescues', count: 42 },
+    });
+    const [grpcReq] = broadcast.mock.calls[0];
+    expect(grpcReq.cohort).toEqual({ userTypes: ['rescue_staff'], statuses: [] });
+    expect(grpcReq.dryRun).toBe(true);
+  });
+
+  it('rejects an unknown audience with 400 without calling the client', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/notifications/broadcast/preview?audience=not-a-real-audience',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(broadcast).not.toHaveBeenCalled();
+  });
 });
