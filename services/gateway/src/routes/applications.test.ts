@@ -488,4 +488,180 @@ describe('applications routes', () => {
     expect(metadata.get('x-user-id')).toEqual(['staff-1']);
     expect(metadata.get('x-rescue-id')).toEqual(['rsc-1']);
   });
+
+  describe('PATCH /api/v1/applications/bulk-update', () => {
+    it('requires a non-empty applicationIds array', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: STAFF,
+        payload: { applicationIds: [], updates: { status: 'approved' } },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('status: approved → Approve for every id, reporting an all-success summary', async () => {
+      mocks.approve.mockResolvedValue({ application: SUBMITTED });
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: STAFF,
+        payload: {
+          applicationIds: ['app-1', 'app-2'],
+          updates: { status: 'approved', notes: 'great home' },
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(mocks.approve).toHaveBeenCalledTimes(2);
+      expect(mocks.approve.mock.calls[0][0]).toMatchObject({
+        applicationId: 'app-1',
+        notes: 'great home',
+      });
+      expect(mocks.approve.mock.calls[1][0]).toMatchObject({ applicationId: 'app-2' });
+      expect(res.json()).toEqual({ data: { successCount: 2, failureCount: 0, failures: [] } });
+    });
+
+    it('status: rejected → Reject, preferring rejectionReason over notes', async () => {
+      mocks.reject.mockResolvedValue({ application: SUBMITTED });
+      await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: STAFF,
+        payload: {
+          applicationIds: ['app-1'],
+          updates: { status: 'rejected', notes: 'fallback', rejectionReason: 'no yard' },
+        },
+      });
+      expect(mocks.reject.mock.calls[0][0]).toMatchObject({
+        applicationId: 'app-1',
+        reason: 'no yard',
+      });
+    });
+
+    it('status: withdrawn → Withdraw with withdrawalReason', async () => {
+      mocks.withdraw.mockResolvedValue({ application: SUBMITTED });
+      await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: ADOPTER,
+        payload: {
+          applicationIds: ['app-1'],
+          updates: { status: 'withdrawn', withdrawalReason: 'found another pet' },
+        },
+      });
+      expect(mocks.withdraw.mock.calls[0][0]).toMatchObject({
+        applicationId: 'app-1',
+        reason: 'found another pet',
+      });
+    });
+
+    it('stage: reviewing → StartReview (single-row stage transition, ADS-642)', async () => {
+      mocks.startReview.mockResolvedValue({ application: SUBMITTED });
+      await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: STAFF,
+        payload: { applicationIds: ['app-1'], updates: { stage: 'reviewing' } },
+      });
+      expect(mocks.startReview.mock.calls[0][0]).toMatchObject({ applicationId: 'app-1' });
+    });
+
+    it('stage: visiting → ScheduleHomeVisit, requires scheduledAt', async () => {
+      mocks.scheduleHomeVisit.mockResolvedValue({ application: SUBMITTED });
+      const ok = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: STAFF,
+        payload: {
+          applicationIds: ['app-1'],
+          updates: { stage: 'visiting', scheduledAt: '2026-07-01T10:00:00.000Z' },
+        },
+      });
+      expect(mocks.scheduleHomeVisit.mock.calls[0][0]).toMatchObject({
+        applicationId: 'app-1',
+        scheduledAt: '2026-07-01T10:00:00.000Z',
+      });
+      expect((ok.json() as { data: { successCount: number } }).data.successCount).toBe(1);
+
+      const missingDate = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: STAFF,
+        payload: { applicationIds: ['app-2'], updates: { stage: 'visiting' } },
+      });
+      const body = missingDate.json() as { data: { failureCount: number } };
+      expect(body.data.failureCount).toBe(1);
+    });
+
+    it('stage: deciding → CompleteHomeVisit with the parsed outcome', async () => {
+      mocks.completeHomeVisit.mockResolvedValue({ application: SUBMITTED });
+      await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: STAFF,
+        payload: {
+          applicationIds: ['app-1'],
+          updates: { stage: 'deciding', outcome: 'passed', notes: 'all good' },
+        },
+      });
+      expect(mocks.completeHomeVisit.mock.calls[0][0]).toMatchObject({
+        applicationId: 'app-1',
+        outcome: ApplicationsV1.HomeVisitOutcome.HOME_VISIT_OUTCOME_PASSED,
+        notes: 'all good',
+      });
+    });
+
+    it('an unrecognised updates shape is a per-item failure, not a 400', async () => {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: STAFF,
+        payload: { applicationIds: ['app-1'], updates: { foo: 'bar' } },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: { failureCount: number; failures: unknown[] } };
+      expect(body.data.failureCount).toBe(1);
+      expect(body.data.failures).toEqual([
+        {
+          applicationId: 'app-1',
+          error: 'updates must include a recognised status or stage transition',
+        },
+      ]);
+    });
+
+    it('one failing id does not block the others from succeeding', async () => {
+      mocks.approve.mockResolvedValueOnce({ application: SUBMITTED }).mockRejectedValueOnce({
+        code: grpcStatus.FAILED_PRECONDITION,
+        details: 'already decided',
+      });
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: STAFF,
+        payload: { applicationIds: ['app-1', 'app-2'], updates: { status: 'approved' } },
+      });
+      const body = res.json() as {
+        data: {
+          successCount: number;
+          failureCount: number;
+          failures: Array<{ applicationId: string; error: string }>;
+        };
+      };
+      expect(body.data.successCount).toBe(1);
+      expect(body.data.failureCount).toBe(1);
+      expect(body.data.failures).toEqual([{ applicationId: 'app-2', error: 'already decided' }]);
+    });
+
+    it('a server-side (5xx) failure is reported generically, not with internal details', async () => {
+      mocks.approve.mockRejectedValue({ code: grpcStatus.INTERNAL, details: 'db connection lost' });
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/applications/bulk-update',
+        headers: STAFF,
+        payload: { applicationIds: ['app-1'], updates: { status: 'approved' } },
+      });
+      const body = res.json() as { data: { failures: Array<{ error: string }> } };
+      expect(body.data.failures[0].error).toBe('internal_error');
+    });
+  });
 });
