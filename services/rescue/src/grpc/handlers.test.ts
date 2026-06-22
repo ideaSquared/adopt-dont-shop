@@ -7,6 +7,7 @@ import type { Permission, RescueId, UserId } from '@adopt-dont-shop/lib.types';
 import { RescueV1, type CreateRescueRequest } from '@adopt-dont-shop/proto';
 
 import {
+  countRescues,
   createRescue,
   getRescue,
   getRescueStatistics,
@@ -703,6 +704,73 @@ describe('getRescueStatistics', () => {
     expect(res.statistics.totalPets).toBe(0);
     expect(res.statistics.totalApplications).toBe(0);
     expect(res.statistics.averageTimeToAdoption).toBe(0);
+  });
+});
+
+// --- countRescues ----------------------------------------------------
+
+describe('countRescues', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('PERMISSION_DENIED without rescues.read', async () => {
+    const noRead: Principal = {
+      userId: 'usr-x' as UserId,
+      roles: ['adopter'],
+      permissions: [],
+    };
+    await expect(countRescues(mocks.deps, noRead, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('maps the grouped count into per-status fields and a summed total', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        { status: 'verified', count: '150' },
+        { status: 'pending', count: '12' },
+        { status: 'suspended', count: '3' },
+      ],
+    });
+
+    const res = await countRescues(mocks.deps, ADOPTER, {});
+
+    expect(res.verified).toBe(150);
+    expect(res.pending).toBe(12);
+    expect(res.suspended).toBe(3);
+    expect(res.inactive).toBe(0);
+    expect(res.rejected).toBe(0);
+    expect(res.total).toBe(165);
+  });
+
+  it('runs a single grouped count (no per-status fan-out, uncapped)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ status: 'verified', count: '0' }] });
+
+    await countRescues(mocks.deps, ADOPTER, {});
+
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+    const [sql] = mocks.poolMock.query.mock.calls[0] as [string];
+    expect(sql).toMatch(/GROUP BY status/);
+  });
+
+  it('returns all-zero counts when there are no rescues', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await countRescues(mocks.deps, ADOPTER, {});
+
+    expect(res).toEqual({
+      pending: 0,
+      verified: 0,
+      suspended: 0,
+      inactive: 0,
+      rejected: 0,
+      total: 0,
+    });
   });
 });
 

@@ -276,6 +276,8 @@ export type {
   GetRescueStatisticsRequest,
   GetRescueStatisticsResponse,
   RescueStatistics,
+  CountRescuesRequest,
+  CountRescuesResponse,
   SendRescueEmailRequest,
   SendRescueEmailResponse,
   RescueServiceServer,
