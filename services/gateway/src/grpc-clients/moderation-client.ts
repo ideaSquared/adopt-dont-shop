@@ -17,6 +17,8 @@ import {
   type AppealSanctionResponse,
   type AssignReportRequest,
   type AssignReportResponse,
+  type AssignSupportTicketRequest,
+  type AssignSupportTicketResponse,
   type FileReportRequest,
   type FileReportResponse,
   type GetReportRequest,
@@ -84,6 +86,10 @@ export type ModerationClient = {
     req: RespondToTicketRequest,
     metadata: Metadata
   ): Promise<RespondToTicketResponse>;
+  assignSupportTicket(
+    req: AssignSupportTicketRequest,
+    metadata: Metadata
+  ): Promise<AssignSupportTicketResponse>;
   close(): void;
 };
 
@@ -156,6 +162,8 @@ export const createModerationClient = (opts: CreateModerationClientOptions): Mod
     appealSanction: (req, metadata) => callUnary(stub.appealSanction, req, metadata, false),
     openSupportTicket: (req, metadata) => callUnary(stub.openSupportTicket, req, metadata, false),
     respondToTicket: (req, metadata) => callUnary(stub.respondToTicket, req, metadata, false),
+    assignSupportTicket: (req, metadata) =>
+      callUnary(stub.assignSupportTicket, req, metadata, false),
     // ── Idempotent (reads) ───────────────────────────────────────────
     getReport: (req, metadata) => callUnary(stub.getReport, req, metadata, true),
     listReports: (req, metadata) => callUnary(stub.listReports, req, metadata, true),

@@ -21,6 +21,7 @@ import { adapt } from './adapter.js';
 import { assignReport, fileReport, getReport, listReports, resolveReport } from './handlers.js';
 import { appealSanction, issueSanction, listUserSanctions } from './sanction-handlers.js';
 import {
+  assignSupportTicket,
   getSupportTicket,
   listSupportTickets,
   openSupportTicket,
@@ -61,10 +62,11 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getSupportTicket: adapt(getSupportTicket, { deps, logger }),
     listSupportTickets: adapt(listSupportTickets, { deps, logger }),
     respondToTicket: adapt(respondToTicket, { deps, logger }),
+    assignSupportTicket: adapt(assignSupportTicket, { deps, logger }),
   });
 
   logger.info('gRPC ModerationService registered', {
-    methodCount: 15,
+    methodCount: 16,
     grpcPort: config.grpcPort,
   });
 

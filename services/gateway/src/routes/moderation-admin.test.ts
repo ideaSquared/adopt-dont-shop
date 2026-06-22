@@ -29,6 +29,7 @@ function makeClient(): {
     'getSupportTicket',
     'listSupportTickets',
     'respondToTicket',
+    'assignSupportTicket',
   ]) {
     mocks[m] = vi.fn();
   }
@@ -343,5 +344,22 @@ describe('moderation admin actions + tickets', () => {
     });
     expect(res.statusCode).toBe(201);
     expect((res.json() as { data: { responseId: string } }).data.responseId).toBe('res-1');
+  });
+
+  it('POST /admin/support/tickets/:id/assign → { data } and threads assignedTo', async () => {
+    mocks.assignSupportTicket.mockResolvedValueOnce({
+      ticket: { ...TICKET, assignedTo: 'mod-2' },
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/support/tickets/tkt-1/assign',
+      headers: ADMIN,
+      payload: { assignedTo: 'mod-2' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.assignSupportTicket.mock.calls[0][0]).toMatchObject({
+      ticketId: 'tkt-1',
+      assignedTo: 'mod-2',
+    });
   });
 });

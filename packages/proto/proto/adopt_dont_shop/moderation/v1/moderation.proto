@@ -99,6 +99,11 @@ service ModerationService {
   // Append a response to a ticket. responder_type indicates whether
   // the response is from staff or the user.
   rpc RespondToTicket(RespondToTicketRequest) returns (RespondToTicketResponse);
+
+  // Assign a support ticket to a staff member (or self-assign). Sets
+  // assigned_to and moves an open ticket to in_progress. Publishes
+  // moderation.ticketAssigned.
+  rpc AssignSupportTicket(AssignSupportTicketRequest) returns (AssignSupportTicketResponse);
 }
 
 // ===== Enums =========================================================
@@ -606,4 +611,17 @@ message RespondToTicketRequest {
 
 message RespondToTicketResponse {
   SupportTicketResponse response = 1;
+}
+
+// --- AssignSupportTicket ---------------------------------------------
+
+message AssignSupportTicketRequest {
+  string ticket_id = 1;
+  // The staff member being assigned. May equal the calling principal
+  // (self-assign) or another staff member.
+  string assigned_to = 2;
+}
+
+message AssignSupportTicketResponse {
+  SupportTicket ticket = 1;
 }

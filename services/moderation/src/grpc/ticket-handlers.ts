@@ -22,6 +22,8 @@ import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
 import { MODERATION_TICKETS_MANAGE } from '@adopt-dont-shop/lib.types';
 import type {
+  AssignSupportTicketRequest,
+  AssignSupportTicketResponse,
   GetSupportTicketRequest,
   GetSupportTicketResponse,
   ListSupportTicketsRequest,
@@ -374,5 +376,64 @@ export async function respondToTicket(
     });
 
     return { response: responseRowToProto(inserted.rows[0]) };
+  });
+}
+
+// --- AssignSupportTicket ---------------------------------------------
+
+export async function assignSupportTicket(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: AssignSupportTicketRequest
+): Promise<AssignSupportTicketResponse> {
+  if (!requirePermission(principal, MODERATION_TICKETS_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${MODERATION_TICKETS_MANAGE}' required`);
+  }
+
+  if (req.ticketId === undefined || req.ticketId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'ticket_id is required');
+  }
+  if (req.assignedTo === undefined || req.assignedTo === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'assigned_to is required');
+  }
+
+  return withTransaction(deps, async ({ client, publish }) => {
+    const existing = await client.query<{ ticket_id: string }>(
+      `SELECT ticket_id FROM support_tickets WHERE ticket_id = $1 FOR UPDATE`,
+      [req.ticketId]
+    );
+
+    if (existing.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `ticket ${req.ticketId} not found`);
+    }
+
+    // Set the assignee and move an untouched 'open' ticket into
+    // 'in_progress'; any other status is left as-is (mirrors how
+    // assignReport advances a report to under_review).
+    const updated = await client.query<SupportTicketRow>(
+      `UPDATE support_tickets
+       SET assigned_to = $1,
+           status = CASE WHEN status = 'open' THEN 'in_progress' ELSE status END,
+           updated_at = NOW()
+       WHERE ticket_id = $2
+       RETURNING ${TICKET_SELECT}`,
+      [req.assignedTo, req.ticketId]
+    );
+
+    if (updated.rows.length !== 1) {
+      throw new HandlerError('INTERNAL', 'update returned no rows');
+    }
+
+    publish({
+      type: 'moderation.ticketAssigned',
+      id: req.ticketId,
+      payload: {
+        ticketId: req.ticketId,
+        assignedTo: req.assignedTo,
+        assignedBy: principal.userId,
+      },
+    });
+
+    return { ticket: ticketRowToProto(updated.rows[0]) };
   });
 }

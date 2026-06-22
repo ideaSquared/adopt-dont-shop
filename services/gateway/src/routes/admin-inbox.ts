@@ -238,11 +238,16 @@ export const registerAdminInboxRoutes = async (
         }
       }
 
-      // Support-ticket assignment has no backing RPC in service.moderation
-      // yet (only AssignReport exists), so we cannot fulfil it from the
-      // gateway. Surface that honestly rather than silently no-op.
       if (b.source === 'support') {
-        return reply.code(501).send({ error: 'support ticket assignment is not implemented' });
+        try {
+          await client.assignSupportTicket(
+            { ticketId: b.itemId, assignedTo: b.assignedTo },
+            buildMetadata(req)
+          );
+          return reply.code(204).send();
+        } catch (err) {
+          return handleGrpcError(err, reply);
+        }
       }
 
       return reply.code(400).send({ error: `unsupported inbox source: ${b.source ?? ''}` });

@@ -433,6 +433,8 @@ export type {
   ListSupportTicketsResponse,
   RespondToTicketRequest,
   RespondToTicketResponse,
+  AssignSupportTicketRequest,
+  AssignSupportTicketResponse,
   ModerationServiceServer,
   ModerationServiceClient,
 } from './generated/proto/adopt_dont_shop/moderation/v1/moderation.js';
