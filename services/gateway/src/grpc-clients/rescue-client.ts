@@ -15,6 +15,8 @@ import {
   RescueV1,
   type AcceptInvitationRequest,
   type AcceptInvitationResponse,
+  type CountRescuesRequest,
+  type CountRescuesResponse,
   type CreateApplicationQuestionRequest,
   type CreateApplicationQuestionResponse,
   type CreateFosterPlacementRequest,
@@ -72,6 +74,7 @@ export type RescueClient = {
     req: GetRescueStatisticsRequest,
     metadata: Metadata
   ): Promise<GetRescueStatisticsResponse>;
+  countRescues(req: CountRescuesRequest, metadata: Metadata): Promise<CountRescuesResponse>;
   sendRescueEmail(
     req: SendRescueEmailRequest,
     metadata: Metadata
@@ -204,6 +207,7 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     list: (req, metadata) => callUnary(stub.list, req, metadata, true),
     getRescueStatistics: (req, metadata) =>
       callUnary(stub.getRescueStatistics, req, metadata, true),
+    countRescues: (req, metadata) => callUnary(stub.countRescues, req, metadata, true),
     getMyStaffMembership: (req, metadata) =>
       callUnary(stub.getMyStaffMembership, req, metadata, true),
     listStaffMembers: (req, metadata) => callUnary(stub.listStaffMembers, req, metadata, true),

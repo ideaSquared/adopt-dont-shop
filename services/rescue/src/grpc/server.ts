@@ -18,6 +18,7 @@ import type { RescueConfig } from '../config.js';
 
 import { adapt, adaptUnauth } from './adapter.js';
 import {
+  countRescues,
   createRescue,
   getRescue,
   getRescueStatistics,
@@ -83,6 +84,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     deleteApplicationQuestion: adapt(deleteApplicationQuestion, { deps, logger }),
     updateRescuePlan: adapt(updateRescuePlan, { deps, logger }),
     getRescueStatistics: adapt(getRescueStatistics, { deps, logger }),
+    countRescues: adapt(countRescues, { deps, logger }),
     sendRescueEmail: adapt(sendRescueEmail, { deps, logger }),
   });
 
@@ -107,6 +109,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'deleteApplicationQuestion',
       'updateRescuePlan',
       'getRescueStatistics',
+      'countRescues',
       'sendRescueEmail',
     ],
     grpcPort: config.grpcPort,

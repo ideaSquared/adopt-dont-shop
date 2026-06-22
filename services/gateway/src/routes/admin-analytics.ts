@@ -1,17 +1,20 @@
 // REST → gRPC aggregation for the admin SPA's Dashboard + Analytics pages.
 //
 // There is no analytics microservice. Both endpoints fan out to the
-// EXISTING stats/list RPCs on auth, pets, applications and rescue and
-// compose the SPA's documented shapes at the gateway. Fields with no
-// feasible upstream source (time-series trends, session/retention
-// metrics, per-rescue performance, "new this month" for entities whose
-// stats RPC doesn't expose it) are zero/empty-defaulted rather than
-// inventing new backend RPCs.
+// stats/count RPCs on auth, pets, applications and rescue and compose the
+// SPA's documented shapes at the gateway. Rescue counts come from
+// rescue.CountRescues — a single grouped count, so verified/pending/total
+// are exact and uncapped (the earlier rescue.List ×2 approach capped each
+// status at the 100-row page limit). Fields with no feasible upstream
+// source (time-series trends, session/retention metrics, per-rescue
+// performance, "new this month" for entities whose stats RPC doesn't
+// expose it) are zero/empty-defaulted rather than inventing new backend
+// RPCs.
 //
 // Route map:
 //   GET /api/v1/admin/metrics             → auth.GetUserStatistics +
 //                                           pets.GetStats + apps.GetStats +
-//                                           rescue.List ×2 (verified, pending)
+//                                           rescue.CountRescues
 //   GET /api/v1/admin/analytics/dashboard → same fan-out, reshaped into the
 //                                           larger DashboardAnalytics contract
 //
@@ -23,13 +26,12 @@ import type { FastifyInstance } from 'fastify';
 
 import {
   AuthV1,
-  RescueV1,
   type GetUserStatisticsResponse,
   type GetPetStatsRequest,
   type GetPetStatsResponse,
   type GetStatsRequest as ApplicationsGetStatsRequest,
   type GetStatsResponse as ApplicationsGetStatsResponse,
-  type ListRescuesRequest,
+  type CountRescuesResponse,
 } from '@adopt-dont-shop/proto';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
@@ -53,11 +55,6 @@ const ADMIN_ANALYTICS_RATE_LIMITS = {
   metrics: { max: 120, timeWindow: '1 minute' },
   dashboard: { max: 120, timeWindow: '1 minute' },
 } as const;
-
-// rescue.List is cursor-paginated with no total; the max page is 100, so
-// counts derived from it are accurate up to 100 per status. Good enough
-// for the dashboard KPI; a future revision can add a rescue stats RPC.
-const RESCUE_COUNT_LIMIT = 100;
 
 // --- Response shapes (gateway-local; no lib.types dependency) --------
 
@@ -100,8 +97,7 @@ type SourceStats = {
   users: GetUserStatisticsResponse;
   pets: GetPetStatsResponse;
   applications: ApplicationsGetStatsResponse;
-  verifiedRescues: number;
-  pendingRescues: number;
+  rescues: CountRescuesResponse;
 };
 
 // --- Pure aggregation helpers ----------------------------------------
@@ -139,9 +135,9 @@ const toPlatformMetrics = (s: SourceStats): PlatformMetrics => ({
     byRole: usersByRole(s.users),
   },
   rescues: {
-    total: s.verifiedRescues + s.pendingRescues,
-    verified: s.verifiedRescues,
-    pending: s.pendingRescues,
+    total: s.rescues.total,
+    verified: s.rescues.verified,
+    pending: s.rescues.pending,
     newThisMonth: 0,
   },
   pets: {
@@ -199,27 +195,17 @@ export const registerAdminAnalyticsRoutes = async (
   const collectSourceStats = (metadata: ReturnType<typeof buildMetadata>): Promise<SourceStats> => {
     const petStatsReq: GetPetStatsRequest = {};
     const appStatsReq: ApplicationsGetStatsRequest = {};
-    const verifiedReq: ListRescuesRequest = {
-      limit: RESCUE_COUNT_LIMIT,
-      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
-    };
-    const pendingReq: ListRescuesRequest = {
-      limit: RESCUE_COUNT_LIMIT,
-      statusFilter: RescueV1.RescueStatus.RESCUE_STATUS_PENDING,
-    };
 
     return Promise.all([
       authClient.getUserStatistics({}, metadata),
       petsClient.getStats(petStatsReq, metadata),
       applicationsClient.getStats(appStatsReq, metadata),
-      rescueClient.list(verifiedReq, metadata),
-      rescueClient.list(pendingReq, metadata),
-    ]).then(([users, pets, applications, verified, pending]) => ({
+      rescueClient.countRescues({}, metadata),
+    ]).then(([users, pets, applications, rescues]) => ({
       users,
       pets,
       applications,
-      verifiedRescues: verified.rescues.length,
-      pendingRescues: pending.rescues.length,
+      rescues,
     }));
   };
 

@@ -663,6 +663,23 @@ export interface GetRescueStatisticsResponse {
   statistics?: RescueStatistics | undefined;
 }
 
+export interface CountRescuesRequest {}
+
+/**
+ * Exact platform-wide rescue counts, one field per lifecycle status plus
+ * the grand total. Flat scalar fields (mirrors RescueStatistics) rather
+ * than a map so consumers read named counts without a key lookup.
+ */
+export interface CountRescuesResponse {
+  pending: number;
+  verified: number;
+  suspended: number;
+  inactive: number;
+  rejected: number;
+  /** Sum across every status (includes any not broken out above). */
+  total: number;
+}
+
 export interface SendRescueEmailRequest {
   rescueId: string;
   /** Either a predefined template id, OR a custom subject + body. */
@@ -6398,6 +6415,191 @@ export const GetRescueStatisticsResponse: MessageFns<GetRescueStatisticsResponse
   },
 };
 
+function createBaseCountRescuesRequest(): CountRescuesRequest {
+  return {};
+}
+
+export const CountRescuesRequest: MessageFns<CountRescuesRequest> = {
+  encode(_: CountRescuesRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CountRescuesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCountRescuesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): CountRescuesRequest {
+    return {};
+  },
+
+  toJSON(_: CountRescuesRequest): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CountRescuesRequest>, I>>(base?: I): CountRescuesRequest {
+    return CountRescuesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CountRescuesRequest>, I>>(_: I): CountRescuesRequest {
+    const message = createBaseCountRescuesRequest();
+    return message;
+  },
+};
+
+function createBaseCountRescuesResponse(): CountRescuesResponse {
+  return { pending: 0, verified: 0, suspended: 0, inactive: 0, rejected: 0, total: 0 };
+}
+
+export const CountRescuesResponse: MessageFns<CountRescuesResponse> = {
+  encode(message: CountRescuesResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.pending !== 0) {
+      writer.uint32(8).uint32(message.pending);
+    }
+    if (message.verified !== 0) {
+      writer.uint32(16).uint32(message.verified);
+    }
+    if (message.suspended !== 0) {
+      writer.uint32(24).uint32(message.suspended);
+    }
+    if (message.inactive !== 0) {
+      writer.uint32(32).uint32(message.inactive);
+    }
+    if (message.rejected !== 0) {
+      writer.uint32(40).uint32(message.rejected);
+    }
+    if (message.total !== 0) {
+      writer.uint32(48).uint32(message.total);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CountRescuesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCountRescuesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.pending = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.verified = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.suspended = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.inactive = reader.uint32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.rejected = reader.uint32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.total = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CountRescuesResponse {
+    return {
+      pending: isSet(object.pending) ? globalThis.Number(object.pending) : 0,
+      verified: isSet(object.verified) ? globalThis.Number(object.verified) : 0,
+      suspended: isSet(object.suspended) ? globalThis.Number(object.suspended) : 0,
+      inactive: isSet(object.inactive) ? globalThis.Number(object.inactive) : 0,
+      rejected: isSet(object.rejected) ? globalThis.Number(object.rejected) : 0,
+      total: isSet(object.total) ? globalThis.Number(object.total) : 0,
+    };
+  },
+
+  toJSON(message: CountRescuesResponse): unknown {
+    const obj: any = {};
+    if (message.pending !== 0) {
+      obj.pending = Math.round(message.pending);
+    }
+    if (message.verified !== 0) {
+      obj.verified = Math.round(message.verified);
+    }
+    if (message.suspended !== 0) {
+      obj.suspended = Math.round(message.suspended);
+    }
+    if (message.inactive !== 0) {
+      obj.inactive = Math.round(message.inactive);
+    }
+    if (message.rejected !== 0) {
+      obj.rejected = Math.round(message.rejected);
+    }
+    if (message.total !== 0) {
+      obj.total = Math.round(message.total);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CountRescuesResponse>, I>>(base?: I): CountRescuesResponse {
+    return CountRescuesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CountRescuesResponse>, I>>(
+    object: I
+  ): CountRescuesResponse {
+    const message = createBaseCountRescuesResponse();
+    message.pending = object.pending ?? 0;
+    message.verified = object.verified ?? 0;
+    message.suspended = object.suspended ?? 0;
+    message.inactive = object.inactive ?? 0;
+    message.rejected = object.rejected ?? 0;
+    message.total = object.total ?? 0;
+    return message;
+  },
+};
+
 function createBaseSendRescueEmailRequest(): SendRescueEmailRequest {
   return { rescueId: '', templateId: undefined, subject: undefined, body: undefined };
 }
@@ -6940,6 +7142,24 @@ export const RescueServiceService = {
       GetRescueStatisticsResponse.decode(value),
   },
   /**
+   * Exact rescue counts per lifecycle status for the admin dashboard.
+   * A single `SELECT status, COUNT(*) ... GROUP BY status` — cheap and
+   * uncapped, unlike counting List() page lengths (capped at 100). Caller
+   * MUST have `rescues.read`.
+   */
+  countRescues: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/CountRescues' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CountRescuesRequest): Buffer =>
+      Buffer.from(CountRescuesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CountRescuesRequest => CountRescuesRequest.decode(value),
+    responseSerialize: (value: CountRescuesResponse): Buffer =>
+      Buffer.from(CountRescuesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CountRescuesResponse =>
+      CountRescuesResponse.decode(value),
+  },
+  /**
    * Validate + enqueue an admin email to a rescue's contact address.
    * Admin-only — caller MUST have `admin.security.manage`. Confirms the
    * rescue exists, then publishes `rescue.adminEmailRequested` for the
@@ -7093,6 +7313,13 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
    * cross-service aggregation. Caller MUST have `rescues.read`.
    */
   getRescueStatistics: handleUnaryCall<GetRescueStatisticsRequest, GetRescueStatisticsResponse>;
+  /**
+   * Exact rescue counts per lifecycle status for the admin dashboard.
+   * A single `SELECT status, COUNT(*) ... GROUP BY status` — cheap and
+   * uncapped, unlike counting List() page lengths (capped at 100). Caller
+   * MUST have `rescues.read`.
+   */
+  countRescues: handleUnaryCall<CountRescuesRequest, CountRescuesResponse>;
   /**
    * Validate + enqueue an admin email to a rescue's contact address.
    * Admin-only — caller MUST have `admin.security.manage`. Confirms the
@@ -7488,6 +7715,27 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetRescueStatisticsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Exact rescue counts per lifecycle status for the admin dashboard.
+   * A single `SELECT status, COUNT(*) ... GROUP BY status` — cheap and
+   * uncapped, unlike counting List() page lengths (capped at 100). Caller
+   * MUST have `rescues.read`.
+   */
+  countRescues(
+    request: CountRescuesRequest,
+    callback: (error: ServiceError | null, response: CountRescuesResponse) => void
+  ): ClientUnaryCall;
+  countRescues(
+    request: CountRescuesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CountRescuesResponse) => void
+  ): ClientUnaryCall;
+  countRescues(
+    request: CountRescuesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CountRescuesResponse) => void
   ): ClientUnaryCall;
   /**
    * Validate + enqueue an admin email to a rescue's contact address.

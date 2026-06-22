@@ -1,4 +1,4 @@
-import { Metadata, status } from '@grpc/grpc-js';
+import { status } from '@grpc/grpc-js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -55,18 +55,14 @@ const APP_STATS_FIXTURE = {
   adopted: 1,
 };
 
-const makeRescue = (rescueId: string): RescueV1.Rescue =>
-  ({
-    rescueId,
-    name: `Rescue ${rescueId}`,
-    email: 'r@example.com',
-    address: '1 St',
-    city: 'Town',
-    postcode: 'AB1 2CD',
-    country: 'UK',
-    contactPerson: 'Jo',
-    status: RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED,
-  }) as unknown as RescueV1.Rescue;
+const RESCUE_COUNTS_FIXTURE: RescueV1.CountRescuesResponse = {
+  pending: 1,
+  verified: 2,
+  suspended: 0,
+  inactive: 0,
+  rejected: 0,
+  total: 3,
+};
 
 // --- Mocks ----------------------------------------------------------
 
@@ -97,9 +93,15 @@ function makeApplicationsClient(): {
   return { client: stubClient<ApplicationsClient>({ getStats: getStatsMock }), getStatsMock };
 }
 
-function makeRescueClient(): { client: RescueClient; listMock: ReturnType<typeof vi.fn> } {
-  const listMock = vi.fn();
-  return { client: stubClient<RescueClient>({ list: listMock }), listMock };
+function makeRescueClient(): {
+  client: RescueClient;
+  countRescuesMock: ReturnType<typeof vi.fn>;
+} {
+  const countRescuesMock = vi.fn();
+  return {
+    client: stubClient<RescueClient>({ countRescues: countRescuesMock }),
+    countRescuesMock,
+  };
 }
 
 type Clients = {
@@ -122,10 +124,8 @@ function primeHappyPath(c: Clients): void {
   c.auth.getUserStatisticsMock.mockResolvedValue(USER_STATS_FIXTURE);
   c.pets.getStatsMock.mockResolvedValue(PET_STATS_FIXTURE);
   c.apps.getStatsMock.mockResolvedValue(APP_STATS_FIXTURE);
-  // First list call = verified filter, second = pending filter.
-  c.rescue.listMock
-    .mockResolvedValueOnce({ rescues: [makeRescue('rsc-1'), makeRescue('rsc-2')] })
-    .mockResolvedValueOnce({ rescues: [makeRescue('rsc-3')] });
+  // Single grouped count — exact verified / pending / total.
+  c.rescue.countRescuesMock.mockResolvedValue(RESCUE_COUNTS_FIXTURE);
 }
 
 async function buildApp(c: Clients): Promise<FastifyInstance> {
@@ -188,7 +188,7 @@ describe('GET /api/v1/admin/metrics', () => {
     expect(body.data.users.newThisMonth).toBe(12);
     expect(body.data.users.byRole).toEqual({ adopter: 100, rescue_staff: 18, admin: 2 });
 
-    // Rescues — counted from the two filtered list calls (verified + pending).
+    // Rescues — exact grouped counts from CountRescues.
     expect(body.data.rescues.verified).toBe(2);
     expect(body.data.rescues.pending).toBe(1);
     expect(body.data.rescues.total).toBe(3);
@@ -207,21 +207,13 @@ describe('GET /api/v1/admin/metrics', () => {
     expect(body.data.applications.newThisMonth).toBe(0);
   });
 
-  it('queries rescues with VERIFIED then PENDING status filters', async () => {
+  it('counts rescues with a single grouped CountRescues call', async () => {
     primeHappyPath(c);
 
     await app.inject({ method: 'GET', url: '/api/v1/admin/metrics', headers: ADMIN_HEADERS });
 
-    const [verifiedReq] = c.rescue.listMock.mock.calls[0] as [
-      { statusFilter: RescueV1.RescueStatus },
-      Metadata,
-    ];
-    const [pendingReq] = c.rescue.listMock.mock.calls[1] as [
-      { statusFilter: RescueV1.RescueStatus },
-      Metadata,
-    ];
-    expect(verifiedReq.statusFilter).toBe(RescueV1.RescueStatus.RESCUE_STATUS_VERIFIED);
-    expect(pendingReq.statusFilter).toBe(RescueV1.RescueStatus.RESCUE_STATUS_PENDING);
+    // One exact, uncapped grouped count — not per-status paginated list scans.
+    expect(c.rescue.countRescuesMock).toHaveBeenCalledTimes(1);
   });
 
   it('maps an upstream PERMISSION_DENIED to a 403', async () => {
@@ -231,7 +223,7 @@ describe('GET /api/v1/admin/metrics', () => {
     });
     c.pets.getStatsMock.mockResolvedValue(PET_STATS_FIXTURE);
     c.apps.getStatsMock.mockResolvedValue(APP_STATS_FIXTURE);
-    c.rescue.listMock.mockResolvedValue({ rescues: [] });
+    c.rescue.countRescuesMock.mockResolvedValue(RESCUE_COUNTS_FIXTURE);
 
     const res = await app.inject({
       method: 'GET',
@@ -344,7 +336,7 @@ describe('GET /api/v1/admin/analytics/dashboard', () => {
     c.auth.getUserStatisticsMock.mockResolvedValue(USER_STATS_FIXTURE);
     c.pets.getStatsMock.mockRejectedValue({ code: status.UNAVAILABLE, details: 'down' });
     c.apps.getStatsMock.mockResolvedValue(APP_STATS_FIXTURE);
-    c.rescue.listMock.mockResolvedValue({ rescues: [] });
+    c.rescue.countRescuesMock.mockResolvedValue(RESCUE_COUNTS_FIXTURE);
 
     const res = await app.inject({
       method: 'GET',

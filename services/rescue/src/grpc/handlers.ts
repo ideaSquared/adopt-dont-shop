@@ -26,6 +26,8 @@ import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/even
 import type { Permission, RescueId } from '@adopt-dont-shop/lib.types';
 import {
   RescueV1,
+  type CountRescuesRequest,
+  type CountRescuesResponse,
   type CreateRescueRequest,
   type CreateRescueResponse,
   type GetRescueRequest,
@@ -773,6 +775,43 @@ export async function getRescueStatistics(
       averageTimeToAdoption: 0,
     },
   };
+}
+
+// --- CountRescues ----------------------------------------------------
+
+// Exact rescue counts per lifecycle status from a single grouped count.
+// Cheap and uncapped — the admin dashboard derives verified/pending/total
+// from this rather than counting List() page lengths (capped at 100).
+export async function countRescues(
+  deps: HandlerDeps,
+  principal: Principal,
+  _req: CountRescuesRequest
+): Promise<CountRescuesResponse> {
+  if (!hasPermission(principal, RESCUES_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_READ}' required`);
+  }
+
+  const result = await deps.pool.query<{ status: RescueStatusDb; count: string }>(
+    `SELECT status, COUNT(*)::text AS count FROM rescue.rescues
+     WHERE deleted_at IS NULL
+     GROUP BY status`
+  );
+
+  const counts: Record<RescueStatusDb, number> = {
+    pending: 0,
+    verified: 0,
+    suspended: 0,
+    inactive: 0,
+    rejected: 0,
+  };
+  let total = 0;
+  for (const row of result.rows) {
+    const n = Number.parseInt(row.count, 10);
+    counts[row.status] = n;
+    total += n;
+  }
+
+  return { ...counts, total };
 }
 
 // --- SendRescueEmail (admin) -----------------------------------------

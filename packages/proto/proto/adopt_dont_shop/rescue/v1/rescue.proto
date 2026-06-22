@@ -140,6 +140,12 @@ service RescueService {
   rpc GetRescueStatistics(GetRescueStatisticsRequest)
       returns (GetRescueStatisticsResponse);
 
+  // Exact rescue counts per lifecycle status for the admin dashboard.
+  // A single `SELECT status, COUNT(*) ... GROUP BY status` — cheap and
+  // uncapped, unlike counting List() page lengths (capped at 100). Caller
+  // MUST have `rescues.read`.
+  rpc CountRescues(CountRescuesRequest) returns (CountRescuesResponse);
+
   // Validate + enqueue an admin email to a rescue's contact address.
   // Admin-only — caller MUST have `admin.security.manage`. Confirms the
   // rescue exists, then publishes `rescue.adminEmailRequested` for the
@@ -587,6 +593,23 @@ message RescueStatistics {
 
 message GetRescueStatisticsResponse {
   RescueStatistics statistics = 1;
+}
+
+// --- CountRescues -----------------------------------------------------
+
+message CountRescuesRequest {}
+
+// Exact platform-wide rescue counts, one field per lifecycle status plus
+// the grand total. Flat scalar fields (mirrors RescueStatistics) rather
+// than a map so consumers read named counts without a key lookup.
+message CountRescuesResponse {
+  uint32 pending = 1;
+  uint32 verified = 2;
+  uint32 suspended = 3;
+  uint32 inactive = 4;
+  uint32 rejected = 5;
+  // Sum across every status (includes any not broken out above).
+  uint32 total = 6;
 }
 
 message SendRescueEmailRequest {
