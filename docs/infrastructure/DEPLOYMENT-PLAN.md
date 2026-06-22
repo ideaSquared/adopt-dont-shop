@@ -252,8 +252,7 @@ echo "0 2 * * * deploy /opt/ads/backup.sh" >> /etc/crontab
 - [ ] Create `.env` files on server for both environments
 - [ ] Start gateway: `cd /opt/ads/gateway && docker compose up -d`
 - [ ] Start prod stack: `cd /opt/ads/production && docker compose up -d` (uses `:latest` tag initially)
-- [ ] Seed SequelizeMeta with baseline migration
-- [ ] Run remaining migrations: `docker compose exec -T service-backend pnpm migrate`
+- [ ] Wait for each schema-owning service to apply its own migrations on first boot (visible in `docker compose logs service-<name>`); the `pgmigrations` table per schema is created automatically
 - [ ] First deploy via workflow: `make staging`
 - [ ] Verify staging works end-to-end
 - [ ] `make prod`

@@ -2,15 +2,31 @@
 
 ## Overview
 
-Comprehensive testing strategy for the backend service using **Vitest**. We follow a behaviour-driven pyramid: most tests exercise service-layer behaviour through public APIs, with a smaller ring of integration tests that hit the database and routes end-to-end.
+Comprehensive testing strategy for the backend services using
+**Vitest**. We follow a behaviour-driven pyramid: most tests exercise
+behaviour through public APIs (gateway routes, gRPC handlers), with
+direct unit tests for pure helpers and a smaller ring of integration
+tests that hit the database.
 
 ```
 Testing Pyramid
-├── Integration Tests — Database + HTTP routes (src/__tests__/integration/, src/__tests__/controllers/)
-└── Service / behaviour tests — Services, utilities, middleware, models (src/__tests__/services/, etc.)
+├── Gateway route tests — Fastify + injected handler (services/gateway/src/routes/*.test.ts)
+├── gRPC handler tests — handler + mocked clients (services/<name>/src/grpc/*.test.ts)
+└── Pure unit tests — adapters, mappers, domain logic (services/<name>/src/**/*.test.ts)
 ```
 
-Tests live alongside the code in each service under `services/<name>/src/`, organised by layer (services, controllers/handlers, integration, middleware, models, security, utils, validation).
+Tests are **colocated** with the source file they cover —
+`handlers.ts` next to `handlers.test.ts`, no `__tests__/` directory
+or per-layer split. The Vitest config in each service picks up
+`**/*.test.ts` automatically.
+
+> The legacy Express + Sequelize + supertest examples further down
+> in this file describe the deleted monolith. They are kept as a
+> rough shape for the testing **pyramid** and BDD style — for
+> current patterns (Fastify route injection, gRPC handler stubbing,
+> direct SQL via `@adopt-dont-shop/db`), use any of the existing
+> `*.test.ts` files in `services/<name>/src/grpc/` or
+> `services/gateway/src/routes/` as a worked example.
 
 ## Quick Start
 
@@ -343,9 +359,9 @@ Vitest uses the database configured via `DB_*` / `TEST_DB_NAME` env vars (see `.
 
 ```bash
 docker compose ps database      # must be "healthy"
-pnpm docker:reset            # last resort — wipes the volume
-pnpm docker:dev:detach
-pnpm db:reset
+pnpm docker:reset               # last resort — wipes the volume
+pnpm docker:dev:detach          # each service runs its own db:migrate on boot
+pnpm db:seed                    # re-seed dev personas / data
 ```
 
 **Timeout Errors**
@@ -407,4 +423,4 @@ pnpm test:coverage -- --coverageThreshold='{"global":{"lines":80}}'
 - **API Documentation**: [api-endpoints.md](./api-endpoints.md)
 - **Implementation Guide**: [implementation-guide.md](./implementation-guide.md)
 - **Database Schema**: [database-schema.md](./database-schema.md)
-- **Service PRD**: [service-backend-prd.md](./service-backend-prd.md)
+- **Service PRD**: [service-backend-prd.md](./service-backend-prd.md) (architecture section is historical)

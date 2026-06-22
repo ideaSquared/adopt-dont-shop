@@ -142,17 +142,17 @@ See [Libraries Documentation](../libraries/README.md) for details.
 ### Development
 
 ```bash
-# Start all services
-docker compose up
+# Start the full dev stack via the preflight wrapper
+pnpm docker:dev
 
-# Start specific service
-docker compose up service-backend
+# Start a single service in the foreground (e.g. service-pets)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up service-pets
 
 # View logs
-docker compose logs -f
+pnpm docker:logs
 
-# Rebuild
-docker compose up --build
+# Force-rebuild the shared dev image (pnpm-lock.yaml or Dockerfile.dev changes)
+pnpm docker:dev:build
 ```
 
 ### Production

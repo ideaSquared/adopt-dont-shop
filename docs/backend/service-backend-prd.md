@@ -1,10 +1,21 @@
 # Product Requirements Document: Backend Service
 
+> **Status — architecture section is historical.** The product
+> requirements (auth, user, pet, application, chat, moderation,
+> matching surfaces) below still describe what the system does. The
+> "Architecture Overview" describes the deleted monolith and is kept
+> for context. The current architecture is a Fastify gateway fronting
+> a fleet of Node.js gRPC microservices (`services/gateway/` plus
+> `services/{auth,pets,rescue,applications,chat,notifications,
+> moderation,matching,cms,audit}/`). For current implementation
+> details see [`docs/backend/implementation-guide.md`](./implementation-guide.md)
+> and [`docs/infrastructure/MICROSERVICES-STANDARDS.md`](../infrastructure/MICROSERVICES-STANDARDS.md).
+
 ## Overview
 
 The Backend Service is the core API and data management layer that powers all applications in the Adopt Don't Shop ecosystem. It provides secure, scalable, and reliable backend services for user management, pet data, adoption workflows, communication, and reporting.
 
-## Architecture Overview
+## Architecture Overview (historical — see banner above)
 
 - **Service Type**: RESTful API with WebSocket support
 - **Technology**: Node.js + Express + TypeScript
