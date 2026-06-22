@@ -1,228 +1,290 @@
 ---
 name: backend-endpoint
 description: >
-  Add a new REST endpoint to service.backend. Use when the user asks to create a new
-  API route, expose a controller action, or add CRUD endpoints. Walks through routes,
-  controllers, services, validation, RBAC, and audit hookup.
+  Add a new REST endpoint backed by a gRPC microservice. Use when the
+  user asks to create a new API route, expose a domain action, or add
+  CRUD endpoints. Walks through the proto contract, the gRPC handler,
+  the gateway REST translation, validation, RBAC, and audit hookup.
 disable-model-invocation: true
 ---
 
 # Adding a Backend REST Endpoint
 
-The backend follows a strict layering: **Route → Controller → Service → Model**. Each
-layer has one job. Skipping or merging layers fights the codebase.
+The backend is a Fastify gateway fronting a fleet of Node.js gRPC
+microservices. Every public HTTP route lives in the gateway and
+delegates to a gRPC method on a backing service. There is **no**
+monolithic `service.backend` with Express controllers + Sequelize
+models; if a doc / skill tells you to create files under
+`src/controllers/` or `src/models/`, it describes the deleted
+architecture — don't follow it.
 
 | Layer | Responsibility | Lives in |
-|-------|---------------|----------|
-| Route | Wire middleware (auth, RBAC, validation, audit), forward to controller | `src/routes/` |
-| Controller | Parse req, call service, return response. **No business logic.** | `src/controllers/` |
-| Service | Business rules, DB writes, audit, transactions | `src/services/` |
-| Model | Sequelize schema, associations, hooks | `src/models/` |
+|-------|----------------|----------|
+| Proto contract | Request / response types and the RPC signature | `packages/proto/proto/<domain>.v1.proto` |
+| gRPC handler   | Business logic, DB writes, audit, transactions | `services/<name>/src/grpc/` |
+| Gateway route  | REST → gRPC translation, auth/RBAC/rate limits | `services/gateway/src/routes/` |
 
-## Step 1 — Define the request/response schema (Zod first)
+Validation lives in `lib.validation` (Zod schemas) where the SPA and
+the gateway share one source of truth.
 
-Schemas live in `lib.validation` so frontends and backend share one source of truth.
+## Step 1 — Define the proto contract
 
-```typescript
-// lib.validation/src/<feature>.ts
-import { z } from 'zod';
+Add the request / response message + the RPC method to the owning
+domain's proto.
 
-export const CreateThingRequestSchema = z.object({
-  name: z.string().min(1).max(120),
-  description: z.string().max(2000).optional(),
-});
+```proto
+// packages/proto/proto/things.v1.proto
+service ThingsService {
+  rpc CreateThing (CreateThingRequest) returns (CreateThingResponse);
+  rpc GetThing (GetThingRequest) returns (GetThingResponse);
+}
 
-export type CreateThingRequest = z.infer<typeof CreateThingRequestSchema>;
-```
+message CreateThingRequest {
+  string name = 1;
+  string description = 2;
+}
 
-Re-export from `lib.validation/src/index.ts`. Rebuild lib.validation
-(`cd lib.validation && pnpm build`) so service.backend resolves the new export.
+message CreateThingResponse {
+  Thing thing = 1;
+}
 
-## Step 2 — Add validation in the controller
-
-Use `validateBody` / `validateParams` / `validateQuery` from `middleware/zod-validate`,
-**not** express-validator. (Existing routes still use express-validator; new code
-should prefer Zod.)
-
-```typescript
-// src/controllers/thing.controller.ts
-import { Request, Response } from 'express';
-import { z } from 'zod';
-import { CreateThingRequestSchema } from '@adopt-dont-shop/lib.validation';
-import { validateBody, validateParams } from '../middleware/zod-validate';
-import { BaseController } from './base.controller';
-import { ThingService } from '../services/thing.service';
-import { AuthenticatedRequest } from '../types';
-
-const ThingIdParamSchema = z.object({
-  thingId: z.string().uuid('Valid thing ID is required'),
-});
-
-export class ThingController extends BaseController {
-  static validateCreate = [validateBody(CreateThingRequestSchema)];
-  static validateById = [validateParams(ThingIdParamSchema)];
-
-  static async create(req: AuthenticatedRequest, res: Response) {
-    const userId = req.user!.userId;
-    const thing = await ThingService.create(req.body, userId);
-    return res.status(201).json({ data: thing });
-  }
-
-  static async getById(req: AuthenticatedRequest, res: Response) {
-    const thing = await ThingService.getById(req.params.thingId);
-    return res.status(200).json({ data: thing });
-  }
+message Thing {
+  string thing_id = 1;
+  string name = 2;
+  string description = 3;
 }
 ```
 
-**Controllers must not contain business rules.** They only:
-- Pull values off the request (already validated)
-- Call a service method
-- Choose the success status code
-- Return `{ data: ... }` (or `{ data, pagination }` for lists)
+Regenerate the TypeScript clients:
 
-Errors propagate to the error-handler middleware automatically — never write
-`try/catch` in a controller just to translate to HTTP. See the `error-handling` skill.
+```bash
+pnpm exec turbo build --filter=@adopt-dont-shop/proto
+```
 
-## Step 3 — Implement the service
+The generated types appear under
+`@adopt-dont-shop/proto`'s `<Domain>V1` namespace.
+
+## Step 2 — Implement the gRPC handler
+
+Handlers live next to their tests. Pattern:
+`services/<name>/src/grpc/<feature>-handlers.ts` +
+`<feature>-handlers.test.ts`. Read an existing handler in the same
+service (e.g. `services/pets/src/grpc/favorite-handlers.ts`) for the
+local conventions before writing yours.
 
 ```typescript
-// src/services/thing.service.ts
-import sequelize from '../sequelize';
-import Thing from '../models/Thing';
-import { NotFoundError } from '../middleware/error-handler';
-import { AuditLogService } from './auditLog.service';
-import { CreateThingRequest } from '@adopt-dont-shop/lib.validation';
+// services/things/src/grpc/thing-handlers.ts
+import { randomUUID } from 'node:crypto';
 
-export class ThingService {
-  static async create(payload: CreateThingRequest, actorUserId: string): Promise<Thing> {
-    return sequelize.transaction(async t => {
-      const thing = await Thing.create({ ...payload, createdBy: actorUserId }, { transaction: t });
+import type { Principal } from '@adopt-dont-shop/authz';
+import {
+  type CreateThingRequest,
+  type CreateThingResponse,
+} from '@adopt-dont-shop/proto';
 
-      // Audit inside the transaction — commits atomically with the write.
-      await AuditLogService.log({
-        userId: actorUserId,
-        action: 'CREATE',
-        entity: 'Thing',
-        entityId: thing.thingId,
-        details: { name: thing.name },
-        transaction: t,
-      });
+import { HandlerError, type HandlerDeps } from './handlers.js';
 
-      return thing;
-    });
+export async function createThing(
+  deps: HandlerDeps,
+  principal: Principal | null,
+  req: CreateThingRequest,
+): Promise<CreateThingResponse> {
+  if (!principal?.userId) {
+    throw new HandlerError('UNAUTHENTICATED', 'authentication required');
+  }
+  if (!req.name) {
+    throw new HandlerError('INVALID_ARGUMENT', 'name is required');
   }
 
-  static async getById(thingId: string): Promise<Thing> {
-    const thing = await Thing.findByPk(thingId);
-    if (!thing) {
-      throw new NotFoundError('Thing not found');
-    }
-    return thing;
-  }
+  const thingId = randomUUID();
+  await deps.pool.query(
+    `INSERT INTO things.things (thing_id, name, description, created_by, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, now(), now())`,
+    [thingId, req.name, req.description ?? null, principal.userId],
+  );
+
+  // Audit (see the audit-logging skill for the full pattern).
+  await deps.audit.log({
+    actorUserId: principal.userId,
+    action: 'CREATE',
+    entity: 'Thing',
+    entityId: thingId,
+    details: { name: req.name },
+  });
+
+  return { thing: { thingId, name: req.name, description: req.description ?? '' } };
 }
 ```
 
-See the `audit-logging` skill for when to use `AuditLogService.log()` inside a
-transaction vs the route-level `auditRoute()` middleware. Don't combine both.
+Key points:
 
-## Step 4 — Wire the route
+- Use direct parameterised SQL via `deps.pool` (a `pg.Pool` from
+  `@adopt-dont-shop/db`). There is no ORM.
+- `HandlerError` carries the gRPC status code + a human message; the
+  gateway translates these to HTTP status codes via
+  `handleGrpcError`.
+- Transactions: pull a client from the pool, `BEGIN` / `COMMIT` /
+  `ROLLBACK` explicitly. Read an existing multi-write handler
+  (e.g. service-rescue's invitation handlers) for the local pattern.
+- Permission checks beyond authentication go in the handler — the
+  authz package's `Principal` carries the resolved roles.
 
-```typescript
-// src/routes/thing.routes.ts
-import express from 'express';
-import { authenticateToken } from '../middleware/auth';
-import { requirePermission } from '../middleware/rbac';
-import { fieldMask, fieldWriteGuard } from '../middleware/field-permissions';
-import { ThingController } from '../controllers/thing.controller';
-import { PERMISSIONS } from '../types';
+Register the new handler in the service's gRPC server wiring
+(`services/<name>/src/grpc/server.ts`).
 
-const router = express.Router();
+## Step 3 — Add the gateway REST route
 
-router.use(authenticateToken);
-
-router.post('/',
-  requirePermission(PERMISSIONS.THING_CREATE),
-  ...ThingController.validateCreate,
-  // fieldWriteGuard('things', { audit: true }),    // only if 'things' is a field-permissioned resource
-  ThingController.create
-);
-
-router.get('/:thingId',
-  requirePermission(PERMISSIONS.THING_READ),
-  ...ThingController.validateById,
-  // fieldMask('things', { audit: true, resourceIdParam: 'thingId' }),
-  ThingController.getById
-);
-
-export default router;
-```
-
-**Middleware order matters** — see the `field-permissions` skill:
-
-```
-authenticateToken → requirePermission → validate* → fieldMask/fieldWriteGuard → controller
-```
-
-## Step 5 — Mount the router
-
-In `src/index.ts` (or wherever routes are mounted):
+Routes live in `services/gateway/src/routes/<domain>.ts`. The gateway
+is Fastify; routes register on an `app: FastifyInstance` passed into
+the plugin function.
 
 ```typescript
-import thingRoutes from './routes/thing.routes';
-app.use('/api/v1/things', thingRoutes);
+// services/gateway/src/routes/things.ts
+import type { FastifyInstance } from 'fastify';
+
+import {
+  type CreateThingRequest as GrpcCreateThingRequest,
+} from '@adopt-dont-shop/proto';
+
+import type { ThingsClient } from '../grpc-clients/things-client.js';
+import { buildMetadata } from '../middleware/metadata.js';
+import { handleGrpcError } from '../middleware/grpc-error.js';
+
+export type ThingsRoutesOptions = {
+  client: ThingsClient;
+};
+
+export function registerThingsRoutes(
+  app: FastifyInstance,
+  opts: ThingsRoutesOptions,
+): void {
+  const { client } = opts;
+
+  app.post<{ Body: { name: string; description?: string } }>(
+    '/api/v1/things',
+    {
+      schema: {
+        tags: ['things'],
+        summary: 'Create a thing',
+        body: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string', minLength: 1, maxLength: 120 },
+            description: { type: 'string', maxLength: 2000 },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const grpcReq: GrpcCreateThingRequest = {
+        name: req.body.name,
+        description: req.body.description ?? '',
+      };
+      try {
+        const res = await client.createThing(grpcReq, buildMetadata(req));
+        return reply.code(201).send({ success: true, data: res.thing });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    },
+  );
+}
 ```
+
+Wire the plugin in `services/gateway/src/server.ts` (look for the
+existing per-domain `register…Routes(app, …)` calls).
+
+`buildMetadata(req)` forwards the request id, the verified principal
+token, and the per-request locale onto the gRPC call. `handleGrpcError`
+translates `HandlerError` status codes into HTTP responses
+(`UNAUTHENTICATED` → 401, `PERMISSION_DENIED` → 403,
+`INVALID_ARGUMENT` → 400, `NOT_FOUND` → 404, etc.).
+
+For shared request validation across the SPA + gateway, define a Zod
+schema in `lib.validation/src/schemas/<feature>.ts` and reuse it on
+both ends. The gateway can call the Zod schema with `safeParse` before
+forwarding to gRPC.
+
+## Step 4 — Auth + RBAC + rate limits
+
+The gateway exposes hooks for these:
+
+- **Authentication**: requests carrying a valid JWT get a populated
+  principal automatically (see `services/gateway/src/middleware/authenticate.ts`).
+  Routes that don't need auth set `config: { public: true }` or live
+  under the public route prefix.
+- **Permission gates**: use the `requirePermission(...)` hook from
+  `@adopt-dont-shop/authz` (read an existing route — admin routes are
+  the canonical example).
+- **Rate limits**: a global plugin caps every route; override
+  per-route via `config: { rateLimit: { max, timeWindow } }`. The
+  `email-rate-limiter.ts` route shows the pattern.
+
+## Step 5 — Audit
+
+See the `audit-logging` skill for the full pattern. Quick rules:
+
+- Audit inside the gRPC handler when the action runs in a single
+  transaction with the DB write.
+- Audit at the gateway via the `auditRoute(...)` hook for read-only
+  / no-transaction CRUD routes that have nothing meaningful to do
+  inside a transaction.
+- **Never** combine both — it produces duplicate audit rows and
+  breaks transactional atomicity.
 
 ## Step 6 — Write tests (TDD)
 
-Tests come BEFORE implementation per CLAUDE.md. See the `backend-test` skill for the
-mock setup and behaviour-focused patterns.
+Tests are colocated, no `__tests__/` directory. See the `backend-test`
+skill for the Vitest + behaviour-driven patterns.
 
-- Service tests: `src/__tests__/services/thing.service.test.ts`
-- Controller tests: `src/__tests__/controllers/thing.controller.test.ts` (sparingly —
-  most logic should be covered at the service layer)
-- Route tests: `src/__tests__/routes/thing.routes.test.ts` (integration-style with
-  supertest)
+- gRPC handler tests:
+  `services/<name>/src/grpc/<feature>-handlers.test.ts` — stub the
+  pool with a mock `query`, assert the SQL + the response.
+- Gateway route tests:
+  `services/gateway/src/routes/<domain>.test.ts` — inject the route
+  into a Fastify instance, stub the gRPC client, exercise the HTTP
+  surface with `app.inject({ method, url, payload })`.
 
 ## Step 7 — Field permissions (if applicable)
 
-If the resource is one of `users`, `rescues`, `pets`, `applications` — or you're adding
-a new one — read the `field-permissions` skill. You must:
+If the resource is one of `users`, `rescues`, `pets`, `applications` —
+or you're adding a new one — read the `field-permissions` skill. You
+must register field defaults and apply the field-mask / field-write
+hooks on the gateway route.
 
-1. Add field defaults in `lib.types/src/config/field-permission-defaults.ts` (all 4 roles)
-2. Apply `fieldMask()` to GET routes and `fieldWriteGuard()` to write routes
-3. Add sensitive fields to `SENSITIVE_FIELD_DENYLIST`
+## Step 8 — Document the route shape
 
-## Step 8 — Swagger / OpenAPI
-
-Existing routes document each endpoint with JSDoc `@swagger` blocks above the route
-handler. Match that pattern so the generated docs stay complete. See
-`application.routes.ts` for a comprehensive example.
+Fastify generates the OpenAPI surface from the `schema:` block on
+each route — make sure `tags`, `summary`, and the body / params /
+querystring schemas reflect the real shape so the generated
+`generated-openapi.json` stays accurate.
 
 ## Conventions checklist
 
-- [ ] Schema-first: Zod schema in `lib.validation`, type derived via `z.infer`
-- [ ] Validation in the controller via `validateBody/Params/Query` (Zod) for new code
-- [ ] Controller has no `try/catch`, no business logic — just request/response shape
-- [ ] Service holds all business rules, runs DB writes in a transaction when multiple
-      tables change
-- [ ] Audit hookup: inside the transaction (`AuditLogService.log({ transaction: t })`)
-      OR via `auditRoute()` middleware — never both
-- [ ] RBAC via `requirePermission` / `requireRole` / `requirePermissionOrOwnership`
-- [ ] Field permissions on routes for users/rescues/pets/applications
-- [ ] Response shape: `{ data: ... }` on success, errors handled by error middleware
-- [ ] Swagger JSDoc on each route
+- [ ] Proto contract added + clients regenerated
+- [ ] gRPC handler in `services/<name>/src/grpc/` with a colocated
+      `*.test.ts`
+- [ ] Gateway route in `services/gateway/src/routes/<domain>.ts`,
+      registered in `server.ts`
+- [ ] Authentication / permission hook applied where appropriate
+- [ ] Audit hookup: inside the handler (transactional writes) OR via
+      `auditRoute()` on the gateway — never both
+- [ ] Field permissions wired if the resource is field-permissioned
+- [ ] Fastify `schema:` block populated for OpenAPI generation
 - [ ] Tests first, behaviour-focused
 
 ## Common mistakes
 
-- Putting business logic in the controller (validation, DB queries, audit calls)
-- `try/catch` in the controller that swallows the error or returns a custom shape —
-  let it bubble to the error handler
-- Skipping `requirePermission` because "auth is enough" — auth is identity, RBAC is
-  what they can do
-- Forgetting `await` on `AuditLogService.log()` inside a transaction — the audit row
-  won't be in the tx
-- Mixing express-validator and Zod on the same route (pick one — prefer Zod for new code)
-- Forgetting to re-export the new Zod schema from `lib.validation/src/index.ts` and
-  rebuild the lib
+- Reaching for Express controllers / Sequelize models — neither exists
+  in the current architecture. Read an existing handler + route
+  before writing yours.
+- Skipping `handleGrpcError` and writing custom catch blocks per route
+  — the helper centralises the gRPC-status → HTTP-status mapping.
+- Mixing audit-in-handler and audit-on-route — pick one per action.
+- Forgetting to register the new route plugin in `server.ts` — the
+  route never mounts and the SPA gets 404.
+- Using `app.get`/`app.post` without the type param (`<{ Body … }>`)
+  and then `as`-casting `req.body` — annotate the generic instead.
+- Direct DB access from the gateway — the gateway owns no tables.
+  Always go through a gRPC call.
