@@ -30,12 +30,18 @@ import {
   type CreateRescueResponse,
   type GetRescueRequest,
   type GetRescueResponse,
+  type GetRescueStatisticsRequest,
+  type GetRescueStatisticsResponse,
   type InviteStaffRequest,
   type InviteStaffResponse,
   type Invitation,
   type ListRescuesRequest,
   type ListRescuesResponse,
   type Rescue,
+  type SendRescueEmailRequest,
+  type SendRescueEmailResponse,
+  type UpdateRescuePlanRequest,
+  type UpdateRescuePlanResponse,
   type UpdateRescueRequest,
   type UpdateRescueResponse,
   type VerifyRescueRequest,
@@ -98,6 +104,8 @@ type RescueRow = {
   verification_source: RescueVerificationSourceDb | null;
   verification_failure_reason: string | null;
   settings: Record<string, unknown> | null;
+  plan: string;
+  plan_expires_at: Date | null;
   version: number;
   created_at: Date;
   updated_at: Date;
@@ -145,6 +153,8 @@ function rowToProto(row: RescueRow): Rescue {
     settingsJson: JSON.stringify(row.settings ?? {}),
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
+    plan: row.plan,
+    planExpiresAt: row.plan_expires_at?.toISOString(),
   };
 }
 
@@ -167,7 +177,7 @@ const RESCUES_SELECT = `
   website, description, mission, companies_house_number, charity_registration_number,
   contact_person, contact_title, contact_email, contact_phone,
   status, verified_at, verified_by, verification_source, verification_failure_reason,
-  settings, version, created_at, updated_at
+  settings, plan, plan_expires_at, version, created_at, updated_at
 `;
 
 const RESCUES_CREATE: Permission = 'rescues.create' as Permission;
@@ -652,6 +662,167 @@ export async function inviteStaff(
     throw new HandlerError('INTERNAL', 'invitation insert returned no rows');
   }
   return { invitation: invitationRowToProto(inserted), token };
+}
+
+// --- UpdateRescuePlan (admin) ----------------------------------------
+
+// Canonical tier list — mirrors @adopt-dont-shop/lib.types RescuePlan and
+// the DB CHECK constraint (migration 008). Kept inline so the service has
+// no frontend-lib dependency.
+const VALID_PLANS = new Set(['free', 'growth', 'professional']);
+
+export async function updateRescuePlan(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: UpdateRescuePlanRequest
+): Promise<UpdateRescuePlanResponse> {
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  if (!VALID_PLANS.has(req.plan)) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      `plan must be one of ${[...VALID_PLANS].join(', ')}`
+    );
+  }
+  if (!requirePermission(principal, ADMIN_SECURITY_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
+  }
+
+  const existing = await fetchRescue(deps, req.rescueId);
+  if (!existing) {
+    throw new HandlerError('NOT_FOUND', `rescue ${req.rescueId} not found`);
+  }
+
+  const planExpiresAt =
+    req.planExpiresAt !== undefined && req.planExpiresAt !== ''
+      ? new Date(req.planExpiresAt)
+      : null;
+
+  let updated: RescueRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    const result = await client.query<RescueRow>(
+      `UPDATE rescue.rescues
+         SET plan = $1, plan_expires_at = $2, updated_at = now(), updated_by = $3,
+             version = version + 1
+       WHERE rescue_id = $4
+       RETURNING ${RESCUES_SELECT}`,
+      [req.plan, planExpiresAt, principal.userId, req.rescueId]
+    );
+    updated = result.rows[0];
+
+    publish({
+      type: 'rescue.planUpdated',
+      id: `rescue.planUpdated.${req.rescueId}:${updated?.version}`,
+      payload: {
+        rescueId: req.rescueId,
+        fromPlan: existing.plan,
+        toPlan: req.plan,
+        updatedBy: principal.userId,
+      },
+    });
+  });
+
+  if (!updated) {
+    throw new HandlerError('INTERNAL', 'plan update returned no rows');
+  }
+  return { rescue: rowToProto(updated) };
+}
+
+// --- GetRescueStatistics ---------------------------------------------
+
+// staff_count is real (this vertical owns rescue.staff_members). The
+// pet/application-derived counts live in other verticals (service.pets,
+// service.applications); rather than fan out a heavy cross-service
+// aggregation on the admin detail panel, they return zero defaults. A
+// future revision can compose them via those services' gRPC clients.
+export async function getRescueStatistics(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetRescueStatisticsRequest
+): Promise<GetRescueStatisticsResponse> {
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  if (!hasPermission(principal, RESCUES_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${RESCUES_READ}' required`);
+  }
+
+  const existing = await fetchRescue(deps, req.rescueId);
+  if (!existing) {
+    throw new HandlerError('NOT_FOUND', `rescue ${req.rescueId} not found`);
+  }
+
+  const staffResult = await deps.pool.query<{ count: string }>(
+    `SELECT COUNT(*)::text AS count FROM rescue.staff_members
+     WHERE rescue_id = $1 AND deleted_at IS NULL`,
+    [req.rescueId]
+  );
+  const staffCount = Number.parseInt(staffResult.rows[0]?.count ?? '0', 10);
+
+  return {
+    statistics: {
+      totalPets: 0,
+      availablePets: 0,
+      adoptedPets: 0,
+      pendingApplications: 0,
+      totalApplications: 0,
+      staffCount,
+      activeListings: 0,
+      monthlyAdoptions: 0,
+      averageTimeToAdoption: 0,
+    },
+  };
+}
+
+// --- SendRescueEmail (admin) -----------------------------------------
+
+// Validate the request + confirm the rescue exists, then publish
+// `rescue.adminEmailRequested`. Actual delivery is the notifications
+// worker's job (subscriber wiring is out of scope for this RPC); the
+// boundary is the published event.
+export async function sendRescueEmail(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: SendRescueEmailRequest
+): Promise<SendRescueEmailResponse> {
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  const hasTemplate = req.templateId !== undefined && req.templateId !== '';
+  const hasCustom =
+    req.subject !== undefined && req.subject !== '' && req.body !== undefined && req.body !== '';
+  if (!hasTemplate && !hasCustom) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      'either template_id or both subject and body are required'
+    );
+  }
+  if (!requirePermission(principal, ADMIN_SECURITY_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
+  }
+
+  const existing = await fetchRescue(deps, req.rescueId);
+  if (!existing) {
+    throw new HandlerError('NOT_FOUND', `rescue ${req.rescueId} not found`);
+  }
+
+  await withTransaction(deps, async ({ publish }) => {
+    publish({
+      type: 'rescue.adminEmailRequested',
+      id: `rescue.adminEmailRequested.${req.rescueId}:${Date.now()}`,
+      payload: {
+        rescueId: req.rescueId,
+        recipientEmail: existing.email,
+        templateId: hasTemplate ? req.templateId : null,
+        subject: hasCustom ? req.subject : null,
+        body: hasCustom ? req.body : null,
+        requestedBy: principal.userId,
+      },
+    });
+  });
+
+  return { queued: true };
 }
 
 // --- Helpers ---------------------------------------------------------

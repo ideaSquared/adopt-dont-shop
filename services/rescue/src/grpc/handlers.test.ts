@@ -9,10 +9,13 @@ import { RescueV1, type CreateRescueRequest } from '@adopt-dont-shop/proto';
 import {
   createRescue,
   getRescue,
+  getRescueStatistics,
   HandlerError,
   inviteStaff,
   listRescues,
+  sendRescueEmail,
   updateRescue,
+  updateRescuePlan,
   verifyRescue,
   type HandlerDeps,
 } from './handlers.js';
@@ -86,6 +89,8 @@ function rescueRow(overrides: Record<string, unknown> = {}) {
     verification_source: null,
     verification_failure_reason: null,
     settings: {},
+    plan: 'free',
+    plan_expires_at: null,
     version: 0,
     created_at: new Date('2026-06-01T00:00:00Z'),
     updated_at: new Date('2026-06-01T00:00:00Z'),
@@ -581,5 +586,174 @@ describe('listRescues — new filters', () => {
     } as never);
     const sql = mocks.poolMock.query.mock.calls[0][0] as string;
     expect(sql).toContain('FALSE');
+  });
+});
+
+// --- updateRescuePlan ------------------------------------------------
+
+describe('updateRescuePlan', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('INVALID_ARGUMENT for an unknown plan tier', async () => {
+    await expect(
+      updateRescuePlan(mocks.deps, ADMIN, { rescueId: 'rsc-1', plan: 'platinum' } as never)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    // The bad-plan guard fires before any DB read.
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('PERMISSION_DENIED for a non-admin', async () => {
+    await expect(
+      updateRescuePlan(mocks.deps, STAFF, { rescueId: 'rsc-1', plan: 'growth' } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('NOT_FOUND when the rescue is gone', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      updateRescuePlan(mocks.deps, ADMIN, { rescueId: 'ghost', plan: 'growth' } as never)
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('writes the plan + expiry and publishes rescue.planUpdated after commit', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ plan: 'free' })] });
+    const order: string[] = [];
+    const publishedSubjects: string[] = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      order.push(sql.trim().split(/\s+/)[0]);
+      return { rows: [rescueRow({ plan: 'professional' })] };
+    });
+    mocks.natsMock.publish.mockImplementation((subject: string) => {
+      order.push('NATS_PUBLISH');
+      publishedSubjects.push(subject);
+    });
+
+    const res = await updateRescuePlan(mocks.deps, ADMIN, {
+      rescueId: 'rsc-1',
+      plan: 'professional',
+      planExpiresAt: '2027-01-01T00:00:00.000Z',
+    } as never);
+
+    expect(res.rescue.plan).toBe('professional');
+    expect(order).toEqual(['BEGIN', 'UPDATE', 'COMMIT', 'NATS_PUBLISH']);
+    expect(publishedSubjects).toEqual(['rescue.planUpdated']);
+    // The UPDATE binds the parsed expiry as a Date, not the raw string.
+    const params = mocks.clientMock.query.mock.calls[1][1] as unknown[];
+    expect(params[1]).toBeInstanceOf(Date);
+  });
+
+  it('treats an empty planExpiresAt as null (clears the expiry)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ plan: 'growth' })] });
+
+    await updateRescuePlan(mocks.deps, ADMIN, {
+      rescueId: 'rsc-1',
+      plan: 'growth',
+      planExpiresAt: '',
+    } as never);
+
+    const params = mocks.clientMock.query.mock.calls[1][1] as unknown[];
+    expect(params[1]).toBeNull();
+  });
+});
+
+// --- getRescueStatistics ---------------------------------------------
+
+describe('getRescueStatistics', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('PERMISSION_DENIED without rescues.read', async () => {
+    const noRead: Principal = {
+      userId: 'usr-x' as UserId,
+      roles: ['adopter'],
+      permissions: [],
+    };
+    await expect(
+      getRescueStatistics(mocks.deps, noRead, { rescueId: 'rsc-1' } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('NOT_FOUND when the rescue is gone', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      getRescueStatistics(mocks.deps, ADOPTER, { rescueId: 'ghost' } as never)
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns the real staff_count with zero defaults for cross-vertical fields', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [rescueRow()] })
+      .mockResolvedValueOnce({ rows: [{ count: '4' }] });
+
+    const res = await getRescueStatistics(mocks.deps, ADOPTER, { rescueId: 'rsc-1' } as never);
+
+    expect(res.statistics.staffCount).toBe(4);
+    expect(res.statistics.totalPets).toBe(0);
+    expect(res.statistics.totalApplications).toBe(0);
+    expect(res.statistics.averageTimeToAdoption).toBe(0);
+  });
+});
+
+// --- sendRescueEmail -------------------------------------------------
+
+describe('sendRescueEmail', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('INVALID_ARGUMENT when neither a template nor subject+body is supplied', async () => {
+    await expect(
+      sendRescueEmail(mocks.deps, ADMIN, { rescueId: 'rsc-1' } as never)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('PERMISSION_DENIED for a non-admin', async () => {
+    await expect(
+      sendRescueEmail(mocks.deps, STAFF, {
+        rescueId: 'rsc-1',
+        templateId: 'tmpl_welcome',
+      } as never)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('NOT_FOUND when the rescue is gone', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      sendRescueEmail(mocks.deps, ADMIN, {
+        rescueId: 'ghost',
+        templateId: 'tmpl_welcome',
+      } as never)
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('publishes rescue.adminEmailRequested for a custom email and returns queued', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
+    const publishedSubjects: string[] = [];
+    mocks.natsMock.publish.mockImplementation((subject: string) => publishedSubjects.push(subject));
+
+    const res = await sendRescueEmail(mocks.deps, ADMIN, {
+      rescueId: 'rsc-1',
+      subject: 'Hello',
+      body: 'A message',
+    } as never);
+
+    expect(res.queued).toBe(true);
+    expect(publishedSubjects).toEqual(['rescue.adminEmailRequested']);
   });
 });

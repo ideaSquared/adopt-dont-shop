@@ -301,6 +301,13 @@ export interface Rescue {
   settingsJson: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Subscription plan tier — 'free' | 'growth' | 'professional'. Defaults
+   * to 'free'. Drives the admin Plan tab + feature gating downstream.
+   */
+  plan: string;
+  /** Optional ISO-8601 plan expiry. Unset = no expiry. */
+  planExpiresAt?: string | undefined;
 }
 
 /**
@@ -618,6 +625,56 @@ export interface DeleteApplicationQuestionResponse {
   deleted: boolean;
 }
 
+export interface UpdateRescuePlanRequest {
+  rescueId: string;
+  /** 'free' | 'growth' | 'professional'. Validated by the handler. */
+  plan: string;
+  /** Optional ISO-8601 expiry. Empty/unset clears the expiry. */
+  planExpiresAt?: string | undefined;
+}
+
+export interface UpdateRescuePlanResponse {
+  rescue?: Rescue | undefined;
+}
+
+export interface GetRescueStatisticsRequest {
+  rescueId: string;
+}
+
+/**
+ * Mirrors the SPA's RescueStatistics shape. staff_count is real
+ * (sourced from rescue.staff_members); the pet/application-derived
+ * counts default to zero (those records live in other verticals — see
+ * the RPC doc comment).
+ */
+export interface RescueStatistics {
+  totalPets: number;
+  availablePets: number;
+  adoptedPets: number;
+  pendingApplications: number;
+  totalApplications: number;
+  staffCount: number;
+  activeListings: number;
+  monthlyAdoptions: number;
+  averageTimeToAdoption: number;
+}
+
+export interface GetRescueStatisticsResponse {
+  statistics?: RescueStatistics | undefined;
+}
+
+export interface SendRescueEmailRequest {
+  rescueId: string;
+  /** Either a predefined template id, OR a custom subject + body. */
+  templateId?: string | undefined;
+  subject?: string | undefined;
+  body?: string | undefined;
+}
+
+export interface SendRescueEmailResponse {
+  queued: boolean;
+}
+
 function createBaseRescue(): Rescue {
   return {
     rescueId: '',
@@ -646,6 +703,8 @@ function createBaseRescue(): Rescue {
     settingsJson: '',
     createdAt: '',
     updatedAt: '',
+    plan: '',
+    planExpiresAt: undefined,
   };
 }
 
@@ -728,6 +787,12 @@ export const Rescue: MessageFns<Rescue> = {
     }
     if (message.updatedAt !== '') {
       writer.uint32(210).string(message.updatedAt);
+    }
+    if (message.plan !== '') {
+      writer.uint32(218).string(message.plan);
+    }
+    if (message.planExpiresAt !== undefined) {
+      writer.uint32(226).string(message.planExpiresAt);
     }
     return writer;
   },
@@ -947,6 +1012,22 @@ export const Rescue: MessageFns<Rescue> = {
           message.updatedAt = reader.string();
           continue;
         }
+        case 27: {
+          if (tag !== 218) {
+            break;
+          }
+
+          message.plan = reader.string();
+          continue;
+        }
+        case 28: {
+          if (tag !== 226) {
+            break;
+          }
+
+          message.planExpiresAt = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1040,6 +1121,12 @@ export const Rescue: MessageFns<Rescue> = {
         : isSet(object.updated_at)
           ? globalThis.String(object.updated_at)
           : '',
+      plan: isSet(object.plan) ? globalThis.String(object.plan) : '',
+      planExpiresAt: isSet(object.planExpiresAt)
+        ? globalThis.String(object.planExpiresAt)
+        : isSet(object.plan_expires_at)
+          ? globalThis.String(object.plan_expires_at)
+          : undefined,
     };
   },
 
@@ -1123,6 +1210,12 @@ export const Rescue: MessageFns<Rescue> = {
     if (message.updatedAt !== '') {
       obj.updatedAt = message.updatedAt;
     }
+    if (message.plan !== '') {
+      obj.plan = message.plan;
+    }
+    if (message.planExpiresAt !== undefined) {
+      obj.planExpiresAt = message.planExpiresAt;
+    }
     return obj;
   },
 
@@ -1157,6 +1250,8 @@ export const Rescue: MessageFns<Rescue> = {
     message.settingsJson = object.settingsJson ?? '';
     message.createdAt = object.createdAt ?? '';
     message.updatedAt = object.updatedAt ?? '';
+    message.plan = object.plan ?? '';
+    message.planExpiresAt = object.planExpiresAt ?? undefined;
     return message;
   },
 };
@@ -5751,6 +5846,743 @@ export const DeleteApplicationQuestionResponse: MessageFns<DeleteApplicationQues
   },
 };
 
+function createBaseUpdateRescuePlanRequest(): UpdateRescuePlanRequest {
+  return { rescueId: '', plan: '', planExpiresAt: undefined };
+}
+
+export const UpdateRescuePlanRequest: MessageFns<UpdateRescuePlanRequest> = {
+  encode(
+    message: UpdateRescuePlanRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescueId !== '') {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.plan !== '') {
+      writer.uint32(18).string(message.plan);
+    }
+    if (message.planExpiresAt !== undefined) {
+      writer.uint32(26).string(message.planExpiresAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateRescuePlanRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateRescuePlanRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.plan = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.planExpiresAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateRescuePlanRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : '',
+      plan: isSet(object.plan) ? globalThis.String(object.plan) : '',
+      planExpiresAt: isSet(object.planExpiresAt)
+        ? globalThis.String(object.planExpiresAt)
+        : isSet(object.plan_expires_at)
+          ? globalThis.String(object.plan_expires_at)
+          : undefined,
+    };
+  },
+
+  toJSON(message: UpdateRescuePlanRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== '') {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.plan !== '') {
+      obj.plan = message.plan;
+    }
+    if (message.planExpiresAt !== undefined) {
+      obj.planExpiresAt = message.planExpiresAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateRescuePlanRequest>, I>>(
+    base?: I
+  ): UpdateRescuePlanRequest {
+    return UpdateRescuePlanRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateRescuePlanRequest>, I>>(
+    object: I
+  ): UpdateRescuePlanRequest {
+    const message = createBaseUpdateRescuePlanRequest();
+    message.rescueId = object.rescueId ?? '';
+    message.plan = object.plan ?? '';
+    message.planExpiresAt = object.planExpiresAt ?? undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateRescuePlanResponse(): UpdateRescuePlanResponse {
+  return { rescue: undefined };
+}
+
+export const UpdateRescuePlanResponse: MessageFns<UpdateRescuePlanResponse> = {
+  encode(
+    message: UpdateRescuePlanResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescue !== undefined) {
+      Rescue.encode(message.rescue, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateRescuePlanResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateRescuePlanResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescue = Rescue.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateRescuePlanResponse {
+    return { rescue: isSet(object.rescue) ? Rescue.fromJSON(object.rescue) : undefined };
+  },
+
+  toJSON(message: UpdateRescuePlanResponse): unknown {
+    const obj: any = {};
+    if (message.rescue !== undefined) {
+      obj.rescue = Rescue.toJSON(message.rescue);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateRescuePlanResponse>, I>>(
+    base?: I
+  ): UpdateRescuePlanResponse {
+    return UpdateRescuePlanResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateRescuePlanResponse>, I>>(
+    object: I
+  ): UpdateRescuePlanResponse {
+    const message = createBaseUpdateRescuePlanResponse();
+    message.rescue =
+      object.rescue !== undefined && object.rescue !== null
+        ? Rescue.fromPartial(object.rescue)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseGetRescueStatisticsRequest(): GetRescueStatisticsRequest {
+  return { rescueId: '' };
+}
+
+export const GetRescueStatisticsRequest: MessageFns<GetRescueStatisticsRequest> = {
+  encode(
+    message: GetRescueStatisticsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescueId !== '') {
+      writer.uint32(10).string(message.rescueId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetRescueStatisticsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetRescueStatisticsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetRescueStatisticsRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetRescueStatisticsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== '') {
+      obj.rescueId = message.rescueId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetRescueStatisticsRequest>, I>>(
+    base?: I
+  ): GetRescueStatisticsRequest {
+    return GetRescueStatisticsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetRescueStatisticsRequest>, I>>(
+    object: I
+  ): GetRescueStatisticsRequest {
+    const message = createBaseGetRescueStatisticsRequest();
+    message.rescueId = object.rescueId ?? '';
+    return message;
+  },
+};
+
+function createBaseRescueStatistics(): RescueStatistics {
+  return {
+    totalPets: 0,
+    availablePets: 0,
+    adoptedPets: 0,
+    pendingApplications: 0,
+    totalApplications: 0,
+    staffCount: 0,
+    activeListings: 0,
+    monthlyAdoptions: 0,
+    averageTimeToAdoption: 0,
+  };
+}
+
+export const RescueStatistics: MessageFns<RescueStatistics> = {
+  encode(message: RescueStatistics, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.totalPets !== 0) {
+      writer.uint32(8).uint32(message.totalPets);
+    }
+    if (message.availablePets !== 0) {
+      writer.uint32(16).uint32(message.availablePets);
+    }
+    if (message.adoptedPets !== 0) {
+      writer.uint32(24).uint32(message.adoptedPets);
+    }
+    if (message.pendingApplications !== 0) {
+      writer.uint32(32).uint32(message.pendingApplications);
+    }
+    if (message.totalApplications !== 0) {
+      writer.uint32(40).uint32(message.totalApplications);
+    }
+    if (message.staffCount !== 0) {
+      writer.uint32(48).uint32(message.staffCount);
+    }
+    if (message.activeListings !== 0) {
+      writer.uint32(56).uint32(message.activeListings);
+    }
+    if (message.monthlyAdoptions !== 0) {
+      writer.uint32(64).uint32(message.monthlyAdoptions);
+    }
+    if (message.averageTimeToAdoption !== 0) {
+      writer.uint32(73).double(message.averageTimeToAdoption);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RescueStatistics {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRescueStatistics();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.totalPets = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.availablePets = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.adoptedPets = reader.uint32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.pendingApplications = reader.uint32();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.totalApplications = reader.uint32();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.staffCount = reader.uint32();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.activeListings = reader.uint32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.monthlyAdoptions = reader.uint32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 73) {
+            break;
+          }
+
+          message.averageTimeToAdoption = reader.double();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RescueStatistics {
+    return {
+      totalPets: isSet(object.totalPets)
+        ? globalThis.Number(object.totalPets)
+        : isSet(object.total_pets)
+          ? globalThis.Number(object.total_pets)
+          : 0,
+      availablePets: isSet(object.availablePets)
+        ? globalThis.Number(object.availablePets)
+        : isSet(object.available_pets)
+          ? globalThis.Number(object.available_pets)
+          : 0,
+      adoptedPets: isSet(object.adoptedPets)
+        ? globalThis.Number(object.adoptedPets)
+        : isSet(object.adopted_pets)
+          ? globalThis.Number(object.adopted_pets)
+          : 0,
+      pendingApplications: isSet(object.pendingApplications)
+        ? globalThis.Number(object.pendingApplications)
+        : isSet(object.pending_applications)
+          ? globalThis.Number(object.pending_applications)
+          : 0,
+      totalApplications: isSet(object.totalApplications)
+        ? globalThis.Number(object.totalApplications)
+        : isSet(object.total_applications)
+          ? globalThis.Number(object.total_applications)
+          : 0,
+      staffCount: isSet(object.staffCount)
+        ? globalThis.Number(object.staffCount)
+        : isSet(object.staff_count)
+          ? globalThis.Number(object.staff_count)
+          : 0,
+      activeListings: isSet(object.activeListings)
+        ? globalThis.Number(object.activeListings)
+        : isSet(object.active_listings)
+          ? globalThis.Number(object.active_listings)
+          : 0,
+      monthlyAdoptions: isSet(object.monthlyAdoptions)
+        ? globalThis.Number(object.monthlyAdoptions)
+        : isSet(object.monthly_adoptions)
+          ? globalThis.Number(object.monthly_adoptions)
+          : 0,
+      averageTimeToAdoption: isSet(object.averageTimeToAdoption)
+        ? globalThis.Number(object.averageTimeToAdoption)
+        : isSet(object.average_time_to_adoption)
+          ? globalThis.Number(object.average_time_to_adoption)
+          : 0,
+    };
+  },
+
+  toJSON(message: RescueStatistics): unknown {
+    const obj: any = {};
+    if (message.totalPets !== 0) {
+      obj.totalPets = Math.round(message.totalPets);
+    }
+    if (message.availablePets !== 0) {
+      obj.availablePets = Math.round(message.availablePets);
+    }
+    if (message.adoptedPets !== 0) {
+      obj.adoptedPets = Math.round(message.adoptedPets);
+    }
+    if (message.pendingApplications !== 0) {
+      obj.pendingApplications = Math.round(message.pendingApplications);
+    }
+    if (message.totalApplications !== 0) {
+      obj.totalApplications = Math.round(message.totalApplications);
+    }
+    if (message.staffCount !== 0) {
+      obj.staffCount = Math.round(message.staffCount);
+    }
+    if (message.activeListings !== 0) {
+      obj.activeListings = Math.round(message.activeListings);
+    }
+    if (message.monthlyAdoptions !== 0) {
+      obj.monthlyAdoptions = Math.round(message.monthlyAdoptions);
+    }
+    if (message.averageTimeToAdoption !== 0) {
+      obj.averageTimeToAdoption = message.averageTimeToAdoption;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RescueStatistics>, I>>(base?: I): RescueStatistics {
+    return RescueStatistics.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RescueStatistics>, I>>(object: I): RescueStatistics {
+    const message = createBaseRescueStatistics();
+    message.totalPets = object.totalPets ?? 0;
+    message.availablePets = object.availablePets ?? 0;
+    message.adoptedPets = object.adoptedPets ?? 0;
+    message.pendingApplications = object.pendingApplications ?? 0;
+    message.totalApplications = object.totalApplications ?? 0;
+    message.staffCount = object.staffCount ?? 0;
+    message.activeListings = object.activeListings ?? 0;
+    message.monthlyAdoptions = object.monthlyAdoptions ?? 0;
+    message.averageTimeToAdoption = object.averageTimeToAdoption ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetRescueStatisticsResponse(): GetRescueStatisticsResponse {
+  return { statistics: undefined };
+}
+
+export const GetRescueStatisticsResponse: MessageFns<GetRescueStatisticsResponse> = {
+  encode(
+    message: GetRescueStatisticsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.statistics !== undefined) {
+      RescueStatistics.encode(message.statistics, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetRescueStatisticsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetRescueStatisticsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.statistics = RescueStatistics.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetRescueStatisticsResponse {
+    return {
+      statistics: isSet(object.statistics)
+        ? RescueStatistics.fromJSON(object.statistics)
+        : undefined,
+    };
+  },
+
+  toJSON(message: GetRescueStatisticsResponse): unknown {
+    const obj: any = {};
+    if (message.statistics !== undefined) {
+      obj.statistics = RescueStatistics.toJSON(message.statistics);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetRescueStatisticsResponse>, I>>(
+    base?: I
+  ): GetRescueStatisticsResponse {
+    return GetRescueStatisticsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetRescueStatisticsResponse>, I>>(
+    object: I
+  ): GetRescueStatisticsResponse {
+    const message = createBaseGetRescueStatisticsResponse();
+    message.statistics =
+      object.statistics !== undefined && object.statistics !== null
+        ? RescueStatistics.fromPartial(object.statistics)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseSendRescueEmailRequest(): SendRescueEmailRequest {
+  return { rescueId: '', templateId: undefined, subject: undefined, body: undefined };
+}
+
+export const SendRescueEmailRequest: MessageFns<SendRescueEmailRequest> = {
+  encode(message: SendRescueEmailRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== '') {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.templateId !== undefined) {
+      writer.uint32(18).string(message.templateId);
+    }
+    if (message.subject !== undefined) {
+      writer.uint32(26).string(message.subject);
+    }
+    if (message.body !== undefined) {
+      writer.uint32(34).string(message.body);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SendRescueEmailRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSendRescueEmailRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.templateId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.subject = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.body = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SendRescueEmailRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : '',
+      templateId: isSet(object.templateId)
+        ? globalThis.String(object.templateId)
+        : isSet(object.template_id)
+          ? globalThis.String(object.template_id)
+          : undefined,
+      subject: isSet(object.subject) ? globalThis.String(object.subject) : undefined,
+      body: isSet(object.body) ? globalThis.String(object.body) : undefined,
+    };
+  },
+
+  toJSON(message: SendRescueEmailRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== '') {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.templateId !== undefined) {
+      obj.templateId = message.templateId;
+    }
+    if (message.subject !== undefined) {
+      obj.subject = message.subject;
+    }
+    if (message.body !== undefined) {
+      obj.body = message.body;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SendRescueEmailRequest>, I>>(
+    base?: I
+  ): SendRescueEmailRequest {
+    return SendRescueEmailRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SendRescueEmailRequest>, I>>(
+    object: I
+  ): SendRescueEmailRequest {
+    const message = createBaseSendRescueEmailRequest();
+    message.rescueId = object.rescueId ?? '';
+    message.templateId = object.templateId ?? undefined;
+    message.subject = object.subject ?? undefined;
+    message.body = object.body ?? undefined;
+    return message;
+  },
+};
+
+function createBaseSendRescueEmailResponse(): SendRescueEmailResponse {
+  return { queued: false };
+}
+
+export const SendRescueEmailResponse: MessageFns<SendRescueEmailResponse> = {
+  encode(
+    message: SendRescueEmailResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.queued !== false) {
+      writer.uint32(8).bool(message.queued);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SendRescueEmailResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSendRescueEmailResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.queued = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SendRescueEmailResponse {
+    return { queued: isSet(object.queued) ? globalThis.Boolean(object.queued) : false };
+  },
+
+  toJSON(message: SendRescueEmailResponse): unknown {
+    const obj: any = {};
+    if (message.queued !== false) {
+      obj.queued = message.queued;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SendRescueEmailResponse>, I>>(
+    base?: I
+  ): SendRescueEmailResponse {
+    return SendRescueEmailResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SendRescueEmailResponse>, I>>(
+    object: I
+  ): SendRescueEmailResponse {
+    const message = createBaseSendRescueEmailResponse();
+    message.queued = object.queued ?? false;
+    return message;
+  },
+};
+
 /**
  * RescueService is the gRPC contract for the rescue vertical. It owns
  * the `rescue.*` schema (Rescue, RescueSettings, StaffMember, Invitation,
@@ -6069,6 +6901,64 @@ export const RescueServiceService = {
     responseDeserialize: (value: Buffer): DeleteApplicationQuestionResponse =>
       DeleteApplicationQuestionResponse.decode(value),
   },
+  /**
+   * Set a rescue's subscription plan tier (free / growth / professional)
+   * and optional expiry. Admin-only — caller MUST have
+   * `admin.security.manage`. Publishes `rescue.planUpdated` after commit.
+   */
+  updateRescuePlan: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/UpdateRescuePlan' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateRescuePlanRequest): Buffer =>
+      Buffer.from(UpdateRescuePlanRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateRescuePlanRequest =>
+      UpdateRescuePlanRequest.decode(value),
+    responseSerialize: (value: UpdateRescuePlanResponse): Buffer =>
+      Buffer.from(UpdateRescuePlanResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateRescuePlanResponse =>
+      UpdateRescuePlanResponse.decode(value),
+  },
+  /**
+   * Compute a rescue's headline statistics for the admin detail panel.
+   * staff_count is sourced from this vertical's staff_members table; the
+   * pet- and application-derived counts (which live in other verticals)
+   * are returned as zero defaults so the panel renders without a heavy
+   * cross-service aggregation. Caller MUST have `rescues.read`.
+   */
+  getRescueStatistics: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/GetRescueStatistics' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetRescueStatisticsRequest): Buffer =>
+      Buffer.from(GetRescueStatisticsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetRescueStatisticsRequest =>
+      GetRescueStatisticsRequest.decode(value),
+    responseSerialize: (value: GetRescueStatisticsResponse): Buffer =>
+      Buffer.from(GetRescueStatisticsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetRescueStatisticsResponse =>
+      GetRescueStatisticsResponse.decode(value),
+  },
+  /**
+   * Validate + enqueue an admin email to a rescue's contact address.
+   * Admin-only — caller MUST have `admin.security.manage`. Confirms the
+   * rescue exists, then publishes `rescue.adminEmailRequested` for the
+   * notifications worker to deliver (subscriber wiring is out of scope
+   * for this RPC — it stops at the published event).
+   */
+  sendRescueEmail: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/SendRescueEmail' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: SendRescueEmailRequest): Buffer =>
+      Buffer.from(SendRescueEmailRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): SendRescueEmailRequest =>
+      SendRescueEmailRequest.decode(value),
+    responseSerialize: (value: SendRescueEmailResponse): Buffer =>
+      Buffer.from(SendRescueEmailResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): SendRescueEmailResponse =>
+      SendRescueEmailResponse.decode(value),
+  },
 } as const;
 
 export interface RescueServiceServer extends UntypedServiceImplementation {
@@ -6189,6 +7079,28 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
     DeleteApplicationQuestionRequest,
     DeleteApplicationQuestionResponse
   >;
+  /**
+   * Set a rescue's subscription plan tier (free / growth / professional)
+   * and optional expiry. Admin-only — caller MUST have
+   * `admin.security.manage`. Publishes `rescue.planUpdated` after commit.
+   */
+  updateRescuePlan: handleUnaryCall<UpdateRescuePlanRequest, UpdateRescuePlanResponse>;
+  /**
+   * Compute a rescue's headline statistics for the admin detail panel.
+   * staff_count is sourced from this vertical's staff_members table; the
+   * pet- and application-derived counts (which live in other verticals)
+   * are returned as zero defaults so the panel renders without a heavy
+   * cross-service aggregation. Caller MUST have `rescues.read`.
+   */
+  getRescueStatistics: handleUnaryCall<GetRescueStatisticsRequest, GetRescueStatisticsResponse>;
+  /**
+   * Validate + enqueue an admin email to a rescue's contact address.
+   * Admin-only — caller MUST have `admin.security.manage`. Confirms the
+   * rescue exists, then publishes `rescue.adminEmailRequested` for the
+   * notifications worker to deliver (subscriber wiring is out of scope
+   * for this RPC — it stops at the published event).
+   */
+  sendRescueEmail: handleUnaryCall<SendRescueEmailRequest, SendRescueEmailResponse>;
 }
 
 export interface RescueServiceClient extends Client {
@@ -6534,6 +7446,70 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DeleteApplicationQuestionResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Set a rescue's subscription plan tier (free / growth / professional)
+   * and optional expiry. Admin-only — caller MUST have
+   * `admin.security.manage`. Publishes `rescue.planUpdated` after commit.
+   */
+  updateRescuePlan(
+    request: UpdateRescuePlanRequest,
+    callback: (error: ServiceError | null, response: UpdateRescuePlanResponse) => void
+  ): ClientUnaryCall;
+  updateRescuePlan(
+    request: UpdateRescuePlanRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateRescuePlanResponse) => void
+  ): ClientUnaryCall;
+  updateRescuePlan(
+    request: UpdateRescuePlanRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateRescuePlanResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Compute a rescue's headline statistics for the admin detail panel.
+   * staff_count is sourced from this vertical's staff_members table; the
+   * pet- and application-derived counts (which live in other verticals)
+   * are returned as zero defaults so the panel renders without a heavy
+   * cross-service aggregation. Caller MUST have `rescues.read`.
+   */
+  getRescueStatistics(
+    request: GetRescueStatisticsRequest,
+    callback: (error: ServiceError | null, response: GetRescueStatisticsResponse) => void
+  ): ClientUnaryCall;
+  getRescueStatistics(
+    request: GetRescueStatisticsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetRescueStatisticsResponse) => void
+  ): ClientUnaryCall;
+  getRescueStatistics(
+    request: GetRescueStatisticsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetRescueStatisticsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Validate + enqueue an admin email to a rescue's contact address.
+   * Admin-only — caller MUST have `admin.security.manage`. Confirms the
+   * rescue exists, then publishes `rescue.adminEmailRequested` for the
+   * notifications worker to deliver (subscriber wiring is out of scope
+   * for this RPC — it stops at the published event).
+   */
+  sendRescueEmail(
+    request: SendRescueEmailRequest,
+    callback: (error: ServiceError | null, response: SendRescueEmailResponse) => void
+  ): ClientUnaryCall;
+  sendRescueEmail(
+    request: SendRescueEmailRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: SendRescueEmailResponse) => void
+  ): ClientUnaryCall;
+  sendRescueEmail(
+    request: SendRescueEmailRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: SendRescueEmailResponse) => void
   ): ClientUnaryCall;
 }
 

@@ -20,9 +20,12 @@ import { adapt, adaptUnauth } from './adapter.js';
 import {
   createRescue,
   getRescue,
+  getRescueStatistics,
   inviteStaff,
   listRescues,
+  sendRescueEmail,
   updateRescue,
+  updateRescuePlan,
   verifyRescue,
 } from './handlers.js';
 import {
@@ -78,6 +81,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     listApplicationQuestions: adapt(listApplicationQuestions, { deps, logger }),
     createApplicationQuestion: adapt(createApplicationQuestion, { deps, logger }),
     deleteApplicationQuestion: adapt(deleteApplicationQuestion, { deps, logger }),
+    updateRescuePlan: adapt(updateRescuePlan, { deps, logger }),
+    getRescueStatistics: adapt(getRescueStatistics, { deps, logger }),
+    sendRescueEmail: adapt(sendRescueEmail, { deps, logger }),
   });
 
   logger.info('gRPC RescueService registered', {
@@ -99,6 +105,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'listApplicationQuestions',
       'createApplicationQuestion',
       'deleteApplicationQuestion',
+      'updateRescuePlan',
+      'getRescueStatistics',
+      'sendRescueEmail',
     ],
     grpcPort: config.grpcPort,
   });

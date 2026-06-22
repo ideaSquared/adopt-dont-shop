@@ -271,6 +271,13 @@ export type {
   CreateApplicationQuestionResponse,
   DeleteApplicationQuestionRequest,
   DeleteApplicationQuestionResponse,
+  UpdateRescuePlanRequest,
+  UpdateRescuePlanResponse,
+  GetRescueStatisticsRequest,
+  GetRescueStatisticsResponse,
+  RescueStatistics,
+  SendRescueEmailRequest,
+  SendRescueEmailResponse,
   RescueServiceServer,
   RescueServiceClient,
 } from './generated/proto/adopt_dont_shop/rescue/v1/rescue.js';

@@ -45,6 +45,12 @@ import {
   type ListStaffMembersResponse,
   type UpdateRescueRequest,
   type UpdateRescueResponse,
+  type UpdateRescuePlanRequest,
+  type UpdateRescuePlanResponse,
+  type GetRescueStatisticsRequest,
+  type GetRescueStatisticsResponse,
+  type SendRescueEmailRequest,
+  type SendRescueEmailResponse,
   type VerifyRescueRequest,
   type VerifyRescueResponse,
 } from '@adopt-dont-shop/proto';
@@ -58,6 +64,18 @@ export type RescueClient = {
   get(req: GetRescueRequest, metadata: Metadata): Promise<GetRescueResponse>;
   list(req: ListRescuesRequest, metadata: Metadata): Promise<ListRescuesResponse>;
   update(req: UpdateRescueRequest, metadata: Metadata): Promise<UpdateRescueResponse>;
+  updateRescuePlan(
+    req: UpdateRescuePlanRequest,
+    metadata: Metadata
+  ): Promise<UpdateRescuePlanResponse>;
+  getRescueStatistics(
+    req: GetRescueStatisticsRequest,
+    metadata: Metadata
+  ): Promise<GetRescueStatisticsResponse>;
+  sendRescueEmail(
+    req: SendRescueEmailRequest,
+    metadata: Metadata
+  ): Promise<SendRescueEmailResponse>;
   verify(req: VerifyRescueRequest, metadata: Metadata): Promise<VerifyRescueResponse>;
   inviteStaff(req: InviteStaffRequest, metadata: Metadata): Promise<InviteStaffResponse>;
   getMyStaffMembership(
@@ -169,6 +187,8 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     // ── Non-idempotent (writes / mutations) ──────────────────────────
     create: (req, metadata) => callUnary(stub.create, req, metadata, false),
     update: (req, metadata) => callUnary(stub.update, req, metadata, false),
+    updateRescuePlan: (req, metadata) => callUnary(stub.updateRescuePlan, req, metadata, false),
+    sendRescueEmail: (req, metadata) => callUnary(stub.sendRescueEmail, req, metadata, false),
     verify: (req, metadata) => callUnary(stub.verify, req, metadata, false),
     inviteStaff: (req, metadata) => callUnary(stub.inviteStaff, req, metadata, false),
     createFosterPlacement: (req, metadata) =>
@@ -182,6 +202,8 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     // ── Idempotent (reads) ───────────────────────────────────────────
     get: (req, metadata) => callUnary(stub.get, req, metadata, true),
     list: (req, metadata) => callUnary(stub.list, req, metadata, true),
+    getRescueStatistics: (req, metadata) =>
+      callUnary(stub.getRescueStatistics, req, metadata, true),
     getMyStaffMembership: (req, metadata) =>
       callUnary(stub.getMyStaffMembership, req, metadata, true),
     listStaffMembers: (req, metadata) => callUnary(stub.listStaffMembers, req, metadata, true),

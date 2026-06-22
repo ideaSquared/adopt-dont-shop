@@ -56,6 +56,8 @@ export type RescueView = {
   verification_source: string | null;
   verification_failure_reason: string | null;
   settings: Record<string, unknown>;
+  plan: string;
+  plan_expires_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -92,6 +94,8 @@ export function rescueToView(r: Rescue): RescueView {
       : null,
     verification_failure_reason: r.verificationFailureReason ?? null,
     settings: parseSettings(r.settingsJson),
+    plan: r.plan === '' ? 'free' : r.plan,
+    plan_expires_at: r.planExpiresAt ?? null,
     created_at: r.createdAt,
     updated_at: r.updatedAt,
   };
