@@ -146,6 +146,8 @@ export type {
   AdminGetUserResponse,
   AdminUpdateUserRequest,
   AdminUpdateUserResponse,
+  AdminCreateUserRequest,
+  AdminCreateUserResponse,
   DeactivateUserRequest,
   DeactivateUserResponse,
   ReactivateUserRequest,

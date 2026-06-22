@@ -509,6 +509,60 @@ export const registerUsersRoutes = async (
     }
   );
 
+  // POST /api/v1/admin/users — create a user from the admin console. The
+  // account is created pending + credential-less; service.auth issues a
+  // single-use invitation token (emailed when send_invitation is set) the
+  // invitee redeems to set their password. Elevated roles require a
+  // super_admin caller (enforced in service.auth).
+  app.post(
+    '/api/v1/admin/users',
+    {
+      schema: {
+        tags: ['users'],
+        summary: 'Create a user (admin)',
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as {
+        email?: string;
+        first_name?: string;
+        firstName?: string;
+        last_name?: string;
+        lastName?: string;
+        role?: string;
+        user_type?: string;
+        userType?: string;
+        send_invitation?: boolean;
+        sendInvitation?: boolean;
+      };
+      const email = typeof body.email === 'string' ? body.email : '';
+      const firstName = body.firstName ?? body.first_name ?? '';
+      const lastName = body.lastName ?? body.last_name ?? '';
+      const userType = userTypeFilterFromString(body.role ?? body.userType ?? body.user_type);
+      if (!email) {
+        return reply.code(400).send({ success: false, error: 'email is required' });
+      }
+      if (!firstName || !lastName) {
+        return reply
+          .code(400)
+          .send({ success: false, error: 'first_name and last_name are required' });
+      }
+      if (userType === AuthV1.UserRole.USER_ROLE_UNSPECIFIED) {
+        return reply.code(400).send({ success: false, error: 'a valid role is required' });
+      }
+      const sendInvitation = body.sendInvitation ?? body.send_invitation ?? true;
+      try {
+        const res = await authClient.adminCreateUser(
+          { email, firstName, lastName, userType, sendInvitation },
+          buildMetadata(req)
+        );
+        return reply.code(201).send({ success: true, data: userToApiJson(res.user!) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // GET /api/v1/admin/users/:userId — single user detail.
   app.get<{ Params: { userId: string } }>(
     '/api/v1/admin/users/:userId',

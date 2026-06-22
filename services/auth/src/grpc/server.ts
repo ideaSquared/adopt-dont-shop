@@ -38,6 +38,7 @@ import {
   type HandlerDeps,
 } from './handlers.js';
 import {
+  adminCreateUser,
   adminGetUser,
   adminLockAccount,
   adminResetPassword,
@@ -127,6 +128,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     // Admin user management — /api/v1/users/* admin surface.
     searchUsers: adapt(searchUsers, { deps, logger }),
     adminGetUser: adapt(adminGetUser, { deps, logger }),
+    adminCreateUser: adapt(adminCreateUser, { deps, logger }),
     adminUpdateUser: adapt(adminUpdateUser, { deps, logger }),
     deactivateUser: adapt(deactivateUser, { deps, logger }),
     reactivateUser: adapt(reactivateUser, { deps, logger }),
@@ -180,6 +182,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'resetPrivacyPreferences',
       'searchUsers',
       'adminGetUser',
+      'adminCreateUser',
       'adminUpdateUser',
       'deactivateUser',
       'reactivateUser',

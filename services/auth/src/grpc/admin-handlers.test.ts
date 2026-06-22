@@ -7,6 +7,7 @@ import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
 import { AuthV1 } from '@adopt-dont-shop/proto';
 
 import {
+  adminCreateUser,
   adminGetUser,
   adminLockAccount,
   adminResetPassword,
@@ -43,6 +44,18 @@ const ADMIN: Principal = {
 const NO_PERMS: Principal = {
   userId: 'usr-nobody' as UserId,
   roles: ['adopter'],
+  permissions: [],
+};
+
+const ADMIN_CREATOR: Principal = {
+  userId: 'svc-admin-creator' as UserId,
+  roles: ['admin'],
+  permissions: ['admin.users.create' as Permission],
+};
+
+const SUPER_ADMIN: Principal = {
+  userId: 'svc-super-admin' as UserId,
+  roles: ['super_admin'],
   permissions: [],
 };
 
@@ -904,5 +917,121 @@ describe('listUserIdsByCohort', () => {
     expect(res.total).toBe(237);
     expect(res.page).toBe(3);
     expect(res.totalPages).toBe(5);
+  });
+});
+
+// --- adminCreateUser -------------------------------------------------
+
+describe('adminCreateUser', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  const baseReq = {
+    email: 'new@example.com',
+    firstName: 'New',
+    lastName: 'User',
+    userType: AuthV1.UserRole.USER_ROLE_ADOPTER,
+    sendInvitation: true,
+  };
+
+  it('rejects principals without admin.users.create', async () => {
+    await expect(adminCreateUser(mocks.deps, NO_PERMS, baseReq)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('rejects an invalid email', async () => {
+    await expect(
+      adminCreateUser(mocks.deps, ADMIN_CREATOR, { ...baseReq, email: 'nope' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a missing first/last name', async () => {
+    await expect(
+      adminCreateUser(mocks.deps, ADMIN_CREATOR, { ...baseReq, firstName: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects an unspecified user_type', async () => {
+    await expect(
+      adminCreateUser(mocks.deps, ADMIN_CREATOR, {
+        ...baseReq,
+        userType: AuthV1.UserRole.USER_ROLE_UNSPECIFIED,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('forbids a non-super_admin from minting an elevated role', async () => {
+    await expect(
+      adminCreateUser(mocks.deps, ADMIN_CREATOR, {
+        ...baseReq,
+        userType: AuthV1.UserRole.USER_ROLE_ADMIN,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    // No writes when the privilege guard blocks the create.
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects a duplicate email with ALREADY_EXISTS', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    await expect(adminCreateUser(mocks.deps, ADMIN_CREATOR, baseReq)).rejects.toMatchObject({
+      code: 'ALREADY_EXISTS',
+    });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('creates a pending user + invitation and emits auth.userInvited with the token', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // no existing email
+    mocks.clientScript.push({
+      rows: [
+        userRow({ user_id: 'usr-new', email: 'new@example.com', status: 'pending_verification' }),
+      ],
+    }); // INSERT auth.users
+    mocks.clientScript.push({ rows: [] }); // INSERT auth.user_invitations
+
+    const res = await adminCreateUser(mocks.deps, ADMIN_CREATOR, baseReq);
+
+    expect(res.user?.userId).toBe('usr-new');
+    const sqls = (mocks.clientMock.query.mock.calls as Array<[string]>).map(([s]) => s);
+    expect(sqls.some(s => s.includes('INSERT INTO auth.users'))).toBe(true);
+    expect(sqls.some(s => s.includes('INSERT INTO auth.user_invitations'))).toBe(true);
+
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.userInvited');
+    const envelope = JSON.parse(
+      new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+    );
+    expect(envelope.payload).toMatchObject({ userId: 'usr-new', role: 'adopter' });
+    expect(typeof envelope.payload.token).toBe('string');
+    expect(envelope.payload.token.length).toBeGreaterThan(0);
+  });
+
+  it('omits the token when send_invitation is false', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    mocks.clientScript.push({ rows: [userRow({ user_id: 'usr-new' })] });
+    mocks.clientScript.push({ rows: [] });
+
+    await adminCreateUser(mocks.deps, ADMIN_CREATOR, { ...baseReq, sendInvitation: false });
+
+    const envelope = JSON.parse(
+      new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+    );
+    expect(envelope.payload.token).toBeUndefined();
+  });
+
+  it('allows a super_admin to mint an elevated role', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    mocks.clientScript.push({ rows: [userRow({ user_id: 'usr-mod', user_type: 'moderator' })] });
+    mocks.clientScript.push({ rows: [] });
+
+    const res = await adminCreateUser(mocks.deps, SUPER_ADMIN, {
+      ...baseReq,
+      userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
+    });
+    expect(res.user?.userId).toBe('usr-mod');
   });
 });
