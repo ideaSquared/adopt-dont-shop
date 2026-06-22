@@ -66,6 +66,7 @@ import { registerFieldPermissionsRoutes } from './routes/field-permissions.js';
 import { registerGdprRoutes } from './routes/gdpr.js';
 import { registerLegalRoutes } from './routes/legal.js';
 import { registerMatchingRoutes } from './routes/matching.js';
+import { registerAdminInboxRoutes } from './routes/admin-inbox.js';
 import { registerModerationAdminRoutes } from './routes/moderation-admin.js';
 import { registerSupportRoutes } from './routes/support.js';
 import { registerModerationRoutes } from './routes/moderation.js';
@@ -486,6 +487,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // SPA-facing surface at /api/v1/admin/{moderation,support}/* with
     // frontend-shape envelopes (lib.moderation, lib.support-tickets).
     await registerModerationAdminRoutes(server, { client: opts.moderationClient });
+    // Unified admin Triage Inbox at /api/v1/admin/inbox — aggregates
+    // moderation reports + support tickets into one queue.
+    await registerAdminInboxRoutes(server, { client: opts.moderationClient });
     // User-facing /api/v1/support/* — adopters opening + replying to
     // their own tickets. Handlers self-scope by principal.userId.
     await registerSupportRoutes(server, { client: opts.moderationClient });
