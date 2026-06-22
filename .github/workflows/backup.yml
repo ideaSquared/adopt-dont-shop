@@ -36,7 +36,7 @@ jobs:
       # NOTE: pin to a commit SHA before merge, matching the ssh-action pin
       # convention below (see rollback.yml). Tag used here for readability.
       - name: Copy snapshot script to server
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
