@@ -37,6 +37,6 @@
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "workspace:*",
-    "@types/node": "^25.9.1"
+    "@types/node": "^26.0.0"
   }
 }
