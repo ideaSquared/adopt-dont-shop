@@ -154,6 +154,14 @@ service AuthService {
   // Fetch a single user by id (admin view — full row). admin.users.read.
   rpc AdminGetUser(AdminGetUserRequest) returns (AdminGetUserResponse);
 
+  // Create a new user from the admin console as a pending, credential-less
+  // account and issue a single-use invitation token (emailed via the
+  // auth.userInvited event) the invitee redeems to set their password.
+  // Gates on admin.users.create; creating an elevated role (admin,
+  // moderator, super_admin) additionally requires the caller to be a
+  // super_admin. ALREADY_EXISTS when the email is already in use.
+  rpc AdminCreateUser(AdminCreateUserRequest) returns (AdminCreateUserResponse);
+
   // Partially update a user's admin-controllable fields (status,
   // user_type, verification flags). admin.users.update. Only set fields
   // are written.
@@ -740,6 +748,25 @@ message AdminUpdateUserRequest {
 }
 
 message AdminUpdateUserResponse {
+  User user = 1;
+}
+
+message AdminCreateUserRequest {
+  string email = 1;
+  string first_name = 2;
+  string last_name = 3;
+  // The new account's role. Maps directly onto user_type (the RBAC
+  // primary role grant). Required.
+  UserRole user_type = 4;
+  // When true, the auth.userInvited event carries the invitation token so
+  // the notifications service emails a set-password link. The account is
+  // always created pending until the invitation is redeemed regardless.
+  bool send_invitation = 5;
+}
+
+message AdminCreateUserResponse {
+  // The newly created (pending) user. Carries no usable credentials until
+  // the invitation is redeemed.
   User user = 1;
 }
 

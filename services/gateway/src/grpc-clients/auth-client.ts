@@ -75,6 +75,8 @@ import {
   type ResetPrivacyPreferencesResponse,
   type SearchUsersRequest,
   type SearchUsersResponse,
+  type AdminCreateUserRequest,
+  type AdminCreateUserResponse,
   type AdminGetUserRequest,
   type AdminGetUserResponse,
   type AdminUpdateUserRequest,
@@ -180,6 +182,10 @@ export type AuthClient = {
   ): Promise<ResetPrivacyPreferencesResponse>;
   searchUsers(req: SearchUsersRequest, metadata: Metadata): Promise<SearchUsersResponse>;
   adminGetUser(req: AdminGetUserRequest, metadata: Metadata): Promise<AdminGetUserResponse>;
+  adminCreateUser(
+    req: AdminCreateUserRequest,
+    metadata: Metadata
+  ): Promise<AdminCreateUserResponse>;
   adminUpdateUser(
     req: AdminUpdateUserRequest,
     metadata: Metadata
@@ -322,6 +328,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
       callUnary(stub.resetPrivacyPreferences, req, metadata, false),
     assignRole: (req, metadata) => callUnary(stub.assignRole, req, metadata, false),
     adminUpdateUser: (req, metadata) => callUnary(stub.adminUpdateUser, req, metadata, false),
+    adminCreateUser: (req, metadata) => callUnary(stub.adminCreateUser, req, metadata, false),
     deactivateUser: (req, metadata) => callUnary(stub.deactivateUser, req, metadata, false),
     reactivateUser: (req, metadata) => callUnary(stub.reactivateUser, req, metadata, false),
     bulkUpdateUsers: (req, metadata) => callUnary(stub.bulkUpdateUsers, req, metadata, false),

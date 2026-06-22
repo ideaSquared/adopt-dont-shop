@@ -69,6 +69,7 @@ function makeAuthClient(): AuthClient & {
   resetPrivacyPreferencesMock: ReturnType<typeof vi.fn>;
   searchUsersMock: ReturnType<typeof vi.fn>;
   adminGetUserMock: ReturnType<typeof vi.fn>;
+  adminCreateUserMock: ReturnType<typeof vi.fn>;
   adminUpdateUserMock: ReturnType<typeof vi.fn>;
   deactivateUserMock: ReturnType<typeof vi.fn>;
   reactivateUserMock: ReturnType<typeof vi.fn>;
@@ -84,6 +85,7 @@ function makeAuthClient(): AuthClient & {
   const resetPrivacyPreferencesMock = vi.fn();
   const searchUsersMock = vi.fn();
   const adminGetUserMock = vi.fn();
+  const adminCreateUserMock = vi.fn();
   const adminUpdateUserMock = vi.fn();
   const deactivateUserMock = vi.fn();
   const reactivateUserMock = vi.fn();
@@ -99,6 +101,7 @@ function makeAuthClient(): AuthClient & {
     resetPrivacyPreferences: resetPrivacyPreferencesMock,
     searchUsers: searchUsersMock,
     adminGetUser: adminGetUserMock,
+    adminCreateUser: adminCreateUserMock,
     adminUpdateUser: adminUpdateUserMock,
     deactivateUser: deactivateUserMock,
     reactivateUser: reactivateUserMock,
@@ -127,6 +130,7 @@ function makeAuthClient(): AuthClient & {
     resetPrivacyPreferencesMock,
     searchUsersMock,
     adminGetUserMock,
+    adminCreateUserMock,
     adminUpdateUserMock,
     deactivateUserMock,
     reactivateUserMock,
@@ -628,6 +632,129 @@ describe('/api/v1/admin/users surface', () => {
     expect(res.statusCode).toBe(400);
     expect(auth.adminUpdateUserMock).not.toHaveBeenCalled();
     expect(auth.reactivateUserMock).not.toHaveBeenCalled();
+  });
+
+  it('POST creates a user, mapping role → userType and 201ing the new user', async () => {
+    auth.adminCreateUserMock.mockResolvedValueOnce({ user: ADMIN_USER_FIXTURE });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/users',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify({
+        email: 'new@example.com',
+        first_name: 'New',
+        last_name: 'User',
+        role: 'adopter',
+        send_invitation: true,
+      }),
+    });
+    expect(res.statusCode).toBe(201);
+    const [grpcReq] = auth.adminCreateUserMock.mock.calls[0] as [
+      {
+        email: string;
+        firstName: string;
+        lastName: string;
+        userType: AuthV1.UserRole;
+        sendInvitation: boolean;
+      },
+      Metadata,
+    ];
+    expect(grpcReq).toMatchObject({
+      email: 'new@example.com',
+      firstName: 'New',
+      lastName: 'User',
+      userType: AuthV1.UserRole.USER_ROLE_ADOPTER,
+      sendInvitation: true,
+    });
+    const body = res.json() as { success: boolean; data: { userId: string } };
+    expect(body.success).toBe(true);
+    expect(body.data.userId).toBe('usr-9');
+  });
+
+  it('POST defaults send_invitation to true when omitted', async () => {
+    auth.adminCreateUserMock.mockResolvedValueOnce({ user: ADMIN_USER_FIXTURE });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/users',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify({
+        email: 'new@example.com',
+        first_name: 'New',
+        last_name: 'User',
+        role: 'moderator',
+      }),
+    });
+    const [grpcReq] = auth.adminCreateUserMock.mock.calls[0] as [
+      { sendInvitation: boolean },
+      Metadata,
+    ];
+    expect(grpcReq.sendInvitation).toBe(true);
+  });
+
+  it('POST with a missing email → 400 without calling the RPC', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/users',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify({ first_name: 'New', last_name: 'User', role: 'adopter' }),
+    });
+    expect(res.statusCode).toBe(400);
+    expect(auth.adminCreateUserMock).not.toHaveBeenCalled();
+  });
+
+  it('POST with an invalid role → 400 without calling the RPC', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/users',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify({
+        email: 'new@example.com',
+        first_name: 'New',
+        last_name: 'User',
+        role: 'wizard',
+      }),
+    });
+    expect(res.statusCode).toBe(400);
+    expect(auth.adminCreateUserMock).not.toHaveBeenCalled();
+  });
+
+  it('POST surfaces a gRPC PERMISSION_DENIED as 403', async () => {
+    auth.adminCreateUserMock.mockRejectedValueOnce({
+      code: status.PERMISSION_DENIED,
+      details: 'no',
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/users',
+      headers: {
+        'x-user-id': 'svc-admin',
+        'x-user-roles': 'admin',
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify({
+        email: 'boss@example.com',
+        first_name: 'Boss',
+        last_name: 'Person',
+        role: 'super_admin',
+      }),
+    });
+    expect(res.statusCode).toBe(403);
   });
 });
 

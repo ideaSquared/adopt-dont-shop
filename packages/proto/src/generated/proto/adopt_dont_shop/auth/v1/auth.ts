@@ -814,6 +814,31 @@ export interface AdminUpdateUserResponse {
   user?: User | undefined;
 }
 
+export interface AdminCreateUserRequest {
+  email: string;
+  firstName: string;
+  lastName: string;
+  /**
+   * The new account's role. Maps directly onto user_type (the RBAC
+   * primary role grant). Required.
+   */
+  userType: UserRole;
+  /**
+   * When true, the auth.userInvited event carries the invitation token so
+   * the notifications service emails a set-password link. The account is
+   * always created pending until the invitation is redeemed regardless.
+   */
+  sendInvitation: boolean;
+}
+
+export interface AdminCreateUserResponse {
+  /**
+   * The newly created (pending) user. Carries no usable credentials until
+   * the invitation is redeemed.
+   */
+  user?: User | undefined;
+}
+
 export interface DeactivateUserRequest {
   userId: string;
   reason?: string | undefined;
@@ -6580,6 +6605,216 @@ export const AdminUpdateUserResponse: MessageFns<AdminUpdateUserResponse> = {
   },
 };
 
+function createBaseAdminCreateUserRequest(): AdminCreateUserRequest {
+  return { email: '', firstName: '', lastName: '', userType: 0, sendInvitation: false };
+}
+
+export const AdminCreateUserRequest: MessageFns<AdminCreateUserRequest> = {
+  encode(message: AdminCreateUserRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.email !== '') {
+      writer.uint32(10).string(message.email);
+    }
+    if (message.firstName !== '') {
+      writer.uint32(18).string(message.firstName);
+    }
+    if (message.lastName !== '') {
+      writer.uint32(26).string(message.lastName);
+    }
+    if (message.userType !== 0) {
+      writer.uint32(32).int32(message.userType);
+    }
+    if (message.sendInvitation !== false) {
+      writer.uint32(40).bool(message.sendInvitation);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminCreateUserRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminCreateUserRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.firstName = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.lastName = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.userType = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.sendInvitation = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminCreateUserRequest {
+    return {
+      email: isSet(object.email) ? globalThis.String(object.email) : '',
+      firstName: isSet(object.firstName)
+        ? globalThis.String(object.firstName)
+        : isSet(object.first_name)
+          ? globalThis.String(object.first_name)
+          : '',
+      lastName: isSet(object.lastName)
+        ? globalThis.String(object.lastName)
+        : isSet(object.last_name)
+          ? globalThis.String(object.last_name)
+          : '',
+      userType: isSet(object.userType)
+        ? userRoleFromJSON(object.userType)
+        : isSet(object.user_type)
+          ? userRoleFromJSON(object.user_type)
+          : 0,
+      sendInvitation: isSet(object.sendInvitation)
+        ? globalThis.Boolean(object.sendInvitation)
+        : isSet(object.send_invitation)
+          ? globalThis.Boolean(object.send_invitation)
+          : false,
+    };
+  },
+
+  toJSON(message: AdminCreateUserRequest): unknown {
+    const obj: any = {};
+    if (message.email !== '') {
+      obj.email = message.email;
+    }
+    if (message.firstName !== '') {
+      obj.firstName = message.firstName;
+    }
+    if (message.lastName !== '') {
+      obj.lastName = message.lastName;
+    }
+    if (message.userType !== 0) {
+      obj.userType = userRoleToJSON(message.userType);
+    }
+    if (message.sendInvitation !== false) {
+      obj.sendInvitation = message.sendInvitation;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminCreateUserRequest>, I>>(
+    base?: I
+  ): AdminCreateUserRequest {
+    return AdminCreateUserRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminCreateUserRequest>, I>>(
+    object: I
+  ): AdminCreateUserRequest {
+    const message = createBaseAdminCreateUserRequest();
+    message.email = object.email ?? '';
+    message.firstName = object.firstName ?? '';
+    message.lastName = object.lastName ?? '';
+    message.userType = object.userType ?? 0;
+    message.sendInvitation = object.sendInvitation ?? false;
+    return message;
+  },
+};
+
+function createBaseAdminCreateUserResponse(): AdminCreateUserResponse {
+  return { user: undefined };
+}
+
+export const AdminCreateUserResponse: MessageFns<AdminCreateUserResponse> = {
+  encode(
+    message: AdminCreateUserResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdminCreateUserResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdminCreateUserResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdminCreateUserResponse {
+    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+  },
+
+  toJSON(message: AdminCreateUserResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdminCreateUserResponse>, I>>(
+    base?: I
+  ): AdminCreateUserResponse {
+    return AdminCreateUserResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdminCreateUserResponse>, I>>(
+    object: I
+  ): AdminCreateUserResponse {
+    const message = createBaseAdminCreateUserResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    return message;
+  },
+};
+
 function createBaseDeactivateUserRequest(): DeactivateUserRequest {
   return { userId: '', reason: undefined };
 }
@@ -11514,6 +11749,27 @@ export const AuthServiceService = {
       AdminGetUserResponse.decode(value),
   },
   /**
+   * Create a new user from the admin console as a pending, credential-less
+   * account and issue a single-use invitation token (emailed via the
+   * auth.userInvited event) the invitee redeems to set their password.
+   * Gates on admin.users.create; creating an elevated role (admin,
+   * moderator, super_admin) additionally requires the caller to be a
+   * super_admin. ALREADY_EXISTS when the email is already in use.
+   */
+  adminCreateUser: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/AdminCreateUser' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AdminCreateUserRequest): Buffer =>
+      Buffer.from(AdminCreateUserRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AdminCreateUserRequest =>
+      AdminCreateUserRequest.decode(value),
+    responseSerialize: (value: AdminCreateUserResponse): Buffer =>
+      Buffer.from(AdminCreateUserResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AdminCreateUserResponse =>
+      AdminCreateUserResponse.decode(value),
+  },
+  /**
    * Partially update a user's admin-controllable fields (status,
    * user_type, verification flags). admin.users.update. Only set fields
    * are written.
@@ -12020,6 +12276,15 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
   searchUsers: handleUnaryCall<SearchUsersRequest, SearchUsersResponse>;
   /** Fetch a single user by id (admin view — full row). admin.users.read. */
   adminGetUser: handleUnaryCall<AdminGetUserRequest, AdminGetUserResponse>;
+  /**
+   * Create a new user from the admin console as a pending, credential-less
+   * account and issue a single-use invitation token (emailed via the
+   * auth.userInvited event) the invitee redeems to set their password.
+   * Gates on admin.users.create; creating an elevated role (admin,
+   * moderator, super_admin) additionally requires the caller to be a
+   * super_admin. ALREADY_EXISTS when the email is already in use.
+   */
+  adminCreateUser: handleUnaryCall<AdminCreateUserRequest, AdminCreateUserResponse>;
   /**
    * Partially update a user's admin-controllable fields (status,
    * user_type, verification flags). admin.users.update. Only set fields
@@ -12605,6 +12870,29 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: AdminGetUserResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Create a new user from the admin console as a pending, credential-less
+   * account and issue a single-use invitation token (emailed via the
+   * auth.userInvited event) the invitee redeems to set their password.
+   * Gates on admin.users.create; creating an elevated role (admin,
+   * moderator, super_admin) additionally requires the caller to be a
+   * super_admin. ALREADY_EXISTS when the email is already in use.
+   */
+  adminCreateUser(
+    request: AdminCreateUserRequest,
+    callback: (error: ServiceError | null, response: AdminCreateUserResponse) => void
+  ): ClientUnaryCall;
+  adminCreateUser(
+    request: AdminCreateUserRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AdminCreateUserResponse) => void
+  ): ClientUnaryCall;
+  adminCreateUser(
+    request: AdminCreateUserRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AdminCreateUserResponse) => void
   ): ClientUnaryCall;
   /**
    * Partially update a user's admin-controllable fields (status,

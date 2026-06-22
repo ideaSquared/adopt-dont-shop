@@ -7,7 +7,7 @@
 // Reuses rowToProtoUser + UserRow + the enum maps from handlers.ts so
 // the admin view returns the same User shape GetMe does.
 
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
@@ -15,6 +15,8 @@ import type { Permission } from '@adopt-dont-shop/lib.types';
 
 import {
   AuthV1,
+  type AdminCreateUserRequest,
+  type AdminCreateUserResponse,
   type AdminGetUserRequest,
   type AdminGetUserResponse,
   type AdminLockAccountRequest,
@@ -62,6 +64,7 @@ import {
 const ADMIN_USERS_SEARCH: Permission = 'admin.users.search' as Permission;
 const ADMIN_USERS_READ: Permission = 'admin.users.read' as Permission;
 const ADMIN_USERS_UPDATE: Permission = 'admin.users.update' as Permission;
+const ADMIN_USERS_CREATE: Permission = 'admin.users.create' as Permission;
 const ADMIN_USERS_DEACTIVATE: Permission = 'admin.users.deactivate' as Permission;
 const ADMIN_USERS_REACTIVATE: Permission = 'admin.users.reactivate' as Permission;
 const ADMIN_USERS_BULK_UPDATE: Permission = 'admin.users.bulk_update' as Permission;
@@ -202,6 +205,116 @@ export async function adminGetUser(
     throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
   }
   return { user: rowToProtoUser(res.rows[0]) };
+}
+
+// --- AdminCreateUser -------------------------------------------------
+
+// user_type values an ordinary admin may NOT mint — only a super_admin
+// can create another elevated account (privilege-escalation guard).
+const ELEVATED_ROLES: ReadonlySet<string> = new Set(['admin', 'moderator', 'super_admin']);
+
+// Invitation tokens are short-lived; the invitee must redeem within a week.
+const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+export async function adminCreateUser(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: AdminCreateUserRequest
+): Promise<AdminCreateUserResponse> {
+  if (!req.email || !req.email.includes('@') || req.email.length > 255) {
+    throw new HandlerError('INVALID_ARGUMENT', 'email is invalid');
+  }
+  if (!req.firstName || !req.lastName) {
+    throw new HandlerError('INVALID_ARGUMENT', 'first_name and last_name are required');
+  }
+  if (req.userType === AuthV1.UserRole.USER_ROLE_UNSPECIFIED) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_type is required');
+  }
+  if (!hasPermission(principal, ADMIN_USERS_CREATE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_USERS_CREATE}' required`);
+  }
+
+  const userType = roleToDb(req.userType);
+  // hasPermission already short-circuits true for super_admin, so this
+  // guard only ever bites a lower-privileged admin trying to mint an
+  // elevated account.
+  if (ELEVATED_ROLES.has(userType) && !principal.roles.includes('super_admin')) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      'only a super_admin may create admin, moderator, or super_admin accounts'
+    );
+  }
+
+  // Reject a duplicate up front for a clean error; the unique constraint on
+  // email is still the source of truth against a race.
+  const existing = await deps.pool.query(
+    `SELECT 1 FROM auth.users WHERE email = $1 AND deleted_at IS NULL LIMIT 1`,
+    [req.email]
+  );
+  if (existing.rows.length > 0) {
+    throw new HandlerError('ALREADY_EXISTS', `a user with email ${req.email} already exists`);
+  }
+
+  // Pending users carry no usable credential until they redeem the invite;
+  // seed the NOT NULL password column with a random, unguessable hash.
+  const placeholderPassword = await deps.passwordHasher.hash(randomBytes(32).toString('base64url'));
+  const token = randomBytes(32).toString('base64url');
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const expiresAt = new Date(Date.now() + INVITATION_TTL_MS);
+
+  let createdUser: UserRow | undefined;
+  await withTransaction(deps, async ({ client, publish }) => {
+    const userRes = await client.query<UserRow>(
+      `
+      INSERT INTO auth.users (
+        user_id, email, password, first_name, last_name,
+        status, user_type, email_verified, phone_verified,
+        two_factor_enabled, login_attempts, created_at, updated_at
+      )
+      VALUES (
+        gen_random_uuid(), $1, $2, $3, $4,
+        'pending_verification', $5, false, false,
+        false, 0, now(), now()
+      )
+      RETURNING ${USER_SELECT}
+      `,
+      [req.email, placeholderPassword, req.firstName, req.lastName, userType]
+    );
+    createdUser = userRes.rows[0];
+
+    await client.query(
+      `
+      INSERT INTO auth.user_invitations (
+        invitation_id, user_id, token_hash, status, invited_by,
+        expires_at, created_at, updated_at
+      )
+      VALUES (gen_random_uuid(), $1, $2, 'pending', $3, $4, now(), now())
+      `,
+      [createdUser.user_id, tokenHash, principal.userId, expiresAt]
+    );
+
+    publish({
+      type: 'auth.userInvited',
+      id: `auth.userInvited.${createdUser.user_id}`,
+      payload: {
+        userId: createdUser.user_id,
+        email: createdUser.email,
+        firstName: createdUser.first_name,
+        role: userType,
+        invitedBy: principal.userId,
+        // The raw token travels ONLY on this internal event so the
+        // notifications service can build the set-password link. Omitted
+        // when the admin opted out of the invitation email.
+        token: req.sendInvitation ? token : undefined,
+        sendInvitation: req.sendInvitation,
+      },
+    });
+  });
+
+  if (!createdUser) {
+    throw new HandlerError('INTERNAL', 'insert returned no rows');
+  }
+  return { user: rowToProtoUser(createdUser) };
 }
 
 // --- AdminUpdateUser -------------------------------------------------
