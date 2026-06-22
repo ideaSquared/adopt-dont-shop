@@ -146,7 +146,7 @@ RUN find /app/apps/${APP_NAME}/dist -name '*.map' -delete
 # ============================================================================
 # Uses the unprivileged nginx image (runs as UID 101, listens on 8080) so the
 # container does not run as root. [ADS-701]
-FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:cc300bd2e8776708a8c2c8686a74f06eadf221c5ce01e85d0e821955d7a730ab AS production
+FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:054e14f543eb688809d59ec2ad1644d1a61678e247c87a318ad605977eb37eaf AS production
 ARG APP_NAME
 
 # Privileged setup (package upgrade, suid strip, config write). The base image
