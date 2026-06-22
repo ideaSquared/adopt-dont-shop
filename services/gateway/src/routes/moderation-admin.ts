@@ -15,6 +15,7 @@ import type { FastifyInstance } from 'fastify';
 import {
   ModerationV1,
   type AssignReportRequest,
+  type AssignSupportTicketRequest,
   type FileReportRequest,
   type ListModeratorActionsRequest,
   type ListReportsRequest,
@@ -577,6 +578,33 @@ export const registerModerationAdminRoutes = async (
           return reply.code(500).send({ error: 'respondToTicket returned no response' });
         }
         return reply.code(201).send(dataEnvelope(supportTicketResponseToView(res.response)));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/admin/support/tickets/:id/assign',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation', 'admin'],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const grpcReq: AssignSupportTicketRequest = {
+        ticketId: req.params.id,
+        assignedTo: (b.assignedTo as string) ?? '',
+      };
+      try {
+        const res = await client.assignSupportTicket(grpcReq, buildMetadata(req));
+        if (res.ticket === undefined) {
+          return reply.code(500).send({ error: 'assignSupportTicket returned no ticket' });
+        }
+        return reply.send(dataEnvelope(supportTicketToView(res.ticket)));
       } catch (err) {
         return handleGrpcError(err, reply);
       }

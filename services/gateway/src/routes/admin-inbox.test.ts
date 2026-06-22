@@ -13,7 +13,7 @@ function makeClient(): {
   mocks: Record<string, ReturnType<typeof vi.fn>>;
 } {
   const mocks: Record<string, ReturnType<typeof vi.fn>> = {};
-  for (const m of ['listReports', 'listSupportTickets', 'assignReport']) {
+  for (const m of ['listReports', 'listSupportTickets', 'assignReport', 'assignSupportTicket']) {
     mocks[m] = vi.fn();
   }
   // Default: empty lists so a route that only needs one source still resolves.
@@ -329,7 +329,9 @@ describe('POST /api/v1/admin/inbox/assign', () => {
     });
   });
 
-  it('returns 501 for an unsupported support assignment (no backing RPC)', async () => {
+  it('assigns a support item via assignSupportTicket and returns 204', async () => {
+    mocks.assignSupportTicket.mockResolvedValueOnce({ ticket: TICKET });
+
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/admin/inbox/assign',
@@ -337,7 +339,11 @@ describe('POST /api/v1/admin/inbox/assign', () => {
       payload: { itemId: 'tkt-1', source: 'support', assignedTo: 'mod-2' },
     });
 
-    expect(res.statusCode).toBe(501);
+    expect(res.statusCode).toBe(204);
+    expect(mocks.assignSupportTicket.mock.calls[0][0]).toMatchObject({
+      ticketId: 'tkt-1',
+      assignedTo: 'mod-2',
+    });
     expect(mocks.assignReport).not.toHaveBeenCalled();
   });
 

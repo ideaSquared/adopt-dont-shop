@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   ModerationV1,
+  type AssignSupportTicketRequest,
   type GetSupportTicketRequest,
   type ListSupportTicketsRequest,
   type OpenSupportTicketRequest,
@@ -10,6 +11,7 @@ import {
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
 import {
+  assignSupportTicket,
   getSupportTicket,
   listSupportTickets,
   openSupportTicket,
@@ -371,5 +373,41 @@ describe('respondToTicket', () => {
         content: 'not mine',
       })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+});
+
+describe('assignSupportTicket', () => {
+  const VALID_ASSIGN: AssignSupportTicketRequest = { ticketId: 'tkt-1', assignedTo: 'staff-2' };
+
+  it('requires moderation.tickets.manage', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      assignSupportTicket(deps, makePrincipal({ permissions: [] }), VALID_ASSIGN)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('throws INVALID_ARGUMENT when assignedTo is missing', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      assignSupportTicket(deps, makePrincipal(), { ticketId: 'tkt-1', assignedTo: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws NOT_FOUND on a missing ticket', async () => {
+    const { deps } = makeDeps([{ rows: [] }]);
+    await expect(assignSupportTicket(deps, makePrincipal(), VALID_ASSIGN)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('sets the assignee and returns the updated ticket', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [{ ticket_id: 'tkt-1' }] },
+      { rows: [ticketRow({ assigned_to: 'staff-2', status: 'in_progress' })] },
+    ]);
+    const res = await assignSupportTicket(deps, makePrincipal(), VALID_ASSIGN);
+    expect(res.ticket?.assignedTo).toBe('staff-2');
+    // UPDATE call carries the new assignee + ticket id.
+    expect(query.mock.calls[1][1]).toEqual(['staff-2', 'tkt-1']);
   });
 });
