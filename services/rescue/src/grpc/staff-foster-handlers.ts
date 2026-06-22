@@ -22,6 +22,8 @@ import {
   type AcceptInvitationResponse,
   type CreateFosterPlacementRequest,
   type CreateFosterPlacementResponse,
+  type CreateStaffMemberRequest,
+  type CreateStaffMemberResponse,
   type EndFosterPlacementRequest,
   type EndFosterPlacementResponse,
   type FosterPlacement,
@@ -35,7 +37,11 @@ import {
   type ListFosterPlacementsResponse,
   type ListStaffMembersRequest,
   type ListStaffMembersResponse,
+  type RemoveStaffMemberRequest,
+  type RemoveStaffMemberResponse,
   type StaffMember,
+  type UpdateStaffMemberRequest,
+  type UpdateStaffMemberResponse,
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './handlers.js';
@@ -49,6 +55,9 @@ const PETS_GRPC_PERMISSION_DENIED = 7;
 // --- Permissions -----------------------------------------------------
 
 const STAFF_READ: Permission = 'staff.read' as Permission;
+const STAFF_CREATE: Permission = 'staff.create' as Permission;
+const STAFF_UPDATE: Permission = 'staff.update' as Permission;
+const STAFF_DELETE: Permission = 'staff.delete' as Permission;
 const FOSTER_CREATE: Permission = 'foster.create' as Permission;
 const FOSTER_READ: Permission = 'foster.read' as Permission;
 const FOSTER_UPDATE: Permission = 'foster.update' as Permission;
@@ -240,6 +249,196 @@ export async function listStaffMembers(
     [rescueId]
   );
   return { staffMembers: res.rows.map(staffRowToProto) };
+}
+
+// --- CreateStaffMember -------------------------------------------------
+
+export type StaffMutationDeps = WithTransactionDeps;
+
+// Directly add an existing auth user as a verified staff member — no
+// invitation round-trip. Mirrors AcceptInvitation's INSERT (added_by is
+// the caller, not the invitee) but skips the invitations table entirely.
+export async function createStaffMember(
+  deps: StaffMutationDeps,
+  principal: Principal,
+  req: CreateStaffMemberRequest
+): Promise<CreateStaffMemberResponse> {
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  if (!req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
+  }
+  if (!requirePermission(principal, STAFF_CREATE, { rescueId: req.rescueId as RescueId })) {
+    throw new HandlerError('PERMISSION_DENIED', `'${STAFF_CREATE}' required for this rescue`);
+  }
+
+  const staffMember = await withTransaction(deps, async ({ client, publish }) => {
+    const existing = await client.query<StaffMemberRow>(
+      `SELECT ${STAFF_SELECT} FROM rescue.staff_members
+       WHERE rescue_id = $1 AND user_id = $2 AND deleted_at IS NULL
+       LIMIT 1`,
+      [req.rescueId, req.userId]
+    );
+    if (existing.rows[0]) {
+      throw new HandlerError(
+        'ALREADY_EXISTS',
+        `user ${req.userId} is already a staff member of rescue ${req.rescueId}`
+      );
+    }
+
+    const staffMemberId = randomUUID();
+    const insertRes = await client.query<StaffMemberRow>(
+      `
+      INSERT INTO rescue.staff_members (
+        staff_member_id, rescue_id, user_id, title,
+        is_verified, verified_by, verified_at,
+        added_by, added_at, created_by, version, created_at, updated_at
+      )
+      VALUES ($1, $2, $3, $4, true, $5, now(), $5, now(), $5, 0, now(), now())
+      RETURNING ${STAFF_SELECT}
+      `,
+      [staffMemberId, req.rescueId, req.userId, req.title ?? null, principal.userId]
+    );
+    const row = insertRes.rows[0];
+    if (!row) {
+      throw new HandlerError('INTERNAL', 'staff member insert returned no rows');
+    }
+
+    publish({
+      type: 'rescue.staffMemberCreated',
+      id: `rescue.staffMemberCreated.${staffMemberId}`,
+      payload: {
+        staffMemberId,
+        rescueId: req.rescueId,
+        userId: req.userId,
+        addedBy: principal.userId,
+      },
+    });
+
+    return row;
+  });
+
+  return { staffMember: staffRowToProto(staffMember) };
+}
+
+// --- UpdateStaffMember -------------------------------------------------
+
+export async function updateStaffMember(
+  deps: StaffMutationDeps,
+  principal: Principal,
+  req: UpdateStaffMemberRequest
+): Promise<UpdateStaffMemberResponse> {
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  if (!req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
+  }
+  if (!requirePermission(principal, STAFF_UPDATE, { rescueId: req.rescueId as RescueId })) {
+    throw new HandlerError('PERMISSION_DENIED', `'${STAFF_UPDATE}' required for this rescue`);
+  }
+
+  const staffMember = await withTransaction(deps, async ({ client, publish }) => {
+    const existing = await client.query<StaffMemberRow>(
+      `SELECT ${STAFF_SELECT} FROM rescue.staff_members
+       WHERE rescue_id = $1 AND user_id = $2 AND deleted_at IS NULL
+       LIMIT 1`,
+      [req.rescueId, req.userId]
+    );
+    const row = existing.rows[0];
+    if (!row) {
+      throw new HandlerError(
+        'NOT_FOUND',
+        `user ${req.userId} is not a staff member of rescue ${req.rescueId}`
+      );
+    }
+
+    const updateRes = await client.query<StaffMemberRow>(
+      `
+      UPDATE rescue.staff_members
+      SET title = COALESCE($3, title), updated_by = $4, version = version + 1, updated_at = now()
+      WHERE rescue_id = $1 AND user_id = $2
+      RETURNING ${STAFF_SELECT}
+      `,
+      [req.rescueId, req.userId, req.title ?? null, principal.userId]
+    );
+    const updated = updateRes.rows[0];
+    if (!updated) {
+      throw new HandlerError('INTERNAL', 'staff member update returned no rows');
+    }
+
+    publish({
+      type: 'rescue.staffMemberUpdated',
+      id: `rescue.staffMemberUpdated.${row.staff_member_id}`,
+      payload: {
+        staffMemberId: row.staff_member_id,
+        rescueId: req.rescueId,
+        userId: req.userId,
+      },
+    });
+
+    return updated;
+  });
+
+  return { staffMember: staffRowToProto(staffMember) };
+}
+
+// --- RemoveStaffMember -------------------------------------------------
+
+// Soft-delete only — preserves the row for audit/history. Idempotent
+// would mean "removing an already-removed membership succeeds silently",
+// but we instead surface NOT_FOUND so the caller (and the SPA) knows the
+// target was already gone, matching the proto contract.
+export async function removeStaffMember(
+  deps: StaffMutationDeps,
+  principal: Principal,
+  req: RemoveStaffMemberRequest
+): Promise<RemoveStaffMemberResponse> {
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  if (!req.userId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
+  }
+  if (!requirePermission(principal, STAFF_DELETE, { rescueId: req.rescueId as RescueId })) {
+    throw new HandlerError('PERMISSION_DENIED', `'${STAFF_DELETE}' required for this rescue`);
+  }
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    const existing = await client.query<StaffMemberRow>(
+      `SELECT ${STAFF_SELECT} FROM rescue.staff_members
+       WHERE rescue_id = $1 AND user_id = $2 AND deleted_at IS NULL
+       LIMIT 1`,
+      [req.rescueId, req.userId]
+    );
+    const row = existing.rows[0];
+    if (!row) {
+      throw new HandlerError(
+        'NOT_FOUND',
+        `user ${req.userId} is not a staff member of rescue ${req.rescueId}`
+      );
+    }
+
+    await client.query(
+      `UPDATE rescue.staff_members
+       SET deleted_at = now(), updated_by = $3, version = version + 1, updated_at = now()
+       WHERE rescue_id = $1 AND user_id = $2`,
+      [req.rescueId, req.userId, principal.userId]
+    );
+
+    publish({
+      type: 'rescue.staffMemberRemoved',
+      id: `rescue.staffMemberRemoved.${row.staff_member_id}`,
+      payload: {
+        staffMemberId: row.staff_member_id,
+        rescueId: req.rescueId,
+        userId: req.userId,
+      },
+    });
+  });
+
+  return { removed: true };
 }
 
 // --- CreateFosterPlacement -------------------------------------------
