@@ -35,6 +35,8 @@ import {
   type RefreshTokenResponse,
   type ProvisionInvitedUserRequest,
   type ProvisionInvitedUserResponse,
+  type RedeemInvitationRequest,
+  type RedeemInvitationResponse,
   type RegisterRequest,
   type RegisterResponse,
   type ResendVerificationRequest,
@@ -132,6 +134,10 @@ export type AuthClient = {
   ): Promise<ResendVerificationResponse>;
   forgotPassword(req: ForgotPasswordRequest, metadata: Metadata): Promise<ForgotPasswordResponse>;
   resetPassword(req: ResetPasswordRequest, metadata: Metadata): Promise<ResetPasswordResponse>;
+  redeemInvitation(
+    req: RedeemInvitationRequest,
+    metadata: Metadata
+  ): Promise<RedeemInvitationResponse>;
   changePassword(req: ChangePasswordRequest, metadata: Metadata): Promise<ChangePasswordResponse>;
   setupTwoFactor(req: SetupTwoFactorRequest, metadata: Metadata): Promise<SetupTwoFactorResponse>;
   enableTwoFactor(
@@ -309,6 +315,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     resendVerification: (req, metadata) => callUnary(stub.resendVerification, req, metadata, false),
     forgotPassword: (req, metadata) => callUnary(stub.forgotPassword, req, metadata, false),
     resetPassword: (req, metadata) => callUnary(stub.resetPassword, req, metadata, false),
+    redeemInvitation: (req, metadata) => callUnary(stub.redeemInvitation, req, metadata, false),
     changePassword: (req, metadata) => callUnary(stub.changePassword, req, metadata, false),
     setupTwoFactor: (req, metadata) => callUnary(stub.setupTwoFactor, req, metadata, false),
     enableTwoFactor: (req, metadata) => callUnary(stub.enableTwoFactor, req, metadata, false),
