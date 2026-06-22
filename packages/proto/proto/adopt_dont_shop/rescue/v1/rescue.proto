@@ -124,6 +124,28 @@ service RescueService {
   // questions cannot be deleted (FAILED_PRECONDITION).
   rpc DeleteApplicationQuestion(DeleteApplicationQuestionRequest)
       returns (DeleteApplicationQuestionResponse);
+
+  // --- Admin extras ----------------------------------------------------
+
+  // Set a rescue's subscription plan tier (free / growth / professional)
+  // and optional expiry. Admin-only — caller MUST have
+  // `admin.security.manage`. Publishes `rescue.planUpdated` after commit.
+  rpc UpdateRescuePlan(UpdateRescuePlanRequest) returns (UpdateRescuePlanResponse);
+
+  // Compute a rescue's headline statistics for the admin detail panel.
+  // staff_count is sourced from this vertical's staff_members table; the
+  // pet- and application-derived counts (which live in other verticals)
+  // are returned as zero defaults so the panel renders without a heavy
+  // cross-service aggregation. Caller MUST have `rescues.read`.
+  rpc GetRescueStatistics(GetRescueStatisticsRequest)
+      returns (GetRescueStatisticsResponse);
+
+  // Validate + enqueue an admin email to a rescue's contact address.
+  // Admin-only — caller MUST have `admin.security.manage`. Confirms the
+  // rescue exists, then publishes `rescue.adminEmailRequested` for the
+  // notifications worker to deliver (subscriber wiring is out of scope
+  // for this RPC — it stops at the published event).
+  rpc SendRescueEmail(SendRescueEmailRequest) returns (SendRescueEmailResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -182,6 +204,11 @@ message Rescue {
   string settings_json = 24;
   string created_at = 25;
   string updated_at = 26;
+  // Subscription plan tier — 'free' | 'growth' | 'professional'. Defaults
+  // to 'free'. Drives the admin Plan tab + feature gating downstream.
+  string plan = 27;
+  // Optional ISO-8601 plan expiry. Unset = no expiry.
+  optional string plan_expires_at = 28;
 }
 
 // Invitation mirrors the rescue.invitations row — the pending-staff
@@ -522,4 +549,54 @@ message DeleteApplicationQuestionRequest {
 
 message DeleteApplicationQuestionResponse {
   bool deleted = 1;
+}
+
+// --- Admin extras -----------------------------------------------------
+
+message UpdateRescuePlanRequest {
+  string rescue_id = 1;
+  // 'free' | 'growth' | 'professional'. Validated by the handler.
+  string plan = 2;
+  // Optional ISO-8601 expiry. Empty/unset clears the expiry.
+  optional string plan_expires_at = 3;
+}
+
+message UpdateRescuePlanResponse {
+  Rescue rescue = 1;
+}
+
+message GetRescueStatisticsRequest {
+  string rescue_id = 1;
+}
+
+// Mirrors the SPA's RescueStatistics shape. staff_count is real
+// (sourced from rescue.staff_members); the pet/application-derived
+// counts default to zero (those records live in other verticals — see
+// the RPC doc comment).
+message RescueStatistics {
+  uint32 total_pets = 1;
+  uint32 available_pets = 2;
+  uint32 adopted_pets = 3;
+  uint32 pending_applications = 4;
+  uint32 total_applications = 5;
+  uint32 staff_count = 6;
+  uint32 active_listings = 7;
+  uint32 monthly_adoptions = 8;
+  double average_time_to_adoption = 9;
+}
+
+message GetRescueStatisticsResponse {
+  RescueStatistics statistics = 1;
+}
+
+message SendRescueEmailRequest {
+  string rescue_id = 1;
+  // Either a predefined template id, OR a custom subject + body.
+  optional string template_id = 2;
+  optional string subject = 3;
+  optional string body = 4;
+}
+
+message SendRescueEmailResponse {
+  bool queued = 1;
 }

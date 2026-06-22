@@ -77,6 +77,7 @@ import { registerReportsRoutes } from './routes/reports.js';
 import { registerRescueRoutes } from './routes/rescue.js';
 import { registerInvitationAcceptRoutes } from './routes/invitation-accept.js';
 import { registerRescuesPublicRoutes } from './routes/rescues-public.js';
+import { registerRescueAdminRoutes } from './routes/rescue-admin.js';
 import { registerSecurityRoutes } from './routes/security.js';
 import { registerSessionsRoutes } from './routes/sessions.js';
 import { registerStaffFosterRoutes } from './routes/staff-foster.js';
@@ -459,6 +460,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // Staff / foster / invitation-read surface (/api/v1/staff/*,
     // /api/v1/foster/*, GET /api/v1/invitations/details/:token).
     await registerStaffFosterRoutes(server, { client: opts.rescueClient });
+    // Admin rescue detail surface — plan / analytics / send-email /
+    // bulk-update + plural verify/reject.
+    await registerRescueAdminRoutes(server, { client: opts.rescueClient });
   }
   // POST /api/v1/invitations/accept — register-on-accept. Orchestrates
   // auth (provision the invited user) + rescue (consume the invitation +
