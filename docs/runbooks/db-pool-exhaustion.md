@@ -5,14 +5,14 @@ otherwise `warning` (`P95LatencyHigh`).
 
 ## Symptoms
 
-- p95 latency climbs across many unrelated routes simultaneously.
-- Errors in backend logs include
-  `SequelizeConnectionAcquireTimeoutError`, `pool is draining`, or
-  `acquire timeout`.
+- p95 latency climbs across routes owned by the affected service
+  (each service has its own pg pool, so exhaustion is per-service).
+- Errors in the affected service's logs include `pool is draining`
+  or `Error: timeout exceeded when trying to connect` (pg-pool).
 - `process_cpu_*` looks fine; the bottleneck isn't CPU.
 - Postgres `pg_stat_activity` shows many `idle in transaction` or
   long-running queries.
-- 5xx may rise once the `DB_POOL_ACQUIRE_MS` timeout (default 30s) is
+- 5xx may rise once the pool's connection-timeout (default 30s) is
   hit — see the service's database connection config.
 
 ## Pool config (current defaults)
@@ -36,8 +36,9 @@ Effective settings are logged at boot:
 
 ```bash
 # 1. Confirm pool-acquire errors are firing (not generic DB errors).
-docker compose -f docker-compose.prod.yml logs --since 15m service-backend \
-  | grep -iE 'acquire timeout|pool is draining|connectionacquire'
+#    Identify the noisy service via `docker compose ps`, then:
+docker compose -f docker-compose.prod.yml logs --since 15m service-<name> \
+  | grep -iE 'acquire timeout|pool is draining|timeout exceeded when trying to connect'
 
 # 2. How many sessions are open on the DB right now?
 docker compose -f docker-compose.prod.yml exec -T database \
@@ -76,15 +77,17 @@ is up and tracking the saturation, capacity is the cause.
    ```
    Watch the `state` distribution drop back to mostly `idle`.
 
-2. **Bump the pool** (temporary; requires backend restart):
+2. **Bump the pool** (temporary; requires the affected service to
+   restart and pick up the new env):
    ```bash
    # Edit .env on the prod host
    DB_POOL_MAX=40
-   docker compose -f docker-compose.prod.yml up -d service-backend
+   docker compose -f docker-compose.prod.yml up -d service-<name>
    ```
    Do **not** exceed the Postgres `max_connections` ceiling
-   (typically 100 on a small managed instance) — leaving headroom for
-   `service-backend-migrate`, `psql`, and the operator is mandatory.
+   (typically 100 on a small managed instance). Every schema-owning
+   service holds up to `DB_POOL_MAX` connections; budget across all
+   of them and leave headroom for `psql` + the operator.
 
 3. **Disable a hot endpoint** — if a known feature is driving the
    load (e.g. a search endpoint hitting a missing index), flip its
@@ -111,8 +114,8 @@ docker compose -f docker-compose.prod.yml exec -T database \
   -c "SELECT * FROM pg_stat_activity WHERE datname=current_database() AND state <> 'idle';" \
   > /tmp/pgstat-$(date +%s).txt
 
-# Pool config + boot env that was in effect
-docker compose -f docker-compose.prod.yml logs service-backend \
+# Pool config + boot env that was in effect on the affected service
+docker compose -f docker-compose.prod.yml logs service-<name> \
   | grep '\[db\] pool' | tail -1
 ```
 

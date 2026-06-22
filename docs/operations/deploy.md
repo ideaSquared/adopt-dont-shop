@@ -155,10 +155,20 @@ only takes effect once required reviewers are saved.
 
 ## Release deploy
 
-The `service-backend-migrate` init container runs `pnpm db:migrate`
-(custom Umzug runner) once before `service-backend` starts. Compose's
-`service_completed_successfully` dependency gates the backend on a clean
-migration. [ADS-393]
+Every schema-owning service migrates **its own** schema on every
+boot — the entrypoint in `Dockerfile.service` runs
+`pnpm run --if-present db:migrate` before the long-running process
+starts. There is no dedicated `service-backend-migrate` init
+container; migrations land alongside the new binary in the same
+container, and Docker keeps the container restarting until the
+migration step succeeds. [ADS-393]
+
+The runner is `node-pg-migrate` wrapped by `@adopt-dont-shop/db`
+(`packages/db/src/migrate.ts`), with applied migrations recorded in
+a `pgmigrations` table inside each owning schema. The runner takes
+a database-wide advisory lock around `pgmigrations` and retries with
+linear backoff (12× × 250ms × attempt) so simultaneous service boots
+don't trample each other.
 
 ```bash
 # Pull immutable image tags (sha-prefixed or vX.Y.Z) — never :latest in
@@ -171,72 +181,83 @@ Verify:
 
 ```bash
 docker compose -f docker-compose.prod.yml ps           # all healthy
-docker compose -f docker-compose.prod.yml logs service-backend-migrate
-curl -sf https://${PROD_HOSTNAME}/health
+# Each schema-owning service logs its own migration output on boot:
+docker compose -f docker-compose.prod.yml logs service-auth | grep migration
+curl -sf https://${PROD_HOSTNAME}/health/simple
 ```
 
-## When the migration init container fails
+## When a service's migrations fail
 
-If `service-backend-migrate` exits non-zero, the `service-backend` service
-will not start (compose's `service_completed_successfully` dependency
-blocks it). The deploy job's health-check loop in
-`.github/workflows/deploy.yml` will then time out and exit non-zero,
-leaving the previous backend container still running on `:latest` /
-the old SHA. No traffic is shifted to the failed image.
+If a service's `db:migrate` exits non-zero, its container exits
+non-zero from CMD and Docker keeps restarting it. The deploy job's
+per-service health-check loop in `.github/workflows/deploy.yml`
+will then time out and exit non-zero. The gateway and the unaffected
+services keep serving on their previous tags, so only the failing
+domain is down.
 
 Triage:
 
 ```bash
-# Read the migration runner's logs — the failing migration is named at the top.
-docker compose -f docker-compose.prod.yml logs --no-color service-backend-migrate
+# Find the failing service and its migration error.
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs --no-color --tail=200 service-<name>
 
-# Inspect what's already applied vs. pending.
+# Inspect what's already applied vs. pending in that service's schema.
 docker compose -f docker-compose.prod.yml exec -T database \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
-  -c 'SELECT name FROM "SequelizeMeta" ORDER BY name;'
+  -c 'SELECT name, run_on FROM <schema>.pgmigrations ORDER BY id DESC LIMIT 10;'
 ```
 
-Recovery paths:
+Full recovery procedure: [`docs/runbooks/migration-failure.md`](../runbooks/migration-failure.md).
+Summary of the four canonical paths:
 
-1. **Migration code bug** — fix forward. Push the corrective migration on
-   a follow-up PR; the next deploy re-runs all pending migrations
-   including the new fix.
+1. **Migration code bug** — fix forward. Push the corrective
+   migration on a follow-up PR; the next deploy boots a new image
+   that re-runs the migration set.
 2. **Migration partially applied (multi-statement, no transaction)** —
-   the affected migration's row is NOT in `SequelizeMeta` because
-   the Umzug runner only writes it after `up()` returns successfully.
-   Re-running `db:migrate` will retry the whole `up()`. If the migration
-   is not idempotent, hand-revert what landed via psql before re-running.
-3. **Migration succeeded but health check failed** — the migration is
-   in `SequelizeMeta`. Roll the application image back per the next
-   section; the schema is now ahead of the binary, which is the failure
-   mode the schema-audit runbook covers.
-4. **Lock contention** (`could not obtain lock`) — usually a long-running
-   query holding the table. The migration will exit on
-   `DB_LOCK_TIMEOUT_MS` (default 10s). Identify the offending session and
-   either let it finish or terminate it, then re-deploy.
-
-The migration runner is single-instance; if multi-replica deploys are
-introduced later, wrap the `up()` body in a Postgres advisory lock —
-tracked in ADS-393's follow-up.
+   the affected migration's row is NOT in `pgmigrations` (the runner
+   only writes it after `up()` returns). Re-running `db:migrate`
+   will retry the whole `up()`. If the migration is not idempotent,
+   hand-revert what landed via psql before restarting the service.
+3. **Migration succeeded but the binary won't boot for another
+   reason** — the migration is in `pgmigrations`. Roll the affected
+   service back per the next section; the schema is now ahead of
+   the old binary.
+4. **Advisory-lock contention** — the runner already retries 12×
+   on the database-wide lock around `pgmigrations`, so this rarely
+   surfaces. If it does, a stuck migration elsewhere is holding the
+   lock; identify and clear it, then restart the failing service.
 
 ## Rollback
 
-Because release.yml emits immutable `:sha-<long>` and `:vX.Y.Z` tags, rollback
-is deterministic: pick the previous known-good tag and re-deploy. [ADS-396]
+Because release.yml emits immutable `:sha-<long>` and `:vX.Y.Z` tags
+**per service**, rollback is deterministic: pick the previous
+known-good tag(s) and re-deploy. Each service has its own
+`SERVICE_<NAME>_TAG` env var that overrides `DEPLOY_SHA` for that
+one service, so single-service rollback is supported without
+reverting the whole stack. [ADS-396]
 
 ```bash
-export IMAGE_TAG=v1.2.3   # previous good release
+# Single-service rollback (preferred):
+export SERVICE_PETS_TAG=sha-abc1234
+docker compose -f docker-compose.prod.yml pull service-pets
+docker compose -f docker-compose.prod.yml up -d service-pets
+
+# Whole-stack rollback:
+export DEPLOY_SHA=sha-abc1234
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-If a migration introduced incompatible schema, run the corresponding `down`
-migration before rolling back the application image:
-
-```bash
-docker compose -f docker-compose.prod.yml run --rm service-backend-migrate \
-  pnpm db:migrate:undo
-```
+There is **no `pnpm db:migrate:undo` script** — the runner is
+`up`-only. If a migration introduced incompatible schema, you must
+write a corrective migration that performs the reverse DDL, ship a
+new image, and let the next boot apply it. Running a migration's
+`down()` directly via `node-pg-migrate` from inside the container
+is possible but bypasses the deploy pipeline; only do it with a DBA
+on the line and a backup taken first. See
+[`docs/runbooks/migration-failure.md`](../runbooks/migration-failure.md)
+path E.
 
 ## Database TLS (ADS-540)
 
@@ -250,16 +271,21 @@ supported:
 | `verify-ca`   | TLS, verify CA chain |
 | `verify-full` | TLS, verify CA chain + hostname (recommended for managed providers) |
 
-The backend refuses to boot in production with `DB_SSL_MODE=disable` unless
-`ALLOW_INSECURE_DB=true` is also set — only safe on a fully trusted bridge
-such as the in-cluster docker network on the same host.
+Every schema-owning service refuses to boot in production with
+`DB_SSL_MODE=disable` unless `ALLOW_INSECURE_DB=true` is also set —
+only safe on a fully trusted bridge such as the in-cluster docker
+network on the same host.
 
 ### Managed Postgres (RDS / Neon / Supabase)
 
 1. Download the provider's CA bundle (e.g. `rds-combined-ca-bundle.pem`).
-2. Mount it into the backend container: add a `volumes:` entry to the
-   `service-backend` / `service-backend-migrate` services pointing to a
-   read-only path inside the container.
+2. Mount it into every schema-owning service container: add a
+   `volumes:` entry to each `service-*` service in
+   `docker-compose.prod.yml` that runs migrations or holds a pg pool
+   (`service-auth`, `service-pets`, `service-rescue`,
+   `service-applications`, `service-chat`, `service-notifications`,
+   `service-moderation`, `service-matching`, `service-cms`,
+   `service-audit`) pointing to a read-only path inside the container.
 3. Set the env vars in `.env`:
    ```
    DB_SSL_MODE=verify-full
@@ -284,12 +310,12 @@ See [`snapshot-policy.md`](./snapshot-policy.md). [ADS-500]
 
 ## WebSocket sticky sessions (ADS-678)
 
-The Socket.IO per-user connection cap is enforced per backend instance,
-not globally. Multi-replica deploys MUST configure load-balancer
-stickiness on the `/socket.io` route so a given user's sockets land on
-one backend. With nginx in front, add `ip_hash;` to the backend
-upstream block; with AWS ALB, enable `lb_cookie` stickiness on the
-target group.
+The Socket.IO per-user connection cap is enforced per gateway
+instance, not globally. Multi-replica gateway deploys MUST configure
+load-balancer stickiness on the `/socket.io` route so a given user's
+sockets land on one gateway. With nginx in front, add `ip_hash;` to
+the gateway upstream block; with AWS ALB, enable `lb_cookie`
+stickiness on the target group.
 
 See [`../architecture/adr-socket-sticky-sessions.md`](../architecture/adr-socket-sticky-sessions.md)
 for the full rationale, alternatives considered, and the explicit LB
@@ -300,6 +326,7 @@ settings the ops team must apply.
 - nginx hostname substitution is manual (placeholder string). A future
   iteration could ship a `docker-entrypoint` that runs `envsubst` over a
   template, but that would change the compose volume mount.
-- `service-backend-migrate` runs single-instance. Multi-replica deploys must
-  wrap migrations in a Postgres advisory lock — tracked in ADS-393's
-  follow-up.
+- Each service runs its own migrations on boot. Multi-replica deploys
+  rely on the database-wide advisory lock around `pgmigrations` (built
+  into `@adopt-dont-shop/db`) to serialise concurrent boots — see
+  `packages/db/src/migrate.ts` for the retry policy.

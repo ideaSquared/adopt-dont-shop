@@ -436,8 +436,8 @@ ls -la secrets/
 printf '%s' "actual-secret-value" > secrets/jwt_secret
 chmod 600 secrets/jwt_secret
 
-# Restart the affected service
-docker compose -f docker-compose.prod.yml --env-file .env up -d service-backend
+# Restart the affected service (substitute the service that consumes the secret)
+docker compose -f docker-compose.prod.yml --env-file .env up -d service-auth
 ```
 
 ## Additional Resources
