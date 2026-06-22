@@ -35,11 +35,11 @@
     "@faker-js/faker": "^9.3.0"
   },
   "peerDependencies": {
-    "pg": "^8.21.0"
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
     "@types/pg": "^8.15.5",
-    "pg": "^8.21.0"
+    "pg": "^8.22.0"
   }
 }
