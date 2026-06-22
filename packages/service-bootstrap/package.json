@@ -38,13 +38,13 @@
     "@grpc/grpc-js": "^1.14.4",
     "fastify": "^5.8.5",
     "nats": "^2.29.3",
-    "pg": "^8.21.0",
+    "pg": "^8.22.0",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
     "nats": "^2.29.3",
-    "pg": "^8.21.0"
+    "pg": "^8.22.0"
   },
   "peerDependenciesMeta": {
     "nats": {

@@ -35,10 +35,10 @@
     "nats": "^2.29.3"
   },
   "peerDependencies": {
-    "pg": "^8.21.0"
+    "pg": "^8.22.0"
   },
   "devDependencies": {
     "@types/pg": "^8.15.5",
-    "pg": "^8.21.0"
+    "pg": "^8.22.0"
   }
 }
