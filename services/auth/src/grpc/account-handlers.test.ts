@@ -9,6 +9,7 @@ import {
   changePassword,
   forgotPassword,
   provisionInvitedUser,
+  redeemInvitation,
   register,
   resendVerification,
   resetPassword,
@@ -392,6 +393,65 @@ describe('resetPassword', () => {
     );
     expect(revoke).toBeDefined();
     expect(revoke?.[1]).toContain('usr-1');
+  });
+});
+
+describe('redeemInvitation', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => vi.resetAllMocks());
+
+  it('rejects a missing token', async () => {
+    await expect(
+      redeemInvitation(mocks.deps, null, { invitationToken: '', newPassword: 'longenough' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects short passwords', async () => {
+    await expect(
+      redeemInvitation(mocks.deps, null, { invitationToken: 'tok', newPassword: 'short' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects an invalid or expired invitation token', async () => {
+    mocks.hasherMock.hash.mockResolvedValueOnce('hash');
+    mocks.clientScript([]); // invitation UPDATE matches nothing
+    await expect(
+      redeemInvitation(mocks.deps, null, { invitationToken: 'bad', newPassword: 'longenough' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('sets the password, activates the account, and returns the user on success', async () => {
+    mocks.hasherMock.hash.mockResolvedValueOnce('hash');
+    mocks.clientScript([{ user_id: 'usr-1' }]); // invitation UPDATE
+    mocks.clientScript([userRowFixture({ status: 'active', email_verified: true })]); // users UPDATE
+    const res = await redeemInvitation(mocks.deps, null, {
+      invitationToken: 'tok',
+      newPassword: 'longenough',
+    });
+    expect(res.user?.userId).toBe('usr-1');
+    const queries = realQueries(mocks.clientMock.query);
+    expect(String(queries[0][0])).toContain('auth.user_invitations');
+    expect(String(queries[0][0])).toContain("status = 'accepted'");
+    expect(String(queries[1][0])).toContain('auth.users');
+    expect(String(queries[1][0])).toContain("status = 'active'");
+    expect(String(queries[1][0])).toContain('email_verified = true');
+  });
+
+  it('hashes the incoming token before querying — never compares it raw', async () => {
+    mocks.hasherMock.hash.mockResolvedValueOnce('hash');
+    mocks.clientScript([{ user_id: 'usr-1' }]);
+    mocks.clientScript([userRowFixture()]);
+    await redeemInvitation(mocks.deps, null, {
+      invitationToken: 'raw-token',
+      newPassword: 'longenough',
+    });
+    const queries = realQueries(mocks.clientMock.query);
+    const params = queries[0][1] as unknown[];
+    expect(params[0]).not.toBe('raw-token');
+    expect(params[0]).toMatch(/^[0-9a-f]{64}$/);
   });
 });
 

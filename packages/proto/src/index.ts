@@ -118,6 +118,8 @@ export type {
   ForgotPasswordResponse,
   ResetPasswordRequest,
   ResetPasswordResponse,
+  RedeemInvitationRequest,
+  RedeemInvitationResponse,
   ChangePasswordRequest,
   ChangePasswordResponse,
   SetupTwoFactorRequest,

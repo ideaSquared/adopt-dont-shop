@@ -29,6 +29,7 @@ function makeClient(): {
   resendVerificationMock: ReturnType<typeof vi.fn>;
   forgotPasswordMock: ReturnType<typeof vi.fn>;
   resetPasswordMock: ReturnType<typeof vi.fn>;
+  redeemInvitationMock: ReturnType<typeof vi.fn>;
   changePasswordMock: ReturnType<typeof vi.fn>;
   setupTwoFactorMock: ReturnType<typeof vi.fn>;
   enableTwoFactorMock: ReturnType<typeof vi.fn>;
@@ -46,6 +47,7 @@ function makeClient(): {
   const resendVerificationMock = vi.fn();
   const forgotPasswordMock = vi.fn();
   const resetPasswordMock = vi.fn();
+  const redeemInvitationMock = vi.fn();
   const changePasswordMock = vi.fn();
   const setupTwoFactorMock = vi.fn();
   const enableTwoFactorMock = vi.fn();
@@ -63,6 +65,7 @@ function makeClient(): {
     resendVerification: resendVerificationMock,
     forgotPassword: forgotPasswordMock,
     resetPassword: resetPasswordMock,
+    redeemInvitation: redeemInvitationMock,
     changePassword: changePasswordMock,
     setupTwoFactor: setupTwoFactorMock,
     enableTwoFactor: enableTwoFactorMock,
@@ -83,6 +86,7 @@ function makeClient(): {
     resendVerificationMock,
     forgotPasswordMock,
     resetPasswordMock,
+    redeemInvitationMock,
     changePasswordMock,
     setupTwoFactorMock,
     enableTwoFactorMock,
@@ -491,6 +495,50 @@ describe('auth account-lifecycle routes', () => {
         resetToken: 't',
         newPassword: 'longenoughpw',
       });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/redeem-invitation threads token + new password, returns the user', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.redeemInvitationMock.mockResolvedValueOnce({
+        user: { userId: 'usr-1', email: 'invited@example.com' },
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/redeem-invitation',
+        payload: { invitationToken: 'tok', newPassword: 'longenoughpw' },
+      });
+      expect(m.redeemInvitationMock.mock.calls[0][0]).toMatchObject({
+        invitationToken: 'tok',
+        newPassword: 'longenoughpw',
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({
+        user: { userId: 'usr-1', email: 'invited@example.com' },
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/redeem-invitation surfaces an invalid token as 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.redeemInvitationMock.mockRejectedValueOnce({
+        code: grpcStatus.INVALID_ARGUMENT,
+        message: 'invalid or expired invitation token',
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/redeem-invitation',
+        payload: { invitationToken: 'bad', newPassword: 'longenoughpw' },
+      });
+      expect(res.statusCode).toBe(400);
     } finally {
       await app.close();
     }

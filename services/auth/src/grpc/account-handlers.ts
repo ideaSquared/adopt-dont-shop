@@ -15,7 +15,7 @@
 //   - auth.emailVerified
 //   - auth.passwordChanged
 
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 import { withTransaction } from '@adopt-dont-shop/events';
 
@@ -27,6 +27,8 @@ import type {
   ForgotPasswordResponse,
   ProvisionInvitedUserRequest,
   ProvisionInvitedUserResponse,
+  RedeemInvitationRequest,
+  RedeemInvitationResponse,
   RegisterRequest,
   RegisterResponse,
   ResendVerificationRequest,
@@ -445,6 +447,67 @@ export async function resetPassword(
     });
   });
   return { ok: true };
+}
+
+// --- RedeemInvitation --------------------------------------------------
+// Consumes the invitation_token minted by adminCreateUser. Unlike
+// ResetPassword (which compares the raw reset_token column), invitation
+// tokens are never persisted raw — only their SHA-256 hash lives in
+// auth.user_invitations — so the incoming token is hashed before lookup.
+
+export async function redeemInvitation(
+  deps: HandlerDeps,
+  _principal: Principal | null,
+  req: RedeemInvitationRequest
+): Promise<RedeemInvitationResponse> {
+  if (!req.invitationToken) {
+    throw new HandlerError('INVALID_ARGUMENT', 'invitation_token is required');
+  }
+  assertPassword(req.newPassword);
+  const tokenHash = createHash('sha256').update(req.invitationToken).digest('hex');
+  const password = await deps.passwordHasher.hash(req.newPassword);
+
+  const updated = await withTransaction(deps, async ({ client, publish }) => {
+    const invitationRes = await client.query<{ user_id: string }>(
+      `
+      UPDATE auth.user_invitations
+      SET status = 'accepted', accepted_at = now(), updated_at = now()
+      WHERE token_hash = $1 AND status = 'pending' AND expires_at > now()
+      RETURNING user_id
+      `,
+      [tokenHash]
+    );
+    if (invitationRes.rows.length === 0) {
+      throw new HandlerError('INVALID_ARGUMENT', 'invalid or expired invitation token');
+    }
+    const { user_id: userId } = invitationRes.rows[0];
+
+    const userRes = await client.query<UserRow>(
+      `
+      UPDATE auth.users
+      SET password = $1,
+          status = 'active',
+          email_verified = true,
+          tokens_valid_from = now(),
+          updated_at = now()
+      WHERE user_id = $2 AND deleted_at IS NULL
+      RETURNING *
+      `,
+      [password, userId]
+    );
+    if (userRes.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', 'invited user not found');
+    }
+    const user = userRes.rows[0];
+    publish({
+      type: 'auth.invitationRedeemed',
+      id: `auth.invitationRedeemed.${user.user_id}`,
+      payload: { userId: user.user_id, email: user.email },
+    });
+    return user;
+  });
+
+  return { user: rowToProtoUser(updated) };
 }
 
 // --- ChangePassword --------------------------------------------------

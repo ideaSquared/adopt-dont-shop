@@ -608,6 +608,19 @@ export interface ResetPasswordResponse {
   ok: boolean;
 }
 
+export interface RedeemInvitationRequest {
+  invitationToken: string;
+  newPassword: string;
+}
+
+export interface RedeemInvitationResponse {
+  /**
+   * The now-active user — the SPA can use this to confirm the account
+   * before redirecting to login.
+   */
+  user?: User | undefined;
+}
+
 export interface ChangePasswordRequest {
   /**
    * The principal (x-user-id) identifies whose password we're changing;
@@ -3897,6 +3910,163 @@ export const ResetPasswordResponse: MessageFns<ResetPasswordResponse> = {
   ): ResetPasswordResponse {
     const message = createBaseResetPasswordResponse();
     message.ok = object.ok ?? false;
+    return message;
+  },
+};
+
+function createBaseRedeemInvitationRequest(): RedeemInvitationRequest {
+  return { invitationToken: '', newPassword: '' };
+}
+
+export const RedeemInvitationRequest: MessageFns<RedeemInvitationRequest> = {
+  encode(
+    message: RedeemInvitationRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.invitationToken !== '') {
+      writer.uint32(10).string(message.invitationToken);
+    }
+    if (message.newPassword !== '') {
+      writer.uint32(18).string(message.newPassword);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RedeemInvitationRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRedeemInvitationRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.invitationToken = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.newPassword = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RedeemInvitationRequest {
+    return {
+      invitationToken: isSet(object.invitationToken)
+        ? globalThis.String(object.invitationToken)
+        : isSet(object.invitation_token)
+          ? globalThis.String(object.invitation_token)
+          : '',
+      newPassword: isSet(object.newPassword)
+        ? globalThis.String(object.newPassword)
+        : isSet(object.new_password)
+          ? globalThis.String(object.new_password)
+          : '',
+    };
+  },
+
+  toJSON(message: RedeemInvitationRequest): unknown {
+    const obj: any = {};
+    if (message.invitationToken !== '') {
+      obj.invitationToken = message.invitationToken;
+    }
+    if (message.newPassword !== '') {
+      obj.newPassword = message.newPassword;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RedeemInvitationRequest>, I>>(
+    base?: I
+  ): RedeemInvitationRequest {
+    return RedeemInvitationRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RedeemInvitationRequest>, I>>(
+    object: I
+  ): RedeemInvitationRequest {
+    const message = createBaseRedeemInvitationRequest();
+    message.invitationToken = object.invitationToken ?? '';
+    message.newPassword = object.newPassword ?? '';
+    return message;
+  },
+};
+
+function createBaseRedeemInvitationResponse(): RedeemInvitationResponse {
+  return { user: undefined };
+}
+
+export const RedeemInvitationResponse: MessageFns<RedeemInvitationResponse> = {
+  encode(
+    message: RedeemInvitationResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RedeemInvitationResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRedeemInvitationResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RedeemInvitationResponse {
+    return { user: isSet(object.user) ? User.fromJSON(object.user) : undefined };
+  },
+
+  toJSON(message: RedeemInvitationResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RedeemInvitationResponse>, I>>(
+    base?: I
+  ): RedeemInvitationResponse {
+    return RedeemInvitationResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RedeemInvitationResponse>, I>>(
+    object: I
+  ): RedeemInvitationResponse {
+    const message = createBaseRedeemInvitationResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
     return message;
   },
 };
@@ -11572,6 +11742,27 @@ export const AuthServiceService = {
     responseDeserialize: (value: Buffer): ResetPasswordResponse =>
       ResetPasswordResponse.decode(value),
   },
+  /**
+   * Consume an invitation_token minted by AdminCreateUser + set the
+   * account's initial password. Activates the account (status -> active,
+   * email_verified -> true) and marks the invitation row accepted.
+   * Mirrors ResetPassword's token-redemption shape but validates against
+   * auth.user_invitations (token stored hashed) instead of the
+   * reset_token column (stored raw).
+   */
+  redeemInvitation: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/RedeemInvitation' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RedeemInvitationRequest): Buffer =>
+      Buffer.from(RedeemInvitationRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RedeemInvitationRequest =>
+      RedeemInvitationRequest.decode(value),
+    responseSerialize: (value: RedeemInvitationResponse): Buffer =>
+      Buffer.from(RedeemInvitationResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RedeemInvitationResponse =>
+      RedeemInvitationResponse.decode(value),
+  },
   /** Authenticated change. Requires the current password. */
   changePassword: {
     path: '/adopt_dont_shop.auth.v1.AuthService/ChangePassword' as const,
@@ -12229,6 +12420,15 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
   forgotPassword: handleUnaryCall<ForgotPasswordRequest, ForgotPasswordResponse>;
   /** Consume reset_token + set a new password. Clears any locked_until. */
   resetPassword: handleUnaryCall<ResetPasswordRequest, ResetPasswordResponse>;
+  /**
+   * Consume an invitation_token minted by AdminCreateUser + set the
+   * account's initial password. Activates the account (status -> active,
+   * email_verified -> true) and marks the invitation row accepted.
+   * Mirrors ResetPassword's token-redemption shape but validates against
+   * auth.user_invitations (token stored hashed) instead of the
+   * reset_token column (stored raw).
+   */
+  redeemInvitation: handleUnaryCall<RedeemInvitationRequest, RedeemInvitationResponse>;
   /** Authenticated change. Requires the current password. */
   changePassword: handleUnaryCall<ChangePasswordRequest, ChangePasswordResponse>;
   setupTwoFactor: handleUnaryCall<SetupTwoFactorRequest, SetupTwoFactorResponse>;
@@ -12664,6 +12864,29 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: ResetPasswordResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Consume an invitation_token minted by AdminCreateUser + set the
+   * account's initial password. Activates the account (status -> active,
+   * email_verified -> true) and marks the invitation row accepted.
+   * Mirrors ResetPassword's token-redemption shape but validates against
+   * auth.user_invitations (token stored hashed) instead of the
+   * reset_token column (stored raw).
+   */
+  redeemInvitation(
+    request: RedeemInvitationRequest,
+    callback: (error: ServiceError | null, response: RedeemInvitationResponse) => void
+  ): ClientUnaryCall;
+  redeemInvitation(
+    request: RedeemInvitationRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RedeemInvitationResponse) => void
+  ): ClientUnaryCall;
+  redeemInvitation(
+    request: RedeemInvitationRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RedeemInvitationResponse) => void
   ): ClientUnaryCall;
   /** Authenticated change. Requires the current password. */
   changePassword(

@@ -101,6 +101,7 @@ const AUTH_RATE_LIMITS = {
   resendVerification: { max: authMax(5), timeWindow: '1 minute' },
   forgotPassword: { max: authMax(5), timeWindow: '1 minute' },
   resetPassword: { max: authMax(10), timeWindow: '1 minute' },
+  redeemInvitation: { max: authMax(10), timeWindow: '1 minute' },
   changePassword: { max: authMax(10), timeWindow: '1 minute' },
   twoFactor: { max: authMax(10), timeWindow: '1 minute' },
   updateAccount: { max: authMax(30), timeWindow: '1 minute' },
@@ -423,6 +424,40 @@ export const registerAuthRoutes = async (
           buildMetadata(req)
         );
         return reply.send(AuthV1.ResetPasswordResponse.toJSON(res));
+      } catch (err) {
+        if (err instanceof BadRequestError) {
+          return reply.code(400).send({ error: err.message });
+        }
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/auth/redeem-invitation',
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.redeemInvitation },
+      // No email on this body either — key the per-target cap on the
+      // invitation token, same reasoning as reset-password.
+      preHandler: emailRateLimit(b => b.invitationToken ?? b.invitation_token),
+      schema: {
+        tags: ['auth'],
+        summary: 'Redeem an admin-issued invitation token and set the initial password',
+        security: [],
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      try {
+        const res = await client.redeemInvitation(
+          {
+            invitationToken: pickString(b, ['invitationToken', 'invitation_token'], ''),
+            newPassword: pickString(b, ['newPassword', 'new_password'], ''),
+          },
+          buildMetadata(req)
+        );
+        const json = AuthV1.RedeemInvitationResponse.toJSON(res) as Record<string, unknown>;
+        return reply.send(withApiUser(json, res.user));
       } catch (err) {
         if (err instanceof BadRequestError) {
           return reply.code(400).send({ error: err.message });

@@ -87,6 +87,14 @@ service AuthService {
   // Consume reset_token + set a new password. Clears any locked_until.
   rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
 
+  // Consume an invitation_token minted by AdminCreateUser + set the
+  // account's initial password. Activates the account (status -> active,
+  // email_verified -> true) and marks the invitation row accepted.
+  // Mirrors ResetPassword's token-redemption shape but validates against
+  // auth.user_invitations (token stored hashed) instead of the
+  // reset_token column (stored raw).
+  rpc RedeemInvitation(RedeemInvitationRequest) returns (RedeemInvitationResponse);
+
   // Authenticated change. Requires the current password.
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
 
@@ -546,6 +554,17 @@ message ResetPasswordResponse {
   // The reset path doesn't auto-sign the user in — the SPA redirects to
   // the login screen with a "password updated" flash.
   bool ok = 1;
+}
+
+message RedeemInvitationRequest {
+  string invitation_token = 1;
+  string new_password = 2;
+}
+
+message RedeemInvitationResponse {
+  // The now-active user — the SPA can use this to confirm the account
+  // before redirecting to login.
+  User user = 1;
 }
 
 message ChangePasswordRequest {
