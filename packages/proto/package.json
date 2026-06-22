@@ -41,7 +41,7 @@
     "@grpc/grpc-js": "^1.14.4"
   },
   "devDependencies": {
-    "@bufbuild/buf": "^1.70.0",
+    "@bufbuild/buf": "^1.71.0",
     "ts-proto": "^2.11.8"
   }
 }
