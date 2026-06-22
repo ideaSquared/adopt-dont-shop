@@ -27,6 +27,7 @@
 // whenever the applications service client is wired — see server.ts.
 
 import rateLimit from '@fastify/rate-limit';
+import type { Metadata } from '@grpc/grpc-js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import {
@@ -47,7 +48,7 @@ import type { ApplicationsClient } from '../grpc-clients/applications-client.js'
 
 import { applicationToView, statsToView, type ApplicationView } from './applications-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
-import { handleGrpcError } from '../middleware/grpc-error.js';
+import { GRPC_TO_HTTP, handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
 
 export type ApplicationsRoutesOptions = {
@@ -263,6 +264,55 @@ export const registerApplicationsRoutes = async (
       } catch (err) {
         return handleGrpcError(err, reply);
       }
+    }
+  );
+
+  // ---------- Bulk update (ADS-874) ----------
+  //
+  // ADS-642 (frontend): single-row stage transitions AND the multi-select
+  // BulkActionBar both dispatch through this one endpoint — there is no
+  // dedicated stage-transition route. `updates` is a free-form patch; we
+  // translate the fields the SPA actually sends (status / stage / notes /
+  // rejectionReason / withdrawalReason / scheduledAt / outcome) onto the
+  // matching service command per application. A batch can mix valid and
+  // invalid rows, so a single item's failure doesn't abort the others.
+  app.patch(
+    '/api/v1/applications/bulk-update',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: 'Apply the same status/stage transition to a batch of applications',
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const applicationIds = Array.isArray(b.applicationIds)
+        ? b.applicationIds.filter((id): id is string => typeof id === 'string')
+        : [];
+      const updates = (b.updates ?? {}) as Record<string, unknown>;
+
+      if (applicationIds.length === 0) {
+        return reply.code(400).send({ error: 'applicationIds must be a non-empty array' });
+      }
+
+      const meta = buildMetadata(req);
+      const failures: Array<{ applicationId: string; error: string }> = [];
+      for (const applicationId of applicationIds) {
+        try {
+          await applyBulkUpdate(client, applicationId, updates, meta);
+        } catch (err) {
+          failures.push({ applicationId, error: describeGrpcError(err) });
+        }
+      }
+
+      return reply.send({
+        data: {
+          successCount: applicationIds.length - failures.length,
+          failureCount: failures.length,
+          failures,
+        },
+      });
     }
   );
 
@@ -652,4 +702,85 @@ function parseHomeVisitOutcome(raw: string | undefined): ApplicationsV1.HomeVisi
     ApplicationsV1.HomeVisitOutcome.UNRECOGNIZED,
     raw
   );
+}
+
+// Bulk-update's per-item command dispatch (ADS-874). `status` (a terminal
+// decision) wins when present; otherwise `stage` drives the matching
+// workflow command. The frontend's 5-stage model (PENDING/REVIEWING/
+// VISITING/DECIDING/RESOLVED) is coarser than the service's 9-state
+// lifecycle, so `stage` maps onto the closest matching command — an
+// out-of-order transition (e.g. `visiting` while still a draft) surfaces
+// as the service's own FAILED_PRECONDITION rather than being pre-validated
+// here.
+async function applyBulkUpdate(
+  client: ApplicationsClient,
+  applicationId: string,
+  updates: Record<string, unknown>,
+  meta: Metadata
+): Promise<void> {
+  const status = updates.status as string | undefined;
+  const notes = updates.notes as string | undefined;
+
+  if (status === 'approved') {
+    await client.approve({ applicationId, notes }, meta);
+    return;
+  }
+  if (status === 'rejected') {
+    await client.reject(
+      { applicationId, reason: (updates.rejectionReason as string | undefined) ?? notes ?? '' },
+      meta
+    );
+    return;
+  }
+  if (status === 'withdrawn') {
+    await client.withdraw(
+      { applicationId, reason: (updates.withdrawalReason as string | undefined) ?? notes },
+      meta
+    );
+    return;
+  }
+
+  const stage = (updates.stage as string | undefined)?.toLowerCase();
+  if (stage === 'reviewing') {
+    await client.startReview({ applicationId, note: notes }, meta);
+    return;
+  }
+  if (stage === 'visiting') {
+    const scheduledAt = (updates.scheduledAt ?? updates.scheduledDate) as string | undefined;
+    if (!scheduledAt) {
+      throw new Error('scheduledAt is required to move an application to the visiting stage');
+    }
+    await client.scheduleHomeVisit({ applicationId, scheduledAt, note: notes }, meta);
+    return;
+  }
+  if (stage === 'deciding') {
+    await client.completeHomeVisit(
+      {
+        applicationId,
+        outcome: parseHomeVisitOutcome(updates.outcome as string | undefined),
+        notes,
+      },
+      meta
+    );
+    return;
+  }
+
+  throw new Error('updates must include a recognised status or stage transition');
+}
+
+// Per-item error message for the bulk-update response body. A gRPC error
+// (has a `code`) mirrors handleGrpcError's 4xx-vs-5xx split — don't leak
+// internal error text for server-side failures. A plain Error (no `code`)
+// is one applyBulkUpdate raised itself before calling the client (e.g. a
+// missing scheduledAt) — its message is ours to show, so surface it as-is.
+function describeGrpcError(err: unknown): string {
+  const grpcErr = err as { code?: number; details?: string; message?: string };
+  if (grpcErr?.code === undefined) {
+    return grpcErr?.message ?? 'internal_error';
+  }
+  const httpStatus = GRPC_TO_HTTP[grpcErr.code] || 500;
+  if (httpStatus >= 500) {
+    return 'internal_error';
+  }
+  return grpcErr?.details ?? grpcErr?.message ?? 'internal_error';
 }
