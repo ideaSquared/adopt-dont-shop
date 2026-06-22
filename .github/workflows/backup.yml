@@ -31,7 +31,7 @@ jobs:
     environment: production
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # NOTE: pin to a commit SHA before merge, matching the ssh-action pin
       # convention below (see rollback.yml). Tag used here for readability.
