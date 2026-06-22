@@ -51,6 +51,7 @@ import { registerAuthenticate } from './middleware/authenticate.js';
 import { createEmailRateLimiter } from './routes/email-rate-limiter.js';
 import { registerApplicationDocumentsRoutes } from './routes/application-documents.js';
 import { registerAnalyticsRoutes } from './routes/analytics.js';
+import { registerAdminAnalyticsRoutes } from './routes/admin-analytics.js';
 import { registerApplicationsRoutes } from './routes/applications.js';
 import { registerAuditRoutes } from './routes/audit.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -540,6 +541,19 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // partial harness doesn't return half-empty data.
   if (opts.petsClient && opts.applicationsClient && opts.rescueClient) {
     await registerDashboardRoutes(server, {
+      petsClient: opts.petsClient,
+      applicationsClient: opts.applicationsClient,
+      rescueClient: opts.rescueClient,
+    });
+  }
+  // /api/v1/admin/metrics + /api/v1/admin/analytics/dashboard —
+  // platform-wide aggregation for the admin SPA's Dashboard + Analytics
+  // pages. Fans out to auth (user stats), pets/applications (GetStats) and
+  // rescue (List, counted). Only registers when ALL FOUR backing clients
+  // are wired so a partial harness doesn't serve half-empty metrics.
+  if (opts.authClient && opts.petsClient && opts.applicationsClient && opts.rescueClient) {
+    await registerAdminAnalyticsRoutes(server, {
+      authClient: opts.authClient,
       petsClient: opts.petsClient,
       applicationsClient: opts.applicationsClient,
       rescueClient: opts.rescueClient,
