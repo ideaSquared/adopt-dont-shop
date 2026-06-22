@@ -172,19 +172,20 @@ WebSocket stickiness before this assumption holds. Concretely:
 ### nginx (current production proxy)
 
 Add `ip_hash;` (or `hash $http_authorization consistent;`) to the
-backend upstream block in `nginx/nginx.prod.conf`:
+gateway upstream block in `nginx/nginx.prod.conf` (the gateway is
+the Socket.IO server — `services/gateway/src/ws/`):
 
 ```nginx
-upstream service_backend {
+upstream service_gateway {
     ip_hash;
-    server service-backend-1:3000;
-    server service-backend-2:3000;
+    server service-gateway-1:4000;
+    server service-gateway-2:4000;
     # ...
 }
 ```
 
 Place the directive at the top of the upstream block. With a single
-backend replica (current default) the directive is a no-op but is
+gateway replica (current default) the directive is a no-op but is
 harmless and future-proofs the config.
 
 ### Validation

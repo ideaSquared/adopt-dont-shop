@@ -1,93 +1,131 @@
 # Migration Failure
 
-**Page severity:** `critical` — `service-backend` will not start until
-`service-backend-migrate` exits 0. Site is effectively down.
+**Page severity:** `critical` for the affected service — the failing
+service won't start until its migrations apply. The rest of the stack
+keeps serving on the old binary (gateway + healthy services), so the
+site is degraded, not down.
+
+## Background — how migrations run
+
+There is **no** dedicated `service-backend-migrate` init container.
+Every schema-owning service migrates **its own** schema on every boot:
+the entrypoint (`Dockerfile.service`) runs
+`pnpm run --if-present db:migrate` before the long-running process
+starts. Schema-owning services are `service-auth`, `service-pets`,
+`service-rescue`, `service-applications`, `service-chat`,
+`service-notifications`, `service-moderation`, `service-matching`,
+`service-cms`, `service-audit`. The gateway owns no tables and
+exits the migrate step as a no-op.
+
+The runner is `node-pg-migrate` wrapped by `@adopt-dont-shop/db`
+(`packages/db/src/migrate.ts`). Applied migrations are recorded in a
+`pgmigrations` table inside each owning schema (not `SequelizeMeta`).
+The runner takes a database-wide advisory lock around `pgmigrations`
+and retries with linear backoff on contention, so multiple services
+booting at once is expected and self-resolving — true failures are
+either bad SQL or schema drift.
 
 ## Symptoms
 
-- Deploy job's health-check loop in `.github/workflows/deploy.yml`
-  times out and exits non-zero.
-- `docker compose ps` shows `service-backend-migrate` as `exited (1)`
-  and `service-backend` as not started (blocked by compose's
-  `service_completed_successfully` dependency — see
-  [`docs/operations/deploy.md`](../operations/deploy.md)).
-- Old backend container is still running on the previous tag — **no
-  traffic is shifted to the failed image**. Site stays up on the old
-  release.
+- Deploy job's per-service health-check loop in
+  `.github/workflows/deploy.yml` times out and exits non-zero.
+- `docker compose ps` shows the affected service stuck in
+  `restarting` (Docker keeps restarting a container that exits
+  non-zero from its CMD).
+- Service logs (`docker compose logs --no-color service-<name>`) show
+  the node-pg-migrate runner output and an error line, after which
+  the container exits.
+- The gateway and unaffected services keep serving. The affected
+  service's gRPC routes return upstream errors via the gateway —
+  expect 5xx on the affected domain, not site-wide.
 
-The good news: the deploy gate worked. The old binary is still
-serving. You have time to triage; you do not need to mitigate user
-impact first.
+The good news: only the failing service is down. You have time to
+triage without taking the rest of the site with it.
 
 ## Triage in 60 seconds
 
 ```bash
-# 1. Read the failing migration name + error.
-docker compose -f docker-compose.prod.yml logs --no-color \
-  service-backend-migrate
+# 1. Which service is failing, and on which migration?
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs --no-color --tail=200 \
+  service-<name>   # e.g. service-pets
 
-# 2. What's actually been applied?
+# 2. What's actually been applied in that service's schema?
 docker compose -f docker-compose.prod.yml exec -T database \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
-  -c 'SELECT name FROM "SequelizeMeta" ORDER BY name DESC LIMIT 10;'
+  -c 'SELECT name, run_on FROM <schema>.pgmigrations ORDER BY id DESC LIMIT 10;'
+# <schema> matches the owning service: auth, pets, rescue, applications,
+# chat, notifications, moderation, matching, cms, audit.
 ```
 
-The failing migration is logged at the top of `service-backend-migrate`'s
-output. Note its filename — you'll need it to decide recovery path.
+The runner logs each migration name as it tries it. Note the filename
+of the one that failed — you'll need it to decide recovery path.
 
 ## Diagnosis — choose ONE recovery path
-
-These mirror the four documented modes in
-[`docs/operations/deploy.md`](../operations/deploy.md#when-the-migration-init-container-fails).
 
 ### A. Migration code bug → fix forward
 
 The failing migration has a logic error.
 
-- The migration's row will **not** be in `SequelizeMeta` (the Umzug
-  runner only writes it after `up()` returns).
-- Re-running `db:migrate` will replay the whole `up()`.
+- The migration's row will **not** be in `pgmigrations` (the runner
+  only writes it after `up()` returns).
+- Re-running `db:migrate` on the next deploy will replay the whole
+  `up()`.
 
 ```bash
 # 1. Author the corrective migration on a branch, get it merged.
-# 2. Wait for CI to build a new image tag.
-# 3. Re-deploy with the new tag.
+# 2. Wait for CI to build a new image tag for the affected service.
+# 3. Re-deploy. Each service boots and runs its own migrations again.
 ```
 
-The site continues to serve on the old binary while you do this. No
-emergency action needed beyond a fast PR review.
+The rest of the site continues to serve. No emergency action needed
+beyond a fast PR review.
 
 ### B. Migration partially applied (multi-statement, no tx)
 
-Some DDL landed, the rest failed. `SequelizeMeta` is still missing
-the migration's row, so a re-run will try to land the already-applied
-DDL again.
+Some DDL landed, the rest failed. The migration's row is **not** in
+`pgmigrations`, so a re-run will try to land the already-applied DDL
+again and fail on "relation already exists" or similar.
 
 ```bash
 # 1. Identify what landed.
 docker compose -f docker-compose.prod.yml exec -T database \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
-# ... inspect schema by hand: \d <table>
+# ... inspect schema by hand: \d <schema>.<table>
 
 # 2. Hand-revert the partial changes via psql so the migration's
 #    up() can run cleanly from scratch.
 
-# 3. Re-run the migration init container.
-docker compose -f docker-compose.prod.yml run --rm service-backend-migrate
+# 3. Restart the service so its CMD re-runs db:migrate.
+docker compose -f docker-compose.prod.yml restart service-<name>
 ```
 
-This is the most dangerous path — make a backup first (see
-[`docs/db-backup-runbook.md`](../db-backup-runbook.md#pre-migration-backup-checklist))
-and have the DBA on the line.
+This is the most dangerous path — make a backup first and have the
+DBA on the line.
 
-### C. Lock contention (`could not obtain lock`)
+### C. Schema/data drift the migration didn't expect
 
-A long-running query is holding the table. The migration exits on
-`DB_LOCK_TIMEOUT_MS` (default 10s — see the service's database
-connection config).
+A migration that assumed (for example) a column was nullable but
+production has rows that violate the new constraint.
+
+- The runner logs the violating row's constraint name.
+- Decide: fix the data in production, or rewrite the migration with
+  a backfill step that handles the existing rows.
+
+Same recovery loop as path A — author the corrective migration, ship
+a new image, the next boot re-runs the migration set.
+
+### D. Lock contention (advisory or table-level)
+
+If several services boot at the same time they race for the
+database-wide advisory lock around `pgmigrations`. The runner retries
+12× with linear backoff (250ms × attempt — see
+`packages/db/src/migrate.ts`). True contention is rare in prod; if
+you see the contention message, it usually means a stuck migration
+elsewhere is holding the lock.
 
 ```bash
-# Find the blocker.
+# Find sessions holding migration-related locks.
 docker compose -f docker-compose.prod.yml exec -T database \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c \
   "SELECT pid, state, now()-query_start AS age, left(query, 100) AS q
@@ -95,75 +133,78 @@ docker compose -f docker-compose.prod.yml exec -T database \
    WHERE datname=current_database() AND state <> 'idle'
    ORDER BY age DESC LIMIT 10;"
 
-# Wait it out, or terminate it.
+# Terminate the blocker if it's stuck.
 docker compose -f docker-compose.prod.yml exec -T database \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
   -c "SELECT pg_terminate_backend(<pid>);"
 
-# Re-run the migration.
-docker compose -f docker-compose.prod.yml run --rm service-backend-migrate
+# Restart the failing service so it retries.
+docker compose -f docker-compose.prod.yml restart service-<name>
 ```
 
-### D. Migration succeeded but health-check failed
+### E. Schema is ahead of binary
 
-`SequelizeMeta` **does** contain the migration. The schema is ahead
-of the old binary that's still serving traffic. This is the "schema
-is ahead of binary" failure mode.
+The migration applied successfully (it's in `pgmigrations`) but the
+new binary won't start for an unrelated reason. The schema is now
+ahead of the old binary that's still serving traffic via the gateway.
 
-```bash
-# 1. Decide: forward-fix (deploy a new image that handles the new
-#    schema) or back out (run the migration's down()).
-docker compose -f docker-compose.prod.yml run --rm service-backend-migrate \
-  pnpm db:migrate:undo
-```
+- The deploy contract is **forward-only** — you can't roll the
+  migration back without a corrective migration.
+- If `down()` is implemented and the change is recoverable, write a
+  corrective migration; ship a new image; let `up()` apply it on the
+  next boot.
+- If `down()` would be destructive (drops columns / tables), **stop
+  and call the DBA**. Restore from the pre-migration backup is
+  sometimes the only safe option.
 
-If `down()` is a no-op or destructive, **stop and call the DBA**.
-Backing out a forward-only schema change is a one-way door — restore
-from the pre-migration backup is sometimes the only safe option.
+There is no `pnpm db:migrate:undo` script — the runner only runs
+`up`. Rolling back a forward-only migration means writing a new
+migration that performs the reverse change.
 
 ## Mitigation
 
-The old binary is still serving. Don't break that:
+The rest of the site is still serving. Don't break that:
 
-- **Do not** restart `service-backend` until the migration succeeds —
-  compose will block startup on the failed init container, leaving
-  you with zero replicas.
-- **Do not** delete `service-backend-migrate`'s container before
-  reading its logs — you lose the failure diagnostic.
+- **Do not** force-restart the affected service in a loop expecting
+  the migration to "just work" — each restart re-runs the failing
+  migration and re-logs the error. Fix the cause first.
+- **Do not** wipe the `pgmigrations` row for a partially-applied
+  migration unless you've reverted the DDL it landed first —
+  otherwise the next `up()` will trip over the existing schema.
 
-If business pressure forces serving while the migration is being
-authored, enable maintenance mode per
-[`maintenance-mode.md`](./maintenance-mode.md) for write paths and
-let reads continue on the old binary.
+If the affected service is in a hot user path (e.g. `service-auth`)
+and the cause will take >15 min to fix, enable maintenance mode
+per [`maintenance-mode.md`](./maintenance-mode.md).
 
 ## Verify
 
 ```bash
 # 1. Migration applied cleanly.
-docker compose -f docker-compose.prod.yml logs service-backend-migrate \
-  | tail -20
+docker compose -f docker-compose.prod.yml logs service-<name> \
+  | tail -50
 
-# 2. SequelizeMeta now contains the migration row.
+# 2. pgmigrations now contains the migration row.
 docker compose -f docker-compose.prod.yml exec -T database \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
-  -c 'SELECT name FROM "SequelizeMeta" ORDER BY name DESC LIMIT 5;'
+  -c 'SELECT name FROM <schema>.pgmigrations ORDER BY id DESC LIMIT 5;'
 
-# 3. Backend starts and is healthy.
-docker compose -f docker-compose.prod.yml up -d service-backend
-curl -sf https://${PROD_HOSTNAME}/api/v1/ready | jq
+# 3. Service is healthy.
+docker compose -f docker-compose.prod.yml ps service-<name>
+curl -sf https://${PROD_HOSTNAME}/health/simple
+# Spot-check a route the affected domain owns to confirm gRPC fan-out works.
 ```
 
 ## Capture
 
 ```bash
-# The init container's logs are your post-mortem.
+# The failing service's logs are your post-mortem.
 docker compose -f docker-compose.prod.yml logs --no-color \
-  service-backend-migrate > /tmp/migration-incident-$(date +%s).log
+  service-<name> > /tmp/migration-incident-$(date +%s).log
 
 # Note the backup filename you took before the deploy.
 ls -lh /var/backups/adopt-dont-shop/ | tail
 ```
 
 File a Linear follow-up linking the PR that introduced the bad
-migration. If recovery used path B or D, schedule a restore drill
+migration. If recovery used path B or E, schedule a restore drill
 sooner than the next quarterly cycle.

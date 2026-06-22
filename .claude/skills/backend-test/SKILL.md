@@ -1,36 +1,47 @@
 ---
 name: backend-test
 description: >
-  Patterns for writing tests in service.backend. Apply when adding or modifying any
-  service, controller, route, or middleware test. Covers Vitest setup, mock patterns,
-  behaviour-focused assertions, and TDD.
+  Patterns for writing tests in the backend services (services/gateway
+  and services/<name>). Apply when adding or modifying any gRPC handler
+  test, gateway route test, or pure unit test. Covers Vitest setup,
+  mock patterns, behaviour-focused assertions, and TDD.
 ---
 
 # Backend Testing Patterns
 
-The backend uses **Vitest** (not Jest) with the setup in
-`service.backend/src/setup-tests.ts`. Tests favour behaviour over implementation.
+Every backend service in `services/*` uses **Vitest** (not Jest) with
+the config in `services/<name>/vitest.config.ts`. Tests favour
+behaviour over implementation.
 
 ## Test layout
 
+Tests are **colocated** with the source file they cover — no
+`__tests__/` directory and no per-layer split. The vitest config
+picks up `**/*.test.ts` automatically.
+
 ```
-service.backend/src/__tests__/
-  services/<name>.service.test.ts        # Most logic lives here
-  controllers/<name>.controller.test.ts  # Sparingly — HTTP shape only
-  routes/<name>.routes.test.ts           # Integration via supertest
-  middleware/<name>.test.ts              # For new middleware
-  integration/                           # Cross-layer scenarios
-  models/                                # Validation/hooks only — not CRUD
+services/gateway/src/
+  routes/things.ts
+  routes/things.test.ts          # Fastify route → mocked gRPC client
+
+services/things/src/grpc/
+  thing-handlers.ts
+  thing-handlers.test.ts         # gRPC handler → stubbed pool/audit
+  adapter.ts
+  adapter.test.ts                # pure mapping helpers
 ```
 
-Run all backend tests:
+Run all tests for a service:
+
 ```bash
-cd service.backend && pnpm test
+pnpm exec turbo test --filter=@adopt-dont-shop/service.things
 ```
 
 Run a single file (fast feedback loop):
+
 ```bash
-cd service.backend && pnpm test -- src/__tests__/services/thing.service.test.ts
+cd services/things && pnpm test handlers
+# Vitest takes a substring filter, no need to spell the full path.
 ```
 
 ## TDD loop (per CLAUDE.md)
@@ -40,11 +51,12 @@ cd service.backend && pnpm test -- src/__tests__/services/thing.service.test.ts
 3. **Refactor** — clean up with tests green
 
 State the success criteria before you start:
-> "Create returns the new Thing and writes one audit row with action=CREATE"
+> "createThing returns the new thing id and writes one audit row with action=CREATE"
 
 ## What to test
 
-**Test behaviour through public APIs only.** Internals must be invisible.
+**Test behaviour through public APIs only.** Internals must be
+invisible.
 
 | Good | Bad |
 |------|-----|
@@ -52,7 +64,8 @@ State the success criteria before you start:
 | "POST /things 201s and returns the new id" | "Controller calls ThingService.create" |
 | "Rejecting an application emits a notification" | "spy was called with NotificationType.REJECTED" |
 
-A test that breaks every time you refactor is testing implementation, not behaviour.
+A test that breaks every time you refactor is testing implementation,
+not behaviour.
 
 ## Vitest imports
 
@@ -60,140 +73,142 @@ A test that breaks every time you refactor is testing implementation, not behavi
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 ```
 
-Use `vi.fn()`, `vi.mock()`, `vi.spyOn()`. **Never** `jest.*` — this project does not
-use Jest.
+Use `vi.fn()`, `vi.mock()`, `vi.spyOn()`. **Never** `jest.*` — this
+project does not use Jest.
 
-## Mock setup pattern (services)
+## gRPC handler test pattern
 
-`setup-tests.ts` already mocks the logger, encryption keys, and JWT/CSRF secrets.
-Mock anything external your service touches:
+Stub the pool, principal, and any cross-service clients in `deps`.
+Assert on the SQL the handler ran and the response shape it produced.
 
 ```typescript
-import { vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
-// External services — mock at the top of the file before importing the SUT.
-vi.mock('../../services/notification.service', () => ({
-  NotificationService: {
-    createNotification: vi.fn().mockResolvedValue(undefined),
-  },
-}));
+import { createThing } from './thing-handlers.js';
+import type { HandlerDeps } from './handlers.js';
 
-vi.mock('../../services/email.service', () => ({
-  default: {
-    sendEmail: vi.fn().mockResolvedValue('email-id-1'),
-    queueEmail: vi.fn().mockResolvedValue(undefined),
-  },
-}));
+const makeDeps = (overrides: Partial<HandlerDeps> = {}): HandlerDeps => ({
+  pool: { query: vi.fn().mockResolvedValue({ rows: [] }) } as never,
+  audit: { log: vi.fn().mockResolvedValue(undefined) } as never,
+  ...overrides,
+});
 
-// Socket emits — capture without a live IO server.
-vi.mock('../../socket/socket-registry', () => ({
-  emitToUser: vi.fn(),
-  emitToRescue: vi.fn(),
-}));
+describe('createThing', () => {
+  it('inserts the row + writes an audit log', async () => {
+    const deps = makeDeps();
+    const res = await createThing(
+      deps,
+      { userId: 'u-1', roles: [] },
+      { name: 'Buddy', description: '' },
+    );
 
-import { ThingService } from '../../services/thing.service';
-import { NotificationService } from '../../services/notification.service';
-
-describe('ThingService — Business Logic', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+    expect(res.thing.name).toBe('Buddy');
+    expect(deps.pool.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO things.things'),
+      expect.any(Array),
+    );
+    expect(deps.audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'CREATE', entity: 'Thing' }),
+    );
   });
 
-  it('creates a thing and notifies the owner', async () => {
-    const thing = await ThingService.create({ name: 'Buddy' }, 'user-1');
-
-    expect(thing.thingId).toBeDefined();
-    expect(NotificationService.createNotification).toHaveBeenCalledTimes(1);
+  it('rejects unauthenticated callers', async () => {
+    await expect(
+      createThing(makeDeps(), null, { name: 'X', description: '' }),
+    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
   });
+});
+```
+
+## Gateway route test pattern
+
+Use Fastify's `app.inject({ ... })` against a stubbed gRPC client —
+no live HTTP server, no supertest. Read an existing
+`services/gateway/src/routes/*.test.ts` for the canonical setup
+(building a `FastifyInstance`, registering the route, stubbing the
+client, calling `inject`).
+
+```typescript
+import Fastify from 'fastify';
+import { describe, it, expect, vi } from 'vitest';
+
+import { registerThingsRoutes } from './things.js';
+
+const makeApp = (clientOverrides: Partial<ThingsClient> = {}) => {
+  const app = Fastify({ logger: false });
+  const client = {
+    createThing: vi.fn().mockResolvedValue({
+      thing: { thingId: 't-1', name: 'Buddy', description: '' },
+    }),
+    ...clientOverrides,
+  } as never;
+  registerThingsRoutes(app, { client });
+  return { app, client };
+};
+
+it('POST /api/v1/things returns 201 + the created thing', async () => {
+  const { app } = makeApp();
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/v1/things',
+    payload: { name: 'Buddy' },
+  });
+  expect(res.statusCode).toBe(201);
+  expect(res.json()).toMatchObject({ success: true, data: { name: 'Buddy' } });
 });
 ```
 
 ## Database in tests
 
-Tests run against a real in-memory SQLite (configured in `setup-tests.ts`), so model
-behaviour is tested accurately. You don't mock Sequelize models — you let them write
-to the in-memory DB and assert the resulting state.
-
-If a test needs a clean DB, truncate inside `beforeEach`:
-
-```typescript
-beforeEach(async () => {
-  await Thing.destroy({ where: {}, truncate: true });
-});
-```
-
-Avoid `sequelize.sync({ force: true })` per-test — slow and unnecessary.
-
-## Controller tests
-
-Use `supertest` for route/controller integration. Spin up an Express app with just the
-router under test rather than booting the whole `index.ts`:
-
-```typescript
-import express from 'express';
-import request from 'supertest';
-import thingRoutes from '../../routes/thing.routes';
-
-const app = express();
-app.use(express.json());
-app.use('/api/v1/things', thingRoutes);
-
-it('rejects unauthenticated requests', async () => {
-  const res = await request(app).post('/api/v1/things').send({ name: 'X' });
-  expect(res.status).toBe(401);
-});
-```
+There is no in-memory test database. The pattern is to stub the
+`pool.query` call with `vi.fn()` and assert on the SQL string + the
+returned shape. If you need true round-trip behaviour, set up a
+disposable Postgres in the test (`pg-mem` is sometimes appropriate
+for migration tests) — but most handler tests don't need it.
 
 ## Auditing assertions
 
-Don't assert on `AuditLogService.log` call args by mocking it — that tests
-implementation. Instead, query the `audit_logs` table after the operation:
+Don't assert on the contents of audit calls by mocking
+`AuditLogService.log` in production code paths and snapshotting the
+args — that tests implementation. Instead, assert the action +
+entity + entityId fields you actually care about:
 
 ```typescript
-import { AuditLog } from '../../models/AuditLog';
-
-it('records an audit row on create', async () => {
-  await ThingService.create({ name: 'Buddy' }, 'user-1');
-
-  const rows = await AuditLog.findAll({ where: { entity: 'Thing' } });
-  expect(rows).toHaveLength(1);
-  expect(rows[0].action).toBe('CREATE');
-});
+expect(deps.audit.log).toHaveBeenCalledWith(
+  expect.objectContaining({ action: 'CREATE', entity: 'Thing', entityId: 't-1' }),
+);
 ```
 
 ## Error path coverage
 
-Each `throw` in a service is a branch. Cover it:
+Each `throw HandlerError(...)` in a handler is a branch. Cover it:
 
 ```typescript
-it('throws NotFoundError when the thing is missing', async () => {
-  await expect(ThingService.getById('missing-id')).rejects.toThrow('Thing not found');
+it('rejects unknown pets', async () => {
+  const deps = makeDeps({
+    pool: { query: vi.fn().mockRejectedValue({ code: '23503' }) } as never,
+  });
+  await expect(
+    addFavorite(deps, { userId: 'u-1' } as never, { petId: 'missing' }),
+  ).rejects.toMatchObject({ code: 'NOT_FOUND' });
 });
-```
-
-Test the error TYPE, not the message string, when downstream code branches on it:
-
-```typescript
-import { NotFoundError } from '../../middleware/error-handler';
-
-await expect(ThingService.getById('x')).rejects.toBeInstanceOf(NotFoundError);
 ```
 
 ## What to skip
 
-- Don't snapshot test JSON responses — they break on every field add. Assert on specific fields.
-- Don't test that the logger was called. Logger output is operational, not behaviour.
-- Don't test Sequelize internals (e.g. `findByPk` was called). Test the OBSERVABLE result.
-
-## Coverage
-
-CLAUDE.md targets 100% coverage but ONLY of meaningful business behaviour. Don't
-add tests to lift coverage on lines that don't matter. If a line can't be reached by
-realistic input, the line is dead code — delete it instead.
+- Don't snapshot test JSON responses — they break on every field add.
+  Assert on specific fields.
+- Don't test that the logger was called. Logger output is
+  operational, not behaviour.
+- Don't test the internals of `@adopt-dont-shop/db` or proto-generated
+  types. They're external dependencies for the purposes of your test.
 
 ## TypeScript rules (apply to tests too)
 
-- No `any` — use `unknown` or `vi.MockedFunction<typeof fn>`
+- No `any` — use `unknown` or `vi.MockedFunction<typeof fn>`. The
+  `as never` casts in the patterns above are deliberate ergonomics
+  for fully-typed third-party shapes; prefer `Partial<…>` overrides
+  when you can.
 - No `as` assertions without a comment explaining why
 - No `@ts-ignore`/`@ts-expect-error` — fix the type
 - Tests are first-class TypeScript code
@@ -201,10 +216,11 @@ realistic input, the line is dead code — delete it instead.
 ## Common mistakes
 
 - `jest.fn()` instead of `vi.fn()` — wrong test framework
-- Mocking `AuditLogService` to assert log calls — test the resulting audit row instead
-- Snapshotting full responses — brittle, doesn't describe behaviour
-- Testing private methods via casting — refactor so the behaviour is visible publicly
-- `sequelize.sync({ force: true })` in every test — slow; truncate the tables you touch
-- Asserting against the mocked logger — operational signal, not behaviour
-- Skipping the `beforeEach(() => vi.clearAllMocks())` reset — call-count assertions
-  leak across tests
+- Reaching for `supertest` or `express` — the gateway is Fastify;
+  `app.inject(...)` is the equivalent in this codebase
+- Reaching for Sequelize models / `sequelize.sync({ force: true })` —
+  no ORM. Stub `pool.query` instead
+- Asserting on internal call counts of helpers (`buildMetadata`,
+  `handleGrpcError`) — they're implementation details
+- Skipping `beforeEach(() => vi.clearAllMocks())` when sharing mocks
+  across tests — call-count assertions leak between cases

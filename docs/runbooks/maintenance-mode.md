@@ -26,9 +26,9 @@ traffic without taking the whole app down.
 
 **When set to `true`**, the frontends consume the flag via the
 `useDynamicConfig(KNOWN_CONFIGS.APPLICATION_SETTINGS)` hook and
-render the maintenance banner / block protected actions. The backend
-continues to serve `/health`, `/api/v1/ready`, and read endpoints
-unless you also stop the container.
+render the maintenance banner / block protected actions. The gateway
+continues to serve `/health/simple` and read endpoints unless you
+also stop the container.
 
 ## When to use it
 
@@ -42,8 +42,8 @@ unless you also stop the container.
 
 Maintenance mode does **not** prevent direct API hits — it's a UX
 contract enforced by the frontend. Determined clients can still call
-the API. If you need a hard block, scale `service-backend` to zero
-or stop nginx.
+the API. If you need a hard block, stop nginx (preferred) or stop
+`service-gateway` directly.
 
 ## Flipping the flag
 
@@ -125,7 +125,7 @@ docker compose -f docker-compose.prod.yml start nginx
 
 This is louder than maintenance mode (no friendly banner, just a
 connection failure) but it's the cleanest way to guarantee zero
-traffic reaches the backend.
+traffic reaches the gateway / backing services.
 
 ## Capture
 

@@ -26,88 +26,106 @@ rolling the image back.
 ## Image-tag refresher
 
 From [`docs/operations/deploy.md`](../operations/deploy.md): production
-runs immutable `:sha-<long>` or `:vX.Y.Z` tags, never `:latest`. The
-previous good tag is in the deploy log / release notes.
+runs immutable `:sha-<long>` or `:vX.Y.Z` tags per service, never
+`:latest`. Each service has its own image and its own per-service tag
+override in `docker-compose.prod.yml`
+(`SERVICE_GATEWAY_TAG`, `SERVICE_AUTH_TAG`, …). The default is
+`DEPLOY_SHA`, but a single service can be pinned to a different
+SHA when rolling forward / back independently.
 
 ```bash
-# What's running right now?
-docker compose -f docker-compose.prod.yml images service-backend
+# What's running across the whole stack right now?
+docker compose -f docker-compose.prod.yml images
 ```
 
 ## Rollback procedure
 
+You can roll back **a single service** (preferred when only one
+service regressed) or **the entire stack** (when the regression spans
+multiple services or you can't pinpoint it).
+
+### Single service rollback (preferred)
+
 ```bash
-# 1. Identify the previous good tag.
-export IMAGE_TAG=v1.2.3        # or sha-<long> from release notes
+# 1. Identify the previous good tag for the affected service.
+export SERVICE_PETS_TAG=sha-abc1234     # or vX.Y.Z
 
-# 2. Pull + restart with the old tag.
-DEPLOY_SHA=${IMAGE_TAG} \
-  docker compose -f docker-compose.prod.yml pull service-backend
-DEPLOY_SHA=${IMAGE_TAG} \
-  docker compose -f docker-compose.prod.yml up -d service-backend
+# 2. Pull + restart just that service. The other services keep their
+#    current tags.
+docker compose -f docker-compose.prod.yml pull service-pets
+docker compose -f docker-compose.prod.yml up -d service-pets
 
-# 3. Confirm the new (old) image is live.
-docker compose -f docker-compose.prod.yml images service-backend
+# 3. Confirm the new (old) image is live for that service.
+docker compose -f docker-compose.prod.yml images service-pets
 
 # 4. Health check.
-curl -sf https://${PROD_HOSTNAME}/health
-curl -sf https://${PROD_HOSTNAME}/api/v1/ready | jq
+curl -sf https://${PROD_HOSTNAME}/health/simple
+docker compose -f docker-compose.prod.yml ps
 ```
 
-The `service-backend-migrate` init container also pins to
-`${DEPLOY_SHA}`, so re-running it would replay the migration set the
-*old* tag knows about. **Do not** restart `service-backend-migrate`
-during an image rollback unless you're also reverting a migration —
-see below.
+### Whole-stack rollback
+
+```bash
+# 1. Identify the previous good DEPLOY_SHA.
+export DEPLOY_SHA=sha-abc1234
+
+# 2. Pull + restart everything.
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+
+# 3. Confirm tags across the stack.
+docker compose -f docker-compose.prod.yml images
+```
 
 ## Schema-compatibility caveat
 
 The deploy contract is **forward-only schemas**: a deploy may add
 columns but the previous binary must still run against the new schema.
 That assumption is documented in
-[`docs/operations/deploy.md`](../operations/deploy.md#rollback).
+[`docs/operations/deploy.md`](../operations/deploy.md).
 
 If the failed deploy ran a migration that the previous binary cannot
 tolerate (e.g. removed a column it still reads, added a `NOT NULL`
-constraint it doesn't populate):
+constraint it doesn't populate), an image rollback alone won't help —
+the old binary will fail against the new schema.
 
-```bash
-# 1. Roll the migration back FIRST.
-docker compose -f docker-compose.prod.yml run --rm service-backend-migrate \
-  pnpm db:migrate:undo
+There is **no `pnpm db:migrate:undo` script**. The runner is
+`node-pg-migrate` driven `up`-only by `@adopt-dont-shop/db`
+(`packages/db/src/migrate.ts`). To reverse a schema change you must
+write a corrective migration that performs the reverse DDL, ship it
+in a new image, and let the service's boot `db:migrate` apply it.
 
-# 2. Then roll the image back per the procedure above.
-```
-
-Confirm the migration that ran during this deploy actually has a
-working `down()` — many do not (see
-`db-backup-runbook.md` for the broader "forward-only" warning). If
-`down()` is missing, you cannot roll back cleanly; jump to
-[`migration-failure.md`](./migration-failure.md) and call the on-call
-DBA.
+If the affected migration has a working `down()`, you can run it
+directly via `node-pg-migrate` from inside the service container, but
+this is bypassing the deploy pipeline — only do it with a DBA on the
+line and a backup taken first. See
+[`migration-failure.md`](./migration-failure.md) path E for the
+"schema is ahead of binary" recovery sequence.
 
 ## Verify
 
 - Error rate drops to pre-deploy baseline within 5 min.
-- `/api/v1/ready` returns 200.
+- `/health/simple` returns 200 and `docker compose ps` shows every
+  service healthy.
 - `HighFiveHundredRate` (and any latency alerts) resolve.
-- `docker compose ... images service-backend` shows the old tag.
+- `docker compose ... images` shows the old tag on the affected
+  services.
 
 ## Capture
 
 ```bash
-# Record the bad image SHA before it scrolls out of logs.
+# Record the bad image SHA before it scrolls out of logs. Pull the
+# gateway + the affected service(s) you rolled back.
 docker compose -f docker-compose.prod.yml logs --since 2h --no-color \
-  service-backend > /tmp/rollback-incident-$(date +%s).log
+  service-gateway service-<name> > /tmp/rollback-incident-$(date +%s).log
 
 # Note in the Linear follow-up:
 #  - bad tag, previous good tag, time window of the spike, link to
-#    the failing CI build.
+#    the failing CI build, which services were rolled back.
 ```
 
 Open a Linear ticket on the offending release and link the original
-PR. If the migration also needed reverting, attach the `db:migrate:undo`
-output too.
+PR. If a corrective migration was needed too, link that PR alongside.
 
 ## When NOT to roll back
 

@@ -37,21 +37,21 @@ From the repository root the typical workflow uses Docker — the container boot
 
 4. **Initialize the database (first run, or after `docker:reset`)**
 
-   Each service runs its own migrations from `services/<name>/src/migrations/` on startup (the project does not use `sequelize-cli`). Seeds are split into reference / demo / fixtures with no "do everything" alias — pick the right one for what you're doing.
+   Each service runs its own migrations from `services/<name>/src/migrations/` on container start (the dev `CMD` in `Dockerfile.service` runs `pnpm run --if-present db:migrate && pnpm run --if-present db:seed && pnpm run dev`), so the typical workflow is "start the stack and it's ready". The runner is `node-pg-migrate` wrapped by `@adopt-dont-shop/db`, which tracks applied migrations in a `pgmigrations` table per schema and retries on the cross-service advisory-lock contention that happens when several services boot at once. Schema-owning services are auth, pets, rescue, applications, chat, notifications, moderation, matching, cms, audit; the gateway owns no tables.
+
+   To run migrations or seeds by hand for a single service:
 
    ```bash
-   # From the repo root — wrappers shell into the service-backend container
-   pnpm db:migrate                                       # runs `ts-node src/migrations/runner.ts up`
-   docker compose exec service-backend pnpm db:seed:reference  # idempotent reference data
-   docker compose exec service-backend pnpm db:seed:demo       # Faker-generated demo data (dev/staging only)
-   docker compose exec service-backend pnpm db:seed:fixtures   # deterministic e2e fixtures
+   docker compose exec service-auth pnpm db:migrate          # or any schema-owning service
+   docker compose exec service-auth pnpm db:seed             # auth / pets / rescue / applications / chat have seeds
+   pnpm db:seed                                              # host-side orchestrator: seeds every service in dep order
    ```
 
-5. **Backend is reachable at**
+5. **Services are reachable via the API gateway at**
 
    ```
-   http://localhost:5000       # direct
-   http://api.localhost        # via the nginx reverse proxy
+   http://localhost:4000        # gateway direct (REST + WebSocket)
+   http://api.localhost         # via the nginx reverse proxy
    ```
 
 ### Native (no-Docker) Development
@@ -76,14 +76,17 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
-DB_NAME=adopt_dont_shop_dev
+# `.env.example` uses POSTGRES_DB + DEV_DB_NAME / TEST_DB_NAME / PROD_DB_NAME
+# (validate-env.ts selects per NODE_ENV); see `.env.example` for the full list.
+POSTGRES_DB=adopt_dont_shop_dev
+DEV_DB_NAME=adopt_dont_shop_dev
 
 # JWT
 JWT_SECRET=your-development-jwt-secret
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
-# Email (Development - Free)
+# Email — one of: console | ethereal | resend (see Email Service Setup)
 EMAIL_PROVIDER=ethereal
 
 # Storage (Development - Free)
@@ -111,9 +114,9 @@ RATE_LIMIT_MAX_REQUESTS=100
 NODE_ENV=production
 
 # Email (Production)
-EMAIL_PROVIDER=sendgrid
-SENDGRID_API_KEY=your_sendgrid_api_key
-SENDGRID_FROM_EMAIL=noreply@adoptdontshop.com
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=your_resend_api_key
+DEFAULT_FROM_EMAIL=noreply@adoptdontshop.com
 
 # Storage (Production)
 STORAGE_PROVIDER=s3
@@ -126,31 +129,33 @@ CLOUDFRONT_DOMAIN=cdn.adoptdontshop.com
 
 ## Email Service Setup
 
-### Ethereal Mail (Development)
+The notifications service picks its provider from `EMAIL_PROVIDER` — one of `console` | `ethereal` | `resend`. `console` is dev-only (refused in production); `ethereal` is the default for local work; `resend` is the production transport.
 
-Ethereal creates test accounts automatically - no configuration needed!
+### Console (default, dev)
 
-```typescript
-// Automatically configured in development
-EMAIL_PROVIDER = ethereal;
+```bash
+EMAIL_PROVIDER=console
 ```
 
-Access preview emails at the URL logged in console:
+Every send is logged to stdout — useful for tests where you don't need to inspect rendered HTML.
 
+### Ethereal Mail (dev with preview)
+
+```bash
+EMAIL_PROVIDER=ethereal
 ```
-📧 Preview Email: https://ethereal.email/messages/xxxxx
+
+The provider creates a throwaway Ethereal account on boot and logs the preview URL of each send. Open the URL printed in `docker compose logs -f service-notifications` to see the rendered message.
+
+### Resend (production)
+
+```bash
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=your_api_key
+DEFAULT_FROM_EMAIL=noreply@adoptdontshop.com
 ```
 
-### SendGrid (Production)
-
-1. Create SendGrid account
-2. Generate API key
-3. Configure environment:
-   ```bash
-   EMAIL_PROVIDER=sendgrid
-   SENDGRID_API_KEY=your_api_key
-   SENDGRID_FROM_EMAIL=noreply@adoptdontshop.com
-   ```
+`RESEND_API_KEY` and `DEFAULT_FROM_EMAIL` are both mandatory when `EMAIL_PROVIDER=resend`; the service refuses to boot otherwise.
 
 ## File Storage Setup
 
@@ -188,36 +193,35 @@ uploads/
 
 ## Database Management
 
-Each service runs its own migrations and seeders — `sequelize-cli` is **not** installed. Migrations live in `services/<name>/src/migrations/`; seeders (where a service has them) in `services/<name>/src/seeders/`.
+Each schema-owning service ships its own migrations and (where it makes sense) seeds — `sequelize-cli` is **not** installed. Migrations live in `services/<name>/src/migrations/`; seed entry points live next to them in `services/<name>/src/db/`. The runner is `node-pg-migrate` via `@adopt-dont-shop/db`, with applied migrations tracked in a `pgmigrations` table inside each service's owning schema.
 
 ### Migrations
 
 ```bash
-# Run pending migrations (from repo root)
-pnpm db:migrate
-
-# Status / rollback — exec inside the backend container
-docker compose exec service-backend pnpm db:migrate:status
-docker compose exec service-backend pnpm db:migrate:undo
+# Run pending migrations for a single service (e.g. service-auth)
+docker compose exec service-auth pnpm db:migrate
 
 # Authoring a new migration: copy an existing file in the owning service's
 # services/<name>/src/migrations/ and follow the numbered naming pattern
-# (e.g. 01-add-something.ts). The runner picks them up automatically.
+# (e.g. 01-add-something.ts). The runner picks them up automatically on the
+# next service boot (its CMD runs `pnpm run --if-present db:migrate`).
 ```
 
-### Seeders
+Schema-owning services: `service-auth`, `service-pets`, `service-rescue`, `service-applications`, `service-chat`, `service-notifications`, `service-moderation`, `service-matching`, `service-cms`, `service-audit`. The gateway owns no tables, so `docker compose exec service-gateway pnpm db:migrate` will fail with "missing script" — that's expected, skip it.
 
-Seeds are deliberately not fungible — each type has a different safety profile:
+### Seeds
+
+Only services that need dev/e2e data ship a `db:seed` script today: `service-auth`, `service-rescue`, `service-pets`, `service-applications`, `service-chat`. Seeds use `ON CONFLICT DO UPDATE` everywhere, so they're idempotent and safe to re-run.
 
 ```bash
-docker compose exec service-backend pnpm db:seed:reference   # idempotent, safe anywhere
-docker compose exec service-backend pnpm db:seed:demo        # Faker (dev/staging) — ALLOW_DEMO_SEED required
-docker compose exec service-backend pnpm db:seed:fixtures    # deterministic e2e fixtures
-docker compose exec service-backend pnpm db:seed:reset       # truncate demo+fixture tables
-docker compose exec service-backend pnpm db:bootstrap        # first-run admin in production
+# Seed every service in dependency order (host-side orchestrator).
+pnpm db:seed
+
+# Or seed a single service.
+docker compose exec service-auth pnpm db:seed
 ```
 
-See the owning service's `src/seeders/` directory for the full split.
+`pnpm db:seed` is a thin wrapper around `scripts/seed.mjs` that shells into each service container in order (auth → rescue → pets → applications → chat) — see the script header for the full ordering and why it must not import workspace packages from the host.
 
 ## Testing
 
@@ -248,49 +252,29 @@ Load-testing and performance-profiling scripts are not yet set up.
 
 ### Health Check Endpoints
 
+The gateway exposes a single liveness probe; backing services are reachable over gRPC only, not HTTP, so there is no aggregated HTTP `/health` route to call against the gateway.
+
 ```bash
-# Full health check
-GET http://localhost:5000/health
-
-# Simple check (for load balancers)
-GET http://localhost:5000/health/simple
-
-# Readiness check (for Kubernetes)
-GET http://localhost:5000/health/ready
+# Simple liveness check (cheap, for load balancers / compose healthchecks)
+GET http://localhost:4000/health/simple
 ```
 
-### Development Dashboard
-
-View real-time service health at:
-
-```
-http://localhost:5000/monitoring/dashboard
-```
-
-Shows:
-
-- Service status (database, email, storage)
-- Response times
-- Memory usage
-- Active connections
-- Auto-refreshes every 5 seconds
+Each backing service publishes its own structured health over gRPC + Prometheus metrics — see [`docs/observability/tracing.md`](../observability/tracing.md) for the full observability surface.
 
 ## Docker Deployment
 
 ### Development
 
 ```bash
-# Start all services
-docker compose up
+# Start the full dev stack via the preflight wrapper (recommended)
+pnpm docker:dev
 
-# Build and start
-docker compose up --build
+# Start one service in the foreground (useful for debugging a single service)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up service-auth
 
-# Start specific service
-docker compose up service-backend
-
-# View logs
-docker compose logs -f service-backend
+# View logs for a specific service
+pnpm docker:logs                    # follow all services
+docker compose logs -f service-auth # one service
 ```
 
 ### Production
@@ -312,32 +296,34 @@ The root `docker-compose.prod.yml` overlay exercises this path end-to-end — se
 
 ## Common Tasks
 
-### Add New API Endpoint
+### Add a new API endpoint
 
-1. **Create route file** `src/routes/myresource.routes.ts`
-2. **Create controller** `src/controllers/myresource.controller.ts`
-3. **Create service** `src/services/myresource.service.ts`
-4. **Add model** (if needed) `src/models/MyResource.ts`
-5. **Register route** in `src/index.ts`
-6. **Add tests** under `src/__tests__/services/myresource.service.test.ts`
+The gateway is the only HTTP edge. Domain logic lives in a gRPC microservice; the gateway route translates REST → gRPC.
 
-### Add Database Model
+1. **Define / extend the proto** in `packages/proto/proto/<domain>.v1.proto`, regenerate (`pnpm exec turbo build --filter=@adopt-dont-shop/proto`), and implement the new RPC in `services/<domain>/src/grpc/handlers.ts` with a co-located `*.test.ts`.
+2. **Add the gateway route** in `services/gateway/src/routes/<domain>.ts` — register a Fastify route that validates input with the shared zod schemas in `lib.validation`, calls the gRPC client, and maps the response with the generated proto JSON helpers.
+3. **Wire the route** in `services/gateway/src/server.ts` (or its existing per-domain registration helper).
+4. **Permission-gate** the route via the `requirePermission(...)` Fastify hook from `@adopt-dont-shop/authz`.
 
-1. **Create migration** by copying the latest file in the owning service's `services/<name>/src/migrations/` and renaming it (the runner picks files up automatically — no generator). Follow the existing numbered naming pattern (`NN-create-my-table.ts`).
-2. **Define schema** in the migration file under `src/migrations/`
-3. **Create model** `src/models/MyModel.ts`
-4. **Run migration** `pnpm db:migrate` (from the repo root)
-5. **Add associations** in the model file
-6. **Create seeder** (optional) under `src/seeders/{reference,demo,fixtures}/` depending on whether it's idempotent reference data, Faker-generated demo data, or a deterministic e2e fixture.
+### Add a database table
 
-### Update Email Template
+1. **Create the migration** by copying the latest file in the owning service's `services/<name>/src/migrations/` and renaming it (`NN-create-my-table.ts` — the `node-pg-migrate` runner picks files up by alphabetical order, no generator). Author both `up()` and `down()`.
+2. **Restart the service** — its boot CMD runs `pnpm run --if-present db:migrate` and applies the new migration, or run it explicitly with `docker compose exec service-<name> pnpm db:migrate`.
+3. **Update the gRPC handlers** in `services/<name>/src/grpc/` to read/write the new table via the connection from `@adopt-dont-shop/db`. Direct parameterised SQL — there is no ORM.
+4. **Add seed rows** (optional) by extending `services/<name>/src/db/seed-data.ts` + `seed.ts`. Keep inserts idempotent with `ON CONFLICT DO UPDATE`.
 
-1. **Create template** `src/templates/emails/my-template.html`
-2. **Register in service** `src/services/email.service.ts`
-3. **Test template**
-   ```bash
-   POST /api/v1/email/templates/:templateId/test
-   ```
+### Update an email template
+
+Templates are stored as `notifications.email_templates` rows (not files) and edited through the admin UI / the gateway's `/api/v1/email/templates/*` admin routes. To preview a template against sample data:
+
+```bash
+curl -X POST http://localhost:4000/api/v1/email/templates/<templateId>/preview \
+  -H "Authorization: Bearer <admin token>" \
+  -H "Content-Type: application/json" \
+  -d '{ "variables": { "firstName": "Ada" } }'
+```
+
+To add a brand-new template, `POST /api/v1/email/templates` with the template body + subject + variables, or insert a seed row in `services/notifications/src/db/seed.ts` for it to land on every fresh stack.
 
 ## Troubleshooting
 
@@ -349,42 +335,39 @@ docker compose ps database
 
 # Nuclear reset (wipes the volume, then re-initializes)
 pnpm docker:reset
-pnpm docker:dev:detach
-pnpm db:migrate
-docker compose exec service-backend pnpm db:seed:reference
-docker compose exec service-backend pnpm db:seed:fixtures
+pnpm docker:dev:detach   # each service runs its own db:migrate + db:seed on boot
+pnpm db:seed             # re-run if you need to top up seed rows after boot
 ```
 
 ### Email Not Sending
 
 ```bash
-# Check Ethereal credentials in logs
-# Look for: "Ethereal Email Provider initialized"
+# Follow the notifications service logs and look for the Ethereal init line
+docker compose logs -f service-notifications
 
-# Test email manually
-curl -X POST http://localhost:5000/api/v1/email/templates/welcome/test \
-  -H "Authorization: Bearer YOUR_TOKEN"
+# Render a template against sample data without sending — POST to the
+# notifications admin route on the gateway (admin auth required).
+curl -X POST http://localhost:4000/api/v1/email/templates/<templateId>/preview \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "variables": {} }'
 ```
 
 ### File Upload Failures
 
-```bash
-# Check upload directory permissions
-ls -la uploads/
+The local storage provider writes under `services/<owning-service>/uploads/` (e.g. pet media under `service-pets`). Check the directory exists and is writable by the container's non-root user.
 
-# Recreate upload directories
-rm -rf uploads
-pnpm dev  # Will recreate automatically
+```bash
+docker compose exec service-pets ls -la uploads/
 ```
+
+If you have to wipe local upload state, run `pnpm docker:reset` to drop the named volumes and re-start the stack.
 
 ### Performance Issues
 
 ```bash
-# Toggle Sequelize query logging by setting DB_LOGGING=true in .env and restarting the service
-# (each service's `src/sequelize.ts` reads DB_LOGGING).
-
-# Monitor in development dashboard
-open http://localhost:5000/monitoring/dashboard
+# Trace requests end-to-end via the observability stack (see docs/observability/tracing.md).
+# Prometheus + Tempo + Loki are wired in `docker-compose.yml` under the `observability` profile.
 ```
 
 Load-testing and performance-profiling scripts are not yet set up.

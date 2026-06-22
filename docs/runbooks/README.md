@@ -10,11 +10,13 @@ decide in 10 seconds whether to escalate.
 | Runbook                                          | When to open it                                          |
 | ------------------------------------------------ | -------------------------------------------------------- |
 | [`5xx-spike.md`](./5xx-spike.md)                 | `HighFiveHundredRate` page; 5xx ratio >1% over 5m        |
-| [`redis-outage.md`](./redis-outage.md)           | Readiness flap on `redis`; auth `429`s spike or vanish   |
+| [`redis-outage.md`](./redis-outage.md)           | `redis` container unhealthy; rate-limiters misbehaving   |
 | [`db-pool-exhaustion.md`](./db-pool-exhaustion.md) | `acquire timeout` errors; p95 latency climbs in lockstep |
 | [`deploy-rollback.md`](./deploy-rollback.md)     | Bad deploy: image is live but error rate is up           |
-| [`migration-failure.md`](./migration-failure.md) | `service-backend-migrate` exited non-zero; backend won't start |
+| [`migration-failure.md`](./migration-failure.md) | A schema-owning service stuck in `restarting` after a deploy ran a migration |
 | [`maintenance-mode.md`](./maintenance-mode.md)   | Planned outage, controlled brownout, or kill-switch needed |
+| [`jetstream-backlog.md`](./jetstream-backlog.md) | NATS JetStream consumer lag / backlog                   |
+| [`gdpr-erasure-incident.md`](./gdpr-erasure-incident.md) | GDPR erasure run failed mid-way                  |
 | [`applications-cutover.md`](./applications-cutover.md) | _Obsolete_ — per-domain cutover flags removed; gateway always registers routes |
 
 ## On-call principles
@@ -26,7 +28,8 @@ that the rules are simple enough to follow when you're half-awake.
 
 - A `critical` alert fired and stayed firing past its `for:` window
   (see [`docs/observability-alerting.md`](../observability-alerting.md)).
-- `/api/v1/ready` returns `503` and the load balancer is dropping pods.
+- A schema-owning service is stuck in `restarting` (visible via
+  `docker compose ps`), blocking its domain routes.
 - A deploy is in flight and the health-check loop in
   `.github/workflows/deploy.yml` has timed out.
 - Customer-visible 5xx rate is above 1% for >5 min.
@@ -40,9 +43,10 @@ from the alert annotation, post a 1-line status in `#oncall-page`,
 - A `warning` fired but has not been firing for 30+ minutes.
 - p95 latency is high but error rate is flat — start investigating
   in `#alerts`, don't escalate.
-- A single readiness probe failed and recovered within 2 min — the
-  `ReadinessProbeFailing` rule requires `for: 2m`, so a single blip
-  won't page. Investigate, don't escalate.
+- A single container healthcheck failed and recovered within
+  ~30 s — Docker's healthcheck cadence will eventually mark it
+  unhealthy on a sustained failure; a single blip isn't actionable.
+  Investigate, don't escalate.
 - Heap usage warning during a known batch job (reports, exports).
 
 ### Mitigate before you debug
