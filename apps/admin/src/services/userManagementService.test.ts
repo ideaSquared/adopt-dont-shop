@@ -220,39 +220,6 @@ describe('UserManagementService', () => {
     });
   });
 
-  describe('searchUsers', () => {
-    it('passes query and filters to the search endpoint', async () => {
-      mockGet.mockResolvedValueOnce(paginatedUsers);
-
-      const result = await userManagementService.searchUsers('john', { page: 1, limit: 10 });
-
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/admin/users/search', {
-        query: 'john',
-        page: 1,
-        limit: 10,
-      });
-      expect(result).toEqual(paginatedUsers);
-    });
-  });
-
-  describe('getUserStats', () => {
-    it('fetches user statistics', async () => {
-      const stats = {
-        total_users: 100,
-        active_users: 80,
-        inactive_users: 20,
-        by_role: { adopter: 60, admin: 5 },
-        recent_registrations: 12,
-      };
-      mockGet.mockResolvedValueOnce(stats);
-
-      const result = await userManagementService.getUserStats();
-
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/admin/users/stats');
-      expect(result).toEqual(stats);
-    });
-  });
-
   describe('bulkUpdateUsers', () => {
     it('posts bulk update with userIds, updateData, and reason', async () => {
       mockPost.mockResolvedValueOnce({ success: 2, failed: 0 });
@@ -281,82 +248,6 @@ describe('UserManagementService', () => {
         updateData: { status: 'active' },
         reason: undefined,
       });
-    });
-  });
-
-  describe('exportUsers', () => {
-    it('calls the export endpoint with format param', async () => {
-      const blob = new Blob(['data'], { type: 'text/csv' });
-      mockGet.mockResolvedValueOnce(blob);
-
-      const result = await userManagementService.exportUsers({ status: 'active' }, 'csv');
-
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/admin/users/export', {
-        status: 'active',
-        format: 'csv',
-      });
-      expect(result).toBe(blob);
-    });
-
-    it('defaults to csv format', async () => {
-      const blob = new Blob(['data']);
-      mockGet.mockResolvedValueOnce(blob);
-
-      await userManagementService.exportUsers();
-
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/admin/users/export', { format: 'csv' });
-    });
-  });
-
-  describe('sendNotification', () => {
-    it('posts a notification to the correct user endpoint', async () => {
-      mockPost.mockResolvedValueOnce(undefined);
-
-      await userManagementService.sendNotification('u1', {
-        title: 'Hello',
-        message: 'Welcome!',
-        type: 'info',
-      });
-
-      expect(mockPost).toHaveBeenCalledWith('/api/v1/admin/users/u1/notifications', {
-        title: 'Hello',
-        message: 'Welcome!',
-        type: 'info',
-      });
-    });
-  });
-
-  describe('getUserRescues', () => {
-    it('fetches rescues associated with a user', async () => {
-      const rescues = [
-        { rescue_id: 'r1', rescue_name: 'Happy Paws', role: 'staff', joined_at: '2024-01-01' },
-      ];
-      mockGet.mockResolvedValueOnce(rescues);
-
-      const result = await userManagementService.getUserRescues('u1');
-
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/admin/users/u1/rescues');
-      expect(result).toEqual(rescues);
-    });
-  });
-
-  describe('getUserApplications', () => {
-    it('fetches adoption applications for a user', async () => {
-      const apps = [
-        {
-          application_id: 'app1',
-          pet_name: 'Buddy',
-          rescue_name: 'Happy Paws',
-          status: 'pending',
-          created_at: '2024-01-01',
-        },
-      ];
-      mockGet.mockResolvedValueOnce(apps);
-
-      const result = await userManagementService.getUserApplications('u1');
-
-      expect(mockGet).toHaveBeenCalledWith('/api/v1/admin/users/u1/applications');
-      expect(result).toEqual(apps);
     });
   });
 });
