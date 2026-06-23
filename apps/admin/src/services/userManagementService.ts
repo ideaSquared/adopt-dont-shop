@@ -37,14 +37,6 @@ export interface UpdateUserRequest {
   is_active?: boolean;
 }
 
-export interface UserStats {
-  total_users: number;
-  active_users: number;
-  inactive_users: number;
-  by_role: Record<string, number>;
-  recent_registrations: number;
-}
-
 /**
  * User Management Service for Admin App
  *
@@ -164,31 +156,6 @@ class UserManagementService {
   }
 
   /**
-   * Search users
-   */
-  async searchUsers(query: string, filters: UserFilters = {}): Promise<PaginatedResponse<User>> {
-    try {
-      return await apiService.get<PaginatedResponse<User>>('/api/v1/admin/users/search', {
-        query,
-        ...filters,
-      });
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * Get user statistics
-   */
-  async getUserStats(): Promise<UserStats> {
-    try {
-      return await apiService.get<UserStats>('/api/v1/admin/users/stats');
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
    * Bulk update users
    *
    * Hits the backend bulk endpoint (`POST /api/v1/users/bulk-update`) with the
@@ -210,91 +177,6 @@ class UserManagementService {
         updateData,
         reason,
       });
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * Export users data
-   */
-  async exportUsers(filters: UserFilters = {}, format: 'csv' | 'xlsx' = 'csv'): Promise<Blob> {
-    try {
-      const exportFilters = {
-        ...filters,
-        format,
-      };
-
-      const response = await apiService.get('/api/v1/admin/users/export', exportFilters);
-      return response as unknown as Blob;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * Send notification to user
-   */
-  async sendNotification(
-    userId: string,
-    notification: {
-      title: string;
-      message: string;
-      type: 'info' | 'warning' | 'success' | 'error';
-    }
-  ): Promise<void> {
-    try {
-      await apiService.post(`/api/v1/admin/users/${userId}/notifications`, notification);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * Get user's rescue organizations
-   */
-  async getUserRescues(userId: string): Promise<
-    Array<{
-      rescue_id: string;
-      rescue_name: string;
-      role: string;
-      joined_at: string;
-    }>
-  > {
-    try {
-      const response = await apiService.get(`/api/v1/admin/users/${userId}/rescues`);
-      return response as Array<{
-        rescue_id: string;
-        rescue_name: string;
-        role: string;
-        joined_at: string;
-      }>;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * Get user's adoption applications
-   */
-  async getUserApplications(userId: string): Promise<
-    Array<{
-      application_id: string;
-      pet_name: string;
-      rescue_name: string;
-      status: string;
-      created_at: string;
-    }>
-  > {
-    try {
-      const response = await apiService.get(`/api/v1/admin/users/${userId}/applications`);
-      return response as Array<{
-        application_id: string;
-        pet_name: string;
-        rescue_name: string;
-        status: string;
-        created_at: string;
-      }>;
     } catch (error) {
       throw error;
     }
