@@ -19,7 +19,12 @@ import type { ModerationConfig } from '../config.js';
 import { addEvidence, listModeratorActions, logModeratorAction } from './action-handlers.js';
 import { adapt } from './adapter.js';
 import { assignReport, fileReport, getReport, listReports, resolveReport } from './handlers.js';
-import { appealSanction, issueSanction, listUserSanctions } from './sanction-handlers.js';
+import {
+  acknowledgeSanction,
+  appealSanction,
+  issueSanction,
+  listUserSanctions,
+} from './sanction-handlers.js';
 import {
   assignSupportTicket,
   getSupportTicket,
@@ -57,6 +62,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     issueSanction: adapt(issueSanction, { deps, logger }),
     listUserSanctions: adapt(listUserSanctions, { deps, logger }),
     appealSanction: adapt(appealSanction, { deps, logger }),
+    acknowledgeSanction: adapt(acknowledgeSanction, { deps, logger }),
     // Support tickets (ticket-handlers.ts)
     openSupportTicket: adapt(openSupportTicket, { deps, logger }),
     getSupportTicket: adapt(getSupportTicket, { deps, logger }),
@@ -66,7 +72,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   });
 
   logger.info('gRPC ModerationService registered', {
-    methodCount: 16,
+    methodCount: 17,
     grpcPort: config.grpcPort,
   });
 

@@ -28,6 +28,7 @@ function baseSanctionRow(overrides: Partial<UserSanctionRow> = {}): UserSanction
     appealed_at: null,
     appeal_reason: null,
     appeal_status: null,
+    acknowledged_at: null,
     created_at: new Date('2026-06-01T12:00:00.000Z'),
     updated_at: new Date('2026-06-01T12:00:00.000Z'),
     ...overrides,
@@ -80,6 +81,14 @@ describe('sanctionRowToProto', () => {
     expect(proto.appealReason).toBe('I was provoked.');
     // appeal_status is forwarded raw — string, not enum.
     expect(proto.appealStatus).toBe('pending');
+  });
+
+  it('maps acknowledged_at when the user has dismissed the banner; omits it otherwise', () => {
+    expect(sanctionRowToProto(baseSanctionRow()).acknowledgedAt).toBeUndefined();
+    const acked = sanctionRowToProto(
+      baseSanctionRow({ acknowledged_at: new Date('2026-06-03T08:00:00.000Z') })
+    );
+    expect(acked.acknowledgedAt).toBe('2026-06-03T08:00:00.000Z');
   });
 
   it('omits report_id + moderator_action_id when sanction is direct (no originator)', () => {

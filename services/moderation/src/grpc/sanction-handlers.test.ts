@@ -2,13 +2,19 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   ModerationV1,
+  type AcknowledgeSanctionRequest,
   type AppealSanctionRequest,
   type IssueSanctionRequest,
   type ListUserSanctionsRequest,
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
-import { appealSanction, issueSanction, listUserSanctions } from './sanction-handlers.js';
+import {
+  acknowledgeSanction,
+  appealSanction,
+  issueSanction,
+  listUserSanctions,
+} from './sanction-handlers.js';
 
 function makePrincipal(
   overrides: Partial<{ userId: string; permissions: string[]; roles: string[] }> = {}
@@ -72,6 +78,7 @@ function sanctionRow(overrides: Record<string, unknown> = {}) {
     appealed_at: null,
     appeal_reason: null,
     appeal_status: null,
+    acknowledged_at: null,
     created_at: new Date('2026-06-01T12:00:00.000Z'),
     updated_at: new Date('2026-06-01T12:00:00.000Z'),
     ...overrides,
@@ -177,6 +184,75 @@ describe('listUserSanctions', () => {
     const all = makeDeps([{ rows: [] }]);
     await listUserSanctions(all.deps, makePrincipal(), { userId: 'usr-2', includeInactive: true });
     expect(all.query.mock.calls[0][0]).not.toContain('is_active = true');
+  });
+
+  it('excludes acknowledged sanctions when unacknowledged_only is set (the banner query)', async () => {
+    const banner = makeDeps([{ rows: [] }]);
+    await listUserSanctions(banner.deps, makePrincipal({ userId: 'usr-2', permissions: [] }), {
+      userId: 'usr-2',
+      unacknowledgedOnly: true,
+    });
+    expect(banner.query.mock.calls[0][0]).toContain('acknowledged_at IS NULL');
+
+    const all = makeDeps([{ rows: [] }]);
+    await listUserSanctions(all.deps, makePrincipal(), { userId: 'usr-2' });
+    expect(all.query.mock.calls[0][0]).not.toContain('acknowledged_at IS NULL');
+  });
+});
+
+describe('acknowledgeSanction', () => {
+  it('throws INVALID_ARGUMENT on missing sanction_id', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      acknowledgeSanction(deps, makePrincipal(), { sanctionId: '' } as AcknowledgeSanctionRequest)
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws NOT_FOUND on a missing sanction', async () => {
+    const { deps } = makeDeps([{ rows: [] }]);
+    await expect(
+      acknowledgeSanction(deps, makePrincipal({ userId: 'usr-2' }), { sanctionId: 'gone' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it("throws PERMISSION_DENIED acknowledging another user's sanction", async () => {
+    const { deps } = makeDeps([{ rows: [sanctionRow({ user_id: 'usr-2' })] }]);
+    await expect(
+      acknowledgeSanction(deps, makePrincipal({ userId: 'usr-99', permissions: [] }), {
+        sanctionId: 'sanc-1',
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('stamps acknowledged_at for the owner and returns the updated sanction', async () => {
+    const acknowledgedRow = sanctionRow({
+      user_id: 'usr-2',
+      acknowledged_at: new Date('2026-06-02T09:00:00.000Z'),
+    });
+    const { deps, query } = makeDeps([
+      { rows: [sanctionRow({ user_id: 'usr-2' })] }, // SELECT FOR UPDATE
+      { rows: [acknowledgedRow] }, // UPDATE RETURNING
+    ]);
+    const res = await acknowledgeSanction(
+      deps,
+      makePrincipal({ userId: 'usr-2', permissions: [] }),
+      {
+        sanctionId: 'sanc-1',
+      }
+    );
+    expect(res.sanction.acknowledgedAt).toBe('2026-06-02T09:00:00.000Z');
+    expect(query.mock.calls[1][0]).toContain('acknowledged_at = NOW()');
+  });
+
+  it('is idempotent — an already-acknowledged sanction is returned without a second write', async () => {
+    const { deps, query } = makeDeps([
+      { rows: [sanctionRow({ user_id: 'usr-2', acknowledged_at: new Date() })] },
+    ]);
+    await acknowledgeSanction(deps, makePrincipal({ userId: 'usr-2', permissions: [] }), {
+      sanctionId: 'sanc-1',
+    });
+    // Only the SELECT ran — no UPDATE.
+    expect(query).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -933,6 +933,12 @@ export interface UserSanction {
   appealStatus?: string | undefined;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Set when the sanctioned user dismisses the in-app banner. Unset
+   * while the banner is still showing (the active-banner query filters
+   * on this being null).
+   */
+  acknowledgedAt?: string | undefined;
 }
 
 export interface SupportTicket {
@@ -1128,6 +1134,11 @@ export interface ListUserSanctionsRequest {
    * Default false returns only active ones (the banner query).
    */
   includeInactive: boolean;
+  /**
+   * When true, excludes sanctions the user has already acknowledged —
+   * the in-app banner passes this so dismissed sanctions stay gone.
+   */
+  unacknowledgedOnly: boolean;
 }
 
 export interface ListUserSanctionsResponse {
@@ -1140,6 +1151,14 @@ export interface AppealSanctionRequest {
 }
 
 export interface AppealSanctionResponse {
+  sanction?: UserSanction | undefined;
+}
+
+export interface AcknowledgeSanctionRequest {
+  sanctionId: string;
+}
+
+export interface AcknowledgeSanctionResponse {
   sanction?: UserSanction | undefined;
 }
 
@@ -2477,6 +2496,7 @@ function createBaseUserSanction(): UserSanction {
     appealStatus: undefined,
     createdAt: '',
     updatedAt: '',
+    acknowledgedAt: undefined,
   };
 }
 
@@ -2532,6 +2552,9 @@ export const UserSanction: MessageFns<UserSanction> = {
     }
     if (message.updatedAt !== '') {
       writer.uint32(138).string(message.updatedAt);
+    }
+    if (message.acknowledgedAt !== undefined) {
+      writer.uint32(146).string(message.acknowledgedAt);
     }
     return writer;
   },
@@ -2679,6 +2702,14 @@ export const UserSanction: MessageFns<UserSanction> = {
           message.updatedAt = reader.string();
           continue;
         }
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.acknowledgedAt = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2763,6 +2794,11 @@ export const UserSanction: MessageFns<UserSanction> = {
         : isSet(object.updated_at)
           ? globalThis.String(object.updated_at)
           : '',
+      acknowledgedAt: isSet(object.acknowledgedAt)
+        ? globalThis.String(object.acknowledgedAt)
+        : isSet(object.acknowledged_at)
+          ? globalThis.String(object.acknowledged_at)
+          : undefined,
     };
   },
 
@@ -2819,6 +2855,9 @@ export const UserSanction: MessageFns<UserSanction> = {
     if (message.updatedAt !== '') {
       obj.updatedAt = message.updatedAt;
     }
+    if (message.acknowledgedAt !== undefined) {
+      obj.acknowledgedAt = message.acknowledgedAt;
+    }
     return obj;
   },
 
@@ -2844,6 +2883,7 @@ export const UserSanction: MessageFns<UserSanction> = {
     message.appealStatus = object.appealStatus ?? undefined;
     message.createdAt = object.createdAt ?? '';
     message.updatedAt = object.updatedAt ?? '';
+    message.acknowledgedAt = object.acknowledgedAt ?? undefined;
     return message;
   },
 };
@@ -5422,7 +5462,7 @@ export const IssueSanctionResponse: MessageFns<IssueSanctionResponse> = {
 };
 
 function createBaseListUserSanctionsRequest(): ListUserSanctionsRequest {
-  return { userId: '', includeInactive: false };
+  return { userId: '', includeInactive: false, unacknowledgedOnly: false };
 }
 
 export const ListUserSanctionsRequest: MessageFns<ListUserSanctionsRequest> = {
@@ -5435,6 +5475,9 @@ export const ListUserSanctionsRequest: MessageFns<ListUserSanctionsRequest> = {
     }
     if (message.includeInactive !== false) {
       writer.uint32(16).bool(message.includeInactive);
+    }
+    if (message.unacknowledgedOnly !== false) {
+      writer.uint32(24).bool(message.unacknowledgedOnly);
     }
     return writer;
   },
@@ -5462,6 +5505,14 @@ export const ListUserSanctionsRequest: MessageFns<ListUserSanctionsRequest> = {
           message.includeInactive = reader.bool();
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.unacknowledgedOnly = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -5483,6 +5534,11 @@ export const ListUserSanctionsRequest: MessageFns<ListUserSanctionsRequest> = {
         : isSet(object.include_inactive)
           ? globalThis.Boolean(object.include_inactive)
           : false,
+      unacknowledgedOnly: isSet(object.unacknowledgedOnly)
+        ? globalThis.Boolean(object.unacknowledgedOnly)
+        : isSet(object.unacknowledged_only)
+          ? globalThis.Boolean(object.unacknowledged_only)
+          : false,
     };
   },
 
@@ -5493,6 +5549,9 @@ export const ListUserSanctionsRequest: MessageFns<ListUserSanctionsRequest> = {
     }
     if (message.includeInactive !== false) {
       obj.includeInactive = message.includeInactive;
+    }
+    if (message.unacknowledgedOnly !== false) {
+      obj.unacknowledgedOnly = message.unacknowledgedOnly;
     }
     return obj;
   },
@@ -5508,6 +5567,7 @@ export const ListUserSanctionsRequest: MessageFns<ListUserSanctionsRequest> = {
     const message = createBaseListUserSanctionsRequest();
     message.userId = object.userId ?? '';
     message.includeInactive = object.includeInactive ?? false;
+    message.unacknowledgedOnly = object.unacknowledgedOnly ?? false;
     return message;
   },
 };
@@ -5726,6 +5786,147 @@ export const AppealSanctionResponse: MessageFns<AppealSanctionResponse> = {
     object: I
   ): AppealSanctionResponse {
     const message = createBaseAppealSanctionResponse();
+    message.sanction =
+      object.sanction !== undefined && object.sanction !== null
+        ? UserSanction.fromPartial(object.sanction)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseAcknowledgeSanctionRequest(): AcknowledgeSanctionRequest {
+  return { sanctionId: '' };
+}
+
+export const AcknowledgeSanctionRequest: MessageFns<AcknowledgeSanctionRequest> = {
+  encode(
+    message: AcknowledgeSanctionRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sanctionId !== '') {
+      writer.uint32(10).string(message.sanctionId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AcknowledgeSanctionRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAcknowledgeSanctionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sanctionId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AcknowledgeSanctionRequest {
+    return {
+      sanctionId: isSet(object.sanctionId)
+        ? globalThis.String(object.sanctionId)
+        : isSet(object.sanction_id)
+          ? globalThis.String(object.sanction_id)
+          : '',
+    };
+  },
+
+  toJSON(message: AcknowledgeSanctionRequest): unknown {
+    const obj: any = {};
+    if (message.sanctionId !== '') {
+      obj.sanctionId = message.sanctionId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AcknowledgeSanctionRequest>, I>>(
+    base?: I
+  ): AcknowledgeSanctionRequest {
+    return AcknowledgeSanctionRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AcknowledgeSanctionRequest>, I>>(
+    object: I
+  ): AcknowledgeSanctionRequest {
+    const message = createBaseAcknowledgeSanctionRequest();
+    message.sanctionId = object.sanctionId ?? '';
+    return message;
+  },
+};
+
+function createBaseAcknowledgeSanctionResponse(): AcknowledgeSanctionResponse {
+  return { sanction: undefined };
+}
+
+export const AcknowledgeSanctionResponse: MessageFns<AcknowledgeSanctionResponse> = {
+  encode(
+    message: AcknowledgeSanctionResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.sanction !== undefined) {
+      UserSanction.encode(message.sanction, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AcknowledgeSanctionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAcknowledgeSanctionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.sanction = UserSanction.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AcknowledgeSanctionResponse {
+    return {
+      sanction: isSet(object.sanction) ? UserSanction.fromJSON(object.sanction) : undefined,
+    };
+  },
+
+  toJSON(message: AcknowledgeSanctionResponse): unknown {
+    const obj: any = {};
+    if (message.sanction !== undefined) {
+      obj.sanction = UserSanction.toJSON(message.sanction);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AcknowledgeSanctionResponse>, I>>(
+    base?: I
+  ): AcknowledgeSanctionResponse {
+    return AcknowledgeSanctionResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AcknowledgeSanctionResponse>, I>>(
+    object: I
+  ): AcknowledgeSanctionResponse {
+    const message = createBaseAcknowledgeSanctionResponse();
     message.sanction =
       object.sanction !== undefined && object.sanction !== null
         ? UserSanction.fromPartial(object.sanction)
@@ -6994,6 +7195,25 @@ export const ModerationServiceService = {
       AppealSanctionResponse.decode(value),
   },
   /**
+   * Mark a sanction acknowledged (the sanctioned user dismisses the
+   * in-app banner). Ownership-gated like AppealSanction — a user can
+   * only acknowledge their own sanction. Idempotent: acknowledging an
+   * already-acknowledged sanction is a no-op success.
+   */
+  acknowledgeSanction: {
+    path: '/adopt_dont_shop.moderation.v1.ModerationService/AcknowledgeSanction' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AcknowledgeSanctionRequest): Buffer =>
+      Buffer.from(AcknowledgeSanctionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AcknowledgeSanctionRequest =>
+      AcknowledgeSanctionRequest.decode(value),
+    responseSerialize: (value: AcknowledgeSanctionResponse): Buffer =>
+      Buffer.from(AcknowledgeSanctionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AcknowledgeSanctionResponse =>
+      AcknowledgeSanctionResponse.decode(value),
+  },
+  /**
    * Open a new support ticket. user_id is optional — unauthenticated
    * users can open tickets too (email + name only). Publishes
    * moderation.ticketOpened.
@@ -7147,6 +7367,13 @@ export interface ModerationServiceServer extends UntypedServiceImplementation {
    * moderation.sanctionAppealed.
    */
   appealSanction: handleUnaryCall<AppealSanctionRequest, AppealSanctionResponse>;
+  /**
+   * Mark a sanction acknowledged (the sanctioned user dismisses the
+   * in-app banner). Ownership-gated like AppealSanction — a user can
+   * only acknowledge their own sanction. Idempotent: acknowledging an
+   * already-acknowledged sanction is a no-op success.
+   */
+  acknowledgeSanction: handleUnaryCall<AcknowledgeSanctionRequest, AcknowledgeSanctionResponse>;
   /**
    * Open a new support ticket. user_id is optional — unauthenticated
    * users can open tickets too (email + name only). Publishes
@@ -7394,6 +7621,27 @@ export interface ModerationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: AppealSanctionResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Mark a sanction acknowledged (the sanctioned user dismisses the
+   * in-app banner). Ownership-gated like AppealSanction — a user can
+   * only acknowledge their own sanction. Idempotent: acknowledging an
+   * already-acknowledged sanction is a no-op success.
+   */
+  acknowledgeSanction(
+    request: AcknowledgeSanctionRequest,
+    callback: (error: ServiceError | null, response: AcknowledgeSanctionResponse) => void
+  ): ClientUnaryCall;
+  acknowledgeSanction(
+    request: AcknowledgeSanctionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AcknowledgeSanctionResponse) => void
+  ): ClientUnaryCall;
+  acknowledgeSanction(
+    request: AcknowledgeSanctionRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AcknowledgeSanctionResponse) => void
   ): ClientUnaryCall;
   /**
    * Open a new support ticket. user_id is optional — unauthenticated

@@ -57,6 +57,7 @@ const makeHandlers = (
   issueSanction: unimplemented,
   listUserSanctions: unimplemented,
   appealSanction: unimplemented,
+  acknowledgeSanction: unimplemented,
   openSupportTicket: unimplemented,
   getSupportTicket: unimplemented,
   listSupportTickets: unimplemented,

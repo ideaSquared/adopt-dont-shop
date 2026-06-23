@@ -33,7 +33,7 @@
 // x-user-* metadata via the Phase 2.5 authenticate middleware.
 
 import rateLimit from '@fastify/rate-limit';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import {
   ModerationV1,
@@ -49,6 +49,7 @@ import {
   type OpenSupportTicketRequest,
   type ResolveReportRequest,
   type RespondToTicketRequest,
+  type UserSanction,
 } from '@adopt-dont-shop/proto';
 
 import type { ModerationClient } from '../grpc-clients/moderation-client.js';
@@ -341,7 +342,11 @@ export const registerModerationRoutes = async (
       const q = req.query as Record<string, string | undefined>;
       try {
         const res = await client.listUserSanctions(
-          { userId: req.params.userId, includeInactive: q.includeInactive === 'true' },
+          {
+            userId: req.params.userId,
+            includeInactive: q.includeInactive === 'true',
+            unacknowledgedOnly: false,
+          },
           buildMetadata(req)
         );
         return reply.send(ModerationV1.ListUserSanctionsResponse.toJSON(res));
@@ -369,6 +374,60 @@ export const registerModerationRoutes = async (
       try {
         const res = await client.appealSanction(grpcReq, buildMetadata(req));
         return reply.send(ModerationV1.AppealSanctionResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // ---------- Self-service sanctions (in-app banner) ----------
+  //
+  // These carry the SPA's /api/v1/auth/sanctions/* paths (app.client's
+  // SanctionBannerHost) but are backed by the moderation service — the
+  // gateway is just a router, and the moderation client lives here. Both
+  // are scoped to the CALLING user: the list passes the caller's own id
+  // (the service allows self-reads) and acknowledge gates on ownership.
+
+  app.get(
+    '/api/v1/auth/sanctions/active',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['moderation'],
+        summary: "List the caller's active, unacknowledged sanctions",
+      },
+    },
+    async (req, reply) => {
+      const userId = headerUserId(req);
+      if (userId === undefined) {
+        return reply.code(401).send({ error: 'unauthenticated' });
+      }
+      try {
+        const res = await client.listUserSanctions(
+          { userId, includeInactive: false, unacknowledgedOnly: true },
+          buildMetadata(req)
+        );
+        return reply.send({ sanctions: res.sanctions.map(sanctionToActiveSanction) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/auth/sanctions/:id/acknowledge',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['moderation'],
+        summary: "Acknowledge (dismiss the banner for) one of the caller's sanctions",
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+    },
+    async (req, reply) => {
+      try {
+        await client.acknowledgeSanction({ sanctionId: req.params.id }, buildMetadata(req));
+        return reply.code(204).send();
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -641,4 +700,69 @@ function parseTicketCategory(raw: string | undefined): ModerationV1.SupportTicke
     ModerationV1.SupportTicketCategory.UNRECOGNIZED,
     raw
   );
+}
+
+// Read the authenticated caller's id from the gateway-stamped header
+// (the same header buildMetadata forwards as the gRPC principal).
+function headerUserId(req: FastifyRequest): string | undefined {
+  const raw = (req.headers as Record<string, string | string[] | undefined>)['x-user-id'];
+  return typeof raw === 'string' && raw.length > 0 ? raw : undefined;
+}
+
+// UserSanction → the SPA's ActiveSanction banner shape. The banner keys
+// its title/variant off ModeratorActionType-style strings, so the 7
+// SanctionType values collapse onto the 4 it recognises. `reason` carries
+// the moderator's free-text description; severity is a display hint only.
+type ActiveSanctionView = {
+  id: string;
+  type: string;
+  reason: string;
+  severity: string;
+  expiresAt: string | null;
+  acknowledgedAt: string | null;
+};
+
+const SANCTION_TYPE_VIEW: Record<ModerationV1.SanctionType, { type: string; severity: string }> = {
+  [ModerationV1.SanctionType.SANCTION_TYPE_WARNING]: { type: 'warning_issued', severity: 'low' },
+  [ModerationV1.SanctionType.SANCTION_TYPE_RESTRICTION]: {
+    type: 'account_restricted',
+    severity: 'medium',
+  },
+  [ModerationV1.SanctionType.SANCTION_TYPE_MESSAGING_RESTRICTION]: {
+    type: 'account_restricted',
+    severity: 'medium',
+  },
+  [ModerationV1.SanctionType.SANCTION_TYPE_POSTING_RESTRICTION]: {
+    type: 'account_restricted',
+    severity: 'medium',
+  },
+  [ModerationV1.SanctionType.SANCTION_TYPE_APPLICATION_RESTRICTION]: {
+    type: 'account_restricted',
+    severity: 'medium',
+  },
+  [ModerationV1.SanctionType.SANCTION_TYPE_TEMPORARY_BAN]: {
+    type: 'user_suspended',
+    severity: 'high',
+  },
+  [ModerationV1.SanctionType.SANCTION_TYPE_PERMANENT_BAN]: {
+    type: 'user_banned',
+    severity: 'critical',
+  },
+  [ModerationV1.SanctionType.SANCTION_TYPE_UNSPECIFIED]: {
+    type: 'account_restricted',
+    severity: 'medium',
+  },
+  [ModerationV1.SanctionType.UNRECOGNIZED]: { type: 'account_restricted', severity: 'medium' },
+};
+
+function sanctionToActiveSanction(s: UserSanction): ActiveSanctionView {
+  const view = SANCTION_TYPE_VIEW[s.sanctionType];
+  return {
+    id: s.sanctionId,
+    type: view.type,
+    reason: s.description,
+    severity: view.severity,
+    expiresAt: s.endDate ?? null,
+    acknowledgedAt: s.acknowledgedAt ?? null,
+  };
 }
