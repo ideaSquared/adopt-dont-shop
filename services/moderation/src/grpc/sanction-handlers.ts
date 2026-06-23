@@ -15,6 +15,8 @@ import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
 import { MODERATION_SANCTIONS_MANAGE } from '@adopt-dont-shop/lib.types';
 import type {
+  AcknowledgeSanctionRequest,
+  AcknowledgeSanctionResponse,
   AppealSanctionRequest,
   AppealSanctionResponse,
   IssueSanctionRequest,
@@ -31,7 +33,7 @@ const SANCTION_SELECT = `
   sanction_id, user_id, sanction_type, reason, description, is_active,
   start_date, end_date, duration, issued_by, report_id,
   moderator_action_id, appealed_at, appeal_reason, appeal_status,
-  created_at, updated_at
+  acknowledged_at, created_at, updated_at
 `;
 
 function ensureModerationPermission(principal: Principal): void {
@@ -152,18 +154,74 @@ export async function listUserSanctions(
   }
 
   // Default: active sanctions only (the banner). include_inactive
-  // returns the full history.
+  // returns the full history. unacknowledged_only additionally drops
+  // sanctions the user has already dismissed (the in-app banner query).
   const activeFilter = req.includeInactive ? '' : 'AND is_active = true';
+  const ackFilter = req.unacknowledgedOnly ? 'AND acknowledged_at IS NULL' : '';
 
   const { rows } = await deps.pool.query<UserSanctionRow>(
     `SELECT ${SANCTION_SELECT}
      FROM user_sanctions
-     WHERE user_id = $1 ${activeFilter}
+     WHERE user_id = $1 ${activeFilter} ${ackFilter}
      ORDER BY start_date DESC`,
     [req.userId]
   );
 
   return { sanctions: rows.map(sanctionRowToProto) };
+}
+
+// --- AcknowledgeSanction ---------------------------------------------
+
+export async function acknowledgeSanction(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: AcknowledgeSanctionRequest
+): Promise<AcknowledgeSanctionResponse> {
+  // The sanctioned user dismisses their own banner — gate on ownership
+  // (super_admin may act on a user's behalf, mirroring AppealSanction).
+  if (req.sanctionId === undefined || req.sanctionId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'sanction_id is required');
+  }
+
+  return withTransaction(deps, async ({ client }) => {
+    const existing = await client.query<UserSanctionRow>(
+      `SELECT ${SANCTION_SELECT}
+       FROM user_sanctions
+       WHERE sanction_id = $1
+       FOR UPDATE`,
+      [req.sanctionId]
+    );
+
+    if (existing.rows.length === 0) {
+      throw new HandlerError('NOT_FOUND', `sanction ${req.sanctionId} not found`);
+    }
+
+    const row = existing.rows[0];
+
+    if (row.user_id !== principal.userId && !principal.roles.includes('super_admin')) {
+      throw new HandlerError('PERMISSION_DENIED', 'can only acknowledge your own sanction');
+    }
+
+    // Idempotent: acknowledging again is a no-op success — the banner
+    // calls this best-effort and shouldn't error on a double-dismiss.
+    if (row.acknowledged_at !== null) {
+      return { sanction: sanctionRowToProto(row) };
+    }
+
+    const updated = await client.query<UserSanctionRow>(
+      `UPDATE user_sanctions
+       SET acknowledged_at = NOW(), updated_at = NOW()
+       WHERE sanction_id = $1
+       RETURNING ${SANCTION_SELECT}`,
+      [req.sanctionId]
+    );
+
+    if (updated.rows.length !== 1) {
+      throw new HandlerError('INTERNAL', 'update returned no rows');
+    }
+
+    return { sanction: sanctionRowToProto(updated.rows[0]) };
+  });
 }
 
 // --- AppealSanction --------------------------------------------------

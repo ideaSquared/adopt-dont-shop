@@ -11,6 +11,8 @@ import { credentials, Metadata, type CallOptions } from '@grpc/grpc-js';
 
 import {
   ModerationV1,
+  type AcknowledgeSanctionRequest,
+  type AcknowledgeSanctionResponse,
   type AddEvidenceRequest,
   type AddEvidenceResponse,
   type AppealSanctionRequest,
@@ -70,6 +72,10 @@ export type ModerationClient = {
     metadata: Metadata
   ): Promise<ListUserSanctionsResponse>;
   appealSanction(req: AppealSanctionRequest, metadata: Metadata): Promise<AppealSanctionResponse>;
+  acknowledgeSanction(
+    req: AcknowledgeSanctionRequest,
+    metadata: Metadata
+  ): Promise<AcknowledgeSanctionResponse>;
   openSupportTicket(
     req: OpenSupportTicketRequest,
     metadata: Metadata
@@ -160,6 +166,8 @@ export const createModerationClient = (opts: CreateModerationClientOptions): Mod
     addEvidence: (req, metadata) => callUnary(stub.addEvidence, req, metadata, false),
     issueSanction: (req, metadata) => callUnary(stub.issueSanction, req, metadata, false),
     appealSanction: (req, metadata) => callUnary(stub.appealSanction, req, metadata, false),
+    acknowledgeSanction: (req, metadata) =>
+      callUnary(stub.acknowledgeSanction, req, metadata, false),
     openSupportTicket: (req, metadata) => callUnary(stub.openSupportTicket, req, metadata, false),
     respondToTicket: (req, metadata) => callUnary(stub.respondToTicket, req, metadata, false),
     assignSupportTicket: (req, metadata) =>

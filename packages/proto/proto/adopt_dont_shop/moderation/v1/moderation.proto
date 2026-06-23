@@ -82,6 +82,13 @@ service ModerationService {
   // moderation.sanctionAppealed.
   rpc AppealSanction(AppealSanctionRequest) returns (AppealSanctionResponse);
 
+  // Mark a sanction acknowledged (the sanctioned user dismisses the
+  // in-app banner). Ownership-gated like AppealSanction — a user can
+  // only acknowledge their own sanction. Idempotent: acknowledging an
+  // already-acknowledged sanction is a no-op success.
+  rpc AcknowledgeSanction(AcknowledgeSanctionRequest)
+      returns (AcknowledgeSanctionResponse);
+
   // ---------- Support tickets ----------
 
   // Open a new support ticket. user_id is optional — unauthenticated
@@ -334,6 +341,10 @@ message UserSanction {
   optional string appeal_status = 15;
   string created_at = 16;
   string updated_at = 17;
+  // Set when the sanctioned user dismisses the in-app banner. Unset
+  // while the banner is still showing (the active-banner query filters
+  // on this being null).
+  optional string acknowledged_at = 18;
 }
 
 message SupportTicket {
@@ -531,6 +542,9 @@ message ListUserSanctionsRequest {
   // When true, returns ALL sanctions (active + expired + revoked).
   // Default false returns only active ones (the banner query).
   bool include_inactive = 2;
+  // When true, excludes sanctions the user has already acknowledged —
+  // the in-app banner passes this so dismissed sanctions stay gone.
+  bool unacknowledged_only = 3;
 }
 
 message ListUserSanctionsResponse {
@@ -545,6 +559,16 @@ message AppealSanctionRequest {
 }
 
 message AppealSanctionResponse {
+  UserSanction sanction = 1;
+}
+
+// --- AcknowledgeSanction ---------------------------------------------
+
+message AcknowledgeSanctionRequest {
+  string sanction_id = 1;
+}
+
+message AcknowledgeSanctionResponse {
   UserSanction sanction = 1;
 }
 

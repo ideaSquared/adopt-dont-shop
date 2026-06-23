@@ -49,6 +49,7 @@ describe('moderation migrations', () => {
     '008_create_support_ticket_responses.ts',
     '009_add_system_autoreport_unique_index.ts',
     '010_make_reporter_id_nullable.ts',
+    '011_add_sanction_acknowledged_at.ts',
   ])('%s exports `up` and `down` functions', async filename => {
     const mod = (await import(`./${filename}`)) as {
       up: unknown;

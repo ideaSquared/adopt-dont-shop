@@ -40,6 +40,7 @@ export type UserSanctionRow = {
   // but the proto carries it as an `optional string` so the gateway
   // forwards the raw value unchanged. No enum-map dispatch here.
   appeal_status: string | null;
+  acknowledged_at: Date | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -78,6 +79,9 @@ export function sanctionRowToProto(row: UserSanctionRow): UserSanction {
   }
   if (row.appeal_status !== null) {
     sanction.appealStatus = row.appeal_status;
+  }
+  if (row.acknowledged_at !== null) {
+    sanction.acknowledgedAt = row.acknowledged_at.toISOString();
   }
 
   return sanction;

@@ -25,6 +25,7 @@ function makeClient(): {
     'issueSanction',
     'listUserSanctions',
     'appealSanction',
+    'acknowledgeSanction',
     'openSupportTicket',
     'getSupportTicket',
     'listSupportTickets',
@@ -197,6 +198,65 @@ describe('moderation sanction + ticket routes', () => {
       sanctionId: 'sanc-1',
       appealReason: 'provoked',
     });
+  });
+
+  it('GET /api/v1/auth/sanctions/active scopes to the caller + maps the banner shape', async () => {
+    mocks.listUserSanctions.mockResolvedValue({
+      sanctions: [
+        {
+          sanctionId: 'sanc-1',
+          userId: 'mod-1',
+          sanctionType: ModerationV1.SanctionType.SANCTION_TYPE_TEMPORARY_BAN,
+          reason: ModerationV1.SanctionReason.SANCTION_REASON_HARASSMENT,
+          description: 'Abusive behaviour',
+          isActive: true,
+          startDate: '2026-06-01T00:00:00.000Z',
+          endDate: '2026-06-08T00:00:00.000Z',
+          issuedBy: 'admin-1',
+          createdAt: '2026-06-01T00:00:00.000Z',
+          updatedAt: '2026-06-01T00:00:00.000Z',
+        },
+      ],
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/auth/sanctions/active',
+      headers: HEADERS,
+    });
+    expect(res.statusCode).toBe(200);
+    // Scoped to the caller, active-only, unacknowledged-only (the banner query).
+    expect(mocks.listUserSanctions.mock.calls[0][0]).toEqual({
+      userId: 'mod-1',
+      includeInactive: false,
+      unacknowledgedOnly: true,
+    });
+    expect((res.json() as { sanctions: unknown[] }).sanctions).toEqual([
+      {
+        id: 'sanc-1',
+        type: 'user_suspended',
+        reason: 'Abusive behaviour',
+        severity: 'high',
+        expiresAt: '2026-06-08T00:00:00.000Z',
+        acknowledgedAt: null,
+      },
+    ]);
+  });
+
+  it('GET /api/v1/auth/sanctions/active → 401 without an authenticated caller', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/auth/sanctions/active' });
+    expect(res.statusCode).toBe(401);
+    expect(mocks.listUserSanctions).not.toHaveBeenCalled();
+  });
+
+  it('POST /api/v1/auth/sanctions/:id/acknowledge → AcknowledgeSanction, 204', async () => {
+    mocks.acknowledgeSanction.mockResolvedValue({ sanction: { sanctionId: 'sanc-1' } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/sanctions/sanc-1/acknowledge',
+      headers: HEADERS,
+    });
+    expect(res.statusCode).toBe(204);
+    expect(mocks.acknowledgeSanction.mock.calls[0][0]).toEqual({ sanctionId: 'sanc-1' });
   });
 
   it('POST /api/v1/moderation/tickets → OpenSupportTicket, 201', async () => {

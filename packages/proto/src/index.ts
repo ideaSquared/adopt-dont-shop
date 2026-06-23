@@ -451,6 +451,8 @@ export type {
   ListUserSanctionsResponse,
   AppealSanctionRequest,
   AppealSanctionResponse,
+  AcknowledgeSanctionRequest,
+  AcknowledgeSanctionResponse,
   OpenSupportTicketRequest,
   OpenSupportTicketResponse,
   GetSupportTicketRequest,
