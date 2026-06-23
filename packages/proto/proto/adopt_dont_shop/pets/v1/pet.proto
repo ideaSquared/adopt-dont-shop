@@ -260,6 +260,9 @@ message UpdatePetRequest {
   optional string temperament_json = 16;
   optional string tags_json = 17;
   optional string extra_json = 18;
+  // Off-market archive flag (distinct from status + from soft Delete).
+  // Mutating it platform-wide requires `pets.manage:any`.
+  optional bool archived = 19;
 }
 
 message UpdatePetResponse {

@@ -463,6 +463,11 @@ export interface UpdatePetRequest {
   temperamentJson?: string | undefined;
   tagsJson?: string | undefined;
   extraJson?: string | undefined;
+  /**
+   * Off-market archive flag (distinct from status + from soft Delete).
+   * Mutating it platform-wide requires `pets.manage:any`.
+   */
+  archived?: boolean | undefined;
 }
 
 export interface UpdatePetResponse {
@@ -2312,6 +2317,7 @@ function createBaseUpdatePetRequest(): UpdatePetRequest {
     temperamentJson: undefined,
     tagsJson: undefined,
     extraJson: undefined,
+    archived: undefined,
   };
 }
 
@@ -2370,6 +2376,9 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
     }
     if (message.extraJson !== undefined) {
       writer.uint32(146).string(message.extraJson);
+    }
+    if (message.archived !== undefined) {
+      writer.uint32(152).bool(message.archived);
     }
     return writer;
   },
@@ -2525,6 +2534,14 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
           message.extraJson = reader.string();
           continue;
         }
+        case 19: {
+          if (tag !== 152) {
+            break;
+          }
+
+          message.archived = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2610,6 +2627,7 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
         : isSet(object.extra_json)
           ? globalThis.String(object.extra_json)
           : undefined,
+      archived: isSet(object.archived) ? globalThis.Boolean(object.archived) : undefined,
     };
   },
 
@@ -2669,6 +2687,9 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
     if (message.extraJson !== undefined) {
       obj.extraJson = message.extraJson;
     }
+    if (message.archived !== undefined) {
+      obj.archived = message.archived;
+    }
     return obj;
   },
 
@@ -2695,6 +2716,7 @@ export const UpdatePetRequest: MessageFns<UpdatePetRequest> = {
     message.temperamentJson = object.temperamentJson ?? undefined;
     message.tagsJson = object.tagsJson ?? undefined;
     message.extraJson = object.extraJson ?? undefined;
+    message.archived = object.archived ?? undefined;
     return message;
   },
 };

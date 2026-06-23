@@ -50,6 +50,7 @@ const PETS_RATE_LIMITS = {
   update: { max: 30, timeWindow: '1 minute' },
   updateStatus: { max: 30, timeWindow: '1 minute' },
   delete: { max: 30, timeWindow: '1 minute' },
+  bulkUpdate: { max: 10, timeWindow: '1 minute' },
 } as const;
 
 // The status route still takes a small bespoke body (the create/update
@@ -58,6 +59,18 @@ type UpdateStatusBody = {
   toStatus?: string;
   reason?: string;
 };
+
+// Admin Pets-page bulk actions. Each operation fans out to the matching
+// per-pet RPC (so each pet gets full validation + its own authz), and the
+// per-pet outcomes are collected into the SPA's BulkPetResult envelope.
+type BulkUpdateBody = {
+  petIds?: string[];
+  operation?: string;
+  data?: { status?: string };
+  reason?: string;
+};
+
+const BULK_PET_OPERATIONS = ['update_status', 'archive', 'feature', 'delete'];
 
 export const registerPetsRoutes = async (
   app: FastifyInstance,
@@ -266,6 +279,74 @@ export const registerPetsRoutes = async (
     }
   );
 
+  // POST /api/v1/pets/bulk-update — admin bulk actions. Fans out per pet to
+  // the matching RPC; per-pet failures (auth, illegal transition, …) are
+  // collected rather than failing the whole batch, mirroring the rescues
+  // bulk-update route.
+  app.post<{ Body: BulkUpdateBody }>(
+    '/api/v1/pets/bulk-update',
+    {
+      config: { rateLimit: PETS_RATE_LIMITS.bulkUpdate },
+      schema: { tags: ['pets'], summary: 'Bulk update pets (status / archive / feature / delete)' },
+    },
+    async (req, reply) => {
+      const body = req.body ?? {};
+      const petIds = body.petIds ?? [];
+      const operation = body.operation ?? '';
+      if (petIds.length === 0) {
+        return reply.code(400).send({ success: false, error: 'petIds is required' });
+      }
+      if (!BULK_PET_OPERATIONS.includes(operation)) {
+        return reply.code(400).send({
+          success: false,
+          error: `operation must be one of ${BULK_PET_OPERATIONS.join(', ')}`,
+        });
+      }
+
+      let toStatus = PetsV1.PetStatus.PET_STATUS_UNSPECIFIED;
+      if (operation === 'update_status') {
+        toStatus = parseStatus(body.data?.status);
+        if (toStatus === PetsV1.PetStatus.PET_STATUS_UNSPECIFIED) {
+          return reply
+            .code(400)
+            .send({ success: false, error: 'data.status is required for update_status' });
+        }
+      }
+
+      const metadata = buildMetadata(req);
+      const runOne = (petId: string): Promise<unknown> => {
+        switch (operation) {
+          case 'update_status':
+            return client.updateStatus({ petId, toStatus, reason: body.reason }, metadata);
+          case 'archive':
+            return client.update({ petId, archived: true }, metadata);
+          case 'feature':
+            return client.update({ petId, featured: true }, metadata);
+          default:
+            return client.delete({ petId }, metadata);
+        }
+      };
+
+      const results = await Promise.all(
+        petIds.map(petId =>
+          runOne(petId)
+            .then(() => ({ petId, ok: true as const }))
+            .catch((err: unknown) => ({ petId, ok: false as const, error: grpcMessage(err) }))
+        )
+      );
+      const errors = results
+        .filter((r): r is { petId: string; ok: false; error: string } => !r.ok)
+        .map(r => ({ petId: r.petId, error: r.error }));
+      const successCount = results.length - errors.length;
+
+      return reply.send({
+        success: true,
+        message: `Updated ${successCount} of ${petIds.length} pets`,
+        data: { successCount, failedCount: errors.length, errors },
+      });
+    }
+  );
+
   // --- Per-user favourites: /api/v1/pets/:id/favorite[/status] --------
 
   app.get<{ Params: { id: string } }>(
@@ -329,6 +410,18 @@ export const registerPetsRoutes = async (
 // `large`) AND the SCREAMING proto form (`PET_STATUS_AVAILABLE`).
 // Unknown values coerce to UNSPECIFIED so the service's own
 // INVALID_ARGUMENT guard produces a clean 400.
+
+// Best-effort human message from a rejected gRPC call, for the per-pet
+// error list in the bulk-update envelope.
+function grpcMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'details' in err && typeof err.details === 'string') {
+    return err.details;
+  }
+  if (err && typeof err === 'object' && 'message' in err && typeof err.message === 'string') {
+    return err.message;
+  }
+  return 'operation failed';
+}
 
 function parseStatus(raw: string | undefined): PetsV1.PetStatus {
   if (!raw) {
