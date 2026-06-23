@@ -30,9 +30,9 @@ beforeEach(() => {
 });
 
 describe('getApplicationDefaults', () => {
-  it('returns the defaults from the backend', async () => {
+  it('unwraps the { data } envelope the gateway returns', async () => {
     const defaults = { personalInfo: { firstName: 'Ada' } };
-    apiGet.mockResolvedValue(defaults);
+    apiGet.mockResolvedValue({ data: defaults });
 
     const result = await applicationProfileService.getApplicationDefaults();
 
@@ -48,9 +48,9 @@ describe('getApplicationDefaults', () => {
 });
 
 describe('updateApplicationDefaults', () => {
-  it('PUTs the wrapped defaults payload and returns the response', async () => {
+  it('PUTs the wrapped defaults payload and unwraps the { data } response', async () => {
     const updated = { personalInfo: { firstName: 'Grace' } };
-    apiPut.mockResolvedValue(updated);
+    apiPut.mockResolvedValue({ data: updated });
 
     const result = await applicationProfileService.updateApplicationDefaults({
       personalInfo: { firstName: 'Grace' },

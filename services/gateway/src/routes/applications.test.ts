@@ -44,6 +44,9 @@ function makeClient(): {
     'getStats',
     'getApplicationDefaults',
     'updateApplicationDefaults',
+    'getApplicationDraft',
+    'saveApplicationDraft',
+    'deleteApplicationDraft',
   ]) {
     mocks[m] = vi.fn();
   }
@@ -461,6 +464,86 @@ describe('applications routes', () => {
     expect((res.json() as { data: unknown }).data).toEqual({
       personalInfo: { firstName: 'Grace', lastName: 'Hopper' },
     });
+  });
+
+  it('GET /api/v1/applications/drafts/:petId returns the draft payload in { data }', async () => {
+    mocks.getApplicationDraft.mockResolvedValue({
+      found: true,
+      answersJson: JSON.stringify({ q1: 'a' }),
+      updatedAt: '2026-06-20T10:00:00.000Z',
+      expiresAt: '2026-07-20T10:00:00.000Z',
+    });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/applications/drafts/pet-1',
+      headers: ADOPTER,
+    });
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as { data: unknown }).data).toEqual({
+      petId: 'pet-1',
+      answers: { q1: 'a' },
+      updatedAt: '2026-06-20T10:00:00.000Z',
+      expiresAt: '2026-07-20T10:00:00.000Z',
+    });
+    expect(mocks.getApplicationDraft.mock.calls[0][0]).toEqual({ petId: 'pet-1' });
+  });
+
+  it('GET /api/v1/applications/drafts/:petId 404s when the caller has no draft', async () => {
+    mocks.getApplicationDraft.mockResolvedValue({ found: false, answersJson: '', updatedAt: '' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/applications/drafts/pet-1',
+      headers: ADOPTER,
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('PUT /api/v1/applications/drafts/:petId sends answers and returns the saved payload', async () => {
+    mocks.saveApplicationDraft.mockResolvedValue({
+      answersJson: JSON.stringify({ q1: 'a' }),
+      updatedAt: '2026-06-20T10:00:00.000Z',
+      expiresAt: undefined,
+    });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/applications/drafts/pet-1',
+      headers: ADOPTER,
+      payload: { answers: { q1: 'a' } },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.saveApplicationDraft.mock.calls[0][0]).toEqual({
+      petId: 'pet-1',
+      answersJson: JSON.stringify({ q1: 'a' }),
+    });
+    expect((res.json() as { data: { expiresAt: string | null } }).data).toEqual({
+      petId: 'pet-1',
+      answers: { q1: 'a' },
+      updatedAt: '2026-06-20T10:00:00.000Z',
+      expiresAt: null,
+    });
+  });
+
+  it('DELETE /api/v1/applications/drafts/:petId returns 204', async () => {
+    mocks.deleteApplicationDraft.mockResolvedValue({});
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/v1/applications/drafts/pet-1',
+      headers: ADOPTER,
+    });
+    expect(res.statusCode).toBe(204);
+    expect(mocks.deleteApplicationDraft.mock.calls[0][0]).toEqual({ petId: 'pet-1' });
+  });
+
+  it('does not let the drafts route shadow GET /api/v1/applications/:id', async () => {
+    mocks.get.mockResolvedValue({ application: SUBMITTED, timeline: [] });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/applications/app-1',
+      headers: ADOPTER,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(mocks.get).toHaveBeenCalled();
+    expect(mocks.getApplicationDraft).not.toHaveBeenCalled();
   });
 
   it('maps PERMISSION_DENIED on GET /api/v1/profile/application-defaults → 403', async () => {
