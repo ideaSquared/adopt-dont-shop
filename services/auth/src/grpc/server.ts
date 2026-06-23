@@ -70,6 +70,7 @@ import {
   resetPrivacyPreferences,
   updatePrivacyPreferences,
 } from './privacy-prefs-handlers.js';
+import { exportUserData, requestAccountDeletion } from './privacy-handlers.js';
 import {
   adminListSessions,
   adminRevokeAllUserSessions,
@@ -138,6 +139,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getUserPermissions: adapt(getUserPermissions, { deps, logger }),
     bulkUpdateUsers: adapt(bulkUpdateUsers, { deps, logger }),
     adminResetPassword: adapt(adminResetPassword, { deps, logger }),
+    exportUserData: adapt(exportUserData, { deps, logger }),
+    requestAccountDeletion: adapt(requestAccountDeletion, { deps, logger }),
     listUserIdsByCohort: adapt(listUserIdsByCohort, { deps, logger }),
     // Admin security management — Security Center sessions + lockout.
     adminListSessions: adapt(adminListSessions, { deps, logger }),
@@ -193,6 +196,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getUserPermissions',
       'bulkUpdateUsers',
       'adminResetPassword',
+      'exportUserData',
+      'requestAccountDeletion',
       'listUserIdsByCohort',
       'adminListSessions',
       'adminRevokeSession',

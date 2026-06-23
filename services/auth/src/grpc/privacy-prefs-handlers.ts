@@ -42,7 +42,7 @@ const PRIVACY_PREFS_UPDATE_ANY: Permission = 'auth.privacy-prefs.update:any' as 
 
 type ProfileVisibilityDb = 'public' | 'rescues_only' | 'private';
 
-type PrivacyPrefsRow = {
+export type PrivacyPrefsRow = {
   user_id: string;
   profile_visibility: ProfileVisibilityDb;
   show_last_seen: boolean;
@@ -77,7 +77,7 @@ const protoVisibilityToDb = (v: AuthV1.ProfileVisibility): ProfileVisibilityDb |
   }
 };
 
-const rowToProto = (row: PrivacyPrefsRow): PrivacyPreferencesProto => ({
+export const privacyPrefsRowToProto = (row: PrivacyPrefsRow): PrivacyPreferencesProto => ({
   userId: row.user_id,
   profileVisibility: dbVisibilityToProto(row.profile_visibility),
   showLastSeen: row.show_last_seen,
@@ -143,7 +143,7 @@ export async function getPrivacyPreferences(
   }
   const userId = resolveTargetUserId(principal, req.userId, PRIVACY_PREFS_READ_ANY);
   const row = await findOrCreatePrefs(deps, userId);
-  return { preferences: rowToProto(row) };
+  return { preferences: privacyPrefsRowToProto(row) };
 }
 
 // --- UpdatePrivacyPreferences ----------------------------------------
@@ -189,7 +189,7 @@ export async function updatePrivacyPreferences(
       `SELECT * FROM user_privacy_prefs WHERE user_id = $1`,
       [userId]
     );
-    return { preferences: rowToProto(current.rows[0]) };
+    return { preferences: privacyPrefsRowToProto(current.rows[0]) };
   }
 
   sets.push('updated_at = now()');
@@ -205,7 +205,7 @@ export async function updatePrivacyPreferences(
     `,
     params
   );
-  return { preferences: rowToProto(result.rows[0]) };
+  return { preferences: privacyPrefsRowToProto(result.rows[0]) };
 }
 
 // --- ResetPrivacyPreferences -----------------------------------------
@@ -239,5 +239,5 @@ export async function resetPrivacyPreferences(
   if (!reset) {
     throw new HandlerError('INTERNAL', 'reset returned no rows');
   }
-  return { preferences: rowToProto(reset) };
+  return { preferences: privacyPrefsRowToProto(reset) };
 }

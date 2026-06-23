@@ -204,6 +204,23 @@ service AuthService {
   // admin.users.update. Refuses resetting your own account via this path.
   rpc AdminResetPassword(AdminResetPasswordRequest) returns (AdminResetPasswordResponse);
 
+  // --- Privacy / GDPR admin tools --------------------------------------
+
+  // Export an auth-owned snapshot of a user's data (GDPR Art. 20) for the
+  // admin Privacy Tools page: profile + privacy preferences. Cross-service
+  // data (pets / applications / chats) is NOT aggregated here. Caller MUST
+  // have `admin.data.export`.
+  rpc ExportUserData(ExportUserDataRequest) returns (ExportUserDataResponse);
+
+  // Schedule a user's account for deletion (GDPR Art. 17) with a grace
+  // window: deactivates the account, stamps deletion_scheduled_at, and
+  // invalidates outstanding access tokens. The actual hard-anonymisation
+  // is a downstream job — this RPC stops at the published
+  // `auth.accountDeletionRequested` event. Caller MUST have `users.delete`.
+  // Refuses self-deletion; idempotent once scheduled.
+  rpc RequestAccountDeletion(RequestAccountDeletionRequest)
+      returns (RequestAccountDeletionResponse);
+
   // --- Admin security management ---------------------------------------
   // Security Center surface: cross-user session visibility/revocation
   // plus manual lockout control. All gated on admin.security.*.
@@ -814,6 +831,29 @@ message AdminResetPasswordResponse {
   // Plaintext temporary password. Never persisted in the clear — the
   // admin relays it to the user, who changes it on next sign-in.
   string temporary_password = 1;
+}
+
+message ExportUserDataRequest {
+  string user_id = 1;
+}
+
+message ExportUserDataResponse {
+  User user = 1;
+  // Absent when the user has no privacy-preferences row yet.
+  optional PrivacyPreferences privacy_preferences = 2;
+  // RFC 3339 timestamp the snapshot was taken.
+  string exported_at = 3;
+}
+
+message RequestAccountDeletionRequest {
+  string user_id = 1;
+  // Optional internal-audit note.
+  optional string reason = 2;
+}
+
+message RequestAccountDeletionResponse {
+  // RFC 3339 timestamp after which hard anonymisation runs.
+  string deletion_scheduled_for = 1;
 }
 
 message GetUserStatisticsRequest {}

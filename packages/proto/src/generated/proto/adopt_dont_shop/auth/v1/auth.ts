@@ -881,6 +881,29 @@ export interface AdminResetPasswordResponse {
   temporaryPassword: string;
 }
 
+export interface ExportUserDataRequest {
+  userId: string;
+}
+
+export interface ExportUserDataResponse {
+  user?: User | undefined;
+  /** Absent when the user has no privacy-preferences row yet. */
+  privacyPreferences?: PrivacyPreferences | undefined;
+  /** RFC 3339 timestamp the snapshot was taken. */
+  exportedAt: string;
+}
+
+export interface RequestAccountDeletionRequest {
+  userId: string;
+  /** Optional internal-audit note. */
+  reason?: string | undefined;
+}
+
+export interface RequestAccountDeletionResponse {
+  /** RFC 3339 timestamp after which hard anonymisation runs. */
+  deletionScheduledFor: string;
+}
+
 export interface GetUserStatisticsRequest {}
 
 export interface UserStatusCount {
@@ -7401,6 +7424,338 @@ export const AdminResetPasswordResponse: MessageFns<AdminResetPasswordResponse> 
   },
 };
 
+function createBaseExportUserDataRequest(): ExportUserDataRequest {
+  return { userId: '' };
+}
+
+export const ExportUserDataRequest: MessageFns<ExportUserDataRequest> = {
+  encode(message: ExportUserDataRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExportUserDataRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExportUserDataRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ExportUserDataRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+    };
+  },
+
+  toJSON(message: ExportUserDataRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ExportUserDataRequest>, I>>(base?: I): ExportUserDataRequest {
+    return ExportUserDataRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ExportUserDataRequest>, I>>(
+    object: I
+  ): ExportUserDataRequest {
+    const message = createBaseExportUserDataRequest();
+    message.userId = object.userId ?? '';
+    return message;
+  },
+};
+
+function createBaseExportUserDataResponse(): ExportUserDataResponse {
+  return { user: undefined, privacyPreferences: undefined, exportedAt: '' };
+}
+
+export const ExportUserDataResponse: MessageFns<ExportUserDataResponse> = {
+  encode(message: ExportUserDataResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.user !== undefined) {
+      User.encode(message.user, writer.uint32(10).fork()).join();
+    }
+    if (message.privacyPreferences !== undefined) {
+      PrivacyPreferences.encode(message.privacyPreferences, writer.uint32(18).fork()).join();
+    }
+    if (message.exportedAt !== '') {
+      writer.uint32(26).string(message.exportedAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExportUserDataResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseExportUserDataResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.user = User.decode(reader, reader.uint32());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.privacyPreferences = PrivacyPreferences.decode(reader, reader.uint32());
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.exportedAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ExportUserDataResponse {
+    return {
+      user: isSet(object.user) ? User.fromJSON(object.user) : undefined,
+      privacyPreferences: isSet(object.privacyPreferences)
+        ? PrivacyPreferences.fromJSON(object.privacyPreferences)
+        : isSet(object.privacy_preferences)
+          ? PrivacyPreferences.fromJSON(object.privacy_preferences)
+          : undefined,
+      exportedAt: isSet(object.exportedAt)
+        ? globalThis.String(object.exportedAt)
+        : isSet(object.exported_at)
+          ? globalThis.String(object.exported_at)
+          : '',
+    };
+  },
+
+  toJSON(message: ExportUserDataResponse): unknown {
+    const obj: any = {};
+    if (message.user !== undefined) {
+      obj.user = User.toJSON(message.user);
+    }
+    if (message.privacyPreferences !== undefined) {
+      obj.privacyPreferences = PrivacyPreferences.toJSON(message.privacyPreferences);
+    }
+    if (message.exportedAt !== '') {
+      obj.exportedAt = message.exportedAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ExportUserDataResponse>, I>>(
+    base?: I
+  ): ExportUserDataResponse {
+    return ExportUserDataResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ExportUserDataResponse>, I>>(
+    object: I
+  ): ExportUserDataResponse {
+    const message = createBaseExportUserDataResponse();
+    message.user =
+      object.user !== undefined && object.user !== null ? User.fromPartial(object.user) : undefined;
+    message.privacyPreferences =
+      object.privacyPreferences !== undefined && object.privacyPreferences !== null
+        ? PrivacyPreferences.fromPartial(object.privacyPreferences)
+        : undefined;
+    message.exportedAt = object.exportedAt ?? '';
+    return message;
+  },
+};
+
+function createBaseRequestAccountDeletionRequest(): RequestAccountDeletionRequest {
+  return { userId: '', reason: undefined };
+}
+
+export const RequestAccountDeletionRequest: MessageFns<RequestAccountDeletionRequest> = {
+  encode(
+    message: RequestAccountDeletionRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.reason !== undefined) {
+      writer.uint32(18).string(message.reason);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RequestAccountDeletionRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRequestAccountDeletionRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.reason = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RequestAccountDeletionRequest {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      reason: isSet(object.reason) ? globalThis.String(object.reason) : undefined,
+    };
+  },
+
+  toJSON(message: RequestAccountDeletionRequest): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.reason !== undefined) {
+      obj.reason = message.reason;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RequestAccountDeletionRequest>, I>>(
+    base?: I
+  ): RequestAccountDeletionRequest {
+    return RequestAccountDeletionRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RequestAccountDeletionRequest>, I>>(
+    object: I
+  ): RequestAccountDeletionRequest {
+    const message = createBaseRequestAccountDeletionRequest();
+    message.userId = object.userId ?? '';
+    message.reason = object.reason ?? undefined;
+    return message;
+  },
+};
+
+function createBaseRequestAccountDeletionResponse(): RequestAccountDeletionResponse {
+  return { deletionScheduledFor: '' };
+}
+
+export const RequestAccountDeletionResponse: MessageFns<RequestAccountDeletionResponse> = {
+  encode(
+    message: RequestAccountDeletionResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.deletionScheduledFor !== '') {
+      writer.uint32(10).string(message.deletionScheduledFor);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RequestAccountDeletionResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRequestAccountDeletionResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.deletionScheduledFor = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RequestAccountDeletionResponse {
+    return {
+      deletionScheduledFor: isSet(object.deletionScheduledFor)
+        ? globalThis.String(object.deletionScheduledFor)
+        : isSet(object.deletion_scheduled_for)
+          ? globalThis.String(object.deletion_scheduled_for)
+          : '',
+    };
+  },
+
+  toJSON(message: RequestAccountDeletionResponse): unknown {
+    const obj: any = {};
+    if (message.deletionScheduledFor !== '') {
+      obj.deletionScheduledFor = message.deletionScheduledFor;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RequestAccountDeletionResponse>, I>>(
+    base?: I
+  ): RequestAccountDeletionResponse {
+    return RequestAccountDeletionResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RequestAccountDeletionResponse>, I>>(
+    object: I
+  ): RequestAccountDeletionResponse {
+    const message = createBaseRequestAccountDeletionResponse();
+    message.deletionScheduledFor = object.deletionScheduledFor ?? '';
+    return message;
+  },
+};
+
 function createBaseGetUserStatisticsRequest(): GetUserStatisticsRequest {
   return {};
 }
@@ -12086,6 +12441,46 @@ export const AuthServiceService = {
       AdminResetPasswordResponse.decode(value),
   },
   /**
+   * Export an auth-owned snapshot of a user's data (GDPR Art. 20) for the
+   * admin Privacy Tools page: profile + privacy preferences. Cross-service
+   * data (pets / applications / chats) is NOT aggregated here. Caller MUST
+   * have `admin.data.export`.
+   */
+  exportUserData: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/ExportUserData' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ExportUserDataRequest): Buffer =>
+      Buffer.from(ExportUserDataRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ExportUserDataRequest =>
+      ExportUserDataRequest.decode(value),
+    responseSerialize: (value: ExportUserDataResponse): Buffer =>
+      Buffer.from(ExportUserDataResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ExportUserDataResponse =>
+      ExportUserDataResponse.decode(value),
+  },
+  /**
+   * Schedule a user's account for deletion (GDPR Art. 17) with a grace
+   * window: deactivates the account, stamps deletion_scheduled_at, and
+   * invalidates outstanding access tokens. The actual hard-anonymisation
+   * is a downstream job — this RPC stops at the published
+   * `auth.accountDeletionRequested` event. Caller MUST have `users.delete`.
+   * Refuses self-deletion; idempotent once scheduled.
+   */
+  requestAccountDeletion: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/RequestAccountDeletion' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RequestAccountDeletionRequest): Buffer =>
+      Buffer.from(RequestAccountDeletionRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RequestAccountDeletionRequest =>
+      RequestAccountDeletionRequest.decode(value),
+    responseSerialize: (value: RequestAccountDeletionResponse): Buffer =>
+      Buffer.from(RequestAccountDeletionResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RequestAccountDeletionResponse =>
+      RequestAccountDeletionResponse.decode(value),
+  },
+  /**
    * List sessions across all users (optionally filtered to one), paginated.
    * Same chain-root semantics as ListSessions. admin.security.read.
    */
@@ -12526,6 +12921,25 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
    * admin.users.update. Refuses resetting your own account via this path.
    */
   adminResetPassword: handleUnaryCall<AdminResetPasswordRequest, AdminResetPasswordResponse>;
+  /**
+   * Export an auth-owned snapshot of a user's data (GDPR Art. 20) for the
+   * admin Privacy Tools page: profile + privacy preferences. Cross-service
+   * data (pets / applications / chats) is NOT aggregated here. Caller MUST
+   * have `admin.data.export`.
+   */
+  exportUserData: handleUnaryCall<ExportUserDataRequest, ExportUserDataResponse>;
+  /**
+   * Schedule a user's account for deletion (GDPR Art. 17) with a grace
+   * window: deactivates the account, stamps deletion_scheduled_at, and
+   * invalidates outstanding access tokens. The actual hard-anonymisation
+   * is a downstream job — this RPC stops at the published
+   * `auth.accountDeletionRequested` event. Caller MUST have `users.delete`.
+   * Refuses self-deletion; idempotent once scheduled.
+   */
+  requestAccountDeletion: handleUnaryCall<
+    RequestAccountDeletionRequest,
+    RequestAccountDeletionResponse
+  >;
   /**
    * List sessions across all users (optionally filtered to one), paginated.
    * Same chain-root semantics as ListSessions. admin.security.read.
@@ -13255,6 +13669,50 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: AdminResetPasswordResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Export an auth-owned snapshot of a user's data (GDPR Art. 20) for the
+   * admin Privacy Tools page: profile + privacy preferences. Cross-service
+   * data (pets / applications / chats) is NOT aggregated here. Caller MUST
+   * have `admin.data.export`.
+   */
+  exportUserData(
+    request: ExportUserDataRequest,
+    callback: (error: ServiceError | null, response: ExportUserDataResponse) => void
+  ): ClientUnaryCall;
+  exportUserData(
+    request: ExportUserDataRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ExportUserDataResponse) => void
+  ): ClientUnaryCall;
+  exportUserData(
+    request: ExportUserDataRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ExportUserDataResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Schedule a user's account for deletion (GDPR Art. 17) with a grace
+   * window: deactivates the account, stamps deletion_scheduled_at, and
+   * invalidates outstanding access tokens. The actual hard-anonymisation
+   * is a downstream job — this RPC stops at the published
+   * `auth.accountDeletionRequested` event. Caller MUST have `users.delete`.
+   * Refuses self-deletion; idempotent once scheduled.
+   */
+  requestAccountDeletion(
+    request: RequestAccountDeletionRequest,
+    callback: (error: ServiceError | null, response: RequestAccountDeletionResponse) => void
+  ): ClientUnaryCall;
+  requestAccountDeletion(
+    request: RequestAccountDeletionRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RequestAccountDeletionResponse) => void
+  ): ClientUnaryCall;
+  requestAccountDeletion(
+    request: RequestAccountDeletionRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RequestAccountDeletionResponse) => void
   ): ClientUnaryCall;
   /**
    * List sessions across all users (optionally filtered to one), paginated.
