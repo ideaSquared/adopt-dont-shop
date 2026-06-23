@@ -21,6 +21,11 @@ import {
   getApplicationDefaults,
   updateApplicationDefaults,
 } from './application-defaults-handlers.js';
+import {
+  deleteApplicationDraft,
+  getApplicationDraft,
+  saveApplicationDraft,
+} from './application-draft-handlers.js';
 import { makeStartDraft, saveDraftAnswers, submitDraft } from './handlers.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
 import { addDocument, listDocuments, removeDocument } from './document-handlers.js';
@@ -81,6 +86,10 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     // Application defaults (application-defaults-handlers.ts)
     getApplicationDefaults: adapt(getApplicationDefaults, { deps, logger }),
     updateApplicationDefaults: adapt(updateApplicationDefaults, { deps, logger }),
+    // Application drafts — autosave scratchpad (application-draft-handlers.ts)
+    getApplicationDraft: adapt(getApplicationDraft, { deps, logger }),
+    saveApplicationDraft: adapt(saveApplicationDraft, { deps, logger }),
+    deleteApplicationDraft: adapt(deleteApplicationDraft, { deps, logger }),
   });
 
   logger.info('gRPC ApplicationService registered', {
@@ -103,6 +112,9 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'removeDocument',
       'getApplicationDefaults',
       'updateApplicationDefaults',
+      'getApplicationDraft',
+      'saveApplicationDraft',
+      'deleteApplicationDraft',
     ],
     grpcPort: config.grpcPort,
   });

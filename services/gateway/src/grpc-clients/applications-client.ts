@@ -17,8 +17,12 @@ import {
   type ApproveResponse,
   type CompleteHomeVisitRequest,
   type CompleteHomeVisitResponse,
+  type DeleteApplicationDraftRequest,
+  type DeleteApplicationDraftResponse,
   type GetApplicationDefaultsRequest,
   type GetApplicationDefaultsResponse,
+  type GetApplicationDraftRequest,
+  type GetApplicationDraftResponse,
   type GetApplicationRequest,
   type GetApplicationResponse,
   type GetStatsRequest,
@@ -33,6 +37,8 @@ import {
   type RejectResponse,
   type RemoveDocumentRequest,
   type RemoveDocumentResponse,
+  type SaveApplicationDraftRequest,
+  type SaveApplicationDraftResponse,
   type SaveDraftAnswersRequest,
   type SaveDraftAnswersResponse,
   type ScheduleHomeVisitRequest,
@@ -87,6 +93,18 @@ export type ApplicationsClient = {
     req: UpdateApplicationDefaultsRequest,
     metadata: Metadata
   ): Promise<UpdateApplicationDefaultsResponse>;
+  getApplicationDraft(
+    req: GetApplicationDraftRequest,
+    metadata: Metadata
+  ): Promise<GetApplicationDraftResponse>;
+  saveApplicationDraft(
+    req: SaveApplicationDraftRequest,
+    metadata: Metadata
+  ): Promise<SaveApplicationDraftResponse>;
+  deleteApplicationDraft(
+    req: DeleteApplicationDraftRequest,
+    metadata: Metadata
+  ): Promise<DeleteApplicationDraftResponse>;
   close(): void;
 };
 
@@ -169,13 +187,21 @@ export const createApplicationsClient = (
     removeDocument: (req, metadata) => callUnary(stub.removeDocument, req, metadata, false),
     updateApplicationDefaults: (req, metadata) =>
       callUnary(stub.updateApplicationDefaults, req, metadata, false),
-    // ── Idempotent (reads) ───────────────────────────────────────────
+    saveApplicationDraft: (req, metadata) =>
+      callUnary(stub.saveApplicationDraft, req, metadata, false),
+    // ── Idempotent (reads + idempotent deletes) ──────────────────────
     get: (req, metadata) => callUnary(stub.get, req, metadata, true),
     list: (req, metadata) => callUnary(stub.list, req, metadata, true),
     getStats: (req, metadata) => callUnary(stub.getStats, req, metadata, true),
     listDocuments: (req, metadata) => callUnary(stub.listDocuments, req, metadata, true),
     getApplicationDefaults: (req, metadata) =>
       callUnary(stub.getApplicationDefaults, req, metadata, true),
+    getApplicationDraft: (req, metadata) =>
+      callUnary(stub.getApplicationDraft, req, metadata, true),
+    // DeleteApplicationDraft is idempotent (deleting a missing draft is a
+    // no-op success), so it's safe to retry.
+    deleteApplicationDraft: (req, metadata) =>
+      callUnary(stub.deleteApplicationDraft, req, metadata, true),
     close: () => stub.close(),
   };
 };

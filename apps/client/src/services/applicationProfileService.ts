@@ -19,10 +19,10 @@ export class ApplicationProfileService {
    */
   async getApplicationDefaults(): Promise<ApplicationDefaults | null> {
     try {
-      const response = (await api.get(
-        `${this.baseUrl}/application-defaults`
-      )) as ApplicationDefaults;
-      return response || null;
+      const response = (await api.get(`${this.baseUrl}/application-defaults`)) as {
+        data: ApplicationDefaults;
+      };
+      return response.data || null;
     } catch (error) {
       console.error('Failed to get application defaults:', error);
       return null;
@@ -37,8 +37,8 @@ export class ApplicationProfileService {
   ): Promise<ApplicationDefaults> {
     const response = (await api.put(`${this.baseUrl}/application-defaults`, {
       applicationDefaults,
-    })) as ApplicationDefaults;
-    return response;
+    })) as { data: ApplicationDefaults };
+    return response.data;
   }
 
   /**

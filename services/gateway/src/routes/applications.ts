@@ -577,6 +577,85 @@ export const registerApplicationsRoutes = async (
     }
   );
 
+  // ---------- Application drafts (autosave scratchpad) ----------
+  //
+  // Backend-synced draft for a (caller, pet) pair — the autosave the SPA
+  // writes while the adopter fills out the form (useApplicationDraft.ts).
+  // Scoped to the caller via x-user-id metadata; distinct from the
+  // event-sourced draft Application above. `drafts/:petId` is two static-
+  // then-param segments, so it never collides with the one-segment
+  // `/api/v1/applications/:id` route.
+
+  app.get<{ Params: { petId: string } }>(
+    '/api/v1/applications/drafts/:petId',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['applications'],
+        summary: "Get the caller's saved draft for a pet",
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.getApplicationDraft(
+          { petId: req.params.petId },
+          buildMetadata(req)
+        );
+        // No draft yet is the common case — 404 is the SPA's "start fresh"
+        // signal (useApplicationDraft treats it as non-error).
+        if (!res.found) {
+          return reply.code(404).send({ error: 'draft not found' });
+        }
+        return reply.send({ data: draftToView(req.params.petId, res) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.put<{ Params: { petId: string } }>(
+    '/api/v1/applications/drafts/:petId',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: "Upsert the caller's draft for a pet (last-write-wins)",
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const answers = b.answers ?? {};
+      try {
+        const res = await client.saveApplicationDraft(
+          { petId: req.params.petId, answersJson: JSON.stringify(answers) },
+          buildMetadata(req)
+        );
+        return reply.send({ data: draftToView(req.params.petId, res) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.delete<{ Params: { petId: string } }>(
+    '/api/v1/applications/drafts/:petId',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['applications'],
+        summary: "Delete the caller's draft for a pet",
+      },
+    },
+    async (req, reply) => {
+      try {
+        await client.deleteApplicationDraft({ petId: req.params.petId }, buildMetadata(req));
+        return reply.code(204).send();
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
   // ---------- Adopter application defaults ----------
   //
   // Reusable personal-info / living-situation / pet-experience / references
@@ -628,6 +707,21 @@ export const registerApplicationsRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
+
+// Shape a draft gRPC response into the SPA's ApplicationDraftPayload.
+// Both Get and Save responses carry these fields; expires_at is optional
+// on the wire and surfaces as null when unset.
+function draftToView(
+  petId: string,
+  res: { answersJson: string; updatedAt: string; expiresAt?: string }
+): { petId: string; answers: unknown; updatedAt: string; expiresAt: string | null } {
+  return {
+    petId,
+    answers: res.answersJson === '' ? {} : JSON.parse(res.answersJson),
+    updatedAt: res.updatedAt,
+    expiresAt: res.expiresAt ?? null,
+  };
+}
 
 function headerUserId(req: FastifyRequest): string | undefined {
   const raw = (req.headers as Record<string, string | string[] | undefined>)['x-user-id'];

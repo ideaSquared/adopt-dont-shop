@@ -343,6 +343,12 @@ export type {
   GetApplicationDefaultsResponse,
   UpdateApplicationDefaultsRequest,
   UpdateApplicationDefaultsResponse,
+  GetApplicationDraftRequest,
+  GetApplicationDraftResponse,
+  SaveApplicationDraftRequest,
+  SaveApplicationDraftResponse,
+  DeleteApplicationDraftRequest,
+  DeleteApplicationDraftResponse,
   ApplicationServiceServer,
   ApplicationServiceClient,
 } from './generated/proto/adopt_dont_shop/applications/v1/application.js';

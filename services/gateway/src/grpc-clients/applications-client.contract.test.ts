@@ -64,6 +64,9 @@ const makeHandlers = (
   removeDocument: unimplemented,
   getApplicationDefaults: unimplemented,
   updateApplicationDefaults: unimplemented,
+  getApplicationDraft: unimplemented,
+  saveApplicationDraft: unimplemented,
+  deleteApplicationDraft: unimplemented,
   ...overrides,
 });
 

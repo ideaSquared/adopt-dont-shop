@@ -119,6 +119,24 @@ service ApplicationService {
   // the patch are left untouched.
   rpc UpdateApplicationDefaults(UpdateApplicationDefaultsRequest)
       returns (UpdateApplicationDefaultsResponse);
+
+  // Backend-synced application DRAFT for a (caller, pet) pair — the
+  // autosave scratchpad the SPA writes while the adopter fills out the
+  // form, distinct from the event-sourced draft Application above. Always
+  // scoped to the calling principal's own user_id. `found` is false when
+  // the adopter has no draft for that pet (the SPA starts fresh).
+  rpc GetApplicationDraft(GetApplicationDraftRequest)
+      returns (GetApplicationDraftResponse);
+
+  // Upsert the (caller, pet) draft — last-write-wins, stamping a fresh
+  // 30-day TTL on every write.
+  rpc SaveApplicationDraft(SaveApplicationDraftRequest)
+      returns (SaveApplicationDraftResponse);
+
+  // Delete the (caller, pet) draft. Idempotent — deleting a draft that
+  // isn't there succeeds (the SPA calls this best-effort on submit).
+  rpc DeleteApplicationDraft(DeleteApplicationDraftRequest)
+      returns (DeleteApplicationDraftResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -433,3 +451,39 @@ message UpdateApplicationDefaultsResponse {
   // JSON-stringified ApplicationDefaults after the merge.
   string defaults_json = 1;
 }
+
+// --- Application drafts (autosave scratchpad) ------------------------
+
+message GetApplicationDraftRequest {
+  string pet_id = 1;
+}
+
+message GetApplicationDraftResponse {
+  // False when the caller has no draft for this pet. The other fields
+  // are unset / empty in that case.
+  bool found = 1;
+  // JSON-stringified answers map. Empty string == `{}`.
+  string answers_json = 2;
+  string updated_at = 3;
+  // TTL — when the daily purge will reap the row. Unset when the row
+  // carries no expiry.
+  optional string expires_at = 4;
+}
+
+message SaveApplicationDraftRequest {
+  string pet_id = 1;
+  // JSON-stringified answers map. Stored verbatim (last-write-wins).
+  string answers_json = 2;
+}
+
+message SaveApplicationDraftResponse {
+  string answers_json = 1;
+  string updated_at = 2;
+  optional string expires_at = 3;
+}
+
+message DeleteApplicationDraftRequest {
+  string pet_id = 1;
+}
+
+message DeleteApplicationDraftResponse {}

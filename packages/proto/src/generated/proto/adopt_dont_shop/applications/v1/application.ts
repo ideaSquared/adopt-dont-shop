@@ -438,6 +438,44 @@ export interface UpdateApplicationDefaultsResponse {
   defaultsJson: string;
 }
 
+export interface GetApplicationDraftRequest {
+  petId: string;
+}
+
+export interface GetApplicationDraftResponse {
+  /**
+   * False when the caller has no draft for this pet. The other fields
+   * are unset / empty in that case.
+   */
+  found: boolean;
+  /** JSON-stringified answers map. Empty string == `{}`. */
+  answersJson: string;
+  updatedAt: string;
+  /**
+   * TTL — when the daily purge will reap the row. Unset when the row
+   * carries no expiry.
+   */
+  expiresAt?: string | undefined;
+}
+
+export interface SaveApplicationDraftRequest {
+  petId: string;
+  /** JSON-stringified answers map. Stored verbatim (last-write-wins). */
+  answersJson: string;
+}
+
+export interface SaveApplicationDraftResponse {
+  answersJson: string;
+  updatedAt: string;
+  expiresAt?: string | undefined;
+}
+
+export interface DeleteApplicationDraftRequest {
+  petId: string;
+}
+
+export interface DeleteApplicationDraftResponse {}
+
 function createBaseApplication(): Application {
   return {
     applicationId: '',
@@ -4315,6 +4353,527 @@ export const UpdateApplicationDefaultsResponse: MessageFns<UpdateApplicationDefa
   },
 };
 
+function createBaseGetApplicationDraftRequest(): GetApplicationDraftRequest {
+  return { petId: '' };
+}
+
+export const GetApplicationDraftRequest: MessageFns<GetApplicationDraftRequest> = {
+  encode(
+    message: GetApplicationDraftRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.petId !== '') {
+      writer.uint32(10).string(message.petId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetApplicationDraftRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetApplicationDraftRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetApplicationDraftRequest {
+    return {
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+          ? globalThis.String(object.pet_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetApplicationDraftRequest): unknown {
+    const obj: any = {};
+    if (message.petId !== '') {
+      obj.petId = message.petId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetApplicationDraftRequest>, I>>(
+    base?: I
+  ): GetApplicationDraftRequest {
+    return GetApplicationDraftRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetApplicationDraftRequest>, I>>(
+    object: I
+  ): GetApplicationDraftRequest {
+    const message = createBaseGetApplicationDraftRequest();
+    message.petId = object.petId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetApplicationDraftResponse(): GetApplicationDraftResponse {
+  return { found: false, answersJson: '', updatedAt: '', expiresAt: undefined };
+}
+
+export const GetApplicationDraftResponse: MessageFns<GetApplicationDraftResponse> = {
+  encode(
+    message: GetApplicationDraftResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.found !== false) {
+      writer.uint32(8).bool(message.found);
+    }
+    if (message.answersJson !== '') {
+      writer.uint32(18).string(message.answersJson);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(26).string(message.updatedAt);
+    }
+    if (message.expiresAt !== undefined) {
+      writer.uint32(34).string(message.expiresAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetApplicationDraftResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetApplicationDraftResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.found = reader.bool();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.answersJson = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.expiresAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetApplicationDraftResponse {
+    return {
+      found: isSet(object.found) ? globalThis.Boolean(object.found) : false,
+      answersJson: isSet(object.answersJson)
+        ? globalThis.String(object.answersJson)
+        : isSet(object.answers_json)
+          ? globalThis.String(object.answers_json)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+      expiresAt: isSet(object.expiresAt)
+        ? globalThis.String(object.expiresAt)
+        : isSet(object.expires_at)
+          ? globalThis.String(object.expires_at)
+          : undefined,
+    };
+  },
+
+  toJSON(message: GetApplicationDraftResponse): unknown {
+    const obj: any = {};
+    if (message.found !== false) {
+      obj.found = message.found;
+    }
+    if (message.answersJson !== '') {
+      obj.answersJson = message.answersJson;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    if (message.expiresAt !== undefined) {
+      obj.expiresAt = message.expiresAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetApplicationDraftResponse>, I>>(
+    base?: I
+  ): GetApplicationDraftResponse {
+    return GetApplicationDraftResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetApplicationDraftResponse>, I>>(
+    object: I
+  ): GetApplicationDraftResponse {
+    const message = createBaseGetApplicationDraftResponse();
+    message.found = object.found ?? false;
+    message.answersJson = object.answersJson ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    message.expiresAt = object.expiresAt ?? undefined;
+    return message;
+  },
+};
+
+function createBaseSaveApplicationDraftRequest(): SaveApplicationDraftRequest {
+  return { petId: '', answersJson: '' };
+}
+
+export const SaveApplicationDraftRequest: MessageFns<SaveApplicationDraftRequest> = {
+  encode(
+    message: SaveApplicationDraftRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.petId !== '') {
+      writer.uint32(10).string(message.petId);
+    }
+    if (message.answersJson !== '') {
+      writer.uint32(18).string(message.answersJson);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SaveApplicationDraftRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSaveApplicationDraftRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.answersJson = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SaveApplicationDraftRequest {
+    return {
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+          ? globalThis.String(object.pet_id)
+          : '',
+      answersJson: isSet(object.answersJson)
+        ? globalThis.String(object.answersJson)
+        : isSet(object.answers_json)
+          ? globalThis.String(object.answers_json)
+          : '',
+    };
+  },
+
+  toJSON(message: SaveApplicationDraftRequest): unknown {
+    const obj: any = {};
+    if (message.petId !== '') {
+      obj.petId = message.petId;
+    }
+    if (message.answersJson !== '') {
+      obj.answersJson = message.answersJson;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SaveApplicationDraftRequest>, I>>(
+    base?: I
+  ): SaveApplicationDraftRequest {
+    return SaveApplicationDraftRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SaveApplicationDraftRequest>, I>>(
+    object: I
+  ): SaveApplicationDraftRequest {
+    const message = createBaseSaveApplicationDraftRequest();
+    message.petId = object.petId ?? '';
+    message.answersJson = object.answersJson ?? '';
+    return message;
+  },
+};
+
+function createBaseSaveApplicationDraftResponse(): SaveApplicationDraftResponse {
+  return { answersJson: '', updatedAt: '', expiresAt: undefined };
+}
+
+export const SaveApplicationDraftResponse: MessageFns<SaveApplicationDraftResponse> = {
+  encode(
+    message: SaveApplicationDraftResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.answersJson !== '') {
+      writer.uint32(10).string(message.answersJson);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(18).string(message.updatedAt);
+    }
+    if (message.expiresAt !== undefined) {
+      writer.uint32(26).string(message.expiresAt);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): SaveApplicationDraftResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseSaveApplicationDraftResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.answersJson = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.expiresAt = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): SaveApplicationDraftResponse {
+    return {
+      answersJson: isSet(object.answersJson)
+        ? globalThis.String(object.answersJson)
+        : isSet(object.answers_json)
+          ? globalThis.String(object.answers_json)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+      expiresAt: isSet(object.expiresAt)
+        ? globalThis.String(object.expiresAt)
+        : isSet(object.expires_at)
+          ? globalThis.String(object.expires_at)
+          : undefined,
+    };
+  },
+
+  toJSON(message: SaveApplicationDraftResponse): unknown {
+    const obj: any = {};
+    if (message.answersJson !== '') {
+      obj.answersJson = message.answersJson;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    if (message.expiresAt !== undefined) {
+      obj.expiresAt = message.expiresAt;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<SaveApplicationDraftResponse>, I>>(
+    base?: I
+  ): SaveApplicationDraftResponse {
+    return SaveApplicationDraftResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<SaveApplicationDraftResponse>, I>>(
+    object: I
+  ): SaveApplicationDraftResponse {
+    const message = createBaseSaveApplicationDraftResponse();
+    message.answersJson = object.answersJson ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    message.expiresAt = object.expiresAt ?? undefined;
+    return message;
+  },
+};
+
+function createBaseDeleteApplicationDraftRequest(): DeleteApplicationDraftRequest {
+  return { petId: '' };
+}
+
+export const DeleteApplicationDraftRequest: MessageFns<DeleteApplicationDraftRequest> = {
+  encode(
+    message: DeleteApplicationDraftRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.petId !== '') {
+      writer.uint32(10).string(message.petId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteApplicationDraftRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteApplicationDraftRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.petId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteApplicationDraftRequest {
+    return {
+      petId: isSet(object.petId)
+        ? globalThis.String(object.petId)
+        : isSet(object.pet_id)
+          ? globalThis.String(object.pet_id)
+          : '',
+    };
+  },
+
+  toJSON(message: DeleteApplicationDraftRequest): unknown {
+    const obj: any = {};
+    if (message.petId !== '') {
+      obj.petId = message.petId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteApplicationDraftRequest>, I>>(
+    base?: I
+  ): DeleteApplicationDraftRequest {
+    return DeleteApplicationDraftRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteApplicationDraftRequest>, I>>(
+    object: I
+  ): DeleteApplicationDraftRequest {
+    const message = createBaseDeleteApplicationDraftRequest();
+    message.petId = object.petId ?? '';
+    return message;
+  },
+};
+
+function createBaseDeleteApplicationDraftResponse(): DeleteApplicationDraftResponse {
+  return {};
+}
+
+export const DeleteApplicationDraftResponse: MessageFns<DeleteApplicationDraftResponse> = {
+  encode(
+    _: DeleteApplicationDraftResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteApplicationDraftResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteApplicationDraftResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): DeleteApplicationDraftResponse {
+    return {};
+  },
+
+  toJSON(_: DeleteApplicationDraftResponse): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteApplicationDraftResponse>, I>>(
+    base?: I
+  ): DeleteApplicationDraftResponse {
+    return DeleteApplicationDraftResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteApplicationDraftResponse>, I>>(
+    _: I
+  ): DeleteApplicationDraftResponse {
+    const message = createBaseDeleteApplicationDraftResponse();
+    return message;
+  },
+};
+
 /**
  * ApplicationService is the gRPC contract for the applications
  * vertical — the EVENT-SOURCED extraction. Owns the `applications.*`
@@ -4649,6 +5208,60 @@ export const ApplicationServiceService = {
     responseDeserialize: (value: Buffer): UpdateApplicationDefaultsResponse =>
       UpdateApplicationDefaultsResponse.decode(value),
   },
+  /**
+   * Backend-synced application DRAFT for a (caller, pet) pair — the
+   * autosave scratchpad the SPA writes while the adopter fills out the
+   * form, distinct from the event-sourced draft Application above. Always
+   * scoped to the calling principal's own user_id. `found` is false when
+   * the adopter has no draft for that pet (the SPA starts fresh).
+   */
+  getApplicationDraft: {
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/GetApplicationDraft' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetApplicationDraftRequest): Buffer =>
+      Buffer.from(GetApplicationDraftRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetApplicationDraftRequest =>
+      GetApplicationDraftRequest.decode(value),
+    responseSerialize: (value: GetApplicationDraftResponse): Buffer =>
+      Buffer.from(GetApplicationDraftResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetApplicationDraftResponse =>
+      GetApplicationDraftResponse.decode(value),
+  },
+  /**
+   * Upsert the (caller, pet) draft — last-write-wins, stamping a fresh
+   * 30-day TTL on every write.
+   */
+  saveApplicationDraft: {
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/SaveApplicationDraft' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: SaveApplicationDraftRequest): Buffer =>
+      Buffer.from(SaveApplicationDraftRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): SaveApplicationDraftRequest =>
+      SaveApplicationDraftRequest.decode(value),
+    responseSerialize: (value: SaveApplicationDraftResponse): Buffer =>
+      Buffer.from(SaveApplicationDraftResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): SaveApplicationDraftResponse =>
+      SaveApplicationDraftResponse.decode(value),
+  },
+  /**
+   * Delete the (caller, pet) draft. Idempotent — deleting a draft that
+   * isn't there succeeds (the SPA calls this best-effort on submit).
+   */
+  deleteApplicationDraft: {
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/DeleteApplicationDraft' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteApplicationDraftRequest): Buffer =>
+      Buffer.from(DeleteApplicationDraftRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteApplicationDraftRequest =>
+      DeleteApplicationDraftRequest.decode(value),
+    responseSerialize: (value: DeleteApplicationDraftResponse): Buffer =>
+      Buffer.from(DeleteApplicationDraftResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteApplicationDraftResponse =>
+      DeleteApplicationDraftResponse.decode(value),
+  },
 } as const;
 
 export interface ApplicationServiceServer extends UntypedServiceImplementation {
@@ -4770,6 +5383,27 @@ export interface ApplicationServiceServer extends UntypedServiceImplementation {
   updateApplicationDefaults: handleUnaryCall<
     UpdateApplicationDefaultsRequest,
     UpdateApplicationDefaultsResponse
+  >;
+  /**
+   * Backend-synced application DRAFT for a (caller, pet) pair — the
+   * autosave scratchpad the SPA writes while the adopter fills out the
+   * form, distinct from the event-sourced draft Application above. Always
+   * scoped to the calling principal's own user_id. `found` is false when
+   * the adopter has no draft for that pet (the SPA starts fresh).
+   */
+  getApplicationDraft: handleUnaryCall<GetApplicationDraftRequest, GetApplicationDraftResponse>;
+  /**
+   * Upsert the (caller, pet) draft — last-write-wins, stamping a fresh
+   * 30-day TTL on every write.
+   */
+  saveApplicationDraft: handleUnaryCall<SaveApplicationDraftRequest, SaveApplicationDraftResponse>;
+  /**
+   * Delete the (caller, pet) draft. Idempotent — deleting a draft that
+   * isn't there succeeds (the SPA calls this best-effort on submit).
+   */
+  deleteApplicationDraft: handleUnaryCall<
+    DeleteApplicationDraftRequest,
+    DeleteApplicationDraftResponse
   >;
 }
 
@@ -5138,6 +5772,66 @@ export interface ApplicationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: UpdateApplicationDefaultsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Backend-synced application DRAFT for a (caller, pet) pair — the
+   * autosave scratchpad the SPA writes while the adopter fills out the
+   * form, distinct from the event-sourced draft Application above. Always
+   * scoped to the calling principal's own user_id. `found` is false when
+   * the adopter has no draft for that pet (the SPA starts fresh).
+   */
+  getApplicationDraft(
+    request: GetApplicationDraftRequest,
+    callback: (error: ServiceError | null, response: GetApplicationDraftResponse) => void
+  ): ClientUnaryCall;
+  getApplicationDraft(
+    request: GetApplicationDraftRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetApplicationDraftResponse) => void
+  ): ClientUnaryCall;
+  getApplicationDraft(
+    request: GetApplicationDraftRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetApplicationDraftResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Upsert the (caller, pet) draft — last-write-wins, stamping a fresh
+   * 30-day TTL on every write.
+   */
+  saveApplicationDraft(
+    request: SaveApplicationDraftRequest,
+    callback: (error: ServiceError | null, response: SaveApplicationDraftResponse) => void
+  ): ClientUnaryCall;
+  saveApplicationDraft(
+    request: SaveApplicationDraftRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: SaveApplicationDraftResponse) => void
+  ): ClientUnaryCall;
+  saveApplicationDraft(
+    request: SaveApplicationDraftRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: SaveApplicationDraftResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Delete the (caller, pet) draft. Idempotent — deleting a draft that
+   * isn't there succeeds (the SPA calls this best-effort on submit).
+   */
+  deleteApplicationDraft(
+    request: DeleteApplicationDraftRequest,
+    callback: (error: ServiceError | null, response: DeleteApplicationDraftResponse) => void
+  ): ClientUnaryCall;
+  deleteApplicationDraft(
+    request: DeleteApplicationDraftRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteApplicationDraftResponse) => void
+  ): ClientUnaryCall;
+  deleteApplicationDraft(
+    request: DeleteApplicationDraftRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteApplicationDraftResponse) => void
   ): ClientUnaryCall;
 }
 
