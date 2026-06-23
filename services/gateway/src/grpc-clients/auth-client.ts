@@ -21,8 +21,12 @@ import {
   type DisableTwoFactorResponse,
   type EnableTwoFactorRequest,
   type EnableTwoFactorResponse,
+  type ExportUserDataRequest,
+  type ExportUserDataResponse,
   type ForgotPasswordRequest,
   type ForgotPasswordResponse,
+  type RequestAccountDeletionRequest,
+  type RequestAccountDeletionResponse,
   type SetupTwoFactorRequest,
   type SetupTwoFactorResponse,
   type GetMeRequest,
@@ -202,6 +206,11 @@ export type AuthClient = {
     req: AdminResetPasswordRequest,
     metadata: Metadata
   ): Promise<AdminResetPasswordResponse>;
+  exportUserData(req: ExportUserDataRequest, metadata: Metadata): Promise<ExportUserDataResponse>;
+  requestAccountDeletion(
+    req: RequestAccountDeletionRequest,
+    metadata: Metadata
+  ): Promise<RequestAccountDeletionResponse>;
   getUserStatistics(
     req: GetUserStatisticsRequest,
     metadata: Metadata
@@ -340,6 +349,8 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     reactivateUser: (req, metadata) => callUnary(stub.reactivateUser, req, metadata, false),
     bulkUpdateUsers: (req, metadata) => callUnary(stub.bulkUpdateUsers, req, metadata, false),
     adminResetPassword: (req, metadata) => callUnary(stub.adminResetPassword, req, metadata, false),
+    requestAccountDeletion: (req, metadata) =>
+      callUnary(stub.requestAccountDeletion, req, metadata, false),
     upsertFieldPermission: (req, metadata) =>
       callUnary(stub.upsertFieldPermission, req, metadata, false),
     bulkUpsertFieldPermissions: (req, metadata) =>
@@ -356,6 +367,7 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
       callUnary(stub.getPrivacyPreferences, req, metadata, true),
     searchUsers: (req, metadata) => callUnary(stub.searchUsers, req, metadata, true),
     adminGetUser: (req, metadata) => callUnary(stub.adminGetUser, req, metadata, true),
+    exportUserData: (req, metadata) => callUnary(stub.exportUserData, req, metadata, true),
     getUserStatistics: (req, metadata) => callUnary(stub.getUserStatistics, req, metadata, true),
     getUserPermissions: (req, metadata) => callUnary(stub.getUserPermissions, req, metadata, true),
     getFieldPermissionDefaults: (req, metadata) =>
