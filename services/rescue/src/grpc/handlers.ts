@@ -589,7 +589,13 @@ export async function inviteStaff(
   if (!req.email) {
     throw new HandlerError('INVALID_ARGUMENT', 'email is required');
   }
-  if (!requirePermission(principal, STAFF_CREATE, { rescueId: req.rescueId as RescueId })) {
+  // Rescue-portal staff with `staff.create` scoped to this rescue, OR a
+  // platform admin with `admin.security.manage` (the admin StaffTab acts
+  // cross-rescue — see GetRescueStatistics for the same admin gate).
+  if (
+    !requirePermission(principal, STAFF_CREATE, { rescueId: req.rescueId as RescueId }) &&
+    !hasPermission(principal, ADMIN_SECURITY_MANAGE)
+  ) {
     throw new HandlerError('PERMISSION_DENIED', `'${STAFF_CREATE}' required for this rescue`);
   }
 

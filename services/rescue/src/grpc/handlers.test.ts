@@ -432,6 +432,16 @@ describe('inviteStaff', () => {
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
+  it('platform admin (admin.security.manage) can invite to any rescue', async () => {
+    // Gets past the rescue-scoped staff.create gate via the admin override,
+    // then NOT_FOUND only because we stub the rescue lookup empty — proving
+    // the permission check itself passed for a non-member admin.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await expect(
+      inviteStaff(mocks.deps, ADMIN, { rescueId: 'rsc-other', email: 'new@p.example' } as never)
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
   it('persists the invitation and returns the plain-text token once', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow()] });
     const order: string[] = [];

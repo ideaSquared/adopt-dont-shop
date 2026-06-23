@@ -15,6 +15,8 @@ import {
   RescueV1,
   type AcceptInvitationRequest,
   type AcceptInvitationResponse,
+  type CancelRescueInvitationRequest,
+  type CancelRescueInvitationResponse,
   type CountRescuesRequest,
   type CountRescuesResponse,
   type CreateApplicationQuestionRequest,
@@ -41,10 +43,14 @@ import {
   type ListApplicationQuestionsResponse,
   type ListFosterPlacementsRequest,
   type ListFosterPlacementsResponse,
+  type ListRescueInvitationsRequest,
+  type ListRescueInvitationsResponse,
   type ListRescuesRequest,
   type ListRescuesResponse,
   type ListStaffMembersRequest,
   type ListStaffMembersResponse,
+  type RemoveStaffMemberRequest,
+  type RemoveStaffMemberResponse,
   type UpdateRescueRequest,
   type UpdateRescueResponse,
   type UpdateRescuePlanRequest,
@@ -89,6 +95,18 @@ export type RescueClient = {
     req: ListStaffMembersRequest,
     metadata: Metadata
   ): Promise<ListStaffMembersResponse>;
+  removeStaffMember(
+    req: RemoveStaffMemberRequest,
+    metadata: Metadata
+  ): Promise<RemoveStaffMemberResponse>;
+  listRescueInvitations(
+    req: ListRescueInvitationsRequest,
+    metadata: Metadata
+  ): Promise<ListRescueInvitationsResponse>;
+  cancelRescueInvitation(
+    req: CancelRescueInvitationRequest,
+    metadata: Metadata
+  ): Promise<CancelRescueInvitationResponse>;
   createFosterPlacement(
     req: CreateFosterPlacementRequest,
     metadata: Metadata
@@ -194,6 +212,9 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     sendRescueEmail: (req, metadata) => callUnary(stub.sendRescueEmail, req, metadata, false),
     verify: (req, metadata) => callUnary(stub.verify, req, metadata, false),
     inviteStaff: (req, metadata) => callUnary(stub.inviteStaff, req, metadata, false),
+    removeStaffMember: (req, metadata) => callUnary(stub.removeStaffMember, req, metadata, false),
+    cancelRescueInvitation: (req, metadata) =>
+      callUnary(stub.cancelRescueInvitation, req, metadata, false),
     createFosterPlacement: (req, metadata) =>
       callUnary(stub.createFosterPlacement, req, metadata, false),
     endFosterPlacement: (req, metadata) => callUnary(stub.endFosterPlacement, req, metadata, false),
@@ -211,6 +232,8 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     getMyStaffMembership: (req, metadata) =>
       callUnary(stub.getMyStaffMembership, req, metadata, true),
     listStaffMembers: (req, metadata) => callUnary(stub.listStaffMembers, req, metadata, true),
+    listRescueInvitations: (req, metadata) =>
+      callUnary(stub.listRescueInvitations, req, metadata, true),
     listFosterPlacements: (req, metadata) =>
       callUnary(stub.listFosterPlacements, req, metadata, true),
     getFosterPlacement: (req, metadata) => callUnary(stub.getFosterPlacement, req, metadata, true),

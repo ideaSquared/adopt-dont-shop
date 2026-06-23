@@ -10,12 +10,14 @@ import type { HandlerDeps } from './handlers.js';
 import type { PetsClient } from './pets-client.js';
 import {
   acceptInvitation,
+  cancelRescueInvitation,
   createStaffMember,
   endFosterPlacement,
   getFosterPlacement,
   getInvitationByToken,
   getMyStaffMembership,
   listFosterPlacements,
+  listRescueInvitations,
   listStaffMembers,
   makeCreateFosterPlacement,
   removeStaffMember,
@@ -59,6 +61,14 @@ const SUPER_ADMIN: Principal = {
   permissions: [],
 };
 
+// Platform admin (admin console) — no rescue-scoped staff.* perms, only the
+// cross-rescue admin gate the admin StaffTab routes go through.
+const ADMIN: Principal = {
+  userId: 'usr-platform-admin' as UserId,
+  roles: ['admin'],
+  permissions: ['admin.security.manage' as Permission],
+};
+
 function makeClientQuery() {
   const script: Array<{ rows: unknown[] }> = [];
   const fn = vi.fn().mockImplementation(async (sql: string) => {
@@ -98,6 +108,19 @@ const staffRow = (overrides: Record<string, unknown> = {}) => ({
   added_at: new Date('2026-06-01T00:00:00Z'),
   created_at: new Date('2026-06-01T00:00:00Z'),
   updated_at: new Date('2026-06-01T00:00:00Z'),
+  ...overrides,
+});
+
+const invitationRow = (overrides: Record<string, unknown> = {}) => ({
+  invitation_id: 'inv-1',
+  email: 'invitee@example.com',
+  rescue_id: RESCUE_ID,
+  user_id: null,
+  title: 'Volunteer',
+  invited_by: 'usr-admin',
+  expiration: new Date('2026-12-01T00:00:00Z'),
+  used: false,
+  created_at: new Date('2026-06-01T00:00:00Z'),
   ...overrides,
 });
 
@@ -183,6 +206,16 @@ describe('listStaffMembers', () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [staffRow()] });
     const res = await listStaffMembers(mocks.deps, superWithRead, { rescueId: 'rsc-any' });
     expect(res.staffMembers).toHaveLength(1);
+  });
+
+  it('platform admin (admin.security.manage) lists any rescue without membership', async () => {
+    // No membership lookup runs — the admin path goes straight to the list
+    // query (asserted by the single query call on the resolved rescue id).
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [staffRow()] });
+    const res = await listStaffMembers(mocks.deps, ADMIN, { rescueId: 'rsc-any' });
+    expect(res.staffMembers).toHaveLength(1);
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+    expect(mocks.poolMock.query.mock.calls[0][1]).toEqual(['rsc-any']);
   });
 });
 
@@ -322,6 +355,102 @@ describe('removeStaffMember', () => {
 
     expect(res.removed).toBe(true);
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.staffMemberRemoved');
+  });
+
+  it('platform admin (admin.security.manage) can remove without staff.delete', async () => {
+    mocks.clientScript([staffRow()]); // existing
+    mocks.clientScript([]); // UPDATE ... SET deleted_at
+
+    const res = await removeStaffMember(mocks.deps, ADMIN, baseReq);
+
+    expect(res.removed).toBe(true);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.staffMemberRemoved');
+  });
+});
+
+// --- ListRescueInvitations (admin) ----------------------------------
+
+describe('listRescueInvitations', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('rejects a missing rescue_id', async () => {
+    await expect(listRescueInvitations(mocks.deps, ADMIN, { rescueId: '' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('rejects callers without admin.security.manage', async () => {
+    await expect(
+      listRescueInvitations(mocks.deps, STAFF_MANAGER, { rescueId: RESCUE_ID })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('returns the rescue’s pending invitations (token never selected)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [invitationRow(), invitationRow({ invitation_id: 'inv-2', email: 'two@example.com' })],
+    });
+
+    const res = await listRescueInvitations(mocks.deps, ADMIN, { rescueId: RESCUE_ID });
+
+    expect(res.invitations).toHaveLength(2);
+    expect(res.invitations[0]?.invitationId).toBe('inv-1');
+    const [sql, params] = mocks.poolMock.query.mock.calls[0];
+    expect(String(sql)).toContain('used = false');
+    expect(String(sql)).not.toContain('token');
+    expect(params).toEqual([RESCUE_ID]);
+  });
+});
+
+// --- CancelRescueInvitation (admin) ---------------------------------
+
+describe('cancelRescueInvitation', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  const baseReq = { rescueId: RESCUE_ID, invitationId: 'inv-1' };
+
+  it('rejects a missing rescue_id', async () => {
+    await expect(
+      cancelRescueInvitation(mocks.deps, ADMIN, { ...baseReq, rescueId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a missing invitation_id', async () => {
+    await expect(
+      cancelRescueInvitation(mocks.deps, ADMIN, { ...baseReq, invitationId: '' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects callers without admin.security.manage', async () => {
+    await expect(cancelRescueInvitation(mocks.deps, STAFF_MANAGER, baseReq)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('returns NOT_FOUND when no pending invitation matches the rescue', async () => {
+    mocks.clientScript([]); // DELETE ... RETURNING → nothing
+    await expect(cancelRescueInvitation(mocks.deps, ADMIN, baseReq)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('hard-deletes the pending invitation + publishes rescue.staffInvitationCancelled', async () => {
+    mocks.clientScript([{ invitation_id: 'inv-1', email: 'invitee@example.com' }]); // DELETE RETURNING
+
+    const res = await cancelRescueInvitation(mocks.deps, ADMIN, baseReq);
+
+    expect(res.cancelled).toBe(true);
+    const [sql, params] = mocks.clientMock.query.mock.calls.find(
+      ([s]: [string]) => typeof s === 'string' && s.includes('DELETE FROM rescue.invitations')
+    );
+    expect(String(sql)).toContain('used = false');
+    expect(params).toEqual(['inv-1', RESCUE_ID]);
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('rescue.staffInvitationCancelled');
   });
 });
 

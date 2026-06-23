@@ -20,6 +20,8 @@ import {
   RescueV1,
   type AcceptInvitationRequest,
   type AcceptInvitationResponse,
+  type CancelRescueInvitationRequest,
+  type CancelRescueInvitationResponse,
   type CreateFosterPlacementRequest,
   type CreateFosterPlacementResponse,
   type CreateStaffMemberRequest,
@@ -35,6 +37,8 @@ import {
   type GetMyStaffMembershipResponse,
   type ListFosterPlacementsRequest,
   type ListFosterPlacementsResponse,
+  type ListRescueInvitationsRequest,
+  type ListRescueInvitationsResponse,
   type ListStaffMembersRequest,
   type ListStaffMembersResponse,
   type RemoveStaffMemberRequest,
@@ -58,6 +62,10 @@ const STAFF_READ: Permission = 'staff.read' as Permission;
 const STAFF_CREATE: Permission = 'staff.create' as Permission;
 const STAFF_UPDATE: Permission = 'staff.update' as Permission;
 const STAFF_DELETE: Permission = 'staff.delete' as Permission;
+// Platform-admin gate for the admin StaffTab (cross-rescue). Held only by
+// admin / super_admin — NOT rescue_staff (which has staff.* + rescues.read
+// scoped to its own rescue), so it can't be used to leak across rescues.
+const ADMIN_SECURITY_MANAGE: Permission = 'admin.security.manage' as Permission;
 const FOSTER_CREATE: Permission = 'foster.create' as Permission;
 const FOSTER_READ: Permission = 'foster.read' as Permission;
 const FOSTER_UPDATE: Permission = 'foster.update' as Permission;
@@ -210,13 +218,18 @@ export async function listStaffMembers(
   principal: Principal,
   req: ListStaffMembersRequest
 ): Promise<ListStaffMembersResponse> {
-  if (!hasPermission(principal, STAFF_READ)) {
+  // Rescue-portal staff with `staff.read` (the "colleagues" view), OR a
+  // platform admin with `admin.security.manage` (the admin StaffTab,
+  // cross-rescue). Admins are treated like super_admin below: they pass an
+  // explicit rescue_id and skip the own-rescue membership check.
+  const isAdmin = hasPermission(principal, ADMIN_SECURITY_MANAGE);
+  if (!hasPermission(principal, STAFF_READ) && !isAdmin) {
     throw new HandlerError('PERMISSION_DENIED', `'${STAFF_READ}' required`);
   }
 
   // Resolve the target rescue: explicit rescue_id, or the caller's own
-  // rescue (the "colleagues" case). super_admin can list any rescue's
-  // staff by passing rescue_id.
+  // rescue (the "colleagues" case). super_admin / platform admins can list
+  // any rescue's staff by passing rescue_id.
   let rescueId = req.rescueId;
   if (!rescueId) {
     const mine = await deps.pool.query<{ rescue_id: string }>(
@@ -229,7 +242,7 @@ export async function listStaffMembers(
       throw new HandlerError('NOT_FOUND', 'you are not associated with any rescue organisation');
     }
     rescueId = mine.rows[0].rescue_id;
-  } else if (!principal.roles.includes('super_admin')) {
+  } else if (!principal.roles.includes('super_admin') && !isAdmin) {
     // Explicit rescue_id — must be a member of that rescue.
     const member = await deps.pool.query<{ staff_member_id: string }>(
       `SELECT staff_member_id FROM rescue.staff_members
@@ -401,7 +414,12 @@ export async function removeStaffMember(
   if (!req.userId) {
     throw new HandlerError('INVALID_ARGUMENT', 'user_id is required');
   }
-  if (!requirePermission(principal, STAFF_DELETE, { rescueId: req.rescueId as RescueId })) {
+  // Rescue-portal staff with `staff.delete` scoped to this rescue, OR a
+  // platform admin acting cross-rescue from the admin StaffTab.
+  if (
+    !requirePermission(principal, STAFF_DELETE, { rescueId: req.rescueId as RescueId }) &&
+    !hasPermission(principal, ADMIN_SECURITY_MANAGE)
+  ) {
     throw new HandlerError('PERMISSION_DENIED', `'${STAFF_DELETE}' required for this rescue`);
   }
 
@@ -439,6 +457,86 @@ export async function removeStaffMember(
   });
 
   return { removed: true };
+}
+
+// --- ListRescueInvitations (admin) -----------------------------------
+
+// List a rescue's PENDING invitations for the admin StaffTab. Admin-only
+// (admin.security.manage) — the rescue-portal `staff.read` is rescue-
+// scoped and shared with rescue_staff, so it can't gate a cross-rescue
+// admin read. The token column is never selected (only minted once).
+export async function listRescueInvitations(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: ListRescueInvitationsRequest
+): Promise<ListRescueInvitationsResponse> {
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
+  }
+
+  const res = await deps.pool.query<InvitationRow>(
+    `SELECT invitation_id, email, rescue_id, user_id, title, invited_by,
+            expiration, used, created_at
+     FROM rescue.invitations
+     WHERE rescue_id = $1 AND used = false
+     ORDER BY created_at DESC`,
+    [req.rescueId]
+  );
+  return { invitations: res.rows.map(invitationRowToProto) };
+}
+
+// --- CancelRescueInvitation (admin) ----------------------------------
+
+// Hard-delete a single pending invitation. Admin-only. NOT_FOUND when the
+// invitation is unknown, already accepted (used = true), or belongs to a
+// different rescue — the rescue_id is part of the match so an admin can't
+// cancel another rescue's invitation by id alone.
+export async function cancelRescueInvitation(
+  deps: StaffMutationDeps,
+  principal: Principal,
+  req: CancelRescueInvitationRequest
+): Promise<CancelRescueInvitationResponse> {
+  if (!req.rescueId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'rescue_id is required');
+  }
+  if (!req.invitationId) {
+    throw new HandlerError('INVALID_ARGUMENT', 'invitation_id is required');
+  }
+  if (!hasPermission(principal, ADMIN_SECURITY_MANAGE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${ADMIN_SECURITY_MANAGE}' required`);
+  }
+
+  await withTransaction(deps, async ({ client, publish }) => {
+    const deleted = await client.query<{ invitation_id: string; email: string }>(
+      `DELETE FROM rescue.invitations
+       WHERE invitation_id = $1 AND rescue_id = $2 AND used = false
+       RETURNING invitation_id, email`,
+      [req.invitationId, req.rescueId]
+    );
+    const row = deleted.rows[0];
+    if (!row) {
+      throw new HandlerError(
+        'NOT_FOUND',
+        `pending invitation ${req.invitationId} not found for rescue ${req.rescueId}`
+      );
+    }
+
+    publish({
+      type: 'rescue.staffInvitationCancelled',
+      id: `rescue.staffInvitationCancelled.${row.invitation_id}`,
+      payload: {
+        invitationId: row.invitation_id,
+        rescueId: req.rescueId,
+        email: row.email,
+        cancelledBy: principal.userId,
+      },
+    });
+  });
+
+  return { cancelled: true };
 }
 
 // --- CreateFosterPlacement -------------------------------------------
