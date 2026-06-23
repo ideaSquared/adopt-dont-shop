@@ -9,7 +9,7 @@
     "prepare": "husky || true",
     "dev": "turbo run dev --parallel",
     "dev:apps": "turbo run dev --filter='@adopt-dont-shop/app.*' --parallel",
-    "dev:services": "docker compose up -d database redis",
+    "dev:services": "node scripts/write-redis-secret.mjs && docker compose up -d database redis",
     "docker:dev": "node scripts/docker-dev.mjs",
     "docker:dev:detach": "node scripts/docker-dev.mjs --detach",
     "docker:dev:build": "node scripts/docker-dev.mjs --build",

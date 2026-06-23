@@ -32,6 +32,7 @@ import { fileURLToPath } from 'url';
 import { createInterface } from 'readline';
 import { platform } from 'os';
 import { createHash } from 'crypto';
+import { writeRedisPasswordSecret } from './write-redis-secret.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -324,6 +325,9 @@ function up() {
   log('');
   checkDocker();
   checkEnv();
+  step('Writing secrets/redis_password from .env');
+  writeRedisPasswordSecret();
+  ok('secrets/redis_password written');
   checkRedisPort();
   const rebuild = needsImageRebuild();
   if (BUILD) {
