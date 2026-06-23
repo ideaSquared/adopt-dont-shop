@@ -195,6 +195,9 @@ const PETS_CREATE: Permission = 'pets.create' as Permission;
 const PETS_READ: Permission = 'pets.read' as Permission;
 const PETS_UPDATE: Permission = 'pets.update' as Permission;
 const PETS_DELETE: Permission = 'pets.delete' as Permission;
+// Platform-wide pet mutation (admin bulk surface) — bypasses the rescue
+// scope on update / status / delete, mirroring `pets.read:any` on reads.
+const PETS_MANAGE_ANY: Permission = 'pets.manage:any' as Permission;
 
 // Statuses a pet can hold that a public / adopter browse must NOT surface.
 // Terminal or off-market states — archived pets are hidden separately.
@@ -486,6 +489,9 @@ export async function updatePet(
   if (req.featured !== undefined) {
     set('featured', req.featured);
   }
+  if (req.archived !== undefined) {
+    set('archived', req.archived);
+  }
   if (req.priorityListing !== undefined) {
     set('priority_listing', req.priorityListing);
   }
@@ -708,6 +714,12 @@ function isPermittedRescueMutation(
   permission: Permission,
   row: PetRow
 ): boolean {
+  // Platform admins (pets.manage:any) mutate pets across every rescue —
+  // the write-side counterpart of pets.read:any. super_admin still bypasses
+  // everything below.
+  if (hasPermission(principal, PETS_MANAGE_ANY)) {
+    return true;
+  }
   if (!row.rescue_id) {
     return principal.roles.includes('super_admin');
   }

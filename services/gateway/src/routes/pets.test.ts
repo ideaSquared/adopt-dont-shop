@@ -566,3 +566,133 @@ describe('favourite routes', () => {
     }
   });
 });
+
+describe('POST /api/v1/pets/bulk-update', () => {
+  const ADMIN_HEADERS = {
+    'x-user-id': 'admin-1',
+    'x-user-roles': 'admin',
+    'x-user-permissions': 'pets.manage:any',
+  };
+
+  it('rejects an empty petIds with 400 (no RPC calls)', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/bulk-update',
+        headers: ADMIN_HEADERS,
+        payload: { petIds: [], operation: 'archive' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.updateMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects an unknown operation with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/bulk-update',
+        headers: ADMIN_HEADERS,
+        payload: { petIds: ['pet-1'], operation: 'frobnicate' },
+      });
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('archive fans out to Update(archived:true) per pet and returns the result envelope', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.updateMock.mockResolvedValue({ pet: PET_FIXTURE });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/bulk-update',
+        headers: ADMIN_HEADERS,
+        payload: { petIds: ['pet-1', 'pet-2'], operation: 'archive', reason: 'off-market' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(m.updateMock).toHaveBeenCalledTimes(2);
+      expect(m.updateMock.mock.calls[0][0]).toMatchObject({ petId: 'pet-1', archived: true });
+      expect(res.json()).toMatchObject({
+        success: true,
+        data: { successCount: 2, failedCount: 0, errors: [] },
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('update_status maps data.status to the proto enum via UpdateStatus', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.updateStatusMock.mockResolvedValue({ pet: PET_FIXTURE });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/bulk-update',
+        headers: ADMIN_HEADERS,
+        payload: {
+          petIds: ['pet-1'],
+          operation: 'update_status',
+          data: { status: 'not_available' },
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(m.updateStatusMock.mock.calls[0][0]).toMatchObject({
+        petId: 'pet-1',
+        toStatus: PetsV1.PetStatus.PET_STATUS_NOT_AVAILABLE,
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('update_status without data.status is a 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/bulk-update',
+        headers: ADMIN_HEADERS,
+        payload: { petIds: ['pet-1'], operation: 'update_status' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.updateStatusMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('collects per-pet failures instead of failing the whole batch', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.deleteMock
+        .mockResolvedValueOnce({ deleted: true })
+        .mockRejectedValueOnce({ code: grpcStatus.PERMISSION_DENIED, details: 'not your rescue' });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/pets/bulk-update',
+        headers: ADMIN_HEADERS,
+        payload: { petIds: ['pet-1', 'pet-2'], operation: 'delete' },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().data).toMatchObject({
+        successCount: 1,
+        failedCount: 1,
+        errors: [{ petId: 'pet-2', error: 'not your rescue' }],
+      });
+    } finally {
+      await app.close();
+    }
+  });
+});

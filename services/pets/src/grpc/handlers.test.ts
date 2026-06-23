@@ -61,6 +61,14 @@ const SUPER_ADMIN: Principal = {
   permissions: [],
 };
 
+// Platform admin (admin console) — not rescue-bound, but holds the
+// cross-rescue write grant the bulk Pets surface goes through.
+const PLATFORM_ADMIN: Principal = {
+  userId: 'usr-platform-admin' as UserId,
+  roles: ['admin'],
+  permissions: ['pets.manage:any' as Permission],
+};
+
 function petRow(overrides: Record<string, unknown> = {}) {
   return {
     pet_id: 'pet-1',
@@ -425,6 +433,27 @@ describe('updatePet', () => {
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
 
+  it('lets a platform admin (pets.manage:any) update a pet at any rescue + write archived', async () => {
+    // Pet belongs to RESCUE_ID; the admin is bound to no rescue but holds
+    // pets.manage:any, so the rescue-scope check is bypassed.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    let updateSql = '';
+    mocks.clientMock.query.mockImplementation(async (sql: string) => {
+      if (sql.trim().startsWith('UPDATE')) {
+        updateSql = sql;
+      }
+      return { rows: [petRow({ archived: true })] };
+    });
+
+    const res = await updatePet(mocks.deps, PLATFORM_ADMIN, {
+      petId: 'pet-1',
+      archived: true,
+    } as never);
+
+    expect(res.pet.archived).toBe(true);
+    expect(updateSql).toMatch(/archived = \$1/);
+  });
+
   it('writes only the supplied fields + publishes pets.updated after commit', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
     const order: string[] = [];
@@ -611,6 +640,13 @@ describe('deletePet', () => {
     await expect(deletePet(mocks.deps, OTHER_STAFF, { petId: 'pet-1' })).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
+  });
+
+  it('lets a platform admin (pets.manage:any) delete a pet at any rescue', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [petRow()] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    const res = await deletePet(mocks.deps, PLATFORM_ADMIN, { petId: 'pet-1' });
+    expect(res.deleted).toBe(true);
   });
 
   it('PERMISSION_DENIED for a no-rescue (orphan) pet unless super_admin', async () => {
