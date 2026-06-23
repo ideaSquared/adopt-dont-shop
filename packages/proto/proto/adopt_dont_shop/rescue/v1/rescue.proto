@@ -172,6 +172,21 @@ service RescueService {
   // notifications worker to deliver (subscriber wiring is out of scope
   // for this RPC — it stops at the published event).
   rpc SendRescueEmail(SendRescueEmailRequest) returns (SendRescueEmailResponse);
+
+  // List a rescue's PENDING staff invitations (used = false) for the
+  // admin StaffTab. Admin-only — caller MUST have `admin.security.manage`
+  // (distinct from the rescue-portal `staff.read`, which is rescue-scoped
+  // and would leak across rescues). The plain-text token is NEVER
+  // returned here — only at InviteStaff mint time.
+  rpc ListRescueInvitations(ListRescueInvitationsRequest)
+      returns (ListRescueInvitationsResponse);
+
+  // Cancel (hard-delete) a single PENDING invitation. Admin-only — caller
+  // MUST have `admin.security.manage`. NOT_FOUND when the invitation is
+  // unknown, already accepted, or belongs to a different rescue. Publishes
+  // `rescue.staffInvitationCancelled` after commit.
+  rpc CancelRescueInvitation(CancelRescueInvitationRequest)
+      returns (CancelRescueInvitationResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -551,6 +566,28 @@ message AcceptInvitationRequest {
 message AcceptInvitationResponse {
   // The staff membership the invitee now holds at the rescue.
   StaffMember staff_member = 1;
+}
+
+// --- ListRescueInvitations (admin) ------------------------------------
+
+message ListRescueInvitationsRequest {
+  string rescue_id = 1;
+}
+
+message ListRescueInvitationsResponse {
+  // Pending (used = false) invitations for the rescue. Token omitted.
+  repeated Invitation invitations = 1;
+}
+
+// --- CancelRescueInvitation (admin) -----------------------------------
+
+message CancelRescueInvitationRequest {
+  string rescue_id = 1;
+  string invitation_id = 2;
+}
+
+message CancelRescueInvitationResponse {
+  bool cancelled = 1;
 }
 
 // --- Application questions --------------------------------------------

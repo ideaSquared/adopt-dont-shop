@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RescueV1, type Rescue } from '@adopt-dont-shop/proto';
 
+import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
 import { registerRescueAdminRoutes } from './rescue-admin.js';
@@ -14,6 +15,11 @@ type Mocks = {
   getStats: ReturnType<typeof vi.fn>;
   sendEmail: ReturnType<typeof vi.fn>;
   verify: ReturnType<typeof vi.fn>;
+  listStaffMembers: ReturnType<typeof vi.fn>;
+  removeStaffMember: ReturnType<typeof vi.fn>;
+  listRescueInvitations: ReturnType<typeof vi.fn>;
+  inviteStaff: ReturnType<typeof vi.fn>;
+  cancelRescueInvitation: ReturnType<typeof vi.fn>;
 };
 
 function makeClient(): Mocks {
@@ -21,6 +27,11 @@ function makeClient(): Mocks {
   const getStats = vi.fn();
   const sendEmail = vi.fn();
   const verify = vi.fn();
+  const listStaffMembers = vi.fn();
+  const removeStaffMember = vi.fn();
+  const listRescueInvitations = vi.fn();
+  const inviteStaff = vi.fn();
+  const cancelRescueInvitation = vi.fn();
   // Only the methods these routes touch need to be real; the rest are
   // present to satisfy the RescueClient shape.
   const client = {
@@ -32,9 +43,12 @@ function makeClient(): Mocks {
     getRescueStatistics: getStats,
     sendRescueEmail: sendEmail,
     verify,
-    inviteStaff: vi.fn(),
+    inviteStaff,
     getMyStaffMembership: vi.fn(),
-    listStaffMembers: vi.fn(),
+    listStaffMembers,
+    removeStaffMember,
+    listRescueInvitations,
+    cancelRescueInvitation,
     createFosterPlacement: vi.fn(),
     listFosterPlacements: vi.fn(),
     getFosterPlacement: vi.fn(),
@@ -46,12 +60,23 @@ function makeClient(): Mocks {
     deleteApplicationQuestion: vi.fn(),
     close: vi.fn(),
   } satisfies RescueClient;
-  return { client, updatePlan, getStats, sendEmail, verify };
+  return {
+    client,
+    updatePlan,
+    getStats,
+    sendEmail,
+    verify,
+    listStaffMembers,
+    removeStaffMember,
+    listRescueInvitations,
+    inviteStaff,
+    cancelRescueInvitation,
+  };
 }
 
-async function makeApp(client: RescueClient): Promise<FastifyInstance> {
+async function makeApp(client: RescueClient, authClient?: AuthClient): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
-  await registerRescueAdminRoutes(app, { client });
+  await registerRescueAdminRoutes(app, { client, authClient });
   return app;
 }
 
@@ -390,5 +415,298 @@ describe('POST /api/v1/rescues/:rescueId/{verify,reject}', () => {
 
     expect(res.statusCode).toBe(400);
     expect(m.verify).not.toHaveBeenCalled();
+  });
+});
+
+// --- StaffTab: staff + invitations ----------------------------------
+
+const staffMember = (overrides: Partial<RescueV1.StaffMember> = {}): RescueV1.StaffMember => ({
+  staffMemberId: 'stf-1',
+  userId: 'usr-1',
+  rescueId: 'rsc-1',
+  title: 'Volunteer',
+  isVerified: true,
+  addedBy: 'usr-admin',
+  addedAt: '2026-06-01T00:00:00.000Z',
+  createdAt: '2026-06-01T00:00:00.000Z',
+  updatedAt: '2026-06-01T00:00:00.000Z',
+  ...overrides,
+});
+
+const invitation = (overrides: Partial<RescueV1.Invitation> = {}): RescueV1.Invitation => ({
+  invitationId: 'inv-1',
+  email: 'invitee@example.com',
+  rescueId: 'rsc-1',
+  title: 'Volunteer',
+  invitedBy: 'usr-admin',
+  expiration: '2099-01-01T00:00:00.000Z',
+  used: false,
+  createdAt: '2026-06-01T00:00:00.000Z',
+  ...overrides,
+});
+
+// Minimal AuthClient — only adminGetUser is exercised by the staff route.
+// The `as unknown as AuthClient` cast avoids stubbing the ~50 other methods.
+function makeAuthClient(getUser: ReturnType<typeof vi.fn>): AuthClient {
+  return { adminGetUser: getUser } as unknown as AuthClient;
+}
+
+describe('GET /api/v1/rescues/:rescueId/staff', () => {
+  it('enriches each member with name/email and wraps in a paginated envelope', async () => {
+    const m = makeClient();
+    const getUser = vi.fn().mockResolvedValue({
+      user: { userId: 'usr-1', firstName: 'Ada', lastName: 'Lovelace', email: 'ada@example.com' },
+    });
+    const app = await makeApp(m.client, makeAuthClient(getUser));
+    try {
+      m.listStaffMembers.mockResolvedValue({ staffMembers: [staffMember()] });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/rescues/rsc-1/staff',
+        headers: ADMIN_HEADERS,
+      });
+
+      expect(m.listStaffMembers.mock.calls[0][0]).toMatchObject({ rescueId: 'rsc-1' });
+      expect(getUser.mock.calls[0][0]).toMatchObject({ userId: 'usr-1' });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({
+        success: true,
+        data: [
+          {
+            staffMemberId: 'stf-1',
+            userId: 'usr-1',
+            firstName: 'Ada',
+            lastName: 'Lovelace',
+            email: 'ada@example.com',
+            isVerified: true,
+          },
+        ],
+        pagination: { page: 1, total: 1, totalPages: 1 },
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('degrades to empty name fields when a user lookup fails', async () => {
+    const m = makeClient();
+    const getUser = vi.fn().mockRejectedValue(new Error('auth down'));
+    const app = await makeApp(m.client, makeAuthClient(getUser));
+    try {
+      m.listStaffMembers.mockResolvedValue({ staffMembers: [staffMember()] });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/rescues/rsc-1/staff',
+        headers: ADMIN_HEADERS,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().data[0]).toMatchObject({ userId: 'usr-1', firstName: '', email: '' });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('works without an auth client (names blank, no lookup)', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.listStaffMembers.mockResolvedValue({ staffMembers: [staffMember()] });
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/rescues/rsc-1/staff',
+        headers: ADMIN_HEADERS,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().data[0]).toMatchObject({ userId: 'usr-1', firstName: '' });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps a gRPC PERMISSION_DENIED to 403', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.listStaffMembers.mockRejectedValue({ code: grpcStatus.PERMISSION_DENIED });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/rescues/rsc-1/staff',
+        headers: ADMIN_HEADERS,
+      });
+      expect(res.statusCode).toBe(403);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('DELETE /api/v1/rescues/:rescueId/staff/:userId', () => {
+  it('removes the staff member', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.removeStaffMember.mockResolvedValue({ removed: true });
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/rescues/rsc-1/staff/usr-1',
+        headers: ADMIN_HEADERS,
+      });
+      expect(m.removeStaffMember.mock.calls[0][0]).toMatchObject({
+        rescueId: 'rsc-1',
+        userId: 'usr-1',
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ success: true });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps a gRPC NOT_FOUND to 404', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.removeStaffMember.mockRejectedValue({ code: grpcStatus.NOT_FOUND });
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/rescues/rsc-1/staff/usr-1',
+        headers: ADMIN_HEADERS,
+      });
+      expect(res.statusCode).toBe(404);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('GET /api/v1/rescues/:rescueId/invitations', () => {
+  it('lists pending invitations as the SPA shape (status pending, no token)', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.listRescueInvitations.mockResolvedValue({ invitations: [invitation()] });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/rescues/rsc-1/invitations',
+        headers: ADMIN_HEADERS,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.data[0]).toMatchObject({
+        invitationId: 'inv-1',
+        email: 'invitee@example.com',
+        status: 'pending',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+      });
+      expect(body.data[0]).not.toHaveProperty('token');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('flags a lapsed invitation as expired', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.listRescueInvitations.mockResolvedValue({
+        invitations: [invitation({ expiration: '2020-01-01T00:00:00.000Z' })],
+      });
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/rescues/rsc-1/invitations',
+        headers: ADMIN_HEADERS,
+      });
+      expect(res.json().data[0].status).toBe('expired');
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('POST /api/v1/rescues/:rescueId/invitations', () => {
+  it('invites a staff member and returns 201 with the invitation', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.inviteStaff.mockResolvedValue({ invitation: invitation(), token: 'plain-token' });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rescues/rsc-1/invitations',
+        headers: ADMIN_HEADERS,
+        payload: { email: 'invitee@example.com', title: 'Volunteer' },
+      });
+      expect(m.inviteStaff.mock.calls[0][0]).toMatchObject({
+        rescueId: 'rsc-1',
+        email: 'invitee@example.com',
+        title: 'Volunteer',
+      });
+      expect(res.statusCode).toBe(201);
+      expect(res.json()).toMatchObject({ success: true, data: { invitationId: 'inv-1' } });
+      // The plain-text token is never echoed back through the admin route.
+      expect(res.json().data).not.toHaveProperty('token');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects a missing email with 400 (no gRPC call)', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/rescues/rsc-1/invitations',
+        headers: ADMIN_HEADERS,
+        payload: {},
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.inviteStaff).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('DELETE /api/v1/rescues/:rescueId/invitations/:invitationId', () => {
+  it('cancels the invitation', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.cancelRescueInvitation.mockResolvedValue({ cancelled: true });
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/rescues/rsc-1/invitations/inv-1',
+        headers: ADMIN_HEADERS,
+      });
+      expect(m.cancelRescueInvitation.mock.calls[0][0]).toMatchObject({
+        rescueId: 'rsc-1',
+        invitationId: 'inv-1',
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ success: true });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('maps a gRPC NOT_FOUND to 404', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.cancelRescueInvitation.mockRejectedValue({ code: grpcStatus.NOT_FOUND });
+      const res = await app.inject({
+        method: 'DELETE',
+        url: '/api/v1/rescues/rsc-1/invitations/inv-1',
+        headers: ADMIN_HEADERS,
+      });
+      expect(res.statusCode).toBe(404);
+    } finally {
+      await app.close();
+    }
   });
 });

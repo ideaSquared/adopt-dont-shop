@@ -603,6 +603,24 @@ export interface AcceptInvitationResponse {
   staffMember?: StaffMember | undefined;
 }
 
+export interface ListRescueInvitationsRequest {
+  rescueId: string;
+}
+
+export interface ListRescueInvitationsResponse {
+  /** Pending (used = false) invitations for the rescue. Token omitted. */
+  invitations: Invitation[];
+}
+
+export interface CancelRescueInvitationRequest {
+  rescueId: string;
+  invitationId: string;
+}
+
+export interface CancelRescueInvitationResponse {
+  cancelled: boolean;
+}
+
 /**
  * category / question_type are carried as the raw Postgres ENUM strings
  * (e.g. 'personal_information', 'text') rather than proto enums — the DB
@@ -5469,6 +5487,302 @@ export const AcceptInvitationResponse: MessageFns<AcceptInvitationResponse> = {
   },
 };
 
+function createBaseListRescueInvitationsRequest(): ListRescueInvitationsRequest {
+  return { rescueId: '' };
+}
+
+export const ListRescueInvitationsRequest: MessageFns<ListRescueInvitationsRequest> = {
+  encode(
+    message: ListRescueInvitationsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescueId !== '') {
+      writer.uint32(10).string(message.rescueId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListRescueInvitationsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListRescueInvitationsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListRescueInvitationsRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : '',
+    };
+  },
+
+  toJSON(message: ListRescueInvitationsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== '') {
+      obj.rescueId = message.rescueId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListRescueInvitationsRequest>, I>>(
+    base?: I
+  ): ListRescueInvitationsRequest {
+    return ListRescueInvitationsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListRescueInvitationsRequest>, I>>(
+    object: I
+  ): ListRescueInvitationsRequest {
+    const message = createBaseListRescueInvitationsRequest();
+    message.rescueId = object.rescueId ?? '';
+    return message;
+  },
+};
+
+function createBaseListRescueInvitationsResponse(): ListRescueInvitationsResponse {
+  return { invitations: [] };
+}
+
+export const ListRescueInvitationsResponse: MessageFns<ListRescueInvitationsResponse> = {
+  encode(
+    message: ListRescueInvitationsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.invitations) {
+      Invitation.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListRescueInvitationsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListRescueInvitationsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.invitations.push(Invitation.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListRescueInvitationsResponse {
+    return {
+      invitations: globalThis.Array.isArray(object?.invitations)
+        ? object.invitations.map((e: any) => Invitation.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListRescueInvitationsResponse): unknown {
+    const obj: any = {};
+    if (message.invitations?.length) {
+      obj.invitations = message.invitations.map(e => Invitation.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListRescueInvitationsResponse>, I>>(
+    base?: I
+  ): ListRescueInvitationsResponse {
+    return ListRescueInvitationsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListRescueInvitationsResponse>, I>>(
+    object: I
+  ): ListRescueInvitationsResponse {
+    const message = createBaseListRescueInvitationsResponse();
+    message.invitations = object.invitations?.map(e => Invitation.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseCancelRescueInvitationRequest(): CancelRescueInvitationRequest {
+  return { rescueId: '', invitationId: '' };
+}
+
+export const CancelRescueInvitationRequest: MessageFns<CancelRescueInvitationRequest> = {
+  encode(
+    message: CancelRescueInvitationRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescueId !== '') {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.invitationId !== '') {
+      writer.uint32(18).string(message.invitationId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CancelRescueInvitationRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCancelRescueInvitationRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.invitationId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CancelRescueInvitationRequest {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : '',
+      invitationId: isSet(object.invitationId)
+        ? globalThis.String(object.invitationId)
+        : isSet(object.invitation_id)
+          ? globalThis.String(object.invitation_id)
+          : '',
+    };
+  },
+
+  toJSON(message: CancelRescueInvitationRequest): unknown {
+    const obj: any = {};
+    if (message.rescueId !== '') {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.invitationId !== '') {
+      obj.invitationId = message.invitationId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CancelRescueInvitationRequest>, I>>(
+    base?: I
+  ): CancelRescueInvitationRequest {
+    return CancelRescueInvitationRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CancelRescueInvitationRequest>, I>>(
+    object: I
+  ): CancelRescueInvitationRequest {
+    const message = createBaseCancelRescueInvitationRequest();
+    message.rescueId = object.rescueId ?? '';
+    message.invitationId = object.invitationId ?? '';
+    return message;
+  },
+};
+
+function createBaseCancelRescueInvitationResponse(): CancelRescueInvitationResponse {
+  return { cancelled: false };
+}
+
+export const CancelRescueInvitationResponse: MessageFns<CancelRescueInvitationResponse> = {
+  encode(
+    message: CancelRescueInvitationResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.cancelled !== false) {
+      writer.uint32(8).bool(message.cancelled);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CancelRescueInvitationResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCancelRescueInvitationResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.cancelled = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CancelRescueInvitationResponse {
+    return { cancelled: isSet(object.cancelled) ? globalThis.Boolean(object.cancelled) : false };
+  },
+
+  toJSON(message: CancelRescueInvitationResponse): unknown {
+    const obj: any = {};
+    if (message.cancelled !== false) {
+      obj.cancelled = message.cancelled;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CancelRescueInvitationResponse>, I>>(
+    base?: I
+  ): CancelRescueInvitationResponse {
+    return CancelRescueInvitationResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CancelRescueInvitationResponse>, I>>(
+    object: I
+  ): CancelRescueInvitationResponse {
+    const message = createBaseCancelRescueInvitationResponse();
+    message.cancelled = object.cancelled ?? false;
+    return message;
+  },
+};
+
 function createBaseApplicationQuestion(): ApplicationQuestion {
   return {
     questionId: '',
@@ -7787,6 +8101,45 @@ export const RescueServiceService = {
     responseDeserialize: (value: Buffer): SendRescueEmailResponse =>
       SendRescueEmailResponse.decode(value),
   },
+  /**
+   * List a rescue's PENDING staff invitations (used = false) for the
+   * admin StaffTab. Admin-only — caller MUST have `admin.security.manage`
+   * (distinct from the rescue-portal `staff.read`, which is rescue-scoped
+   * and would leak across rescues). The plain-text token is NEVER
+   * returned here — only at InviteStaff mint time.
+   */
+  listRescueInvitations: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/ListRescueInvitations' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListRescueInvitationsRequest): Buffer =>
+      Buffer.from(ListRescueInvitationsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListRescueInvitationsRequest =>
+      ListRescueInvitationsRequest.decode(value),
+    responseSerialize: (value: ListRescueInvitationsResponse): Buffer =>
+      Buffer.from(ListRescueInvitationsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListRescueInvitationsResponse =>
+      ListRescueInvitationsResponse.decode(value),
+  },
+  /**
+   * Cancel (hard-delete) a single PENDING invitation. Admin-only — caller
+   * MUST have `admin.security.manage`. NOT_FOUND when the invitation is
+   * unknown, already accepted, or belongs to a different rescue. Publishes
+   * `rescue.staffInvitationCancelled` after commit.
+   */
+  cancelRescueInvitation: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/CancelRescueInvitation' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CancelRescueInvitationRequest): Buffer =>
+      Buffer.from(CancelRescueInvitationRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CancelRescueInvitationRequest =>
+      CancelRescueInvitationRequest.decode(value),
+    responseSerialize: (value: CancelRescueInvitationResponse): Buffer =>
+      Buffer.from(CancelRescueInvitationResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CancelRescueInvitationResponse =>
+      CancelRescueInvitationResponse.decode(value),
+  },
 } as const;
 
 export interface RescueServiceServer extends UntypedServiceImplementation {
@@ -7956,6 +8309,27 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
    * for this RPC — it stops at the published event).
    */
   sendRescueEmail: handleUnaryCall<SendRescueEmailRequest, SendRescueEmailResponse>;
+  /**
+   * List a rescue's PENDING staff invitations (used = false) for the
+   * admin StaffTab. Admin-only — caller MUST have `admin.security.manage`
+   * (distinct from the rescue-portal `staff.read`, which is rescue-scoped
+   * and would leak across rescues). The plain-text token is NEVER
+   * returned here — only at InviteStaff mint time.
+   */
+  listRescueInvitations: handleUnaryCall<
+    ListRescueInvitationsRequest,
+    ListRescueInvitationsResponse
+  >;
+  /**
+   * Cancel (hard-delete) a single PENDING invitation. Admin-only — caller
+   * MUST have `admin.security.manage`. NOT_FOUND when the invitation is
+   * unknown, already accepted, or belongs to a different rescue. Publishes
+   * `rescue.staffInvitationCancelled` after commit.
+   */
+  cancelRescueInvitation: handleUnaryCall<
+    CancelRescueInvitationRequest,
+    CancelRescueInvitationResponse
+  >;
 }
 
 export interface RescueServiceClient extends Client {
@@ -8448,6 +8822,49 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: SendRescueEmailResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * List a rescue's PENDING staff invitations (used = false) for the
+   * admin StaffTab. Admin-only — caller MUST have `admin.security.manage`
+   * (distinct from the rescue-portal `staff.read`, which is rescue-scoped
+   * and would leak across rescues). The plain-text token is NEVER
+   * returned here — only at InviteStaff mint time.
+   */
+  listRescueInvitations(
+    request: ListRescueInvitationsRequest,
+    callback: (error: ServiceError | null, response: ListRescueInvitationsResponse) => void
+  ): ClientUnaryCall;
+  listRescueInvitations(
+    request: ListRescueInvitationsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListRescueInvitationsResponse) => void
+  ): ClientUnaryCall;
+  listRescueInvitations(
+    request: ListRescueInvitationsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListRescueInvitationsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Cancel (hard-delete) a single PENDING invitation. Admin-only — caller
+   * MUST have `admin.security.manage`. NOT_FOUND when the invitation is
+   * unknown, already accepted, or belongs to a different rescue. Publishes
+   * `rescue.staffInvitationCancelled` after commit.
+   */
+  cancelRescueInvitation(
+    request: CancelRescueInvitationRequest,
+    callback: (error: ServiceError | null, response: CancelRescueInvitationResponse) => void
+  ): ClientUnaryCall;
+  cancelRescueInvitation(
+    request: CancelRescueInvitationRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CancelRescueInvitationResponse) => void
+  ): ClientUnaryCall;
+  cancelRescueInvitation(
+    request: CancelRescueInvitationRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CancelRescueInvitationResponse) => void
   ): ClientUnaryCall;
 }
 

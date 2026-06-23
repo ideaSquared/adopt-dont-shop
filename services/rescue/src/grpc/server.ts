@@ -31,12 +31,14 @@ import {
 } from './handlers.js';
 import {
   acceptInvitation,
+  cancelRescueInvitation,
   createStaffMember,
   endFosterPlacement,
   getFosterPlacement,
   getInvitationByToken,
   getMyStaffMembership,
   listFosterPlacements,
+  listRescueInvitations,
   listStaffMembers,
   makeCreateFosterPlacement,
   removeStaffMember,
@@ -92,6 +94,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     getRescueStatistics: adapt(getRescueStatistics, { deps, logger }),
     countRescues: adapt(countRescues, { deps, logger }),
     sendRescueEmail: adapt(sendRescueEmail, { deps, logger }),
+    listRescueInvitations: adapt(listRescueInvitations, { deps, logger }),
+    cancelRescueInvitation: adapt(cancelRescueInvitation, { deps, logger }),
   });
 
   logger.info('gRPC RescueService registered', {
@@ -120,6 +124,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'getRescueStatistics',
       'countRescues',
       'sendRescueEmail',
+      'listRescueInvitations',
+      'cancelRescueInvitation',
     ],
     grpcPort: config.grpcPort,
   });

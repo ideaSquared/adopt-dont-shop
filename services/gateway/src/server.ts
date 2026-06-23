@@ -461,8 +461,12 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     // /api/v1/foster/*, GET /api/v1/invitations/details/:token).
     await registerStaffFosterRoutes(server, { client: opts.rescueClient });
     // Admin rescue detail surface — plan / analytics / send-email /
-    // bulk-update + plural verify/reject.
-    await registerRescueAdminRoutes(server, { client: opts.rescueClient });
+    // bulk-update + plural verify/reject + StaffTab (staff + invitations).
+    // authClient enriches staff members with name/email from auth.users.
+    await registerRescueAdminRoutes(server, {
+      client: opts.rescueClient,
+      authClient: opts.authClient,
+    });
   }
   // POST /api/v1/invitations/accept — register-on-accept. Orchestrates
   // auth (provision the invited user) + rescue (consume the invitation +
