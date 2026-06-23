@@ -583,7 +583,10 @@ jobs:
             # password plus the non-rotating identifiers already in the host
             # .env (POSTGRES_USER / POSTGRES_DB, and the REDIS_PASSWORD the redis
             # container itself authenticates with) so the URLs always match what
-            # the database/redis containers use.
+            # the database/redis containers use. redis_password is the same
+            # value, written separately because the redis container reads its
+            # own --requirepass from this file rather than from `environment:`
+            # (ADS-878).
             read_env() {  # read a key from the host .env, quotes stripped; fails if absent
               local v
               v="$(grep -E "^$1=" .env | head -n1 | cut -d= -f2-)" || true
@@ -598,6 +601,7 @@ jobs:
             chmod 700 secrets
             printf '%s' "postgresql://${PG_USER}:${SECRET_DB_PASSWORD}@database:5432/${PG_DB}" > secrets/database_url
             printf '%s' "redis://:${REDIS_PW}@redis:6379"      > secrets/redis_url
+            printf '%s' "$REDIS_PW"                             > secrets/redis_password
             printf '%s' "$SECRET_JWT_SECRET"                    > secrets/jwt_secret
             printf '%s' "$SECRET_JWT_REFRESH_SECRET"            > secrets/jwt_refresh_secret
             printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET"         > secrets/upload_signing_secret

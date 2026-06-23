@@ -21,14 +21,21 @@ before `docker compose up -d`; the deploy workflow
 | `upload_signing_secret`       | `service-gateway`               | HMAC secret for `/uploads-signed` URLs                         |
 | `principal_signing_key`       | `service-gateway` + every domain service | HMAC key for the signed `x-principal-token` gRPC metadata (ADS-800) |
 | `db_password`                 | `database` container (staging + production) | Postgres superuser password (read via `POSTGRES_PASSWORD_FILE`) |
+| `redis_password`              | `redis` container (staging + dev) | Same value as in `redis_url`; the redis container reads it directly (`cat /run/secrets/redis_password`) for its own `--requirepass` instead of via `environment:` (ADS-878) |
 
 Each file must contain only the secret value (trailing whitespace is
 trimmed by the loader). No quoting, no `KEY=value` framing — just the value.
 
 ## Dev / escape hatch
 
-The dev compose (`docker-compose.yml`) does **not** use these files; it relies
-on plaintext env interpolation from `.env`. The loader also accepts plaintext
-env vars (`NAME=…`) when the `*_FILE` form is absent, so an operator who
-can't mount files for some reason can still boot the stack by setting the raw
-env vars.
+The dev compose (`docker-compose.yml`) does **not** use these files for the
+domain services; they still rely on plaintext env interpolation from `.env`.
+The loader also accepts plaintext env vars (`NAME=…`) when the `*_FILE` form
+is absent, so an operator who can't mount files for some reason can still
+boot the stack by setting the raw env vars.
+
+The one exception is `redis_password` (ADS-878): the `redis` container itself
+reads its `--requirepass` value from this file in dev too, so that its
+credential never shows up in `docker inspect`. `pnpm docker:dev` materialises
+`./secrets/redis_password` from `.env`'s `REDIS_PASSWORD` automatically — no
+manual step needed.
