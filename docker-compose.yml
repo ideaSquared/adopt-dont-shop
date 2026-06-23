@@ -93,15 +93,16 @@ services:
       - '127.0.0.1:6379:6379'
     volumes:
       - redis_data:/data
-    command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required (run `pnpm secrets:generate` or copy .env.example)}"
-    # REDIS_PASSWORD must be in the container env (not just interpolated into
-    # `command`) so the healthcheck's `redis-cli -a "$$REDIS_PASSWORD"` can
-    # authenticate — otherwise it gets NOAUTH, never reports healthy, and
-    # dependents gated on `service_healthy` fail to start.
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    secrets:
+      - redis_password
+    # ADS-878: the password is read from the file-mounted secret at container
+    # start rather than interpolated into `environment:`, which `docker
+    # inspect` can read back in plaintext. `pnpm docker:dev` materialises
+    # ./secrets/redis_password from .env's REDIS_PASSWORD before `up`.
+    command: >
+      sh -c 'redis-server --appendonly yes --requirepass "$$(cat /run/secrets/redis_password)"'
     healthcheck:
-      test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" ping | grep -q PONG']
+      test: ['CMD-SHELL', 'redis-cli -a "$$(cat /run/secrets/redis_password)" ping | grep -q PONG']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -625,3 +626,13 @@ volumes:
 networks:
   default:
     name: adopt-dont-shop-network
+
+# ============================================================================
+# DOCKER SECRETS (ADS-878)
+# ============================================================================
+# File-mounted at /run/secrets/<name>, invisible to `docker inspect`.
+# `pnpm docker:dev` materialises ./secrets/redis_password from .env's
+# REDIS_PASSWORD before bringing the stack up (see scripts/docker-dev.mjs).
+secrets:
+  redis_password:
+    file: ./secrets/redis_password
