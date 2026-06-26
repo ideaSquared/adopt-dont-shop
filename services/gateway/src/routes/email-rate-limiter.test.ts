@@ -124,4 +124,45 @@ describe('createEmailRateLimiter (redis-backed)', () => {
     expect(await limiter.consume('a@example.com')).toBe(true);
     expect(await limiter.consume('a@example.com')).toBe(true);
   });
+
+  it('never stores the raw email in the Redis key, so a crafted email cannot fragment it', async () => {
+    const seenKeys: string[] = [];
+    const counts = new Map<string, number>();
+    const redis = {
+      incr: (key: string): Promise<number> => {
+        seenKeys.push(key);
+        const next = (counts.get(key) ?? 0) + 1;
+        counts.set(key, next);
+        return Promise.resolve(next);
+      },
+      expire: (): Promise<number> => Promise.resolve(1),
+    };
+    const limiter = createEmailRateLimiter({ max: 1, windowMs: 60_000, redis });
+
+    await limiter.consume('attacker:0\r\nINJECTED@example.com');
+
+    expect(seenKeys).toHaveLength(1);
+    // Exactly two colons: prefix:bucket:hash — the email's own colon/CRLF
+    // never reach the key, so they can't smuggle in a third segment.
+    expect(seenKeys[0].split(':')).toHaveLength(3);
+    expect(seenKeys[0]).not.toContain('INJECTED');
+  });
+
+  it('hits the same Redis bucket for the same email across calls', async () => {
+    const counts = new Map<string, number>();
+    const redis = {
+      incr: (key: string): Promise<number> => {
+        const next = (counts.get(key) ?? 0) + 1;
+        counts.set(key, next);
+        return Promise.resolve(next);
+      },
+      expire: (): Promise<number> => Promise.resolve(1),
+    };
+    const limiter = createEmailRateLimiter({ max: 2, windowMs: 60_000, redis });
+
+    expect(await limiter.consume('a@example.com')).toBe(true);
+    expect(await limiter.consume('a@example.com')).toBe(true);
+    // Same email hashes to the same key, so the 3rd attempt is throttled.
+    expect(await limiter.consume('a@example.com')).toBe(false);
+  });
 });
