@@ -21,6 +21,7 @@ import type { AuditClient } from '../grpc-clients/audit-client.js';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
+import { assertUuid, redisKey } from '../utils/redis-key.js';
 
 // Minimal Redis interface — only the operations the route needs.
 // Satisfied by ioredis.Redis and the test doubles alike.
@@ -43,7 +44,11 @@ export type GdprRoutesOptions = {
   redis?: ErasureStore;
 };
 
-const ERASURE_IDEMPOTENCY_KEY = (userId: string) => `gdpr:erasure:${userId}`;
+// userId is sourced from the authenticated x-user-id header today, so this
+// is safe — but validating the UUID shape here means a future change that
+// takes userId from a less-trusted source fails loudly instead of silently
+// widening this key's input space (ADS-880).
+const ERASURE_IDEMPOTENCY_KEY = (userId: string) => redisKey('gdpr', 'erasure', assertUuid(userId));
 const ERASURE_IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 
 // Per-route rate-limit: 5 requests per hour per authenticated user.
