@@ -90,7 +90,10 @@ export const registerApplicationsRoutes = async (
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
-      const adopterId = (b.userId as string) ?? (b.adopterId as string) ?? headerUserId(req) ?? '';
+      // ADS-879: identity is never trusted from the body — always the
+      // authenticated principal, so a stale/forged userId can't impersonate
+      // another adopter even if a downstream permission check regresses.
+      const adopterId = headerUserId(req) ?? '';
       const petId = (b.petId as string) ?? '';
       const meta = buildMetadata(req);
       try {

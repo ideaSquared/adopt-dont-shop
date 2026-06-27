@@ -654,6 +654,74 @@ describe('auth account-lifecycle input validation (ADS-853)', () => {
     }
   });
 
+  it('POST /auth/register rejects a missing email with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: { password: 'longenoughpw' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.registerMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/register rejects a malformed email with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: { email: 'not-an-email', password: 'longenoughpw' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.registerMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/register rejects a too-short password with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: { email: 'a@example.com', password: 'short' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.registerMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/register rejects an oversized payload with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          email: 'a@example.com',
+          password: 'longenoughpw',
+          firstName: 'x'.repeat(500),
+        },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.registerMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
   it('POST /auth/verify-email rejects a non-string token with 400', async () => {
     const m = makeClient();
     const app = await makeApp(m.client);
@@ -760,7 +828,7 @@ describe('auth account-lifecycle input validation (ADS-853)', () => {
         url: '/api/v1/auth/register',
         payload: {
           email: 'a@example.com',
-          password: 'pw',
+          password: 'longenoughpw',
           first_name: 'SnakeFirst',
           lastName: 'CamelLast',
         },
