@@ -223,7 +223,7 @@ request-body aliases so `fieldWriteGuard` can match `req.body` keys against the 
 ## Security Guarantees
 
 1. **Secure by default**: fields not in the access map are excluded
-2. **Sensitive denylist**: `password`, `resetToken`, `resetTokenExpiration`, `resetTokenForceFlag`, `verificationToken`, `verificationTokenExpiresAt`, `twoFactorSecret`, `backupCodes` are ALWAYS `none` for ALL roles -- enforced AFTER overrides are merged
+2. **Sensitive denylist**: `password`, `resetToken`, `resetTokenExpiration`, `verificationToken`, `verificationTokenExpiresAt`, `twoFactorSecret`, `backupCodes` are ALWAYS `none` for ALL roles -- enforced AFTER overrides are merged
 3. **Fail closed**: if `getEffectiveAccessMap` throws, middleware returns 500 rather than leaking fields
 4. **API-level rejection**: admin API rejects override creation for sensitive fields before they reach the DB
 5. **Double enforcement**: denylist is applied both in `getFieldAccessMap()` defaults and again in `getEffectiveAccessMap()` after DB overrides

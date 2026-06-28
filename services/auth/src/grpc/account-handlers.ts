@@ -412,7 +412,6 @@ export async function resetPassword(
       SET password = $1,
           reset_token = NULL,
           reset_token_expiration = NULL,
-          reset_token_force_flag = false,
           locked_until = NULL,
           login_attempts = 0,
           tokens_valid_from = now(),
