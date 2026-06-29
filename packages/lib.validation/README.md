@@ -2,11 +2,11 @@
 
 Canonical Zod schemas for the User, Pet, Rescue, and Application domains. One source of truth for entity-shaped data, used by:
 
-- `service.backend` request validation (replaces ad-hoc express-validator chains)
-- `service.backend` Sequelize `beforeValidate` cross-checks
-- frontend forms (e.g. `lib.auth` login/register/profile)
+- Gateway and gRPC services for request validation (replaces ad-hoc validator chains)
+- Per-service domain checks before persisting to Postgres
+- Frontend forms (e.g. `lib.auth` login/register/profile, app form components)
 
-The schema definitions deliberately track the column-level validators in `service.backend/src/models/*.ts` — drift between the two is what this library exists to eliminate.
+The schema definitions deliberately track each owning service's Postgres schema (defined under `services/<name>/src/migrations/`) and the constraints enforced in `services/<name>/src/db/` — drift between the two is what this library exists to eliminate.
 
 > **Status**: schemas are live for the four domains above. New schemas land here per-feature; there's no runtime service surface — all exports are pure Zod schemas and inferred types.
 
@@ -59,4 +59,4 @@ pnpm type-check
 
 - Source of truth for exports: [src/index.ts](./src/index.ts)
 - Schema modules: [src/schemas/](./src/schemas/)
-- Backend models the schemas track: [service.backend/src/models/](../service.backend/src/models/)
+- Per-service Postgres migrations the schemas track: [services/auth/src/migrations/](../../services/auth/src/migrations/), [services/pets/src/migrations/](../../services/pets/src/migrations/), [services/rescue/src/migrations/](../../services/rescue/src/migrations/), [services/applications/src/migrations/](../../services/applications/src/migrations/)

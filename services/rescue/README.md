@@ -173,7 +173,7 @@ foster pet ownership via a gRPC call to service.pets. Schema: `rescue`.
 | `foster_placements` | Foster assignments — rescue, pet, foster user, dates, status. |
 | `application_questions` | Custom adoption-application questions a rescue defines. |
 
-Migrations: `services/rescue/src/migrations/001`–`007`.
+Migrations: `services/rescue/src/migrations/001`–`008`.
 
 ### gRPC RPCs
 

@@ -10,8 +10,8 @@ Shared TypeScript types, permission constants, and default configurations for th
 lib.types (this package)              <-- Zero dependencies, pure types + data
   ^                      ^
   |                      |
-lib.permissions          service.backend
-  (frontend services)     (backend API)
+lib.permissions          service.auth / service.gateway
+  (frontend services)     (microservices that own + serve permissions)
   depends on lib.api      NO frontend deps
 ```
 
@@ -26,7 +26,7 @@ Previously, `lib.permissions` contained both types and frontend service implemen
 
 ## Usage
 
-### Backend (service.backend)
+### Services (service.auth, service.gateway, …)
 
 ```typescript
 import { type FieldPermissionResource, getFieldAccessMap } from '@adopt-dont-shop/lib.types';

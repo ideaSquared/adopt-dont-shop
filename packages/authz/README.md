@@ -8,10 +8,10 @@ chain, same `super_admin` short-circuit. No new vocabulary, no CASL.
 ## Why this package exists
 
 The frontend `PermissionsService` (in `lib.permissions`) calls the
-backend to ask "does this user have permission X?". Once `service.backend`
-splits into multiple services, each one needs the same answer locally
-without round-tripping the auth service every request. This package is
-that local check.
+backend to ask "does this user have permission X?". Each extracted
+service (`services/auth`, `services/pets`, `services/rescue`, …) needs
+the same answer locally without round-tripping the auth service every
+request. This package is that local check.
 
 The principal arrives via gRPC metadata (`x-user-id`, `x-user-roles`,
 `x-user-permissions`, `x-rescue-id`) — populated at the gateway edge

@@ -82,7 +82,7 @@ system user. Schema: `moderation`.
 | `support_tickets` | User support requests. |
 | `support_ticket_responses` | Staff + user responses on a ticket. |
 
-Migrations: `services/moderation/src/migrations/001`–`010` (003 installs a
+Migrations: `services/moderation/src/migrations/001`–`011` (003 installs a
 status-propagation trigger).
 
 ### gRPC RPCs
