@@ -567,6 +567,59 @@ export interface ListUserFavoritesResponse {
   pets: Pet[];
 }
 
+export interface GetAdoptionTrendRequest {
+  rescueIdFilter?: string | undefined;
+  /**
+   * Inclusive lower / upper bounds on adopted_date. Omit either for an
+   * open-ended range.
+   */
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  /** 'day' | 'week' | 'month'. Defaults to 'day'. */
+  groupBy?: string | undefined;
+}
+
+export interface AdoptionTrendPoint {
+  /** ISO-8601 date (the bucket start). */
+  date: string;
+  count: number;
+}
+
+export interface GetAdoptionTrendResponse {
+  points: AdoptionTrendPoint[];
+}
+
+export interface GetAdoptionsByTypeRequest {
+  rescueIdFilter?: string | undefined;
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+}
+
+export interface AdoptionsByTypeCount {
+  type: PetType;
+  count: number;
+}
+
+export interface GetAdoptionsByTypeResponse {
+  counts: AdoptionsByTypeCount[];
+}
+
+export interface GetTopRescuesByAdoptionsRequest {
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  /** Defaults to 10, max 50. */
+  limit: number;
+}
+
+export interface RescueAdoptionCount {
+  rescueId: string;
+  adoptions: number;
+}
+
+export interface GetTopRescuesByAdoptionsResponse {
+  rescues: RescueAdoptionCount[];
+}
+
 function createBasePet(): Pet {
   return {
     petId: '',
@@ -4065,6 +4118,803 @@ export const ListUserFavoritesResponse: MessageFns<ListUserFavoritesResponse> = 
   },
 };
 
+function createBaseGetAdoptionTrendRequest(): GetAdoptionTrendRequest {
+  return {
+    rescueIdFilter: undefined,
+    startDate: undefined,
+    endDate: undefined,
+    groupBy: undefined,
+  };
+}
+
+export const GetAdoptionTrendRequest: MessageFns<GetAdoptionTrendRequest> = {
+  encode(
+    message: GetAdoptionTrendRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescueIdFilter !== undefined) {
+      writer.uint32(10).string(message.rescueIdFilter);
+    }
+    if (message.startDate !== undefined) {
+      writer.uint32(18).string(message.startDate);
+    }
+    if (message.endDate !== undefined) {
+      writer.uint32(26).string(message.endDate);
+    }
+    if (message.groupBy !== undefined) {
+      writer.uint32(34).string(message.groupBy);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetAdoptionTrendRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetAdoptionTrendRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueIdFilter = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.startDate = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.endDate = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.groupBy = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetAdoptionTrendRequest {
+    return {
+      rescueIdFilter: isSet(object.rescueIdFilter)
+        ? globalThis.String(object.rescueIdFilter)
+        : isSet(object.rescue_id_filter)
+          ? globalThis.String(object.rescue_id_filter)
+          : undefined,
+      startDate: isSet(object.startDate)
+        ? globalThis.String(object.startDate)
+        : isSet(object.start_date)
+          ? globalThis.String(object.start_date)
+          : undefined,
+      endDate: isSet(object.endDate)
+        ? globalThis.String(object.endDate)
+        : isSet(object.end_date)
+          ? globalThis.String(object.end_date)
+          : undefined,
+      groupBy: isSet(object.groupBy)
+        ? globalThis.String(object.groupBy)
+        : isSet(object.group_by)
+          ? globalThis.String(object.group_by)
+          : undefined,
+    };
+  },
+
+  toJSON(message: GetAdoptionTrendRequest): unknown {
+    const obj: any = {};
+    if (message.rescueIdFilter !== undefined) {
+      obj.rescueIdFilter = message.rescueIdFilter;
+    }
+    if (message.startDate !== undefined) {
+      obj.startDate = message.startDate;
+    }
+    if (message.endDate !== undefined) {
+      obj.endDate = message.endDate;
+    }
+    if (message.groupBy !== undefined) {
+      obj.groupBy = message.groupBy;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetAdoptionTrendRequest>, I>>(
+    base?: I
+  ): GetAdoptionTrendRequest {
+    return GetAdoptionTrendRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetAdoptionTrendRequest>, I>>(
+    object: I
+  ): GetAdoptionTrendRequest {
+    const message = createBaseGetAdoptionTrendRequest();
+    message.rescueIdFilter = object.rescueIdFilter ?? undefined;
+    message.startDate = object.startDate ?? undefined;
+    message.endDate = object.endDate ?? undefined;
+    message.groupBy = object.groupBy ?? undefined;
+    return message;
+  },
+};
+
+function createBaseAdoptionTrendPoint(): AdoptionTrendPoint {
+  return { date: '', count: 0 };
+}
+
+export const AdoptionTrendPoint: MessageFns<AdoptionTrendPoint> = {
+  encode(message: AdoptionTrendPoint, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.date !== '') {
+      writer.uint32(10).string(message.date);
+    }
+    if (message.count !== 0) {
+      writer.uint32(16).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdoptionTrendPoint {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdoptionTrendPoint();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.date = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdoptionTrendPoint {
+    return {
+      date: isSet(object.date) ? globalThis.String(object.date) : '',
+      count: isSet(object.count) ? globalThis.Number(object.count) : 0,
+    };
+  },
+
+  toJSON(message: AdoptionTrendPoint): unknown {
+    const obj: any = {};
+    if (message.date !== '') {
+      obj.date = message.date;
+    }
+    if (message.count !== 0) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdoptionTrendPoint>, I>>(base?: I): AdoptionTrendPoint {
+    return AdoptionTrendPoint.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdoptionTrendPoint>, I>>(object: I): AdoptionTrendPoint {
+    const message = createBaseAdoptionTrendPoint();
+    message.date = object.date ?? '';
+    message.count = object.count ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetAdoptionTrendResponse(): GetAdoptionTrendResponse {
+  return { points: [] };
+}
+
+export const GetAdoptionTrendResponse: MessageFns<GetAdoptionTrendResponse> = {
+  encode(
+    message: GetAdoptionTrendResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.points) {
+      AdoptionTrendPoint.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetAdoptionTrendResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetAdoptionTrendResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.points.push(AdoptionTrendPoint.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetAdoptionTrendResponse {
+    return {
+      points: globalThis.Array.isArray(object?.points)
+        ? object.points.map((e: any) => AdoptionTrendPoint.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetAdoptionTrendResponse): unknown {
+    const obj: any = {};
+    if (message.points?.length) {
+      obj.points = message.points.map(e => AdoptionTrendPoint.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetAdoptionTrendResponse>, I>>(
+    base?: I
+  ): GetAdoptionTrendResponse {
+    return GetAdoptionTrendResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetAdoptionTrendResponse>, I>>(
+    object: I
+  ): GetAdoptionTrendResponse {
+    const message = createBaseGetAdoptionTrendResponse();
+    message.points = object.points?.map(e => AdoptionTrendPoint.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseGetAdoptionsByTypeRequest(): GetAdoptionsByTypeRequest {
+  return { rescueIdFilter: undefined, startDate: undefined, endDate: undefined };
+}
+
+export const GetAdoptionsByTypeRequest: MessageFns<GetAdoptionsByTypeRequest> = {
+  encode(
+    message: GetAdoptionsByTypeRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescueIdFilter !== undefined) {
+      writer.uint32(10).string(message.rescueIdFilter);
+    }
+    if (message.startDate !== undefined) {
+      writer.uint32(18).string(message.startDate);
+    }
+    if (message.endDate !== undefined) {
+      writer.uint32(26).string(message.endDate);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetAdoptionsByTypeRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetAdoptionsByTypeRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueIdFilter = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.startDate = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.endDate = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetAdoptionsByTypeRequest {
+    return {
+      rescueIdFilter: isSet(object.rescueIdFilter)
+        ? globalThis.String(object.rescueIdFilter)
+        : isSet(object.rescue_id_filter)
+          ? globalThis.String(object.rescue_id_filter)
+          : undefined,
+      startDate: isSet(object.startDate)
+        ? globalThis.String(object.startDate)
+        : isSet(object.start_date)
+          ? globalThis.String(object.start_date)
+          : undefined,
+      endDate: isSet(object.endDate)
+        ? globalThis.String(object.endDate)
+        : isSet(object.end_date)
+          ? globalThis.String(object.end_date)
+          : undefined,
+    };
+  },
+
+  toJSON(message: GetAdoptionsByTypeRequest): unknown {
+    const obj: any = {};
+    if (message.rescueIdFilter !== undefined) {
+      obj.rescueIdFilter = message.rescueIdFilter;
+    }
+    if (message.startDate !== undefined) {
+      obj.startDate = message.startDate;
+    }
+    if (message.endDate !== undefined) {
+      obj.endDate = message.endDate;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetAdoptionsByTypeRequest>, I>>(
+    base?: I
+  ): GetAdoptionsByTypeRequest {
+    return GetAdoptionsByTypeRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetAdoptionsByTypeRequest>, I>>(
+    object: I
+  ): GetAdoptionsByTypeRequest {
+    const message = createBaseGetAdoptionsByTypeRequest();
+    message.rescueIdFilter = object.rescueIdFilter ?? undefined;
+    message.startDate = object.startDate ?? undefined;
+    message.endDate = object.endDate ?? undefined;
+    return message;
+  },
+};
+
+function createBaseAdoptionsByTypeCount(): AdoptionsByTypeCount {
+  return { type: 0, count: 0 };
+}
+
+export const AdoptionsByTypeCount: MessageFns<AdoptionsByTypeCount> = {
+  encode(message: AdoptionsByTypeCount, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.type !== 0) {
+      writer.uint32(8).int32(message.type);
+    }
+    if (message.count !== 0) {
+      writer.uint32(16).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AdoptionsByTypeCount {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAdoptionsByTypeCount();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AdoptionsByTypeCount {
+    return {
+      type: isSet(object.type) ? petTypeFromJSON(object.type) : 0,
+      count: isSet(object.count) ? globalThis.Number(object.count) : 0,
+    };
+  },
+
+  toJSON(message: AdoptionsByTypeCount): unknown {
+    const obj: any = {};
+    if (message.type !== 0) {
+      obj.type = petTypeToJSON(message.type);
+    }
+    if (message.count !== 0) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AdoptionsByTypeCount>, I>>(base?: I): AdoptionsByTypeCount {
+    return AdoptionsByTypeCount.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AdoptionsByTypeCount>, I>>(
+    object: I
+  ): AdoptionsByTypeCount {
+    const message = createBaseAdoptionsByTypeCount();
+    message.type = object.type ?? 0;
+    message.count = object.count ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetAdoptionsByTypeResponse(): GetAdoptionsByTypeResponse {
+  return { counts: [] };
+}
+
+export const GetAdoptionsByTypeResponse: MessageFns<GetAdoptionsByTypeResponse> = {
+  encode(
+    message: GetAdoptionsByTypeResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.counts) {
+      AdoptionsByTypeCount.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetAdoptionsByTypeResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetAdoptionsByTypeResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.counts.push(AdoptionsByTypeCount.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetAdoptionsByTypeResponse {
+    return {
+      counts: globalThis.Array.isArray(object?.counts)
+        ? object.counts.map((e: any) => AdoptionsByTypeCount.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetAdoptionsByTypeResponse): unknown {
+    const obj: any = {};
+    if (message.counts?.length) {
+      obj.counts = message.counts.map(e => AdoptionsByTypeCount.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetAdoptionsByTypeResponse>, I>>(
+    base?: I
+  ): GetAdoptionsByTypeResponse {
+    return GetAdoptionsByTypeResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetAdoptionsByTypeResponse>, I>>(
+    object: I
+  ): GetAdoptionsByTypeResponse {
+    const message = createBaseGetAdoptionsByTypeResponse();
+    message.counts = object.counts?.map(e => AdoptionsByTypeCount.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseGetTopRescuesByAdoptionsRequest(): GetTopRescuesByAdoptionsRequest {
+  return { startDate: undefined, endDate: undefined, limit: 0 };
+}
+
+export const GetTopRescuesByAdoptionsRequest: MessageFns<GetTopRescuesByAdoptionsRequest> = {
+  encode(
+    message: GetTopRescuesByAdoptionsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.startDate !== undefined) {
+      writer.uint32(10).string(message.startDate);
+    }
+    if (message.endDate !== undefined) {
+      writer.uint32(18).string(message.endDate);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(24).uint32(message.limit);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetTopRescuesByAdoptionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetTopRescuesByAdoptionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.startDate = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.endDate = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetTopRescuesByAdoptionsRequest {
+    return {
+      startDate: isSet(object.startDate)
+        ? globalThis.String(object.startDate)
+        : isSet(object.start_date)
+          ? globalThis.String(object.start_date)
+          : undefined,
+      endDate: isSet(object.endDate)
+        ? globalThis.String(object.endDate)
+        : isSet(object.end_date)
+          ? globalThis.String(object.end_date)
+          : undefined,
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+    };
+  },
+
+  toJSON(message: GetTopRescuesByAdoptionsRequest): unknown {
+    const obj: any = {};
+    if (message.startDate !== undefined) {
+      obj.startDate = message.startDate;
+    }
+    if (message.endDate !== undefined) {
+      obj.endDate = message.endDate;
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetTopRescuesByAdoptionsRequest>, I>>(
+    base?: I
+  ): GetTopRescuesByAdoptionsRequest {
+    return GetTopRescuesByAdoptionsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetTopRescuesByAdoptionsRequest>, I>>(
+    object: I
+  ): GetTopRescuesByAdoptionsRequest {
+    const message = createBaseGetTopRescuesByAdoptionsRequest();
+    message.startDate = object.startDate ?? undefined;
+    message.endDate = object.endDate ?? undefined;
+    message.limit = object.limit ?? 0;
+    return message;
+  },
+};
+
+function createBaseRescueAdoptionCount(): RescueAdoptionCount {
+  return { rescueId: '', adoptions: 0 };
+}
+
+export const RescueAdoptionCount: MessageFns<RescueAdoptionCount> = {
+  encode(message: RescueAdoptionCount, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.rescueId !== '') {
+      writer.uint32(10).string(message.rescueId);
+    }
+    if (message.adoptions !== 0) {
+      writer.uint32(16).uint32(message.adoptions);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RescueAdoptionCount {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRescueAdoptionCount();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.adoptions = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RescueAdoptionCount {
+    return {
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : '',
+      adoptions: isSet(object.adoptions) ? globalThis.Number(object.adoptions) : 0,
+    };
+  },
+
+  toJSON(message: RescueAdoptionCount): unknown {
+    const obj: any = {};
+    if (message.rescueId !== '') {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.adoptions !== 0) {
+      obj.adoptions = Math.round(message.adoptions);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RescueAdoptionCount>, I>>(base?: I): RescueAdoptionCount {
+    return RescueAdoptionCount.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RescueAdoptionCount>, I>>(
+    object: I
+  ): RescueAdoptionCount {
+    const message = createBaseRescueAdoptionCount();
+    message.rescueId = object.rescueId ?? '';
+    message.adoptions = object.adoptions ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetTopRescuesByAdoptionsResponse(): GetTopRescuesByAdoptionsResponse {
+  return { rescues: [] };
+}
+
+export const GetTopRescuesByAdoptionsResponse: MessageFns<GetTopRescuesByAdoptionsResponse> = {
+  encode(
+    message: GetTopRescuesByAdoptionsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.rescues) {
+      RescueAdoptionCount.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetTopRescuesByAdoptionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetTopRescuesByAdoptionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescues.push(RescueAdoptionCount.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetTopRescuesByAdoptionsResponse {
+    return {
+      rescues: globalThis.Array.isArray(object?.rescues)
+        ? object.rescues.map((e: any) => RescueAdoptionCount.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetTopRescuesByAdoptionsResponse): unknown {
+    const obj: any = {};
+    if (message.rescues?.length) {
+      obj.rescues = message.rescues.map(e => RescueAdoptionCount.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetTopRescuesByAdoptionsResponse>, I>>(
+    base?: I
+  ): GetTopRescuesByAdoptionsResponse {
+    return GetTopRescuesByAdoptionsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetTopRescuesByAdoptionsResponse>, I>>(
+    object: I
+  ): GetTopRescuesByAdoptionsResponse {
+    const message = createBaseGetTopRescuesByAdoptionsResponse();
+    message.rescues = object.rescues?.map(e => RescueAdoptionCount.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * PetService is the gRPC contract for the pets vertical. It owns the
  * `pets.*` schema (Pet, PetMedia, Breed, UserFavorite, Rating,
@@ -4197,6 +5047,62 @@ export const PetServiceService = {
     responseDeserialize: (value: Buffer): GetPetStatsResponse => GetPetStatsResponse.decode(value),
   },
   /**
+   * Time-bucketed count of completed adoptions (status='adopted',
+   * bucketed by adopted_date). Backs the report builder's
+   * "adoptions over time" line-chart widget. Same rescue-scoping rule
+   * as GetStats: rescue staff pinned to their own rescue; pets.read:any
+   * may pass rescue_id_filter or omit it for platform-wide.
+   */
+  getAdoptionTrend: {
+    path: '/adopt_dont_shop.pets.v1.PetService/GetAdoptionTrend' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetAdoptionTrendRequest): Buffer =>
+      Buffer.from(GetAdoptionTrendRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetAdoptionTrendRequest =>
+      GetAdoptionTrendRequest.decode(value),
+    responseSerialize: (value: GetAdoptionTrendResponse): Buffer =>
+      Buffer.from(GetAdoptionTrendResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetAdoptionTrendResponse =>
+      GetAdoptionTrendResponse.decode(value),
+  },
+  /**
+   * Completed-adoption counts grouped by pet type. Backs the report
+   * builder's "pet types" pie-chart widget. Same scoping as GetStats.
+   */
+  getAdoptionsByType: {
+    path: '/adopt_dont_shop.pets.v1.PetService/GetAdoptionsByType' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetAdoptionsByTypeRequest): Buffer =>
+      Buffer.from(GetAdoptionsByTypeRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetAdoptionsByTypeRequest =>
+      GetAdoptionsByTypeRequest.decode(value),
+    responseSerialize: (value: GetAdoptionsByTypeResponse): Buffer =>
+      Buffer.from(GetAdoptionsByTypeResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetAdoptionsByTypeResponse =>
+      GetAdoptionsByTypeResponse.decode(value),
+  },
+  /**
+   * Top-N rescues ranked by completed-adoption count in an optional
+   * date range. Inherently cross-rescue, so requires pets.read:any —
+   * there's no single-rescue-scoped variant of a leaderboard. Backs the
+   * report builder's "rescue leaderboard" table widget.
+   */
+  getTopRescuesByAdoptions: {
+    path: '/adopt_dont_shop.pets.v1.PetService/GetTopRescuesByAdoptions' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetTopRescuesByAdoptionsRequest): Buffer =>
+      Buffer.from(GetTopRescuesByAdoptionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetTopRescuesByAdoptionsRequest =>
+      GetTopRescuesByAdoptionsRequest.decode(value),
+    responseSerialize: (value: GetTopRescuesByAdoptionsResponse): Buffer =>
+      Buffer.from(GetTopRescuesByAdoptionsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetTopRescuesByAdoptionsResponse =>
+      GetTopRescuesByAdoptionsResponse.decode(value),
+  },
+  /**
    * List the user_ids of every adopter who has FAVOURITED a pet. A
    * service-to-service read for recipient discovery — service.notifications
    * fans `pets.statusChanged` out to these users. Caller MUST have
@@ -4309,6 +5215,29 @@ export interface PetServiceServer extends UntypedServiceImplementation {
    * Self-scoped to the caller's rescue unless they hold pets.read:any.
    */
   getStats: handleUnaryCall<GetPetStatsRequest, GetPetStatsResponse>;
+  /**
+   * Time-bucketed count of completed adoptions (status='adopted',
+   * bucketed by adopted_date). Backs the report builder's
+   * "adoptions over time" line-chart widget. Same rescue-scoping rule
+   * as GetStats: rescue staff pinned to their own rescue; pets.read:any
+   * may pass rescue_id_filter or omit it for platform-wide.
+   */
+  getAdoptionTrend: handleUnaryCall<GetAdoptionTrendRequest, GetAdoptionTrendResponse>;
+  /**
+   * Completed-adoption counts grouped by pet type. Backs the report
+   * builder's "pet types" pie-chart widget. Same scoping as GetStats.
+   */
+  getAdoptionsByType: handleUnaryCall<GetAdoptionsByTypeRequest, GetAdoptionsByTypeResponse>;
+  /**
+   * Top-N rescues ranked by completed-adoption count in an optional
+   * date range. Inherently cross-rescue, so requires pets.read:any —
+   * there's no single-rescue-scoped variant of a leaderboard. Backs the
+   * report builder's "rescue leaderboard" table widget.
+   */
+  getTopRescuesByAdoptions: handleUnaryCall<
+    GetTopRescuesByAdoptionsRequest,
+    GetTopRescuesByAdoptionsResponse
+  >;
   /**
    * List the user_ids of every adopter who has FAVOURITED a pet. A
    * service-to-service read for recipient discovery — service.notifications
@@ -4461,6 +5390,68 @@ export interface PetServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetPetStatsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Time-bucketed count of completed adoptions (status='adopted',
+   * bucketed by adopted_date). Backs the report builder's
+   * "adoptions over time" line-chart widget. Same rescue-scoping rule
+   * as GetStats: rescue staff pinned to their own rescue; pets.read:any
+   * may pass rescue_id_filter or omit it for platform-wide.
+   */
+  getAdoptionTrend(
+    request: GetAdoptionTrendRequest,
+    callback: (error: ServiceError | null, response: GetAdoptionTrendResponse) => void
+  ): ClientUnaryCall;
+  getAdoptionTrend(
+    request: GetAdoptionTrendRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetAdoptionTrendResponse) => void
+  ): ClientUnaryCall;
+  getAdoptionTrend(
+    request: GetAdoptionTrendRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetAdoptionTrendResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Completed-adoption counts grouped by pet type. Backs the report
+   * builder's "pet types" pie-chart widget. Same scoping as GetStats.
+   */
+  getAdoptionsByType(
+    request: GetAdoptionsByTypeRequest,
+    callback: (error: ServiceError | null, response: GetAdoptionsByTypeResponse) => void
+  ): ClientUnaryCall;
+  getAdoptionsByType(
+    request: GetAdoptionsByTypeRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetAdoptionsByTypeResponse) => void
+  ): ClientUnaryCall;
+  getAdoptionsByType(
+    request: GetAdoptionsByTypeRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetAdoptionsByTypeResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Top-N rescues ranked by completed-adoption count in an optional
+   * date range. Inherently cross-rescue, so requires pets.read:any —
+   * there's no single-rescue-scoped variant of a leaderboard. Backs the
+   * report builder's "rescue leaderboard" table widget.
+   */
+  getTopRescuesByAdoptions(
+    request: GetTopRescuesByAdoptionsRequest,
+    callback: (error: ServiceError | null, response: GetTopRescuesByAdoptionsResponse) => void
+  ): ClientUnaryCall;
+  getTopRescuesByAdoptions(
+    request: GetTopRescuesByAdoptionsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetTopRescuesByAdoptionsResponse) => void
+  ): ClientUnaryCall;
+  getTopRescuesByAdoptions(
+    request: GetTopRescuesByAdoptionsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetTopRescuesByAdoptionsResponse) => void
   ): ClientUnaryCall;
   /**
    * List the user_ids of every adopter who has FAVOURITED a pet. A

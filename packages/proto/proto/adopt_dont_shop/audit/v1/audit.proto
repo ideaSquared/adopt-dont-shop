@@ -41,6 +41,15 @@ service AuditQueryService {
   // Templates are seed/migration-owned. Read-only here.
   rpc ListReportTemplates(ListReportTemplatesRequest) returns (ListReportTemplatesResponse);
 
+  // Create-or-replace the recurring delivery schedule for a saved
+  // report (one schedule per report). Permission: reports.update[:any].
+  rpc UpsertReportSchedule(UpsertReportScheduleRequest) returns (UpsertReportScheduleResponse);
+
+  // Mint a token-link share for a saved report. The plaintext token is
+  // returned ONLY in this response — only its hash is persisted.
+  // Permission: reports.update[:any].
+  rpc CreateReportShare(CreateReportShareRequest) returns (CreateReportShareResponse);
+
   // GDPR saga status. Returns a single row from
   // audit.gdpr_erasure_requests keyed on correlation_id. NOT_FOUND when
   // the saga hasn't been requested. Gated on admin.gdpr.read OR
@@ -273,4 +282,80 @@ message ListReportTemplatesRequest {
 }
 message ListReportTemplatesResponse {
   repeated ReportTemplate templates = 1;
+}
+
+// --- Report schedules -------------------------------------------------
+
+enum ReportScheduleFormat {
+  REPORT_SCHEDULE_FORMAT_UNSPECIFIED = 0;
+  REPORT_SCHEDULE_FORMAT_PDF = 1;
+  REPORT_SCHEDULE_FORMAT_CSV = 2;
+  REPORT_SCHEDULE_FORMAT_INLINE_HTML = 3;
+}
+
+message ReportScheduleRecipient {
+  string email = 1;
+  optional string user_id = 2;
+}
+
+message ReportSchedule {
+  string schedule_id = 1;
+  string saved_report_id = 2;
+  string cron = 3;
+  string timezone = 4;
+  repeated ReportScheduleRecipient recipients = 5;
+  ReportScheduleFormat format = 6;
+  bool is_enabled = 7;
+  // Left unset until a delivery worker exists to evaluate the cron
+  // expression and run the schedule.
+  optional string last_run_at = 8;
+  optional string next_run_at = 9;
+  optional string last_status = 10;
+  optional string last_error = 11;
+  string created_at = 12;
+  string updated_at = 13;
+}
+
+message UpsertReportScheduleRequest {
+  string saved_report_id = 1;
+  string cron = 2;
+  optional string timezone = 3;
+  repeated ReportScheduleRecipient recipients = 4;
+  ReportScheduleFormat format = 5;
+  optional bool is_enabled = 6;
+}
+message UpsertReportScheduleResponse {
+  ReportSchedule schedule = 1;
+}
+
+// --- Report shares ------------------------------------------------------
+
+enum ReportSharePermission {
+  REPORT_SHARE_PERMISSION_UNSPECIFIED = 0;
+  REPORT_SHARE_PERMISSION_VIEW = 1;
+  REPORT_SHARE_PERMISSION_EDIT = 2;
+}
+
+message ReportShare {
+  string share_id = 1;
+  string saved_report_id = 2;
+  // Always "token" today — user-targeted shares aren't exposed by the
+  // API yet (no frontend call site).
+  string share_type = 3;
+  ReportSharePermission permission = 4;
+  optional string expires_at = 5;
+  optional string revoked_at = 6;
+  string created_at = 7;
+}
+
+message CreateReportShareRequest {
+  string saved_report_id = 1;
+  ReportSharePermission permission = 2;
+  optional string expires_at = 3;
+}
+message CreateReportShareResponse {
+  ReportShare share = 1;
+  // Plaintext token — present ONLY in this response. Only its hash is
+  // persisted, so it cannot be recovered later.
+  string token = 2;
 }

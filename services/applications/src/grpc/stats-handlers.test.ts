@@ -90,6 +90,35 @@ describe('getStats', () => {
     });
   });
 
+  it('applies created_after / created_before bounds when supplied', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [] });
+
+    await getStats(deps, makePrincipal({ roles: ['super_admin'] }), {
+      createdAfter: '2026-01-01',
+      createdBefore: '2026-06-01',
+    });
+
+    const [sql, params] = query.mock.calls[0] as [string, unknown[]];
+    expect(params).toEqual(['2026-01-01', '2026-06-01']);
+    expect(sql).toContain('created_at >= $1');
+    expect(sql).toContain('created_at <= $2');
+  });
+
+  it('combines date bounds with rescue scoping for rescue staff', async () => {
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [] });
+
+    await getStats(
+      deps,
+      makePrincipal({ userId: 'staff-1', roles: ['rescue_staff'], rescueId: 'rsc-9' }),
+      { createdAfter: '2026-01-01', createdBefore: '2026-06-01' }
+    );
+
+    const params = query.mock.calls[0][1] as unknown[];
+    expect(params).toEqual(['rsc-9', '2026-01-01', '2026-06-01']);
+  });
+
   it('maps grouped counts onto the per-status response and sums the total', async () => {
     const { deps, query } = makeDeps();
     query.mockResolvedValueOnce({

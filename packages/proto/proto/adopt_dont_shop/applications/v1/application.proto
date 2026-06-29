@@ -367,6 +367,11 @@ message GetStatsRequest {
   // enforces scope from the principal).
   optional string rescue_id_filter = 1;
   optional string adopter_id_filter = 2;
+  // Inclusive lower / upper bounds on created_at. Used by the report
+  // builder's "application funnel" widget to scope counts to the
+  // report's date-range filter; omit either for an open-ended range.
+  optional string created_after = 3;
+  optional string created_before = 4;
 }
 
 message GetStatsResponse {

@@ -9,8 +9,11 @@ import { PetsV1, type CreatePetRequest } from '@adopt-dont-shop/proto';
 import {
   createPet,
   deletePet,
+  getAdoptionsByType,
+  getAdoptionTrend,
   getPet,
   getPetStats,
+  getTopRescuesByAdoptions,
   HandlerError,
   listFavoriters,
   listPets,
@@ -780,6 +783,218 @@ describe('getPetStats', () => {
     await expect(getPetStats(mocks.deps, ADOPTER, {})).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
+  });
+});
+
+// --- getAdoptionTrend --------------------------------------------------
+
+describe('getAdoptionTrend', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects principals without pets.read', async () => {
+    const noPermsAdopter: Principal = {
+      userId: 'usr-noperms' as UserId,
+      roles: ['adopter'],
+      permissions: [],
+    };
+    await expect(getAdoptionTrend(mocks.deps, noPermsAdopter, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('rejects when caller has pets.read but no rescue scope and no :any', async () => {
+    await expect(getAdoptionTrend(mocks.deps, ADOPTER, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('rejects an invalid group_by value', async () => {
+    await expect(
+      getAdoptionTrend(mocks.deps, STAFF, { groupBy: 'fortnight' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('pins rescue staff to their own rescue and returns bucketed points', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        { date: new Date('2026-06-01T00:00:00Z'), count: '3' },
+        { date: new Date('2026-06-02T00:00:00Z'), count: '5' },
+      ],
+    });
+
+    const res = await getAdoptionTrend(mocks.deps, STAFF, {});
+
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).toContain(RESCUE_ID);
+    expect(res.points).toEqual([
+      { date: '2026-06-01', count: 3 },
+      { date: '2026-06-02', count: 5 },
+    ]);
+  });
+
+  it('defaults group_by to day', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getAdoptionTrend(mocks.deps, STAFF, {});
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[0]).toContain(`date_trunc('day', adopted_date)`);
+  });
+
+  it('applies a month bucket when requested', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getAdoptionTrend(mocks.deps, STAFF, { groupBy: 'month' });
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[0]).toContain(`date_trunc('month', adopted_date)`);
+  });
+
+  it('lets pets.read:any admin pass rescue_id_filter or omit for platform-wide', async () => {
+    const adminAny: Principal = {
+      userId: 'svc-admin' as UserId,
+      roles: ['admin'],
+      permissions: ['pets.read' as Permission, 'pets.read:any' as Permission],
+    };
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getAdoptionTrend(mocks.deps, adminAny, { rescueIdFilter: 'rsc-target' });
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).toContain('rsc-target');
+  });
+
+  it('applies start_date / end_date bounds when supplied', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getAdoptionTrend(mocks.deps, STAFF, {
+      startDate: '2026-01-01',
+      endDate: '2026-06-01',
+    });
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).toContain('2026-01-01');
+    expect(call[1]).toContain('2026-06-01');
+  });
+});
+
+// --- getAdoptionsByType --------------------------------------------------
+
+describe('getAdoptionsByType', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects principals without pets.read', async () => {
+    const noPermsAdopter: Principal = {
+      userId: 'usr-noperms' as UserId,
+      roles: ['adopter'],
+      permissions: [],
+    };
+    await expect(getAdoptionsByType(mocks.deps, noPermsAdopter, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('rejects when caller has pets.read but no rescue scope and no :any', async () => {
+    await expect(getAdoptionsByType(mocks.deps, ADOPTER, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('pins rescue staff to their own rescue and maps db types to proto enum', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        { type: 'dog', count: '4' },
+        { type: 'cat', count: '2' },
+      ],
+    });
+
+    const res = await getAdoptionsByType(mocks.deps, STAFF, {});
+
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).toContain(RESCUE_ID);
+    expect(res.counts).toEqual([
+      { type: PetsV1.PetType.PET_TYPE_DOG, count: 4 },
+      { type: PetsV1.PetType.PET_TYPE_CAT, count: 2 },
+    ]);
+  });
+
+  it('lets pets.read:any admin omit rescue scope for platform-wide counts', async () => {
+    const adminAny: Principal = {
+      userId: 'svc-admin' as UserId,
+      roles: ['admin'],
+      permissions: ['pets.read' as Permission, 'pets.read:any' as Permission],
+    };
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getAdoptionsByType(mocks.deps, adminAny, {});
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).toEqual([]);
+  });
+});
+
+// --- getTopRescuesByAdoptions --------------------------------------------
+
+describe('getTopRescuesByAdoptions', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('requires pets.read:any — rescue staff with plain pets.read is rejected', async () => {
+    await expect(getTopRescuesByAdoptions(mocks.deps, STAFF, { limit: 0 })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  const ADMIN_ANY: Principal = {
+    userId: 'svc-admin' as UserId,
+    roles: ['admin'],
+    permissions: ['pets.read' as Permission, 'pets.read:any' as Permission],
+  };
+
+  it('defaults limit to 10', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getTopRescuesByAdoptions(mocks.deps, ADMIN_ANY, { limit: 0 });
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).toContain(10);
+  });
+
+  it('rejects a limit above 50', async () => {
+    await expect(
+      getTopRescuesByAdoptions(mocks.deps, ADMIN_ANY, { limit: 51 })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('returns rescues ranked by adoption count', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        { rescue_id: 'rsc-1', adoptions: '12' },
+        { rescue_id: 'rsc-2', adoptions: '9' },
+      ],
+    });
+    const res = await getTopRescuesByAdoptions(mocks.deps, ADMIN_ANY, { limit: 5 });
+    expect(res.rescues).toEqual([
+      { rescueId: 'rsc-1', adoptions: 12 },
+      { rescueId: 'rsc-2', adoptions: 9 },
+    ]);
+  });
+
+  it('applies start_date / end_date bounds when supplied', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getTopRescuesByAdoptions(mocks.deps, ADMIN_ANY, {
+      limit: 10,
+      startDate: '2026-01-01',
+      endDate: '2026-06-01',
+    });
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).toContain('2026-01-01');
+    expect(call[1]).toContain('2026-06-01');
   });
 });
 

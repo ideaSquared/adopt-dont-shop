@@ -1,28 +1,63 @@
-// REST → gRPC translation for /api/v1/reports/*. Backed by
-// service.audit, which owns the saved_reports + report_templates
-// state. Execute / schedules / shares remain monolith-owned for now —
-// the SPA reads the persisted config from here and POSTs to the
-// monolith's /execute when a chart needs to render.
+// REST → gRPC translation for /api/v1/reports/*. CRUD on saved
+// reports/templates is backed by service.audit, which owns that state.
+// Execute/schedule/share orchestrate across service.audit (schedule +
+// share persistence) and service.pets / service.applications /
+// service.auth (the live aggregation RPCs each report widget reads).
+//
+// Widget → aggregation RPC mapping (the 5 WidgetPicker presets in
+// lib.components — see computeWidgetData below):
+//   metric=adoption, chartType=line       → pets.getAdoptionTrend
+//   metric=adoption, chartType=pie        → pets.getAdoptionsByType
+//   metric=application, chartType=bar     → applications.getStats
+//   metric=adoption, chartType=table       → pets.getTopRescuesByAdoptions
+//   metric=user, chartType=metric-card     → auth.getUserStatistics
+// Any other metric/chartType combination (custom widgets outside the
+// 5 presets) returns an empty data array rather than erroring.
+//
+// Known gaps (no backing RPC exists yet, so these are intentionally
+// unimplemented rather than half-built):
+//   - rescue-leaderboard rows expose {rescueId, adoptions} only — there
+//     is no cross-service rescue-name lookup RPC, so the SPA's `name`
+//     column renders blank.
+//   - user-targeted shares (`shareType: 'user'`) — CreateReportShareRequest
+//     has no shared_with_user_id field; only token shares work.
+//   - deleteSchedule / revokeShare / viewSharedByToken — no RPC backs
+//     any of these; the frontend ReportService methods that call them
+//     will fail until that backend work lands separately.
 
+import { type Metadata } from '@grpc/grpc-js';
 import type { FastifyInstance } from 'fastify';
 
 import {
   AuditV1,
+  AuthV1,
+  PetsV1,
+  type AuditCreateReportShareRequest,
   type AuditCreateSavedReportRequest,
   type AuditListReportTemplatesRequest,
   type AuditListSavedReportsRequest,
+  type AuditReportSchedule,
+  type AuditReportShare,
   type AuditReportTemplate,
   type AuditSavedReport,
   type AuditUpdateSavedReportRequest,
+  type AuditUpsertReportScheduleRequest,
+  type GetStatsResponse,
 } from '@adopt-dont-shop/proto';
 
+import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
 import type { AuditClient } from '../grpc-clients/audit-client.js';
+import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { PetsClient } from '../grpc-clients/pets-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
 
 export type ReportsRoutesOptions = {
   client: AuditClient;
+  petsClient: PetsClient;
+  applicationsClient: ApplicationsClient;
+  authClient: AuthClient;
 };
 
 const CATEGORY_FROM_STRING: Record<string, AuditV1.ReportTemplateCategory> = {
@@ -40,6 +75,229 @@ const CATEGORY_TO_STRING: Record<number, string> = {
   [AuditV1.ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_FUNDRAISING]: 'fundraising',
   [AuditV1.ReportTemplateCategory.REPORT_TEMPLATE_CATEGORY_CUSTOM]: 'custom',
 };
+
+const FORMAT_FROM_STRING: Record<string, AuditV1.ReportScheduleFormat> = {
+  pdf: AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF,
+  csv: AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_CSV,
+  'inline-html': AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_INLINE_HTML,
+};
+
+const FORMAT_TO_STRING: Record<number, string> = {
+  [AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF]: 'pdf',
+  [AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_CSV]: 'csv',
+  [AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_INLINE_HTML]: 'inline-html',
+};
+
+const PERMISSION_FROM_STRING: Record<string, AuditV1.ReportSharePermission> = {
+  view: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW,
+  edit: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_EDIT,
+};
+
+const PERMISSION_TO_STRING: Record<number, string> = {
+  [AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW]: 'view',
+  [AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_EDIT]: 'edit',
+};
+
+// DB status strings (service.applications) → GetStatsResponse field names.
+const APPLICATION_STATUS_FIELDS: ReadonlyArray<{
+  status: string;
+  field: keyof GetStatsResponse;
+}> = [
+  { status: 'draft', field: 'draft' },
+  { status: 'submitted', field: 'submitted' },
+  { status: 'under_review', field: 'underReview' },
+  { status: 'home_visit_scheduled', field: 'homeVisitScheduled' },
+  { status: 'home_visit_completed', field: 'homeVisitCompleted' },
+  { status: 'approved', field: 'approved' },
+  { status: 'rejected', field: 'rejected' },
+  { status: 'withdrawn', field: 'withdrawn' },
+  { status: 'adopted', field: 'adopted' },
+];
+
+// Minimal shapes for the `config` JSON blob (saved-report configJson, or
+// the unsaved `config` object posted to /execute). Treated as untyped
+// input — the gateway has no dependency on lib.analytics's Zod schemas
+// (services don't depend on frontend packages), so fields are narrowed
+// defensively rather than validated against the full schema.
+type ReportFiltersInput = {
+  startDate?: string;
+  endDate?: string;
+  groupBy?: string;
+  rescueId?: string;
+};
+
+type ReportWidgetInput = {
+  id?: unknown;
+  metric?: unknown;
+  chartType?: unknown;
+  options?: Record<string, unknown>;
+};
+
+type ReportConfigInput = {
+  filters?: ReportFiltersInput;
+  widgets?: ReportWidgetInput[];
+};
+
+function parseConfig(configJson: string | undefined): ReportConfigInput {
+  if (!configJson) {
+    return { filters: {}, widgets: [] };
+  }
+  try {
+    const parsed = JSON.parse(configJson) as Record<string, unknown>;
+    const filters = (
+      parsed.filters && typeof parsed.filters === 'object' ? parsed.filters : {}
+    ) as ReportFiltersInput;
+    const widgets = Array.isArray(parsed.widgets) ? (parsed.widgets as ReportWidgetInput[]) : [];
+    return { filters, widgets };
+  } catch {
+    return { filters: {}, widgets: [] };
+  }
+}
+
+function seriesKeyFrom(options: Record<string, unknown>): string {
+  const series = options.series;
+  if (Array.isArray(series) && series.length > 0 && typeof series[0]?.key === 'string') {
+    return series[0].key;
+  }
+  return 'count';
+}
+
+function petTypeLabel(type: PetsV1.PetType): string {
+  return PetsV1.petTypeToJSON(type).replace('PET_TYPE_', '').toLowerCase();
+}
+
+function scheduleToView(s: AuditReportSchedule): Record<string, unknown> {
+  return {
+    schedule_id: s.scheduleId,
+    saved_report_id: s.savedReportId,
+    cron: s.cron,
+    timezone: s.timezone,
+    recipients: s.recipients.map(r => ({ email: r.email, userId: r.userId || undefined })),
+    format: FORMAT_TO_STRING[s.format] ?? 'pdf',
+    is_enabled: s.isEnabled,
+    last_run_at: s.lastRunAt ?? null,
+    next_run_at: s.nextRunAt ?? null,
+    last_status: s.lastStatus ?? null,
+    last_error: s.lastError ?? null,
+  };
+}
+
+function shareToView(s: AuditReportShare): Record<string, unknown> {
+  return {
+    share_id: s.shareId,
+    saved_report_id: s.savedReportId,
+    share_type: s.shareType,
+    shared_with_user_id: null,
+    permission: PERMISSION_TO_STRING[s.permission] ?? 'view',
+    expires_at: s.expiresAt ?? null,
+    revoked_at: s.revokedAt ?? null,
+  };
+}
+
+type AggregationClients = {
+  petsClient: PetsClient;
+  applicationsClient: ApplicationsClient;
+  authClient: AuthClient;
+};
+
+// Widget → aggregation RPC dispatch. See the file-header comment for the
+// full metric/chartType → RPC mapping table.
+async function computeWidgetData(
+  widget: ReportWidgetInput,
+  filters: ReportFiltersInput,
+  clients: AggregationClients,
+  metadata: Metadata
+): Promise<unknown[]> {
+  const metric = typeof widget.metric === 'string' ? widget.metric : '';
+  const chartType = typeof widget.chartType === 'string' ? widget.chartType : '';
+  const options = widget.options ?? {};
+
+  if (metric === 'adoption' && chartType === 'line') {
+    const res = await clients.petsClient.getAdoptionTrend(
+      {
+        rescueIdFilter: filters.rescueId,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        groupBy: filters.groupBy,
+      },
+      metadata
+    );
+    const xKey = typeof options.xKey === 'string' ? options.xKey : 'date';
+    const seriesKey = seriesKeyFrom(options);
+    return res.points.map(p => ({ [xKey]: p.date, [seriesKey]: p.count }));
+  }
+
+  if (metric === 'adoption' && chartType === 'pie') {
+    const res = await clients.petsClient.getAdoptionsByType(
+      { rescueIdFilter: filters.rescueId, startDate: filters.startDate, endDate: filters.endDate },
+      metadata
+    );
+    const labelKey = typeof options.labelKey === 'string' ? options.labelKey : 'type';
+    const valueKey = typeof options.valueKey === 'string' ? options.valueKey : 'count';
+    return res.counts.map(c => ({ [labelKey]: petTypeLabel(c.type), [valueKey]: c.count }));
+  }
+
+  if (metric === 'application' && chartType === 'bar') {
+    const res = await clients.applicationsClient.getStats(
+      {
+        rescueIdFilter: filters.rescueId,
+        createdAfter: filters.startDate,
+        createdBefore: filters.endDate,
+      },
+      metadata
+    );
+    const xKey = typeof options.xKey === 'string' ? options.xKey : 'status';
+    const seriesKey = seriesKeyFrom(options);
+    return APPLICATION_STATUS_FIELDS.map(({ status, field }) => ({
+      [xKey]: status,
+      [seriesKey]: res[field] ?? 0,
+    }));
+  }
+
+  if (metric === 'adoption' && chartType === 'table') {
+    const res = await clients.petsClient.getTopRescuesByAdoptions(
+      { startDate: filters.startDate, endDate: filters.endDate, limit: 10 },
+      metadata
+    );
+    // No rescue-name lookup RPC exists — rows intentionally omit `name`.
+    return res.rescues.map(r => ({ rescueId: r.rescueId, adoptions: r.adoptions }));
+  }
+
+  if (metric === 'user' && chartType === 'metric-card') {
+    const res = await clients.authClient.getUserStatistics({}, metadata);
+    const valueKey = typeof options.valueKey === 'string' ? options.valueKey : 'value';
+    const active = res.byStatus.find(s => s.status === AuthV1.UserStatus.USER_STATUS_ACTIVE);
+    return [{ [valueKey]: active?.count ?? 0 }];
+  }
+
+  return [];
+}
+
+async function executeConfig(
+  config: ReportConfigInput,
+  clients: AggregationClients,
+  metadata: Metadata
+): Promise<Record<string, unknown>> {
+  const filters = config.filters ?? {};
+  const widgets = config.widgets ?? [];
+  const widgetResults = await Promise.all(
+    widgets.map(async widget => ({
+      id: typeof widget.id === 'string' ? widget.id : '',
+      data: await computeWidgetData(widget, filters, clients, metadata),
+      meta: {
+        metric: typeof widget.metric === 'string' ? widget.metric : '',
+        chartType: typeof widget.chartType === 'string' ? widget.chartType : '',
+        computedAt: new Date().toISOString(),
+      },
+    }))
+  );
+  return {
+    widgets: widgetResults,
+    filters,
+    computedAt: new Date().toISOString(),
+    cacheHit: false,
+  };
+}
 
 function reportToView(r: AuditSavedReport): Record<string, unknown> {
   let config: unknown = {};
@@ -86,7 +344,8 @@ export const registerReportsRoutes = async (
   app: FastifyInstance,
   opts: ReportsRoutesOptions
 ): Promise<void> => {
-  const { client } = opts;
+  const { client, petsClient, applicationsClient, authClient } = opts;
+  const aggregationClients: AggregationClients = { petsClient, applicationsClient, authClient };
 
   // GET /api/v1/reports — paginated list. Self-scoped at the service.
   app.get(
@@ -283,6 +542,143 @@ export const registerReportsRoutes = async (
           return reply.code(404).send({ success: false, error: 'not found' });
         }
         return reply.send({ success: true });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // POST /api/v1/reports/execute — preview an unsaved config. Registered
+  // BEFORE /:id/execute so the static path wins (same convention as
+  // /templates above).
+  app.post(
+    '/api/v1/reports/execute',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'Execute a report preview from an unsaved config',
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const config = body.config;
+      if (!config || typeof config !== 'object') {
+        return reply.code(400).send({ success: false, error: 'config is required' });
+      }
+      try {
+        const result = await executeConfig(
+          config as ReportConfigInput,
+          aggregationClients,
+          buildMetadata(req)
+        );
+        return reply.send({ success: true, data: result });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/reports/:id/execute',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'Execute a saved report',
+      },
+    },
+    async (req, reply) => {
+      try {
+        const metadata = buildMetadata(req);
+        const res = await client.getSavedReport({ savedReportId: req.params.id }, metadata);
+        if (!res.report) {
+          return reply.code(404).send({ success: false, error: 'not found' });
+        }
+        const config = parseConfig(res.report.configJson);
+        const result = await executeConfig(config, aggregationClients, metadata);
+        return reply.send({ success: true, data: result });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/reports/:id/schedule',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'Create or update a report schedule',
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const recipients = Array.isArray(body.recipients)
+        ? (body.recipients as Array<Record<string, unknown>>).map(r => ({
+            email: String(r.email ?? ''),
+            userId: typeof r.userId === 'string' ? r.userId : undefined,
+          }))
+        : [];
+      const format =
+        typeof body.format === 'string'
+          ? (FORMAT_FROM_STRING[body.format] ??
+            AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF)
+          : AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF;
+      const grpcReq: AuditUpsertReportScheduleRequest = {
+        savedReportId: req.params.id,
+        cron: String(body.cron ?? ''),
+        timezone: typeof body.timezone === 'string' ? body.timezone : undefined,
+        recipients,
+        format,
+        isEnabled: typeof body.isEnabled === 'boolean' ? body.isEnabled : undefined,
+      };
+      try {
+        const res = await client.upsertReportSchedule(grpcReq, buildMetadata(req));
+        if (!res.schedule) {
+          return reply.code(500).send({ success: false, error: 'no row returned' });
+        }
+        return reply.send({ success: true, data: scheduleToView(res.schedule) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // POST /api/v1/reports/:id/share — token shares only. CreateReportShareRequest
+  // has no shared_with_user_id field, so user-targeted shares aren't backed yet.
+  app.post<{ Params: { id: string } }>(
+    '/api/v1/reports/:id/share',
+    {
+      schema: {
+        tags: ['reports'],
+        summary: 'Create a report share (token shares only)',
+      },
+    },
+    async (req, reply) => {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      if (body.shareType === 'user') {
+        return reply
+          .code(501)
+          .send({ success: false, error: 'user-targeted shares are not supported yet' });
+      }
+      const permission =
+        typeof body.permission === 'string'
+          ? (PERMISSION_FROM_STRING[body.permission] ??
+            AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW)
+          : AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW;
+      const grpcReq: AuditCreateReportShareRequest = {
+        savedReportId: req.params.id,
+        permission,
+        expiresAt: typeof body.expiresAt === 'string' ? body.expiresAt : undefined,
+      };
+      try {
+        const res = await client.createReportShare(grpcReq, buildMetadata(req));
+        if (!res.share) {
+          return reply.code(500).send({ success: false, error: 'no row returned' });
+        }
+        return reply.code(201).send({
+          success: true,
+          data: { share: shareToView(res.share), token: res.token || undefined },
+        });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

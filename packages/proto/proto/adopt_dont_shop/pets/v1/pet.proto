@@ -53,6 +53,24 @@ service PetService {
   // Self-scoped to the caller's rescue unless they hold pets.read:any.
   rpc GetStats(GetPetStatsRequest) returns (GetPetStatsResponse);
 
+  // Time-bucketed count of completed adoptions (status='adopted',
+  // bucketed by adopted_date). Backs the report builder's
+  // "adoptions over time" line-chart widget. Same rescue-scoping rule
+  // as GetStats: rescue staff pinned to their own rescue; pets.read:any
+  // may pass rescue_id_filter or omit it for platform-wide.
+  rpc GetAdoptionTrend(GetAdoptionTrendRequest) returns (GetAdoptionTrendResponse);
+
+  // Completed-adoption counts grouped by pet type. Backs the report
+  // builder's "pet types" pie-chart widget. Same scoping as GetStats.
+  rpc GetAdoptionsByType(GetAdoptionsByTypeRequest) returns (GetAdoptionsByTypeResponse);
+
+  // Top-N rescues ranked by completed-adoption count in an optional
+  // date range. Inherently cross-rescue, so requires pets.read:any —
+  // there's no single-rescue-scoped variant of a leaderboard. Backs the
+  // report builder's "rescue leaderboard" table widget.
+  rpc GetTopRescuesByAdoptions(GetTopRescuesByAdoptionsRequest)
+      returns (GetTopRescuesByAdoptionsResponse);
+
   // List the user_ids of every adopter who has FAVOURITED a pet. A
   // service-to-service read for recipient discovery — service.notifications
   // fans `pets.statusChanged` out to these users. Caller MUST have
@@ -364,4 +382,61 @@ message ListUserFavoritesRequest {}
 
 message ListUserFavoritesResponse {
   repeated Pet pets = 1;
+}
+
+// --- GetAdoptionTrend --------------------------------------------------
+
+message GetAdoptionTrendRequest {
+  optional string rescue_id_filter = 1;
+  // Inclusive lower / upper bounds on adopted_date. Omit either for an
+  // open-ended range.
+  optional string start_date = 2;
+  optional string end_date = 3;
+  // 'day' | 'week' | 'month'. Defaults to 'day'.
+  optional string group_by = 4;
+}
+
+message AdoptionTrendPoint {
+  // ISO-8601 date (the bucket start).
+  string date = 1;
+  uint32 count = 2;
+}
+
+message GetAdoptionTrendResponse {
+  repeated AdoptionTrendPoint points = 1;
+}
+
+// --- GetAdoptionsByType -------------------------------------------------
+
+message GetAdoptionsByTypeRequest {
+  optional string rescue_id_filter = 1;
+  optional string start_date = 2;
+  optional string end_date = 3;
+}
+
+message AdoptionsByTypeCount {
+  PetType type = 1;
+  uint32 count = 2;
+}
+
+message GetAdoptionsByTypeResponse {
+  repeated AdoptionsByTypeCount counts = 1;
+}
+
+// --- GetTopRescuesByAdoptions -------------------------------------------
+
+message GetTopRescuesByAdoptionsRequest {
+  optional string start_date = 1;
+  optional string end_date = 2;
+  // Defaults to 10, max 50.
+  uint32 limit = 3;
+}
+
+message RescueAdoptionCount {
+  string rescue_id = 1;
+  uint32 adoptions = 2;
+}
+
+message GetTopRescuesByAdoptionsResponse {
+  repeated RescueAdoptionCount rescues = 1;
 }

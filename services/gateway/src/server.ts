@@ -483,14 +483,22 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   }
   if (opts.auditClient) {
     await registerAuditRoutes(server, { client: opts.auditClient });
-    // /api/v1/reports/* — saved reports + templates. Owned by
-    // service.audit (same gRPC stub) because the audit service ships the
-    // rows.
-    await registerReportsRoutes(server, { client: opts.auditClient });
     // Per-entity GET .../:id/activity — the admin SPA's EntityInspector
     // "Activity" tab. Same gRPC stub (GetByTarget), different REST shape
     // than /api/v1/audit/targets/:type/:id.
     await registerEntityActivityRoutes(server, { client: opts.auditClient });
+  }
+  // /api/v1/reports/* — saved reports + templates are owned by
+  // service.audit; execute/schedule/share additionally orchestrate the
+  // live aggregation RPCs on service.pets / service.applications /
+  // service.auth, so all four clients are required.
+  if (opts.auditClient && opts.petsClient && opts.applicationsClient && opts.authClient) {
+    await registerReportsRoutes(server, {
+      client: opts.auditClient,
+      petsClient: opts.petsClient,
+      applicationsClient: opts.applicationsClient,
+      authClient: opts.authClient,
+    });
   }
   if (opts.matchingClient) {
     await registerMatchingRoutes(server, { client: opts.matchingClient });

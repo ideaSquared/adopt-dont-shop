@@ -12,6 +12,8 @@ import { credentials, Metadata, type CallOptions } from '@grpc/grpc-js';
 
 import {
   AuditV1,
+  type AuditCreateReportShareRequest,
+  type AuditCreateReportShareResponse,
   type AuditCreateSavedReportRequest,
   type AuditCreateSavedReportResponse,
   type AuditDeleteSavedReportRequest,
@@ -30,6 +32,8 @@ import {
   type AuditQueryResponse,
   type AuditUpdateSavedReportRequest,
   type AuditUpdateSavedReportResponse,
+  type AuditUpsertReportScheduleRequest,
+  type AuditUpsertReportScheduleResponse,
 } from '@adopt-dont-shop/proto';
 
 import { startGrpcTimer } from '@adopt-dont-shop/observability';
@@ -67,6 +71,14 @@ export type AuditClient = {
     req: AuditGetGdprErasureRequestRequest,
     metadata: Metadata
   ): Promise<AuditGetGdprErasureRequestResponse>;
+  upsertReportSchedule(
+    req: AuditUpsertReportScheduleRequest,
+    metadata: Metadata
+  ): Promise<AuditUpsertReportScheduleResponse>;
+  createReportShare(
+    req: AuditCreateReportShareRequest,
+    metadata: Metadata
+  ): Promise<AuditCreateReportShareResponse>;
   close(): void;
 };
 
@@ -133,6 +145,9 @@ export const createAuditClient = (opts: CreateAuditClientOptions): AuditClient =
     createSavedReport: (req, metadata) => callUnary(stub.createSavedReport, req, metadata, false),
     updateSavedReport: (req, metadata) => callUnary(stub.updateSavedReport, req, metadata, false),
     deleteSavedReport: (req, metadata) => callUnary(stub.deleteSavedReport, req, metadata, false),
+    upsertReportSchedule: (req, metadata) =>
+      callUnary(stub.upsertReportSchedule, req, metadata, false),
+    createReportShare: (req, metadata) => callUnary(stub.createReportShare, req, metadata, false),
     // ── Idempotent (reads / queries) ─────────────────────────────────
     query: (req, metadata) => callUnary(stub.query, req, metadata, true),
     getByTarget: (req, metadata) => callUnary(stub.getByTarget, req, metadata, true),

@@ -2,9 +2,12 @@ import { status as grpcStatus } from '@grpc/grpc-js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AuditV1 } from '@adopt-dont-shop/proto';
+import { AuditV1, AuthV1 } from '@adopt-dont-shop/proto';
 
+import type { ApplicationsClient } from '../grpc-clients/applications-client.js';
 import type { AuditClient } from '../grpc-clients/audit-client.js';
+import type { AuthClient } from '../grpc-clients/auth-client.js';
+import type { PetsClient } from '../grpc-clients/pets-client.js';
 
 import { registerReportsRoutes } from './reports.js';
 
@@ -19,8 +22,38 @@ function makeClient(): {
     updateSavedReport: vi.fn(),
     deleteSavedReport: vi.fn(),
     listReportTemplates: vi.fn(),
+    upsertReportSchedule: vi.fn(),
+    createReportShare: vi.fn(),
   };
   return { client: mocks as unknown as AuditClient, mocks };
+}
+
+function makePetsClient(): {
+  petsClient: PetsClient;
+  mocks: Record<string, ReturnType<typeof vi.fn>>;
+} {
+  const mocks = {
+    getAdoptionTrend: vi.fn(),
+    getAdoptionsByType: vi.fn(),
+    getTopRescuesByAdoptions: vi.fn(),
+  };
+  return { petsClient: mocks as unknown as PetsClient, mocks };
+}
+
+function makeApplicationsClient(): {
+  applicationsClient: ApplicationsClient;
+  mocks: Record<string, ReturnType<typeof vi.fn>>;
+} {
+  const mocks = { getStats: vi.fn() };
+  return { applicationsClient: mocks as unknown as ApplicationsClient, mocks };
+}
+
+function makeAuthClient(): {
+  authClient: AuthClient;
+  mocks: Record<string, ReturnType<typeof vi.fn>>;
+} {
+  const mocks = { getUserStatistics: vi.fn() };
+  return { authClient: mocks as unknown as AuthClient, mocks };
 }
 
 const ADMIN_HEADERS = {
@@ -57,12 +90,21 @@ const TEMPLATE_FIXTURE = {
 describe('/api/v1/reports gateway routes', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof makeClient>['mocks'];
+  let petsMocks: ReturnType<typeof makePetsClient>['mocks'];
+  let applicationsMocks: ReturnType<typeof makeApplicationsClient>['mocks'];
+  let authMocks: ReturnType<typeof makeAuthClient>['mocks'];
 
   beforeEach(async () => {
     app = Fastify({ logger: false });
     const { client, mocks: m } = makeClient();
+    const { petsClient, mocks: pm } = makePetsClient();
+    const { applicationsClient, mocks: am } = makeApplicationsClient();
+    const { authClient, mocks: authm } = makeAuthClient();
     mocks = m;
-    await registerReportsRoutes(app, { client });
+    petsMocks = pm;
+    applicationsMocks = am;
+    authMocks = authm;
+    await registerReportsRoutes(app, { client, petsClient, applicationsClient, authClient });
   });
 
   afterEach(async () => {
@@ -198,5 +240,195 @@ describe('/api/v1/reports gateway routes', () => {
     });
     const body = res.json() as { data: Array<Record<string, unknown>> };
     expect(body.data[0].category).toBe('adoption');
+  });
+
+  // ── execute (preview) ──────────────────────────────────────────────
+
+  it('POST /execute computes a line widget via pets.getAdoptionTrend', async () => {
+    petsMocks.getAdoptionTrend.mockResolvedValue({
+      points: [{ date: '2026-01-01', count: 3 }],
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/execute',
+      headers: ADMIN_HEADERS,
+      payload: {
+        config: {
+          filters: { groupBy: 'month' },
+          widgets: [
+            {
+              id: 'w1',
+              metric: 'adoption',
+              chartType: 'line',
+              options: { xKey: 'date', series: [{ key: 'count', label: 'Adoptions' }] },
+            },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { widgets: Array<{ data: unknown[] }> } };
+    expect(body.data.widgets[0].data).toEqual([{ date: '2026-01-01', count: 3 }]);
+    expect(petsMocks.getAdoptionTrend.mock.calls[0][0].groupBy).toBe('month');
+  });
+
+  it('POST /execute computes a bar widget via applications.getStats', async () => {
+    applicationsMocks.getStats.mockResolvedValue({
+      total: 9,
+      draft: 1,
+      submitted: 2,
+      underReview: 1,
+      homeVisitScheduled: 0,
+      homeVisitCompleted: 0,
+      approved: 3,
+      rejected: 1,
+      withdrawn: 1,
+      adopted: 0,
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/execute',
+      headers: ADMIN_HEADERS,
+      payload: {
+        config: {
+          filters: {},
+          widgets: [
+            {
+              id: 'w2',
+              metric: 'application',
+              chartType: 'bar',
+              options: { xKey: 'status', series: [{ key: 'count', label: 'Count' }] },
+            },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { widgets: Array<{ data: unknown[] }> } };
+    expect(body.data.widgets[0].data).toEqual(
+      expect.arrayContaining([
+        { status: 'submitted', count: 2 },
+        { status: 'approved', count: 3 },
+      ])
+    );
+  });
+
+  it('POST /execute returns 400 when config is missing', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/execute',
+      headers: ADMIN_HEADERS,
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  // ── execute (saved) ──────────────────────────────────────────────────
+
+  it('POST /:id/execute loads the saved config and computes widgets', async () => {
+    mocks.getSavedReport.mockResolvedValue({
+      report: {
+        ...REPORT_FIXTURE,
+        configJson: JSON.stringify({
+          filters: {},
+          widgets: [
+            { id: 'w1', metric: 'user', chartType: 'metric-card', options: { valueKey: 'active' } },
+          ],
+        }),
+      },
+    });
+    authMocks.getUserStatistics.mockResolvedValue({
+      total: 10,
+      verified: 8,
+      newThisMonth: 1,
+      byStatus: [{ status: AuthV1.UserStatus.USER_STATUS_ACTIVE, count: 7 }],
+      byType: [],
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/rep-1/execute',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { widgets: Array<{ data: unknown[] }> } };
+    expect(body.data.widgets[0].data).toEqual([{ active: 7 }]);
+  });
+
+  it('POST /:id/execute returns 404 when the saved report does not exist', async () => {
+    mocks.getSavedReport.mockResolvedValue({ report: undefined });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/rep-missing/execute',
+      headers: ADMIN_HEADERS,
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  // ── schedule ──────────────────────────────────────────────────────────
+
+  it('POST /:id/schedule upserts a schedule and returns the snake_case view', async () => {
+    mocks.upsertReportSchedule.mockResolvedValue({
+      schedule: {
+        scheduleId: 'sched-1',
+        savedReportId: 'rep-1',
+        cron: '0 9 * * 1',
+        timezone: 'UTC',
+        format: AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF,
+        recipients: [{ email: 'a@b.com' }],
+        isEnabled: true,
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/rep-1/schedule',
+      headers: ADMIN_HEADERS,
+      payload: { cron: '0 9 * * 1', recipients: [{ email: 'a@b.com' }], format: 'pdf' },
+    });
+    expect(res.statusCode).toBe(200);
+    const grpcReq = mocks.upsertReportSchedule.mock.calls[0][0];
+    expect(grpcReq.savedReportId).toBe('rep-1');
+    expect(grpcReq.format).toBe(AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF);
+    const body = res.json() as { data: Record<string, unknown> };
+    expect(body.data.schedule_id).toBe('sched-1');
+    expect(body.data.is_enabled).toBe(true);
+    expect(body.data.format).toBe('pdf');
+  });
+
+  // ── share ─────────────────────────────────────────────────────────────
+
+  it('POST /:id/share creates a token share', async () => {
+    mocks.createReportShare.mockResolvedValue({
+      share: {
+        shareId: 'share-1',
+        savedReportId: 'rep-1',
+        shareType: 'token',
+        permission: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      token: 'plaintext-token',
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/rep-1/share',
+      headers: ADMIN_HEADERS,
+      payload: { shareType: 'token', permission: 'view', expiresAt: '2026-12-31T00:00:00Z' },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json() as { data: { share: Record<string, unknown>; token: string } };
+    expect(body.data.share.share_id).toBe('share-1');
+    expect(body.data.token).toBe('plaintext-token');
+  });
+
+  it('POST /:id/share returns 501 for shareType=user (no backing RPC field)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/rep-1/share',
+      headers: ADMIN_HEADERS,
+      payload: { shareType: 'user', sharedWithUserId: 'usr-2' },
+    });
+    expect(res.statusCode).toBe(501);
+    expect(mocks.createReportShare).not.toHaveBeenCalled();
   });
 });
