@@ -16,9 +16,12 @@ lib.permissions (this package)
   = Adds frontend service classes (PermissionsService, FieldPermissionsService)
   = Depends on lib.api (frontend HTTP client)
 
-service.backend
-  = Imports from lib.types directly (no frontend deps)
-  = Has ORM-layer enums that mirror lib.types values (required by Sequelize)
+service.auth (owns the field_permissions table)
+  = Imports defaults from lib.types directly (no frontend deps)
+  = Persists DB overrides and resolves effective access via gRPC
+
+service.gateway (REST front)
+  = Exposes /api/v1/field-permissions/* REST routes that proxy to service.auth
 
 app.admin / app.client / app.rescue
   = Import types + services from lib.permissions
@@ -29,10 +32,9 @@ app.admin / app.client / app.rescue
 | Consumer | Import from | What |
 |----------|------------|------|
 | Frontend apps | `@adopt-dont-shop/lib.permissions` | Types, services, defaults |
-| Backend (all files) | `@adopt-dont-shop/lib.types` | Types, default config functions |
-| Backend ORM layer | `../models/FieldPermission` | Model + ORM enums |
+| Services (auth, gateway, …) | `@adopt-dont-shop/lib.types` | Types, default config functions |
 
-The backend **never** imports from `lib.permissions` or `lib.api`.
+Services **never** import from `lib.permissions` or `lib.api`.
 
 ---
 
@@ -266,30 +268,11 @@ await fieldService.deleteFieldPermission('users', 'rescue_staff', 'email');
 
 ## Backend Integration
 
-The backend (`service.backend`) consumes this library in three ways:
+`service.auth` owns the `field_permissions` table (migration `009_create_field_permissions.ts`) and the gRPC handlers that resolve effective access. `service.gateway` exposes the admin REST surface for managing overrides.
 
-### 1. Middleware: `fieldMask(resource)`
+### Admin REST routes (`service.gateway`)
 
-Intercepts `res.json()` to automatically strip fields the authenticated user's role cannot read. Apply to GET routes.
-
-```typescript
-// service.backend/src/routes/users.routes.ts
-import { fieldMask } from '../middleware/field-permissions';
-
-router.get('/users/:userId', authenticateToken, fieldMask('users'), controller.getUser);
-```
-
-### 2. Middleware: `fieldWriteGuard(resource)`
-
-Rejects PUT/PATCH/POST requests that include fields the user cannot write to. Apply to write routes.
-
-```typescript
-router.put('/users/:userId', authenticateToken, fieldWriteGuard('users'), controller.updateUser);
-```
-
-### 3. Admin API Routes
-
-The backend exposes REST endpoints under `/api/v1/field-permissions/` for managing overrides. These are admin-only.
+`services/gateway/src/routes/field-permissions.ts` exposes admin-only routes under `/api/v1/field-permissions/` that proxy to `service.auth`:
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -301,49 +284,11 @@ The backend exposes REST endpoints under `/api/v1/field-permissions/` for managi
 | POST | `/bulk` | Bulk create/update overrides |
 | DELETE | `/:resource/:role/:fieldName` | Delete a single override |
 
-### Wired endpoints
+### Read-time / write-time enforcement
 
-`fieldMask` / `fieldWriteGuard` are currently wired into the following
-endpoints. When adding a new endpoint that touches a sensitive resource,
-apply the appropriate middleware so field-level controls are consistent
-across the API.
+Field-level masking and write guarding are **client-side** in the new architecture: each app uses `FieldPermissionsService` from this library to fetch the effective access map for `(resource, role)` and decides which fields to render or accept input for. There is no server-side `fieldMask` / `fieldWriteGuard` middleware in the microservices yet — the gRPC handlers in `services/auth/src/grpc/field-permission-handlers.ts` only manage the override CRUD and resolve the effective map.
 
-**Users** (`service.backend/src/routes/user.routes.ts`):
-- `GET /users/profile` — `fieldMask('users')`
-- `PUT /users/profile` — `fieldWriteGuard('users')`
-- `GET /users/search` — `fieldMask('users')`
-- `GET /users/:userId` — `fieldMask('users')`
-- `PUT /users/:userId` — `fieldWriteGuard('users')`
-
-**Pets** (`service.backend/src/routes/pet.routes.ts`):
-- `GET /pets` — `fieldMask('pets')`
-- `GET /pets/:petId` — `fieldMask('pets')`
-- `POST /pets` — `fieldWriteGuard('pets')`
-- `PUT /pets/:petId` — `fieldWriteGuard('pets')`
-- `PATCH /pets/:petId` — `fieldWriteGuard('pets')`
-
-**Applications** (`service.backend/src/routes/application.routes.ts`):
-- `GET /applications` — `fieldMask('applications')`
-- `GET /applications/:applicationId` — `fieldMask('applications')`
-- `POST /applications` — `fieldWriteGuard('applications')`
-- `PUT /applications/:applicationId` — `fieldWriteGuard('applications')`
-
-**Rescues** (`service.backend/src/routes/rescue.routes.ts`):
-- `GET /rescues` — `fieldMask('rescues')`
-- `GET /rescues/:rescueId` — `fieldMask('rescues')`
-- `POST /rescues` — `fieldWriteGuard('rescues')`
-- `PUT /rescues/:rescueId` — `fieldWriteGuard('rescues')`
-- `PATCH /rescues/:rescueId` — `fieldWriteGuard('rescues')`
-
-### Performance notes
-
-- The middleware caches DB override lookups keyed by `resource:role` with
-  a 60-second TTL. Writes via `FieldPermissionService` invalidate the
-  cache automatically.
-- Masking runs in memory after the controller has built the response, so
-  it does not add extra DB queries beyond the one cached override fetch.
-- Set `audit: true` on sensitive endpoints to persist access events to
-  the audit log; default is off to avoid noise on high-traffic routes.
+When extending field-level enforcement to a service that mutates sensitive entities, apply the access map at the handler boundary (resource × role → field set) before persisting; do not rely on the gateway to mask.
 
 ---
 

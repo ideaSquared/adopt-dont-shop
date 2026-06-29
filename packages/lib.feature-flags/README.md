@@ -13,7 +13,7 @@ This library has been refactored to support Statsig-only feature flag management
 
 ## Migration
 
-**This library no longer contains a backend feature flag service.** All feature flags are now managed through Statsig — use `@statsig/react-bindings` in apps or `statsig-node` in `service.backend` directly. Frontend integration patterns: [app.client/src/docs/STATSIG_FEATURE_FLAGS.md](../app.client/src/docs/STATSIG_FEATURE_FLAGS.md).
+**This library no longer contains a backend feature flag service.** All feature flags are now managed through Statsig — use `@statsig/react-bindings` in apps or `statsig-node` directly in any service under `services/*` that needs to evaluate gates server-side. Frontend integration patterns: [apps/client/src/docs/STATSIG_FEATURE_FLAGS.md](../../apps/client/src/docs/STATSIG_FEATURE_FLAGS.md).
 
 ## Usage
 

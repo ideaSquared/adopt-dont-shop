@@ -118,13 +118,6 @@ All optional. The bootstraps silently no-op when unset.
 | `LOG_LEVEL`                    | Logger         | `error` / `warn` / `info` / `http` / `debug` / `silly`.                 |
 | `LOKI_URL`                     | Logger         | When set, ships logs to Loki via `winston-loki`.                        |
 
-## Relationship to `service.backend`
+## Used by
 
-`service.backend` already has its own `src/instrumentation.ts` +
-`src/config/sentry.ts` + `src/utils/logger.ts` and continues to use
-them — Phase 0e doesn't touch the monolith. Each extracted service
-(Phase 1+) uses this shared package instead.
-
-A future commit can fold `service.backend` over to
-`@adopt-dont-shop/observability` once the monolith's richer logger
-helpers + correlation-id middleware also live in a shared package.
+Every extracted service under `services/*` (gateway, auth, pets, rescue, applications, chat, notifications, moderation, matching, cms, audit) wires this package into its `src/instrumentation.ts`. The monolith it was originally extracted from has been removed; this package is now the canonical observability surface for the whole backend.

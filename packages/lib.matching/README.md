@@ -1,6 +1,6 @@
 # @adopt-dont-shop/lib.matching
 
-Shared TypeScript types for the pet-adopter matching feature. This is a zero-runtime, types-only package — it mirrors the surface of `service.backend/src/matching/types.ts` so backend and frontend can speak the same shapes across the API boundary (top-picks response, discovery pet card, match profile read/write).
+Shared TypeScript types for the pet-adopter matching feature. This is a zero-runtime, types-only package — it mirrors the surface of `services/matching` (the gRPC `MatchingService` and its read-model handlers) so backend and frontend can speak the same shapes across the API boundary (top-picks response, discovery pet card, match profile read/write).
 
 ## Exports
 
@@ -38,5 +38,5 @@ pnpm type-check  # tsc --noEmit
 
 ## See also
 
-- [`service.backend/src/matching/`](../service.backend/src/matching) — the backend-side source of truth that this package mirrors.
+- [`services/matching/`](../../services/matching) — the backend-side source of truth that this package mirrors.
 - [`lib.discovery`](../lib.discovery/README.md) — the swipe-session consumer that surfaces match picks in the UI.
