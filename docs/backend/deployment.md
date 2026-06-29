@@ -90,15 +90,19 @@ Behind the scenes:
 
 ## Database migrations
 
-Each service owns and runs its own migrations under `services/<name>/src/migrations/`. No `sequelize-cli`.
+Each service owns and runs its own migrations under `services/<name>/src/migrations/` via `node-pg-migrate`. There is no root-level `pnpm migrate` script — each schema-owning service exposes a `db:migrate` script that the container entrypoint runs automatically on start.
+
+To run migrations by hand against a running container:
 
 ```bash
-pnpm migrate              # apply pending migrations
-pnpm db:migrate:undo      # roll back the most recent migration
-pnpm db:migrate:status    # list applied / pending migrations
+docker compose exec service-auth pnpm db:migrate            # auth service
+docker compose exec service-pets pnpm db:migrate            # pets service
+docker compose exec service-applications pnpm db:migrate    # …and so on
 ```
 
-On a production deploy, run `pnpm migrate` inside the running backend container before traffic is shifted (the runbook covers the exact sequence). For destructive or long migrations see [`docs/migrations/schema-equivalence-runbook.md`](../migrations/schema-equivalence-runbook.md).
+The schema-owning services are `auth`, `pets`, `rescue`, `applications`, `chat`, `notifications`, `moderation`, `matching`, `cms`, and `audit`. The gateway owns no tables, so `service-gateway` has no `db:migrate` script.
+
+For destructive or long migrations see [`docs/migrations/schema-equivalence-runbook.md`](../migrations/schema-equivalence-runbook.md).
 
 ## Health and observability
 

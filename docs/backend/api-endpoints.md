@@ -6,7 +6,7 @@ The Adopt Don't Shop Backend API provides RESTful endpoints for managing users, 
 
 **Base URLs:**
 
-- Development: `http://localhost:5000`
+- Development: `http://localhost:4000` (the Fastify gateway, or `http://api.localhost` via the nginx proxy)
 - Staging: `https://api-staging.adoptdontshop.com`
 - Production: `https://api.adoptdontshop.com`
 
@@ -215,7 +215,7 @@ Common HTTP status codes:
 
 ## Interactive API Documentation
 
-**Swagger UI**: Available at `/api/docs` (e.g. http://localhost:5000/api/docs in dev).
+**Swagger UI**: Available at `/api/docs` (e.g. http://localhost:4000/api/docs in dev).
 
 - Full endpoint documentation with request/response schemas
 - Interactive testing interface
