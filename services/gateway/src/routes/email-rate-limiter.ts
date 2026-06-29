@@ -11,6 +11,8 @@
 // is N-replica-safe), otherwise a per-replica in-memory counter. Like the IP
 // limiter it fails OPEN on a Redis error — availability over a hard fail.
 
+import { hashKeyPart, redisKey } from '../utils/redis-key.js';
+
 // The slim Redis surface this limiter uses. ioredis' Redis satisfies it.
 export type EmailRateLimiterRedis = {
   incr: (key: string) => Promise<number>;
@@ -76,8 +78,10 @@ const redisLimiter = (
   return {
     consume: async (email: string): Promise<boolean> => {
       // Fixed-window bucket: same email in the same window shares a key.
+      // The email is hashed (not stored raw) so a crafted value containing
+      // `:` or newlines can't fragment or collide with a neighbouring key.
       const bucket = Math.floor(now() / windowMs);
-      const key = `${KEY_PREFIX}:${bucket}:${email}`;
+      const key = redisKey(KEY_PREFIX, String(bucket), hashKeyPart(email));
       try {
         const count = await redis.incr(key);
         if (count === 1) {

@@ -168,7 +168,7 @@ describe('POST /api/v1/users/me/erasure-request — idempotency', () => {
     const first = await app.inject({
       method: 'POST',
       url: '/api/v1/users/me/erasure-request',
-      headers: { 'x-user-id': 'usr-idem' },
+      headers: { 'x-user-id': '11111111-1111-1111-1111-111111111111' },
       payload: {},
     });
     expect(first.statusCode).toBe(202);
@@ -180,7 +180,7 @@ describe('POST /api/v1/users/me/erasure-request — idempotency', () => {
     const second = await app.inject({
       method: 'POST',
       url: '/api/v1/users/me/erasure-request',
-      headers: { 'x-user-id': 'usr-idem' },
+      headers: { 'x-user-id': '11111111-1111-1111-1111-111111111111' },
       payload: {},
     });
     expect(second.statusCode).toBe(202);
@@ -192,17 +192,27 @@ describe('POST /api/v1/users/me/erasure-request — idempotency', () => {
     expect(published).toHaveLength(1);
   });
 
+  it('rejects a non-UUID x-user-id rather than building an unvalidated Redis key', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/users/me/erasure-request',
+      headers: { 'x-user-id': 'usr-1' },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(500);
+  });
+
   it('does not deduplicate across different users', async () => {
     await app.inject({
       method: 'POST',
       url: '/api/v1/users/me/erasure-request',
-      headers: { 'x-user-id': 'usr-a' },
+      headers: { 'x-user-id': '22222222-2222-2222-2222-222222222222' },
       payload: {},
     });
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/users/me/erasure-request',
-      headers: { 'x-user-id': 'usr-b' },
+      headers: { 'x-user-id': '33333333-3333-3333-3333-333333333333' },
       payload: {},
     });
     expect(res.statusCode).toBe(202);
@@ -236,7 +246,7 @@ describe('POST /api/v1/users/me/erasure-request — rate-limit', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/users/me/erasure-request',
-        headers: { 'x-user-id': 'usr-rl' },
+        headers: { 'x-user-id': '44444444-4444-4444-4444-444444444444' },
         payload: {},
       });
       expect(res.statusCode).toBe(202);
@@ -244,7 +254,7 @@ describe('POST /api/v1/users/me/erasure-request — rate-limit', () => {
     const limited = await app.inject({
       method: 'POST',
       url: '/api/v1/users/me/erasure-request',
-      headers: { 'x-user-id': 'usr-rl' },
+      headers: { 'x-user-id': '44444444-4444-4444-4444-444444444444' },
       payload: {},
     });
     expect(limited.statusCode).toBe(429);
@@ -255,14 +265,14 @@ describe('POST /api/v1/users/me/erasure-request — rate-limit', () => {
       await app.inject({
         method: 'POST',
         url: '/api/v1/users/me/erasure-request',
-        headers: { 'x-user-id': 'usr-exhausted' },
+        headers: { 'x-user-id': '55555555-5555-5555-5555-555555555555' },
         payload: {},
       });
     }
     const other = await app.inject({
       method: 'POST',
       url: '/api/v1/users/me/erasure-request',
-      headers: { 'x-user-id': 'usr-fresh' },
+      headers: { 'x-user-id': '66666666-6666-6666-6666-666666666666' },
       payload: {},
     });
     expect(other.statusCode).toBe(202);
