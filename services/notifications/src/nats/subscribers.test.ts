@@ -13,6 +13,7 @@ import {
   buildApplicationHomeVisitScheduledCreate,
   buildApplicationRejectedCreate,
   buildApplicationSubmittedCreate,
+  buildAuthAccountDeletionRequestedCreate,
   buildAuthRoleAssignedCreate,
   buildAuthUserLoggedInCreate,
   buildChatMessageReceivedCreate,
@@ -225,6 +226,43 @@ describe('event → CreateNotificationRequest translation', () => {
     });
   });
 
+  describe('buildAuthAccountDeletionRequestedCreate', () => {
+    it('produces a HIGH-priority ACCOUNT_SECURITY in-app row with the reason in the message', () => {
+      const req = buildAuthAccountDeletionRequestedCreate({
+        userId: 'usr-a' as UserId,
+        requestedBy: 'usr-admin' as UserId,
+        reason: 'user request',
+        scheduledFor: '2026-07-29T00:00:00Z',
+      });
+
+      expect(req.userId).toBe('usr-a');
+      expect(req.type).toBe(NotificationsV1.NotificationType.NOTIFICATION_TYPE_ACCOUNT_SECURITY);
+      expect(req.channel).toBe(NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP);
+      expect(req.priority).toBe(NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH);
+      expect(req.message).toContain('Reason: user request');
+      expect(req.relatedEntityType).toBe(
+        NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY
+      );
+      const data = JSON.parse(req.dataJson) as Record<string, unknown>;
+      expect(data).toEqual({
+        requestedBy: 'usr-admin',
+        reason: 'user request',
+        scheduledFor: '2026-07-29T00:00:00Z',
+      });
+    });
+
+    it('falls back to a generic body when no reason is supplied', () => {
+      const req = buildAuthAccountDeletionRequestedCreate({
+        userId: 'usr-a' as UserId,
+        requestedBy: 'usr-admin' as UserId,
+        reason: null,
+        scheduledFor: '2026-07-29T00:00:00Z',
+      });
+      expect(req.message).not.toContain('Reason:');
+      expect(req.message).toMatch(/scheduled for deletion/i);
+    });
+  });
+
   describe('buildChatMessageReceivedCreate', () => {
     const baseEvent = {
       messageId: 'msg-1',
@@ -428,7 +466,7 @@ describe('registerSubscribers', () => {
     const subs = registerSubscribers({ nats, deps, logger });
     await flush();
 
-    expect(subs).toHaveLength(14);
+    expect(subs).toHaveLength(17);
     const subjects = consumersAdded.map(c => c.filter_subject);
     expect(subjects).toEqual([
       'applications.submitted',
@@ -439,11 +477,14 @@ describe('registerSubscribers', () => {
       'applications.adopted',
       'auth.userLoggedIn',
       'auth.roleAssigned',
+      'auth.accountDeletionRequested',
+      'auth.userInvited',
       'pets.statusChanged',
       'pets.deleted',
       'rescue.verified',
       'rescue.rejected',
       'rescue.staffInvited',
+      'rescue.staffInvitationCancelled',
       'chat.messageCreated',
     ]);
   });

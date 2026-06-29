@@ -42,12 +42,15 @@ import type {
   ApplicationHomeVisitScheduledEvent,
   ApplicationRejectedEvent,
   ApplicationSubmittedEvent,
+  AuthAccountDeletionRequestedEvent,
   AuthRoleAssignedEvent,
+  AuthUserInvitedEvent,
   AuthUserLoggedInEvent,
   ChatMessageCreatedEvent,
   PetDeletedEvent,
   PetStatusChangedEvent,
   RescueRejectedEvent,
+  RescueStaffInvitationCancelledEvent,
   RescueStaffInvitedEvent,
   RescueVerifiedEvent,
 } from './event-types.js';
@@ -151,6 +154,25 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
   for (const route of SIMPLE_EVENT_ROUTES) {
     subscriptions.push(route.register({ nats, deps, onError }));
   }
+
+  // auth.userInvited — see AuthUserInvitedEvent for why this stays
+  // log-only: the invitee has no account yet, so there's no in-app
+  // recipient, and emailing the redeem-invitation link needs frontend +
+  // config pieces that don't exist yet. The email + token are PII/secret
+  // — keep them out of operational logs, identifiers are enough to trace.
+  subscriptions.push(
+    subscribe<AuthUserInvitedEvent>(
+      nats,
+      { subject: 'auth.userInvited', durable: durableFor('auth.userInvited'), onError },
+      async payload => {
+        logger.info('auth.userInvited received', {
+          userId: payload.userId,
+          role: payload.role,
+          sendInvitation: payload.sendInvitation,
+        });
+      }
+    )
+  );
 
   // pets.statusChanged — fan a pet_update notification out to every user
   // who FAVOURITED the pet. Recipient discovery is PetService.ListFavoriters
@@ -286,6 +308,27 @@ export const registerSubscribers = (opts: RegisterSubscribersOptions): Subscript
         // (Layer 1 redaction only protects known fields). Identifiers
         // are sufficient to trace the event.
         logger.info('rescue.staffInvited received', {
+          invitationId: payload.invitationId,
+          rescueId: payload.rescueId,
+        });
+      }
+    )
+  );
+
+  // rescue.staffInvitationCancelled — same log-only treatment as
+  // rescue.staffInvited above (no account/recipient to notify in-app,
+  // and a "cancelled" email isn't critical enough to add the missing
+  // link infra for).
+  subscriptions.push(
+    subscribe<RescueStaffInvitationCancelledEvent>(
+      nats,
+      {
+        subject: 'rescue.staffInvitationCancelled',
+        durable: durableFor('rescue.staffInvitationCancelled'),
+        onError,
+      },
+      async payload => {
+        logger.info('rescue.staffInvitationCancelled received', {
           invitationId: payload.invitationId,
           rescueId: payload.rescueId,
         });
@@ -535,6 +578,33 @@ export const buildAuthRoleAssignedCreate = (
     NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_USER,
 });
 
+// auth.accountDeletionRequested — security notification telling the
+// user their account is scheduled for deletion + the grace-window
+// deadline. ACCOUNT_SECURITY is already in the email channel adapter's
+// EMAIL_WORTHY_TYPES, so this in-app row also reaches the user's inbox
+// via the existing notifications.created → email-channel-adapter path —
+// no new email infra needed, unlike auth.userInvited above.
+export const buildAuthAccountDeletionRequestedCreate = (
+  event: AuthAccountDeletionRequestedEvent
+): CreateNotificationRequest => ({
+  userId: event.userId as string,
+  type: NotificationsV1.NotificationType.NOTIFICATION_TYPE_ACCOUNT_SECURITY,
+  channel: NotificationsV1.NotificationChannel.NOTIFICATION_CHANNEL_IN_APP,
+  priority: NotificationsV1.NotificationPriority.NOTIFICATION_PRIORITY_HIGH,
+  title: 'Account deletion scheduled',
+  message: event.reason
+    ? `Your account is scheduled for deletion. Reason: ${event.reason}. Contact support before the scheduled date if this wasn't requested.`
+    : "Your account is scheduled for deletion. Contact support before the scheduled date if this wasn't requested.",
+  dataJson: JSON.stringify({
+    requestedBy: event.requestedBy,
+    reason: event.reason,
+    scheduledFor: event.scheduledFor,
+  }),
+  templateVariablesJson: '{}',
+  relatedEntityType:
+    NotificationsV1.NotificationRelatedEntityType.NOTIFICATION_RELATED_ENTITY_TYPE_SECURITY,
+});
+
 // Cap the message preview so we never store the full chat body on the
 // notification row — the SPA opens the chat to read more, and a runaway
 // 10k-char message shouldn't bloat the notifications.notifications row.
@@ -678,4 +748,8 @@ const SIMPLE_EVENT_ROUTES: readonly SimpleEventRoute[] = [
   defineRoute<ApplicationAdoptedEvent>('applications.adopted', buildApplicationAdoptedCreate),
   defineRoute<AuthUserLoggedInEvent>('auth.userLoggedIn', buildAuthUserLoggedInCreate),
   defineRoute<AuthRoleAssignedEvent>('auth.roleAssigned', buildAuthRoleAssignedCreate),
+  defineRoute<AuthAccountDeletionRequestedEvent>(
+    'auth.accountDeletionRequested',
+    buildAuthAccountDeletionRequestedCreate
+  ),
 ];
