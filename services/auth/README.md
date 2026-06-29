@@ -206,7 +206,7 @@ the gateway validates on every request. Schema: `auth`.
 | `user_privacy_prefs` | Per-user privacy preferences. |
 | `field_permissions` | Overrides to the default field-level access matrix. |
 
-Migrations: `services/auth/src/migrations/001`–`015`.
+Migrations: `services/auth/src/migrations/001`–`022`.
 
 ### gRPC RPCs
 

@@ -57,24 +57,7 @@ store + publish-after-commit on `applications.*` events.
   `TimelineEntry` messages + `ApplicationStatus` (×9) /
   `HomeVisitOutcome` (×3) enums.
 
-## What's NOT here yet
-
-- **Phase 5.3b** — `applications.*` schema + migrations, persisted gRPC
-## What's NOT here yet
-
-The CAD Phase 2 cadence — six PRs:
-- **Phase 5.2** — pure event-sourced application domain
-  (`apply`/`fold`, commands, invariants). I/O-free, fully unit-tested.
-- **Phase 5.3** — `applications.*` schema + migrations, persisted gRPC
-  service (Postgres event store + read model with optimistic
-  concurrency on `(aggregate_id, version)`, NATS publish post-commit,
-  gRPC handlers).
-- **Phase 5.4** — `services/notifications` consumes `applications.*`
-  events and fans to involved users (adopter + rescue staff).
-- **Phase 5.5** — Gateway `/api/applications/*` REST routes proxying
-  to applications gRPC.
-- **Phase 5.6** — Cutover: monolith's applications code becomes dead,
-  removal bundled into Phase 11.
+> The Phase 5.x rolling status that used to live here is no longer accurate — the schema, event store, gRPC handlers, and gateway routes all shipped. See the **Canonical reference** at the bottom of this README for the authoritative current state.
 
 ## Configuration
 
@@ -126,8 +109,8 @@ denormalised read-model projection; every state change publishes an
 | `application_drafts` | In-progress draft persistence. |
 | `application_documents` | Metadata for files attached to an application. |
 
-Migrations: `services/applications/src/migrations/001`–`008` (006 installs a
-status-propagation trigger).
+Migrations: `services/applications/src/migrations/001`–`009` (006 installs a
+home-visit status-propagation trigger).
 
 ### gRPC RPCs
 

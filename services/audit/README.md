@@ -81,7 +81,7 @@ timing out / retrying stuck sagas, and exporting saga-state metrics. Schema:
 | `saved_reports` | User-created custom audit-report definitions. |
 | `report_templates` | Seed/migration-owned report template library. |
 
-Migrations: `services/audit/src/migrations/001`–`006`.
+Migrations: `services/audit/src/migrations/001`–`007`.
 
 ### gRPC RPCs
 
