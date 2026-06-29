@@ -302,30 +302,6 @@ class NotificationService {
   }
 
   /**
-   * Register device for push notifications
-   */
-  async registerDeviceToken(token: string): Promise<void> {
-    try {
-      await api.post('/api/v1/device-tokens', { token });
-    } catch (error) {
-      console.error('Failed to register device token:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Unregister device token
-   */
-  async unregisterDeviceToken(token: string): Promise<void> {
-    try {
-      await api.delete(`/api/v1/device-tokens/${token}`);
-    } catch (error) {
-      console.error('Failed to unregister device token:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Start periodic polling for notifications (fallback if websockets not available)
    */
   startPolling(intervalMs: number = 30000): () => void {
