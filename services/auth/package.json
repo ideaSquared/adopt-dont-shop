@@ -47,7 +47,7 @@
     "@adopt-dont-shop/service-bootstrap": "workspace:*",
     "@grpc/grpc-js": "^1.14.4",
     "bcryptjs": "^3.0.2",
-    "fastify": "^5.8.5",
+    "fastify": "^5.9.0",
     "jsonwebtoken": "^9.0.3",
     "nats": "^2.29.3",
     "node-pg-migrate": "^8.0.4",
