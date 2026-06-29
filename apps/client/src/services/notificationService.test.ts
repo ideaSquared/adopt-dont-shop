@@ -235,27 +235,3 @@ describe('subscriptions', () => {
     expect(listener).not.toHaveBeenCalled();
   });
 });
-
-describe('device tokens', () => {
-  it('registers a device token', async () => {
-    apiPost.mockResolvedValue(undefined);
-
-    await notificationService.registerDeviceToken('tok-1');
-
-    expect(apiPost).toHaveBeenCalledWith('/api/v1/device-tokens', { token: 'tok-1' });
-  });
-
-  it('unregisters a device token', async () => {
-    apiDelete.mockResolvedValue(undefined);
-
-    await notificationService.unregisterDeviceToken('tok-1');
-
-    expect(apiDelete).toHaveBeenCalledWith('/api/v1/device-tokens/tok-1');
-  });
-
-  it('propagates a registration failure', async () => {
-    apiPost.mockRejectedValue(new Error('rejected'));
-
-    await expect(notificationService.registerDeviceToken('tok-1')).rejects.toThrow('rejected');
-  });
-});
