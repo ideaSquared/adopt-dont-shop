@@ -620,6 +620,28 @@ export interface GetTopRescuesByAdoptionsResponse {
   rescues: RescueAdoptionCount[];
 }
 
+export interface GetTopBreedsByAdoptionsRequest {
+  rescueIdFilter?: string | undefined;
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  /** Defaults to 10, max 50. */
+  limit: number;
+}
+
+export interface BreedAdoptionCount {
+  breed: string;
+  count: number;
+  /**
+   * Mean days between created_at and adopted_at for this breed's
+   * adoptions in scope. Zero when count is zero.
+   */
+  averageAdoptionDays: number;
+}
+
+export interface GetTopBreedsByAdoptionsResponse {
+  breeds: BreedAdoptionCount[];
+}
+
 function createBasePet(): Pet {
   return {
     petId: '',
@@ -4915,6 +4937,298 @@ export const GetTopRescuesByAdoptionsResponse: MessageFns<GetTopRescuesByAdoptio
   },
 };
 
+function createBaseGetTopBreedsByAdoptionsRequest(): GetTopBreedsByAdoptionsRequest {
+  return { rescueIdFilter: undefined, startDate: undefined, endDate: undefined, limit: 0 };
+}
+
+export const GetTopBreedsByAdoptionsRequest: MessageFns<GetTopBreedsByAdoptionsRequest> = {
+  encode(
+    message: GetTopBreedsByAdoptionsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.rescueIdFilter !== undefined) {
+      writer.uint32(10).string(message.rescueIdFilter);
+    }
+    if (message.startDate !== undefined) {
+      writer.uint32(18).string(message.startDate);
+    }
+    if (message.endDate !== undefined) {
+      writer.uint32(26).string(message.endDate);
+    }
+    if (message.limit !== 0) {
+      writer.uint32(32).uint32(message.limit);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetTopBreedsByAdoptionsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetTopBreedsByAdoptionsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.rescueIdFilter = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.startDate = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.endDate = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.limit = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetTopBreedsByAdoptionsRequest {
+    return {
+      rescueIdFilter: isSet(object.rescueIdFilter)
+        ? globalThis.String(object.rescueIdFilter)
+        : isSet(object.rescue_id_filter)
+          ? globalThis.String(object.rescue_id_filter)
+          : undefined,
+      startDate: isSet(object.startDate)
+        ? globalThis.String(object.startDate)
+        : isSet(object.start_date)
+          ? globalThis.String(object.start_date)
+          : undefined,
+      endDate: isSet(object.endDate)
+        ? globalThis.String(object.endDate)
+        : isSet(object.end_date)
+          ? globalThis.String(object.end_date)
+          : undefined,
+      limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
+    };
+  },
+
+  toJSON(message: GetTopBreedsByAdoptionsRequest): unknown {
+    const obj: any = {};
+    if (message.rescueIdFilter !== undefined) {
+      obj.rescueIdFilter = message.rescueIdFilter;
+    }
+    if (message.startDate !== undefined) {
+      obj.startDate = message.startDate;
+    }
+    if (message.endDate !== undefined) {
+      obj.endDate = message.endDate;
+    }
+    if (message.limit !== 0) {
+      obj.limit = Math.round(message.limit);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetTopBreedsByAdoptionsRequest>, I>>(
+    base?: I
+  ): GetTopBreedsByAdoptionsRequest {
+    return GetTopBreedsByAdoptionsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetTopBreedsByAdoptionsRequest>, I>>(
+    object: I
+  ): GetTopBreedsByAdoptionsRequest {
+    const message = createBaseGetTopBreedsByAdoptionsRequest();
+    message.rescueIdFilter = object.rescueIdFilter ?? undefined;
+    message.startDate = object.startDate ?? undefined;
+    message.endDate = object.endDate ?? undefined;
+    message.limit = object.limit ?? 0;
+    return message;
+  },
+};
+
+function createBaseBreedAdoptionCount(): BreedAdoptionCount {
+  return { breed: '', count: 0, averageAdoptionDays: 0 };
+}
+
+export const BreedAdoptionCount: MessageFns<BreedAdoptionCount> = {
+  encode(message: BreedAdoptionCount, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.breed !== '') {
+      writer.uint32(10).string(message.breed);
+    }
+    if (message.count !== 0) {
+      writer.uint32(16).uint32(message.count);
+    }
+    if (message.averageAdoptionDays !== 0) {
+      writer.uint32(24).uint32(message.averageAdoptionDays);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): BreedAdoptionCount {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseBreedAdoptionCount();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.breed = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.averageAdoptionDays = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): BreedAdoptionCount {
+    return {
+      breed: isSet(object.breed) ? globalThis.String(object.breed) : '',
+      count: isSet(object.count) ? globalThis.Number(object.count) : 0,
+      averageAdoptionDays: isSet(object.averageAdoptionDays)
+        ? globalThis.Number(object.averageAdoptionDays)
+        : isSet(object.average_adoption_days)
+          ? globalThis.Number(object.average_adoption_days)
+          : 0,
+    };
+  },
+
+  toJSON(message: BreedAdoptionCount): unknown {
+    const obj: any = {};
+    if (message.breed !== '') {
+      obj.breed = message.breed;
+    }
+    if (message.count !== 0) {
+      obj.count = Math.round(message.count);
+    }
+    if (message.averageAdoptionDays !== 0) {
+      obj.averageAdoptionDays = Math.round(message.averageAdoptionDays);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<BreedAdoptionCount>, I>>(base?: I): BreedAdoptionCount {
+    return BreedAdoptionCount.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<BreedAdoptionCount>, I>>(object: I): BreedAdoptionCount {
+    const message = createBaseBreedAdoptionCount();
+    message.breed = object.breed ?? '';
+    message.count = object.count ?? 0;
+    message.averageAdoptionDays = object.averageAdoptionDays ?? 0;
+    return message;
+  },
+};
+
+function createBaseGetTopBreedsByAdoptionsResponse(): GetTopBreedsByAdoptionsResponse {
+  return { breeds: [] };
+}
+
+export const GetTopBreedsByAdoptionsResponse: MessageFns<GetTopBreedsByAdoptionsResponse> = {
+  encode(
+    message: GetTopBreedsByAdoptionsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.breeds) {
+      BreedAdoptionCount.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetTopBreedsByAdoptionsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetTopBreedsByAdoptionsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.breeds.push(BreedAdoptionCount.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetTopBreedsByAdoptionsResponse {
+    return {
+      breeds: globalThis.Array.isArray(object?.breeds)
+        ? object.breeds.map((e: any) => BreedAdoptionCount.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetTopBreedsByAdoptionsResponse): unknown {
+    const obj: any = {};
+    if (message.breeds?.length) {
+      obj.breeds = message.breeds.map(e => BreedAdoptionCount.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetTopBreedsByAdoptionsResponse>, I>>(
+    base?: I
+  ): GetTopBreedsByAdoptionsResponse {
+    return GetTopBreedsByAdoptionsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetTopBreedsByAdoptionsResponse>, I>>(
+    object: I
+  ): GetTopBreedsByAdoptionsResponse {
+    const message = createBaseGetTopBreedsByAdoptionsResponse();
+    message.breeds = object.breeds?.map(e => BreedAdoptionCount.fromPartial(e)) || [];
+    return message;
+  },
+};
+
 /**
  * PetService is the gRPC contract for the pets vertical. It owns the
  * `pets.*` schema (Pet, PetMedia, Breed, UserFavorite, Rating,
@@ -5103,6 +5417,27 @@ export const PetServiceService = {
       GetTopRescuesByAdoptionsResponse.decode(value),
   },
   /**
+   * Top-N breeds ranked by completed-adoption count in an optional date
+   * range, with the average days-to-adoption per breed. Only pets with
+   * a known breed_id are counted. Same rescue-scoping rule as GetStats:
+   * rescue staff pinned to their own rescue; pets.read:any may pass
+   * rescue_id_filter or omit it for platform-wide. Backs the rescue
+   * analytics dashboard's "most popular breeds" widget.
+   */
+  getTopBreedsByAdoptions: {
+    path: '/adopt_dont_shop.pets.v1.PetService/GetTopBreedsByAdoptions' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetTopBreedsByAdoptionsRequest): Buffer =>
+      Buffer.from(GetTopBreedsByAdoptionsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetTopBreedsByAdoptionsRequest =>
+      GetTopBreedsByAdoptionsRequest.decode(value),
+    responseSerialize: (value: GetTopBreedsByAdoptionsResponse): Buffer =>
+      Buffer.from(GetTopBreedsByAdoptionsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetTopBreedsByAdoptionsResponse =>
+      GetTopBreedsByAdoptionsResponse.decode(value),
+  },
+  /**
    * List the user_ids of every adopter who has FAVOURITED a pet. A
    * service-to-service read for recipient discovery — service.notifications
    * fans `pets.statusChanged` out to these users. Caller MUST have
@@ -5237,6 +5572,18 @@ export interface PetServiceServer extends UntypedServiceImplementation {
   getTopRescuesByAdoptions: handleUnaryCall<
     GetTopRescuesByAdoptionsRequest,
     GetTopRescuesByAdoptionsResponse
+  >;
+  /**
+   * Top-N breeds ranked by completed-adoption count in an optional date
+   * range, with the average days-to-adoption per breed. Only pets with
+   * a known breed_id are counted. Same rescue-scoping rule as GetStats:
+   * rescue staff pinned to their own rescue; pets.read:any may pass
+   * rescue_id_filter or omit it for platform-wide. Backs the rescue
+   * analytics dashboard's "most popular breeds" widget.
+   */
+  getTopBreedsByAdoptions: handleUnaryCall<
+    GetTopBreedsByAdoptionsRequest,
+    GetTopBreedsByAdoptionsResponse
   >;
   /**
    * List the user_ids of every adopter who has FAVOURITED a pet. A
@@ -5452,6 +5799,29 @@ export interface PetServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetTopRescuesByAdoptionsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Top-N breeds ranked by completed-adoption count in an optional date
+   * range, with the average days-to-adoption per breed. Only pets with
+   * a known breed_id are counted. Same rescue-scoping rule as GetStats:
+   * rescue staff pinned to their own rescue; pets.read:any may pass
+   * rescue_id_filter or omit it for platform-wide. Backs the rescue
+   * analytics dashboard's "most popular breeds" widget.
+   */
+  getTopBreedsByAdoptions(
+    request: GetTopBreedsByAdoptionsRequest,
+    callback: (error: ServiceError | null, response: GetTopBreedsByAdoptionsResponse) => void
+  ): ClientUnaryCall;
+  getTopBreedsByAdoptions(
+    request: GetTopBreedsByAdoptionsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetTopBreedsByAdoptionsResponse) => void
+  ): ClientUnaryCall;
+  getTopBreedsByAdoptions(
+    request: GetTopBreedsByAdoptionsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetTopBreedsByAdoptionsResponse) => void
   ): ClientUnaryCall;
   /**
    * List the user_ids of every adopter who has FAVOURITED a pet. A

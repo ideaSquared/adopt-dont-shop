@@ -13,6 +13,7 @@ import {
   getAdoptionTrend,
   getPet,
   getPetStats,
+  getTopBreedsByAdoptions,
   getTopRescuesByAdoptions,
   HandlerError,
   listFavoriters,
@@ -988,6 +989,87 @@ describe('getTopRescuesByAdoptions', () => {
   it('applies start_date / end_date bounds when supplied', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     await getTopRescuesByAdoptions(mocks.deps, ADMIN_ANY, {
+      limit: 10,
+      startDate: '2026-01-01',
+      endDate: '2026-06-01',
+    });
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).toContain('2026-01-01');
+    expect(call[1]).toContain('2026-06-01');
+  });
+});
+
+// --- getTopBreedsByAdoptions ---------------------------------------------
+
+describe('getTopBreedsByAdoptions', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('rejects principals without pets.read', async () => {
+    const noPermsAdopter: Principal = {
+      userId: 'usr-noperms' as UserId,
+      roles: ['adopter'],
+      permissions: [],
+    };
+    await expect(
+      getTopBreedsByAdoptions(mocks.deps, noPermsAdopter, { limit: 0 })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects when caller has pets.read but no rescue scope and no :any', async () => {
+    await expect(getTopBreedsByAdoptions(mocks.deps, ADOPTER, { limit: 0 })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('rejects a limit above 50', async () => {
+    await expect(getTopBreedsByAdoptions(mocks.deps, STAFF, { limit: 51 })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('defaults limit to 10 and pins rescue staff to their own rescue', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getTopBreedsByAdoptions(mocks.deps, STAFF, { limit: 0 });
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).toContain(RESCUE_ID);
+    expect(call[1]).toContain(10);
+  });
+
+  it('lets pets.read:any admin omit rescue scope for platform-wide counts', async () => {
+    const adminAny: Principal = {
+      userId: 'svc-admin' as UserId,
+      roles: ['admin'],
+      permissions: ['pets.read' as Permission, 'pets.read:any' as Permission],
+    };
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getTopBreedsByAdoptions(mocks.deps, adminAny, { limit: 0 });
+    const call = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(call[1]).not.toContain(RESCUE_ID);
+  });
+
+  it('returns breeds ranked by adoption count with average adoption days', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        { breed: 'Labrador', count: '7', avg_days: '12.5' },
+        { breed: 'Beagle', count: '3', avg_days: null },
+      ],
+    });
+    const res = await getTopBreedsByAdoptions(mocks.deps, STAFF, { limit: 5 });
+    expect(res.breeds).toEqual([
+      { breed: 'Labrador', count: 7, averageAdoptionDays: 13 },
+      { breed: 'Beagle', count: 3, averageAdoptionDays: 0 },
+    ]);
+  });
+
+  it('applies start_date / end_date bounds when supplied', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+    await getTopBreedsByAdoptions(mocks.deps, STAFF, {
       limit: 10,
       startDate: '2026-01-01',
       endDate: '2026-06-01',

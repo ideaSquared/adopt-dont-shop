@@ -243,6 +243,9 @@ export type {
   GetTopRescuesByAdoptionsRequest,
   RescueAdoptionCount,
   GetTopRescuesByAdoptionsResponse,
+  GetTopBreedsByAdoptionsRequest,
+  BreedAdoptionCount,
+  GetTopBreedsByAdoptionsResponse,
   PetServiceServer,
   PetServiceClient,
 } from './generated/proto/adopt_dont_shop/pets/v1/pet.js';

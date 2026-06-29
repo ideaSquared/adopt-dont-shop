@@ -71,6 +71,15 @@ service PetService {
   rpc GetTopRescuesByAdoptions(GetTopRescuesByAdoptionsRequest)
       returns (GetTopRescuesByAdoptionsResponse);
 
+  // Top-N breeds ranked by completed-adoption count in an optional date
+  // range, with the average days-to-adoption per breed. Only pets with
+  // a known breed_id are counted. Same rescue-scoping rule as GetStats:
+  // rescue staff pinned to their own rescue; pets.read:any may pass
+  // rescue_id_filter or omit it for platform-wide. Backs the rescue
+  // analytics dashboard's "most popular breeds" widget.
+  rpc GetTopBreedsByAdoptions(GetTopBreedsByAdoptionsRequest)
+      returns (GetTopBreedsByAdoptionsResponse);
+
   // List the user_ids of every adopter who has FAVOURITED a pet. A
   // service-to-service read for recipient discovery — service.notifications
   // fans `pets.statusChanged` out to these users. Caller MUST have
@@ -439,4 +448,26 @@ message RescueAdoptionCount {
 
 message GetTopRescuesByAdoptionsResponse {
   repeated RescueAdoptionCount rescues = 1;
+}
+
+// --- GetTopBreedsByAdoptions --------------------------------------------
+
+message GetTopBreedsByAdoptionsRequest {
+  optional string rescue_id_filter = 1;
+  optional string start_date = 2;
+  optional string end_date = 3;
+  // Defaults to 10, max 50.
+  uint32 limit = 4;
+}
+
+message BreedAdoptionCount {
+  string breed = 1;
+  uint32 count = 2;
+  // Mean days between created_at and adopted_at for this breed's
+  // adoptions in scope. Zero when count is zero.
+  uint32 average_adoption_days = 3;
+}
+
+message GetTopBreedsByAdoptionsResponse {
+  repeated BreedAdoptionCount breeds = 1;
 }

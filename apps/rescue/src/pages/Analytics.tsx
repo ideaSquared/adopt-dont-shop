@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Heading, toast } from '@adopt-dont-shop/lib.components';
+import { Card, toast } from '@adopt-dont-shop/lib.components';
 import {
   FiTrendingUp,
   FiUsers,
@@ -52,9 +52,8 @@ const Analytics: React.FC = () => {
   const [responseTimeMetrics, setResponseTimeMetrics] = useState<ResponseTimeMetrics | null>(null);
   const [stageDistribution, setStageDistribution] = useState<StageDistribution[]>([]);
 
-  // Loading and error state
+  // Loading state
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Email report modal state
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -63,40 +62,59 @@ const Analytics: React.FC = () => {
   const [sendingEmail, setSendingEmail] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch analytics data
+  // Fetch analytics data. Each metric is fetched and applied independently
+  // so that one failing endpoint (e.g. response-time, which has no backend
+  // yet) doesn't blank the whole dashboard — the affected section just
+  // falls through to its existing "No Data Available" empty state.
   useEffect(() => {
     let cancelled = false;
 
     const fetchAnalytics = async () => {
       setLoading(true);
-      setError(null);
 
-      try {
-        const [adoption, application, pet, responseTime, stages] = await Promise.all([
-          analyticsService.getAdoptionMetrics(dateRange),
-          analyticsService.getApplicationAnalytics(dateRange),
-          analyticsService.getPetPerformance(dateRange),
-          analyticsService.getResponseTimeMetrics(dateRange),
-          analyticsService.getStageDistribution(),
-        ]);
+      const [adoption, application, pet, responseTime, stages] = await Promise.allSettled([
+        analyticsService.getAdoptionMetrics(dateRange),
+        analyticsService.getApplicationAnalytics(dateRange),
+        analyticsService.getPetPerformance(dateRange),
+        analyticsService.getResponseTimeMetrics(dateRange),
+        analyticsService.getStageDistribution(),
+      ]);
 
-        if (!cancelled) {
-          setAdoptionMetrics(adoption);
-          setApplicationAnalytics(application);
-          setPetPerformance(pet);
-          setResponseTimeMetrics(responseTime);
-          setStageDistribution(stages);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error('Failed to fetch analytics:', err);
-          setError('Failed to load analytics data. Please try again.');
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      if (cancelled) {
+        return;
       }
+
+      if (adoption.status === 'fulfilled') {
+        setAdoptionMetrics(adoption.value);
+      } else {
+        console.error('Failed to fetch adoption metrics:', adoption.reason);
+      }
+
+      if (application.status === 'fulfilled') {
+        setApplicationAnalytics(application.value);
+      } else {
+        console.error('Failed to fetch application analytics:', application.reason);
+      }
+
+      if (pet.status === 'fulfilled') {
+        setPetPerformance(pet.value);
+      } else {
+        console.error('Failed to fetch pet performance:', pet.reason);
+      }
+
+      if (responseTime.status === 'fulfilled') {
+        setResponseTimeMetrics(responseTime.value);
+      } else {
+        console.error('Failed to fetch response time metrics:', responseTime.reason);
+      }
+
+      if (stages.status === 'fulfilled') {
+        setStageDistribution(stages.value);
+      } else {
+        console.error('Failed to fetch stage distribution:', stages.reason);
+      }
+
+      setLoading(false);
     };
 
     fetchAnalytics();
@@ -191,19 +209,6 @@ const Analytics: React.FC = () => {
       setSendingEmail(false);
     }
   };
-
-  if (error) {
-    return (
-      <div className={styles.pageContainer}>
-        <div className={styles.pageHeader}>
-          <Heading level="h1">Analytics & Reporting</Heading>
-        </div>
-        <div className={styles.errorState}>
-          <p>{error}</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={styles.pageContainer}>

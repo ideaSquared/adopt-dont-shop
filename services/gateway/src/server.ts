@@ -51,6 +51,7 @@ import { registerAuthenticate } from './middleware/authenticate.js';
 import { createEmailRateLimiter } from './routes/email-rate-limiter.js';
 import { registerApplicationDocumentsRoutes } from './routes/application-documents.js';
 import { registerAnalyticsRoutes } from './routes/analytics.js';
+import { registerAnalyticsMetricsRoutes } from './routes/analytics-metrics.js';
 import { registerAdminAnalyticsRoutes } from './routes/admin-analytics.js';
 import { registerApplicationsRoutes } from './routes/applications.js';
 import { registerAuditRoutes } from './routes/audit.js';
@@ -594,6 +595,16 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // implementation was log-only (winston → Loki, no DB). Folds here so
   // the SPA's analytics flushes don't pay an extra http-proxy hop.
   await registerAnalyticsRoutes(server, { logger });
+
+  // /api/v1/analytics/{adoption-metrics,application-analytics,
+  // pet-performance,stage-distribution} — the rescue SPA's Analytics
+  // dashboard. Composes pets + applications aggregation RPCs.
+  if (opts.petsClient && opts.applicationsClient) {
+    await registerAnalyticsMetricsRoutes(server, {
+      petsClient: opts.petsClient,
+      applicationsClient: opts.applicationsClient,
+    });
+  }
 
   // GDPR erasure-request route — only enabled when NATS is wired (real
   // boot always wires it; smoke tests that mount only /health/simple

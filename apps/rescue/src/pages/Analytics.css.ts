@@ -159,19 +159,6 @@ globalStyle(`${emptyState} p`, {
   margin: 0,
 });
 
-export const errorState = style({
-  textAlign: 'center',
-  padding: '2rem',
-  color: vars.colors.dangerHover,
-  background: vars.colors.dangerBgSubtle,
-  border: `1px solid ${vars.colors.dangerBorderSubtle}`,
-  borderRadius: '8px',
-});
-
-globalStyle(`${errorState} p`, {
-  margin: 0,
-});
-
 export const breedList = style({
   display: 'grid',
   gap: '1rem',

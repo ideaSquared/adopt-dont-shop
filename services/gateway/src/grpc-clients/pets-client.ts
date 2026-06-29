@@ -30,6 +30,8 @@ import {
   type GetPetResponse,
   type GetPetStatsRequest,
   type GetPetStatsResponse,
+  type GetTopBreedsByAdoptionsRequest,
+  type GetTopBreedsByAdoptionsResponse,
   type GetTopRescuesByAdoptionsRequest,
   type GetTopRescuesByAdoptionsResponse,
   type ListPetsRequest,
@@ -78,6 +80,10 @@ export type PetsClient = {
     req: GetTopRescuesByAdoptionsRequest,
     metadata: Metadata
   ): Promise<GetTopRescuesByAdoptionsResponse>;
+  getTopBreedsByAdoptions(
+    req: GetTopBreedsByAdoptionsRequest,
+    metadata: Metadata
+  ): Promise<GetTopBreedsByAdoptionsResponse>;
   close(): void;
 };
 
@@ -157,6 +163,8 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
     getAdoptionsByType: (req, metadata) => callUnary(stub.getAdoptionsByType, req, metadata, true),
     getTopRescuesByAdoptions: (req, metadata) =>
       callUnary(stub.getTopRescuesByAdoptions, req, metadata, true),
+    getTopBreedsByAdoptions: (req, metadata) =>
+      callUnary(stub.getTopBreedsByAdoptions, req, metadata, true),
     close: () => stub.close(),
   };
 };
