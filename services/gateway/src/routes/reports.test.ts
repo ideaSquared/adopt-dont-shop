@@ -272,6 +272,38 @@ describe('/api/v1/reports gateway routes', () => {
     expect(petsMocks.getAdoptionTrend.mock.calls[0][0].groupBy).toBe('month');
   });
 
+  it('POST /execute falls back to default keys when options request dangerous property names', async () => {
+    petsMocks.getAdoptionTrend.mockResolvedValue({
+      points: [{ date: '2026-01-01', count: 3 }],
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/execute',
+      headers: ADMIN_HEADERS,
+      payload: {
+        config: {
+          filters: {},
+          widgets: [
+            {
+              id: 'w1',
+              metric: 'adoption',
+              chartType: 'line',
+              options: { xKey: '__proto__', series: [{ key: 'constructor', label: 'x' }] },
+            },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      data: { widgets: Array<{ data: Array<Record<string, unknown>> }> };
+    };
+    const row = body.data.widgets[0].data[0];
+    expect(row).toEqual({ date: '2026-01-01', count: 3 });
+    expect(Object.prototype.hasOwnProperty.call(row, '__proto__')).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(row, 'constructor')).toBe(false);
+  });
+
   it('POST /execute computes a bar widget via applications.getStats', async () => {
     applicationsMocks.getStats.mockResolvedValue({
       total: 9,

@@ -154,10 +154,20 @@ function parseConfig(configJson: string | undefined): ReportConfigInput {
   }
 }
 
+// Widget `options` (xKey/seriesKey/labelKey/valueKey) are client-controlled
+// and used as computed property names below. Deny dangerous keys so they
+// can't be coerced into prototype-polluting property names if this output
+// is ever merged via Object.assign/spread by a downstream consumer.
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+function sanitizeKey(key: string, fallback: string): string {
+  return DANGEROUS_KEYS.has(key) ? fallback : key;
+}
+
 function seriesKeyFrom(options: Record<string, unknown>): string {
   const series = options.series;
   if (Array.isArray(series) && series.length > 0 && typeof series[0]?.key === 'string') {
-    return series[0].key;
+    return sanitizeKey(series[0].key, 'count');
   }
   return 'count';
 }
@@ -222,7 +232,7 @@ async function computeWidgetData(
       },
       metadata
     );
-    const xKey = typeof options.xKey === 'string' ? options.xKey : 'date';
+    const xKey = sanitizeKey(typeof options.xKey === 'string' ? options.xKey : 'date', 'date');
     const seriesKey = seriesKeyFrom(options);
     return res.points.map(p => ({ [xKey]: p.date, [seriesKey]: p.count }));
   }
@@ -232,8 +242,14 @@ async function computeWidgetData(
       { rescueIdFilter: filters.rescueId, startDate: filters.startDate, endDate: filters.endDate },
       metadata
     );
-    const labelKey = typeof options.labelKey === 'string' ? options.labelKey : 'type';
-    const valueKey = typeof options.valueKey === 'string' ? options.valueKey : 'count';
+    const labelKey = sanitizeKey(
+      typeof options.labelKey === 'string' ? options.labelKey : 'type',
+      'type'
+    );
+    const valueKey = sanitizeKey(
+      typeof options.valueKey === 'string' ? options.valueKey : 'count',
+      'count'
+    );
     return res.counts.map(c => ({ [labelKey]: petTypeLabel(c.type), [valueKey]: c.count }));
   }
 
@@ -246,7 +262,7 @@ async function computeWidgetData(
       },
       metadata
     );
-    const xKey = typeof options.xKey === 'string' ? options.xKey : 'status';
+    const xKey = sanitizeKey(typeof options.xKey === 'string' ? options.xKey : 'status', 'status');
     const seriesKey = seriesKeyFrom(options);
     return APPLICATION_STATUS_FIELDS.map(({ status, field }) => ({
       [xKey]: status,
@@ -265,7 +281,10 @@ async function computeWidgetData(
 
   if (metric === 'user' && chartType === 'metric-card') {
     const res = await clients.authClient.getUserStatistics({}, metadata);
-    const valueKey = typeof options.valueKey === 'string' ? options.valueKey : 'value';
+    const valueKey = sanitizeKey(
+      typeof options.valueKey === 'string' ? options.valueKey : 'value',
+      'value'
+    );
     const active = res.byStatus.find(s => s.status === AuthV1.UserStatus.USER_STATUS_ACTIVE);
     return [{ [valueKey]: active?.count ?? 0 }];
   }
