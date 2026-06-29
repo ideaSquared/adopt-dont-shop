@@ -166,6 +166,49 @@ export type RescueStaffInvitedEvent = {
   expiration: string;
 };
 
+// auth.userInvited — service.auth publishes when an admin creates a
+// pending user via CreateUser with send_invitation (Phase 2.4). Carries
+// the raw set-password token so a downstream worker could email the
+// redeem-invitation link. Phase 2.4b: log-only on the consumer side —
+// actually emailing the link needs a FRONTEND_URL config + a
+// redeem-invitation page in the SPA, neither of which exist yet. Same
+// deferral as RescueStaffInvitedEvent below.
+export type AuthUserInvitedEvent = {
+  userId: UserId;
+  email: string;
+  firstName: string;
+  role: string;
+  invitedBy: UserId;
+  token?: string;
+  sendInvitation: boolean;
+};
+
+// auth.accountDeletionRequested — service.auth publishes when an admin
+// schedules a GDPR Art. 17 deletion (Phase "Privacy Tools"). Unlike
+// auth.userInvited, the recipient is an existing user with a real email
+// on file, so this gets the full in-app + email treatment via the
+// existing ACCOUNT_SECURITY notification type (the email channel
+// adapter already routes that type to an inbox).
+export type AuthAccountDeletionRequestedEvent = {
+  userId: UserId;
+  requestedBy: UserId;
+  reason: string | null;
+  scheduledFor: string; // RFC 3339
+};
+
+// rescue.staffInvitationCancelled — service.rescue publishes when an
+// admin/rescue-lead cancels a pending staff invitation. Same log-only
+// treatment as RescueStaffInvitedEvent: the invitee never had an
+// account, so there's no in-app recipient, and an "invite cancelled"
+// email isn't critical enough to justify the missing link-building
+// infra called out on AuthUserInvitedEvent.
+export type RescueStaffInvitationCancelledEvent = {
+  invitationId: string;
+  rescueId: string;
+  email: string;
+  cancelledBy: string;
+};
+
 // chat.messageCreated — service.chat publishes after every committed
 // message insert. Payload mirrors what the gateway WS subscriber
 // already consumes; the notifications subscriber uses
