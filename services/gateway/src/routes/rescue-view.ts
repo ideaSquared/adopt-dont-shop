@@ -17,7 +17,7 @@ function token(toJSON: (v: number) => string, value: number, prefix: string): st
   return toJSON(value).slice(prefix.length).toLowerCase();
 }
 
-function parseSettings(json: string | undefined): Record<string, unknown> {
+export function parseSettings(json: string | undefined): Record<string, unknown> {
   if (!json || json === '{}') {
     return {};
   }

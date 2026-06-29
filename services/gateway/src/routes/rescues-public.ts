@@ -20,7 +20,7 @@ import {
 
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
-import { rescueDataEnvelope, rescueListEnvelope } from './rescue-view.js';
+import { parseSettings, rescueDataEnvelope, rescueListEnvelope } from './rescue-view.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 import { parsePagination } from '../middleware/pagination.js';
@@ -236,10 +236,10 @@ export const registerRescuesPublicRoutes = async (
     }
   );
 
-  // PUT /api/v1/rescues/:id — profile update. lib.rescue / app.rescue's
-  // Settings page write to the plural base path (matching the read routes
-  // above), unlike the singular /api/v1/rescue/:id PATCH route.
-  app.put<{ Params: { id: string }; Body: UpdateRescueBody }>(
+  // PUT /api/v1/rescues/:id — profile update. lib.rescue/app.rescue's
+  // RescueSettings page saves the profile form here (plural path, same
+  // base as every other rescue read above).
+  app.put<{ Params: { id: string } }>(
     '/api/v1/rescues/:id',
     {
       config: { rateLimit: RL_WRITE },
@@ -249,7 +249,7 @@ export const registerRescuesPublicRoutes = async (
       },
     },
     async (req, reply) => {
-      const grpcReq: UpdateRescueRequest = { rescueId: req.params.id, ...(req.body ?? {}) };
+      const grpcReq = buildUpdateRequest(req.params.id, req.body);
       try {
         const res = await client.update(grpcReq, buildMetadata(req));
         if (res.rescue === undefined) {
@@ -261,9 +261,66 @@ export const registerRescuesPublicRoutes = async (
       }
     }
   );
-};
 
-type UpdateRescueBody = Partial<Omit<UpdateRescueRequest, 'rescueId'>>;
+  // GET /api/v1/rescues/:id/adoption-policies — read the adoptionPolicies
+  // key out of the rescue's settings JSON blob.
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/rescues/:id/adoption-policies',
+    {
+      config: { rateLimit: RL_READ },
+      schema: {
+        tags: ['rescues'],
+        summary: "Get a rescue's adoption policies",
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.get({ rescueId: req.params.id }, buildMetadata(req));
+        if (res.rescue === undefined) {
+          return reply.code(404).send({ success: false, error: 'rescue not found' });
+        }
+        const settings = parseSettings(res.rescue.settingsJson);
+        return reply.send({ success: true, data: settings.adoptionPolicies ?? null });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  // PUT /api/v1/rescues/:id/adoption-policies — replace the adoptionPolicies
+  // key in settings, preserving the rest of the settings blob. UpdateRescue's
+  // settingsJson field replaces the whole blob, so we read-merge-write.
+  app.put<{ Params: { id: string } }>(
+    '/api/v1/rescues/:id/adoption-policies',
+    {
+      config: { rateLimit: RL_WRITE },
+      schema: {
+        tags: ['rescues'],
+        summary: "Update a rescue's adoption policies",
+      },
+    },
+    async (req, reply) => {
+      try {
+        const current = await client.get({ rescueId: req.params.id }, buildMetadata(req));
+        if (current.rescue === undefined) {
+          return reply.code(404).send({ success: false, error: 'rescue not found' });
+        }
+        const settings = parseSettings(current.rescue.settingsJson);
+        const merged = { ...settings, adoptionPolicies: req.body ?? {} };
+        const res = await client.update(
+          { rescueId: req.params.id, settingsJson: JSON.stringify(merged) },
+          buildMetadata(req)
+        );
+        if (res.rescue === undefined) {
+          return reply.code(404).send({ success: false, error: 'rescue not found' });
+        }
+        return reply.send({ success: true, data: merged.adoptionPolicies });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+};
 
 // --- Helpers ---------------------------------------------------------
 
@@ -292,6 +349,34 @@ function parseStatusFilter(raw: string): RescueV1.RescueStatus {
   } catch {
     return RescueV1.RescueStatus.RESCUE_STATUS_UNSPECIFIED;
   }
+}
+
+// app.rescue's RescueProfileForm posts a nested `address: { street, city,
+// county, postcode, country }` shape; UpdateRescueRequest wants those as
+// flat fields (address = street). Pick whichever the caller sent.
+function buildUpdateRequest(rescueId: string, body: unknown): UpdateRescueRequest {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const address = (b.address ?? {}) as Record<string, unknown>;
+  const str = (v: unknown): string | undefined =>
+    typeof v === 'string' && v !== '' ? v : undefined;
+
+  return {
+    rescueId,
+    name: str(b.name),
+    phone: str(b.phone),
+    address: str(address.street) ?? str(b.address),
+    city: str(address.city) ?? str(b.city),
+    county: str(address.county) ?? str(b.county),
+    postcode: str(address.postcode) ?? str(b.postcode),
+    country: str(address.country) ?? str(b.country),
+    website: str(b.website),
+    description: str(b.description),
+    mission: str(b.mission),
+    contactPerson: str(b.contactPerson ?? b.contact_person),
+    contactTitle: str(b.contactTitle ?? b.contact_title),
+    contactEmail: str(b.contactEmail ?? b.contact_email),
+    contactPhone: str(b.contactPhone ?? b.contact_phone),
+  };
 }
 
 async function createRescue(
