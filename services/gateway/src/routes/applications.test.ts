@@ -315,6 +315,23 @@ describe('applications routes', () => {
     });
   });
 
+  it('POST ignores a forged userId in the body — uses the authenticated principal (ADS-879)', async () => {
+    mocks.startDraft.mockResolvedValue({ application: { ...APP, version: 1 } });
+    mocks.saveDraftAnswers.mockResolvedValue({ application: { ...APP, version: 2 } });
+    mocks.submitDraft.mockResolvedValue({ application: SUBMITTED });
+
+    const payload = { userId: 'attacker-2', adopterId: 'attacker-2', petId: 'pet-1' };
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/applications',
+      headers: ADOPTER,
+      payload,
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(mocks.startDraft.mock.calls[0][0]).toEqual({ adopterId: 'usr-1', petId: 'pet-1' });
+  });
+
   it('PATCH /:id/status approved → Approve, returns the view', async () => {
     mocks.approve.mockResolvedValue({ application: SUBMITTED });
     const res = await app.inject({

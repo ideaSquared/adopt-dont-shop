@@ -36,6 +36,7 @@ import { handleGrpcError } from '../middleware/grpc-error.js';
 
 import { normalizeEmail, type EmailRateLimiter } from './email-rate-limiter.js';
 import { rolesToApi, withApiUser } from './auth-user-json.js';
+import { normalizeRegisterBody, RegisterBodySchema, toValidationFailure } from './auth.schemas.js';
 
 export type AuthRoutesOptions = {
   client: AuthClient;
@@ -284,22 +285,23 @@ export const registerAuthRoutes = async (
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = RegisterBodySchema.safeParse(normalizeRegisterBody(b));
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
+      const body = parsed.data;
       try {
         const res = await client.register(
           {
-            email: pickString(b, ['email'], ''),
-            password: pickString(b, ['password'], ''),
-            firstName: pickString(b, ['firstName', 'first_name'], ''),
-            lastName: pickString(b, ['lastName', 'last_name'], ''),
-            phoneNumber: pickString(b, ['phoneNumber', 'phone_number']),
+            email: body.email,
+            password: body.password,
+            firstName: body.firstName,
+            lastName: body.lastName,
+            phoneNumber: body.phoneNumber,
             ipAddress: req.ip,
             userAgent: req.headers['user-agent'],
-            termsAccepted: pickBool(b, ['termsAccepted', 'terms_accepted', 'acceptedTerms'], false),
-            privacyPolicyAccepted: pickBool(
-              b,
-              ['privacyPolicyAccepted', 'privacy_policy_accepted'],
-              false
-            ),
+            termsAccepted: body.termsAccepted,
+            privacyPolicyAccepted: body.privacyPolicyAccepted,
           },
           buildMetadata(req)
         );
@@ -653,25 +655,6 @@ function pickString(
     }
     if (typeof value !== 'string') {
       throw new BadRequestError(`${key} must be a string`);
-    }
-    return value;
-  }
-  return fallback;
-}
-
-// Boolean counterpart to pickString, preserving the `?? ?? false` chains.
-function pickBool(
-  body: Record<string, unknown>,
-  keys: readonly string[],
-  fallback: boolean
-): boolean {
-  for (const key of keys) {
-    const value = body[key];
-    if (!isPresent(value)) {
-      continue;
-    }
-    if (typeof value !== 'boolean') {
-      throw new BadRequestError(`${key} must be a boolean`);
     }
     return value;
   }
