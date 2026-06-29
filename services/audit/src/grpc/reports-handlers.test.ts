@@ -4,12 +4,14 @@ import { AuditV1 } from '@adopt-dont-shop/proto';
 
 import { type HandlerDeps } from './adapter.js';
 import {
+  createReportShare,
   createSavedReport,
   deleteSavedReport,
   getSavedReport,
   listReportTemplates,
   listSavedReports,
   updateSavedReport,
+  upsertReportSchedule,
 } from './reports-handlers.js';
 
 function makePrincipal(over: { userId?: string; roles?: string[]; permissions?: string[] } = {}) {
@@ -421,5 +423,188 @@ describe('listReportTemplates', () => {
     const sql = q.mock.calls[0][0] as string;
     expect(sql).toContain('rescue_id = $');
     expect(sql).toContain('OR rescue_id IS NULL');
+  });
+});
+
+function makeScheduleRow(over: Record<string, unknown> = {}) {
+  return {
+    schedule_id: 'sched-1',
+    saved_report_id: 'rep-1',
+    cron: '0 9 * * 1',
+    timezone: 'UTC',
+    recipients: [{ email: 'a@b.com' }],
+    format: 'pdf',
+    is_enabled: true,
+    last_run_at: null,
+    next_run_at: null,
+    last_status: null,
+    last_error: null,
+    created_at: new Date('2026-06-01T00:00:00Z'),
+    updated_at: new Date('2026-06-01T00:00:00Z'),
+    ...over,
+  };
+}
+
+describe('upsertReportSchedule', () => {
+  it('rejects without reports.update', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      upsertReportSchedule(deps, makePrincipal({ permissions: [] }), {
+        savedReportId: 'rep-1',
+        cron: '0 9 * * 1',
+        recipients: [],
+        format: AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('requires a non-empty cron', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      upsertReportSchedule(deps, makePrincipal({ permissions: ['reports.update'] }), {
+        savedReportId: 'rep-1',
+        cron: '   ',
+        recipients: [],
+        format: AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('hides foreign saved reports behind NOT_FOUND when caller lacks reports.update:any', async () => {
+    const q = vi.fn().mockResolvedValueOnce({ rows: [{ user_id: 'usr-2' }] });
+    const { deps } = makeDeps(q);
+    await expect(
+      upsertReportSchedule(deps, makePrincipal({ permissions: ['reports.update'] }), {
+        savedReportId: 'rep-1',
+        cron: '0 9 * * 1',
+        recipients: [],
+        format: AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF,
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('upserts the schedule and returns the row keyed on saved_report_id', async () => {
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] })
+      .mockResolvedValueOnce({ rows: [makeScheduleRow()] });
+    const { deps } = makeDeps(q);
+    const res = await upsertReportSchedule(
+      deps,
+      makePrincipal({ permissions: ['reports.update'] }),
+      {
+        savedReportId: 'rep-1',
+        cron: '0 9 * * 1',
+        recipients: [{ email: 'a@b.com' }],
+        format: AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF,
+      }
+    );
+    expect(res.schedule?.scheduleId).toBe('sched-1');
+    expect(res.schedule?.format).toBe(AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF);
+    const [sql, params] = q.mock.calls[1] as [string, unknown[]];
+    expect(sql).toContain('ON CONFLICT (saved_report_id) DO UPDATE');
+    expect(params[0]).toBe('rep-1');
+  });
+
+  it('defaults timezone to UTC when omitted', async () => {
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] })
+      .mockResolvedValueOnce({ rows: [makeScheduleRow()] });
+    const { deps } = makeDeps(q);
+    await upsertReportSchedule(deps, makePrincipal({ permissions: ['reports.update'] }), {
+      savedReportId: 'rep-1',
+      cron: '0 9 * * 1',
+      recipients: [],
+      format: AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF,
+    });
+    const params = q.mock.calls[1][1] as unknown[];
+    expect(params[2]).toBe('UTC');
+  });
+
+  it("admin with reports.update:any can upsert another user's schedule", async () => {
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-2' }] })
+      .mockResolvedValueOnce({ rows: [makeScheduleRow()] });
+    const { deps } = makeDeps(q);
+    await expect(
+      upsertReportSchedule(
+        deps,
+        makePrincipal({ permissions: ['reports.update', 'reports.update:any'] }),
+        {
+          savedReportId: 'rep-1',
+          cron: '0 9 * * 1',
+          recipients: [],
+          format: AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF,
+        }
+      )
+    ).resolves.toBeDefined();
+  });
+});
+
+function makeShareRow(over: Record<string, unknown> = {}) {
+  return {
+    share_id: 'share-1',
+    saved_report_id: 'rep-1',
+    share_type: 'token',
+    permission: 'view',
+    expires_at: null,
+    revoked_at: null,
+    created_at: new Date('2026-06-01T00:00:00Z'),
+    ...over,
+  };
+}
+
+describe('createReportShare', () => {
+  it('rejects without reports.update', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      createReportShare(deps, makePrincipal({ permissions: [] }), {
+        savedReportId: 'rep-1',
+        permission: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('hides foreign saved reports behind NOT_FOUND when caller lacks reports.update:any', async () => {
+    const q = vi.fn().mockResolvedValueOnce({ rows: [{ user_id: 'usr-2' }] });
+    const { deps } = makeDeps(q);
+    await expect(
+      createReportShare(deps, makePrincipal({ permissions: ['reports.update'] }), {
+        savedReportId: 'rep-1',
+        permission: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW,
+      })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('returns the plaintext token only in the response, persisting just its hash', async () => {
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] })
+      .mockResolvedValueOnce({ rows: [makeShareRow()] });
+    const { deps } = makeDeps(q);
+    const res = await createReportShare(deps, makePrincipal({ permissions: ['reports.update'] }), {
+      savedReportId: 'rep-1',
+      permission: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW,
+    });
+    expect(res.token).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(res.share?.shareId).toBe('share-1');
+    const insertParams = q.mock.calls[1][1] as unknown[];
+    expect(insertParams[1]).toBe('view');
+    expect(insertParams[2]).not.toBe(res.token); // stored value is the hash, not the plaintext
+  });
+
+  it('passes the EDIT permission through to the insert', async () => {
+    const q = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ user_id: 'usr-1' }] })
+      .mockResolvedValueOnce({ rows: [makeShareRow({ permission: 'edit' })] });
+    const { deps } = makeDeps(q);
+    const res = await createReportShare(deps, makePrincipal({ permissions: ['reports.update'] }), {
+      savedReportId: 'rep-1',
+      permission: AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_EDIT,
+    });
+    expect(res.share?.permission).toBe(AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_EDIT);
   });
 });

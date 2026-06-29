@@ -67,6 +67,15 @@ export async function getStats(
     params.push(principal.userId);
   }
 
+  if (req.createdAfter !== undefined && req.createdAfter !== '') {
+    where.push(`created_at >= $${p++}`);
+    params.push(req.createdAfter);
+  }
+  if (req.createdBefore !== undefined && req.createdBefore !== '') {
+    where.push(`created_at <= $${p++}`);
+    params.push(req.createdBefore);
+  }
+
   const sql = `
     SELECT status, COUNT(*) AS count
     FROM applications
