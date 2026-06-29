@@ -42,7 +42,7 @@
   "dependencies": {},
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "workspace:*",
-    "@types/node": "^26.0.0"
+    "@types/node": "^26.0.1"
   },
   "peerDependencies": {
     "typescript": "^6.0.0"
