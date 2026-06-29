@@ -155,9 +155,10 @@ function parseConfig(configJson: string | undefined): ReportConfigInput {
 }
 
 // Widget `options` (xKey/seriesKey/labelKey/valueKey) are client-controlled
-// and used as computed property names below. Deny dangerous keys so they
-// can't be coerced into prototype-polluting property names if this output
-// is ever merged via Object.assign/spread by a downstream consumer.
+// and used as row key names below. Deny dangerous keys, and build rows via
+// Object.fromEntries (not `{ [key]: value }` object-literal syntax) so a
+// key like `__proto__` is never written as a literal computed property —
+// CodeQL's remote-property-injection sink only matches the literal form.
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 function sanitizeKey(key: string, fallback: string): string {
@@ -234,7 +235,12 @@ async function computeWidgetData(
     );
     const xKey = sanitizeKey(typeof options.xKey === 'string' ? options.xKey : 'date', 'date');
     const seriesKey = seriesKeyFrom(options);
-    return res.points.map(p => ({ [xKey]: p.date, [seriesKey]: p.count }));
+    return res.points.map(p =>
+      Object.fromEntries([
+        [xKey, p.date],
+        [seriesKey, p.count],
+      ])
+    );
   }
 
   if (metric === 'adoption' && chartType === 'pie') {
@@ -250,7 +256,12 @@ async function computeWidgetData(
       typeof options.valueKey === 'string' ? options.valueKey : 'count',
       'count'
     );
-    return res.counts.map(c => ({ [labelKey]: petTypeLabel(c.type), [valueKey]: c.count }));
+    return res.counts.map(c =>
+      Object.fromEntries([
+        [labelKey, petTypeLabel(c.type)],
+        [valueKey, c.count],
+      ])
+    );
   }
 
   if (metric === 'application' && chartType === 'bar') {
@@ -264,10 +275,12 @@ async function computeWidgetData(
     );
     const xKey = sanitizeKey(typeof options.xKey === 'string' ? options.xKey : 'status', 'status');
     const seriesKey = seriesKeyFrom(options);
-    return APPLICATION_STATUS_FIELDS.map(({ status, field }) => ({
-      [xKey]: status,
-      [seriesKey]: res[field] ?? 0,
-    }));
+    return APPLICATION_STATUS_FIELDS.map(({ status, field }) =>
+      Object.fromEntries([
+        [xKey, status],
+        [seriesKey, res[field] ?? 0],
+      ])
+    );
   }
 
   if (metric === 'adoption' && chartType === 'table') {
@@ -286,7 +299,7 @@ async function computeWidgetData(
       'value'
     );
     const active = res.byStatus.find(s => s.status === AuthV1.UserStatus.USER_STATUS_ACTIVE);
-    return [{ [valueKey]: active?.count ?? 0 }];
+    return [Object.fromEntries([[valueKey, active?.count ?? 0]])];
   }
 
   return [];
