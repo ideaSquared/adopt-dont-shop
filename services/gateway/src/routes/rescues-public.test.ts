@@ -157,21 +157,83 @@ describe('rescues public routes', () => {
     expect(res.statusCode).toBe(201);
   });
 
-  it('PUT /api/v1/rescues/:id forwards the update payload and returns the envelope', async () => {
+  it('PUT /api/v1/rescues/:id updates the profile, unpacking nested address', async () => {
     mocks.update.mockResolvedValueOnce({ rescue: RESCUE });
     const res = await app.inject({
       method: 'PUT',
       url: '/api/v1/rescues/rsc-1',
-      payload: { name: 'Happy Tails Renamed', city: 'Leeds' },
+      payload: {
+        name: 'Happy Tails Renamed',
+        phone: '01234',
+        address: { street: '2 Lane', city: 'Leeds', postcode: 'LS1 1AA', country: 'GB' },
+      },
     });
     expect(res.statusCode).toBe(200);
-    const body = res.json() as { success: boolean; data: { rescue_id: string } };
-    expect(body.success).toBe(true);
-    expect(body.data.rescue_id).toBe('rsc-1');
     expect(mocks.update.mock.calls[0][0]).toMatchObject({
       rescueId: 'rsc-1',
       name: 'Happy Tails Renamed',
+      phone: '01234',
+      address: '2 Lane',
       city: 'Leeds',
+      postcode: 'LS1 1AA',
+      country: 'GB',
     });
+    expect((res.json() as { data: { rescue_id: string } }).data.rescue_id).toBe('rsc-1');
+  });
+
+  it('PUT /api/v1/rescues/:id 404s when the rescue does not exist', async () => {
+    mocks.update.mockResolvedValueOnce({ rescue: undefined });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/rescues/rsc-x',
+      payload: { name: 'Ghost' },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('GET /api/v1/rescues/:id/adoption-policies reads adoptionPolicies out of settings', async () => {
+    mocks.get.mockResolvedValueOnce({
+      rescue: {
+        ...RESCUE,
+        settingsJson: JSON.stringify({ adoptionPolicies: { requireHomeVisit: true } }),
+      },
+    });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/rescues/rsc-1/adoption-policies' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ success: true, data: { requireHomeVisit: true } });
+  });
+
+  it('GET /api/v1/rescues/:id/adoption-policies returns null when none are set', async () => {
+    mocks.get.mockResolvedValueOnce({ rescue: RESCUE });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/rescues/rsc-1/adoption-policies' });
+    expect(res.json()).toEqual({ success: true, data: null });
+  });
+
+  it('PUT /api/v1/rescues/:id/adoption-policies merges into settings without clobbering other keys', async () => {
+    mocks.get.mockResolvedValueOnce({
+      rescue: { ...RESCUE, settingsJson: JSON.stringify({ theme: 'dark' }) },
+    });
+    mocks.update.mockResolvedValueOnce({ rescue: RESCUE });
+    const policy = { requireHomeVisit: true, minimumReferenceCount: 2 };
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/rescues/rsc-1/adoption-policies',
+      payload: policy,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ success: true, data: policy });
+    const updateArg = mocks.update.mock.calls[0][0] as { rescueId: string; settingsJson: string };
+    expect(updateArg.rescueId).toBe('rsc-1');
+    expect(JSON.parse(updateArg.settingsJson)).toEqual({ theme: 'dark', adoptionPolicies: policy });
+  });
+
+  it('PUT /api/v1/rescues/:id/adoption-policies 404s when the rescue does not exist', async () => {
+    mocks.get.mockResolvedValueOnce({ rescue: undefined });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/rescues/rsc-x/adoption-policies',
+      payload: {},
+    });
+    expect(res.statusCode).toBe(404);
   });
 });
