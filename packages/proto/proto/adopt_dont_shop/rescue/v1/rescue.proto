@@ -187,6 +187,42 @@ service RescueService {
   // `rescue.staffInvitationCancelled` after commit.
   rpc CancelRescueInvitation(CancelRescueInvitationRequest)
       returns (CancelRescueInvitationResponse);
+
+  // --- Events ----------------------------------------------------------
+
+  // List events for the caller's rescue with optional filters. Caller
+  // MUST have `events.read` scoped to the rescue.
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+
+  // Fetch a single event by id. Caller MUST have `events.read`.
+  rpc GetEvent(GetEventRequest) returns (GetEventResponse);
+
+  // Create a new event. Caller MUST have `events.create` scoped to the
+  // rescue. New events start as drafts.
+  rpc CreateEvent(CreateEventRequest) returns (CreateEventResponse);
+
+  // Update mutable event fields. Caller MUST have `events.update`.
+  rpc UpdateEvent(UpdateEventRequest) returns (UpdateEventResponse);
+
+  // Soft-delete an event. Caller MUST have `events.delete`.
+  rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse);
+
+  // List attendees for an event. Caller MUST have `events.read`.
+  rpc GetEventAttendees(GetEventAttendeesRequest)
+      returns (GetEventAttendeesResponse);
+
+  // Register an attendee for an event. Caller MUST have `events.update`.
+  rpc AddEventAttendee(AddEventAttendeeRequest)
+      returns (AddEventAttendeeResponse);
+
+  // Mark an attendee as checked in. Caller MUST have `events.update`.
+  rpc CheckInAttendee(CheckInAttendeeRequest)
+      returns (CheckInAttendeeResponse);
+
+  // Get analytics for a completed or in-progress event. Caller MUST
+  // have `events.read`.
+  rpc GetEventAnalytics(GetEventAnalyticsRequest)
+      returns (GetEventAnalyticsResponse);
 }
 
 // --- ENUMs — value lists mirror the Postgres types verbatim ----------
@@ -717,4 +753,182 @@ message SendRescueEmailRequest {
 
 message SendRescueEmailResponse {
   bool queued = 1;
+}
+
+// ── Events ────────────────────────────────────────────────────────────
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_ADOPTION = 1;
+  EVENT_TYPE_FUNDRAISING = 2;
+  EVENT_TYPE_VOLUNTEER = 3;
+  EVENT_TYPE_COMMUNITY = 4;
+}
+
+enum EventStatus {
+  EVENT_STATUS_UNSPECIFIED = 0;
+  EVENT_STATUS_DRAFT = 1;
+  EVENT_STATUS_PUBLISHED = 2;
+  EVENT_STATUS_IN_PROGRESS = 3;
+  EVENT_STATUS_COMPLETED = 4;
+  EVENT_STATUS_CANCELLED = 5;
+}
+
+message EventLocation {
+  string type = 1;
+  optional string address = 2;
+  optional string city = 3;
+  optional string postcode = 4;
+  optional string virtual_link = 5;
+  optional string venue = 6;
+}
+
+message RescueEvent {
+  string id = 1;
+  string rescue_id = 2;
+  string name = 3;
+  string description = 4;
+  EventType type = 5;
+  string start_date = 6;
+  string end_date = 7;
+  EventLocation location = 8;
+  optional int32 capacity = 9;
+  bool registration_required = 10;
+  EventStatus status = 11;
+  repeated string featured_pets = 12;
+  repeated string assigned_staff = 13;
+  bool is_public = 14;
+  optional string image_url = 15;
+  int32 current_attendance = 16;
+  string created_at = 17;
+  string updated_at = 18;
+  optional string created_by = 19;
+}
+
+message RescueEventAttendee {
+  string user_id = 1;
+  string name = 2;
+  string email = 3;
+  string registered_at = 4;
+  bool checked_in = 5;
+  optional string checked_in_at = 6;
+  optional string notes = 7;
+}
+
+message RescueEventAnalytics {
+  string event_id = 1;
+  int32 total_registrations = 2;
+  int32 actual_attendance = 3;
+  double attendance_rate = 4;
+  int32 adoptions_from_event = 5;
+}
+
+message ListEventsRequest {
+  optional string type = 1;
+  optional string status = 2;
+  optional string start_date = 3;
+  optional string end_date = 4;
+  optional string search = 5;
+  optional string assigned_staff = 6;
+  optional bool is_public = 7;
+}
+
+message ListEventsResponse {
+  repeated RescueEvent events = 1;
+}
+
+message GetEventRequest {
+  string id = 1;
+}
+
+message GetEventResponse {
+  RescueEvent event = 1;
+}
+
+message CreateEventRequest {
+  string name = 1;
+  string description = 2;
+  EventType type = 3;
+  string start_date = 4;
+  string end_date = 5;
+  EventLocation location = 6;
+  optional int32 capacity = 7;
+  bool registration_required = 8;
+  repeated string featured_pets = 9;
+  repeated string assigned_staff = 10;
+  bool is_public = 11;
+  optional string image_url = 12;
+}
+
+message CreateEventResponse {
+  RescueEvent event = 1;
+}
+
+// All writable fields are optional to allow partial updates.
+// has_featured_pets / has_assigned_staff distinguish "send empty
+// array to clear" from "don't touch this field".
+message UpdateEventRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional EventType type = 4;
+  optional string start_date = 5;
+  optional string end_date = 6;
+  optional EventLocation location = 7;
+  optional int32 capacity = 8;
+  optional bool registration_required = 9;
+  repeated string featured_pets = 10;
+  bool has_featured_pets = 11;
+  repeated string assigned_staff = 12;
+  bool has_assigned_staff = 13;
+  optional bool is_public = 14;
+  optional string image_url = 15;
+  optional EventStatus status = 16;
+}
+
+message UpdateEventResponse {
+  RescueEvent event = 1;
+}
+
+message DeleteEventRequest {
+  string id = 1;
+}
+
+message DeleteEventResponse {}
+
+message GetEventAttendeesRequest {
+  string event_id = 1;
+}
+
+message GetEventAttendeesResponse {
+  repeated RescueEventAttendee attendees = 1;
+}
+
+message AddEventAttendeeRequest {
+  string event_id = 1;
+  string user_id = 2;
+  string name = 3;
+  string email = 4;
+  optional string notes = 5;
+}
+
+message AddEventAttendeeResponse {
+  RescueEventAttendee attendee = 1;
+}
+
+message CheckInAttendeeRequest {
+  string event_id = 1;
+  string user_id = 2;
+}
+
+message CheckInAttendeeResponse {
+  RescueEventAttendee attendee = 1;
+}
+
+message GetEventAnalyticsRequest {
+  string event_id = 1;
+}
+
+message GetEventAnalyticsResponse {
+  RescueEventAnalytics analytics = 1;
 }

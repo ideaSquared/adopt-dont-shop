@@ -15,20 +15,34 @@ import {
   RescueV1,
   type AcceptInvitationRequest,
   type AcceptInvitationResponse,
+  type AddEventAttendeeRequest,
+  type AddEventAttendeeResponse,
   type CancelRescueInvitationRequest,
   type CancelRescueInvitationResponse,
+  type CheckInAttendeeRequest,
+  type CheckInAttendeeResponse,
   type CountRescuesRequest,
   type CountRescuesResponse,
   type CreateApplicationQuestionRequest,
   type CreateApplicationQuestionResponse,
+  type CreateEventRequest,
+  type CreateEventResponse,
   type CreateFosterPlacementRequest,
   type CreateFosterPlacementResponse,
   type DeleteApplicationQuestionRequest,
   type DeleteApplicationQuestionResponse,
+  type DeleteEventRequest,
+  type DeleteEventResponse,
   type CreateRescueRequest,
   type CreateRescueResponse,
   type EndFosterPlacementRequest,
   type EndFosterPlacementResponse,
+  type GetEventAnalyticsRequest,
+  type GetEventAnalyticsResponse,
+  type GetEventAttendeesRequest,
+  type GetEventAttendeesResponse,
+  type GetEventRequest,
+  type GetEventResponse,
   type GetFosterPlacementRequest,
   type GetFosterPlacementResponse,
   type GetInvitationByTokenRequest,
@@ -41,6 +55,8 @@ import {
   type InviteStaffResponse,
   type ListApplicationQuestionsRequest,
   type ListApplicationQuestionsResponse,
+  type ListEventsRequest,
+  type ListEventsResponse,
   type ListFosterPlacementsRequest,
   type ListFosterPlacementsResponse,
   type ListRescueInvitationsRequest,
@@ -51,6 +67,8 @@ import {
   type ListStaffMembersResponse,
   type RemoveStaffMemberRequest,
   type RemoveStaffMemberResponse,
+  type UpdateEventRequest,
+  type UpdateEventResponse,
   type UpdateRescueRequest,
   type UpdateRescueResponse,
   type UpdateRescuePlanRequest,
@@ -143,6 +161,27 @@ export type RescueClient = {
     req: DeleteApplicationQuestionRequest,
     metadata: Metadata
   ): Promise<DeleteApplicationQuestionResponse>;
+  listEvents(req: ListEventsRequest, metadata: Metadata): Promise<ListEventsResponse>;
+  getEvent(req: GetEventRequest, metadata: Metadata): Promise<GetEventResponse>;
+  createEvent(req: CreateEventRequest, metadata: Metadata): Promise<CreateEventResponse>;
+  updateEvent(req: UpdateEventRequest, metadata: Metadata): Promise<UpdateEventResponse>;
+  deleteEvent(req: DeleteEventRequest, metadata: Metadata): Promise<DeleteEventResponse>;
+  getEventAttendees(
+    req: GetEventAttendeesRequest,
+    metadata: Metadata
+  ): Promise<GetEventAttendeesResponse>;
+  addEventAttendee(
+    req: AddEventAttendeeRequest,
+    metadata: Metadata
+  ): Promise<AddEventAttendeeResponse>;
+  checkInAttendee(
+    req: CheckInAttendeeRequest,
+    metadata: Metadata
+  ): Promise<CheckInAttendeeResponse>;
+  getEventAnalytics(
+    req: GetEventAnalyticsRequest,
+    metadata: Metadata
+  ): Promise<GetEventAnalyticsResponse>;
   close(): void;
 };
 
@@ -223,6 +262,11 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
     deleteApplicationQuestion: (req, metadata) =>
       callUnary(stub.deleteApplicationQuestion, req, metadata, false),
     acceptInvitation: (req, metadata) => callUnary(stub.acceptInvitation, req, metadata, false),
+    createEvent: (req, metadata) => callUnary(stub.createEvent, req, metadata, false),
+    updateEvent: (req, metadata) => callUnary(stub.updateEvent, req, metadata, false),
+    deleteEvent: (req, metadata) => callUnary(stub.deleteEvent, req, metadata, false),
+    addEventAttendee: (req, metadata) => callUnary(stub.addEventAttendee, req, metadata, false),
+    checkInAttendee: (req, metadata) => callUnary(stub.checkInAttendee, req, metadata, false),
     // ── Idempotent (reads) ───────────────────────────────────────────
     get: (req, metadata) => callUnary(stub.get, req, metadata, true),
     list: (req, metadata) => callUnary(stub.list, req, metadata, true),
@@ -241,6 +285,10 @@ export const createRescueClient = (opts: CreateRescueClientOptions): RescueClien
       callUnary(stub.getInvitationByToken, req, metadata, true),
     listApplicationQuestions: (req, metadata) =>
       callUnary(stub.listApplicationQuestions, req, metadata, true),
+    listEvents: (req, metadata) => callUnary(stub.listEvents, req, metadata, true),
+    getEvent: (req, metadata) => callUnary(stub.getEvent, req, metadata, true),
+    getEventAttendees: (req, metadata) => callUnary(stub.getEventAttendees, req, metadata, true),
+    getEventAnalytics: (req, metadata) => callUnary(stub.getEventAnalytics, req, metadata, true),
     close: () => stub.close(),
   };
 };
