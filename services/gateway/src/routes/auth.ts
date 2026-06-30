@@ -36,7 +36,23 @@ import { handleGrpcError } from '../middleware/grpc-error.js';
 
 import { normalizeEmail, type EmailRateLimiter } from './email-rate-limiter.js';
 import { rolesToApi, withApiUser } from './auth-user-json.js';
-import { normalizeRegisterBody, RegisterBodySchema, toValidationFailure } from './auth.schemas.js';
+import {
+  normalizeRegisterBody,
+  RegisterBodySchema,
+  toValidationFailure,
+  normalizeVerifyEmailBody,
+  VerifyEmailBodySchema,
+  ForgotPasswordBodySchema,
+  ResendVerificationBodySchema,
+  normalizeResetPasswordBody,
+  ResetPasswordBodySchema,
+  normalizeRedeemInvitationBody,
+  RedeemInvitationBodySchema,
+  normalizeChangePasswordBody,
+  ChangePasswordBodySchema,
+  normalizeUpdateAccountBody,
+  UpdateAccountBodySchema,
+} from './auth.schemas.js';
 
 export type AuthRoutesOptions = {
   client: AuthClient;
@@ -328,19 +344,18 @@ export const registerAuthRoutes = async (
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = VerifyEmailBodySchema.safeParse(normalizeVerifyEmailBody(b));
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
       try {
         const res = await client.verifyEmail(
-          {
-            verificationToken: pickString(b, ['verificationToken', 'verification_token'], ''),
-          },
+          { verificationToken: parsed.data.verificationToken },
           buildMetadata(req)
         );
         const json = AuthV1.VerifyEmailResponse.toJSON(res) as Record<string, unknown>;
         return reply.send(withApiUser(json, res.user));
       } catch (err) {
-        if (err instanceof BadRequestError) {
-          return reply.code(400).send({ error: err.message });
-        }
         return handleGrpcError(err, reply);
       }
     }
@@ -359,16 +374,17 @@ export const registerAuthRoutes = async (
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = ResendVerificationBodySchema.safeParse(b);
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
       try {
         const res = await client.resendVerification(
-          { email: pickString(b, ['email'], '') },
+          { email: parsed.data.email },
           buildMetadata(req)
         );
         return reply.send(AuthV1.ResendVerificationResponse.toJSON(res));
       } catch (err) {
-        if (err instanceof BadRequestError) {
-          return reply.code(400).send({ error: err.message });
-        }
         return handleGrpcError(err, reply);
       }
     }
@@ -387,16 +403,14 @@ export const registerAuthRoutes = async (
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = ForgotPasswordBodySchema.safeParse(b);
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
       try {
-        const res = await client.forgotPassword(
-          { email: pickString(b, ['email'], '') },
-          buildMetadata(req)
-        );
+        const res = await client.forgotPassword({ email: parsed.data.email }, buildMetadata(req));
         return reply.send(AuthV1.ForgotPasswordResponse.toJSON(res));
       } catch (err) {
-        if (err instanceof BadRequestError) {
-          return reply.code(400).send({ error: err.message });
-        }
         return handleGrpcError(err, reply);
       }
     }
@@ -417,19 +431,20 @@ export const registerAuthRoutes = async (
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = ResetPasswordBodySchema.safeParse(normalizeResetPasswordBody(b));
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
       try {
         const res = await client.resetPassword(
           {
-            resetToken: pickString(b, ['resetToken', 'reset_token'], ''),
-            newPassword: pickString(b, ['newPassword', 'new_password'], ''),
+            resetToken: parsed.data.resetToken,
+            newPassword: parsed.data.newPassword,
           },
           buildMetadata(req)
         );
         return reply.send(AuthV1.ResetPasswordResponse.toJSON(res));
       } catch (err) {
-        if (err instanceof BadRequestError) {
-          return reply.code(400).send({ error: err.message });
-        }
         return handleGrpcError(err, reply);
       }
     }
@@ -450,20 +465,21 @@ export const registerAuthRoutes = async (
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = RedeemInvitationBodySchema.safeParse(normalizeRedeemInvitationBody(b));
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
       try {
         const res = await client.redeemInvitation(
           {
-            invitationToken: pickString(b, ['invitationToken', 'invitation_token'], ''),
-            newPassword: pickString(b, ['newPassword', 'new_password'], ''),
+            invitationToken: parsed.data.invitationToken,
+            newPassword: parsed.data.newPassword,
           },
           buildMetadata(req)
         );
         const json = AuthV1.RedeemInvitationResponse.toJSON(res) as Record<string, unknown>;
         return reply.send(withApiUser(json, res.user));
       } catch (err) {
-        if (err instanceof BadRequestError) {
-          return reply.code(400).send({ error: err.message });
-        }
         return handleGrpcError(err, reply);
       }
     }
@@ -480,19 +496,20 @@ export const registerAuthRoutes = async (
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = ChangePasswordBodySchema.safeParse(normalizeChangePasswordBody(b));
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
       try {
         const res = await client.changePassword(
           {
-            currentPassword: pickString(b, ['currentPassword', 'current_password'], ''),
-            newPassword: pickString(b, ['newPassword', 'new_password'], ''),
+            currentPassword: parsed.data.currentPassword,
+            newPassword: parsed.data.newPassword,
           },
           buildMetadata(req)
         );
         return reply.send(AuthV1.ChangePasswordResponse.toJSON(res));
       } catch (err) {
-        if (err instanceof BadRequestError) {
-          return reply.code(400).send({ error: err.message });
-        }
         return handleGrpcError(err, reply);
       }
     }
@@ -575,29 +592,15 @@ export const registerAuthRoutes = async (
     },
     async (req, reply) => {
       const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = UpdateAccountBodySchema.safeParse(normalizeUpdateAccountBody(b));
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
       try {
-        const res = await client.updateAccount(
-          {
-            firstName: pickString(b, ['firstName', 'first_name']),
-            lastName: pickString(b, ['lastName', 'last_name']),
-            phoneNumber: pickString(b, ['phoneNumber', 'phone_number']),
-            bio: pickString(b, ['bio']),
-            timezone: pickString(b, ['timezone']),
-            language: pickString(b, ['language']),
-            country: pickString(b, ['country']),
-            city: pickString(b, ['city']),
-            addressLine1: pickString(b, ['addressLine1', 'address_line_1']),
-            addressLine2: pickString(b, ['addressLine2', 'address_line_2']),
-            postalCode: pickString(b, ['postalCode', 'postal_code']),
-          },
-          buildMetadata(req)
-        );
+        const res = await client.updateAccount(parsed.data, buildMetadata(req));
         const json = AuthV1.UpdateAccountResponse.toJSON(res) as Record<string, unknown>;
         return reply.send(withApiUser(json, res.user));
       } catch (err) {
-        if (err instanceof BadRequestError) {
-          return reply.code(400).send({ error: err.message });
-        }
         return handleGrpcError(err, reply);
       }
     }
@@ -627,39 +630,11 @@ export const registerAuthRoutes = async (
 
 // --- Helpers ---------------------------------------------------------
 
-// Thrown by the body parsers below when a present field carries the wrong
-// type. Caught per-handler and mapped to a 400 — a non-string smuggled into a
-// string proto field is a client error, not a downstream INTERNAL.
+// Thrown when a present field carries the wrong type. Caught in the /register
+// handler and mapped to a 400 — a non-string smuggled into a string proto field
+// is a client error, not a downstream INTERNAL. (The other routes now use Zod
+// schemas instead of pickString, so they no longer throw this.)
 class BadRequestError extends Error {}
-
-const isPresent = (v: unknown): boolean => v !== undefined && v !== null;
-
-// Resolve a string from the first present key (camelCase preferred, then any
-// aliases), preserving the `firstName ?? first_name ?? fallback` semantics. A
-// present-but-non-string value is rejected rather than silently forwarded.
-function pickString(
-  body: Record<string, unknown>,
-  keys: readonly string[],
-  fallback: string
-): string;
-function pickString(body: Record<string, unknown>, keys: readonly string[]): string | undefined;
-function pickString(
-  body: Record<string, unknown>,
-  keys: readonly string[],
-  fallback?: string
-): string | undefined {
-  for (const key of keys) {
-    const value = body[key];
-    if (!isPresent(value)) {
-      continue;
-    }
-    if (typeof value !== 'string') {
-      throw new BadRequestError(`${key} must be a string`);
-    }
-    return value;
-  }
-  return fallback;
-}
 
 // Accept the canonical DB role string (`adopter`, `rescue_staff`, …)
 // OR the SCREAMING proto form (`USER_ROLE_ADOPTER`). The handler's
