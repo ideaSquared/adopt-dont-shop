@@ -843,6 +843,345 @@ describe('auth account-lifecycle input validation (ADS-853)', () => {
   });
 });
 
+describe('auth account-lifecycle input validation (ADS-879)', () => {
+  it('POST /auth/verify-email rejects a missing token with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/verify-email',
+        payload: {},
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({ error: 'Invalid request body' });
+      expect(m.verifyEmailMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/verify-email rejects an overlength token with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/verify-email',
+        payload: { verificationToken: 'x'.repeat(513) },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.verifyEmailMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/verify-email accepts the snake_case alias', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.verifyEmailMock.mockResolvedValueOnce({});
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/verify-email',
+        payload: { verification_token: 'valid-token' },
+      });
+      expect(m.verifyEmailMock.mock.calls[0][0].verificationToken).toBe('valid-token');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/forgot-password rejects a missing email with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/forgot-password',
+        payload: {},
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({ error: 'Invalid request body' });
+      expect(m.forgotPasswordMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/forgot-password rejects an invalid email format with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/forgot-password',
+        payload: { email: 'not-an-email' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.forgotPasswordMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/resend-verification rejects a missing email with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/resend-verification',
+        payload: {},
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({ error: 'Invalid request body' });
+      expect(m.resendVerificationMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/resend-verification rejects an invalid email format with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/resend-verification',
+        payload: { email: 'not-an-email' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.resendVerificationMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/resend-verification passes a valid email through to the gRPC stub', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.resendVerificationMock.mockResolvedValueOnce({});
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/resend-verification',
+        payload: { email: 'user@example.com' },
+      });
+      expect(m.resendVerificationMock.mock.calls[0][0].email).toBe('user@example.com');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/reset-password rejects a missing resetToken with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/reset-password',
+        payload: { newPassword: 'longenoughpw' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.resetPasswordMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/reset-password rejects a too-short newPassword with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/reset-password',
+        payload: { resetToken: 'tok', newPassword: 'short' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.resetPasswordMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/reset-password accepts snake_case aliases', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.resetPasswordMock.mockResolvedValueOnce({});
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/reset-password',
+        payload: { reset_token: 'tok', new_password: 'longenoughpw' },
+      });
+      expect(m.resetPasswordMock.mock.calls[0][0]).toMatchObject({
+        resetToken: 'tok',
+        newPassword: 'longenoughpw',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/redeem-invitation rejects a missing invitationToken with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/redeem-invitation',
+        payload: { newPassword: 'longenoughpw' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({ error: 'Invalid request body' });
+      expect(m.redeemInvitationMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/redeem-invitation rejects a too-short newPassword with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/redeem-invitation',
+        payload: { invitationToken: 'tok', newPassword: 'short' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.redeemInvitationMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/redeem-invitation accepts snake_case aliases', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.redeemInvitationMock.mockResolvedValueOnce({ user: { userId: 'u1' } });
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/redeem-invitation',
+        payload: { invitation_token: 'tok', new_password: 'longenoughpw' },
+      });
+      expect(m.redeemInvitationMock.mock.calls[0][0]).toMatchObject({
+        invitationToken: 'tok',
+        newPassword: 'longenoughpw',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/change-password rejects a missing currentPassword with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/change-password',
+        payload: { newPassword: 'longenoughpw' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.changePasswordMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/change-password rejects a too-short newPassword with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/change-password',
+        payload: { currentPassword: 'old', newPassword: 'short' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.changePasswordMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/change-password accepts snake_case aliases', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.changePasswordMock.mockResolvedValueOnce({});
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/change-password',
+        payload: { current_password: 'old', new_password: 'longenoughpw' },
+      });
+      expect(m.changePasswordMock.mock.calls[0][0]).toMatchObject({
+        currentPassword: 'old',
+        newPassword: 'longenoughpw',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('PATCH /users/account rejects an overlength firstName with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/users/account',
+        payload: { firstName: 'x'.repeat(101) },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.updateAccountMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('PATCH /users/account rejects an overlength bio with 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/users/account',
+        payload: { bio: 'x'.repeat(1001) },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(m.updateAccountMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('PATCH /users/account accepts snake_case aliases and passes validated fields through', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.updateAccountMock.mockResolvedValueOnce({});
+      await app.inject({
+        method: 'PATCH',
+        url: '/api/v1/users/account',
+        payload: { first_name: 'Alice', last_name: 'Smith', timezone: 'Europe/London' },
+      });
+      expect(m.updateAccountMock.mock.calls[0][0]).toMatchObject({
+        firstName: 'Alice',
+        lastName: 'Smith',
+        timezone: 'Europe/London',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+});
+
 describe('auth rate limiting (ADS-844)', () => {
   it('throttles a per-EMAIL flood spread across many IPs', async () => {
     const m = makeClient();
