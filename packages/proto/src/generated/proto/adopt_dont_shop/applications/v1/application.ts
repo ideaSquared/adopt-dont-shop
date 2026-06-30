@@ -347,6 +347,13 @@ export interface GetStatsRequest {
    */
   rescueIdFilter?: string | undefined;
   adopterIdFilter?: string | undefined;
+  /**
+   * Inclusive lower / upper bounds on created_at. Used by the report
+   * builder's "application funnel" widget to scope counts to the
+   * report's date-range filter; omit either for an open-ended range.
+   */
+  createdAfter?: string | undefined;
+  createdBefore?: string | undefined;
 }
 
 export interface GetStatsResponse {
@@ -3102,7 +3109,12 @@ export const ListApplicationsResponse: MessageFns<ListApplicationsResponse> = {
 };
 
 function createBaseGetStatsRequest(): GetStatsRequest {
-  return { rescueIdFilter: undefined, adopterIdFilter: undefined };
+  return {
+    rescueIdFilter: undefined,
+    adopterIdFilter: undefined,
+    createdAfter: undefined,
+    createdBefore: undefined,
+  };
 }
 
 export const GetStatsRequest: MessageFns<GetStatsRequest> = {
@@ -3112,6 +3124,12 @@ export const GetStatsRequest: MessageFns<GetStatsRequest> = {
     }
     if (message.adopterIdFilter !== undefined) {
       writer.uint32(18).string(message.adopterIdFilter);
+    }
+    if (message.createdAfter !== undefined) {
+      writer.uint32(26).string(message.createdAfter);
+    }
+    if (message.createdBefore !== undefined) {
+      writer.uint32(34).string(message.createdBefore);
     }
     return writer;
   },
@@ -3139,6 +3157,22 @@ export const GetStatsRequest: MessageFns<GetStatsRequest> = {
           message.adopterIdFilter = reader.string();
           continue;
         }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.createdAfter = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.createdBefore = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -3160,6 +3194,16 @@ export const GetStatsRequest: MessageFns<GetStatsRequest> = {
         : isSet(object.adopter_id_filter)
           ? globalThis.String(object.adopter_id_filter)
           : undefined,
+      createdAfter: isSet(object.createdAfter)
+        ? globalThis.String(object.createdAfter)
+        : isSet(object.created_after)
+          ? globalThis.String(object.created_after)
+          : undefined,
+      createdBefore: isSet(object.createdBefore)
+        ? globalThis.String(object.createdBefore)
+        : isSet(object.created_before)
+          ? globalThis.String(object.created_before)
+          : undefined,
     };
   },
 
@@ -3171,6 +3215,12 @@ export const GetStatsRequest: MessageFns<GetStatsRequest> = {
     if (message.adopterIdFilter !== undefined) {
       obj.adopterIdFilter = message.adopterIdFilter;
     }
+    if (message.createdAfter !== undefined) {
+      obj.createdAfter = message.createdAfter;
+    }
+    if (message.createdBefore !== undefined) {
+      obj.createdBefore = message.createdBefore;
+    }
     return obj;
   },
 
@@ -3181,6 +3231,8 @@ export const GetStatsRequest: MessageFns<GetStatsRequest> = {
     const message = createBaseGetStatsRequest();
     message.rescueIdFilter = object.rescueIdFilter ?? undefined;
     message.adopterIdFilter = object.adopterIdFilter ?? undefined;
+    message.createdAfter = object.createdAfter ?? undefined;
+    message.createdBefore = object.createdBefore ?? undefined;
     return message;
   },
 };

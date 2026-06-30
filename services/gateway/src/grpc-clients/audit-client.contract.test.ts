@@ -20,10 +20,14 @@ import {
 
 import {
   AuditV1,
+  type AuditCreateReportShareRequest,
+  type AuditCreateReportShareResponse,
   type AuditGetByTargetRequest,
   type AuditGetByTargetResponse,
   type AuditQueryRequest,
   type AuditQueryResponse,
+  type AuditUpsertReportScheduleRequest,
+  type AuditUpsertReportScheduleResponse,
 } from '@adopt-dont-shop/proto';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -55,6 +59,8 @@ const makeHandlers = (
   deleteSavedReport: unimplemented,
   listReportTemplates: unimplemented,
   getGdprErasureRequest: unimplemented,
+  upsertReportSchedule: unimplemented,
+  createReportShare: unimplemented,
   ...overrides,
 });
 
@@ -151,7 +157,93 @@ describe('audit-client — gRPC contract', () => {
     }
   });
 
-  // ── 3. Error contract ────────────────────────────────────────────
+  // ── 3. Write: upsertReportSchedule ───────────────────────────────
+
+  it('upsertReportSchedule — request savedReportId arrives and response round-trips', async () => {
+    const want: AuditUpsertReportScheduleResponse = {
+      schedule: {
+        scheduleId: 'sched-1',
+        savedReportId: 'report-1',
+        cron: '0 9 * * 1',
+        timezone: 'UTC',
+        format: 1,
+        recipients: [],
+        isEnabled: true,
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    };
+    let receivedSavedReportId = '';
+
+    port = await startServer(
+      makeHandlers({
+        upsertReportSchedule: (
+          call: ServerUnaryCall<
+            AuditUpsertReportScheduleRequest,
+            AuditUpsertReportScheduleResponse
+          >,
+          cb: sendUnaryData<AuditUpsertReportScheduleResponse>
+        ) => {
+          receivedSavedReportId = call.request.savedReportId;
+          cb(null, want);
+        },
+      })
+    );
+
+    const client = createAuditClient({ address: `127.0.0.1:${port}` });
+    try {
+      const result = await client.upsertReportSchedule(
+        { savedReportId: 'report-1', cron: '0 9 * * 1', format: 1, recipients: [] },
+        new Metadata()
+      );
+      expect(receivedSavedReportId).toBe('report-1');
+      expect(result.schedule?.scheduleId).toBe('sched-1');
+    } finally {
+      client.close();
+    }
+  });
+
+  // ── 4. Write: createReportShare ──────────────────────────────────
+
+  it('createReportShare — request savedReportId arrives and response round-trips', async () => {
+    const want: AuditCreateReportShareResponse = {
+      share: {
+        shareId: 'share-1',
+        savedReportId: 'report-1',
+        shareType: 'token',
+        permission: 1,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+      token: 'plaintext-token',
+    };
+    let receivedSavedReportId = '';
+
+    port = await startServer(
+      makeHandlers({
+        createReportShare: (
+          call: ServerUnaryCall<AuditCreateReportShareRequest, AuditCreateReportShareResponse>,
+          cb: sendUnaryData<AuditCreateReportShareResponse>
+        ) => {
+          receivedSavedReportId = call.request.savedReportId;
+          cb(null, want);
+        },
+      })
+    );
+
+    const client = createAuditClient({ address: `127.0.0.1:${port}` });
+    try {
+      const result = await client.createReportShare(
+        { savedReportId: 'report-1', permission: 1 },
+        new Metadata()
+      );
+      expect(receivedSavedReportId).toBe('report-1');
+      expect(result.token).toBe('plaintext-token');
+    } finally {
+      client.close();
+    }
+  });
+
+  // ── 5. Error contract ────────────────────────────────────────────
 
   it('query — PERMISSION_DENIED from the server surfaces with .code intact', async () => {
     port = await startServer(

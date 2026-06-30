@@ -102,6 +102,13 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/api-auth-contract.spec.ts',
     '**/logout-flow.spec.ts',
     '**/rate-limit-application-submission.spec.ts',
+    // ADS-801 (Batch C / ADS-868): profile-update-persistence was re-parked
+    // because authService.updateProfile called PUT /api/v1/auth/me, a route
+    // that does not exist in the gateway (the real route is
+    // PATCH /api/v1/users/account). Fixed in lib.auth — updateProfile now
+    // calls PATCH /users/account and unwraps the { user } envelope the
+    // gateway returns.
+    '**/profile-update-persistence.spec.ts',
     // ADS-870 — PARKED (files retained, not listed): three UI journeys that
     // fail in CI on causes only reproducible with the full docker stack UP,
     // which can't be run in the un-parking environment:
@@ -120,16 +127,6 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     //   `{ questions }`), the custom question still doesn't render on /apply in
     //   CI (spec line 69) — a second cause that needs runtime debugging.
     // Un-park each once reproduced green against a live stack (tracked ADS-870).
-    // profile-update-persistence: RE-PARKED. Investigation showed the root
-    // cause is deeper than a stale cache: the SPA's profile save calls
-    // authService.updateProfile → PUT /api/v1/auth/me, but the gateway has no
-    // such route (server.ts's catch-all returns 404 for PUT /api/*; the real
-    // persistence route is PATCH /api/v1/users/account). So the bio never
-    // persists and the round-trip can't succeed. The correct fix re-points
-    // updateProfile to PATCH /users/account AND refetches the user (and resyncs
-    // ProfileEditForm's snapshot) — a shared-lib.auth change with admin/rescue
-    // blast radius and existing tests asserting the PUT-/auth/me flow, so it
-    // needs runtime verification before landing. Tracked under ADS-868.
   ],
   rescue: [
     // ADS-866 (batch A2) — rescue-staff journeys, unblocked by the ADS-863

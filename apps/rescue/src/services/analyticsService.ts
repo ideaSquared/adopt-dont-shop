@@ -18,7 +18,7 @@ export interface AdoptionMetrics {
     date: string;
     count: number;
   }[];
-  comparisonPeriod?: {
+  comparisonPeriod: {
     totalAdoptions: number;
     successRate: number;
     percentageChange: number;
@@ -32,15 +32,6 @@ export interface ApplicationAnalytics {
     conversionRate: number;
     applicationsCount: number;
   }[];
-  averageTimePerStage: {
-    stage: string;
-    averageHours: number;
-  }[];
-  bottlenecks: {
-    stage: string;
-    delayHours: number;
-    severity: 'low' | 'medium' | 'high';
-  }[];
 }
 
 export interface PetPerformance {
@@ -48,15 +39,6 @@ export interface PetPerformance {
     breed: string;
     count: number;
     averageAdoptionTime: number;
-  }[];
-  adoptionRatesBySpecies: {
-    species: string;
-    adoptionRate: number;
-    totalCount: number;
-  }[];
-  averageTimeToAdoption: {
-    species: string;
-    days: number;
   }[];
 }
 
@@ -126,8 +108,7 @@ export class AnalyticsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch adoption metrics:', error);
-      // Return mock data for development
-      return this.getMockAdoptionMetrics(dateRange);
+      throw error;
     }
   }
 
@@ -148,7 +129,7 @@ export class AnalyticsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch application analytics:', error);
-      return this.getMockApplicationAnalytics();
+      throw error;
     }
   }
 
@@ -169,7 +150,7 @@ export class AnalyticsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch pet performance:', error);
-      return this.getMockPetPerformance();
+      throw error;
     }
   }
 
@@ -190,7 +171,7 @@ export class AnalyticsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch response time metrics:', error);
-      return this.getMockResponseTimeMetrics();
+      throw error;
     }
   }
 
@@ -206,7 +187,7 @@ export class AnalyticsService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch stage distribution:', error);
-      return this.getMockStageDistribution();
+      throw error;
     }
   }
 
@@ -307,140 +288,6 @@ export class AnalyticsService {
       console.error('Failed to delete custom report:', error);
       throw error;
     }
-  }
-
-  // Mock data methods for development
-
-  private getMockAdoptionMetrics(dateRange: DateRange): AdoptionMetrics {
-    const days = Math.ceil(
-      (dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    const trends = Array.from({ length: Math.min(days, 30) }, (_, i) => {
-      const date = new Date(dateRange.start);
-      date.setDate(date.getDate() + i);
-      return {
-        date: date.toISOString().split('T')[0],
-        count: Math.floor(Math.random() * 10) + 1,
-      };
-    });
-
-    const totalAdoptions = trends.reduce((sum, t) => sum + t.count, 0);
-
-    return {
-      totalAdoptions,
-      successRate: 78.5,
-      averageTimeToAdoption: 14.2,
-      adoptionTrends: trends,
-      comparisonPeriod: {
-        totalAdoptions: Math.floor(totalAdoptions * 0.85),
-        successRate: 72.3,
-        percentageChange: 15.2,
-      },
-    };
-  }
-
-  private getMockApplicationAnalytics(): ApplicationAnalytics {
-    return {
-      totalApplications: 156,
-      conversionRateByStage: [
-        { stage: 'Submitted', conversionRate: 100, applicationsCount: 156 },
-        { stage: 'Under Review', conversionRate: 82.1, applicationsCount: 128 },
-        { stage: 'Interview Scheduled', conversionRate: 71.8, applicationsCount: 112 },
-        { stage: 'Home Visit', conversionRate: 58.3, applicationsCount: 91 },
-        { stage: 'Approved', conversionRate: 48.1, applicationsCount: 75 },
-        { stage: 'Adopted', conversionRate: 42.3, applicationsCount: 66 },
-      ],
-      averageTimePerStage: [
-        { stage: 'Submitted', averageHours: 2.5 },
-        { stage: 'Under Review', averageHours: 48.0 },
-        { stage: 'Interview Scheduled', averageHours: 72.0 },
-        { stage: 'Home Visit', averageHours: 96.0 },
-        { stage: 'Approved', averageHours: 24.0 },
-      ],
-      bottlenecks: [
-        { stage: 'Home Visit', delayHours: 120.5, severity: 'high' },
-        { stage: 'Interview Scheduled', delayHours: 85.2, severity: 'medium' },
-        { stage: 'Under Review', delayHours: 52.8, severity: 'low' },
-      ],
-    };
-  }
-
-  private getMockPetPerformance(): PetPerformance {
-    return {
-      mostPopularBreeds: [
-        { breed: 'Labrador Retriever', count: 24, averageAdoptionTime: 12.5 },
-        { breed: 'Domestic Shorthair', count: 18, averageAdoptionTime: 15.2 },
-        { breed: 'German Shepherd', count: 15, averageAdoptionTime: 18.7 },
-        { breed: 'Siamese', count: 12, averageAdoptionTime: 14.1 },
-        { breed: 'Golden Retriever', count: 10, averageAdoptionTime: 10.3 },
-      ],
-      adoptionRatesBySpecies: [
-        { species: 'Dog', adoptionRate: 82.5, totalCount: 145 },
-        { species: 'Cat', adoptionRate: 75.3, totalCount: 98 },
-        { species: 'Rabbit', adoptionRate: 68.2, totalCount: 22 },
-        { species: 'Other', adoptionRate: 55.6, totalCount: 18 },
-      ],
-      averageTimeToAdoption: [
-        { species: 'Dog', days: 14.2 },
-        { species: 'Cat', days: 16.8 },
-        { species: 'Rabbit', days: 21.5 },
-        { species: 'Other', days: 28.3 },
-      ],
-    };
-  }
-
-  private getMockResponseTimeMetrics(): ResponseTimeMetrics {
-    return {
-      averageResponseTime: 18.5,
-      slaCompliance: 87.3,
-      responseTimeByStage: [
-        { stage: 'Initial Review', averageHours: 4.2, slaTarget: 24 },
-        { stage: 'Interview Response', averageHours: 12.5, slaTarget: 48 },
-        { stage: 'Home Visit Scheduling', averageHours: 36.8, slaTarget: 72 },
-        { stage: 'Final Decision', averageHours: 8.3, slaTarget: 24 },
-      ],
-      staffPerformance: [
-        {
-          staffId: '1',
-          staffName: 'Sarah Johnson',
-          averageResponseTime: 12.3,
-          applicationsHandled: 45,
-          slaCompliance: 95.6,
-        },
-        {
-          staffId: '2',
-          staffName: 'Mike Chen',
-          averageResponseTime: 15.7,
-          applicationsHandled: 38,
-          slaCompliance: 89.5,
-        },
-        {
-          staffId: '3',
-          staffName: 'Emily Rodriguez',
-          averageResponseTime: 18.2,
-          applicationsHandled: 42,
-          slaCompliance: 84.5,
-        },
-        {
-          staffId: '4',
-          staffName: 'James Wilson',
-          averageResponseTime: 24.5,
-          applicationsHandled: 31,
-          slaCompliance: 77.4,
-        },
-      ],
-    };
-  }
-
-  private getMockStageDistribution(): StageDistribution[] {
-    return [
-      { stage: 'Submitted', count: 45, percentage: 28.8, color: '#3B82F6' },
-      { stage: 'Under Review', count: 32, percentage: 20.5, color: '#8B5CF6' },
-      { stage: 'Interview Scheduled', count: 28, percentage: 17.9, color: '#10B981' },
-      { stage: 'Home Visit', count: 22, percentage: 14.1, color: '#F59E0B' },
-      { stage: 'Approved', count: 18, percentage: 11.5, color: '#06B6D4' },
-      { stage: 'Adopted', count: 11, percentage: 7.1, color: '#EF4444' },
-    ];
   }
 }
 

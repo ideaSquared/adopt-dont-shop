@@ -14,9 +14,8 @@ import { AnalyticsService } from './analyticsService';
 
 /**
  * Behaviour tests for the analytics service that powers the rescue reporting
- * dashboard. On success it unwraps the API envelope; on failure it falls back
- * to deterministic mock data so the dashboard never crashes. Exports and
- * report management propagate errors so the UI can surface them.
+ * dashboard. On success it unwraps the API envelope; on failure every getter
+ * propagates the error so the UI can surface it (no mock-data fallbacks).
  */
 describe('AnalyticsService', () => {
   const service = new AnalyticsService();
@@ -36,6 +35,7 @@ describe('AnalyticsService', () => {
         successRate: 90,
         averageTimeToAdoption: 7,
         adoptionTrends: [],
+        comparisonPeriod: { totalAdoptions: 4, successRate: 80, percentageChange: 25 },
       };
       apiServiceMock.get.mockResolvedValue({ success: true, data });
 
@@ -64,45 +64,31 @@ describe('AnalyticsService', () => {
       expect(params.get('comparisonEnd')).toBe(comparison.end.toISOString());
     });
 
-    it('falls back to deterministic mock metrics on failure', async () => {
+    it('propagates a failure instead of falling back to mock data', async () => {
       apiServiceMock.get.mockRejectedValue(new Error('down'));
-
-      const result = await service.getAdoptionMetrics(dateRange);
-
-      expect(result.successRate).toBe(78.5);
-      expect(result.adoptionTrends.length).toBeGreaterThan(0);
-      expect(result.totalAdoptions).toBe(
-        result.adoptionTrends.reduce((sum, t) => sum + t.count, 0)
-      );
+      await expect(service.getAdoptionMetrics(dateRange)).rejects.toThrow('down');
     });
   });
 
-  describe('other metric getters fall back to mock data on failure', () => {
+  describe('other metric getters propagate errors on failure', () => {
     it('getApplicationAnalytics', async () => {
       apiServiceMock.get.mockRejectedValue(new Error('x'));
-      const result = await service.getApplicationAnalytics(dateRange);
-      expect(result.totalApplications).toBe(156);
-      expect(result.bottlenecks.length).toBeGreaterThan(0);
+      await expect(service.getApplicationAnalytics(dateRange)).rejects.toThrow('x');
     });
 
     it('getPetPerformance', async () => {
       apiServiceMock.get.mockRejectedValue(new Error('x'));
-      const result = await service.getPetPerformance(dateRange);
-      expect(result.mostPopularBreeds[0].breed).toBe('Labrador Retriever');
+      await expect(service.getPetPerformance(dateRange)).rejects.toThrow('x');
     });
 
     it('getResponseTimeMetrics', async () => {
       apiServiceMock.get.mockRejectedValue(new Error('x'));
-      const result = await service.getResponseTimeMetrics(dateRange);
-      expect(result.slaCompliance).toBe(87.3);
-      expect(result.staffPerformance.length).toBe(4);
+      await expect(service.getResponseTimeMetrics(dateRange)).rejects.toThrow('x');
     });
 
     it('getStageDistribution', async () => {
       apiServiceMock.get.mockRejectedValue(new Error('x'));
-      const result = await service.getStageDistribution();
-      expect(result).toHaveLength(6);
-      expect(result[0].stage).toBe('Submitted');
+      await expect(service.getStageDistribution()).rejects.toThrow('x');
     });
   });
 

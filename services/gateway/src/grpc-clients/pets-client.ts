@@ -20,12 +20,20 @@ import {
   type CreatePetResponse,
   type DeletePetRequest,
   type DeletePetResponse,
+  type GetAdoptionsByTypeRequest,
+  type GetAdoptionsByTypeResponse,
+  type GetAdoptionTrendRequest,
+  type GetAdoptionTrendResponse,
   type GetFavoriteStatusRequest,
   type GetFavoriteStatusResponse,
   type GetPetRequest,
   type GetPetResponse,
   type GetPetStatsRequest,
   type GetPetStatsResponse,
+  type GetTopBreedsByAdoptionsRequest,
+  type GetTopBreedsByAdoptionsResponse,
+  type GetTopRescuesByAdoptionsRequest,
+  type GetTopRescuesByAdoptionsResponse,
   type ListPetsRequest,
   type ListPetsResponse,
   type ListUserFavoritesRequest,
@@ -60,6 +68,22 @@ export type PetsClient = {
     req: ListUserFavoritesRequest,
     metadata: Metadata
   ): Promise<ListUserFavoritesResponse>;
+  getAdoptionTrend(
+    req: GetAdoptionTrendRequest,
+    metadata: Metadata
+  ): Promise<GetAdoptionTrendResponse>;
+  getAdoptionsByType(
+    req: GetAdoptionsByTypeRequest,
+    metadata: Metadata
+  ): Promise<GetAdoptionsByTypeResponse>;
+  getTopRescuesByAdoptions(
+    req: GetTopRescuesByAdoptionsRequest,
+    metadata: Metadata
+  ): Promise<GetTopRescuesByAdoptionsResponse>;
+  getTopBreedsByAdoptions(
+    req: GetTopBreedsByAdoptionsRequest,
+    metadata: Metadata
+  ): Promise<GetTopBreedsByAdoptionsResponse>;
   close(): void;
 };
 
@@ -135,6 +159,12 @@ export const createPetsClient = (opts: CreatePetsClientOptions): PetsClient => {
     removeFavorite: (req, metadata) => callUnary(stub.removeFavorite, req, metadata, false),
     getFavoriteStatus: (req, metadata) => callUnary(stub.getFavoriteStatus, req, metadata, true),
     listUserFavorites: (req, metadata) => callUnary(stub.listUserFavorites, req, metadata, true),
+    getAdoptionTrend: (req, metadata) => callUnary(stub.getAdoptionTrend, req, metadata, true),
+    getAdoptionsByType: (req, metadata) => callUnary(stub.getAdoptionsByType, req, metadata, true),
+    getTopRescuesByAdoptions: (req, metadata) =>
+      callUnary(stub.getTopRescuesByAdoptions, req, metadata, true),
+    getTopBreedsByAdoptions: (req, metadata) =>
+      callUnary(stub.getTopBreedsByAdoptions, req, metadata, true),
     close: () => stub.close(),
   };
 };

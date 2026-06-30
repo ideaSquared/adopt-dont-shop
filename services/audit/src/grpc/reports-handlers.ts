@@ -15,10 +15,14 @@
 //   reports.read for ListReportTemplates (no separate template perm —
 //     templates aren't sensitive)
 
+import { createHash, randomBytes } from 'node:crypto';
+
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import type { Permission } from '@adopt-dont-shop/lib.types';
 import {
   AuditV1,
+  type AuditCreateReportShareRequest,
+  type AuditCreateReportShareResponse,
   type AuditCreateSavedReportRequest,
   type AuditCreateSavedReportResponse,
   type AuditDeleteSavedReportRequest,
@@ -29,10 +33,14 @@ import {
   type AuditListReportTemplatesResponse,
   type AuditListSavedReportsRequest,
   type AuditListSavedReportsResponse,
+  type AuditReportSchedule,
+  type AuditReportShare,
   type AuditReportTemplate,
   type AuditSavedReport,
   type AuditUpdateSavedReportRequest,
   type AuditUpdateSavedReportResponse,
+  type AuditUpsertReportScheduleRequest,
+  type AuditUpsertReportScheduleResponse,
 } from '@adopt-dont-shop/proto';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
@@ -436,4 +444,213 @@ export async function listReportTemplates(
     params
   );
   return { templates: result.rows.map(rowToTemplate) };
+}
+
+// --- Report schedules / shares ---------------------------------------
+//
+// Both gate on reports.update[:any] (no separate read requirement) and
+// scope to the caller's own saved reports unless they hold the :any
+// variant — mirrors updateSavedReport's self-ownership rule.
+
+async function ensureOwnedSavedReport(
+  deps: HandlerDeps,
+  principal: Principal,
+  savedReportId: string
+): Promise<void> {
+  const result = await deps.pool.query<{ user_id: string }>(
+    `SELECT user_id FROM saved_reports WHERE saved_report_id = $1 AND deleted_at IS NULL`,
+    [savedReportId]
+  );
+  const row = result.rows[0];
+  if (!row) {
+    throw new HandlerError('NOT_FOUND', `saved report ${savedReportId} not found`);
+  }
+  // Foreign rows resolve to NOT_FOUND (not PERMISSION_DENIED) to avoid
+  // leaking existence, matching getSavedReport.
+  if (!hasPerm(principal, REPORTS_UPDATE_ANY) && row.user_id !== principal.userId) {
+    throw new HandlerError('NOT_FOUND', `saved report ${savedReportId} not found`);
+  }
+}
+
+type ScheduleRecipientJson = { email: string; userId?: string };
+
+type ScheduleRow = {
+  schedule_id: string;
+  saved_report_id: string;
+  cron: string;
+  timezone: string;
+  recipients: ScheduleRecipientJson[];
+  format: 'pdf' | 'csv' | 'inline-html';
+  is_enabled: boolean;
+  last_run_at: Date | null;
+  next_run_at: Date | null;
+  last_status: string | null;
+  last_error: string | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+const SCHEDULE_COLUMNS = `schedule_id, saved_report_id, cron, timezone, recipients, format,
+  is_enabled, last_run_at, next_run_at, last_status, last_error, created_at, updated_at`;
+
+function scheduleFormatFromProto(f: AuditV1.ReportScheduleFormat): ScheduleRow['format'] {
+  switch (f) {
+    case AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_CSV:
+      return 'csv';
+    case AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_INLINE_HTML:
+      return 'inline-html';
+    default:
+      return 'pdf';
+  }
+}
+
+function scheduleFormatToProto(f: ScheduleRow['format']): AuditV1.ReportScheduleFormat {
+  switch (f) {
+    case 'csv':
+      return AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_CSV;
+    case 'inline-html':
+      return AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_INLINE_HTML;
+    case 'pdf':
+      return AuditV1.ReportScheduleFormat.REPORT_SCHEDULE_FORMAT_PDF;
+  }
+}
+
+function rowToSchedule(row: ScheduleRow): AuditReportSchedule {
+  return {
+    scheduleId: row.schedule_id,
+    savedReportId: row.saved_report_id,
+    cron: row.cron,
+    timezone: row.timezone,
+    recipients: row.recipients.map(r => ({ email: r.email, userId: r.userId ?? undefined })),
+    format: scheduleFormatToProto(row.format),
+    isEnabled: row.is_enabled,
+    lastRunAt: row.last_run_at?.toISOString() ?? undefined,
+    nextRunAt: row.next_run_at?.toISOString() ?? undefined,
+    lastStatus: row.last_status ?? undefined,
+    lastError: row.last_error ?? undefined,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
+}
+
+// --- UpsertReportSchedule ---------------------------------------------
+
+export async function upsertReportSchedule(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: AuditUpsertReportScheduleRequest
+): Promise<AuditUpsertReportScheduleResponse> {
+  if (!hasPerm(principal, REPORTS_UPDATE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${REPORTS_UPDATE}' required`);
+  }
+  const savedReportId = req.savedReportId?.trim() ?? '';
+  if (savedReportId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'saved_report_id is required');
+  }
+  const cron = req.cron?.trim() ?? '';
+  if (cron === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'cron is required');
+  }
+  await ensureOwnedSavedReport(deps, principal, savedReportId);
+
+  const recipients: ScheduleRecipientJson[] = (req.recipients ?? []).map(r => ({
+    email: r.email,
+    userId: r.userId,
+  }));
+
+  const result = await deps.pool.query<ScheduleRow>(
+    `INSERT INTO saved_report_schedules
+       (saved_report_id, cron, timezone, recipients, format, is_enabled)
+     VALUES ($1, $2, $3, $4::jsonb, $5, $6)
+     ON CONFLICT (saved_report_id) DO UPDATE SET
+       cron = EXCLUDED.cron,
+       timezone = EXCLUDED.timezone,
+       recipients = EXCLUDED.recipients,
+       format = EXCLUDED.format,
+       is_enabled = EXCLUDED.is_enabled,
+       updated_at = now()
+     RETURNING ${SCHEDULE_COLUMNS}`,
+    [
+      savedReportId,
+      cron,
+      req.timezone?.trim() || 'UTC',
+      JSON.stringify(recipients),
+      scheduleFormatFromProto(req.format),
+      req.isEnabled ?? true,
+    ]
+  );
+  const row = result.rows[0];
+  if (!row) {
+    throw new HandlerError('INTERNAL', 'upsert returned no row');
+  }
+  return { schedule: rowToSchedule(row) };
+}
+
+// --- CreateReportShare -------------------------------------------------
+
+type ShareRow = {
+  share_id: string;
+  saved_report_id: string;
+  share_type: string;
+  permission: 'view' | 'edit';
+  expires_at: Date | null;
+  revoked_at: Date | null;
+  created_at: Date;
+};
+
+const SHARE_COLUMNS = `share_id, saved_report_id, share_type, permission, expires_at,
+  revoked_at, created_at`;
+
+function sharePermissionFromProto(p: AuditV1.ReportSharePermission): ShareRow['permission'] {
+  return p === AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_EDIT ? 'edit' : 'view';
+}
+
+function sharePermissionToProto(p: ShareRow['permission']): AuditV1.ReportSharePermission {
+  return p === 'edit'
+    ? AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_EDIT
+    : AuditV1.ReportSharePermission.REPORT_SHARE_PERMISSION_VIEW;
+}
+
+function rowToShare(row: ShareRow): AuditReportShare {
+  return {
+    shareId: row.share_id,
+    savedReportId: row.saved_report_id,
+    shareType: row.share_type,
+    permission: sharePermissionToProto(row.permission),
+    expiresAt: row.expires_at?.toISOString() ?? undefined,
+    revokedAt: row.revoked_at?.toISOString() ?? undefined,
+    createdAt: row.created_at.toISOString(),
+  };
+}
+
+export async function createReportShare(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: AuditCreateReportShareRequest
+): Promise<AuditCreateReportShareResponse> {
+  if (!hasPerm(principal, REPORTS_UPDATE)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${REPORTS_UPDATE}' required`);
+  }
+  const savedReportId = req.savedReportId?.trim() ?? '';
+  if (savedReportId === '') {
+    throw new HandlerError('INVALID_ARGUMENT', 'saved_report_id is required');
+  }
+  await ensureOwnedSavedReport(deps, principal, savedReportId);
+
+  // Plaintext token returned only here — only its hash is persisted.
+  const token = randomBytes(32).toString('base64url');
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+
+  const result = await deps.pool.query<ShareRow>(
+    `INSERT INTO saved_report_shares
+       (saved_report_id, share_type, permission, token_hash, expires_at)
+     VALUES ($1, 'token', $2, $3, $4)
+     RETURNING ${SHARE_COLUMNS}`,
+    [savedReportId, sharePermissionFromProto(req.permission), tokenHash, req.expiresAt ?? null]
+  );
+  const row = result.rows[0];
+  if (!row) {
+    throw new HandlerError('INTERNAL', 'insert returned no row');
+  }
+  return { share: rowToShare(row), token };
 }

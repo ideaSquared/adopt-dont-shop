@@ -19,12 +19,14 @@ import type { AuditConfig } from '../config.js';
 import { adapt } from './adapter.js';
 import { getByTarget, getGdprErasureRequest, query } from './handlers.js';
 import {
+  createReportShare,
   createSavedReport,
   deleteSavedReport,
   getSavedReport,
   listReportTemplates,
   listSavedReports,
   updateSavedReport,
+  upsertReportSchedule,
 } from './reports-handlers.js';
 
 export type CreateGrpcServerOptions = {
@@ -50,6 +52,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     updateSavedReport: adapt(updateSavedReport, { deps, logger }),
     deleteSavedReport: adapt(deleteSavedReport, { deps, logger }),
     listReportTemplates: adapt(listReportTemplates, { deps, logger }),
+    upsertReportSchedule: adapt(upsertReportSchedule, { deps, logger }),
+    createReportShare: adapt(createReportShare, { deps, logger }),
     getGdprErasureRequest: adapt(getGdprErasureRequest, { deps, logger }),
   });
 
@@ -63,6 +67,8 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'updateSavedReport',
       'deleteSavedReport',
       'listReportTemplates',
+      'upsertReportSchedule',
+      'createReportShare',
       'getGdprErasureRequest',
     ],
     grpcPort: config.grpcPort,

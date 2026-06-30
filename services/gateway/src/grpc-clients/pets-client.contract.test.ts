@@ -22,6 +22,8 @@ import {
   PetsV1,
   type CreatePetRequest,
   type CreatePetResponse,
+  type GetAdoptionTrendRequest,
+  type GetAdoptionTrendResponse,
   type GetPetRequest,
   type GetPetResponse,
 } from '@adopt-dont-shop/proto';
@@ -51,6 +53,13 @@ const makeHandlers = (overrides: Partial<PetsV1.PetServiceServer>): PetsV1.PetSe
   updateStatus: unimplemented,
   delete: unimplemented,
   getStats: unimplemented,
+  getAdoptionTrend: unimplemented,
+  getAdoptionsByType: unimplemented,
+  getTopRescuesByAdoptions: unimplemented,
+  addFavorite: unimplemented,
+  removeFavorite: unimplemented,
+  getFavoriteStatus: unimplemented,
+  listUserFavorites: unimplemented,
   ...overrides,
 });
 
@@ -179,7 +188,35 @@ describe('pets-client — gRPC contract', () => {
     }
   });
 
-  // ── 3. Error contract ────────────────────────────────────────────
+  // ── 3. Read: getAdoptionTrend ─────────────────────────────────────
+
+  it('getAdoptionTrend — request groupBy arrives and typed response round-trips', async () => {
+    const want: GetAdoptionTrendResponse = { points: [{ date: '2026-01-01', count: 3 }] };
+    let receivedGroupBy = '';
+
+    port = await startServer(
+      makeHandlers({
+        getAdoptionTrend: (
+          call: ServerUnaryCall<GetAdoptionTrendRequest, GetAdoptionTrendResponse>,
+          cb: sendUnaryData<GetAdoptionTrendResponse>
+        ) => {
+          receivedGroupBy = call.request.groupBy;
+          cb(null, want);
+        },
+      })
+    );
+
+    const client = createPetsClient({ address: `127.0.0.1:${port}` });
+    try {
+      const result = await client.getAdoptionTrend({ groupBy: 'month' }, new Metadata());
+      expect(receivedGroupBy).toBe('month');
+      expect(result.points).toEqual([{ date: '2026-01-01', count: 3 }]);
+    } finally {
+      client.close();
+    }
+  });
+
+  // ── 4. Error contract ────────────────────────────────────────────
 
   it('get — NOT_FOUND from the server surfaces with .code === status.NOT_FOUND', async () => {
     port = await startServer(

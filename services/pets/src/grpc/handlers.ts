@@ -30,10 +30,18 @@ import {
   type CreatePetResponse,
   type DeletePetRequest,
   type DeletePetResponse,
+  type GetAdoptionsByTypeRequest,
+  type GetAdoptionsByTypeResponse,
+  type GetAdoptionTrendRequest,
+  type GetAdoptionTrendResponse,
   type GetPetRequest,
   type GetPetResponse,
   type GetPetStatsRequest,
   type GetPetStatsResponse,
+  type GetTopBreedsByAdoptionsRequest,
+  type GetTopBreedsByAdoptionsResponse,
+  type GetTopRescuesByAdoptionsRequest,
+  type GetTopRescuesByAdoptionsResponse,
   type ListPetFavoritersRequest,
   type ListPetFavoritersResponse,
   type ListPetsRequest,
@@ -887,6 +895,267 @@ export async function getPetStats(
     deceased: counts.deceased,
     monthlyAdoptions,
     averageDaysToAdoption,
+  };
+}
+
+// --- Adoption aggregation reads (report builder widgets) -------------
+
+// Shared rescue-scope resolution for the three aggregation reads below —
+// same rule as GetStats: rescue staff pinned to their own rescue;
+// pets.read:any may pass rescue_id_filter or omit it for platform-wide.
+function resolveRescueScope(
+  principal: Principal,
+  rescueIdFilter: string | undefined
+): string | null {
+  if (hasPermission(principal, PETS_READ_ANY)) {
+    return rescueIdFilter ? rescueIdFilter : null;
+  }
+  if (principal.rescueId) {
+    return principal.rescueId;
+  }
+  throw new HandlerError(
+    'PERMISSION_DENIED',
+    'rescue scope required — caller is not bound to a rescue and lacks pets.read:any'
+  );
+}
+
+const VALID_GROUP_BY = ['day', 'week', 'month'] as const;
+type GroupBy = (typeof VALID_GROUP_BY)[number];
+
+function isValidGroupBy(value: string): value is GroupBy {
+  return (VALID_GROUP_BY as readonly string[]).includes(value);
+}
+
+export async function getAdoptionTrend(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetAdoptionTrendRequest
+): Promise<GetAdoptionTrendResponse> {
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+
+  const groupBy = req.groupBy ?? 'day';
+  if (!isValidGroupBy(groupBy)) {
+    throw new HandlerError(
+      'INVALID_ARGUMENT',
+      `group_by must be one of ${VALID_GROUP_BY.join(', ')}`
+    );
+  }
+
+  const rescueScope = resolveRescueScope(principal, req.rescueIdFilter);
+
+  const where: string[] = ['deleted_at IS NULL', "status = 'adopted'", 'adopted_date IS NOT NULL'];
+  const params: unknown[] = [];
+  let n = 1;
+  if (rescueScope) {
+    where.push(`rescue_id = $${n}`);
+    params.push(rescueScope);
+    n++;
+  }
+  if (req.startDate) {
+    where.push(`adopted_date >= $${n}`);
+    params.push(req.startDate);
+    n++;
+  }
+  if (req.endDate) {
+    where.push(`adopted_date <= $${n}`);
+    params.push(req.endDate);
+    n++;
+  }
+
+  // groupBy is validated against an allowlist above, so this interpolation
+  // can't be used for injection — date_trunc's unit isn't a bind param.
+  const result = await deps.pool.query<{ date: Date; count: string }>(
+    `
+    SELECT date_trunc('${groupBy}', adopted_date) AS date, COUNT(*)::text AS count
+    FROM pets.pets
+    WHERE ${where.join(' AND ')}
+    GROUP BY date
+    ORDER BY date ASC
+    `,
+    params
+  );
+
+  return {
+    points: result.rows.map(row => ({
+      date: row.date.toISOString().slice(0, 10),
+      count: Number.parseInt(row.count, 10),
+    })),
+  };
+}
+
+export async function getAdoptionsByType(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetAdoptionsByTypeRequest
+): Promise<GetAdoptionsByTypeResponse> {
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+
+  const rescueScope = resolveRescueScope(principal, req.rescueIdFilter);
+
+  const where: string[] = ['deleted_at IS NULL', "status = 'adopted'"];
+  const params: unknown[] = [];
+  let n = 1;
+  if (rescueScope) {
+    where.push(`rescue_id = $${n}`);
+    params.push(rescueScope);
+    n++;
+  }
+  if (req.startDate) {
+    where.push(`adopted_date >= $${n}`);
+    params.push(req.startDate);
+    n++;
+  }
+  if (req.endDate) {
+    where.push(`adopted_date <= $${n}`);
+    params.push(req.endDate);
+    n++;
+  }
+
+  const result = await deps.pool.query<{ type: PetTypeDb; count: string }>(
+    `
+    SELECT type, COUNT(*)::text AS count
+    FROM pets.pets
+    WHERE ${where.join(' AND ')}
+    GROUP BY type
+    `,
+    params
+  );
+
+  return {
+    counts: result.rows.map(row => ({
+      type: typeFromDb(row.type),
+      count: Number.parseInt(row.count, 10),
+    })),
+  };
+}
+
+const DEFAULT_TOP_RESCUES_LIMIT = 10;
+const MAX_TOP_RESCUES_LIMIT = 50;
+
+// Cross-rescue leaderboard — inherently requires pets.read:any since
+// there's no single-rescue-scoped variant of "top rescues".
+export async function getTopRescuesByAdoptions(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetTopRescuesByAdoptionsRequest
+): Promise<GetTopRescuesByAdoptionsResponse> {
+  if (!hasPermission(principal, PETS_READ_ANY)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ_ANY}' required`);
+  }
+  if (req.limit < 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'limit must be >= 0');
+  }
+  if (req.limit > MAX_TOP_RESCUES_LIMIT) {
+    throw new HandlerError('INVALID_ARGUMENT', `limit must be <= ${MAX_TOP_RESCUES_LIMIT}`);
+  }
+  const limit = req.limit === 0 ? DEFAULT_TOP_RESCUES_LIMIT : req.limit;
+
+  const where: string[] = ['deleted_at IS NULL', "status = 'adopted'", 'rescue_id IS NOT NULL'];
+  const params: unknown[] = [];
+  let n = 1;
+  if (req.startDate) {
+    where.push(`adopted_date >= $${n}`);
+    params.push(req.startDate);
+    n++;
+  }
+  if (req.endDate) {
+    where.push(`adopted_date <= $${n}`);
+    params.push(req.endDate);
+    n++;
+  }
+
+  const result = await deps.pool.query<{ rescue_id: string; adoptions: string }>(
+    `
+    SELECT rescue_id, COUNT(*) AS adoptions
+    FROM pets.pets
+    WHERE ${where.join(' AND ')}
+    GROUP BY rescue_id
+    ORDER BY adoptions DESC
+    LIMIT $${n}
+    `,
+    [...params, limit]
+  );
+
+  return {
+    rescues: result.rows.map(row => ({
+      rescueId: row.rescue_id,
+      adoptions: Number.parseInt(row.adoptions, 10),
+    })),
+  };
+}
+
+const DEFAULT_TOP_BREEDS_LIMIT = 10;
+const MAX_TOP_BREEDS_LIMIT = 50;
+
+// Same rescue-scoping rule as GetStats/GetAdoptionTrend: rescue staff
+// pinned to their own rescue; pets.read:any may pass rescue_id_filter or
+// omit it for platform-wide. Backs the rescue analytics dashboard's
+// "most popular breeds" widget.
+export async function getTopBreedsByAdoptions(
+  deps: HandlerDeps,
+  principal: Principal,
+  req: GetTopBreedsByAdoptionsRequest
+): Promise<GetTopBreedsByAdoptionsResponse> {
+  if (!hasPermission(principal, PETS_READ)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  }
+  if (req.limit < 0) {
+    throw new HandlerError('INVALID_ARGUMENT', 'limit must be >= 0');
+  }
+  if (req.limit > MAX_TOP_BREEDS_LIMIT) {
+    throw new HandlerError('INVALID_ARGUMENT', `limit must be <= ${MAX_TOP_BREEDS_LIMIT}`);
+  }
+  const limit = req.limit === 0 ? DEFAULT_TOP_BREEDS_LIMIT : req.limit;
+
+  const rescueScope = resolveRescueScope(principal, req.rescueIdFilter);
+
+  const where: string[] = [
+    'p.deleted_at IS NULL',
+    "p.status = 'adopted'",
+    'p.breed_id IS NOT NULL',
+  ];
+  const params: unknown[] = [];
+  let n = 1;
+  if (rescueScope) {
+    where.push(`p.rescue_id = $${n}`);
+    params.push(rescueScope);
+    n++;
+  }
+  if (req.startDate) {
+    where.push(`p.adopted_date >= $${n}`);
+    params.push(req.startDate);
+    n++;
+  }
+  if (req.endDate) {
+    where.push(`p.adopted_date <= $${n}`);
+    params.push(req.endDate);
+    n++;
+  }
+
+  const result = await deps.pool.query<{ breed: string; count: string; avg_days: string | null }>(
+    `
+    SELECT b.name AS breed, COUNT(*)::text AS count,
+      AVG(EXTRACT(epoch FROM (p.adopted_date - p.created_at)) / 86400)::text AS avg_days
+    FROM pets.pets p
+    JOIN pets.breeds b ON b.breed_id = p.breed_id
+    WHERE ${where.join(' AND ')}
+    GROUP BY b.name
+    ORDER BY count DESC
+    LIMIT $${n}
+    `,
+    [...params, limit]
+  );
+
+  return {
+    breeds: result.rows.map(row => ({
+      breed: row.breed,
+      count: Number.parseInt(row.count, 10),
+      averageAdoptionDays: row.avg_days ? Math.round(Number.parseFloat(row.avg_days)) : 0,
+    })),
   };
 }
 
