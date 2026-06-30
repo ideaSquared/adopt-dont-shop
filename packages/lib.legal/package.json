@@ -44,7 +44,7 @@
     "@adopt-dont-shop/lib.auth": "workspace:*",
     "@adopt-dont-shop/lib.components": "workspace:*",
     "@adopt-dont-shop/lib.observability": "workspace:*",
-    "@vanilla-extract/css": "^1.20.1",
+    "@vanilla-extract/css": "^1.21.0",
     "react": "^19.2.7",
     "zod": "^4.4.3"
   },
