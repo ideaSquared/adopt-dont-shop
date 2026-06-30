@@ -72,7 +72,7 @@ const APPLICATION_VIEW_SCHEMA = {
     reviewedAt: { type: 'string', nullable: true },
     reviewedBy: { type: 'string', nullable: true },
     reviewNotes: { type: 'string', nullable: true },
-    data: { type: 'object' },
+    data: { type: 'object', additionalProperties: true },
     createdAt: { type: 'string' },
     updatedAt: { type: 'string' },
   },
@@ -1102,7 +1102,7 @@ export const registerApplicationsRoutes = async (
                 type: 'object',
                 properties: {
                   petId: { type: 'string' },
-                  answers: { type: 'object' },
+                  answers: { type: 'object', additionalProperties: true },
                   updatedAt: { type: 'string' },
                   expiresAt: { type: 'string', nullable: true },
                 },
@@ -1165,7 +1165,7 @@ export const registerApplicationsRoutes = async (
                 type: 'object',
                 properties: {
                   petId: { type: 'string' },
-                  answers: { type: 'object' },
+                  answers: { type: 'object', additionalProperties: true },
                   updatedAt: { type: 'string' },
                   expiresAt: { type: 'string', nullable: true },
                 },
@@ -1252,7 +1252,7 @@ export const registerApplicationsRoutes = async (
           200: {
             type: 'object',
             properties: {
-              data: { type: 'object' },
+              data: { type: 'object', additionalProperties: true },
             },
           },
           400: {
@@ -1292,7 +1292,7 @@ export const registerApplicationsRoutes = async (
           200: {
             type: 'object',
             properties: {
-              data: { type: 'object' },
+              data: { type: 'object', additionalProperties: true },
             },
           },
           400: {

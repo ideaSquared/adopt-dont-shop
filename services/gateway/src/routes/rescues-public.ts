@@ -338,7 +338,7 @@ export const registerRescuesPublicRoutes = async (
             contact_email: { type: 'string' },
             contact_phone: { type: 'string' },
           },
-          required: ['name', 'email', 'address', 'city', 'postcode'],
+          required: ['name', 'email', 'address', 'city'],
         },
         response: {
           201: {
@@ -389,7 +389,7 @@ export const registerRescuesPublicRoutes = async (
             contact_email: { type: 'string' },
             contact_phone: { type: 'string' },
           },
-          required: ['name', 'email', 'address', 'city', 'postcode'],
+          required: ['name', 'email', 'address', 'city'],
         },
         response: {
           201: {
@@ -557,7 +557,7 @@ export const registerRescuesPublicRoutes = async (
             type: 'object',
             properties: {
               success: { type: 'boolean' },
-              data: { type: 'object', nullable: true },
+              data: { type: 'object', nullable: true, additionalProperties: true },
             },
           },
           400: {
@@ -606,7 +606,7 @@ export const registerRescuesPublicRoutes = async (
             type: 'object',
             properties: {
               success: { type: 'boolean' },
-              data: { type: 'object' },
+              data: { type: 'object', additionalProperties: true },
             },
           },
           400: {

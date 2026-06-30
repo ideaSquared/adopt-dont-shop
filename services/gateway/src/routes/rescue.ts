@@ -232,7 +232,6 @@ export const registerRescueRoutes = async (
             contactEmail: { type: 'string' },
             contactPhone: { type: 'string' },
           },
-          required: ['name', 'email', 'address', 'city', 'postcode', 'contactPerson'],
         },
         response: {
           201: {
@@ -428,8 +427,8 @@ export const registerRescueRoutes = async (
           201: {
             type: 'object',
             properties: {
-              invitationToken: { type: 'string' },
-              expiresAt: { type: 'string' },
+              invitation: { type: 'object', additionalProperties: true },
+              token: { type: 'string' },
             },
           },
           400: {

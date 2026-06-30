@@ -177,7 +177,7 @@ export const registerAuthRoutes = async (
         body: {
           type: 'object',
           properties: {
-            email: { type: 'string', format: 'email' },
+            email: { type: 'string' },
             password: { type: 'string' },
             twoFactorToken: { type: 'string' },
           },
@@ -186,9 +186,15 @@ export const registerAuthRoutes = async (
           200: {
             type: 'object',
             properties: {
-              accessToken: { type: 'string' },
-              refreshToken: { type: 'string' },
-              expiresIn: { type: 'number' },
+              tokens: {
+                type: 'object',
+                properties: {
+                  accessToken: { type: 'string' },
+                  refreshToken: { type: 'string' },
+                  accessExpiresAt: { type: 'string' },
+                  refreshExpiresAt: { type: 'string' },
+                },
+              },
               user: {
                 type: 'object',
                 properties: {
@@ -200,6 +206,9 @@ export const registerAuthRoutes = async (
                   status: { type: 'string' },
                 },
               },
+              permissions: { type: 'array', items: { type: 'string' } },
+              twoFactorRequired: { type: 'boolean' },
+              emailVerificationRequired: { type: 'boolean' },
             },
           },
           400: {
@@ -249,7 +258,7 @@ export const registerAuthRoutes = async (
           200: {
             type: 'object',
             properties: {
-              success: { type: 'boolean' },
+              revoked: { type: 'boolean' },
             },
           },
           400: {
@@ -292,9 +301,15 @@ export const registerAuthRoutes = async (
           200: {
             type: 'object',
             properties: {
-              accessToken: { type: 'string' },
-              refreshToken: { type: 'string' },
-              expiresIn: { type: 'number' },
+              tokens: {
+                type: 'object',
+                properties: {
+                  accessToken: { type: 'string' },
+                  refreshToken: { type: 'string' },
+                  accessExpiresAt: { type: 'string' },
+                  refreshExpiresAt: { type: 'string' },
+                },
+              },
             },
           },
           400: {
@@ -344,6 +359,10 @@ export const registerAuthRoutes = async (
                 },
               },
               roles: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+              permissions: {
                 type: 'array',
                 items: { type: 'string' },
               },
@@ -514,13 +533,6 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Verify email address using a verification token',
         security: [],
-        body: {
-          type: 'object',
-          properties: {
-            verificationToken: { type: 'string' },
-          },
-          required: ['verificationToken'],
-        },
         response: {
           200: {
             type: 'object',
@@ -576,9 +588,8 @@ export const registerAuthRoutes = async (
         body: {
           type: 'object',
           properties: {
-            email: { type: 'string', format: 'email' },
+            email: { type: 'string' },
           },
-          required: ['email'],
         },
         response: {
           200: {
@@ -627,9 +638,8 @@ export const registerAuthRoutes = async (
         body: {
           type: 'object',
           properties: {
-            email: { type: 'string', format: 'email' },
+            email: { type: 'string' },
           },
-          required: ['email'],
         },
         response: {
           200: {
@@ -680,7 +690,6 @@ export const registerAuthRoutes = async (
             resetToken: { type: 'string' },
             newPassword: { type: 'string', minLength: 8 },
           },
-          required: ['resetToken', 'newPassword'],
         },
         response: {
           200: {
@@ -737,7 +746,6 @@ export const registerAuthRoutes = async (
             invitationToken: { type: 'string' },
             newPassword: { type: 'string', minLength: 8 },
           },
-          required: ['invitationToken', 'newPassword'],
         },
         response: {
           200: {
@@ -801,7 +809,6 @@ export const registerAuthRoutes = async (
             currentPassword: { type: 'string' },
             newPassword: { type: 'string', minLength: 8 },
           },
-          required: ['currentPassword', 'newPassword'],
         },
         response: {
           200: {
@@ -857,7 +864,7 @@ export const registerAuthRoutes = async (
             type: 'object',
             properties: {
               secret: { type: 'string' },
-              qrCodeUrl: { type: 'string' },
+              otpauthUrl: { type: 'string' },
             },
           },
           400: {
@@ -975,22 +982,6 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Update account profile fields for the authenticated user',
-        body: {
-          type: 'object',
-          properties: {
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
-            phoneNumber: { type: 'string' },
-            bio: { type: 'string' },
-            timezone: { type: 'string' },
-            language: { type: 'string' },
-            country: { type: 'string' },
-            city: { type: 'string' },
-            addressLine1: { type: 'string' },
-            addressLine2: { type: 'string' },
-            postalCode: { type: 'string' },
-          },
-        },
         response: {
           200: {
             type: 'object',

@@ -209,7 +209,7 @@ export const registerPetsRoutes = async (
             type: 'object',
             properties: {
               success: { type: 'boolean' },
-              data: { type: 'object' },
+              data: { type: 'object', additionalProperties: true },
             },
           },
           400: {
@@ -356,7 +356,6 @@ export const registerPetsRoutes = async (
             temperament: { type: 'array', items: { type: 'string' } },
             tags: { type: 'array', items: { type: 'string' } },
           },
-          required: ['name', 'rescue_id'],
         },
         response: {
           201: {
