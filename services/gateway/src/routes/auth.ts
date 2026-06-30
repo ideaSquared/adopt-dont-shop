@@ -174,6 +174,51 @@ export const registerAuthRoutes = async (
         // so the existing handler keeps full control of validation
         // (returns the gRPC INVALID_ARGUMENT → 400 the SPA already
         // expects). The OpenAPI doc still tells consumers what to send.
+        body: {
+          type: 'object',
+          properties: {
+            email: { type: 'string' },
+            password: { type: 'string' },
+            twoFactorToken: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              tokens: {
+                type: 'object',
+                properties: {
+                  accessToken: { type: 'string' },
+                  refreshToken: { type: 'string' },
+                  accessExpiresAt: { type: 'string' },
+                  refreshExpiresAt: { type: 'string' },
+                },
+              },
+              user: {
+                type: 'object',
+                properties: {
+                  userId: { type: 'string' },
+                  email: { type: 'string' },
+                  firstName: { type: 'string' },
+                  lastName: { type: 'string' },
+                  userType: { type: 'string' },
+                  status: { type: 'string' },
+                },
+              },
+              permissions: { type: 'array', items: { type: 'string' } },
+              twoFactorRequired: { type: 'boolean' },
+              emailVerificationRequired: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -203,6 +248,27 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Invalidate the current session and refresh token',
+        body: {
+          type: 'object',
+          properties: {
+            refreshToken: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              revoked: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -225,6 +291,35 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Exchange a refresh token for a new access token',
+        body: {
+          type: 'object',
+          properties: {
+            refreshToken: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              tokens: {
+                type: 'object',
+                properties: {
+                  accessToken: { type: 'string' },
+                  refreshToken: { type: 'string' },
+                  accessExpiresAt: { type: 'string' },
+                  refreshExpiresAt: { type: 'string' },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -247,6 +342,40 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Return the principal resolved from the Bearer token',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              user: {
+                type: 'object',
+                properties: {
+                  userId: { type: 'string' },
+                  email: { type: 'string' },
+                  firstName: { type: 'string' },
+                  lastName: { type: 'string' },
+                  userType: { type: 'string' },
+                  status: { type: 'string' },
+                  emailVerified: { type: 'boolean' },
+                },
+              },
+              roles: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+              permissions: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -267,6 +396,30 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth', 'admin'],
         summary: 'Assign a role to a target user (admin only)',
+        body: {
+          type: 'object',
+          properties: {
+            targetUserId: { type: 'string' },
+            role: { type: 'string' },
+            reason: { type: 'string' },
+          },
+          required: ['targetUserId', 'role'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -297,6 +450,46 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Register a new user account',
         security: [],
+        body: {
+          type: 'object',
+          properties: {
+            email: { type: 'string', format: 'email' },
+            password: { type: 'string', minLength: 8 },
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+            phoneNumber: { type: 'string' },
+            termsAccepted: { type: 'boolean' },
+            privacyPolicyAccepted: { type: 'boolean' },
+          },
+          required: ['email', 'password'],
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              user: {
+                type: 'object',
+                properties: {
+                  userId: { type: 'string' },
+                  email: { type: 'string' },
+                  firstName: { type: 'string' },
+                  lastName: { type: 'string' },
+                  userType: { type: 'string' },
+                  status: { type: 'string' },
+                },
+              },
+              accessToken: { type: 'string' },
+              refreshToken: { type: 'string' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -340,6 +533,28 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Verify email address using a verification token',
         security: [],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              user: {
+                type: 'object',
+                properties: {
+                  userId: { type: 'string' },
+                  email: { type: 'string' },
+                  emailVerified: { type: 'boolean' },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -370,6 +585,27 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Resend the email verification link',
         security: [],
+        body: {
+          type: 'object',
+          properties: {
+            email: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -399,6 +635,27 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Send a password reset link to the given email',
         security: [],
+        body: {
+          type: 'object',
+          properties: {
+            email: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -427,6 +684,28 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Reset password using a reset token',
         security: [],
+        body: {
+          type: 'object',
+          properties: {
+            resetToken: { type: 'string' },
+            newPassword: { type: 'string', minLength: 8 },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -461,6 +740,38 @@ export const registerAuthRoutes = async (
         tags: ['auth'],
         summary: 'Redeem an admin-issued invitation token and set the initial password',
         security: [],
+        body: {
+          type: 'object',
+          properties: {
+            invitationToken: { type: 'string' },
+            newPassword: { type: 'string', minLength: 8 },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              user: {
+                type: 'object',
+                properties: {
+                  userId: { type: 'string' },
+                  email: { type: 'string' },
+                  userType: { type: 'string' },
+                  status: { type: 'string' },
+                },
+              },
+              accessToken: { type: 'string' },
+              refreshToken: { type: 'string' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -492,6 +803,28 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Change password for the authenticated user',
+        body: {
+          type: 'object',
+          properties: {
+            currentPassword: { type: 'string' },
+            newPassword: { type: 'string', minLength: 8 },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -526,6 +859,22 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Initiate two-factor authentication setup for the authenticated user',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              secret: { type: 'string' },
+              otpauthUrl: { type: 'string' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -545,6 +894,29 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Enable two-factor authentication using a verified TOTP secret',
+        body: {
+          type: 'object',
+          properties: {
+            secret: { type: 'string' },
+            token: { type: 'string' },
+          },
+          required: ['secret', 'token'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -568,6 +940,28 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Disable two-factor authentication for the authenticated user',
+        body: {
+          type: 'object',
+          properties: {
+            token: { type: 'string' },
+          },
+          required: ['token'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -588,6 +982,35 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Update account profile fields for the authenticated user',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              user: {
+                type: 'object',
+                properties: {
+                  userId: { type: 'string' },
+                  email: { type: 'string' },
+                  firstName: { type: 'string' },
+                  lastName: { type: 'string' },
+                  phoneNumber: { type: 'string' },
+                  bio: { type: 'string' },
+                  timezone: { type: 'string' },
+                  language: { type: 'string' },
+                  country: { type: 'string' },
+                  city: { type: 'string' },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -614,6 +1037,36 @@ export const registerAuthRoutes = async (
       schema: {
         tags: ['auth'],
         summary: 'Return the authenticated user account profile',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              user: {
+                type: 'object',
+                properties: {
+                  userId: { type: 'string' },
+                  email: { type: 'string' },
+                  firstName: { type: 'string' },
+                  lastName: { type: 'string' },
+                  userType: { type: 'string' },
+                  status: { type: 'string' },
+                  emailVerified: { type: 'boolean' },
+                },
+              },
+              roles: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {

@@ -32,6 +32,48 @@ export type RescuesPublicRoutesOptions = {
 const RL_READ = { max: 120, timeWindow: '1 minute' } as const;
 const RL_WRITE = { max: 30, timeWindow: '1 minute' } as const;
 
+// Shared rescue view schema — the snake_case shape rescueToView() returns.
+const RESCUE_VIEW_SCHEMA = {
+  type: 'object',
+  properties: {
+    rescue_id: { type: 'string' },
+    name: { type: 'string' },
+    email: { type: 'string' },
+    phone: { type: 'string', nullable: true },
+    address: { type: 'string' },
+    city: { type: 'string' },
+    county: { type: 'string', nullable: true },
+    postcode: { type: 'string' },
+    country: { type: 'string' },
+    website: { type: 'string', nullable: true },
+    description: { type: 'string', nullable: true },
+    mission: { type: 'string', nullable: true },
+    contact_person: { type: 'string' },
+    contact_title: { type: 'string', nullable: true },
+    contact_email: { type: 'string', nullable: true },
+    contact_phone: { type: 'string', nullable: true },
+    status: { type: 'string' },
+    settings: { type: 'object' },
+    created_at: { type: 'string' },
+    updated_at: { type: 'string' },
+  },
+} as const;
+
+const RESCUE_LIST_RESPONSE = {
+  type: 'object',
+  properties: {
+    success: { type: 'boolean' },
+    data: { type: 'array', items: RESCUE_VIEW_SCHEMA },
+    meta: {
+      type: 'object',
+      properties: {
+        hasNext: { type: 'boolean' },
+        nextCursor: { type: 'string' },
+      },
+    },
+  },
+} as const;
+
 export const registerRescuesPublicRoutes = async (
   app: FastifyInstance,
   opts: RescuesPublicRoutesOptions
@@ -49,6 +91,25 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'List rescues',
+        querystring: {
+          type: 'object',
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            status: { type: 'string' },
+            search: { type: 'string' },
+          },
+        },
+        response: {
+          200: RESCUE_LIST_RESPONSE,
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -76,6 +137,22 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'List featured rescues',
+        querystring: {
+          type: 'object',
+          properties: {
+            limit: { type: 'string' },
+          },
+        },
+        response: {
+          200: RESCUE_LIST_RESPONSE,
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -107,6 +184,26 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'Search rescues',
+        querystring: {
+          type: 'object',
+          properties: {
+            search: { type: 'string' },
+            q: { type: 'string' },
+            status: { type: 'string' },
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+          },
+        },
+        response: {
+          200: RESCUE_LIST_RESPONSE,
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -136,6 +233,25 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'List nearby rescues by location',
+        querystring: {
+          type: 'object',
+          properties: {
+            lat: { type: 'string' },
+            lng: { type: 'string' },
+            radiusKm: { type: 'string' },
+            limit: { type: 'string' },
+          },
+        },
+        response: {
+          200: RESCUE_LIST_RESPONSE,
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -173,6 +289,16 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'List rescues followed by the current user',
+        response: {
+          200: RESCUE_LIST_RESPONSE,
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (_req, reply) => {
@@ -193,6 +319,43 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'Register a new rescue organisation',
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            email: { type: 'string', format: 'email' },
+            phone: { type: 'string' },
+            address: { type: 'string' },
+            city: { type: 'string' },
+            county: { type: 'string' },
+            postcode: { type: 'string' },
+            country: { type: 'string' },
+            website: { type: 'string' },
+            description: { type: 'string' },
+            mission: { type: 'string' },
+            contact_person: { type: 'string' },
+            contact_title: { type: 'string' },
+            contact_email: { type: 'string' },
+            contact_phone: { type: 'string' },
+          },
+          required: ['name', 'email', 'address', 'city'],
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: RESCUE_VIEW_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => createRescue(client, req, reply)
@@ -207,6 +370,43 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'Create a rescue organisation',
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            email: { type: 'string', format: 'email' },
+            phone: { type: 'string' },
+            address: { type: 'string' },
+            city: { type: 'string' },
+            county: { type: 'string' },
+            postcode: { type: 'string' },
+            country: { type: 'string' },
+            website: { type: 'string' },
+            description: { type: 'string' },
+            mission: { type: 'string' },
+            contact_person: { type: 'string' },
+            contact_title: { type: 'string' },
+            contact_email: { type: 'string' },
+            contact_phone: { type: 'string' },
+          },
+          required: ['name', 'email', 'address', 'city'],
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: RESCUE_VIEW_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => createRescue(client, req, reply)
@@ -221,6 +421,29 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'Get a rescue by ID',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: RESCUE_VIEW_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -246,6 +469,57 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: 'Update a rescue profile',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            phone: { type: 'string' },
+            address: {
+              type: 'object',
+              properties: {
+                street: { type: 'string' },
+                city: { type: 'string' },
+                county: { type: 'string' },
+                postcode: { type: 'string' },
+                country: { type: 'string' },
+              },
+            },
+            city: { type: 'string' },
+            county: { type: 'string' },
+            postcode: { type: 'string' },
+            country: { type: 'string' },
+            website: { type: 'string' },
+            description: { type: 'string' },
+            mission: { type: 'string' },
+            contactPerson: { type: 'string' },
+            contactTitle: { type: 'string' },
+            contactEmail: { type: 'string' },
+            contactPhone: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: RESCUE_VIEW_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -271,6 +545,29 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: "Get a rescue's adoption policies",
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', nullable: true, additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -297,6 +594,29 @@ export const registerRescuesPublicRoutes = async (
       schema: {
         tags: ['rescues'],
         summary: "Update a rescue's adoption policies",
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {

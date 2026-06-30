@@ -40,6 +40,42 @@ export type PetsRoutesOptions = {
   client: PetsClient;
 };
 
+// Shared pet view schema — the shape petToView() returns (snake_case,
+// lowercase enum tokens, optional long-tail fields from extra_json).
+const PET_VIEW_SCHEMA = {
+  type: 'object',
+  properties: {
+    pet_id: { type: 'string' },
+    name: { type: 'string' },
+    rescue_id: { type: 'string' },
+    type: { type: 'string' },
+    status: { type: 'string' },
+    gender: { type: 'string' },
+    size: { type: 'string' },
+    age_group: { type: 'string' },
+    short_description: { type: 'string' },
+    long_description: { type: 'string' },
+    age_years: { type: 'number' },
+    age_months: { type: 'number' },
+    color: { type: 'string' },
+    archived: { type: 'boolean' },
+    featured: { type: 'boolean' },
+    priority_listing: { type: 'boolean' },
+    special_needs: { type: 'boolean' },
+    house_trained: { type: 'boolean' },
+    adoption_fee: { type: 'string' },
+    temperament: { type: 'array', items: { type: 'string' } },
+    tags: { type: 'array', items: { type: 'string' } },
+    view_count: { type: 'number' },
+    favorite_count: { type: 'number' },
+    application_count: { type: 'number' },
+    available_since: { type: 'string' },
+    adopted_date: { type: 'string' },
+    created_at: { type: 'string' },
+    updated_at: { type: 'string' },
+  },
+} as const;
+
 // Per-route rate limits. Reads are chatty (SPA browse + per-pet view
 // counts); writes are far less frequent so the tighter caps apply
 // there. All keyed on req.ip via the plugin's default key generator.
@@ -91,6 +127,43 @@ export const registerPetsRoutes = async (
         // coercion (the existing handler does its own parseInt). Keeps
         // OpenAPI useful for SDK generation without changing runtime
         // validation behaviour.
+        querystring: {
+          type: 'object',
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            status: { type: 'string' },
+            type: { type: 'string' },
+            size: { type: 'string' },
+            rescueId: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: PET_VIEW_SCHEMA },
+              meta: {
+                type: 'object',
+                properties: {
+                  page: { type: 'number' },
+                  total: { type: 'number' },
+                  totalPages: { type: 'number' },
+                  hasNext: { type: 'boolean' },
+                  hasPrev: { type: 'boolean' },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -125,6 +198,28 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Get pet statistics, optionally filtered by rescue',
+        querystring: {
+          type: 'object',
+          properties: {
+            rescueId: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -147,6 +242,30 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: "List the authenticated user's favourite pets",
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  pets: { type: 'array', items: PET_VIEW_SCHEMA },
+                  total: { type: 'number' },
+                  page: { type: 'number' },
+                  totalPages: { type: 'number' },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -170,6 +289,29 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Get a single pet by ID',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: PET_VIEW_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -192,6 +334,52 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Create a new pet listing',
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            rescue_id: { type: 'string' },
+            type: { type: 'string' },
+            status: { type: 'string' },
+            gender: { type: 'string' },
+            size: { type: 'string' },
+            age_group: { type: 'string' },
+            short_description: { type: 'string' },
+            long_description: { type: 'string' },
+            age_years: { type: 'number' },
+            age_months: { type: 'number' },
+            adoption_fee: { type: 'string' },
+            special_needs: { type: 'boolean' },
+            house_trained: { type: 'boolean' },
+            featured: { type: 'boolean' },
+            priority_listing: { type: 'boolean' },
+            temperament: { type: 'array', items: { type: 'string' } },
+            tags: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: PET_VIEW_SCHEMA,
+            },
+          },
+          500: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -216,6 +404,50 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Update an existing pet listing',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            status: { type: 'string' },
+            gender: { type: 'string' },
+            size: { type: 'string' },
+            age_group: { type: 'string' },
+            short_description: { type: 'string' },
+            long_description: { type: 'string' },
+            age_years: { type: 'number' },
+            age_months: { type: 'number' },
+            adoption_fee: { type: 'string' },
+            special_needs: { type: 'boolean' },
+            house_trained: { type: 'boolean' },
+            featured: { type: 'boolean' },
+            priority_listing: { type: 'boolean' },
+            temperament: { type: 'array', items: { type: 'string' } },
+            tags: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: PET_VIEW_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -239,6 +471,37 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Update the adoption status of a pet',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            toStatus: { type: 'string' },
+            reason: { type: 'string' },
+          },
+          required: ['toStatus'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: PET_VIEW_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -267,6 +530,28 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Delete a pet listing',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -287,7 +572,61 @@ export const registerPetsRoutes = async (
     '/api/v1/pets/bulk-update',
     {
       config: { rateLimit: PETS_RATE_LIMITS.bulkUpdate },
-      schema: { tags: ['pets'], summary: 'Bulk update pets (status / archive / feature / delete)' },
+      schema: {
+        tags: ['pets'],
+        summary: 'Bulk update pets (status / archive / feature / delete)',
+        body: {
+          type: 'object',
+          properties: {
+            petIds: { type: 'array', items: { type: 'string' } },
+            operation: {
+              type: 'string',
+              enum: ['update_status', 'archive', 'feature', 'delete'],
+            },
+            data: {
+              type: 'object',
+              properties: {
+                status: { type: 'string' },
+              },
+            },
+            reason: { type: 'string' },
+          },
+          required: ['petIds', 'operation'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: {
+                type: 'object',
+                properties: {
+                  successCount: { type: 'number' },
+                  failedCount: { type: 'number' },
+                  errors: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        petId: { type: 'string' },
+                        error: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
     },
     async (req, reply) => {
       const body = req.body ?? {};
@@ -355,6 +694,34 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Check whether the authenticated user has favourited a pet',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  isFavorite: { type: 'boolean' },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -373,6 +740,41 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Add a pet to the authenticated user favourites',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  favorited: { type: 'boolean' },
+                },
+              },
+            },
+          },
+          500: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -391,6 +793,34 @@ export const registerPetsRoutes = async (
       schema: {
         tags: ['pets'],
         summary: 'Remove a pet from the authenticated user favourites',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+          },
+          required: ['id'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  removed: { type: 'boolean' },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
