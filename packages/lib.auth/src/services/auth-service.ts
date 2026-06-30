@@ -194,12 +194,12 @@ export class AuthService {
    * Update user profile
    */
   async updateProfile(profileData: Partial<User>): Promise<User> {
-    const updatedUser = await apiService.put<User>(AUTH_ENDPOINTS.ME, profileData);
+    const response = await apiService.patch<{ user: User }>('/api/v1/users/account', profileData);
 
     // Update localStorage
-    this.setUser(updatedUser);
+    this.setUser(response.user);
 
-    return updatedUser;
+    return response.user;
   }
 
   /**

@@ -8,6 +8,7 @@ vi.mock('@adopt-dont-shop/lib.api', () => ({
     post: vi.fn(),
     get: vi.fn(),
     put: vi.fn(),
+    patch: vi.fn(),
     fetchWithAuth: vi.fn(),
     updateConfig: vi.fn(),
   },
@@ -442,13 +443,13 @@ describe('AuthService', () => {
   });
 
   describe('updateProfile', () => {
-    it('should update the profile and persist the returned user to localStorage', async () => {
+    it('should update the profile via PATCH /users/account and persist the returned user to localStorage', async () => {
       const updatedUser = { ...mockUser, firstName: 'Jane' };
-      (apiService.put as ReturnType<typeof vi.fn>).mockResolvedValue(updatedUser);
+      (apiService.patch as ReturnType<typeof vi.fn>).mockResolvedValue({ user: updatedUser });
 
       const result = await authService.updateProfile({ firstName: 'Jane' });
 
-      expect(apiService.put).toHaveBeenCalledWith('/api/v1/auth/me', { firstName: 'Jane' });
+      expect(apiService.patch).toHaveBeenCalledWith('/api/v1/users/account', { firstName: 'Jane' });
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         STORAGE_KEYS.USER,
         JSON.stringify(updatedUser)
@@ -457,7 +458,7 @@ describe('AuthService', () => {
     });
 
     it('should not write to localStorage when the update fails', async () => {
-      (apiService.put as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Validation error'));
+      (apiService.patch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Validation error'));
 
       await expect(authService.updateProfile({ firstName: '' })).rejects.toThrow(
         'Validation error'
