@@ -458,7 +458,9 @@ describe('AuthService', () => {
     });
 
     it('should not write to localStorage when the update fails', async () => {
-      (apiService.patch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Validation error'));
+      (apiService.patch as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Validation error')
+      );
 
       await expect(authService.updateProfile({ firstName: '' })).rejects.toThrow(
         'Validation error'
