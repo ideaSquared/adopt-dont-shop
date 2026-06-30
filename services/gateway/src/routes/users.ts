@@ -184,6 +184,13 @@ export const registerUsersRoutes = async (
               user: USER_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -225,6 +232,13 @@ export const registerUsersRoutes = async (
             type: 'object',
             properties: {
               user: USER_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -273,6 +287,13 @@ export const registerUsersRoutes = async (
             properties: {
               success: { type: 'boolean' },
               data: PREFERENCES_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -330,6 +351,13 @@ export const registerUsersRoutes = async (
               data: PREFERENCES_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -368,6 +396,13 @@ export const registerUsersRoutes = async (
               success: { type: 'boolean' },
               message: { type: 'string' },
               data: PREFERENCES_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -439,6 +474,13 @@ export const registerUsersRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -494,6 +536,13 @@ export const registerUsersRoutes = async (
               data: { type: 'object' },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -531,6 +580,13 @@ export const registerUsersRoutes = async (
             properties: {
               success: { type: 'boolean' },
               data: USER_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -578,6 +634,13 @@ export const registerUsersRoutes = async (
             properties: {
               success: { type: 'boolean' },
               data: USER_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -638,6 +701,13 @@ export const registerUsersRoutes = async (
               data: USER_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -681,6 +751,13 @@ export const registerUsersRoutes = async (
               success: { type: 'boolean' },
               message: { type: 'string' },
               data: USER_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -750,6 +827,13 @@ export const registerUsersRoutes = async (
                   totalPages: { type: 'number' },
                 },
               },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -899,6 +983,13 @@ export const registerUsersRoutes = async (
               data: USER_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -941,6 +1032,13 @@ export const registerUsersRoutes = async (
             properties: {
               success: { type: 'boolean' },
               data: USER_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -998,6 +1096,13 @@ export const registerUsersRoutes = async (
               temporary_password: { type: 'string' },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -1038,6 +1143,13 @@ export const registerUsersRoutes = async (
               success: { type: 'boolean' },
               message: { type: 'string' },
               data: { type: 'object' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -1101,6 +1213,13 @@ export const registerUsersRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -1142,6 +1261,13 @@ export const registerUsersRoutes = async (
                   permissions: { type: 'array', items: { type: 'string' } },
                 },
               },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -1197,6 +1323,13 @@ export const registerUsersRoutes = async (
               success: { type: 'boolean' },
               message: { type: 'string' },
               data: USER_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },

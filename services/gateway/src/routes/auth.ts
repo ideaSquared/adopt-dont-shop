@@ -186,6 +186,13 @@ export const registerAuthRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -229,6 +236,13 @@ export const registerAuthRoutes = async (
               success: { type: 'boolean' },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -265,6 +279,13 @@ export const registerAuthRoutes = async (
               accessToken: { type: 'string' },
               refreshToken: { type: 'string' },
               expiresIn: { type: 'number' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -312,6 +333,13 @@ export const registerAuthRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -347,6 +375,13 @@ export const registerAuthRoutes = async (
             type: 'object',
             properties: {
               success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -410,6 +445,13 @@ export const registerAuthRoutes = async (
               },
               accessToken: { type: 'string' },
               refreshToken: { type: 'string' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -477,6 +519,13 @@ export const registerAuthRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -523,6 +572,13 @@ export const registerAuthRoutes = async (
               success: { type: 'boolean' },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -564,6 +620,13 @@ export const registerAuthRoutes = async (
             type: 'object',
             properties: {
               success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -610,6 +673,13 @@ export const registerAuthRoutes = async (
             type: 'object',
             properties: {
               success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -671,6 +741,13 @@ export const registerAuthRoutes = async (
               refreshToken: { type: 'string' },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -717,6 +794,13 @@ export const registerAuthRoutes = async (
               success: { type: 'boolean' },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -759,6 +843,13 @@ export const registerAuthRoutes = async (
               qrCodeUrl: { type: 'string' },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -792,6 +883,13 @@ export const registerAuthRoutes = async (
             type: 'object',
             properties: {
               success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -830,6 +928,13 @@ export const registerAuthRoutes = async (
             type: 'object',
             properties: {
               success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -888,6 +993,13 @@ export const registerAuthRoutes = async (
                   city: { type: 'string' },
                 },
               },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -951,6 +1063,13 @@ export const registerAuthRoutes = async (
                 type: 'array',
                 items: { type: 'string' },
               },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },

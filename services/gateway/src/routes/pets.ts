@@ -156,6 +156,13 @@ export const registerPetsRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -205,6 +212,13 @@ export const registerPetsRoutes = async (
               data: { type: 'object' },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -244,6 +258,13 @@ export const registerPetsRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -281,6 +302,13 @@ export const registerPetsRoutes = async (
             properties: {
               success: { type: 'boolean' },
               data: PET_VIEW_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -336,6 +364,20 @@ export const registerPetsRoutes = async (
             properties: {
               success: { type: 'boolean' },
               data: PET_VIEW_SCHEMA,
+            },
+          },
+          500: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -399,6 +441,13 @@ export const registerPetsRoutes = async (
               data: PET_VIEW_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -446,6 +495,13 @@ export const registerPetsRoutes = async (
               data: PET_VIEW_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -487,6 +543,13 @@ export const registerPetsRoutes = async (
             type: 'object',
             properties: {
               success: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -554,6 +617,13 @@ export const registerPetsRoutes = async (
                   },
                 },
               },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -645,6 +715,13 @@ export const registerPetsRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -684,6 +761,20 @@ export const registerPetsRoutes = async (
               },
             },
           },
+          500: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -721,6 +812,13 @@ export const registerPetsRoutes = async (
                   removed: { type: 'boolean' },
                 },
               },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },

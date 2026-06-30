@@ -133,6 +133,13 @@ export const registerRescueRoutes = async (
               nextCursor: { type: 'string' },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -175,6 +182,13 @@ export const registerRescueRoutes = async (
             type: 'object',
             properties: {
               rescue: RESCUE_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -225,6 +239,13 @@ export const registerRescueRoutes = async (
             type: 'object',
             properties: {
               rescue: RESCUE_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -301,6 +322,13 @@ export const registerRescueRoutes = async (
               rescue: RESCUE_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -344,6 +372,13 @@ export const registerRescueRoutes = async (
             type: 'object',
             properties: {
               rescue: RESCUE_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -395,6 +430,13 @@ export const registerRescueRoutes = async (
             properties: {
               invitationToken: { type: 'string' },
               expiresAt: { type: 'string' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -457,6 +499,13 @@ export const registerRescueRoutes = async (
                   },
                 },
               },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -524,6 +573,13 @@ export const registerRescueRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -579,6 +635,13 @@ export const registerRescueRoutes = async (
             properties: {
               success: { type: 'boolean' },
               deleted: { type: 'boolean' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },

@@ -123,6 +123,13 @@ export const registerApplicationsRoutes = async (
               data: APPLICATION_VIEW_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -190,6 +197,13 @@ export const registerApplicationsRoutes = async (
               data: APPLICATION_VIEW_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -247,6 +261,13 @@ export const registerApplicationsRoutes = async (
               data: APPLICATION_VIEW_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -289,6 +310,13 @@ export const registerApplicationsRoutes = async (
             type: 'object',
             properties: {
               data: APPLICATION_VIEW_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -344,6 +372,13 @@ export const registerApplicationsRoutes = async (
           200: {
             type: 'object',
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -388,6 +423,13 @@ export const registerApplicationsRoutes = async (
         response: {
           200: {
             type: 'object',
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
           },
         },
       },
@@ -465,6 +507,13 @@ export const registerApplicationsRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -525,6 +574,13 @@ export const registerApplicationsRoutes = async (
           200: {
             type: 'object',
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -568,6 +624,13 @@ export const registerApplicationsRoutes = async (
         response: {
           200: {
             type: 'object',
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
           },
         },
       },
@@ -614,6 +677,13 @@ export const registerApplicationsRoutes = async (
           200: {
             type: 'object',
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -656,6 +726,13 @@ export const registerApplicationsRoutes = async (
         response: {
           200: {
             type: 'object',
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
           },
         },
       },
@@ -700,6 +777,13 @@ export const registerApplicationsRoutes = async (
           200: {
             type: 'object',
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -742,6 +826,13 @@ export const registerApplicationsRoutes = async (
           200: {
             type: 'object',
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -777,6 +868,13 @@ export const registerApplicationsRoutes = async (
         response: {
           200: {
             type: 'object',
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
           },
         },
       },
@@ -827,6 +925,13 @@ export const registerApplicationsRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -869,6 +974,13 @@ export const registerApplicationsRoutes = async (
                 type: 'array',
                 items: APPLICATION_VIEW_SCHEMA,
               },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -926,6 +1038,13 @@ export const registerApplicationsRoutes = async (
             type: 'object',
             properties: {
               data: APPLICATION_VIEW_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -990,6 +1109,13 @@ export const registerApplicationsRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -1046,6 +1172,13 @@ export const registerApplicationsRoutes = async (
               },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -1082,6 +1215,13 @@ export const registerApplicationsRoutes = async (
           204: {
             type: 'null',
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -1115,6 +1255,13 @@ export const registerApplicationsRoutes = async (
               data: { type: 'object' },
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -1146,6 +1293,13 @@ export const registerApplicationsRoutes = async (
             type: 'object',
             properties: {
               data: { type: 'object' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },

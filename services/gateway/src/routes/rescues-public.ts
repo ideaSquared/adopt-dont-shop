@@ -102,6 +102,13 @@ export const registerRescuesPublicRoutes = async (
         },
         response: {
           200: RESCUE_LIST_RESPONSE,
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -138,6 +145,13 @@ export const registerRescuesPublicRoutes = async (
         },
         response: {
           200: RESCUE_LIST_RESPONSE,
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -182,6 +196,13 @@ export const registerRescuesPublicRoutes = async (
         },
         response: {
           200: RESCUE_LIST_RESPONSE,
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -223,6 +244,13 @@ export const registerRescuesPublicRoutes = async (
         },
         response: {
           200: RESCUE_LIST_RESPONSE,
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -263,6 +291,13 @@ export const registerRescuesPublicRoutes = async (
         summary: 'List rescues followed by the current user',
         response: {
           200: RESCUE_LIST_RESPONSE,
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -313,6 +348,13 @@ export const registerRescuesPublicRoutes = async (
               data: RESCUE_VIEW_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -357,6 +399,13 @@ export const registerRescuesPublicRoutes = async (
               data: RESCUE_VIEW_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -385,6 +434,13 @@ export const registerRescuesPublicRoutes = async (
             properties: {
               success: { type: 'boolean' },
               data: RESCUE_VIEW_SCHEMA,
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -456,6 +512,13 @@ export const registerRescuesPublicRoutes = async (
               data: RESCUE_VIEW_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -495,6 +558,13 @@ export const registerRescuesPublicRoutes = async (
             properties: {
               success: { type: 'boolean' },
               data: { type: 'object', nullable: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
@@ -537,6 +607,13 @@ export const registerRescuesPublicRoutes = async (
             properties: {
               success: { type: 'boolean' },
               data: { type: 'object' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
             },
           },
         },
