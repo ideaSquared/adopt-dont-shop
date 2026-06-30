@@ -43,6 +43,45 @@ export type UsersRoutesOptions = {
   notificationsClient: NotificationsClient;
 };
 
+// Shared user object schema — the shape userToApiJson() returns.
+const USER_SCHEMA = {
+  type: 'object',
+  properties: {
+    userId: { type: 'string' },
+    email: { type: 'string' },
+    firstName: { type: 'string' },
+    lastName: { type: 'string' },
+    userType: { type: 'string' },
+    status: { type: 'string' },
+    emailVerified: { type: 'boolean' },
+    phoneNumber: { type: 'string' },
+    bio: { type: 'string' },
+    timezone: { type: 'string' },
+    language: { type: 'string' },
+    country: { type: 'string' },
+    city: { type: 'string' },
+    createdAt: { type: 'string' },
+    updatedAt: { type: 'string' },
+  },
+} as const;
+
+const PREFERENCES_SCHEMA = {
+  type: 'object',
+  properties: {
+    emailNotifications: { type: 'boolean' },
+    pushNotifications: { type: 'boolean' },
+    smsNotifications: { type: 'boolean' },
+    privacySettings: {
+      type: 'object',
+      properties: {
+        profileVisibility: { type: 'string' },
+        showLocation: { type: 'boolean' },
+        showContactInfo: { type: 'boolean' },
+      },
+    },
+  },
+} as const;
+
 const visibilityProtoToString = (v: AuthV1.ProfileVisibility): string => {
   switch (v) {
     case AuthV1.ProfileVisibility.PROFILE_VISIBILITY_PUBLIC:
@@ -138,6 +177,14 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Get current user profile',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              user: USER_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -157,6 +204,30 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Update current user profile',
+        body: {
+          type: 'object',
+          properties: {
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+            phoneNumber: { type: 'string' },
+            bio: { type: 'string' },
+            timezone: { type: 'string' },
+            language: { type: 'string' },
+            country: { type: 'string' },
+            city: { type: 'string' },
+            addressLine1: { type: 'string' },
+            addressLine2: { type: 'string' },
+            postalCode: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              user: USER_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -196,6 +267,15 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Get current user preferences',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: PREFERENCES_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -226,6 +306,31 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Update current user preferences',
+        body: {
+          type: 'object',
+          properties: {
+            emailNotifications: { type: 'boolean' },
+            pushNotifications: { type: 'boolean' },
+            smsNotifications: { type: 'boolean' },
+            privacySettings: {
+              type: 'object',
+              properties: {
+                profileVisibility: { type: 'string' },
+                showLocation: { type: 'boolean' },
+              },
+            },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: PREFERENCES_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -256,6 +361,16 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Reset current user preferences to defaults',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: PREFERENCES_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -287,6 +402,44 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Search users (admin)',
+        querystring: {
+          type: 'object',
+          properties: {
+            search: { type: 'string' },
+            status: { type: 'string' },
+            userType: { type: 'string' },
+            user_type: { type: 'string' },
+            emailVerified: { type: 'string' },
+            createdFrom: { type: 'string' },
+            created_from: { type: 'string' },
+            createdTo: { type: 'string' },
+            created_to: { type: 'string' },
+            page: { type: 'string' },
+            limit: { type: 'string' },
+            sortBy: { type: 'string' },
+            sort_by: { type: 'string' },
+            sortOrder: { type: 'string' },
+            sort_order: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: USER_SCHEMA },
+              pagination: {
+                type: 'object',
+                properties: {
+                  page: { type: 'number' },
+                  limit: { type: 'number' },
+                  total: { type: 'number' },
+                  totalPages: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -333,6 +486,15 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Get user statistics (admin)',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -356,6 +518,22 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Get a user by ID (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: USER_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -376,6 +554,33 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Update a user (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            status: { type: 'string' },
+            userType: { type: 'string' },
+            user_type: { type: 'string' },
+            emailVerified: { type: 'boolean' },
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: USER_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -411,6 +616,29 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Deactivate a user (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            reason: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: USER_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -439,6 +667,23 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Reactivate a user (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: USER_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -470,6 +715,44 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'List or search users (admin)',
+        querystring: {
+          type: 'object',
+          properties: {
+            search: { type: 'string' },
+            status: { type: 'string' },
+            userType: { type: 'string' },
+            user_type: { type: 'string' },
+            emailVerified: { type: 'string' },
+            createdFrom: { type: 'string' },
+            created_from: { type: 'string' },
+            createdTo: { type: 'string' },
+            created_to: { type: 'string' },
+            page: { type: 'string' },
+            limit: { type: 'string' },
+            sortBy: { type: 'string' },
+            sort_by: { type: 'string' },
+            sortOrder: { type: 'string' },
+            sort_order: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: USER_SCHEMA },
+              pagination: {
+                type: 'object',
+                properties: {
+                  page: { type: 'number' },
+                  limit: { type: 'number' },
+                  total: { type: 'number' },
+                  totalPages: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -520,6 +803,30 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Create a user (admin)',
+        body: {
+          type: 'object',
+          properties: {
+            email: { type: 'string', format: 'email' },
+            firstName: { type: 'string' },
+            first_name: { type: 'string' },
+            lastName: { type: 'string' },
+            last_name: { type: 'string' },
+            role: { type: 'string' },
+            userType: { type: 'string' },
+            user_type: { type: 'string' },
+            sendInvitation: { type: 'boolean' },
+            send_invitation: { type: 'boolean' },
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: USER_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -570,6 +877,22 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Get a user by ID (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: USER_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -592,6 +915,28 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Apply a moderation action to a user (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            action: { type: 'string', enum: ['suspend', 'reactivate'] },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: USER_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -632,6 +977,21 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Reset a user password and return a temporary one (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              temporary_password: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -653,6 +1013,27 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Bulk update user status or role (admin)',
+        body: {
+          type: 'object',
+          properties: {
+            userIds: { type: 'array', items: { type: 'string' } },
+            user_ids: { type: 'array', items: { type: 'string' } },
+            status: { type: 'string' },
+            userType: { type: 'string' },
+            user_type: { type: 'string' },
+            reason: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -693,6 +1074,27 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Get permissions for a user',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  permissions: { type: 'array', items: { type: 'string' } },
+                },
+              },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -714,6 +1116,28 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Get a user with their permissions',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  ...USER_SCHEMA.properties,
+                  permissions: { type: 'array', items: { type: 'string' } },
+                },
+              },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -744,6 +1168,31 @@ export const registerUsersRoutes = async (
       schema: {
         tags: ['users'],
         summary: 'Update a user role (admin)',
+        params: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+          },
+          required: ['userId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            role: { type: 'string' },
+            userType: { type: 'string' },
+            user_type: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: USER_SCHEMA,
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
