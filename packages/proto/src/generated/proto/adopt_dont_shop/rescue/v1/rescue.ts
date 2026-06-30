@@ -257,6 +257,114 @@ export function applicationQuestionScopeToJSON(object: ApplicationQuestionScope)
   }
 }
 
+export enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0,
+  EVENT_TYPE_ADOPTION = 1,
+  EVENT_TYPE_FUNDRAISING = 2,
+  EVENT_TYPE_VOLUNTEER = 3,
+  EVENT_TYPE_COMMUNITY = 4,
+  UNRECOGNIZED = -1,
+}
+
+export function eventTypeFromJSON(object: any): EventType {
+  switch (object) {
+    case 0:
+    case 'EVENT_TYPE_UNSPECIFIED':
+      return EventType.EVENT_TYPE_UNSPECIFIED;
+    case 1:
+    case 'EVENT_TYPE_ADOPTION':
+      return EventType.EVENT_TYPE_ADOPTION;
+    case 2:
+    case 'EVENT_TYPE_FUNDRAISING':
+      return EventType.EVENT_TYPE_FUNDRAISING;
+    case 3:
+    case 'EVENT_TYPE_VOLUNTEER':
+      return EventType.EVENT_TYPE_VOLUNTEER;
+    case 4:
+    case 'EVENT_TYPE_COMMUNITY':
+      return EventType.EVENT_TYPE_COMMUNITY;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return EventType.UNRECOGNIZED;
+  }
+}
+
+export function eventTypeToJSON(object: EventType): string {
+  switch (object) {
+    case EventType.EVENT_TYPE_UNSPECIFIED:
+      return 'EVENT_TYPE_UNSPECIFIED';
+    case EventType.EVENT_TYPE_ADOPTION:
+      return 'EVENT_TYPE_ADOPTION';
+    case EventType.EVENT_TYPE_FUNDRAISING:
+      return 'EVENT_TYPE_FUNDRAISING';
+    case EventType.EVENT_TYPE_VOLUNTEER:
+      return 'EVENT_TYPE_VOLUNTEER';
+    case EventType.EVENT_TYPE_COMMUNITY:
+      return 'EVENT_TYPE_COMMUNITY';
+    case EventType.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
+export enum EventStatus {
+  EVENT_STATUS_UNSPECIFIED = 0,
+  EVENT_STATUS_DRAFT = 1,
+  EVENT_STATUS_PUBLISHED = 2,
+  EVENT_STATUS_IN_PROGRESS = 3,
+  EVENT_STATUS_COMPLETED = 4,
+  EVENT_STATUS_CANCELLED = 5,
+  UNRECOGNIZED = -1,
+}
+
+export function eventStatusFromJSON(object: any): EventStatus {
+  switch (object) {
+    case 0:
+    case 'EVENT_STATUS_UNSPECIFIED':
+      return EventStatus.EVENT_STATUS_UNSPECIFIED;
+    case 1:
+    case 'EVENT_STATUS_DRAFT':
+      return EventStatus.EVENT_STATUS_DRAFT;
+    case 2:
+    case 'EVENT_STATUS_PUBLISHED':
+      return EventStatus.EVENT_STATUS_PUBLISHED;
+    case 3:
+    case 'EVENT_STATUS_IN_PROGRESS':
+      return EventStatus.EVENT_STATUS_IN_PROGRESS;
+    case 4:
+    case 'EVENT_STATUS_COMPLETED':
+      return EventStatus.EVENT_STATUS_COMPLETED;
+    case 5:
+    case 'EVENT_STATUS_CANCELLED':
+      return EventStatus.EVENT_STATUS_CANCELLED;
+    case -1:
+    case 'UNRECOGNIZED':
+    default:
+      return EventStatus.UNRECOGNIZED;
+  }
+}
+
+export function eventStatusToJSON(object: EventStatus): string {
+  switch (object) {
+    case EventStatus.EVENT_STATUS_UNSPECIFIED:
+      return 'EVENT_STATUS_UNSPECIFIED';
+    case EventStatus.EVENT_STATUS_DRAFT:
+      return 'EVENT_STATUS_DRAFT';
+    case EventStatus.EVENT_STATUS_PUBLISHED:
+      return 'EVENT_STATUS_PUBLISHED';
+    case EventStatus.EVENT_STATUS_IN_PROGRESS:
+      return 'EVENT_STATUS_IN_PROGRESS';
+    case EventStatus.EVENT_STATUS_COMPLETED:
+      return 'EVENT_STATUS_COMPLETED';
+    case EventStatus.EVENT_STATUS_CANCELLED:
+      return 'EVENT_STATUS_CANCELLED';
+    case EventStatus.UNRECOGNIZED:
+    default:
+      return 'UNRECOGNIZED';
+  }
+}
+
 /**
  * --- Rescue — denormalised listing row -------------------------------
  *
@@ -742,6 +850,167 @@ export interface SendRescueEmailRequest {
 
 export interface SendRescueEmailResponse {
   queued: boolean;
+}
+
+export interface EventLocation {
+  type: string;
+  address?: string | undefined;
+  city?: string | undefined;
+  postcode?: string | undefined;
+  virtualLink?: string | undefined;
+  venue?: string | undefined;
+}
+
+export interface RescueEvent {
+  id: string;
+  rescueId: string;
+  name: string;
+  description: string;
+  type: EventType;
+  startDate: string;
+  endDate: string;
+  location?: EventLocation | undefined;
+  capacity?: number | undefined;
+  registrationRequired: boolean;
+  status: EventStatus;
+  featuredPets: string[];
+  assignedStaff: string[];
+  isPublic: boolean;
+  imageUrl?: string | undefined;
+  currentAttendance: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string | undefined;
+}
+
+export interface RescueEventAttendee {
+  userId: string;
+  name: string;
+  email: string;
+  registeredAt: string;
+  checkedIn: boolean;
+  checkedInAt?: string | undefined;
+  notes?: string | undefined;
+}
+
+export interface RescueEventAnalytics {
+  eventId: string;
+  totalRegistrations: number;
+  actualAttendance: number;
+  attendanceRate: number;
+  adoptionsFromEvent: number;
+}
+
+export interface ListEventsRequest {
+  type?: string | undefined;
+  status?: string | undefined;
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  search?: string | undefined;
+  assignedStaff?: string | undefined;
+  isPublic?: boolean | undefined;
+}
+
+export interface ListEventsResponse {
+  events: RescueEvent[];
+}
+
+export interface GetEventRequest {
+  id: string;
+}
+
+export interface GetEventResponse {
+  event?: RescueEvent | undefined;
+}
+
+export interface CreateEventRequest {
+  name: string;
+  description: string;
+  type: EventType;
+  startDate: string;
+  endDate: string;
+  location?: EventLocation | undefined;
+  capacity?: number | undefined;
+  registrationRequired: boolean;
+  featuredPets: string[];
+  assignedStaff: string[];
+  isPublic: boolean;
+  imageUrl?: string | undefined;
+}
+
+export interface CreateEventResponse {
+  event?: RescueEvent | undefined;
+}
+
+/**
+ * All writable fields are optional to allow partial updates.
+ * has_featured_pets / has_assigned_staff distinguish "send empty
+ * array to clear" from "don't touch this field".
+ */
+export interface UpdateEventRequest {
+  id: string;
+  name?: string | undefined;
+  description?: string | undefined;
+  type?: EventType | undefined;
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  location?: EventLocation | undefined;
+  capacity?: number | undefined;
+  registrationRequired?: boolean | undefined;
+  featuredPets: string[];
+  hasFeaturedPets: boolean;
+  assignedStaff: string[];
+  hasAssignedStaff: boolean;
+  isPublic?: boolean | undefined;
+  imageUrl?: string | undefined;
+  status?: EventStatus | undefined;
+}
+
+export interface UpdateEventResponse {
+  event?: RescueEvent | undefined;
+}
+
+export interface DeleteEventRequest {
+  id: string;
+}
+
+export interface DeleteEventResponse {}
+
+export interface GetEventAttendeesRequest {
+  eventId: string;
+}
+
+export interface GetEventAttendeesResponse {
+  attendees: RescueEventAttendee[];
+}
+
+export interface AddEventAttendeeRequest {
+  eventId: string;
+  userId: string;
+  name: string;
+  email: string;
+  notes?: string | undefined;
+}
+
+export interface AddEventAttendeeResponse {
+  attendee?: RescueEventAttendee | undefined;
+}
+
+export interface CheckInAttendeeRequest {
+  eventId: string;
+  userId: string;
+}
+
+export interface CheckInAttendeeResponse {
+  attendee?: RescueEventAttendee | undefined;
+}
+
+export interface GetEventAnalyticsRequest {
+  eventId: string;
+}
+
+export interface GetEventAnalyticsResponse {
+  analytics?: RescueEventAnalytics | undefined;
 }
 
 function createBaseRescue(): Rescue {
@@ -7651,6 +7920,2784 @@ export const SendRescueEmailResponse: MessageFns<SendRescueEmailResponse> = {
   },
 };
 
+function createBaseEventLocation(): EventLocation {
+  return {
+    type: '',
+    address: undefined,
+    city: undefined,
+    postcode: undefined,
+    virtualLink: undefined,
+    venue: undefined,
+  };
+}
+
+export const EventLocation: MessageFns<EventLocation> = {
+  encode(message: EventLocation, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.type !== '') {
+      writer.uint32(10).string(message.type);
+    }
+    if (message.address !== undefined) {
+      writer.uint32(18).string(message.address);
+    }
+    if (message.city !== undefined) {
+      writer.uint32(26).string(message.city);
+    }
+    if (message.postcode !== undefined) {
+      writer.uint32(34).string(message.postcode);
+    }
+    if (message.virtualLink !== undefined) {
+      writer.uint32(42).string(message.virtualLink);
+    }
+    if (message.venue !== undefined) {
+      writer.uint32(50).string(message.venue);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): EventLocation {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseEventLocation();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.type = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.address = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.city = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.postcode = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.virtualLink = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.venue = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): EventLocation {
+    return {
+      type: isSet(object.type) ? globalThis.String(object.type) : '',
+      address: isSet(object.address) ? globalThis.String(object.address) : undefined,
+      city: isSet(object.city) ? globalThis.String(object.city) : undefined,
+      postcode: isSet(object.postcode) ? globalThis.String(object.postcode) : undefined,
+      virtualLink: isSet(object.virtualLink)
+        ? globalThis.String(object.virtualLink)
+        : isSet(object.virtual_link)
+          ? globalThis.String(object.virtual_link)
+          : undefined,
+      venue: isSet(object.venue) ? globalThis.String(object.venue) : undefined,
+    };
+  },
+
+  toJSON(message: EventLocation): unknown {
+    const obj: any = {};
+    if (message.type !== '') {
+      obj.type = message.type;
+    }
+    if (message.address !== undefined) {
+      obj.address = message.address;
+    }
+    if (message.city !== undefined) {
+      obj.city = message.city;
+    }
+    if (message.postcode !== undefined) {
+      obj.postcode = message.postcode;
+    }
+    if (message.virtualLink !== undefined) {
+      obj.virtualLink = message.virtualLink;
+    }
+    if (message.venue !== undefined) {
+      obj.venue = message.venue;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<EventLocation>, I>>(base?: I): EventLocation {
+    return EventLocation.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<EventLocation>, I>>(object: I): EventLocation {
+    const message = createBaseEventLocation();
+    message.type = object.type ?? '';
+    message.address = object.address ?? undefined;
+    message.city = object.city ?? undefined;
+    message.postcode = object.postcode ?? undefined;
+    message.virtualLink = object.virtualLink ?? undefined;
+    message.venue = object.venue ?? undefined;
+    return message;
+  },
+};
+
+function createBaseRescueEvent(): RescueEvent {
+  return {
+    id: '',
+    rescueId: '',
+    name: '',
+    description: '',
+    type: 0,
+    startDate: '',
+    endDate: '',
+    location: undefined,
+    capacity: undefined,
+    registrationRequired: false,
+    status: 0,
+    featuredPets: [],
+    assignedStaff: [],
+    isPublic: false,
+    imageUrl: undefined,
+    currentAttendance: 0,
+    createdAt: '',
+    updatedAt: '',
+    createdBy: undefined,
+  };
+}
+
+export const RescueEvent: MessageFns<RescueEvent> = {
+  encode(message: RescueEvent, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.rescueId !== '') {
+      writer.uint32(18).string(message.rescueId);
+    }
+    if (message.name !== '') {
+      writer.uint32(26).string(message.name);
+    }
+    if (message.description !== '') {
+      writer.uint32(34).string(message.description);
+    }
+    if (message.type !== 0) {
+      writer.uint32(40).int32(message.type);
+    }
+    if (message.startDate !== '') {
+      writer.uint32(50).string(message.startDate);
+    }
+    if (message.endDate !== '') {
+      writer.uint32(58).string(message.endDate);
+    }
+    if (message.location !== undefined) {
+      EventLocation.encode(message.location, writer.uint32(66).fork()).join();
+    }
+    if (message.capacity !== undefined) {
+      writer.uint32(72).int32(message.capacity);
+    }
+    if (message.registrationRequired !== false) {
+      writer.uint32(80).bool(message.registrationRequired);
+    }
+    if (message.status !== 0) {
+      writer.uint32(88).int32(message.status);
+    }
+    for (const v of message.featuredPets) {
+      writer.uint32(98).string(v!);
+    }
+    for (const v of message.assignedStaff) {
+      writer.uint32(106).string(v!);
+    }
+    if (message.isPublic !== false) {
+      writer.uint32(112).bool(message.isPublic);
+    }
+    if (message.imageUrl !== undefined) {
+      writer.uint32(122).string(message.imageUrl);
+    }
+    if (message.currentAttendance !== 0) {
+      writer.uint32(128).int32(message.currentAttendance);
+    }
+    if (message.createdAt !== '') {
+      writer.uint32(138).string(message.createdAt);
+    }
+    if (message.updatedAt !== '') {
+      writer.uint32(146).string(message.updatedAt);
+    }
+    if (message.createdBy !== undefined) {
+      writer.uint32(154).string(message.createdBy);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RescueEvent {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRescueEvent();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.rescueId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.startDate = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.endDate = reader.string();
+          continue;
+        }
+        case 8: {
+          if (tag !== 66) {
+            break;
+          }
+
+          message.location = EventLocation.decode(reader, reader.uint32());
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.capacity = reader.int32();
+          continue;
+        }
+        case 10: {
+          if (tag !== 80) {
+            break;
+          }
+
+          message.registrationRequired = reader.bool();
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.featuredPets.push(reader.string());
+          continue;
+        }
+        case 13: {
+          if (tag !== 106) {
+            break;
+          }
+
+          message.assignedStaff.push(reader.string());
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+
+          message.isPublic = reader.bool();
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.imageUrl = reader.string();
+          continue;
+        }
+        case 16: {
+          if (tag !== 128) {
+            break;
+          }
+
+          message.currentAttendance = reader.int32();
+          continue;
+        }
+        case 17: {
+          if (tag !== 138) {
+            break;
+          }
+
+          message.createdAt = reader.string();
+          continue;
+        }
+        case 18: {
+          if (tag !== 146) {
+            break;
+          }
+
+          message.updatedAt = reader.string();
+          continue;
+        }
+        case 19: {
+          if (tag !== 154) {
+            break;
+          }
+
+          message.createdBy = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RescueEvent {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      rescueId: isSet(object.rescueId)
+        ? globalThis.String(object.rescueId)
+        : isSet(object.rescue_id)
+          ? globalThis.String(object.rescue_id)
+          : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      type: isSet(object.type) ? eventTypeFromJSON(object.type) : 0,
+      startDate: isSet(object.startDate)
+        ? globalThis.String(object.startDate)
+        : isSet(object.start_date)
+          ? globalThis.String(object.start_date)
+          : '',
+      endDate: isSet(object.endDate)
+        ? globalThis.String(object.endDate)
+        : isSet(object.end_date)
+          ? globalThis.String(object.end_date)
+          : '',
+      location: isSet(object.location) ? EventLocation.fromJSON(object.location) : undefined,
+      capacity: isSet(object.capacity) ? globalThis.Number(object.capacity) : undefined,
+      registrationRequired: isSet(object.registrationRequired)
+        ? globalThis.Boolean(object.registrationRequired)
+        : isSet(object.registration_required)
+          ? globalThis.Boolean(object.registration_required)
+          : false,
+      status: isSet(object.status) ? eventStatusFromJSON(object.status) : 0,
+      featuredPets: globalThis.Array.isArray(object?.featuredPets)
+        ? object.featuredPets.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.featured_pets)
+          ? object.featured_pets.map((e: any) => globalThis.String(e))
+          : [],
+      assignedStaff: globalThis.Array.isArray(object?.assignedStaff)
+        ? object.assignedStaff.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.assigned_staff)
+          ? object.assigned_staff.map((e: any) => globalThis.String(e))
+          : [],
+      isPublic: isSet(object.isPublic)
+        ? globalThis.Boolean(object.isPublic)
+        : isSet(object.is_public)
+          ? globalThis.Boolean(object.is_public)
+          : false,
+      imageUrl: isSet(object.imageUrl)
+        ? globalThis.String(object.imageUrl)
+        : isSet(object.image_url)
+          ? globalThis.String(object.image_url)
+          : undefined,
+      currentAttendance: isSet(object.currentAttendance)
+        ? globalThis.Number(object.currentAttendance)
+        : isSet(object.current_attendance)
+          ? globalThis.Number(object.current_attendance)
+          : 0,
+      createdAt: isSet(object.createdAt)
+        ? globalThis.String(object.createdAt)
+        : isSet(object.created_at)
+          ? globalThis.String(object.created_at)
+          : '',
+      updatedAt: isSet(object.updatedAt)
+        ? globalThis.String(object.updatedAt)
+        : isSet(object.updated_at)
+          ? globalThis.String(object.updated_at)
+          : '',
+      createdBy: isSet(object.createdBy)
+        ? globalThis.String(object.createdBy)
+        : isSet(object.created_by)
+          ? globalThis.String(object.created_by)
+          : undefined,
+    };
+  },
+
+  toJSON(message: RescueEvent): unknown {
+    const obj: any = {};
+    if (message.id !== '') {
+      obj.id = message.id;
+    }
+    if (message.rescueId !== '') {
+      obj.rescueId = message.rescueId;
+    }
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.description !== '') {
+      obj.description = message.description;
+    }
+    if (message.type !== 0) {
+      obj.type = eventTypeToJSON(message.type);
+    }
+    if (message.startDate !== '') {
+      obj.startDate = message.startDate;
+    }
+    if (message.endDate !== '') {
+      obj.endDate = message.endDate;
+    }
+    if (message.location !== undefined) {
+      obj.location = EventLocation.toJSON(message.location);
+    }
+    if (message.capacity !== undefined) {
+      obj.capacity = Math.round(message.capacity);
+    }
+    if (message.registrationRequired !== false) {
+      obj.registrationRequired = message.registrationRequired;
+    }
+    if (message.status !== 0) {
+      obj.status = eventStatusToJSON(message.status);
+    }
+    if (message.featuredPets?.length) {
+      obj.featuredPets = message.featuredPets;
+    }
+    if (message.assignedStaff?.length) {
+      obj.assignedStaff = message.assignedStaff;
+    }
+    if (message.isPublic !== false) {
+      obj.isPublic = message.isPublic;
+    }
+    if (message.imageUrl !== undefined) {
+      obj.imageUrl = message.imageUrl;
+    }
+    if (message.currentAttendance !== 0) {
+      obj.currentAttendance = Math.round(message.currentAttendance);
+    }
+    if (message.createdAt !== '') {
+      obj.createdAt = message.createdAt;
+    }
+    if (message.updatedAt !== '') {
+      obj.updatedAt = message.updatedAt;
+    }
+    if (message.createdBy !== undefined) {
+      obj.createdBy = message.createdBy;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RescueEvent>, I>>(base?: I): RescueEvent {
+    return RescueEvent.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RescueEvent>, I>>(object: I): RescueEvent {
+    const message = createBaseRescueEvent();
+    message.id = object.id ?? '';
+    message.rescueId = object.rescueId ?? '';
+    message.name = object.name ?? '';
+    message.description = object.description ?? '';
+    message.type = object.type ?? 0;
+    message.startDate = object.startDate ?? '';
+    message.endDate = object.endDate ?? '';
+    message.location =
+      object.location !== undefined && object.location !== null
+        ? EventLocation.fromPartial(object.location)
+        : undefined;
+    message.capacity = object.capacity ?? undefined;
+    message.registrationRequired = object.registrationRequired ?? false;
+    message.status = object.status ?? 0;
+    message.featuredPets = object.featuredPets?.map(e => e) || [];
+    message.assignedStaff = object.assignedStaff?.map(e => e) || [];
+    message.isPublic = object.isPublic ?? false;
+    message.imageUrl = object.imageUrl ?? undefined;
+    message.currentAttendance = object.currentAttendance ?? 0;
+    message.createdAt = object.createdAt ?? '';
+    message.updatedAt = object.updatedAt ?? '';
+    message.createdBy = object.createdBy ?? undefined;
+    return message;
+  },
+};
+
+function createBaseRescueEventAttendee(): RescueEventAttendee {
+  return {
+    userId: '',
+    name: '',
+    email: '',
+    registeredAt: '',
+    checkedIn: false,
+    checkedInAt: undefined,
+    notes: undefined,
+  };
+}
+
+export const RescueEventAttendee: MessageFns<RescueEventAttendee> = {
+  encode(message: RescueEventAttendee, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.userId !== '') {
+      writer.uint32(10).string(message.userId);
+    }
+    if (message.name !== '') {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.email !== '') {
+      writer.uint32(26).string(message.email);
+    }
+    if (message.registeredAt !== '') {
+      writer.uint32(34).string(message.registeredAt);
+    }
+    if (message.checkedIn !== false) {
+      writer.uint32(40).bool(message.checkedIn);
+    }
+    if (message.checkedInAt !== undefined) {
+      writer.uint32(50).string(message.checkedInAt);
+    }
+    if (message.notes !== undefined) {
+      writer.uint32(58).string(message.notes);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RescueEventAttendee {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRescueEventAttendee();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.registeredAt = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.checkedIn = reader.bool();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.checkedInAt = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.notes = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RescueEventAttendee {
+    return {
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      email: isSet(object.email) ? globalThis.String(object.email) : '',
+      registeredAt: isSet(object.registeredAt)
+        ? globalThis.String(object.registeredAt)
+        : isSet(object.registered_at)
+          ? globalThis.String(object.registered_at)
+          : '',
+      checkedIn: isSet(object.checkedIn)
+        ? globalThis.Boolean(object.checkedIn)
+        : isSet(object.checked_in)
+          ? globalThis.Boolean(object.checked_in)
+          : false,
+      checkedInAt: isSet(object.checkedInAt)
+        ? globalThis.String(object.checkedInAt)
+        : isSet(object.checked_in_at)
+          ? globalThis.String(object.checked_in_at)
+          : undefined,
+      notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
+    };
+  },
+
+  toJSON(message: RescueEventAttendee): unknown {
+    const obj: any = {};
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.email !== '') {
+      obj.email = message.email;
+    }
+    if (message.registeredAt !== '') {
+      obj.registeredAt = message.registeredAt;
+    }
+    if (message.checkedIn !== false) {
+      obj.checkedIn = message.checkedIn;
+    }
+    if (message.checkedInAt !== undefined) {
+      obj.checkedInAt = message.checkedInAt;
+    }
+    if (message.notes !== undefined) {
+      obj.notes = message.notes;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RescueEventAttendee>, I>>(base?: I): RescueEventAttendee {
+    return RescueEventAttendee.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RescueEventAttendee>, I>>(
+    object: I
+  ): RescueEventAttendee {
+    const message = createBaseRescueEventAttendee();
+    message.userId = object.userId ?? '';
+    message.name = object.name ?? '';
+    message.email = object.email ?? '';
+    message.registeredAt = object.registeredAt ?? '';
+    message.checkedIn = object.checkedIn ?? false;
+    message.checkedInAt = object.checkedInAt ?? undefined;
+    message.notes = object.notes ?? undefined;
+    return message;
+  },
+};
+
+function createBaseRescueEventAnalytics(): RescueEventAnalytics {
+  return {
+    eventId: '',
+    totalRegistrations: 0,
+    actualAttendance: 0,
+    attendanceRate: 0,
+    adoptionsFromEvent: 0,
+  };
+}
+
+export const RescueEventAnalytics: MessageFns<RescueEventAnalytics> = {
+  encode(message: RescueEventAnalytics, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.eventId !== '') {
+      writer.uint32(10).string(message.eventId);
+    }
+    if (message.totalRegistrations !== 0) {
+      writer.uint32(16).int32(message.totalRegistrations);
+    }
+    if (message.actualAttendance !== 0) {
+      writer.uint32(24).int32(message.actualAttendance);
+    }
+    if (message.attendanceRate !== 0) {
+      writer.uint32(33).double(message.attendanceRate);
+    }
+    if (message.adoptionsFromEvent !== 0) {
+      writer.uint32(40).int32(message.adoptionsFromEvent);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RescueEventAnalytics {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRescueEventAnalytics();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.eventId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.totalRegistrations = reader.int32();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.actualAttendance = reader.int32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 33) {
+            break;
+          }
+
+          message.attendanceRate = reader.double();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.adoptionsFromEvent = reader.int32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RescueEventAnalytics {
+    return {
+      eventId: isSet(object.eventId)
+        ? globalThis.String(object.eventId)
+        : isSet(object.event_id)
+          ? globalThis.String(object.event_id)
+          : '',
+      totalRegistrations: isSet(object.totalRegistrations)
+        ? globalThis.Number(object.totalRegistrations)
+        : isSet(object.total_registrations)
+          ? globalThis.Number(object.total_registrations)
+          : 0,
+      actualAttendance: isSet(object.actualAttendance)
+        ? globalThis.Number(object.actualAttendance)
+        : isSet(object.actual_attendance)
+          ? globalThis.Number(object.actual_attendance)
+          : 0,
+      attendanceRate: isSet(object.attendanceRate)
+        ? globalThis.Number(object.attendanceRate)
+        : isSet(object.attendance_rate)
+          ? globalThis.Number(object.attendance_rate)
+          : 0,
+      adoptionsFromEvent: isSet(object.adoptionsFromEvent)
+        ? globalThis.Number(object.adoptionsFromEvent)
+        : isSet(object.adoptions_from_event)
+          ? globalThis.Number(object.adoptions_from_event)
+          : 0,
+    };
+  },
+
+  toJSON(message: RescueEventAnalytics): unknown {
+    const obj: any = {};
+    if (message.eventId !== '') {
+      obj.eventId = message.eventId;
+    }
+    if (message.totalRegistrations !== 0) {
+      obj.totalRegistrations = Math.round(message.totalRegistrations);
+    }
+    if (message.actualAttendance !== 0) {
+      obj.actualAttendance = Math.round(message.actualAttendance);
+    }
+    if (message.attendanceRate !== 0) {
+      obj.attendanceRate = message.attendanceRate;
+    }
+    if (message.adoptionsFromEvent !== 0) {
+      obj.adoptionsFromEvent = Math.round(message.adoptionsFromEvent);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RescueEventAnalytics>, I>>(base?: I): RescueEventAnalytics {
+    return RescueEventAnalytics.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RescueEventAnalytics>, I>>(
+    object: I
+  ): RescueEventAnalytics {
+    const message = createBaseRescueEventAnalytics();
+    message.eventId = object.eventId ?? '';
+    message.totalRegistrations = object.totalRegistrations ?? 0;
+    message.actualAttendance = object.actualAttendance ?? 0;
+    message.attendanceRate = object.attendanceRate ?? 0;
+    message.adoptionsFromEvent = object.adoptionsFromEvent ?? 0;
+    return message;
+  },
+};
+
+function createBaseListEventsRequest(): ListEventsRequest {
+  return {
+    type: undefined,
+    status: undefined,
+    startDate: undefined,
+    endDate: undefined,
+    search: undefined,
+    assignedStaff: undefined,
+    isPublic: undefined,
+  };
+}
+
+export const ListEventsRequest: MessageFns<ListEventsRequest> = {
+  encode(message: ListEventsRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.type !== undefined) {
+      writer.uint32(10).string(message.type);
+    }
+    if (message.status !== undefined) {
+      writer.uint32(18).string(message.status);
+    }
+    if (message.startDate !== undefined) {
+      writer.uint32(26).string(message.startDate);
+    }
+    if (message.endDate !== undefined) {
+      writer.uint32(34).string(message.endDate);
+    }
+    if (message.search !== undefined) {
+      writer.uint32(42).string(message.search);
+    }
+    if (message.assignedStaff !== undefined) {
+      writer.uint32(50).string(message.assignedStaff);
+    }
+    if (message.isPublic !== undefined) {
+      writer.uint32(56).bool(message.isPublic);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListEventsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListEventsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.type = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.status = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.startDate = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.endDate = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.search = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.assignedStaff = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.isPublic = reader.bool();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListEventsRequest {
+    return {
+      type: isSet(object.type) ? globalThis.String(object.type) : undefined,
+      status: isSet(object.status) ? globalThis.String(object.status) : undefined,
+      startDate: isSet(object.startDate)
+        ? globalThis.String(object.startDate)
+        : isSet(object.start_date)
+          ? globalThis.String(object.start_date)
+          : undefined,
+      endDate: isSet(object.endDate)
+        ? globalThis.String(object.endDate)
+        : isSet(object.end_date)
+          ? globalThis.String(object.end_date)
+          : undefined,
+      search: isSet(object.search) ? globalThis.String(object.search) : undefined,
+      assignedStaff: isSet(object.assignedStaff)
+        ? globalThis.String(object.assignedStaff)
+        : isSet(object.assigned_staff)
+          ? globalThis.String(object.assigned_staff)
+          : undefined,
+      isPublic: isSet(object.isPublic)
+        ? globalThis.Boolean(object.isPublic)
+        : isSet(object.is_public)
+          ? globalThis.Boolean(object.is_public)
+          : undefined,
+    };
+  },
+
+  toJSON(message: ListEventsRequest): unknown {
+    const obj: any = {};
+    if (message.type !== undefined) {
+      obj.type = message.type;
+    }
+    if (message.status !== undefined) {
+      obj.status = message.status;
+    }
+    if (message.startDate !== undefined) {
+      obj.startDate = message.startDate;
+    }
+    if (message.endDate !== undefined) {
+      obj.endDate = message.endDate;
+    }
+    if (message.search !== undefined) {
+      obj.search = message.search;
+    }
+    if (message.assignedStaff !== undefined) {
+      obj.assignedStaff = message.assignedStaff;
+    }
+    if (message.isPublic !== undefined) {
+      obj.isPublic = message.isPublic;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListEventsRequest>, I>>(base?: I): ListEventsRequest {
+    return ListEventsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListEventsRequest>, I>>(object: I): ListEventsRequest {
+    const message = createBaseListEventsRequest();
+    message.type = object.type ?? undefined;
+    message.status = object.status ?? undefined;
+    message.startDate = object.startDate ?? undefined;
+    message.endDate = object.endDate ?? undefined;
+    message.search = object.search ?? undefined;
+    message.assignedStaff = object.assignedStaff ?? undefined;
+    message.isPublic = object.isPublic ?? undefined;
+    return message;
+  },
+};
+
+function createBaseListEventsResponse(): ListEventsResponse {
+  return { events: [] };
+}
+
+export const ListEventsResponse: MessageFns<ListEventsResponse> = {
+  encode(message: ListEventsResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    for (const v of message.events) {
+      RescueEvent.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ListEventsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseListEventsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.events.push(RescueEvent.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ListEventsResponse {
+    return {
+      events: globalThis.Array.isArray(object?.events)
+        ? object.events.map((e: any) => RescueEvent.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: ListEventsResponse): unknown {
+    const obj: any = {};
+    if (message.events?.length) {
+      obj.events = message.events.map(e => RescueEvent.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ListEventsResponse>, I>>(base?: I): ListEventsResponse {
+    return ListEventsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ListEventsResponse>, I>>(object: I): ListEventsResponse {
+    const message = createBaseListEventsResponse();
+    message.events = object.events?.map(e => RescueEvent.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseGetEventRequest(): GetEventRequest {
+  return { id: '' };
+}
+
+export const GetEventRequest: MessageFns<GetEventRequest> = {
+  encode(message: GetEventRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetEventRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetEventRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetEventRequest {
+    return { id: isSet(object.id) ? globalThis.String(object.id) : '' };
+  },
+
+  toJSON(message: GetEventRequest): unknown {
+    const obj: any = {};
+    if (message.id !== '') {
+      obj.id = message.id;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetEventRequest>, I>>(base?: I): GetEventRequest {
+    return GetEventRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetEventRequest>, I>>(object: I): GetEventRequest {
+    const message = createBaseGetEventRequest();
+    message.id = object.id ?? '';
+    return message;
+  },
+};
+
+function createBaseGetEventResponse(): GetEventResponse {
+  return { event: undefined };
+}
+
+export const GetEventResponse: MessageFns<GetEventResponse> = {
+  encode(message: GetEventResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.event !== undefined) {
+      RescueEvent.encode(message.event, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetEventResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetEventResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.event = RescueEvent.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetEventResponse {
+    return { event: isSet(object.event) ? RescueEvent.fromJSON(object.event) : undefined };
+  },
+
+  toJSON(message: GetEventResponse): unknown {
+    const obj: any = {};
+    if (message.event !== undefined) {
+      obj.event = RescueEvent.toJSON(message.event);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetEventResponse>, I>>(base?: I): GetEventResponse {
+    return GetEventResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetEventResponse>, I>>(object: I): GetEventResponse {
+    const message = createBaseGetEventResponse();
+    message.event =
+      object.event !== undefined && object.event !== null
+        ? RescueEvent.fromPartial(object.event)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseCreateEventRequest(): CreateEventRequest {
+  return {
+    name: '',
+    description: '',
+    type: 0,
+    startDate: '',
+    endDate: '',
+    location: undefined,
+    capacity: undefined,
+    registrationRequired: false,
+    featuredPets: [],
+    assignedStaff: [],
+    isPublic: false,
+    imageUrl: undefined,
+  };
+}
+
+export const CreateEventRequest: MessageFns<CreateEventRequest> = {
+  encode(message: CreateEventRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.name !== '') {
+      writer.uint32(10).string(message.name);
+    }
+    if (message.description !== '') {
+      writer.uint32(18).string(message.description);
+    }
+    if (message.type !== 0) {
+      writer.uint32(24).int32(message.type);
+    }
+    if (message.startDate !== '') {
+      writer.uint32(34).string(message.startDate);
+    }
+    if (message.endDate !== '') {
+      writer.uint32(42).string(message.endDate);
+    }
+    if (message.location !== undefined) {
+      EventLocation.encode(message.location, writer.uint32(50).fork()).join();
+    }
+    if (message.capacity !== undefined) {
+      writer.uint32(56).int32(message.capacity);
+    }
+    if (message.registrationRequired !== false) {
+      writer.uint32(64).bool(message.registrationRequired);
+    }
+    for (const v of message.featuredPets) {
+      writer.uint32(74).string(v!);
+    }
+    for (const v of message.assignedStaff) {
+      writer.uint32(82).string(v!);
+    }
+    if (message.isPublic !== false) {
+      writer.uint32(88).bool(message.isPublic);
+    }
+    if (message.imageUrl !== undefined) {
+      writer.uint32(98).string(message.imageUrl);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateEventRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateEventRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.startDate = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.endDate = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.location = EventLocation.decode(reader, reader.uint32());
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.capacity = reader.int32();
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.registrationRequired = reader.bool();
+          continue;
+        }
+        case 9: {
+          if (tag !== 74) {
+            break;
+          }
+
+          message.featuredPets.push(reader.string());
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.assignedStaff.push(reader.string());
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.isPublic = reader.bool();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.imageUrl = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateEventRequest {
+    return {
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      description: isSet(object.description) ? globalThis.String(object.description) : '',
+      type: isSet(object.type) ? eventTypeFromJSON(object.type) : 0,
+      startDate: isSet(object.startDate)
+        ? globalThis.String(object.startDate)
+        : isSet(object.start_date)
+          ? globalThis.String(object.start_date)
+          : '',
+      endDate: isSet(object.endDate)
+        ? globalThis.String(object.endDate)
+        : isSet(object.end_date)
+          ? globalThis.String(object.end_date)
+          : '',
+      location: isSet(object.location) ? EventLocation.fromJSON(object.location) : undefined,
+      capacity: isSet(object.capacity) ? globalThis.Number(object.capacity) : undefined,
+      registrationRequired: isSet(object.registrationRequired)
+        ? globalThis.Boolean(object.registrationRequired)
+        : isSet(object.registration_required)
+          ? globalThis.Boolean(object.registration_required)
+          : false,
+      featuredPets: globalThis.Array.isArray(object?.featuredPets)
+        ? object.featuredPets.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.featured_pets)
+          ? object.featured_pets.map((e: any) => globalThis.String(e))
+          : [],
+      assignedStaff: globalThis.Array.isArray(object?.assignedStaff)
+        ? object.assignedStaff.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.assigned_staff)
+          ? object.assigned_staff.map((e: any) => globalThis.String(e))
+          : [],
+      isPublic: isSet(object.isPublic)
+        ? globalThis.Boolean(object.isPublic)
+        : isSet(object.is_public)
+          ? globalThis.Boolean(object.is_public)
+          : false,
+      imageUrl: isSet(object.imageUrl)
+        ? globalThis.String(object.imageUrl)
+        : isSet(object.image_url)
+          ? globalThis.String(object.image_url)
+          : undefined,
+    };
+  },
+
+  toJSON(message: CreateEventRequest): unknown {
+    const obj: any = {};
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.description !== '') {
+      obj.description = message.description;
+    }
+    if (message.type !== 0) {
+      obj.type = eventTypeToJSON(message.type);
+    }
+    if (message.startDate !== '') {
+      obj.startDate = message.startDate;
+    }
+    if (message.endDate !== '') {
+      obj.endDate = message.endDate;
+    }
+    if (message.location !== undefined) {
+      obj.location = EventLocation.toJSON(message.location);
+    }
+    if (message.capacity !== undefined) {
+      obj.capacity = Math.round(message.capacity);
+    }
+    if (message.registrationRequired !== false) {
+      obj.registrationRequired = message.registrationRequired;
+    }
+    if (message.featuredPets?.length) {
+      obj.featuredPets = message.featuredPets;
+    }
+    if (message.assignedStaff?.length) {
+      obj.assignedStaff = message.assignedStaff;
+    }
+    if (message.isPublic !== false) {
+      obj.isPublic = message.isPublic;
+    }
+    if (message.imageUrl !== undefined) {
+      obj.imageUrl = message.imageUrl;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateEventRequest>, I>>(base?: I): CreateEventRequest {
+    return CreateEventRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateEventRequest>, I>>(object: I): CreateEventRequest {
+    const message = createBaseCreateEventRequest();
+    message.name = object.name ?? '';
+    message.description = object.description ?? '';
+    message.type = object.type ?? 0;
+    message.startDate = object.startDate ?? '';
+    message.endDate = object.endDate ?? '';
+    message.location =
+      object.location !== undefined && object.location !== null
+        ? EventLocation.fromPartial(object.location)
+        : undefined;
+    message.capacity = object.capacity ?? undefined;
+    message.registrationRequired = object.registrationRequired ?? false;
+    message.featuredPets = object.featuredPets?.map(e => e) || [];
+    message.assignedStaff = object.assignedStaff?.map(e => e) || [];
+    message.isPublic = object.isPublic ?? false;
+    message.imageUrl = object.imageUrl ?? undefined;
+    return message;
+  },
+};
+
+function createBaseCreateEventResponse(): CreateEventResponse {
+  return { event: undefined };
+}
+
+export const CreateEventResponse: MessageFns<CreateEventResponse> = {
+  encode(message: CreateEventResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.event !== undefined) {
+      RescueEvent.encode(message.event, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CreateEventResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCreateEventResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.event = RescueEvent.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CreateEventResponse {
+    return { event: isSet(object.event) ? RescueEvent.fromJSON(object.event) : undefined };
+  },
+
+  toJSON(message: CreateEventResponse): unknown {
+    const obj: any = {};
+    if (message.event !== undefined) {
+      obj.event = RescueEvent.toJSON(message.event);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CreateEventResponse>, I>>(base?: I): CreateEventResponse {
+    return CreateEventResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CreateEventResponse>, I>>(
+    object: I
+  ): CreateEventResponse {
+    const message = createBaseCreateEventResponse();
+    message.event =
+      object.event !== undefined && object.event !== null
+        ? RescueEvent.fromPartial(object.event)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateEventRequest(): UpdateEventRequest {
+  return {
+    id: '',
+    name: undefined,
+    description: undefined,
+    type: undefined,
+    startDate: undefined,
+    endDate: undefined,
+    location: undefined,
+    capacity: undefined,
+    registrationRequired: undefined,
+    featuredPets: [],
+    hasFeaturedPets: false,
+    assignedStaff: [],
+    hasAssignedStaff: false,
+    isPublic: undefined,
+    imageUrl: undefined,
+    status: undefined,
+  };
+}
+
+export const UpdateEventRequest: MessageFns<UpdateEventRequest> = {
+  encode(message: UpdateEventRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id);
+    }
+    if (message.name !== undefined) {
+      writer.uint32(18).string(message.name);
+    }
+    if (message.description !== undefined) {
+      writer.uint32(26).string(message.description);
+    }
+    if (message.type !== undefined) {
+      writer.uint32(32).int32(message.type);
+    }
+    if (message.startDate !== undefined) {
+      writer.uint32(42).string(message.startDate);
+    }
+    if (message.endDate !== undefined) {
+      writer.uint32(50).string(message.endDate);
+    }
+    if (message.location !== undefined) {
+      EventLocation.encode(message.location, writer.uint32(58).fork()).join();
+    }
+    if (message.capacity !== undefined) {
+      writer.uint32(64).int32(message.capacity);
+    }
+    if (message.registrationRequired !== undefined) {
+      writer.uint32(72).bool(message.registrationRequired);
+    }
+    for (const v of message.featuredPets) {
+      writer.uint32(82).string(v!);
+    }
+    if (message.hasFeaturedPets !== false) {
+      writer.uint32(88).bool(message.hasFeaturedPets);
+    }
+    for (const v of message.assignedStaff) {
+      writer.uint32(98).string(v!);
+    }
+    if (message.hasAssignedStaff !== false) {
+      writer.uint32(104).bool(message.hasAssignedStaff);
+    }
+    if (message.isPublic !== undefined) {
+      writer.uint32(112).bool(message.isPublic);
+    }
+    if (message.imageUrl !== undefined) {
+      writer.uint32(122).string(message.imageUrl);
+    }
+    if (message.status !== undefined) {
+      writer.uint32(128).int32(message.status);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateEventRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateEventRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.description = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.type = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.startDate = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.endDate = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.location = EventLocation.decode(reader, reader.uint32());
+          continue;
+        }
+        case 8: {
+          if (tag !== 64) {
+            break;
+          }
+
+          message.capacity = reader.int32();
+          continue;
+        }
+        case 9: {
+          if (tag !== 72) {
+            break;
+          }
+
+          message.registrationRequired = reader.bool();
+          continue;
+        }
+        case 10: {
+          if (tag !== 82) {
+            break;
+          }
+
+          message.featuredPets.push(reader.string());
+          continue;
+        }
+        case 11: {
+          if (tag !== 88) {
+            break;
+          }
+
+          message.hasFeaturedPets = reader.bool();
+          continue;
+        }
+        case 12: {
+          if (tag !== 98) {
+            break;
+          }
+
+          message.assignedStaff.push(reader.string());
+          continue;
+        }
+        case 13: {
+          if (tag !== 104) {
+            break;
+          }
+
+          message.hasAssignedStaff = reader.bool();
+          continue;
+        }
+        case 14: {
+          if (tag !== 112) {
+            break;
+          }
+
+          message.isPublic = reader.bool();
+          continue;
+        }
+        case 15: {
+          if (tag !== 122) {
+            break;
+          }
+
+          message.imageUrl = reader.string();
+          continue;
+        }
+        case 16: {
+          if (tag !== 128) {
+            break;
+          }
+
+          message.status = reader.int32() as any;
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateEventRequest {
+    return {
+      id: isSet(object.id) ? globalThis.String(object.id) : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : undefined,
+      description: isSet(object.description) ? globalThis.String(object.description) : undefined,
+      type: isSet(object.type) ? eventTypeFromJSON(object.type) : undefined,
+      startDate: isSet(object.startDate)
+        ? globalThis.String(object.startDate)
+        : isSet(object.start_date)
+          ? globalThis.String(object.start_date)
+          : undefined,
+      endDate: isSet(object.endDate)
+        ? globalThis.String(object.endDate)
+        : isSet(object.end_date)
+          ? globalThis.String(object.end_date)
+          : undefined,
+      location: isSet(object.location) ? EventLocation.fromJSON(object.location) : undefined,
+      capacity: isSet(object.capacity) ? globalThis.Number(object.capacity) : undefined,
+      registrationRequired: isSet(object.registrationRequired)
+        ? globalThis.Boolean(object.registrationRequired)
+        : isSet(object.registration_required)
+          ? globalThis.Boolean(object.registration_required)
+          : undefined,
+      featuredPets: globalThis.Array.isArray(object?.featuredPets)
+        ? object.featuredPets.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.featured_pets)
+          ? object.featured_pets.map((e: any) => globalThis.String(e))
+          : [],
+      hasFeaturedPets: isSet(object.hasFeaturedPets)
+        ? globalThis.Boolean(object.hasFeaturedPets)
+        : isSet(object.has_featured_pets)
+          ? globalThis.Boolean(object.has_featured_pets)
+          : false,
+      assignedStaff: globalThis.Array.isArray(object?.assignedStaff)
+        ? object.assignedStaff.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.assigned_staff)
+          ? object.assigned_staff.map((e: any) => globalThis.String(e))
+          : [],
+      hasAssignedStaff: isSet(object.hasAssignedStaff)
+        ? globalThis.Boolean(object.hasAssignedStaff)
+        : isSet(object.has_assigned_staff)
+          ? globalThis.Boolean(object.has_assigned_staff)
+          : false,
+      isPublic: isSet(object.isPublic)
+        ? globalThis.Boolean(object.isPublic)
+        : isSet(object.is_public)
+          ? globalThis.Boolean(object.is_public)
+          : undefined,
+      imageUrl: isSet(object.imageUrl)
+        ? globalThis.String(object.imageUrl)
+        : isSet(object.image_url)
+          ? globalThis.String(object.image_url)
+          : undefined,
+      status: isSet(object.status) ? eventStatusFromJSON(object.status) : undefined,
+    };
+  },
+
+  toJSON(message: UpdateEventRequest): unknown {
+    const obj: any = {};
+    if (message.id !== '') {
+      obj.id = message.id;
+    }
+    if (message.name !== undefined) {
+      obj.name = message.name;
+    }
+    if (message.description !== undefined) {
+      obj.description = message.description;
+    }
+    if (message.type !== undefined) {
+      obj.type = eventTypeToJSON(message.type);
+    }
+    if (message.startDate !== undefined) {
+      obj.startDate = message.startDate;
+    }
+    if (message.endDate !== undefined) {
+      obj.endDate = message.endDate;
+    }
+    if (message.location !== undefined) {
+      obj.location = EventLocation.toJSON(message.location);
+    }
+    if (message.capacity !== undefined) {
+      obj.capacity = Math.round(message.capacity);
+    }
+    if (message.registrationRequired !== undefined) {
+      obj.registrationRequired = message.registrationRequired;
+    }
+    if (message.featuredPets?.length) {
+      obj.featuredPets = message.featuredPets;
+    }
+    if (message.hasFeaturedPets !== false) {
+      obj.hasFeaturedPets = message.hasFeaturedPets;
+    }
+    if (message.assignedStaff?.length) {
+      obj.assignedStaff = message.assignedStaff;
+    }
+    if (message.hasAssignedStaff !== false) {
+      obj.hasAssignedStaff = message.hasAssignedStaff;
+    }
+    if (message.isPublic !== undefined) {
+      obj.isPublic = message.isPublic;
+    }
+    if (message.imageUrl !== undefined) {
+      obj.imageUrl = message.imageUrl;
+    }
+    if (message.status !== undefined) {
+      obj.status = eventStatusToJSON(message.status);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateEventRequest>, I>>(base?: I): UpdateEventRequest {
+    return UpdateEventRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateEventRequest>, I>>(object: I): UpdateEventRequest {
+    const message = createBaseUpdateEventRequest();
+    message.id = object.id ?? '';
+    message.name = object.name ?? undefined;
+    message.description = object.description ?? undefined;
+    message.type = object.type ?? undefined;
+    message.startDate = object.startDate ?? undefined;
+    message.endDate = object.endDate ?? undefined;
+    message.location =
+      object.location !== undefined && object.location !== null
+        ? EventLocation.fromPartial(object.location)
+        : undefined;
+    message.capacity = object.capacity ?? undefined;
+    message.registrationRequired = object.registrationRequired ?? undefined;
+    message.featuredPets = object.featuredPets?.map(e => e) || [];
+    message.hasFeaturedPets = object.hasFeaturedPets ?? false;
+    message.assignedStaff = object.assignedStaff?.map(e => e) || [];
+    message.hasAssignedStaff = object.hasAssignedStaff ?? false;
+    message.isPublic = object.isPublic ?? undefined;
+    message.imageUrl = object.imageUrl ?? undefined;
+    message.status = object.status ?? undefined;
+    return message;
+  },
+};
+
+function createBaseUpdateEventResponse(): UpdateEventResponse {
+  return { event: undefined };
+}
+
+export const UpdateEventResponse: MessageFns<UpdateEventResponse> = {
+  encode(message: UpdateEventResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.event !== undefined) {
+      RescueEvent.encode(message.event, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): UpdateEventResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseUpdateEventResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.event = RescueEvent.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): UpdateEventResponse {
+    return { event: isSet(object.event) ? RescueEvent.fromJSON(object.event) : undefined };
+  },
+
+  toJSON(message: UpdateEventResponse): unknown {
+    const obj: any = {};
+    if (message.event !== undefined) {
+      obj.event = RescueEvent.toJSON(message.event);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<UpdateEventResponse>, I>>(base?: I): UpdateEventResponse {
+    return UpdateEventResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<UpdateEventResponse>, I>>(
+    object: I
+  ): UpdateEventResponse {
+    const message = createBaseUpdateEventResponse();
+    message.event =
+      object.event !== undefined && object.event !== null
+        ? RescueEvent.fromPartial(object.event)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseDeleteEventRequest(): DeleteEventRequest {
+  return { id: '' };
+}
+
+export const DeleteEventRequest: MessageFns<DeleteEventRequest> = {
+  encode(message: DeleteEventRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.id !== '') {
+      writer.uint32(10).string(message.id);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteEventRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteEventRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.id = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): DeleteEventRequest {
+    return { id: isSet(object.id) ? globalThis.String(object.id) : '' };
+  },
+
+  toJSON(message: DeleteEventRequest): unknown {
+    const obj: any = {};
+    if (message.id !== '') {
+      obj.id = message.id;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteEventRequest>, I>>(base?: I): DeleteEventRequest {
+    return DeleteEventRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteEventRequest>, I>>(object: I): DeleteEventRequest {
+    const message = createBaseDeleteEventRequest();
+    message.id = object.id ?? '';
+    return message;
+  },
+};
+
+function createBaseDeleteEventResponse(): DeleteEventResponse {
+  return {};
+}
+
+export const DeleteEventResponse: MessageFns<DeleteEventResponse> = {
+  encode(_: DeleteEventResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): DeleteEventResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseDeleteEventResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(_: any): DeleteEventResponse {
+    return {};
+  },
+
+  toJSON(_: DeleteEventResponse): unknown {
+    const obj: any = {};
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<DeleteEventResponse>, I>>(base?: I): DeleteEventResponse {
+    return DeleteEventResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<DeleteEventResponse>, I>>(_: I): DeleteEventResponse {
+    const message = createBaseDeleteEventResponse();
+    return message;
+  },
+};
+
+function createBaseGetEventAttendeesRequest(): GetEventAttendeesRequest {
+  return { eventId: '' };
+}
+
+export const GetEventAttendeesRequest: MessageFns<GetEventAttendeesRequest> = {
+  encode(
+    message: GetEventAttendeesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.eventId !== '') {
+      writer.uint32(10).string(message.eventId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetEventAttendeesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetEventAttendeesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.eventId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetEventAttendeesRequest {
+    return {
+      eventId: isSet(object.eventId)
+        ? globalThis.String(object.eventId)
+        : isSet(object.event_id)
+          ? globalThis.String(object.event_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetEventAttendeesRequest): unknown {
+    const obj: any = {};
+    if (message.eventId !== '') {
+      obj.eventId = message.eventId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetEventAttendeesRequest>, I>>(
+    base?: I
+  ): GetEventAttendeesRequest {
+    return GetEventAttendeesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetEventAttendeesRequest>, I>>(
+    object: I
+  ): GetEventAttendeesRequest {
+    const message = createBaseGetEventAttendeesRequest();
+    message.eventId = object.eventId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetEventAttendeesResponse(): GetEventAttendeesResponse {
+  return { attendees: [] };
+}
+
+export const GetEventAttendeesResponse: MessageFns<GetEventAttendeesResponse> = {
+  encode(
+    message: GetEventAttendeesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.attendees) {
+      RescueEventAttendee.encode(v!, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetEventAttendeesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetEventAttendeesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.attendees.push(RescueEventAttendee.decode(reader, reader.uint32()));
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetEventAttendeesResponse {
+    return {
+      attendees: globalThis.Array.isArray(object?.attendees)
+        ? object.attendees.map((e: any) => RescueEventAttendee.fromJSON(e))
+        : [],
+    };
+  },
+
+  toJSON(message: GetEventAttendeesResponse): unknown {
+    const obj: any = {};
+    if (message.attendees?.length) {
+      obj.attendees = message.attendees.map(e => RescueEventAttendee.toJSON(e));
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetEventAttendeesResponse>, I>>(
+    base?: I
+  ): GetEventAttendeesResponse {
+    return GetEventAttendeesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetEventAttendeesResponse>, I>>(
+    object: I
+  ): GetEventAttendeesResponse {
+    const message = createBaseGetEventAttendeesResponse();
+    message.attendees = object.attendees?.map(e => RescueEventAttendee.fromPartial(e)) || [];
+    return message;
+  },
+};
+
+function createBaseAddEventAttendeeRequest(): AddEventAttendeeRequest {
+  return { eventId: '', userId: '', name: '', email: '', notes: undefined };
+}
+
+export const AddEventAttendeeRequest: MessageFns<AddEventAttendeeRequest> = {
+  encode(
+    message: AddEventAttendeeRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.eventId !== '') {
+      writer.uint32(10).string(message.eventId);
+    }
+    if (message.userId !== '') {
+      writer.uint32(18).string(message.userId);
+    }
+    if (message.name !== '') {
+      writer.uint32(26).string(message.name);
+    }
+    if (message.email !== '') {
+      writer.uint32(34).string(message.email);
+    }
+    if (message.notes !== undefined) {
+      writer.uint32(42).string(message.notes);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AddEventAttendeeRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAddEventAttendeeRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.eventId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.email = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.notes = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AddEventAttendeeRequest {
+    return {
+      eventId: isSet(object.eventId)
+        ? globalThis.String(object.eventId)
+        : isSet(object.event_id)
+          ? globalThis.String(object.event_id)
+          : '',
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+      name: isSet(object.name) ? globalThis.String(object.name) : '',
+      email: isSet(object.email) ? globalThis.String(object.email) : '',
+      notes: isSet(object.notes) ? globalThis.String(object.notes) : undefined,
+    };
+  },
+
+  toJSON(message: AddEventAttendeeRequest): unknown {
+    const obj: any = {};
+    if (message.eventId !== '') {
+      obj.eventId = message.eventId;
+    }
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    if (message.name !== '') {
+      obj.name = message.name;
+    }
+    if (message.email !== '') {
+      obj.email = message.email;
+    }
+    if (message.notes !== undefined) {
+      obj.notes = message.notes;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AddEventAttendeeRequest>, I>>(
+    base?: I
+  ): AddEventAttendeeRequest {
+    return AddEventAttendeeRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AddEventAttendeeRequest>, I>>(
+    object: I
+  ): AddEventAttendeeRequest {
+    const message = createBaseAddEventAttendeeRequest();
+    message.eventId = object.eventId ?? '';
+    message.userId = object.userId ?? '';
+    message.name = object.name ?? '';
+    message.email = object.email ?? '';
+    message.notes = object.notes ?? undefined;
+    return message;
+  },
+};
+
+function createBaseAddEventAttendeeResponse(): AddEventAttendeeResponse {
+  return { attendee: undefined };
+}
+
+export const AddEventAttendeeResponse: MessageFns<AddEventAttendeeResponse> = {
+  encode(
+    message: AddEventAttendeeResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.attendee !== undefined) {
+      RescueEventAttendee.encode(message.attendee, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): AddEventAttendeeResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseAddEventAttendeeResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.attendee = RescueEventAttendee.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): AddEventAttendeeResponse {
+    return {
+      attendee: isSet(object.attendee) ? RescueEventAttendee.fromJSON(object.attendee) : undefined,
+    };
+  },
+
+  toJSON(message: AddEventAttendeeResponse): unknown {
+    const obj: any = {};
+    if (message.attendee !== undefined) {
+      obj.attendee = RescueEventAttendee.toJSON(message.attendee);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AddEventAttendeeResponse>, I>>(
+    base?: I
+  ): AddEventAttendeeResponse {
+    return AddEventAttendeeResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AddEventAttendeeResponse>, I>>(
+    object: I
+  ): AddEventAttendeeResponse {
+    const message = createBaseAddEventAttendeeResponse();
+    message.attendee =
+      object.attendee !== undefined && object.attendee !== null
+        ? RescueEventAttendee.fromPartial(object.attendee)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseCheckInAttendeeRequest(): CheckInAttendeeRequest {
+  return { eventId: '', userId: '' };
+}
+
+export const CheckInAttendeeRequest: MessageFns<CheckInAttendeeRequest> = {
+  encode(message: CheckInAttendeeRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.eventId !== '') {
+      writer.uint32(10).string(message.eventId);
+    }
+    if (message.userId !== '') {
+      writer.uint32(18).string(message.userId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CheckInAttendeeRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCheckInAttendeeRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.eventId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.userId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CheckInAttendeeRequest {
+    return {
+      eventId: isSet(object.eventId)
+        ? globalThis.String(object.eventId)
+        : isSet(object.event_id)
+          ? globalThis.String(object.event_id)
+          : '',
+      userId: isSet(object.userId)
+        ? globalThis.String(object.userId)
+        : isSet(object.user_id)
+          ? globalThis.String(object.user_id)
+          : '',
+    };
+  },
+
+  toJSON(message: CheckInAttendeeRequest): unknown {
+    const obj: any = {};
+    if (message.eventId !== '') {
+      obj.eventId = message.eventId;
+    }
+    if (message.userId !== '') {
+      obj.userId = message.userId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CheckInAttendeeRequest>, I>>(
+    base?: I
+  ): CheckInAttendeeRequest {
+    return CheckInAttendeeRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CheckInAttendeeRequest>, I>>(
+    object: I
+  ): CheckInAttendeeRequest {
+    const message = createBaseCheckInAttendeeRequest();
+    message.eventId = object.eventId ?? '';
+    message.userId = object.userId ?? '';
+    return message;
+  },
+};
+
+function createBaseCheckInAttendeeResponse(): CheckInAttendeeResponse {
+  return { attendee: undefined };
+}
+
+export const CheckInAttendeeResponse: MessageFns<CheckInAttendeeResponse> = {
+  encode(
+    message: CheckInAttendeeResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.attendee !== undefined) {
+      RescueEventAttendee.encode(message.attendee, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CheckInAttendeeResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCheckInAttendeeResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.attendee = RescueEventAttendee.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CheckInAttendeeResponse {
+    return {
+      attendee: isSet(object.attendee) ? RescueEventAttendee.fromJSON(object.attendee) : undefined,
+    };
+  },
+
+  toJSON(message: CheckInAttendeeResponse): unknown {
+    const obj: any = {};
+    if (message.attendee !== undefined) {
+      obj.attendee = RescueEventAttendee.toJSON(message.attendee);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CheckInAttendeeResponse>, I>>(
+    base?: I
+  ): CheckInAttendeeResponse {
+    return CheckInAttendeeResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CheckInAttendeeResponse>, I>>(
+    object: I
+  ): CheckInAttendeeResponse {
+    const message = createBaseCheckInAttendeeResponse();
+    message.attendee =
+      object.attendee !== undefined && object.attendee !== null
+        ? RescueEventAttendee.fromPartial(object.attendee)
+        : undefined;
+    return message;
+  },
+};
+
+function createBaseGetEventAnalyticsRequest(): GetEventAnalyticsRequest {
+  return { eventId: '' };
+}
+
+export const GetEventAnalyticsRequest: MessageFns<GetEventAnalyticsRequest> = {
+  encode(
+    message: GetEventAnalyticsRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.eventId !== '') {
+      writer.uint32(10).string(message.eventId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetEventAnalyticsRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetEventAnalyticsRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.eventId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetEventAnalyticsRequest {
+    return {
+      eventId: isSet(object.eventId)
+        ? globalThis.String(object.eventId)
+        : isSet(object.event_id)
+          ? globalThis.String(object.event_id)
+          : '',
+    };
+  },
+
+  toJSON(message: GetEventAnalyticsRequest): unknown {
+    const obj: any = {};
+    if (message.eventId !== '') {
+      obj.eventId = message.eventId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetEventAnalyticsRequest>, I>>(
+    base?: I
+  ): GetEventAnalyticsRequest {
+    return GetEventAnalyticsRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetEventAnalyticsRequest>, I>>(
+    object: I
+  ): GetEventAnalyticsRequest {
+    const message = createBaseGetEventAnalyticsRequest();
+    message.eventId = object.eventId ?? '';
+    return message;
+  },
+};
+
+function createBaseGetEventAnalyticsResponse(): GetEventAnalyticsResponse {
+  return { analytics: undefined };
+}
+
+export const GetEventAnalyticsResponse: MessageFns<GetEventAnalyticsResponse> = {
+  encode(
+    message: GetEventAnalyticsResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.analytics !== undefined) {
+      RescueEventAnalytics.encode(message.analytics, writer.uint32(10).fork()).join();
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): GetEventAnalyticsResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGetEventAnalyticsResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.analytics = RescueEventAnalytics.decode(reader, reader.uint32());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GetEventAnalyticsResponse {
+    return {
+      analytics: isSet(object.analytics)
+        ? RescueEventAnalytics.fromJSON(object.analytics)
+        : undefined,
+    };
+  },
+
+  toJSON(message: GetEventAnalyticsResponse): unknown {
+    const obj: any = {};
+    if (message.analytics !== undefined) {
+      obj.analytics = RescueEventAnalytics.toJSON(message.analytics);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GetEventAnalyticsResponse>, I>>(
+    base?: I
+  ): GetEventAnalyticsResponse {
+    return GetEventAnalyticsResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GetEventAnalyticsResponse>, I>>(
+    object: I
+  ): GetEventAnalyticsResponse {
+    const message = createBaseGetEventAnalyticsResponse();
+    message.analytics =
+      object.analytics !== undefined && object.analytics !== null
+        ? RescueEventAnalytics.fromPartial(object.analytics)
+        : undefined;
+    return message;
+  },
+};
+
 /**
  * RescueService is the gRPC contract for the rescue vertical. It owns
  * the `rescue.*` schema (Rescue, RescueSettings, StaffMember, Invitation,
@@ -8140,6 +11187,131 @@ export const RescueServiceService = {
     responseDeserialize: (value: Buffer): CancelRescueInvitationResponse =>
       CancelRescueInvitationResponse.decode(value),
   },
+  /**
+   * List events for the caller's rescue with optional filters. Caller
+   * MUST have `events.read` scoped to the rescue.
+   */
+  listEvents: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/ListEvents' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: ListEventsRequest): Buffer =>
+      Buffer.from(ListEventsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): ListEventsRequest => ListEventsRequest.decode(value),
+    responseSerialize: (value: ListEventsResponse): Buffer =>
+      Buffer.from(ListEventsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): ListEventsResponse => ListEventsResponse.decode(value),
+  },
+  /** Fetch a single event by id. Caller MUST have `events.read`. */
+  getEvent: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/GetEvent' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetEventRequest): Buffer =>
+      Buffer.from(GetEventRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetEventRequest => GetEventRequest.decode(value),
+    responseSerialize: (value: GetEventResponse): Buffer =>
+      Buffer.from(GetEventResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetEventResponse => GetEventResponse.decode(value),
+  },
+  /**
+   * Create a new event. Caller MUST have `events.create` scoped to the
+   * rescue. New events start as drafts.
+   */
+  createEvent: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/CreateEvent' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CreateEventRequest): Buffer =>
+      Buffer.from(CreateEventRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CreateEventRequest => CreateEventRequest.decode(value),
+    responseSerialize: (value: CreateEventResponse): Buffer =>
+      Buffer.from(CreateEventResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CreateEventResponse => CreateEventResponse.decode(value),
+  },
+  /** Update mutable event fields. Caller MUST have `events.update`. */
+  updateEvent: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/UpdateEvent' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: UpdateEventRequest): Buffer =>
+      Buffer.from(UpdateEventRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): UpdateEventRequest => UpdateEventRequest.decode(value),
+    responseSerialize: (value: UpdateEventResponse): Buffer =>
+      Buffer.from(UpdateEventResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): UpdateEventResponse => UpdateEventResponse.decode(value),
+  },
+  /** Soft-delete an event. Caller MUST have `events.delete`. */
+  deleteEvent: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/DeleteEvent' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: DeleteEventRequest): Buffer =>
+      Buffer.from(DeleteEventRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): DeleteEventRequest => DeleteEventRequest.decode(value),
+    responseSerialize: (value: DeleteEventResponse): Buffer =>
+      Buffer.from(DeleteEventResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): DeleteEventResponse => DeleteEventResponse.decode(value),
+  },
+  /** List attendees for an event. Caller MUST have `events.read`. */
+  getEventAttendees: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/GetEventAttendees' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetEventAttendeesRequest): Buffer =>
+      Buffer.from(GetEventAttendeesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetEventAttendeesRequest =>
+      GetEventAttendeesRequest.decode(value),
+    responseSerialize: (value: GetEventAttendeesResponse): Buffer =>
+      Buffer.from(GetEventAttendeesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetEventAttendeesResponse =>
+      GetEventAttendeesResponse.decode(value),
+  },
+  /** Register an attendee for an event. Caller MUST have `events.update`. */
+  addEventAttendee: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/AddEventAttendee' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: AddEventAttendeeRequest): Buffer =>
+      Buffer.from(AddEventAttendeeRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): AddEventAttendeeRequest =>
+      AddEventAttendeeRequest.decode(value),
+    responseSerialize: (value: AddEventAttendeeResponse): Buffer =>
+      Buffer.from(AddEventAttendeeResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): AddEventAttendeeResponse =>
+      AddEventAttendeeResponse.decode(value),
+  },
+  /** Mark an attendee as checked in. Caller MUST have `events.update`. */
+  checkInAttendee: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/CheckInAttendee' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CheckInAttendeeRequest): Buffer =>
+      Buffer.from(CheckInAttendeeRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CheckInAttendeeRequest =>
+      CheckInAttendeeRequest.decode(value),
+    responseSerialize: (value: CheckInAttendeeResponse): Buffer =>
+      Buffer.from(CheckInAttendeeResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CheckInAttendeeResponse =>
+      CheckInAttendeeResponse.decode(value),
+  },
+  /**
+   * Get analytics for a completed or in-progress event. Caller MUST
+   * have `events.read`.
+   */
+  getEventAnalytics: {
+    path: '/adopt_dont_shop.rescue.v1.RescueService/GetEventAnalytics' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: GetEventAnalyticsRequest): Buffer =>
+      Buffer.from(GetEventAnalyticsRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): GetEventAnalyticsRequest =>
+      GetEventAnalyticsRequest.decode(value),
+    responseSerialize: (value: GetEventAnalyticsResponse): Buffer =>
+      Buffer.from(GetEventAnalyticsResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): GetEventAnalyticsResponse =>
+      GetEventAnalyticsResponse.decode(value),
+  },
 } as const;
 
 export interface RescueServiceServer extends UntypedServiceImplementation {
@@ -8330,6 +11502,33 @@ export interface RescueServiceServer extends UntypedServiceImplementation {
     CancelRescueInvitationRequest,
     CancelRescueInvitationResponse
   >;
+  /**
+   * List events for the caller's rescue with optional filters. Caller
+   * MUST have `events.read` scoped to the rescue.
+   */
+  listEvents: handleUnaryCall<ListEventsRequest, ListEventsResponse>;
+  /** Fetch a single event by id. Caller MUST have `events.read`. */
+  getEvent: handleUnaryCall<GetEventRequest, GetEventResponse>;
+  /**
+   * Create a new event. Caller MUST have `events.create` scoped to the
+   * rescue. New events start as drafts.
+   */
+  createEvent: handleUnaryCall<CreateEventRequest, CreateEventResponse>;
+  /** Update mutable event fields. Caller MUST have `events.update`. */
+  updateEvent: handleUnaryCall<UpdateEventRequest, UpdateEventResponse>;
+  /** Soft-delete an event. Caller MUST have `events.delete`. */
+  deleteEvent: handleUnaryCall<DeleteEventRequest, DeleteEventResponse>;
+  /** List attendees for an event. Caller MUST have `events.read`. */
+  getEventAttendees: handleUnaryCall<GetEventAttendeesRequest, GetEventAttendeesResponse>;
+  /** Register an attendee for an event. Caller MUST have `events.update`. */
+  addEventAttendee: handleUnaryCall<AddEventAttendeeRequest, AddEventAttendeeResponse>;
+  /** Mark an attendee as checked in. Caller MUST have `events.update`. */
+  checkInAttendee: handleUnaryCall<CheckInAttendeeRequest, CheckInAttendeeResponse>;
+  /**
+   * Get analytics for a completed or in-progress event. Caller MUST
+   * have `events.read`.
+   */
+  getEventAnalytics: handleUnaryCall<GetEventAnalyticsRequest, GetEventAnalyticsResponse>;
 }
 
 export interface RescueServiceClient extends Client {
@@ -8865,6 +12064,159 @@ export interface RescueServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: CancelRescueInvitationResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * List events for the caller's rescue with optional filters. Caller
+   * MUST have `events.read` scoped to the rescue.
+   */
+  listEvents(
+    request: ListEventsRequest,
+    callback: (error: ServiceError | null, response: ListEventsResponse) => void
+  ): ClientUnaryCall;
+  listEvents(
+    request: ListEventsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: ListEventsResponse) => void
+  ): ClientUnaryCall;
+  listEvents(
+    request: ListEventsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: ListEventsResponse) => void
+  ): ClientUnaryCall;
+  /** Fetch a single event by id. Caller MUST have `events.read`. */
+  getEvent(
+    request: GetEventRequest,
+    callback: (error: ServiceError | null, response: GetEventResponse) => void
+  ): ClientUnaryCall;
+  getEvent(
+    request: GetEventRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetEventResponse) => void
+  ): ClientUnaryCall;
+  getEvent(
+    request: GetEventRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetEventResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Create a new event. Caller MUST have `events.create` scoped to the
+   * rescue. New events start as drafts.
+   */
+  createEvent(
+    request: CreateEventRequest,
+    callback: (error: ServiceError | null, response: CreateEventResponse) => void
+  ): ClientUnaryCall;
+  createEvent(
+    request: CreateEventRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CreateEventResponse) => void
+  ): ClientUnaryCall;
+  createEvent(
+    request: CreateEventRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CreateEventResponse) => void
+  ): ClientUnaryCall;
+  /** Update mutable event fields. Caller MUST have `events.update`. */
+  updateEvent(
+    request: UpdateEventRequest,
+    callback: (error: ServiceError | null, response: UpdateEventResponse) => void
+  ): ClientUnaryCall;
+  updateEvent(
+    request: UpdateEventRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: UpdateEventResponse) => void
+  ): ClientUnaryCall;
+  updateEvent(
+    request: UpdateEventRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: UpdateEventResponse) => void
+  ): ClientUnaryCall;
+  /** Soft-delete an event. Caller MUST have `events.delete`. */
+  deleteEvent(
+    request: DeleteEventRequest,
+    callback: (error: ServiceError | null, response: DeleteEventResponse) => void
+  ): ClientUnaryCall;
+  deleteEvent(
+    request: DeleteEventRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: DeleteEventResponse) => void
+  ): ClientUnaryCall;
+  deleteEvent(
+    request: DeleteEventRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: DeleteEventResponse) => void
+  ): ClientUnaryCall;
+  /** List attendees for an event. Caller MUST have `events.read`. */
+  getEventAttendees(
+    request: GetEventAttendeesRequest,
+    callback: (error: ServiceError | null, response: GetEventAttendeesResponse) => void
+  ): ClientUnaryCall;
+  getEventAttendees(
+    request: GetEventAttendeesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetEventAttendeesResponse) => void
+  ): ClientUnaryCall;
+  getEventAttendees(
+    request: GetEventAttendeesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetEventAttendeesResponse) => void
+  ): ClientUnaryCall;
+  /** Register an attendee for an event. Caller MUST have `events.update`. */
+  addEventAttendee(
+    request: AddEventAttendeeRequest,
+    callback: (error: ServiceError | null, response: AddEventAttendeeResponse) => void
+  ): ClientUnaryCall;
+  addEventAttendee(
+    request: AddEventAttendeeRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: AddEventAttendeeResponse) => void
+  ): ClientUnaryCall;
+  addEventAttendee(
+    request: AddEventAttendeeRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: AddEventAttendeeResponse) => void
+  ): ClientUnaryCall;
+  /** Mark an attendee as checked in. Caller MUST have `events.update`. */
+  checkInAttendee(
+    request: CheckInAttendeeRequest,
+    callback: (error: ServiceError | null, response: CheckInAttendeeResponse) => void
+  ): ClientUnaryCall;
+  checkInAttendee(
+    request: CheckInAttendeeRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CheckInAttendeeResponse) => void
+  ): ClientUnaryCall;
+  checkInAttendee(
+    request: CheckInAttendeeRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CheckInAttendeeResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Get analytics for a completed or in-progress event. Caller MUST
+   * have `events.read`.
+   */
+  getEventAnalytics(
+    request: GetEventAnalyticsRequest,
+    callback: (error: ServiceError | null, response: GetEventAnalyticsResponse) => void
+  ): ClientUnaryCall;
+  getEventAnalytics(
+    request: GetEventAnalyticsRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: GetEventAnalyticsResponse) => void
+  ): ClientUnaryCall;
+  getEventAnalytics(
+    request: GetEventAnalyticsRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: GetEventAnalyticsResponse) => void
   ): ClientUnaryCall;
 }
 

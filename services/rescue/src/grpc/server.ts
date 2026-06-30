@@ -49,6 +49,17 @@ import {
   deleteApplicationQuestion,
   listApplicationQuestions,
 } from './application-question-handlers.js';
+import {
+  addEventAttendee,
+  checkInAttendee,
+  createEvent,
+  deleteEvent,
+  getEvent,
+  getEventAnalytics,
+  getEventAttendees,
+  listEvents,
+  updateEvent,
+} from './event-handlers.js';
 import { createPetsClient, type PetsClient } from './pets-client.js';
 
 export type CreateGrpcServerOptions = {
@@ -96,6 +107,15 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     sendRescueEmail: adapt(sendRescueEmail, { deps, logger }),
     listRescueInvitations: adapt(listRescueInvitations, { deps, logger }),
     cancelRescueInvitation: adapt(cancelRescueInvitation, { deps, logger }),
+    listEvents: adapt(listEvents, { deps, logger }),
+    getEvent: adapt(getEvent, { deps, logger }),
+    createEvent: adapt(createEvent, { deps, logger }),
+    updateEvent: adapt(updateEvent, { deps, logger }),
+    deleteEvent: adapt(deleteEvent, { deps, logger }),
+    getEventAttendees: adapt(getEventAttendees, { deps, logger }),
+    addEventAttendee: adapt(addEventAttendee, { deps, logger }),
+    checkInAttendee: adapt(checkInAttendee, { deps, logger }),
+    getEventAnalytics: adapt(getEventAnalytics, { deps, logger }),
   });
 
   logger.info('gRPC RescueService registered', {
@@ -126,6 +146,15 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
       'sendRescueEmail',
       'listRescueInvitations',
       'cancelRescueInvitation',
+      'listEvents',
+      'getEvent',
+      'createEvent',
+      'updateEvent',
+      'deleteEvent',
+      'getEventAttendees',
+      'addEventAttendee',
+      'checkInAttendee',
+      'getEventAnalytics',
     ],
     grpcPort: config.grpcPort,
   });
