@@ -826,6 +826,13 @@ export const registerUsersRoutes = async (
               data: USER_SCHEMA,
             },
           },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
