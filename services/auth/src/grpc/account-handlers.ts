@@ -6,8 +6,8 @@
 // surface as HandlerError; the adapter maps to grpc status codes.
 //
 // All passwords are bcrypt-hashed via deps.passwordHasher. Verification
-// + reset tokens are 32-byte URL-safe random strings (raw, not hashed —
-// matches the monolith's existing column shape so backfill works).
+// + reset tokens are 32-byte URL-safe random strings; only their SHA-256
+// hash is persisted (see ADS-883 — matching the invitation-token pattern).
 //
 // Side-effects emitted via withTransaction so they fire after commit:
 //   - auth.userRegistered  → notifications service sends the verification email
@@ -49,11 +49,14 @@ const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1h
 const MIN_PASSWORD_LENGTH = 8;
 
-// Random URL-safe token. Same shape the monolith stores (raw base64url,
-// not hashed) so the column stays interoperable during the strangler
-// migration.
+// Random URL-safe bearer token. The raw value is sent to the user (email);
+// only its SHA-256 hash is stored — see hashToken().
 function mintToken(): string {
   return randomBytes(32).toString('base64url');
+}
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }
 
 function assertPassword(pw: string): void {
@@ -126,7 +129,7 @@ export async function register(
         `
         INSERT INTO auth.users (
           user_id, email, password, first_name, last_name, phone_number,
-          verification_token, verification_token_expires_at,
+          verification_token_hash, verification_token_expires_at,
           status, user_type, email_verified, phone_verified,
           two_factor_enabled, terms_accepted_at, privacy_policy_accepted_at,
           login_attempts, created_at, updated_at
@@ -146,7 +149,7 @@ export async function register(
           req.firstName,
           req.lastName,
           req.phoneNumber ?? null,
-          verificationToken,
+          hashToken(verificationToken),
           verificationExpires,
           userType,
         ]
@@ -286,15 +289,15 @@ export async function verifyEmail(
       UPDATE auth.users
       SET email_verified = true,
           status = 'active',
-          verification_token = NULL,
+          verification_token_hash = NULL,
           verification_token_expires_at = NULL,
           updated_at = now()
-      WHERE verification_token = $1
+      WHERE verification_token_hash = $1
         AND (verification_token_expires_at IS NULL OR verification_token_expires_at > now())
         AND deleted_at IS NULL
       RETURNING *
       `,
-      [req.verificationToken]
+      [hashToken(req.verificationToken)]
     );
     if (res.rows.length === 0) {
       throw new HandlerError('INVALID_ARGUMENT', 'invalid or expired verification token');
@@ -324,13 +327,13 @@ export async function resendVerification(
     const res = await client.query<UserRow>(
       `
       UPDATE auth.users
-      SET verification_token = $1,
+      SET verification_token_hash = $1,
           verification_token_expires_at = $2,
           updated_at = now()
       WHERE email = $3 AND email_verified = false AND deleted_at IS NULL
       RETURNING *
       `,
-      [verificationToken, expires, req.email]
+      [hashToken(verificationToken), expires, req.email]
     );
     // Only emit when we actually updated a row — but the RESPONSE is the
     // same either way (don't leak account existence).
@@ -366,13 +369,13 @@ export async function forgotPassword(
     const res = await client.query<UserRow>(
       `
       UPDATE auth.users
-      SET reset_token = $1,
+      SET reset_token_hash = $1,
           reset_token_expiration = $2,
           updated_at = now()
       WHERE email = $3 AND deleted_at IS NULL
       RETURNING *
       `,
-      [token, expires, req.email]
+      [hashToken(token), expires, req.email]
     );
     if (res.rows.length === 1) {
       const user = res.rows[0];
@@ -410,18 +413,18 @@ export async function resetPassword(
       `
       UPDATE auth.users
       SET password = $1,
-          reset_token = NULL,
+          reset_token_hash = NULL,
           reset_token_expiration = NULL,
           locked_until = NULL,
           login_attempts = 0,
           tokens_valid_from = now(),
           updated_at = now()
-      WHERE reset_token = $2
+      WHERE reset_token_hash = $2
         AND (reset_token_expiration IS NULL OR reset_token_expiration > now())
         AND deleted_at IS NULL
       RETURNING *
       `,
-      [password, req.resetToken]
+      [password, hashToken(req.resetToken)]
     );
     if (res.rows.length === 0) {
       throw new HandlerError('INVALID_ARGUMENT', 'invalid or expired reset token');
@@ -449,10 +452,11 @@ export async function resetPassword(
 }
 
 // --- RedeemInvitation --------------------------------------------------
-// Consumes the invitation_token minted by adminCreateUser. Unlike
-// ResetPassword (which compares the raw reset_token column), invitation
+// Consumes the invitation_token minted by adminCreateUser. Invitation
 // tokens are never persisted raw — only their SHA-256 hash lives in
 // auth.user_invitations — so the incoming token is hashed before lookup.
+// Reset and verification tokens follow the same hash-before-persist pattern
+// (ADS-883).
 
 export async function redeemInvitation(
   deps: HandlerDeps,

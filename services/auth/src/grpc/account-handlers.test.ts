@@ -299,8 +299,19 @@ describe('verifyEmail', () => {
     mocks.clientScript([updated]);
     const res = await verifyEmail(mocks.deps, null, { verificationToken: 'abc' });
     expect(res.user.emailVerified).toBe(true);
-    const sql = realQueries(mocks.clientMock.query)[0][0] as string;
-    expect(sql).toContain('verification_token = $1');
+    const queries = realQueries(mocks.clientMock.query);
+    const sql = queries[0][0] as string;
+    expect(sql).toContain('verification_token_hash = $1');
+  });
+
+  it('hashes the verification token before DB lookup — raw token never reaches the query', async () => {
+    const rawToken = 'raw-verification-token';
+    mocks.clientScript([userRowFixture({ email_verified: true, status: 'active' })]);
+    await verifyEmail(mocks.deps, null, { verificationToken: rawToken });
+    const queries = realQueries(mocks.clientMock.query);
+    const params = queries[0][1] as unknown[];
+    expect(params[0]).not.toBe(rawToken);
+    expect(params[0]).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('throws INVALID_ARGUMENT for an unknown/expired token', async () => {
@@ -343,8 +354,17 @@ describe('forgotPassword', () => {
     mocks.clientScript([u]);
     const res = await forgotPassword(mocks.deps, null, { email: 'a@example.com' });
     expect(res.ok).toBe(true);
-    const sql = realQueries(mocks.clientMock.query)[0][0] as string;
-    expect(sql).toContain('SET reset_token');
+    const queries = realQueries(mocks.clientMock.query);
+    const sql = queries[0][0] as string;
+    expect(sql).toContain('SET reset_token_hash');
+  });
+
+  it('stores only the hash of the reset token — raw token never written to DB', async () => {
+    mocks.clientScript([userRowFixture()]);
+    await forgotPassword(mocks.deps, null, { email: 'a@example.com' });
+    const queries = realQueries(mocks.clientMock.query);
+    const params = queries[0][1] as unknown[];
+    expect(params[0]).toMatch(/^[0-9a-f]{64}$/);
   });
 });
 
@@ -382,6 +402,18 @@ describe('resetPassword', () => {
     expect(sql).toContain('login_attempts = 0');
     // Stamps the access-token revocation watermark.
     expect(sql).toContain('tokens_valid_from = now()');
+  });
+
+  it('hashes the reset token before DB lookup — raw token never reaches the query', async () => {
+    const rawToken = 'raw-reset-token';
+    mocks.hasherMock.hash.mockResolvedValueOnce('hash');
+    mocks.clientScript([userRowFixture()]);
+    await resetPassword(mocks.deps, null, { resetToken: rawToken, newPassword: 'longenough' });
+    const queries = realQueries(mocks.clientMock.query);
+    const params = queries[0][1] as unknown[];
+    // $2 is the token parameter in the WHERE clause
+    expect(params[1]).not.toBe(rawToken);
+    expect(params[1]).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('revokes all of the user’s refresh tokens (sessions) on reset', async () => {
