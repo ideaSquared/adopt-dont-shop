@@ -366,9 +366,7 @@ describe('login', () => {
     expect(sql).not.toMatch(/\btoken\b(?!_hash)/);
     expect(params).not.toContain('refresh.jwt.token');
     // SHA-256("refresh.jwt.token") in hex.
-    expect(params).toContain(
-      '4aae24fd4386389145fbd132ee4c5946e5ec5688261796cab855a58cc94ee74b'
-    );
+    expect(params).toContain('4aae24fd4386389145fbd132ee4c5946e5ec5688261796cab855a58cc94ee74b');
   });
 
   it('publishes a successful auth.actionTaken alongside auth.userLoggedIn', async () => {
@@ -792,7 +790,9 @@ describe('refreshToken', () => {
     });
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [] }) // not denylisted
-      .mockResolvedValueOnce({ rows: [{ token_hash: 'stored-hash', user_id: 'usr-1', revoked_at: null }] })
+      .mockResolvedValueOnce({
+        rows: [{ token_hash: 'stored-hash', user_id: 'usr-1', revoked_at: null }],
+      })
       .mockResolvedValueOnce({ rows: [{ status: 'active' }] }); // status guard
     mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
 
