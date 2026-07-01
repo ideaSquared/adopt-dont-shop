@@ -44,10 +44,20 @@ jobs:
 
       # ADS-387: Single workspace-level outdated check covers every workspace package,
       # replacing the previous 5-package hardcoded matrix.
-      # continue-on-error because outdated deps are advisory, not blocking.
+      # ADS-903: outdated deps are advisory, not blocking — but `continue-on-error: true`
+      # on its own hid the signal entirely (green regardless, nobody clicks through the
+      # logs). Report to the job summary instead so it's visible without extra clicks,
+      # while still never failing the job.
       - name: Check for outdated dependencies across all workspaces
-        run: pnpm outdated -r
-        continue-on-error: true
+        if: always()
+        run: |
+          {
+            echo '## Outdated dependencies (advisory)'
+            echo '_This never fails the build — see [ADS-903](https://linear.app/ideasquared/issue/ADS-903) / `docs/security/dependency-policy.md` for the advisory-vs-blocking policy._'
+            echo '```'
+            pnpm outdated -r || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Check for duplicate dependencies across all workspaces
         run: pnpm list -r --depth 0
