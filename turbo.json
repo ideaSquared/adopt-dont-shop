@@ -27,16 +27,25 @@
         "test/**/*.tsx",
         "vitest.config.ts",
         "package.json",
-        "$TURBO_ROOT$/vitest.shared.config.ts"
+        "$TURBO_ROOT$/vitest.shared.config.ts",
+        "$TURBO_ROOT$/tsconfig.base.json"
       ]
     },
     "test:coverage": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"],
-      "inputs": ["src/**/*.tsx", "src/**/*.ts", "test/**/*.ts", "test/**/*.tsx"]
+      "inputs": [
+        "src/**/*.tsx",
+        "src/**/*.ts",
+        "test/**/*.ts",
+        "test/**/*.tsx",
+        "$TURBO_ROOT$/vitest.shared.config.ts",
+        "$TURBO_ROOT$/tsconfig.base.json"
+      ]
     },
     "lint": {
-      "outputs": []
+      "outputs": [],
+      "inputs": ["src/**", "*.config.{js,ts,mjs}", "$TURBO_ROOT$/eslint.config.js"]
     },
     "format": {
       "outputs": [],
@@ -48,7 +57,7 @@
     },
     "type-check": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": ["**/.tsbuildinfo", "dist/**/*.d.ts"]
     },
     "clean": {
       "cache": false
