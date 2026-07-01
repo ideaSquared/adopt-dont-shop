@@ -120,7 +120,37 @@ export const registerRescueAdminRoutes = async (
     '/api/v1/admin/rescues/:rescueId/plan',
     {
       config: { rateLimit: RL_WRITE },
-      schema: { tags: ['rescues'], summary: "Update a rescue's subscription plan" },
+      schema: {
+        tags: ['rescues'],
+        summary: "Update a rescue's subscription plan",
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' } },
+          required: ['rescueId'],
+        },
+        body: {
+          type: 'object',
+          properties: { plan: { type: 'string' }, planExpiresAt: { type: 'string' } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+          500: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
     },
     async (req, reply) => {
       const body = req.body ?? {};
@@ -153,7 +183,28 @@ export const registerRescueAdminRoutes = async (
     '/api/v1/rescues/:rescueId/analytics',
     {
       config: { rateLimit: RL_READ },
-      schema: { tags: ['rescues'], summary: 'Get a rescue headline statistics' },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Get a rescue headline statistics',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' } },
+          required: ['rescueId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          500: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
     },
     async (req, reply) => {
       const grpcReq: GetRescueStatisticsRequest = { rescueId: req.params.rescueId };
@@ -179,7 +230,33 @@ export const registerRescueAdminRoutes = async (
     '/api/v1/rescues/:rescueId/send-email',
     {
       config: { rateLimit: RL_WRITE },
-      schema: { tags: ['rescues'], summary: 'Send an admin email to a rescue' },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Send an admin email to a rescue',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' } },
+          required: ['rescueId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            templateId: { type: 'string' },
+            subject: { type: 'string' },
+            body: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, message: { type: 'string' } },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
     },
     async (req, reply) => {
       const body = req.body ?? {};
@@ -208,7 +285,35 @@ export const registerRescueAdminRoutes = async (
     '/api/v1/rescues/bulk-update',
     {
       config: { rateLimit: RL_WRITE },
-      schema: { tags: ['rescues'], summary: 'Bulk approve / suspend / verify rescues' },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Bulk approve / suspend / verify rescues',
+        body: {
+          type: 'object',
+          properties: {
+            rescueIds: { type: 'array', items: { type: 'string' } },
+            action: { type: 'string' },
+            reason: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: {
+                type: 'object',
+                properties: { successCount: { type: 'integer' }, failedCount: { type: 'integer' } },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
     },
     async (req, reply) => {
       const body = req.body ?? {};
@@ -250,7 +355,29 @@ export const registerRescueAdminRoutes = async (
     '/api/v1/rescues/:rescueId/verify',
     {
       config: { rateLimit: RL_WRITE },
-      schema: { tags: ['rescues'], summary: 'Verify a rescue' },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Verify a rescue',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' } },
+          required: ['rescueId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          500: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
     },
     async (req, reply) => {
       const grpcReq: VerifyRescueRequest = {
@@ -279,7 +406,34 @@ export const registerRescueAdminRoutes = async (
     '/api/v1/rescues/:rescueId/reject',
     {
       config: { rateLimit: RL_WRITE },
-      schema: { tags: ['rescues'], summary: 'Reject a rescue' },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Reject a rescue',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' } },
+          required: ['rescueId'],
+        },
+        body: { type: 'object', properties: { reason: { type: 'string' } } },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+          500: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
     },
     async (req, reply) => {
       const reason = req.body?.reason;
@@ -312,7 +466,25 @@ export const registerRescueAdminRoutes = async (
     '/api/v1/rescues/:rescueId/staff',
     {
       config: { rateLimit: RL_READ },
-      schema: { tags: ['rescues'], summary: 'List a rescue staff members (admin)' },
+      schema: {
+        tags: ['rescues'],
+        summary: 'List a rescue staff members (admin)',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' } },
+          required: ['rescueId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              pagination: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
+      },
     },
     async (req, reply) => {
       const metadata = buildMetadata(req);
@@ -355,7 +527,21 @@ export const registerRescueAdminRoutes = async (
     '/api/v1/rescues/:rescueId/staff/:userId',
     {
       config: { rateLimit: RL_WRITE },
-      schema: { tags: ['rescues'], summary: 'Remove a staff member from a rescue (admin)' },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Remove a staff member from a rescue (admin)',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' }, userId: { type: 'string' } },
+          required: ['rescueId', 'userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, message: { type: 'string' } },
+          },
+        },
+      },
     },
     async (req, reply) => {
       try {
@@ -375,7 +561,24 @@ export const registerRescueAdminRoutes = async (
     '/api/v1/rescues/:rescueId/invitations',
     {
       config: { rateLimit: RL_READ },
-      schema: { tags: ['rescues'], summary: 'List a rescue pending staff invitations (admin)' },
+      schema: {
+        tags: ['rescues'],
+        summary: 'List a rescue pending staff invitations (admin)',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' } },
+          required: ['rescueId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+        },
+      },
     },
     async (req, reply) => {
       const grpcReq: ListRescueInvitationsRequest = { rescueId: req.params.rescueId };
@@ -393,7 +596,37 @@ export const registerRescueAdminRoutes = async (
     '/api/v1/rescues/:rescueId/invitations',
     {
       config: { rateLimit: RL_WRITE },
-      schema: { tags: ['rescues'], summary: 'Invite a staff member to a rescue (admin)' },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Invite a staff member to a rescue (admin)',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' } },
+          required: ['rescueId'],
+        },
+        body: {
+          type: 'object',
+          properties: { email: { type: 'string' }, title: { type: 'string' } },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+          500: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
+      },
     },
     async (req, reply) => {
       const body = req.body ?? {};
@@ -426,7 +659,21 @@ export const registerRescueAdminRoutes = async (
     '/api/v1/rescues/:rescueId/invitations/:invitationId',
     {
       config: { rateLimit: RL_WRITE },
-      schema: { tags: ['rescues'], summary: 'Cancel a pending staff invitation (admin)' },
+      schema: {
+        tags: ['rescues'],
+        summary: 'Cancel a pending staff invitation (admin)',
+        params: {
+          type: 'object',
+          properties: { rescueId: { type: 'string' }, invitationId: { type: 'string' } },
+          required: ['rescueId', 'invitationId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, message: { type: 'string' } },
+          },
+        },
+      },
     },
     async (req, reply) => {
       try {

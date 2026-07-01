@@ -90,6 +90,21 @@ export const registerLegalRoutes = async (
         tags: ['legal'],
         summary: 'Return the current terms of service document',
         security: [],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              data: {
+                type: 'object',
+                properties: {
+                  version: { type: 'string' },
+                  contentType: { type: 'string' },
+                  content: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
       },
     },
     async (_req, reply) => {
@@ -109,6 +124,21 @@ export const registerLegalRoutes = async (
         tags: ['legal'],
         summary: 'Return the current privacy policy document',
         security: [],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              data: {
+                type: 'object',
+                properties: {
+                  version: { type: 'string' },
+                  contentType: { type: 'string' },
+                  content: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
       },
     },
     async (_req, reply) => {
@@ -128,6 +158,21 @@ export const registerLegalRoutes = async (
         tags: ['legal'],
         summary: 'Return the current cookie policy document',
         security: [],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              data: {
+                type: 'object',
+                properties: {
+                  version: { type: 'string' },
+                  contentType: { type: 'string' },
+                  content: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
       },
     },
     async (_req, reply) => {

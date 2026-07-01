@@ -88,7 +88,21 @@ export const registerFieldPermissionsRoutes = async (
   // GET /api/v1/field-permissions/defaults — full defaults blob.
   app.get(
     '/api/v1/field-permissions/defaults',
-    { schema: { tags: ['field-permissions'] } },
+    {
+      schema: {
+        tags: ['field-permissions'],
+        summary: 'Get all field permission defaults',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       try {
         const res = await client.getFieldPermissionDefaults({}, buildMetadata(req));
@@ -107,6 +121,25 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
+        summary: 'Get field permission defaults for a resource and role',
+        params: {
+          type: 'object',
+          properties: { resource: { type: 'string' }, role: { type: 'string' } },
+          required: ['resource', 'role'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -134,6 +167,26 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
+        summary: 'Bulk upsert field permission overrides',
+        body: {
+          type: 'object',
+          properties: {
+            overrides: { type: 'array', items: { type: 'object', additionalProperties: true } },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -175,6 +228,25 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
+        summary: 'Upsert a single field permission override',
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+          500: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -212,6 +284,25 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
+        summary: 'List field permission overrides for a resource and role',
+        params: {
+          type: 'object',
+          properties: { resource: { type: 'string' }, role: { type: 'string' } },
+          required: ['resource', 'role'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -237,6 +328,30 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
+        summary: 'Delete a field permission override',
+        params: {
+          type: 'object',
+          properties: {
+            resource: { type: 'string' },
+            role: { type: 'string' },
+            field_name: { type: 'string' },
+          },
+          required: ['resource', 'role', 'field_name'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, message: { type: 'string' } },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, message: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -267,6 +382,25 @@ export const registerFieldPermissionsRoutes = async (
     {
       schema: {
         tags: ['field-permissions'],
+        summary: 'List all field permission overrides for a resource',
+        params: {
+          type: 'object',
+          properties: { resource: { type: 'string' } },
+          required: ['resource'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {

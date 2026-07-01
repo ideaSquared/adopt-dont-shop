@@ -50,6 +50,28 @@ export const registerInvitationAcceptRoutes = async (
         tags: ['invitations'],
         summary: 'Accept a rescue staff invitation and provision the user account',
         security: [],
+        body: {
+          type: 'object',
+          properties: {
+            token: { type: 'string' },
+            password: { type: 'string' },
+            firstName: { type: 'string' },
+            lastName: { type: 'string' },
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              userId: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+          404: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {

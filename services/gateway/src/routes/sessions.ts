@@ -38,6 +38,26 @@ export const registerSessionsRoutes = async (
       schema: {
         tags: ['sessions'],
         summary: 'List active sessions for the calling user',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    sessionId: { type: 'string' },
+                    familyId: { type: 'string' },
+                    expiresAt: { type: 'string' },
+                    createdAt: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -68,6 +88,15 @@ export const registerSessionsRoutes = async (
       schema: {
         tags: ['sessions'],
         summary: 'Revoke a specific session',
+        params: {
+          type: 'object',
+          properties: { sessionId: { type: 'string' } },
+          required: ['sessionId'],
+        },
+        response: {
+          204: { type: 'null' },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {

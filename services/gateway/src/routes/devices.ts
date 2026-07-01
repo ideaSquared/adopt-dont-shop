@@ -56,6 +56,21 @@ export const registerDevicesRoutes = async (
       schema: {
         tags: ['devices'],
         summary: 'Register or refresh a device token',
+        body: {
+          type: 'object',
+          properties: {
+            token: { type: 'string' },
+            deviceToken: { type: 'string' },
+            platform: { type: 'string' },
+            appVersion: { type: 'string' },
+            deviceInfo: { type: 'object', additionalProperties: true },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          201: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -107,6 +122,16 @@ export const registerDevicesRoutes = async (
       schema: {
         tags: ['devices'],
         summary: 'List device tokens for the calling user',
+        querystring: {
+          type: 'object',
+          properties: {
+            includeInactive: { type: 'string' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -132,6 +157,15 @@ export const registerDevicesRoutes = async (
       schema: {
         tags: ['devices'],
         summary: 'Unregister a device token',
+        params: {
+          type: 'object',
+          properties: { tokenId: { type: 'string' } },
+          required: ['tokenId'],
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {

@@ -120,6 +120,23 @@ export const registerAnalyticsMetricsRoutes = async (
       schema: {
         tags: ['analytics'],
         summary: 'Adoption totals, success rate and trend for the rescue Analytics dashboard',
+        querystring: {
+          type: 'object',
+          properties: { startDate: { type: 'string' }, endDate: { type: 'string' } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -178,6 +195,23 @@ export const registerAnalyticsMetricsRoutes = async (
       schema: {
         tags: ['analytics'],
         summary: 'Application funnel conversion rates for the rescue Analytics dashboard',
+        querystring: {
+          type: 'object',
+          properties: { startDate: { type: 'string' }, endDate: { type: 'string' } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -219,6 +253,23 @@ export const registerAnalyticsMetricsRoutes = async (
       schema: {
         tags: ['analytics'],
         summary: 'Most popular breeds for the rescue Analytics dashboard',
+        querystring: {
+          type: 'object',
+          properties: { startDate: { type: 'string' }, endDate: { type: 'string' } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -255,6 +306,15 @@ export const registerAnalyticsMetricsRoutes = async (
       schema: {
         tags: ['analytics'],
         summary: 'Current application status snapshot for the rescue Analytics dashboard',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {

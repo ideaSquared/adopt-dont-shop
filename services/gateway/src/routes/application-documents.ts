@@ -82,6 +82,14 @@ export const registerApplicationDocumentsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Upload a document for an application (multipart/form-data)',
+        response: {
+          201: {
+            type: 'object',
+            properties: { data: { type: 'object', additionalProperties: true } },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+          500: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -175,6 +183,16 @@ export const registerApplicationDocumentsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'List documents for an application',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -198,6 +216,15 @@ export const registerApplicationDocumentsRoutes = async (
       schema: {
         tags: ['applications'],
         summary: 'Delete a document from an application',
+        params: {
+          type: 'object',
+          properties: { id: { type: 'string' }, docId: { type: 'string' } },
+          required: ['id', 'docId'],
+        },
+        response: {
+          204: { type: 'null' },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
