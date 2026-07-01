@@ -259,10 +259,12 @@ Aim to keep the smoke suite under ~5 minutes total. If you tag a new spec, run `
 
 ## CI
 
-The `test-e2e` job in `.github/workflows/ci.yml` runs after `test-backend` and `test-frontend` succeed. It:
+The `test-e2e` job in `.github/workflows/ci.yml` runs after `test-frontend` and `test-services` succeed. It:
 
-1. Boots the stack with `docker-compose.yml` + `docker-compose.ci.yml`.
-2. Waits for `:4000/health/simple`, `:3000`, `:3001`, `:3002`.
-3. Runs migrations and seeds inside the backend container.
+1. Generates fresh secrets into `.env`, builds every image via `docker buildx bake -f docker-compose.yml` (falling back to `docker compose build` if bake resolves no targets), and boots the stack with `docker-compose.yml --profile full`. There is no separate `docker-compose.ci.yml` overlay.
+2. Waits for `:4000/health/simple`, `:3000`, `:3001`, `:3002`, plus every service reporting healthy.
+3. Each service runs its own migrations on start via its entrypoint.
 4. Executes `pnpm test:e2e`.
 5. Uploads `e2e/playwright-report/`, `e2e/test-results/`, and `docker-compose.log` as artifacts.
+
+See [docs/DOCKER.md](../docs/DOCKER.md#reproducing-ci-e2e-locally) for the full local-reproduction steps.
