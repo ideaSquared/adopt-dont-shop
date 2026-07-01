@@ -146,6 +146,79 @@ function menuToView(m: {
   };
 }
 
+const CONTENT_VIEW_SCHEMA = {
+  type: 'object',
+  properties: {
+    contentId: { type: 'string' },
+    title: { type: 'string' },
+    slug: { type: 'string' },
+    contentType: { type: 'string' },
+    status: { type: 'string' },
+    content: { type: 'string' },
+    excerpt: { type: 'string' },
+    metaTitle: { type: 'string' },
+    metaDescription: { type: 'string' },
+    metaKeywords: { type: 'array', items: { type: 'string' } },
+    featuredImageUrl: { type: 'string' },
+    publishedAt: { type: 'string' },
+    scheduledPublishAt: { type: 'string' },
+    scheduledUnpublishAt: { type: 'string' },
+    versions: { type: 'array', items: { type: 'object', additionalProperties: true } },
+    currentVersion: { type: 'number' },
+    authorId: { type: 'string' },
+    lastModifiedBy: { type: 'string' },
+    createdAt: { type: 'string' },
+    updatedAt: { type: 'string' },
+  },
+} as const;
+
+const MENU_VIEW_SCHEMA = {
+  type: 'object',
+  properties: {
+    menuId: { type: 'string' },
+    name: { type: 'string' },
+    location: { type: 'string' },
+    items: { type: 'array', items: { type: 'object', additionalProperties: true } },
+    isActive: { type: 'boolean' },
+    createdAt: { type: 'string' },
+    updatedAt: { type: 'string' },
+  },
+} as const;
+
+const CONTENT_RESPONSE = {
+  200: {
+    type: 'object',
+    properties: { success: { type: 'boolean' }, content: CONTENT_VIEW_SCHEMA },
+  },
+  404: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'string' } } },
+} as const;
+
+const CONTENT_ID_PARAMS = {
+  type: 'object',
+  properties: { contentId: { type: 'string' } },
+  required: ['contentId'],
+} as const;
+
+const PAGINATION_RESPONSE_SCHEMA = {
+  200: {
+    type: 'object',
+    properties: {
+      success: { type: 'boolean' },
+      data: { type: 'array', items: CONTENT_VIEW_SCHEMA },
+      pagination: {
+        type: 'object',
+        properties: {
+          page: { type: 'number' },
+          limit: { type: 'number' },
+          total: { type: 'number' },
+          totalPages: { type: 'number' },
+        },
+      },
+    },
+  },
+  400: { type: 'object', properties: { success: { type: 'boolean' }, error: { type: 'string' } } },
+} as const;
+
 export const registerCmsRoutes = async (
   app: FastifyInstance,
   opts: CmsRoutesOptions
@@ -160,6 +233,15 @@ export const registerCmsRoutes = async (
         tags: ['cms'],
         summary: 'List public CMS content',
         security: [],
+        querystring: {
+          type: 'object',
+          properties: {
+            type: { type: 'string' },
+            page: { type: 'string' },
+            limit: { type: 'string' },
+          },
+        },
+        response: PAGINATION_RESPONSE_SCHEMA,
       },
     },
     async (req, reply) => {
@@ -198,6 +280,8 @@ export const registerCmsRoutes = async (
         tags: ['cms'],
         summary: 'Get public CMS content by slug',
         security: [],
+        params: { type: 'object', properties: { slug: { type: 'string' } }, required: ['slug'] },
+        response: CONTENT_RESPONSE,
       },
     },
     async (req, reply) => {
@@ -223,6 +307,17 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'List CMS content (admin)',
+        querystring: {
+          type: 'object',
+          properties: {
+            type: { type: 'string' },
+            status: { type: 'string' },
+            search: { type: 'string' },
+            page: { type: 'string' },
+            limit: { type: 'string' },
+          },
+        },
+        response: PAGINATION_RESPONSE_SCHEMA,
       },
     },
     async (req, reply) => {
@@ -263,6 +358,8 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Get CMS content by slug (admin)',
+        params: { type: 'object', properties: { slug: { type: 'string' } }, required: ['slug'] },
+        response: CONTENT_RESPONSE,
       },
     },
     async (req, reply) => {
@@ -284,6 +381,8 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Get a CMS content item by ID',
+        params: CONTENT_ID_PARAMS,
+        response: CONTENT_RESPONSE,
       },
     },
     async (req, reply) => {
@@ -308,6 +407,35 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Create a CMS content item',
+        body: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            slug: { type: 'string' },
+            contentType: { type: 'string' },
+            content_type: { type: 'string' },
+            content: { type: 'string' },
+            excerpt: { type: 'string' },
+            metaTitle: { type: 'string' },
+            meta_title: { type: 'string' },
+            metaDescription: { type: 'string' },
+            meta_description: { type: 'string' },
+            metaKeywords: { type: 'array', items: { type: 'string' } },
+            featuredImageUrl: { type: 'string' },
+            scheduledPublishAt: { type: 'string' },
+            scheduledUnpublishAt: { type: 'string' },
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, content: CONTENT_VIEW_SCHEMA },
+          },
+          500: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -364,6 +492,23 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Update a CMS content item',
+        params: CONTENT_ID_PARAMS,
+        body: {
+          type: 'object',
+          properties: {
+            title: { type: 'string' },
+            slug: { type: 'string' },
+            content: { type: 'string' },
+            excerpt: { type: 'string' },
+            metaTitle: { type: 'string' },
+            metaDescription: { type: 'string' },
+            metaKeywords: { type: 'array', items: { type: 'string' } },
+            featuredImageUrl: { type: 'string' },
+            changeNote: { type: 'string' },
+            change_note: { type: 'string' },
+          },
+        },
+        response: CONTENT_RESPONSE,
       },
     },
     async (req, reply) => {
@@ -409,6 +554,14 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Delete a CMS content item',
+        params: CONTENT_ID_PARAMS,
+        response: {
+          200: { type: 'object', properties: { success: { type: 'boolean' } } },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -439,6 +592,8 @@ export const registerCmsRoutes = async (
         schema: {
           tags: ['cms'],
           summary,
+          params: CONTENT_ID_PARAMS,
+          response: CONTENT_RESPONSE,
         },
       },
       async (req, reply) => {
@@ -477,6 +632,17 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Get version history for a CMS content item',
+        params: CONTENT_ID_PARAMS,
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              versions: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              currentVersion: { type: 'number' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -502,6 +668,12 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Restore a CMS content item to a previous version',
+        params: {
+          type: 'object',
+          properties: { contentId: { type: 'string' }, version: { type: 'string' } },
+          required: ['contentId', 'version'],
+        },
+        response: CONTENT_RESPONSE,
       },
     },
     async (req, reply) => {
@@ -531,6 +703,19 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'List CMS menus',
+        querystring: {
+          type: 'object',
+          properties: { location: { type: 'string' }, active: { type: 'string' } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: MENU_VIEW_SCHEMA },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -554,6 +739,21 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Get a CMS menu by ID',
+        params: {
+          type: 'object',
+          properties: { menuId: { type: 'string' } },
+          required: ['menuId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, menu: MENU_VIEW_SCHEMA },
+          },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -575,6 +775,25 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Create a CMS menu',
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            location: { type: 'string' },
+            items: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            isActive: { type: 'boolean' },
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, menu: MENU_VIEW_SCHEMA },
+          },
+          500: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -610,6 +829,30 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Update a CMS menu',
+        params: {
+          type: 'object',
+          properties: { menuId: { type: 'string' } },
+          required: ['menuId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            location: { type: 'string' },
+            items: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            isActive: { type: 'boolean' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, menu: MENU_VIEW_SCHEMA },
+          },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -646,6 +889,18 @@ export const registerCmsRoutes = async (
       schema: {
         tags: ['cms'],
         summary: 'Delete a CMS menu',
+        params: {
+          type: 'object',
+          properties: { menuId: { type: 'string' } },
+          required: ['menuId'],
+        },
+        response: {
+          200: { type: 'object', properties: { success: { type: 'boolean' } } },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {

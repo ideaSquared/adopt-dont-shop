@@ -61,6 +61,15 @@ export const registerStaffFosterRoutes = async (
       schema: {
         tags: ['staff'],
         summary: 'Get current user staff membership',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -80,6 +89,15 @@ export const registerStaffFosterRoutes = async (
       schema: {
         tags: ['staff'],
         summary: 'List staff colleagues within the current rescue',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -100,6 +118,25 @@ export const registerStaffFosterRoutes = async (
       schema: {
         tags: ['foster'],
         summary: 'Create a foster placement',
+        body: {
+          type: 'object',
+          properties: {
+            rescueId: { type: 'string' },
+            petId: { type: 'string' },
+            fosterUserId: { type: 'string' },
+            startDate: { type: 'string' },
+            notes: { type: 'string' },
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -133,6 +170,23 @@ export const registerStaffFosterRoutes = async (
       schema: {
         tags: ['foster'],
         summary: 'List foster placements',
+        querystring: {
+          type: 'object',
+          properties: {
+            rescueId: { type: 'string' },
+            fosterUserId: { type: 'string' },
+            status: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -158,6 +212,16 @@ export const registerStaffFosterRoutes = async (
       schema: {
         tags: ['foster'],
         summary: 'Get a foster placement by ID',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -180,6 +244,24 @@ export const registerStaffFosterRoutes = async (
       schema: {
         tags: ['foster'],
         summary: 'End a foster placement',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: {
+          type: 'object',
+          properties: {
+            outcome: { type: 'string' },
+            endDate: { type: 'string' },
+            notes: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -213,6 +295,16 @@ export const registerStaffFosterRoutes = async (
         tags: ['staff'],
         summary: 'Get invitation details by token',
         security: [],
+        params: { type: 'object', properties: { token: { type: 'string' } }, required: ['token'] },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {

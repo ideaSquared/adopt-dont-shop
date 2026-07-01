@@ -78,6 +78,31 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'List email templates',
+        querystring: {
+          type: 'object',
+          properties: {
+            type: { type: 'string' },
+            status: { type: 'string' },
+            category: { type: 'string' },
+            search: { type: 'string' },
+            page: { type: 'string' },
+            limit: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              pagination: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -120,6 +145,17 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'Create an email template',
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -166,6 +202,21 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'Get an email template by ID',
+        params: {
+          type: 'object',
+          properties: { templateId: { type: 'string' } },
+          required: ['templateId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -189,6 +240,22 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'Update an email template',
+        params: {
+          type: 'object',
+          properties: { templateId: { type: 'string' } },
+          required: ['templateId'],
+        },
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -235,6 +302,18 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'Delete an email template',
+        params: {
+          type: 'object',
+          properties: { templateId: { type: 'string' } },
+          required: ['templateId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, message: { type: 'string' } },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -255,6 +334,32 @@ export const registerEmailRoutes = async (
       schema: {
         tags: ['email'],
         summary: 'Preview a rendered email template',
+        params: {
+          type: 'object',
+          properties: { templateId: { type: 'string' } },
+          required: ['templateId'],
+        },
+        body: {
+          type: 'object',
+          properties: { variables: { type: 'object', additionalProperties: true } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  subject: { type: 'string' },
+                  htmlContent: { type: 'string' },
+                  textContent: { type: 'string' },
+                },
+              },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {

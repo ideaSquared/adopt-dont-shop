@@ -46,6 +46,21 @@ export const registerNotificationsRoutes = async (
     {
       schema: {
         tags: ['notifications'],
+        summary: 'List notifications for the calling user',
+        querystring: {
+          type: 'object',
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            status: { type: 'string' },
+            channel: { type: 'string' },
+            type: { type: 'string' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -80,6 +95,12 @@ export const registerNotificationsRoutes = async (
     {
       schema: {
         tags: ['notifications'],
+        summary: 'Create a notification',
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          201: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -121,7 +142,21 @@ export const registerNotificationsRoutes = async (
   // Unread count — must register before /:id so the static segment wins.
   app.get(
     '/api/v1/notifications/unread/count',
-    { schema: { tags: ['notifications'] } },
+    {
+      schema: {
+        tags: ['notifications'],
+        summary: 'Get unread notification count',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', properties: { count: { type: 'integer' } } },
+            },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       try {
@@ -139,6 +174,17 @@ export const registerNotificationsRoutes = async (
     {
       schema: {
         tags: ['notifications'],
+        summary: 'Clean up expired notifications',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', properties: { deletedCount: { type: 'integer' } } },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -161,7 +207,22 @@ export const registerNotificationsRoutes = async (
   // Mark all unread as read.
   app.post(
     '/api/v1/notifications/read-all',
-    { schema: { tags: ['notifications'] } },
+    {
+      schema: {
+        tags: ['notifications'],
+        summary: 'Mark all notifications as read',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', properties: { affectedCount: { type: 'integer' } } },
+            },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       try {
@@ -180,7 +241,21 @@ export const registerNotificationsRoutes = async (
   // In-app notification preferences (user_notification_prefs).
   app.get(
     '/api/v1/notifications/preferences',
-    { schema: { tags: ['notifications'] } },
+    {
+      schema: {
+        tags: ['notifications'],
+        summary: 'Get notification preferences for the calling user',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
     async (req, reply) => {
       const metadata = buildMetadata(req);
       try {
@@ -200,7 +275,18 @@ export const registerNotificationsRoutes = async (
     {
       schema: {
         tags: ['notifications'],
+        summary: 'Update notification preferences',
         body: { type: 'object', additionalProperties: true },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -227,7 +313,18 @@ export const registerNotificationsRoutes = async (
     {
       schema: {
         tags: ['notifications'],
+        summary: 'Get a notification by ID',
         params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -251,7 +348,14 @@ export const registerNotificationsRoutes = async (
     {
       schema: {
         tags: ['notifications'],
+        summary: 'Mark a notification as read',
         params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, message: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -273,7 +377,18 @@ export const registerNotificationsRoutes = async (
     {
       schema: {
         tags: ['notifications'],
+        summary: 'Delete a notification',
         params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {

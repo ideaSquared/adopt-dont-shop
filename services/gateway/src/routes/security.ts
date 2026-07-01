@@ -136,6 +136,25 @@ export const registerSecurityRoutes = async (
       schema: {
         tags: ['security', 'admin'],
         summary: 'List active sessions across users (admin)',
+        querystring: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+            user_id: { type: 'string' },
+            page: { type: 'string' },
+            limit: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              pagination: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -188,6 +207,14 @@ export const registerSecurityRoutes = async (
       schema: {
         tags: ['security', 'admin'],
         summary: 'Revoke any session by id (admin)',
+        params: {
+          type: 'object',
+          properties: { sessionId: { type: 'string' } },
+          required: ['sessionId'],
+        },
+        response: {
+          204: { type: 'null' },
+        },
       },
     },
     async (req, reply) => {
@@ -208,6 +235,20 @@ export const registerSecurityRoutes = async (
       schema: {
         tags: ['security', 'admin'],
         summary: "Revoke all of a user's sessions (admin)",
+        params: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+          required: ['userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', properties: { revokedCount: { type: 'integer' } } },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -230,6 +271,15 @@ export const registerSecurityRoutes = async (
       schema: {
         tags: ['security', 'admin'],
         summary: 'Force-lock a user account (admin)',
+        params: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+          required: ['userId'],
+        },
+        body: { type: 'object', properties: { reason: { type: 'string' } } },
+        response: {
+          204: { type: 'null' },
+        },
       },
     },
     async (req, reply) => {
@@ -253,6 +303,20 @@ export const registerSecurityRoutes = async (
       schema: {
         tags: ['security', 'admin'],
         summary: 'Unlock a user account (admin)',
+        params: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+          required: ['userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', properties: { wasLocked: { type: 'boolean' } } },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -275,6 +339,15 @@ export const registerSecurityRoutes = async (
       schema: {
         tags: ['security', 'admin'],
         summary: 'List IP allow/block rules (admin)',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -296,6 +369,25 @@ export const registerSecurityRoutes = async (
       schema: {
         tags: ['security', 'admin'],
         summary: 'Create an IP allow/block rule (admin)',
+        body: {
+          type: 'object',
+          properties: {
+            type: { type: 'string' },
+            cidr: { type: 'string' },
+            label: { type: 'string' },
+            expiresAt: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          500: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -327,6 +419,14 @@ export const registerSecurityRoutes = async (
       schema: {
         tags: ['security', 'admin'],
         summary: 'Delete an IP allow/block rule (admin)',
+        params: {
+          type: 'object',
+          properties: { ipRuleId: { type: 'string' } },
+          required: ['ipRuleId'],
+        },
+        response: {
+          204: { type: 'null' },
+        },
       },
     },
     async (req, reply) => {
@@ -356,6 +456,27 @@ export const registerSecurityRoutes = async (
       schema: {
         tags: ['security', 'admin'],
         summary: 'List login history from the audit log (admin)',
+        querystring: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+            user_id: { type: 'string' },
+            status: { type: 'string' },
+            startDate: { type: 'string' },
+            endDate: { type: 'string' },
+            limit: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              pagination: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -412,6 +533,20 @@ export const registerSecurityRoutes = async (
       schema: {
         tags: ['security', 'admin'],
         summary: 'List suspicious login activity from the audit log (admin)',
+        querystring: {
+          type: 'object',
+          properties: { failureThreshold: { type: 'string' }, windowHours: { type: 'string' } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {

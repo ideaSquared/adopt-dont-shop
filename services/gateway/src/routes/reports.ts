@@ -386,6 +386,31 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'List saved reports',
+        querystring: {
+          type: 'object',
+          properties: {
+            rescue_id: { type: 'string' },
+            rescueId: { type: 'string' },
+            is_archived: { type: 'string' },
+            archived: { type: 'string' },
+            page: { type: 'string' },
+            limit: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              pagination: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -431,6 +456,25 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'List report templates',
+        querystring: {
+          type: 'object',
+          properties: {
+            category: { type: 'string' },
+            rescue_id: { type: 'string' },
+            rescueId: { type: 'string' },
+            system: { type: 'string' },
+            system_only: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -459,6 +503,20 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Get a saved report by ID',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -483,6 +541,20 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Create a saved report',
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          500: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -523,6 +595,21 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Update a saved report',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -562,6 +649,14 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Delete a saved report',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: { type: 'object', properties: { success: { type: 'boolean' } } },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -589,6 +684,20 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Execute a report preview from an unsaved config',
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -616,6 +725,20 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Execute a saved report',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -640,6 +763,30 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Create or update a report schedule',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: {
+          type: 'object',
+          properties: {
+            cron: { type: 'string' },
+            timezone: { type: 'string' },
+            recipients: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            format: { type: 'string' },
+            isEnabled: { type: 'boolean' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          500: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -683,6 +830,32 @@ export const registerReportsRoutes = async (
       schema: {
         tags: ['reports'],
         summary: 'Create a report share (token shares only)',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: {
+          type: 'object',
+          properties: {
+            shareType: { type: 'string' },
+            permission: { type: 'string' },
+            expiresAt: { type: 'string' },
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          500: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+          501: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {

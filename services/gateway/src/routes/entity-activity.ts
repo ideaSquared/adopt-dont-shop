@@ -78,6 +78,21 @@ export const registerEntityActivityRoutes = async (
         schema: {
           tags: ['entity-activity'],
           summary: `Get activity log for a ${aggregateType}`,
+          params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+          querystring: {
+            type: 'object',
+            properties: { cursor: { type: 'string' }, limit: { type: 'string' } },
+          },
+          response: {
+            200: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              },
+            },
+            400: { type: 'object', properties: { error: { type: 'string' } } },
+          },
         },
       },
       async (req, reply) => {

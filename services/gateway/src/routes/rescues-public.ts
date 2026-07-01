@@ -323,7 +323,7 @@ export const registerRescuesPublicRoutes = async (
           type: 'object',
           properties: {
             name: { type: 'string' },
-            email: { type: 'string', format: 'email' },
+            email: { type: 'string' },
             phone: { type: 'string' },
             address: { type: 'string' },
             city: { type: 'string' },
@@ -374,7 +374,7 @@ export const registerRescuesPublicRoutes = async (
           type: 'object',
           properties: {
             name: { type: 'string' },
-            email: { type: 'string', format: 'email' },
+            email: { type: 'string' },
             phone: { type: 'string' },
             address: { type: 'string' },
             city: { type: 'string' },

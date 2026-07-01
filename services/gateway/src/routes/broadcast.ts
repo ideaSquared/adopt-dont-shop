@@ -47,6 +47,33 @@ export const registerBroadcastRoutes = async (
       schema: {
         tags: ['notifications', 'admin'],
         summary: 'Broadcast a notification to a cohort of users',
+        body: {
+          type: 'object',
+          properties: {
+            audience: { type: 'string' },
+            cohort: { type: 'object', additionalProperties: true },
+            type: { type: ['string', 'number'] },
+            title: { type: 'string' },
+            message: { type: 'string' },
+            actionUrl: { type: 'string' },
+            channels: { type: 'array', items: { type: 'string' } },
+            scheduledFor: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              targeted: { type: 'integer' },
+              delivered: { type: 'integer' },
+              suppressed: { type: 'integer' },
+              failed: { type: 'integer' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -116,6 +143,29 @@ export const registerBroadcastRoutes = async (
       schema: {
         tags: ['notifications', 'admin'],
         summary: 'Preview the recipient count for a named broadcast audience',
+        querystring: {
+          type: 'object',
+          properties: { audience: { type: 'string' } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  audience: { type: 'string' },
+                  count: { type: 'integer' },
+                },
+              },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
