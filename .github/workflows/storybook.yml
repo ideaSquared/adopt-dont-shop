@@ -23,7 +23,18 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
       - name: Setup workspace (Node + pnpm)
         uses: ./.github/actions/setup-workspace
+      # ADS-909: cache the built output, keyed on every file that can affect
+      # it (component source, stories, theme, Storybook config). A doc-only
+      # PR under packages/lib.components/** (this workflow's own path
+      # filter) still triggers the job but skips the rebuild on a hit.
+      - name: Restore Storybook build cache
+        id: cache-storybook
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+        with:
+          path: packages/lib.components/storybook-static
+          key: storybook-${{ runner.os }}-${{ hashFiles('packages/lib.components/**') }}
       - run: pnpm build-storybook
+        if: steps.cache-storybook.outputs.cache-hit != 'true'
         working-directory: packages/lib.components
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
         if: github.ref == 'refs/heads/main'
