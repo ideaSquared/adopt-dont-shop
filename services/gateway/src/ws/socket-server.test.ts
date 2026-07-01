@@ -345,3 +345,42 @@ describe('emitToUser — adapter-backed cross-instance fan-out (ADS-818)', () =>
     expect(await received).toEqual({ hello: 'world' });
   });
 });
+
+describe('maxHttpBufferSize (ADS-887)', () => {
+  it('disconnects a client that sends a payload over the 64 KB cap', async () => {
+    const { url } = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+    });
+
+    const client = connectClient(url, { auth: { userId: 'usr-oversized' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    const disconnected = new Promise<string>(resolve => {
+      client.on('disconnect', reason => resolve(reason));
+    });
+
+    // One byte over the 64 KB cap set in attachSocketServer.
+    client.emit('oversized', 'x'.repeat(64_001));
+
+    await expect(disconnected).resolves.toBeTruthy();
+  });
+
+  it('accepts a payload comfortably under the cap', async () => {
+    const { url, registry } = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+    });
+
+    const client = connectClient(url, { auth: { userId: 'usr-normal' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    // Give the server a moment to process the handshake into the registry,
+    // then confirm the connection is still alive after a small message.
+    client.emit('small', { hello: 'world' });
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(client.connected).toBe(true);
+    expect(registry.socketsFor('usr-normal')).toHaveLength(1);
+  });
+});
