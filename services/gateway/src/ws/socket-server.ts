@@ -115,6 +115,11 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
     // The same /socket.io path the existing app uses, so the React
     // clients don't need to rebind during the strangler overlap.
     path: '/socket.io',
+    // ADS-887: cap inbound message size to prevent an authenticated client from
+    // flooding the gateway with ~1 MB frames that the Redis adapter fans to every
+    // replica. Notification and chat payloads are well under 1 KB; 64 KB is
+    // intentionally generous to survive any future richening of chat messages.
+    maxHttpBufferSize: 64_000,
   });
 
   // Multi-instance adapter (ADS-818). Binding the Redis adapter makes

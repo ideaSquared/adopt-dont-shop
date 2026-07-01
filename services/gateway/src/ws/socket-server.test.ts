@@ -313,6 +313,28 @@ describe('attachSocketServer — origin allowlist (ADS-843)', () => {
   });
 });
 
+describe('attachSocketServer — per-message size limit (ADS-887)', () => {
+  it('disconnects a client that emits a payload exceeding the 64 KB limit', async () => {
+    const { url } = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+    });
+
+    const client = connectClient(url, { auth: { userId: 'usr-dos' } });
+    expect(await awaitConnectOutcome(client)).toBe(true);
+
+    const disconnected = new Promise<void>(resolve => {
+      client.on('disconnect', () => resolve());
+    });
+
+    // 65 KB string exceeds the 64_000-byte cap; the server must close the connection.
+    client.emit('test', 'x'.repeat(65_000));
+
+    await disconnected;
+    expect(client.connected).toBe(false);
+  });
+});
+
 describe('emitToUser — adapter-backed cross-instance fan-out (ADS-818)', () => {
   it('delivers an event to a user connected on a DIFFERENT adapter-backed instance', async () => {
     const bus = createInMemoryRedisBus();
