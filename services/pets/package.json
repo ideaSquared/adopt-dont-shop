@@ -1,8 +1,11 @@
 {
   "name": "@adopt-dont-shop/service.pets",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
-  "description": "Pets service — Phase 3 extraction. Owns the pets.* schema (Pet, PetMedia, Breed, UserFavorite, Rating, PetStatusTransition) and exposes gRPC PetService over a status state machine (available → reserved → adopted → unavailable, plus deceased / returned). Pet state transitions are event-sourced — pure apply/fold domain + publish-after-commit on pets.statusChanged. Phase 3.1 commit is just the boot skeleton; schema/gRPC/NATS/gateway land in later phases.",
+  "description": "Pets service \u2014 Phase 3 extraction. Owns the pets.* schema (Pet, PetMedia, Breed, UserFavorite, Rating, PetStatusTransition) and exposes gRPC PetService over a status state machine (available \u2192 reserved \u2192 adopted \u2192 unavailable, plus deceased / returned). Pet state transitions are event-sourced \u2014 pure apply/fold domain + publish-after-commit on pets.statusChanged. Phase 3.1 commit is just the boot skeleton; schema/gRPC/NATS/gateway land in later phases.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

@@ -1,6 +1,9 @@
 {
   "name": "@adopt-dont-shop/events",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
   "description": "NATS publish-after-commit + idempotent subscriber helpers for backend microservices. Encodes the CAD-lesson discipline that no domain event ever fires on a rolled-back transaction and no single bad message tears down a subscription loop.",
   "type": "module",

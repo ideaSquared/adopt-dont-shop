@@ -1,6 +1,9 @@
 {
   "name": "@adopt-dont-shop/config-secrets",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
   "description": "Shared boot-time secret loader for backend microservices. Reads credentials from file-mounted Docker secrets (NAME_FILE) when present, otherwise from plain env vars (NAME). Mirrors the readSecretOrEnv() helper the deleted service.backend monolith used so each extracted service can opt onto file-mounted secrets without changing its config contract.",
   "type": "module",

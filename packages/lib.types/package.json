@@ -1,9 +1,13 @@
 {
   "name": "@adopt-dont-shop/lib.types",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "description": "Shared TypeScript types, permission constants, and default configurations. Zero dependencies - safe for both frontend and backend.",
   "type": "module",
   "main": "dist/index.js",
+  "sideEffects": false,
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
@@ -11,7 +15,8 @@
       "import": "./dist/index.js",
       "require": "./dist/cjs/index.js",
       "default": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

@@ -1,8 +1,11 @@
 {
   "name": "@adopt-dont-shop/proto",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
-  "description": "Protobuf schemas + generated TS code for inter-service gRPC and NATS contracts. Codegen is hermetic — runs locally via ts-proto, no buf.build remote plugin (CAD lesson). Generated output is committed; CI verifies it's in sync with the .proto sources.",
+  "description": "Protobuf schemas + generated TS code for inter-service gRPC and NATS contracts. Codegen is hermetic \u2014 runs locally via ts-proto, no buf.build remote plugin (CAD lesson). Generated output is committed; CI verifies it's in sync with the .proto sources.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
