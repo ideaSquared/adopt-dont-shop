@@ -1,6 +1,9 @@
 {
   "name": "@adopt-dont-shop/service.gateway",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
   "description": "BFF / API gateway for the microservices stack. Single REST surface that fans out to the extracted services (auth, pets, applications, chat, notifications, moderation, matching, cms, audit, rescue) via gRPC. Owns the WebSocket termination + the gateway-folded surfaces (legal, config, analytics, dashboard, uploads).",
   "type": "module",

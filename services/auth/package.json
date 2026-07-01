@@ -1,8 +1,11 @@
 {
   "name": "@adopt-dont-shop/service.auth",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
-  "description": "Auth service — Phase 2 extraction. Owns the auth.* schema (User, RefreshToken, RevokedToken, Role, Permission, UserRole, RolePermission, TwoFactorRecovery, DeviceToken, IpRule, UserConsent) and exposes gRPC AuthService.{Login, Logout, RefreshToken, ValidateToken, GetMe, AssignRole}. Phase 2.1 commit is just the boot skeleton + health endpoint — schema, gRPC, NATS, gateway wiring land in subsequent commits.",
+  "description": "Auth service \u2014 Phase 2 extraction. Owns the auth.* schema (User, RefreshToken, RevokedToken, Role, Permission, UserRole, RolePermission, TwoFactorRecovery, DeviceToken, IpRule, UserConsent) and exposes gRPC AuthService.{Login, Logout, RefreshToken, ValidateToken, GetMe, AssignRole}. Phase 2.1 commit is just the boot skeleton + health endpoint \u2014 schema, gRPC, NATS, gateway wiring land in subsequent commits.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

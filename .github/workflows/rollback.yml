@@ -28,6 +28,25 @@ jobs:
     timeout-minutes: 15
     environment: ${{ github.event.inputs.environment }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      # ADS-900: the deploy host doesn't hold a full repo checkout — only the
+      # specific files it needs under /opt/ads/<env> (compose files, .env,
+      # secrets/). Copy the shared health-check script (also used by
+      # deploy.yml) alongside them, the same way backup.yml scp's its
+      # snapshot script.
+      - name: Copy wait-for-services.sh to server
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: deploy
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
+          source: scripts/wait-for-services.sh
+          target: /opt/ads/${{ github.event.inputs.environment }}
+          overwrite: true
+
       # ADS-670: pin SSH host fingerprint to prevent MitM.
       # ADS-671: GHCR_TOKEN must be scoped `read:packages` only — it is used
       # exclusively for `docker pull` during rollback. Passed via envs (not
@@ -102,6 +121,7 @@ jobs:
             chmod 700 secrets
             printf '%s' "postgresql://${PG_USER}:${SECRET_DB_PASSWORD}@database:5432/${PG_DB}" > secrets/database_url
             printf '%s' "redis://:${REDIS_PW}@redis:6379"      > secrets/redis_url
+            printf '%s' "$REDIS_PW"                             > secrets/redis_password
             printf '%s' "$SECRET_JWT_SECRET"                    > secrets/jwt_secret
             printf '%s' "$SECRET_JWT_REFRESH_SECRET"            > secrets/jwt_refresh_secret
             printf '%s' "$SECRET_UPLOAD_SIGNING_SECRET"         > secrets/upload_signing_secret
@@ -111,18 +131,12 @@ jobs:
 
             docker compose -f $COMPOSE_FILE --env-file .env up -d
 
-            # Wait for the gateway (the REST/WS edge) to report healthy.
-            for i in $(seq 1 30); do
-              if docker compose -f $COMPOSE_FILE exec -T service-gateway curl -fsS http://localhost:4000/health/simple > /dev/null 2>&1; then
-                echo "Gateway healthy after rollback."
-                break
-              fi
-              if [ $i -eq 30 ]; then
-                echo "WARNING: Gateway not healthy after rollback"
-                exit 1
-              fi
-              sleep 2
-            done
+            # ADS-900: shared health-check loop (also used by deploy.yml) — see
+            # scripts/wait-for-services.sh for the retry/timeout contract.
+            # Only the gateway is checked here, matching this workflow's
+            # existing (narrower) scope — deploy.yml checks every service.
+            chmod +x scripts/wait-for-services.sh
+            ./scripts/wait-for-services.sh "$COMPOSE_FILE" 30 2 service-gateway:4000
 
             # Remove secret files now that containers have started. [ADS-675]
             rm -f secrets/*

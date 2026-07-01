@@ -270,6 +270,18 @@ This runs the same dev-mode images and bind mounts as `pnpm docker:dev` — CI d
 
 ## Troubleshooting
 
+### Tailing logs for one tier instead of everything
+
+`pnpm docker:logs` tails all ~14 containers at once, which is noisy when
+you're debugging a single tier. Per-tier shortcuts (ADS-897):
+
+```bash
+pnpm docker:logs:gateway     # service-gateway only
+pnpm docker:logs:apps        # app-client, app-admin, app-rescue
+pnpm docker:logs:infra       # database, redis, nats
+pnpm docker:logs:services    # every extracted microservice except the gateway
+```
+
 ### Out of Memory
 
 Symptoms: container crashes, OOM kills.

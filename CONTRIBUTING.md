@@ -84,9 +84,13 @@ pnpm exec turbo run test:coverage                 # every package, with threshol
 pnpm exec turbo run test:coverage --filter='@adopt-dont-shop/lib.api'   # scope to what you changed
 ```
 
-#### Opt-in pre-push hook (ADS-732)
+#### Pre-commit hook (lint-staged)
 
-`.husky/pre-push` will run `ci:local:quick` automatically before every `git push`, but is **off by default** so it doesn't surprise existing contributors. `pnpm setup` will offer to enable it during onboarding — answering yes is recommended for your first month. You can also toggle it manually once per checkout:
+`.husky/pre-commit` runs [`.lintstagedrc.mjs`](./.lintstagedrc.mjs): Prettier formats the exact staged files, and ESLint runs via `pnpm exec turbo run lint --filter="...[HEAD]"` (ADS-905) — scoped to only the workspace packages your commit touches, using each package's own `eslint.config.js` (matching CI) rather than a single shared root config. A commit that only touches one package only lints that package.
+
+#### Pre-push hook (ADS-732 / ADS-905)
+
+`.husky/pre-push` will run `ci:local:quick` automatically before every `git push`. The hook file itself defaults to off so a fresh `git clone` (without running `pnpm setup`) never surprises anyone — but `pnpm setup`'s interactive prompt defaults to **yes**, so answering with a bare Enter during onboarding enables it. Recommended for at least your first month. You can also toggle it manually once per checkout:
 
 ```bash
 pnpm hooks:enable    # creates .husky/.prepush-enabled (gitignored)
@@ -245,6 +249,10 @@ Use the issue templates in [`.github/ISSUE_TEMPLATE/`](./.github/ISSUE_TEMPLATE/
 ## Reviewing & code ownership
 
 Code ownership is defined in [`.github/CODEOWNERS`](./.github/CODEOWNERS). All PRs require at least one approved review before merge.
+
+## Dependency updates
+
+[Renovate](./renovate.json) is the single source of truth for dependency PRs (npm workspace, GitHub Actions, Docker image digests) — there is no separate Dependabot config (ADS-891). Don't re-add `.github/dependabot.yml`; adjust grouping/scheduling in `renovate.json` instead.
 
 ## E2E Testing
 

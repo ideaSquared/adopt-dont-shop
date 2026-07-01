@@ -1,15 +1,20 @@
 {
   "name": "@adopt-dont-shop/lib.discovery",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "description": "Pet discovery and matching algorithms",
   "type": "module",
   "main": "dist/index.js",
+  "sideEffects": false,
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

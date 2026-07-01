@@ -1,8 +1,11 @@
 {
   "name": "@adopt-dont-shop/storage",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
-  "description": "Config-injected file storage abstraction for backend microservices — local filesystem and S3 providers behind a single StorageProvider contract. Dependency-light extraction of service.backend's storage service with no global config/logger coupling. Malware scanning is intentionally out of scope (documented follow-up).",
+  "description": "Config-injected file storage abstraction for backend microservices \u2014 local filesystem and S3 providers behind a single StorageProvider contract. Dependency-light extraction of service.backend's storage service with no global config/logger coupling. Malware scanning is intentionally out of scope (documented follow-up).",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

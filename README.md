@@ -1,5 +1,7 @@
 # Adopt Don't Shop — Pet Adoption Platform
 
+New here? Start at [docs/GETTING-STARTED.md](./docs/GETTING-STARTED.md) for a linear Day 1 walkthrough.
+
 A monorepo containing three React frontends, a Fastify API gateway fronting a fleet of Node.js gRPC microservices, and shared libraries for connecting rescue organizations with potential adopters.
 
 ## Quick Start
@@ -15,7 +17,7 @@ For full local control (faster HMR, native Docker performance) follow the prereq
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) v22 — the exact version is pinned in [`.nvmrc`](./.nvmrc) (install via `nvm use`); `package.json` `engines` requires `>=22 <23`
-- [pnpm](https://pnpm.io/) — provided via Corepack: run `corepack enable` and the pinned version (`package.json` `"packageManager"`) is used automatically
+- [pnpm](https://pnpm.io/) — provided via Corepack. `pnpm setup` enables Corepack for you (ADS-894); if you'd rather do it yourself first, run `corepack enable` and the pinned version (`package.json` `"packageManager"`) is used automatically
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose v2)
 - [Git](https://git-scm.com/)
 
@@ -211,6 +213,7 @@ The full operator-side runbook (secret rotation, approval gates, migration recov
 ## Documentation
 
 - [docs/DOCKER.md](./docs/DOCKER.md) — Docker infrastructure deep dive
+- [docs/infrastructure/new-microservice.md](./docs/infrastructure/new-microservice.md) — runbook for adding a new `services/<name>` backend domain
 - [docs/dependency-graph.md](./docs/dependency-graph.md) — Turbo dependency graph generator and layered architecture guide
 - [docs/README.md](./docs/README.md) — full documentation index
 - [docs/libraries/](./docs/libraries/) — per-library reference

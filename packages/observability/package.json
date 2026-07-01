@@ -1,8 +1,11 @@
 {
   "name": "@adopt-dont-shop/observability",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
-  "description": "Shared observability bootstrap for backend microservices — OpenTelemetry (OTLP/HTTP), Sentry (Node + profiling), and a Winston logger with optional Loki shipping. Mirrors service.backend's existing instrumentation/sentry/logger setup with the service name parameterised so every extracted service gets the same telemetry stack with one call.",
+  "description": "Shared observability bootstrap for backend microservices \u2014 OpenTelemetry (OTLP/HTTP), Sentry (Node + profiling), and a Winston logger with optional Loki shipping. Mirrors service.backend's existing instrumentation/sentry/logger setup with the service name parameterised so every extracted service gets the same telemetry stack with one call.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

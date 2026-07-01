@@ -24,6 +24,22 @@ runs:
         key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
         restore-keys: |
           pnpm-store-${{ runner.os }}-
+    # ADS-901: the pnpm STORE cache above only avoids re-downloading tarballs —
+    # `pnpm install` still has to relink every workspace node_modules tree on
+    # every (ephemeral) runner, which dominates the ~15-20s cost regardless of
+    # a store hit. Caching node_modules itself, keyed on the same lockfile
+    # hash, lets an unchanged-lockfile run skip the install step entirely.
+    - name: Cache workspace node_modules
+      id: node-modules-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      with:
+        path: |
+          node_modules
+          apps/*/node_modules
+          services/*/node_modules
+          packages/*/node_modules
+        key: node-modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
     - name: Install workspace dependencies
+      if: steps.node-modules-cache.outputs.cache-hit != 'true'
       shell: bash
       run: pnpm install --frozen-lockfile --prefer-offline

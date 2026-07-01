@@ -985,6 +985,18 @@ describe('adminCreateUser', () => {
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
 
+  it('never echoes the requested email back in the duplicate-email error (ADS-885)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    let error: unknown;
+    try {
+      await adminCreateUser(mocks.deps, ADMIN_CREATOR, baseReq);
+    } catch (err) {
+      error = err;
+    }
+    expect(error).toMatchObject({ code: 'ALREADY_EXISTS' });
+    expect((error as Error).message).not.toContain(baseReq.email);
+  });
+
   it('creates a pending user + invitation and emits auth.userInvited with the token', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // no existing email
     mocks.clientScript.push({

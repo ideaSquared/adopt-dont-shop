@@ -1,6 +1,9 @@
 {
   "name": "@adopt-dont-shop/db",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
   "description": "Postgres client + node-pg-migrate runner for backend microservices. Bakes in the four CAD-lesson fixes (createSchema, output-path remap, ignorePattern, advisory-lock retry) plus the schema/public search_path so PostGIS works.",
   "type": "module",

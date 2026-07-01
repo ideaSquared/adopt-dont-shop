@@ -1,8 +1,11 @@
 {
   "name": "@adopt-dont-shop/seed-faker",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
-  "description": "Dev-only bulk-data ('spam') seeding toolkit: env-guard, seeded UK Faker, and a batched bulk-insert helper. Shared by each service's db:spam script. NEVER imported by runtime code — it exists purely to flood a development database with prod-shaped volume.",
+  "description": "Dev-only bulk-data ('spam') seeding toolkit: env-guard, seeded UK Faker, and a batched bulk-insert helper. Shared by each service's db:spam script. NEVER imported by runtime code \u2014 it exists purely to flood a development database with prod-shaped volume.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

@@ -1,9 +1,13 @@
 {
   "name": "@adopt-dont-shop/lib.dev-tools",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "description": "Development tools and utilities for the Adopt Don't Shop platform",
   "type": "module",
   "main": "dist/index.js",
+  "sideEffects": false,
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
@@ -17,7 +21,8 @@
       "development": "./src/data/index.ts",
       "import": "./dist/data/index.js",
       "default": "./dist/data/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

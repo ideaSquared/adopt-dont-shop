@@ -4,6 +4,8 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 
 > CI enforces that every `*.md` file inside `docs/` is linked from this index. See [`scripts/check-docs-index.mjs`](../scripts/check-docs-index.mjs).
 
+**New here?** Start at [GETTING-STARTED.md](./GETTING-STARTED.md) — a single linear walkthrough from clone to first PR.
+
 ## Quick start by role
 
 **Frontend developer**
@@ -79,6 +81,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [API endpoints](./backend/api-endpoints.md) — REST endpoints reference
 - [API versioning & deprecation](./api-versioning.md) — `/api/v<N>/` scheme, breaking-change definition, deprecation lifecycle
 - [Database schema](./backend/database-schema.md) — service-owned schemas and relationships
+- [Writing migrations](./backend/writing-migrations.md) — numbering, up/down, testing, failure recovery
 - [Implementation guide](./backend/implementation-guide.md) — patterns for gateway routes, gRPC handlers, services
 - [Testing](./backend/testing.md) — backend test strategy and Vitest setup
 - [Troubleshooting](./backend/troubleshooting.md) — common backend failure modes and fixes
@@ -148,6 +151,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Turbo remote caching](./infrastructure/turbo-cache.md) — opt in locally, self-host path, token rotation
 - [Docker setup (infrastructure)](./infrastructure/docker-setup.md) — Docker compose layout and overrides
 - [New app generator](./infrastructure/new-app-generator.md) — scaffolding a new workspace app
+- [Add a new microservice](./infrastructure/new-microservice.md) — manual runbook for adding a `services/<name>` backend domain
 - [Docker deep dive](./DOCKER.md) — root-level Docker reference and tips
 - [Infra reference](./INFRA.md) — supporting infra notes
 - [E2E README](../e2e/README.md) — Playwright suite layout and conventions
@@ -179,7 +183,8 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 
 ## Migrations & upgrades
 
-- [Per-model rebaseline](./migrations/per-model-rebaseline.md) — incremental migration rebaseline workflow
+- [Writing migrations](./backend/writing-migrations.md) — the current node-pg-migrate pattern used by `services/*`
+- [Per-model rebaseline](./migrations/per-model-rebaseline.md) — incremental migration rebaseline workflow (historical — describes the deleted `service.backend` monolith)
 - [Schema audit runbook](./migrations/schema-audit-runbook.md) — verify production schema matches code
 - [Schema equivalence runbook](./migrations/schema-equivalence-runbook.md) — compare DB schemas across environments
 - [Upgrades index](./upgrades/README.md) — major-version upgrade tracker
@@ -198,6 +203,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 ## Security
 
 - [Security center](./SECURITY-CENTER.md) — security posture overview
+- [Dependency policy](./security/dependency-policy.md) — blocking vs advisory dependency/vulnerability checks
 - [Secrets management](./SECRETS-MANAGEMENT.md) — how secrets are generated, stored, rotated
 - [Data protection — encryption at rest](./security/data-protection.md) — application-side encryption strategy
 - [Container image signing](./security/image-signing.md) — Cosign / Sigstore image-signing pipeline
