@@ -20,7 +20,7 @@
 //     calls it. It does JWT verify + denylist check ONLY; no user-row
 //     fetch unless the JWT signature already validated.
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { verifySync } from 'otplib';
 
@@ -155,13 +155,20 @@ export type UserRow = {
 };
 
 type RefreshTokenRow = {
-  token: string;
+  token_hash: string;
   user_id: string;
   family_id: string;
   expires_at: Date;
   revoked_at: Date | null;
   is_revoked: boolean;
 };
+
+// Refresh tokens are long-lived bearer credentials — only their SHA-256
+// hash is persisted (ADS-884). The raw value is still sent to the client
+// over TLS as before; only at-rest storage changed.
+function hashRefreshToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 export function rowToProtoUser(row: UserRow): AuthUser {
   return {
@@ -516,10 +523,10 @@ export async function login(
   await withTransaction(deps, async ({ client, publish }) => {
     await client.query(
       `
-      INSERT INTO auth.refresh_tokens (token, user_id, expires_at, revoked_at, created_at, updated_at)
+      INSERT INTO auth.refresh_tokens (token_hash, user_id, expires_at, revoked_at, created_at, updated_at)
       VALUES ($1, $2, $3, NULL, now(), now())
       `,
-      [minted.pair.refreshToken, user.user_id, minted.refreshExpiresAt]
+      [hashRefreshToken(minted.pair.refreshToken), user.user_id, minted.refreshExpiresAt]
     );
     await client.query(
       `UPDATE auth.users SET last_login_at = now(), login_attempts = 0, locked_until = NULL, updated_at = now() WHERE user_id = $1`,
@@ -609,8 +616,8 @@ export async function logout(
       [claims.jti, claims.sub, new Date(claims.exp * 1000)]
     );
     await client.query(
-      `UPDATE auth.refresh_tokens SET revoked_at = now(), is_revoked = true, updated_at = now() WHERE token = $1 AND revoked_at IS NULL`,
-      [req.refreshToken]
+      `UPDATE auth.refresh_tokens SET revoked_at = now(), is_revoked = true, updated_at = now() WHERE token_hash = $1 AND revoked_at IS NULL`,
+      [hashRefreshToken(req.refreshToken)]
     );
 
     publish({
@@ -660,9 +667,10 @@ export async function refreshToken(
   // columns historically diverged — checking only `revoked_at` let a
   // session revoked via RevokeSession keep refreshing (it sets is_revoked
   // but never revoked_at). Honour both.
+  const incomingTokenHash = hashRefreshToken(req.refreshToken);
   const stored = await deps.pool.query<RefreshTokenRow>(
-    `SELECT * FROM auth.refresh_tokens WHERE token = $1`,
-    [req.refreshToken]
+    `SELECT * FROM auth.refresh_tokens WHERE token_hash = $1`,
+    [incomingTokenHash]
   );
   if (stored.rows.length === 0 || stored.rows[0].revoked_at !== null || stored.rows[0].is_revoked) {
     tokenRefreshCounter.inc({ outcome: 'token_revoked' });
@@ -691,8 +699,8 @@ export async function refreshToken(
     const revoke = await client.query(
       `UPDATE auth.refresh_tokens
        SET revoked_at = now(), is_revoked = true, updated_at = now()
-       WHERE token = $1 AND revoked_at IS NULL AND is_revoked = false`,
-      [req.refreshToken]
+       WHERE token_hash = $1 AND revoked_at IS NULL AND is_revoked = false`,
+      [incomingTokenHash]
     );
     if (revoke.rowCount === 0) {
       // The token was already rotated/revoked between our read and this
@@ -715,10 +723,10 @@ export async function refreshToken(
     // chain in one shot. The new row is the active head of the family.
     await client.query(
       `
-      INSERT INTO auth.refresh_tokens (token, user_id, family_id, expires_at, revoked_at, is_revoked, created_at, updated_at)
+      INSERT INTO auth.refresh_tokens (token_hash, user_id, family_id, expires_at, revoked_at, is_revoked, created_at, updated_at)
       VALUES ($1, $2, $3, $4, NULL, false, now(), now())
       `,
-      [minted.pair.refreshToken, claims.sub, familyId, minted.refreshExpiresAt]
+      [hashRefreshToken(minted.pair.refreshToken), claims.sub, familyId, minted.refreshExpiresAt]
     );
 
     publish({

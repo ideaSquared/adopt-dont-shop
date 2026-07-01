@@ -9,7 +9,7 @@ Comprehensive guide to the Docker setup for this monorepo. Pairs with [the root 
 - [Best Practices](#best-practices)
 - [Development Workflow](#development-workflow)
 - [Production Deployment](#production-deployment)
-- [CI overlay (docker-compose.ci.yml)](#ci-overlay-docker-composeciyml)
+- [Reproducing CI E2E locally](#reproducing-ci-e2e-locally)
 - [Troubleshooting](#troubleshooting)
 
 ## Quick Start
@@ -222,7 +222,7 @@ VITE_WS_BASE_URL=wss://api.your-domain.com
 
 1. Build backend (development + production targets)
 2. Build all three frontend apps in parallel via `Dockerfile.app`
-3. Validate full-stack compose integration using `docker-compose.ci.yml`
+3. Validate full-stack compose integration using `docker-compose.yml --profile full` (see [Reproducing CI E2E locally](#reproducing-ci-e2e-locally) — there is no separate CI compose overlay)
 4. Trivy security scan on built images
 
 CI uses BuildKit cache for 40-60% faster builds:
@@ -234,41 +234,39 @@ CI uses BuildKit cache for 40-60% faster builds:
     key: ${{ runner.os }}-buildx-${{ github.sha }}
 ```
 
-## CI overlay (docker-compose.ci.yml)
+## Reproducing CI E2E locally
 
-### Why it exists
-
-The dev stack in `docker-compose.yml` is optimised for inner-loop development: it bind-mounts source code, overrides the backend `entrypoint`/`command` to wire up a runtime `lib.types` symlink, and mounts a writable `./uploads` directory from the host. None of that is appropriate for CI:
-
-- Bind-mounted source shadows the built artifacts baked into the image, so we'd be testing the host's working tree instead of the image we just built.
-- The host `./uploads` mount masks the image's `appuser`-owned uploads directory and causes `EACCES` when the backend tries to `mkdirSync` inside it.
-- The dev `entrypoint`/`command` reference paths that only resolve when bind mounts are active — in CI they don't exist.
-
-`docker-compose.ci.yml` is a minimal overlay applied on top of `docker-compose.yml` to undo exactly those dev-only behaviours.
-
-### What it changes
-
-For each microservice (e.g. `service-gateway`):
-
-- `volumes: !reset []` — the `!reset` tag *replaces* the base volume list rather than appending to it (the default Compose merge for sequences). This is what removes the dev bind mounts, including the `./uploads` mount that breaks permissions.
-- `entrypoint: ["/usr/bin/dumb-init", "--"]` — restores the Dockerfile ENTRYPOINT. The compose override entrypoint uses relative paths that only resolve under bind mounts.
-- `command: ["npm", "run", "dev"]` — restores the Dockerfile CMD. The compose command override creates a runtime symlink for bind-mounted `lib.types`, which is irrelevant when the image already contains a copy of the built library in `node_modules`.
-
-### Reproducing a CI E2E run locally
+There is no `docker-compose.ci.yml` overlay — CI runs the `test-e2e` job (`.github/workflows/ci.yml`) directly against `docker-compose.yml` using the `full` profile, with images built via `docker buildx bake` (falling back to `docker compose build` if bake can't resolve targets). To reproduce it locally:
 
 ```bash
-# Build images the same way CI does, then bring the stack up with the overlay
-docker compose -f docker-compose.yml -f docker-compose.ci.yml build
-docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+# 1. Generate a throwaway .env — CI writes fresh secrets on every run rather than
+#    reusing the checked-in dev defaults (see "Generate secrets and write .env" in ci.yml)
+pnpm secrets:generate > .env
+echo "CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002" >> .env
+echo "GATEWAY_RATE_LIMIT_MAX=100000" >> .env
+echo "GATEWAY_AUTH_RATE_LIMIT_MAX=100000" >> .env
 
-# Tail logs / run the same smoke checks CI runs
-docker compose -f docker-compose.yml -f docker-compose.ci.yml logs -f service-gateway
+# 2. Start database and cache first, wait for Postgres to be ready
+docker compose -f docker-compose.yml up -d database redis
+timeout 90 bash -c 'until docker compose -f docker-compose.yml exec -T database pg_isready -U postgres; do sleep 2; done'
 
-# Tear down (always include both files so the project name matches)
-docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
+# 3. Build every image (bake if available, otherwise a plain compose build)
+docker buildx bake -f docker-compose.yml --load || \
+  docker compose -f docker-compose.yml --profile full build
+
+# 4. Bring up the full stack without rebuilding, then wait for all services healthy
+docker compose -f docker-compose.yml --profile full up -d --no-build
+docker compose -f docker-compose.yml --profile full ps
+
+# 5. Run the Playwright suite (see e2e/ for the actual specs)
+pnpm test:e2e:install
+pnpm test:e2e
+
+# 6. Tear down
+docker compose -f docker-compose.yml down -v
 ```
 
-If you skip the overlay, you'll either hit the `uploads` `EACCES` error or end up testing your local working tree rather than the built image.
+This runs the same dev-mode images and bind mounts as `pnpm docker:dev` — CI does **not** run a separate production-mode build for E2E. If you hit permission errors on `./uploads` locally that CI doesn't see, check that your local `.env` doesn't carry over a stale `POSTGRES_PASSWORD`/`REDIS_PASSWORD` from a previous run; CI always generates fresh ones.
 
 ## Troubleshooting
 
