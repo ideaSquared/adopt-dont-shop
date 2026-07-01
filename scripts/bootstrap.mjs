@@ -275,6 +275,24 @@ async function setup() {
     logSuccess(`Node.js ${nodeVersion} detected`);
     log('', RESET);
 
+    // Step 1b: Ensure Corepack is enabled so `pnpm install` below resolves
+    // the version pinned by package.json "packageManager" (ADS-894). CI's
+    // setup-workspace action does this already; local bootstrap didn't,
+    // so a fresh machine hit a cryptic "pnpm: command not found" here.
+    logStep('1b', 'Ensuring Corepack is enabled...');
+    try {
+      execSync('corepack enable', { stdio: 'pipe', cwd: ROOT });
+      execSync('corepack prepare --activate', { stdio: 'pipe', cwd: ROOT });
+      logSuccess('Corepack enabled (pnpm version pinned by package.json "packageManager")');
+    } catch {
+      logError('Could not enable Corepack automatically (likely a permissions issue)');
+      log('Run this manually, then re-run `pnpm setup`:', YELLOW);
+      log('  corepack enable && corepack prepare --activate', YELLOW);
+      log('  (macOS/Linux: prefix with `sudo` if npm\'s global path needs it)', YELLOW);
+      process.exit(1);
+    }
+    log('', RESET);
+
     // Step 2: Set up environment configuration BEFORE validation
     logStep('2', 'Setting up environment configuration...');
     const envPath = join(ROOT, '.env');
