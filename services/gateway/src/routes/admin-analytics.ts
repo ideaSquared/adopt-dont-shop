@@ -217,6 +217,16 @@ export const registerAdminAnalyticsRoutes = async (
       schema: {
         tags: ['admin'],
         summary: 'Platform-wide metric counts for the admin dashboard',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -237,6 +247,16 @@ export const registerAdminAnalyticsRoutes = async (
       schema: {
         tags: ['admin'],
         summary: 'Composed dashboard analytics for the admin Analytics page',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {

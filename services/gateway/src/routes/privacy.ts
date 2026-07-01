@@ -44,7 +44,19 @@ export const registerPrivacyRoutes = async (
     '/api/v1/privacy/admin/users/:userId/export',
     {
       config: { rateLimit: RL_EXPORT },
-      schema: { tags: ['privacy'], summary: 'Export a user data (GDPR Art. 20, admin)' },
+      schema: {
+        tags: ['privacy'],
+        summary: 'Export a user data (GDPR Art. 20, admin)',
+        params: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+          required: ['userId'],
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
     },
     async (req, reply) => {
       const grpcReq: ExportUserDataRequest = { userId: req.params.userId };
@@ -68,7 +80,33 @@ export const registerPrivacyRoutes = async (
     '/api/v1/privacy/admin/users/:userId/delete-request',
     {
       config: { rateLimit: RL_DELETE },
-      schema: { tags: ['privacy'], summary: 'Schedule account deletion (GDPR Art. 17, admin)' },
+      schema: {
+        tags: ['privacy'],
+        summary: 'Schedule account deletion (GDPR Art. 17, admin)',
+        params: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+          required: ['userId'],
+        },
+        body: {
+          type: 'object',
+          properties: { reason: { type: 'string' } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: {
+                type: 'object',
+                properties: { deletionScheduledFor: { type: 'string' } },
+              },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
     },
     async (req, reply) => {
       try {

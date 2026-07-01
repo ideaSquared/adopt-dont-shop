@@ -58,6 +58,23 @@ export const registerAuditRoutes = async (
       schema: {
         tags: ['audit'],
         summary: 'Query audit log entries',
+        querystring: {
+          type: 'object',
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            service: { type: 'string' },
+            subject: { type: 'string' },
+            actor_user_id: { type: 'string' },
+            outcome: { type: 'string' },
+            from: { type: 'string' },
+            to: { type: 'string' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -92,6 +109,18 @@ export const registerAuditRoutes = async (
       schema: {
         tags: ['audit'],
         summary: 'Get audit log entries for a specific target',
+        params: {
+          type: 'object',
+          properties: {
+            type: { type: 'string' },
+            id: { type: 'string' },
+          },
+          required: ['type', 'id'],
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {

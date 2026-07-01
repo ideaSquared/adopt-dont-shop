@@ -123,6 +123,27 @@ export const registerEventRoutes = async (
       schema: {
         tags: ['events'],
         summary: 'List events for the current rescue',
+        querystring: {
+          type: 'object',
+          properties: {
+            type: { type: 'string' },
+            status: { type: 'string' },
+            startDate: { type: 'string' },
+            endDate: { type: 'string' },
+            search: { type: 'string' },
+            assignedStaff: { type: 'string' },
+            isPublic: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -155,6 +176,16 @@ export const registerEventRoutes = async (
       schema: {
         tags: ['events'],
         summary: 'Get a single event by ID',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -174,6 +205,17 @@ export const registerEventRoutes = async (
       schema: {
         tags: ['events'],
         summary: 'Create a new event',
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -221,6 +263,18 @@ export const registerEventRoutes = async (
       schema: {
         tags: ['events'],
         summary: 'Update an existing event',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: { type: 'object', additionalProperties: true },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -273,6 +327,10 @@ export const registerEventRoutes = async (
       schema: {
         tags: ['events'],
         summary: 'Delete an event (soft-delete)',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          204: { type: 'null' },
+        },
       },
     },
     async (req, reply) => {
@@ -292,6 +350,17 @@ export const registerEventRoutes = async (
       schema: {
         tags: ['events'],
         summary: 'Update event status',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: { type: 'object', properties: { status: { type: 'string' } } },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -320,6 +389,16 @@ export const registerEventRoutes = async (
       schema: {
         tags: ['events'],
         summary: 'List attendees for an event',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -339,6 +418,25 @@ export const registerEventRoutes = async (
       schema: {
         tags: ['events'],
         summary: 'Register an attendee for an event',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: {
+          type: 'object',
+          properties: {
+            userId: { type: 'string' },
+            name: { type: 'string' },
+            email: { type: 'string' },
+            notes: { type: 'string' },
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -373,6 +471,20 @@ export const registerEventRoutes = async (
       schema: {
         tags: ['events'],
         summary: 'Check in an attendee at an event',
+        params: {
+          type: 'object',
+          properties: { id: { type: 'string' }, userId: { type: 'string' } },
+          required: ['id', 'userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -395,6 +507,16 @@ export const registerEventRoutes = async (
       schema: {
         tags: ['events'],
         summary: 'Get analytics for an event',
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {

@@ -890,7 +890,7 @@ export const registerUsersRoutes = async (
         body: {
           type: 'object',
           properties: {
-            email: { type: 'string', format: 'email' },
+            email: { type: 'string' },
             firstName: { type: 'string' },
             first_name: { type: 'string' },
             lastName: { type: 'string' },

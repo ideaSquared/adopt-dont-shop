@@ -32,6 +32,9 @@ export const registerConfigRoutes = async (app: FastifyInstance): Promise<void> 
         tags: ['config'],
         summary: 'Return public application configuration values',
         security: [],
+        response: {
+          200: { type: 'object', additionalProperties: true },
+        },
       },
     },
     async (_req, reply) => reply.send(DEFAULT_PUBLIC_CONFIG)

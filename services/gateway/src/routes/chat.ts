@@ -77,6 +77,19 @@ export const registerChatRoutes = async (
       schema: {
         tags: ['chat'],
         summary: 'Add or remove a reaction on a message',
+        params: {
+          type: 'object',
+          properties: { messageId: { type: 'string' } },
+          required: ['messageId'],
+        },
+        body: {
+          type: 'object',
+          properties: { emoji: { type: 'string' }, remove: { type: 'boolean' } },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -110,6 +123,18 @@ const registerChatRoutesForPrefix = (
       schema: {
         tags: ['chat'],
         summary: 'List chats for the calling user',
+        querystring: {
+          type: 'object',
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            unreadOnly: { type: 'string' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -141,6 +166,20 @@ const registerChatRoutesForPrefix = (
       schema: {
         tags: ['chat'],
         summary: 'Open or create a chat',
+        body: {
+          type: 'object',
+          properties: {
+            applicationId: { type: 'string' },
+            application_id: { type: 'string' },
+            otherUserId: { type: 'string' },
+            other_user_id: { type: 'string' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          201: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -178,6 +217,26 @@ const registerChatRoutesForPrefix = (
       schema: {
         tags: ['chat'],
         summary: 'Search chats',
+        querystring: {
+          type: 'object',
+          properties: {
+            query: { type: 'string' },
+            q: { type: 'string' },
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            rescueId: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -233,6 +292,20 @@ const registerChatRoutesForPrefix = (
       schema: {
         tags: ['chat'],
         summary: 'Get unread message count for a chat',
+        params: {
+          type: 'object',
+          properties: { chatId: { type: 'string' } },
+          required: ['chatId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', properties: { unreadCount: { type: 'integer' } } },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -260,6 +333,24 @@ const registerChatRoutesForPrefix = (
       schema: {
         tags: ['chat'],
         summary: 'Get a single chat by ID',
+        params: {
+          type: 'object',
+          properties: { chatId: { type: 'string' } },
+          required: ['chatId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          404: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -287,6 +378,21 @@ const registerChatRoutesForPrefix = (
       schema: {
         tags: ['chat'],
         summary: 'Delete (archive) a chat',
+        params: {
+          type: 'object',
+          properties: { chatId: { type: 'string' } },
+          required: ['chatId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -315,6 +421,19 @@ const registerChatRoutesForPrefix = (
       schema: {
         tags: ['chat'],
         summary: 'List messages in a chat',
+        params: {
+          type: 'object',
+          properties: { chatId: { type: 'string' } },
+          required: ['chatId'],
+        },
+        querystring: {
+          type: 'object',
+          properties: { cursor: { type: 'string' }, limit: { type: 'string' } },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -350,6 +469,21 @@ const registerChatRoutesForPrefix = (
       schema: {
         tags: ['chat'],
         summary: 'Delete a message',
+        params: {
+          type: 'object',
+          properties: { chatId: { type: 'string' }, messageId: { type: 'string' } },
+          required: ['chatId', 'messageId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -378,6 +512,19 @@ const registerChatRoutesForPrefix = (
       schema: {
         tags: ['chat'],
         summary: 'Send a message to a chat',
+        params: {
+          type: 'object',
+          properties: { chatId: { type: 'string' } },
+          required: ['chatId'],
+        },
+        body: {
+          type: 'object',
+          properties: { body: { type: 'string' }, content: { type: 'string' } },
+        },
+        response: {
+          201: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -409,6 +556,18 @@ const registerChatRoutesForPrefix = (
       schema: {
         tags: ['chat'],
         summary: 'Mark messages in a chat as read',
+        params: {
+          type: 'object',
+          properties: { chatId: { type: 'string' } },
+          required: ['chatId'],
+        },
+        body: {
+          type: 'object',
+          properties: { upToMessageId: { type: 'string' }, up_to_message_id: { type: 'string' } },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+        },
       },
     },
     async (req, reply) => {

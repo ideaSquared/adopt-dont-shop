@@ -94,6 +94,20 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.startSession },
       schema: {
         tags: ['matching'],
+        summary: 'Start a new matching session',
+        body: {
+          type: 'object',
+          properties: {
+            filtersJson: { type: 'string' },
+            deviceType: { type: 'string' },
+            userAgent: { type: 'string' },
+            ipAddress: { type: 'string' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          201: { type: 'object', additionalProperties: true },
+        },
       },
     },
     async (req, reply) => {
@@ -121,7 +135,11 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.endSession },
       schema: {
         tags: ['matching'],
+        summary: 'End a matching session',
         params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+        },
       },
     },
     async (req, reply) => {
@@ -141,7 +159,21 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.recordSwipe },
       schema: {
         tags: ['matching'],
+        summary: 'Record a swipe in a matching session',
         params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        body: {
+          type: 'object',
+          properties: {
+            petId: { type: 'string' },
+            action: { type: 'string' },
+            responseTime: { type: 'number' },
+            deviceType: { type: 'string' },
+          },
+        },
+        response: {
+          201: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -172,6 +204,24 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.recordSwipe },
       schema: {
         tags: ['discovery'],
+        summary: 'Record a swipe action (SPA alias)',
+        body: {
+          type: 'object',
+          properties: {
+            sessionId: { type: 'string' },
+            petId: { type: 'string' },
+            action: { type: 'string' },
+            responseTime: { type: 'number' },
+            deviceType: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, message: { type: 'string' } },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -204,6 +254,19 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.listSwipeHistory },
       schema: {
         tags: ['matching'],
+        summary: 'List swipe history for the calling user',
+        querystring: {
+          type: 'object',
+          properties: {
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+            action: { type: 'string' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -236,6 +299,19 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.recommend },
       schema: {
         tags: ['discovery'],
+        summary: 'Get initial pet recommendations',
+        body: {
+          type: 'object',
+          properties: {
+            sessionId: { type: 'string' },
+            filters: { type: 'object', additionalProperties: true },
+            limit: { type: 'integer' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -264,6 +340,19 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.recommend },
       schema: {
         tags: ['discovery'],
+        summary: 'Get more pet recommendations for an active session',
+        body: {
+          type: 'object',
+          properties: {
+            sessionId: { type: 'string' },
+            filters: { type: 'object', additionalProperties: true },
+            limit: { type: 'integer' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -292,6 +381,21 @@ export const registerMatchingRoutes = async (
       config: { rateLimit: MATCHING_RATE_LIMITS.search },
       schema: {
         tags: ['discovery'],
+        summary: 'Search for pets by query and filters',
+        querystring: {
+          type: 'object',
+          properties: {
+            q: { type: 'string' },
+            query: { type: 'string' },
+            filters: { type: 'string' },
+            cursor: { type: 'string' },
+            limit: { type: 'string' },
+          },
+        },
+        response: {
+          200: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
@@ -317,14 +421,32 @@ export const registerMatchingRoutes = async (
 
   // ---- Match profile -----------------------------------------------
   // GET /api/v1/match/profile — read the adopter's preferences.
-  app.get('/api/v1/match/profile', { schema: { tags: ['matching'] } }, async (req, reply) => {
-    try {
-      const res = await client.getMatchProfile({}, buildMetadata(req));
-      return reply.send({ success: true, data: matchProfileToView(res.profile) });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+  app.get(
+    '/api/v1/match/profile',
+    {
+      schema: {
+        tags: ['matching'],
+        summary: 'Get the adopter match profile',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      try {
+        const res = await client.getMatchProfile({}, buildMetadata(req));
+        return reply.send({ success: true, data: matchProfileToView(res.profile) });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   // PUT /api/v1/match/profile — upsert. The SPA sends snake_case
   // preference fields; map each to the proto's set_* + *_json pair.
@@ -333,7 +455,17 @@ export const registerMatchingRoutes = async (
     {
       schema: {
         tags: ['matching'],
+        summary: 'Upsert the adopter match profile',
         body: { type: 'object', additionalProperties: true },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -356,7 +488,20 @@ export const registerMatchingRoutes = async (
     '/api/v1/match/top-picks',
     {
       config: { rateLimit: MATCHING_RATE_LIMITS.topPicks },
-      schema: { tags: ['matching'] },
+      schema: {
+        tags: ['matching'],
+        summary: 'Get personalised top pet picks for the adopter',
+        querystring: { type: 'object', properties: { limit: { type: 'string' } } },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+        },
+      },
     },
     async (req, reply) => {
       const query = req.query as Record<string, string | undefined>;
@@ -377,6 +522,22 @@ export const registerMatchingRoutes = async (
     {
       schema: {
         tags: ['discovery'],
+        summary: 'Get swipe statistics for a user',
+        params: {
+          type: 'object',
+          properties: { userId: { type: 'string' } },
+          required: ['userId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -402,6 +563,22 @@ export const registerMatchingRoutes = async (
     {
       schema: {
         tags: ['discovery'],
+        summary: 'Get statistics for a swipe session',
+        params: {
+          type: 'object',
+          properties: { sessionId: { type: 'string' } },
+          required: ['sessionId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {

@@ -76,6 +76,26 @@ export const registerAnalyticsRoutes = async (
         tags: ['analytics'],
         summary: 'Record a page view event',
         security: [],
+        body: {
+          type: 'object',
+          properties: {
+            path: { type: 'string' },
+            url: { type: 'string' },
+            timestamp: { type: 'string' },
+            sessionId: { type: 'string' },
+            referrer: { type: 'string' },
+            userAgent: { type: 'string' },
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -105,6 +125,26 @@ export const registerAnalyticsRoutes = async (
         tags: ['analytics'],
         summary: 'Record a single analytics event',
         security: [],
+        body: {
+          type: 'object',
+          properties: {
+            event: { type: 'string' },
+            name: { type: 'string' },
+            type: { type: 'string' },
+            timestamp: { type: 'string' },
+            sessionId: { type: 'string' },
+            properties: { type: 'object', additionalProperties: true },
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -133,6 +173,32 @@ export const registerAnalyticsRoutes = async (
         tags: ['analytics'],
         summary: 'Record a batch of analytics events',
         security: [],
+        body: {
+          type: 'object',
+          properties: {
+            events: {
+              type: 'array',
+              items: { type: 'object', additionalProperties: true },
+            },
+          },
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              processed: { type: 'integer' },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -174,6 +240,17 @@ export const registerAnalyticsRoutes = async (
         tags: ['analytics'],
         summary: 'Health check for the analytics endpoint',
         security: [],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              status: { type: 'string' },
+              timestamp: { type: 'string' },
+              service: { type: 'string' },
+            },
+          },
+        },
       },
     },
     async () => ({

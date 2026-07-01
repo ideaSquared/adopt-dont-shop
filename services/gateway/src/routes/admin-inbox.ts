@@ -154,67 +154,125 @@ export const registerAdminInboxRoutes = async (
 ): Promise<void> => {
   const { client } = opts;
 
-  app.get('/api/v1/admin/inbox', { schema: { tags: ['admin', 'inbox'] } }, async (req, reply) => {
-    const q = req.query as Record<string, string | undefined>;
-    const pagination = parsePagination(q, { page: 1, limit: 20 });
-    if (!pagination.ok) {
-      return reply.code(400).send({ error: pagination.error });
-    }
-
-    const source = q.source;
-    const sortBy = q.sortBy === 'createdAt' ? 'createdAt' : 'updatedAt';
-    const sortOrder = q.sortOrder === 'asc' ? 'asc' : 'desc';
-    const meta = buildMetadata(req);
-
-    const wantModeration = source === undefined || source === '' || source === 'moderation';
-    const wantSupport = source === undefined || source === '' || source === 'support';
-
-    try {
-      const items: InboxItem[] = [];
-
-      if (wantModeration) {
-        const grpcReq: ListReportsRequest = {
-          limit: CANDIDATE_LIMIT,
-          assignedModerator: q.assignedTo,
-        };
-        const res = await client.listReports(grpcReq, meta);
-        items.push(...res.reports.map(reportToInboxItem));
-      }
-
-      if (wantSupport) {
-        const grpcReq: ListSupportTicketsRequest = {
-          limit: CANDIDATE_LIMIT,
-          assignedTo: q.assignedTo,
-        };
-        const res = await client.listSupportTickets(grpcReq, meta);
-        items.push(...res.tickets.map(ticketToInboxItem));
-      }
-
-      const filtered = items.filter(item => matchesFilters(item, q));
-      const sorted = sortItems(filtered, sortBy, sortOrder);
-
-      const total = sorted.length;
-      const totalPages = total === 0 ? 0 : Math.ceil(total / pagination.limit);
-      const start = (pagination.page - 1) * pagination.limit;
-      const pageItems = sorted.slice(start, start + pagination.limit);
-
-      return reply.send({
-        data: pageItems,
-        pagination: {
-          page: pagination.page,
-          limit: pagination.limit,
-          total,
-          totalPages,
+  app.get(
+    '/api/v1/admin/inbox',
+    {
+      schema: {
+        tags: ['admin', 'inbox'],
+        summary: 'List unified admin triage inbox (moderation + support)',
+        querystring: {
+          type: 'object',
+          properties: {
+            source: { type: 'string', enum: ['moderation', 'support'] },
+            status: { type: 'string' },
+            severity: { type: 'string' },
+            assignedTo: { type: 'string' },
+            search: { type: 'string' },
+            sortBy: { type: 'string' },
+            sortOrder: { type: 'string', enum: ['asc', 'desc'] },
+            page: { type: 'string' },
+            limit: { type: 'string' },
+          },
         },
-      });
-    } catch (err) {
-      return handleGrpcError(err, reply);
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+              pagination: {
+                type: 'object',
+                properties: {
+                  page: { type: 'integer' },
+                  limit: { type: 'integer' },
+                  total: { type: 'integer' },
+                  totalPages: { type: 'integer' },
+                },
+              },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
+    async (req, reply) => {
+      const q = req.query as Record<string, string | undefined>;
+      const pagination = parsePagination(q, { page: 1, limit: 20 });
+      if (!pagination.ok) {
+        return reply.code(400).send({ error: pagination.error });
+      }
+
+      const source = q.source;
+      const sortBy = q.sortBy === 'createdAt' ? 'createdAt' : 'updatedAt';
+      const sortOrder = q.sortOrder === 'asc' ? 'asc' : 'desc';
+      const meta = buildMetadata(req);
+
+      const wantModeration = source === undefined || source === '' || source === 'moderation';
+      const wantSupport = source === undefined || source === '' || source === 'support';
+
+      try {
+        const items: InboxItem[] = [];
+
+        if (wantModeration) {
+          const grpcReq: ListReportsRequest = {
+            limit: CANDIDATE_LIMIT,
+            assignedModerator: q.assignedTo,
+          };
+          const res = await client.listReports(grpcReq, meta);
+          items.push(...res.reports.map(reportToInboxItem));
+        }
+
+        if (wantSupport) {
+          const grpcReq: ListSupportTicketsRequest = {
+            limit: CANDIDATE_LIMIT,
+            assignedTo: q.assignedTo,
+          };
+          const res = await client.listSupportTickets(grpcReq, meta);
+          items.push(...res.tickets.map(ticketToInboxItem));
+        }
+
+        const filtered = items.filter(item => matchesFilters(item, q));
+        const sorted = sortItems(filtered, sortBy, sortOrder);
+
+        const total = sorted.length;
+        const totalPages = total === 0 ? 0 : Math.ceil(total / pagination.limit);
+        const start = (pagination.page - 1) * pagination.limit;
+        const pageItems = sorted.slice(start, start + pagination.limit);
+
+        return reply.send({
+          data: pageItems,
+          pagination: {
+            page: pagination.page,
+            limit: pagination.limit,
+            total,
+            totalPages,
+          },
+        });
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
     }
-  });
+  );
 
   app.post(
     '/api/v1/admin/inbox/assign',
-    { schema: { tags: ['admin', 'inbox'] } },
+    {
+      schema: {
+        tags: ['admin', 'inbox'],
+        summary: 'Assign an inbox item (report or support ticket) to a moderator',
+        body: {
+          type: 'object',
+          properties: {
+            itemId: { type: 'string' },
+            source: { type: 'string', enum: ['moderation', 'support'] },
+            assignedTo: { type: 'string' },
+          },
+        },
+        response: {
+          204: { type: 'null' },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+    },
     async (req, reply) => {
       const b = (req.body ?? {}) as { itemId?: string; source?: string; assignedTo?: string };
       if (

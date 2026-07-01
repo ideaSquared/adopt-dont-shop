@@ -79,6 +79,25 @@ export const registerGdprRoutes = async (
         tags: ['gdpr'],
         summary: 'Submit a GDPR erasure request for the authenticated user',
         security: [],
+        body: { type: 'object', properties: { reason: { type: 'string' } } },
+        response: {
+          202: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              correlationId: { type: 'string' },
+              requestedAt: { type: 'string' },
+            },
+          },
+          401: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+          503: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -174,6 +193,24 @@ export const registerGdprRoutes = async (
         schema: {
           tags: ['gdpr'],
           summary: 'Get the status of a GDPR erasure request by correlation ID',
+          params: {
+            type: 'object',
+            properties: { correlationId: { type: 'string' } },
+            required: ['correlationId'],
+          },
+          response: {
+            200: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                data: { type: 'object', additionalProperties: true },
+              },
+            },
+            404: {
+              type: 'object',
+              properties: { success: { type: 'boolean' }, error: { type: 'string' } },
+            },
+          },
         },
       },
       async (req, reply) => {

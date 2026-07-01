@@ -143,6 +143,20 @@ export const registerDashboardRoutes = async (
       schema: {
         tags: ['dashboard'],
         summary: 'Get rescue dashboard statistics',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'object', additionalProperties: true },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, message: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {
@@ -223,6 +237,20 @@ export const registerDashboardRoutes = async (
       schema: {
         tags: ['dashboard'],
         summary: 'Get recent activity for a rescue',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              message: { type: 'string' },
+              data: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: { success: { type: 'boolean' }, message: { type: 'string' } },
+          },
+        },
       },
     },
     async (req, reply) => {

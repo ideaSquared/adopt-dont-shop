@@ -99,6 +99,20 @@ export const registerUploadsRoutes = async (
       schema: {
         tags: ['uploads'],
         summary: 'Upload an image (multipart/form-data)',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              url: { type: 'string' },
+              thumbnail_url: { type: 'string' },
+              original_filename: { type: 'string' },
+              size_bytes: { type: 'number' },
+              content_type: { type: 'string' },
+            },
+          },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+          500: { type: 'object', properties: { error: { type: 'string' } } },
+        },
       },
     },
     async (req, reply) => {
