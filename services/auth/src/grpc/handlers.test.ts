@@ -345,6 +345,32 @@ describe('login', () => {
     ]);
   });
 
+  it('persists a SHA-256 hash of the refresh token, never the raw value (ADS-884)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture()] });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
+
+    await login(mocks.deps, null, BASE_LOGIN_REQ);
+
+    const insertCall = mocks.clientMock.query.mock.calls.find(c =>
+      (c[0] as string).includes('INSERT INTO auth.refresh_tokens')
+    );
+    expect(insertCall).toBeDefined();
+    const [sql, params] = insertCall as [string, unknown[]];
+    expect(sql).toMatch(/token_hash/);
+    expect(sql).not.toMatch(/\btoken\b(?!_hash)/);
+    expect(params).not.toContain('refresh.jwt.token');
+    // SHA-256("refresh.jwt.token") in hex.
+    expect(params).toContain(
+      '4aae24fd4386389145fbd132ee4c5946e5ec5688261796cab855a58cc94ee74b'
+    );
+  });
+
   it('publishes a successful auth.actionTaken alongside auth.userLoggedIn', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture()] });
     mocks.hasherMock.compare.mockResolvedValueOnce(true);
@@ -571,6 +597,28 @@ describe('logout', () => {
     const update = sqls.find(s => s.includes('UPDATE auth.refresh_tokens'));
     expect(update).toMatch(/is_revoked = true/);
   });
+
+  it('looks up the revoked row by token_hash, never the raw refresh token (ADS-884)', async () => {
+    mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
+      sub: 'usr-1',
+      jti: 'jti-1',
+      iat: 0,
+      exp: Math.floor(Date.now() / 1000) + 1000,
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // not denylisted
+
+    const calls: Array<{ sql: string; params: unknown[] }> = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[] = []) => {
+      calls.push({ sql, params });
+      return { rows: [] };
+    });
+
+    await logout(mocks.deps, ADOPTER_PRINCIPAL, { refreshToken: 'my-refresh-token' });
+
+    const update = calls.find(c => c.sql.includes('UPDATE auth.refresh_tokens'));
+    expect(update?.sql).toMatch(/token_hash = \$1/);
+    expect(update?.params).not.toContain('my-refresh-token');
+  });
 });
 
 // --- refreshToken ----------------------------------------------------
@@ -733,6 +781,41 @@ describe('refreshToken', () => {
     expect(res.tokens.accessToken).toBe('access.jwt.token');
     // BEGIN → UPDATE old refresh → INSERT denylist → INSERT new refresh → COMMIT → NATS_PUBLISH
     expect(calls).toEqual(['BEGIN', 'UPDATE', 'INSERT', 'INSERT', 'COMMIT', 'NATS_PUBLISH']);
+  });
+
+  it('looks up and rotates by token_hash, never the raw refresh token (ADS-884)', async () => {
+    mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
+      sub: 'usr-1',
+      jti: 'old-jti',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({ rows: [{ token_hash: 'stored-hash', user_id: 'usr-1', revoked_at: null }] })
+      .mockResolvedValueOnce({ rows: [{ status: 'active' }] }); // status guard
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+
+    const calls: Array<{ sql: string; params: unknown[] }> = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[] = []) => {
+      calls.push({ sql, params });
+      return { rows: [], rowCount: 1 };
+    });
+
+    await refreshToken(mocks.deps, null, { refreshToken: 'tok' });
+
+    const selectSql = mocks.poolMock.query.mock.calls[1][0] as string;
+    expect(selectSql).toMatch(/WHERE token_hash = \$1/);
+
+    const revoke = calls.find(c => c.sql.trim().startsWith('UPDATE'));
+    expect(revoke?.sql).toMatch(/WHERE token_hash = \$1/);
+    expect(revoke?.params).not.toContain('tok');
+    const insertNew = calls.find(
+      c => c.sql.trim().startsWith('INSERT') && c.sql.includes('refresh_tokens')
+    );
+    expect(insertNew?.sql).toMatch(/token_hash/);
+    expect(insertNew?.params).not.toContain('access.jwt.token');
+    expect(insertNew?.params).not.toContain('refresh.jwt.token');
   });
 
   it('rejects a concurrent reuse: when the atomic revoke flips no rows it does not mint a second family', async () => {
