@@ -252,7 +252,7 @@ export async function adminCreateUser(
     [req.email]
   );
   if (existing.rows.length > 0) {
-    throw new HandlerError('ALREADY_EXISTS', `a user with email ${req.email} already exists`);
+    throw new HandlerError('ALREADY_EXISTS', 'a user with that email already exists');
   }
 
   // Pending users carry no usable credential until they redeem the invite;
