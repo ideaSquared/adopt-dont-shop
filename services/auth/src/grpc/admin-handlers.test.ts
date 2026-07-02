@@ -985,6 +985,18 @@ describe('adminCreateUser', () => {
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
 
+  it('does not include the email address in the ALREADY_EXISTS error message', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    let caught: unknown;
+    try {
+      await adminCreateUser(mocks.deps, ADMIN_CREATOR, baseReq);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeDefined();
+    expect((caught as { message: string }).message).not.toContain(baseReq.email);
+  });
+
   it('creates a pending user + invitation and emits auth.userInvited with the token', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // no existing email
     mocks.clientScript.push({
