@@ -127,17 +127,19 @@ services:
     ports: []  # Don't expose Redis port to host in production
     volumes:
       - redis_data:/data
-    command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Error: REDIS_PASSWORD required in production}"
-    # REDIS_PASSWORD must be in the container env (not just interpolated into
-    # `command`) so the healthcheck's `redis-cli -a "$$REDIS_PASSWORD"` can
-    # authenticate — without it the check gets NOAUTH and never goes healthy.
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    secrets:
+      - redis_password
+    # ADS-886: the password is read from the file-mounted secret at container
+    # start rather than interpolated into `environment:`, which `docker
+    # inspect` can read back in plaintext. The deploy workflow materialises
+    # ./secrets/redis_password from the host .env's REDIS_PASSWORD.
+    command: >
+      sh -c 'redis-server --appendonly yes --requirepass "$$(cat /run/secrets/redis_password)"'
     # Healthcheck so dependent services can wait for service_healthy. Without
     # this the backend may start before Redis is ready and crash on first
     # connection. [ADS-431]
     healthcheck:
-      test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" ping | grep -q PONG']
+      test: ['CMD-SHELL', 'redis-cli -a "$$(cat /run/secrets/redis_password)" ping | grep -q PONG']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -571,6 +573,8 @@ secrets:
     file: ./secrets/database_url
   redis_url:
     file: ./secrets/redis_url
+  redis_password:
+    file: ./secrets/redis_password
   jwt_secret:
     file: ./secrets/jwt_secret
   jwt_refresh_secret:
