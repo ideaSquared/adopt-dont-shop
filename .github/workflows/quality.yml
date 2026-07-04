@@ -44,10 +44,17 @@ jobs:
 
       # ADS-387: Single workspace-level outdated check covers every workspace package,
       # replacing the previous 5-package hardcoded matrix.
-      # continue-on-error because outdated deps are advisory, not blocking.
-      - name: Check for outdated dependencies across all workspaces
-        run: pnpm outdated -r
-        continue-on-error: true
+      # ADS-903: Output is written to GITHUB_STEP_SUMMARY so it's visible on PRs
+      # without requiring a click-through. Outdated deps are advisory, not blocking.
+      # See docs/security/audit-policy.md.
+      - name: Report outdated dependencies (advisory)
+        run: |
+          {
+            echo "## Outdated Dependencies"
+            echo '```'
+            pnpm outdated -r 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Check for duplicate dependencies across all workspaces
         run: pnpm list -r --depth 0

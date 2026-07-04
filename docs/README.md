@@ -203,6 +203,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Container image signing](./security/image-signing.md) — Cosign / Sigstore image-signing pipeline
 - [Internal gRPC trust model](./security/internal-grpc-trust.md) — service-to-service authentication
 - [Webhook replay protection](./security/webhook-replay-protection.md) — email-delivery webhook signature checks
+- [Dependency audit policy](./security/audit-policy.md) — CVE severity gates, advisory levels, and remediation steps
 
 ## Documentation conventions
 

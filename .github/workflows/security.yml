@@ -46,5 +46,18 @@ jobs:
 
       # ADS-387: Single workspace-level audit covers every workspace package via
       # the root pnpm-lock.yaml, replacing the previous 5-package hardcoded matrix.
-      - name: Audit all workspaces for high+ vulnerabilities
+      #
+      # Advisory step: all severities are written to the job summary for visibility
+      # without blocking the job. See docs/security/audit-policy.md.
+      - name: Audit all workspaces — advisory summary (all severities)
+        run: |
+          {
+            echo "## Dependency Security Audit"
+            echo '```'
+            pnpm audit 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Hard gate: high+ CVEs fail the job. Moderate/low are advisory only.
+      - name: Audit all workspaces — gate (high+)
         run: pnpm audit --audit-level high
