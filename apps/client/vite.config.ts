@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { getLibraryAliases } from '../../vite.shared.config';
 
 export default defineConfig(({ mode }) => {
   // The gateway fronts /api, /health and /monitoring. In Docker it's reachable
@@ -11,54 +12,6 @@ export default defineConfig(({ mode }) => {
   const isDocker = process.env.DOCKER_ENV === 'true' || process.env.NODE_ENV === 'production';
   const backendHost = isDocker ? 'service-gateway' : '127.0.0.1';
   const backendPort = 4000;
-
-  // Development aliases for all libraries to use source files directly
-  const libraryAliases =
-    mode === 'development'
-      ? {
-          '@adopt-dont-shop/lib.components': resolve(
-            __dirname,
-            '../../packages/lib.components/src'
-          ),
-          '@adopt-dont-shop/lib.analytics': resolve(__dirname, '../../packages/lib.analytics/src'),
-          '@adopt-dont-shop/lib.api': resolve(__dirname, '../../packages/lib.api/src'),
-          '@adopt-dont-shop/lib.applications': resolve(
-            __dirname,
-            '../../packages/lib.applications/src'
-          ),
-          '@adopt-dont-shop/lib.auth': resolve(__dirname, '../../packages/lib.auth/src'),
-          '@adopt-dont-shop/lib.chat': resolve(__dirname, '../../packages/lib.chat/src'),
-          '@adopt-dont-shop/lib.dev-tools': resolve(__dirname, '../../packages/lib.dev-tools/src'),
-          '@adopt-dont-shop/lib.discovery': resolve(__dirname, '../../packages/lib.discovery/src'),
-          '@adopt-dont-shop/lib.feature-flags': resolve(
-            __dirname,
-            '../../packages/lib.feature-flags/src'
-          ),
-          '@adopt-dont-shop/lib.legal': resolve(__dirname, '../../packages/lib.legal/src'),
-          '@adopt-dont-shop/lib.matching': resolve(__dirname, '../../packages/lib.matching/src'),
-          '@adopt-dont-shop/lib.notifications': resolve(
-            __dirname,
-            '../../packages/lib.notifications/src'
-          ),
-          '@adopt-dont-shop/lib.observability': resolve(
-            __dirname,
-            '../../packages/lib.observability/src'
-          ),
-          '@adopt-dont-shop/lib.permissions': resolve(
-            __dirname,
-            '../../packages/lib.permissions/src'
-          ),
-          '@adopt-dont-shop/lib.types': resolve(__dirname, '../../packages/lib.types/src'),
-          '@adopt-dont-shop/lib.pets': resolve(__dirname, '../../packages/lib.pets/src'),
-          '@adopt-dont-shop/lib.rescue': resolve(__dirname, '../../packages/lib.rescue/src'),
-          '@adopt-dont-shop/lib.search': resolve(__dirname, '../../packages/lib.search/src'),
-          '@adopt-dont-shop/lib.utils': resolve(__dirname, '../../packages/lib.utils/src'),
-          '@adopt-dont-shop/lib.validation': resolve(
-            __dirname,
-            '../../packages/lib.validation/src'
-          ),
-        }
-      : {};
 
   return {
     plugins: [
@@ -127,7 +80,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': resolve(__dirname, './src'),
-        ...libraryAliases,
+        ...getLibraryAliases(__dirname, mode),
       },
       dedupe: ['react', 'react-dom'],
     },
