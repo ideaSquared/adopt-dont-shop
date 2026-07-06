@@ -67,5 +67,5 @@ Or from `lib.observability/`: `pnpm build`, `pnpm test`, `pnpm lint`.
 ## See also
 
 - [`lib.legal`](../lib.legal/README.md) — cookie banner that owns the consent UI and toggles this gate
-- [`docs/legal/cookies.md`](../docs/legal/cookies.md) — cookie category definitions; explains why Sentry is exempt
-- [`docs/observability-alerting.md`](../docs/observability-alerting.md) — how Sentry events feed alerting
+- [`docs/legal/cookies.md`](../../docs/legal/cookies.md) — cookie category definitions; explains why Sentry is exempt
+- [`docs/observability-alerting.md`](../../docs/observability-alerting.md) — how Sentry events feed alerting

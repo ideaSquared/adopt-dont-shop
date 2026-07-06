@@ -124,7 +124,7 @@ type ApiServiceConfig = {
 
 ## Data Transformation
 
-Responses that contain pet objects are automatically normalised from API snake_case to camelCase, and PostGIS geometry is converted to a readable `"lat, lng"` string. The mapping is inlined in `src/services/api-service.ts` (search for `normalizePet`).
+Pet response payloads land as the `ApiPet` / `TransformedPet` types in `src/types/`; the client passes them through unchanged and consumers destructure the fields they need. There is no in-service snake_case→camelCase or PostGIS-geometry transformer at the moment — the example below shows the shapes involved, not a mapping the client applies.
 
 ```typescript
 // API Response (snake_case)

@@ -90,13 +90,15 @@ logger.info('booted', { port: 4000 });
 
 ### What this package does NOT include (yet)
 
-- **PII / secret redaction inside log payloads.** `service.backend`'s
-  logger has it via a `redactLogPayload` helper. Port that into here
-  when the redact module migrates to a shared package.
 - **`AsyncLocalStorage` correlation-id stamping.** Coupled to each
   service's request-context middleware. Callers attach
   `correlationId` / `traceparent` to log payloads as fields when they
   have them.
+
+Note: PII / secret redaction of log and telemetry payloads IS included —
+`redactSecretFields`, `REDACTED`, `SECRET_KEY_PATTERN` are exported from
+`src/index.ts` (the recursive redactor is in `src/redact.ts` and matches
+`password|token|secret|otp|authorization|cookie|api[_-]?key`).
 - **`loggerHelpers` bundle** (`logRequest`, `logAuth`, `logBusiness`,
   `logSecurity`, …). Middleware concerns — they live with each
   service's own request pipeline.
