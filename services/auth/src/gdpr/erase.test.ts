@@ -40,6 +40,13 @@ describe('eraseAuth', () => {
     expect(usersSql).toContain('first_name = NULL');
     expect(usersSql).toContain('phone_number = NULL');
     expect(usersSql).toContain('email = $2');
+    // Token columns use the hashed schema (migration 024 dropped raw columns).
+    expect(usersSql).toContain('reset_token_hash = NULL');
+    expect(usersSql).toContain('reset_token_expiration = NULL');
+    expect(usersSql).toContain('verification_token_hash = NULL');
+    expect(usersSql).toContain('verification_token_expires_at = NULL');
+    expect(usersSql).not.toContain('reset_token = NULL');
+    expect(usersSql).not.toContain('verification_token = NULL');
 
     // refresh_tokens / privacy_prefs / user_roles deleted by user_id.
     expect(String(calls[1][0])).toContain('DELETE FROM auth.refresh_tokens');
