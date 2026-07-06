@@ -46,7 +46,7 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@vanilla-extract/css": "^1.20.1",
+    "@vanilla-extract/css": "^1.21.1",
     "@vanilla-extract/recipes": "^0.5.7",
     "react": "^19.2.7"
   },

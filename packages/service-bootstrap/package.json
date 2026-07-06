@@ -36,7 +36,7 @@
     "@adopt-dont-shop/lib.types": "workspace:*",
     "@adopt-dont-shop/observability": "workspace:*",
     "@grpc/grpc-js": "^1.14.4",
-    "fastify": "^5.8.5",
+    "fastify": "^5.10.0",
     "nats": "^2.29.3",
     "pg": "^8.22.0",
     "winston": "^3.19.0",

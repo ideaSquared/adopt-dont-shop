@@ -31,7 +31,7 @@
     "@adopt-dont-shop/lib.types": "workspace:*",
     "@grpc/grpc-js": "^1.14.4",
     "nats": "^2.29.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   },
   "devDependencies": {
     "@adopt-dont-shop/proto": "workspace:*",
@@ -39,6 +39,6 @@
     "typescript": "^6.0.0"
   },
   "peerDependencies": {
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   }
 }
