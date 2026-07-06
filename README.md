@@ -228,7 +228,7 @@ pnpm docker:dev:build         # rebuild images from scratch
 
 Common issues:
 
-- **Port conflict** — check 3000-3002 (apps), 4000 (gateway), 5001-5010 (services), 5432 (Postgres), 6379 (Redis), 4222/8222 (NATS) are free
+- **Port conflict** — check 3000-3002 (apps), 4000 (gateway), 5001-5009 (services), 5432 (Postgres), 6379 (Redis), 4222/8222 (NATS) are free
 - **HMR not firing** — verify `CHOKIDAR_USEPOLLING=true` is set in container env (it is by default in `docker-compose.yml`)
 - **Slow builds** — ensure BuildKit is on: `export DOCKER_BUILDKIT=1`
 

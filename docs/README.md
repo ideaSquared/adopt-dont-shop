@@ -47,6 +47,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [ADR 0002 — applications strangler cutover](./adr/0002-applications-strangler-cutover.md) — _superseded_: historical plan to move `/api/v1/applications/*` to the microservice (cutover flags removed)
 - [ADR 0003 — idempotent event consumers](./adr/0003-idempotent-event-consumers.md) — at-least-once delivery + idempotent-consumer convention
 - [ADR 0004 — Postgres read-replica routing](./adr/0004-postgres-read-replica-routing.md) — optional read-replica pool in `@adopt-dont-shop/db`
+- [ADR 0005 — Pact contract tests](./adr/0005-pact-contract-tests.md) — contract-testing model for gateway ↔ service boundaries
 - [ADR — sticky sessions for Socket.IO](./architecture/adr-socket-sticky-sessions.md) — connection-cap mitigation for the WebSocket edge
 - [Frontend technical architecture](./frontend/technical-architecture.md) — app shells, routing, state, styling
 - [Backend implementation guide](./backend/implementation-guide.md) — gateway routes → gRPC handlers → services wiring
@@ -55,6 +56,10 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Microservices standards](./infrastructure/MICROSERVICES-STANDARDS.md) — boundaries, contracts, ownership
 - [Dependency graph](./dependency-graph.md) — Turbo build/dependency graph reference
 - [Data standards](./DATA-STANDARDS.md) — naming, identifiers, timestamp / locale conventions
+- [Backbone infra review](./backbone-infra-review.md) — audit of the shared backend substrate (`packages/{db,events,proto,storage,observability,authz}`, `services/gateway`, `service-bootstrap`)
+- [Frontend libs quality review](./frontend-libs-quality-review.md) — audit of the frontend `lib.*` packages
+- [Services code quality review](./services-code-quality-review.md) — audit of the microservices (first pass)
+- [Services code quality review — pass 2](./services-code-quality-review-pass-2.md) — follow-up audit of the microservices
 
 ## Frontend development
 

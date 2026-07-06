@@ -38,7 +38,7 @@ Both Dockerfiles use multi-stage builds for optimal image size and cache reuse:
 | `build` | Compile TypeScript / bundle assets |
 | `production` | Minimal runtime image (Node for backend, nginx for frontend) |
 
-Each microservice under `services/` has its own `Dockerfile.service` (shared build template). All three frontend apps share [Dockerfile.app](../Dockerfile.app) and select their app via the `APP_NAME` build arg.
+Every microservice under `services/` is built from a single parameterised [`Dockerfile.service`](../Dockerfile.service) at the repo root; each service is selected via the `SERVICE` and `SERVICE_DIR` build args. All three frontend apps share [Dockerfile.app](../Dockerfile.app) and select their app via the `APP_NAME` build arg.
 
 ### Services
 
@@ -48,7 +48,7 @@ Each microservice under `services/` has its own `Dockerfile.service` (shared bui
 - `nginx` — Reverse proxy with subdomain routing (api, admin, rescue)
 
 **Application**
-- `service-gateway` — Fastify API gateway on port 4000 (health: `/health`)
+- `service-gateway` — Fastify API gateway on port 4000 (health: `/health/simple`)
 - `app-client` — Public portal on 3000
 - `app-admin` — Admin dashboard on 3001
 - `app-rescue` — Rescue portal on 3002
@@ -142,8 +142,8 @@ For a destructive reset (drop DB + re-init):
 
 ```bash
 pnpm docker:reset             # WIPES VOLUMES
-pnpm docker:dev:detach
-pnpm db:reset
+pnpm docker:dev:detach        # each service re-migrates its schema on start
+pnpm db:seed                  # (optional) reload dev seed data
 ```
 
 ### Debugging
@@ -212,7 +212,7 @@ VITE_WS_BASE_URL=wss://api.your-domain.com
 
 ### Health Checks
 
-- Gateway: `GET http://localhost:4000/health` → 200
+- Gateway: `GET http://localhost:4000/health/simple` → 200
 - Frontend (nginx): `GET http://localhost/health` → 200
 - Database: `pg_isready` (Docker healthcheck)
 
@@ -323,8 +323,8 @@ docker compose build --no-cache service-gateway
 pnpm docker:ps                # is database "healthy"?
 docker compose logs database     # check init logs
 pnpm docker:reset             # last resort — WIPES DATA
-pnpm docker:dev:detach
-pnpm db:reset
+pnpm docker:dev:detach        # each service re-migrates its schema on start
+pnpm db:seed                  # (optional) reload dev seed data
 ```
 
 ### Cleanup

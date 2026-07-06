@@ -2,7 +2,7 @@
 
 All visual styling in this monorepo flows from a single source of truth: the
 theme contract defined in
-[`lib.components/src/styles/theme.css.ts`](./lib.components/src/styles/theme.css.ts).
+[`lib.components/src/styles/theme.css.ts`](./packages/lib.components/src/styles/theme.css.ts).
 Three themes derive from the same contract: `lightThemeClass`,
 `normalThemeClass`, and `darkThemeClass`.
 
@@ -128,7 +128,7 @@ vars.zIndex.dropdown | sticky | overlay | modal | popover | toast | tooltip
 ## Reusable components first
 
 Before writing your own CSS, check whether
-[`lib.components`](./lib.components/src/index.ts) already exports what you
+[`lib.components`](./packages/lib.components/src/index.ts) already exports what you
 need. Frequently overlooked:
 
 - **`Stack`** / **`Container`** — layout primitives instead of manual flex/grid
