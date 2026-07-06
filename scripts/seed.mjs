@@ -5,9 +5,11 @@
  * Runs each owning service's `db:seed` script in dependency order against
  * the running docker-compose stack:
  *
- *   1. service-auth   — canonical personas (john.smith + admin + rescue staff)
- *   2. service-rescue — rescue orgs + staff_member links (reference auth ids)
- *   3. service-pets   — pet catalogue (reference rescue ids)
+ *   1. service-auth         — canonical personas (john.smith + admin + rescue staff)
+ *   2. service-rescue       — rescue orgs + staff_member links (reference auth ids)
+ *   3. service-pets         — pet catalogue (reference rescue ids)
+ *   4. service-applications — application read-model (references user/pet/rescue ids)
+ *   5. service-chat         — adopter↔rescue chat + participants (references user/rescue ids)
  *
  * This is a HOST-side orchestrator: it must NOT import any
  * @adopt-dont-shop/* workspace package (CAD lesson — host scripts that pull

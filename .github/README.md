@@ -23,7 +23,7 @@ See [workflows/README.md](./workflows/README.md) for the full reference. The hig
 
 ## Lib Build Artifact Caching (ADS-390)
 
-`ci.yml` uses a dedicated `build-libs` job that compiles all `lib.*/dist` outputs once, then uploads them as a single `lib-dist` artifact via `actions/upload-artifact@v7`. Downstream jobs (`test-backend`, `test-frontend`, `test-libs`) use `actions/download-artifact@v8` to retrieve the pre-built artifacts instead of rebuilding.
+`ci.yml` uses a dedicated `build-libs` job that compiles all `lib.*/dist` outputs once, then uploads them as a single `lib-dist` artifact via `actions/upload-artifact@v7`. Downstream jobs (`test-services`, `test-frontend`, `test-libs`, `test-contracts`) use `actions/download-artifact@v8` to retrieve the pre-built artifacts instead of rebuilding.
 
 This eliminates the ~4x redundant `pnpm build:libs` calls that previously occurred across parallel jobs (~10 minutes of duplicated work per run).
 
@@ -43,6 +43,6 @@ This covers all workspace packages via the deduplicated `pnpm-lock.yaml`.
 
 ## E2E Gate (ADS-386 / ADS-419)
 
-The `test-e2e` job in `ci.yml` is a blocking signal — a failure fails the PR check. The previous `continue-on-error: true` escape hatch was removed by ADS-419; see the comment block at `ci.yml:398`.
+The `test-e2e` job in `ci.yml` is opt-in per PR — it runs on push to `main`, on `workflow_dispatch`, or when the PR carries the `run-e2e` label (see the `if:` gate around `.github/workflows/ci.yml:440`). When it runs, a failure fails the PR check; when it is skipped (unlabelled PRs) the `ci-required` aggregator treats the skip as success so E2E never blocks in-progress work. See [`workflows/README.md`](./workflows/README.md#-continuous-integration-workflow-ciyml) for the full policy.
 
 Playwright is configured with `retries: 2` in CI (see `e2e/playwright.config.ts`). Flaky-retry counts are surfaced in the "Report E2E retry counts" step after each run.
