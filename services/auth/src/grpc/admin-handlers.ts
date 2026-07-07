@@ -338,9 +338,21 @@ export async function adminUpdateUser(
     sets.push(`status = $${params.length + 1}`);
     params.push(statusToDb(req.status));
   }
+  let roleChange: { newRole: string } | undefined;
   if (req.userType !== undefined && req.userType !== AuthV1.UserRole.USER_ROLE_UNSPECIFIED) {
+    if (req.userId === principal.userId) {
+      throw new HandlerError('INVALID_ARGUMENT', 'cannot change your own user_type');
+    }
+    const targetRole = roleToDb(req.userType);
+    if (ELEVATED_ROLES.has(targetRole) && !principal.roles.includes('super_admin')) {
+      throw new HandlerError(
+        'PERMISSION_DENIED',
+        'only a super_admin may assign admin, moderator, or super_admin roles'
+      );
+    }
+    roleChange = { newRole: targetRole };
     sets.push(`user_type = $${params.length + 1}`);
-    params.push(roleToDb(req.userType));
+    params.push(targetRole);
   }
   if (req.emailVerified !== undefined) {
     sets.push(`email_verified = $${params.length + 1}`);
@@ -365,6 +377,18 @@ export async function adminUpdateUser(
 
   let updated: UserRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
+    let previousRole: string | undefined;
+    if (roleChange) {
+      const prevRes = await client.query<{ user_type: string }>(
+        `SELECT user_type FROM auth.users WHERE user_id = $1 AND deleted_at IS NULL`,
+        [req.userId]
+      );
+      if (prevRes.rows.length === 0) {
+        throw new HandlerError('NOT_FOUND', `user ${req.userId} not found`);
+      }
+      previousRole = prevRes.rows[0].user_type;
+    }
+
     const res = await client.query<UserRow>(
       `
       UPDATE auth.users
@@ -382,7 +406,11 @@ export async function adminUpdateUser(
     publish({
       type: 'auth.userUpdatedByAdmin',
       id: `auth.userUpdatedByAdmin.${req.userId}.${Date.now()}`,
-      payload: { userId: req.userId, updatedBy: principal.userId },
+      payload: {
+        userId: req.userId,
+        updatedBy: principal.userId,
+        ...(roleChange && { roleChange: { before: previousRole, after: roleChange.newRole } }),
+      },
     });
   });
 
