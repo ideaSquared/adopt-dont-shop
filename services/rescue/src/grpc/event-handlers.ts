@@ -220,7 +220,10 @@ function assertRescueAccess(
   if (!hasPermission(principal, permission)) {
     throw new HandlerError('PERMISSION_DENIED', `'${permission}' required`);
   }
-  if (principal.rescueId && principal.rescueId !== eventRescueId) {
+  if (!principal.rescueId) {
+    throw new HandlerError('PERMISSION_DENIED', 'rescue context required');
+  }
+  if (principal.rescueId !== eventRescueId) {
     throw new HandlerError('PERMISSION_DENIED', 'you may only access events for your own rescue');
   }
 }
@@ -240,7 +243,12 @@ export async function listEvents(
   const params: unknown[] = [];
 
   // Rescue scoping: staff are pinned to their own rescue; super_admin sees all.
-  if (!isSuperAdmin(principal) && principal.rescueId) {
+  // Fail closed: a non-super-admin without a rescueId gets PERMISSION_DENIED rather
+  // than silently seeing every rescue's events.
+  if (!isSuperAdmin(principal)) {
+    if (!principal.rescueId) {
+      throw new HandlerError('PERMISSION_DENIED', 'rescue context required');
+    }
     params.push(principal.rescueId);
     conditions.push(`rescue_id = $${params.length}`);
   }
