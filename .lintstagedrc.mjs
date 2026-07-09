@@ -12,7 +12,7 @@
 export default {
   '**/*.{ts,tsx}': files => [
     `prettier --write ${files.map(f => JSON.stringify(f)).join(' ')}`,
-    'pnpm exec turbo run lint --filter="...[HEAD]" --continue',
+    'pnpm exec turbo run lint --filter=...[HEAD] --continue',
   ],
   '**/*.{js,jsx,json,md,css}': ['prettier --write'],
 };
