@@ -40,9 +40,9 @@
     "@adopt-dont-shop/lib.types": "workspace:*",
     "@adopt-dont-shop/lib.utils": "workspace:*",
     "@adopt-dont-shop/lib.validation": "workspace:*",
-    "@statsig/react-bindings": "^3.33.1",
-    "@tanstack/react-query": "^5.101.0",
-    "@vanilla-extract/css": "^1.20.1",
+    "@statsig/react-bindings": "^3.33.3",
+    "@tanstack/react-query": "^5.101.2",
+    "@vanilla-extract/css": "^1.21.1",
     "@vanilla-extract/recipes": "^0.5.7",
     "clsx": "^2.1.1",
     "jspdf": "^4.2.1",
@@ -50,8 +50,8 @@
     "papaparse": "^5.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-icons": "^5.6.0",
-    "react-router-dom": "^7.18.0",
+    "react-icons": "^5.7.0",
+    "react-router-dom": "^7.18.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -80,6 +80,6 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.1",
     "vite": "^8.0.16",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   }
 }

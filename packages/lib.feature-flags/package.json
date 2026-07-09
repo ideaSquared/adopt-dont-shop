@@ -43,7 +43,7 @@
   "author": "Adopt Don't Shop Team",
   "license": "MIT",
   "dependencies": {
-    "@statsig/react-bindings": "^3.33.1"
+    "@statsig/react-bindings": "^3.33.3"
   },
   "devDependencies": {
     "@adopt-dont-shop/eslint-config-base": "workspace:*",
