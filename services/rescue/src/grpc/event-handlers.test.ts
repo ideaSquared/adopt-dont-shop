@@ -42,6 +42,18 @@ const STAFF_READ_ONLY: Principal = {
   rescueId: RESCUE_ID as RescueId,
 };
 
+const STAFF_NO_RESCUE: Principal = {
+  userId: USER_ID as UserId,
+  roles: ['rescue_staff'],
+  permissions: [
+    'events.read' as Permission,
+    'events.create' as Permission,
+    'events.update' as Permission,
+    'events.delete' as Permission,
+  ],
+  // rescueId intentionally absent — simulates stale token / role misconfiguration
+};
+
 const UNPRIVILEGED: Principal = {
   userId: 'usr-nobody' as UserId,
   roles: ['adopter'],
@@ -159,6 +171,12 @@ describe('listEvents', () => {
     const res = await listEvents(mocks.deps, SUPER_ADMIN, {});
     expect(res.events).toHaveLength(1);
   });
+
+  it('rejects non-super-admin with events.read but no rescueId', async () => {
+    await expect(listEvents(mocks.deps, STAFF_NO_RESCUE, {})).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
 });
 
 // ── GetEvent ────────────────────────────────────────────────────────────
@@ -200,6 +218,13 @@ describe('getEvent', () => {
   it('rejects missing id argument', async () => {
     await expect(getEvent(mocks.deps, STAFF, { id: '' })).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('rejects principal with events.read but no rescueId', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [eventRow()] });
+    await expect(getEvent(mocks.deps, STAFF_NO_RESCUE, { id: EVENT_ID })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
     });
   });
 });
@@ -306,6 +331,13 @@ describe('updateEvent', () => {
       code: 'PERMISSION_DENIED',
     });
   });
+
+  it('rejects principal with events.update but no rescueId', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [eventRow()] });
+    await expect(updateEvent(mocks.deps, STAFF_NO_RESCUE, { id: EVENT_ID })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
 });
 
 // ── DeleteEvent ─────────────────────────────────────────────────────────
@@ -342,6 +374,13 @@ describe('deleteEvent', () => {
       code: 'PERMISSION_DENIED',
     });
   });
+
+  it('rejects principal with events.delete but no rescueId', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [eventRow()] });
+    await expect(deleteEvent(mocks.deps, STAFF_NO_RESCUE, { id: EVENT_ID })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
 });
 
 // ── GetEventAttendees ───────────────────────────────────────────────────
@@ -373,6 +412,13 @@ describe('getEventAttendees', () => {
     expect(res.attendees).toHaveLength(1);
     expect(res.attendees[0].userId).toBe('usr-attendee');
     expect(res.attendees[0].checkedIn).toBe(false);
+  });
+
+  it('rejects principal with events.read but no rescueId', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [eventRow()] });
+    await expect(
+      getEventAttendees(mocks.deps, STAFF_NO_RESCUE, { eventId: EVENT_ID })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 });
 
@@ -419,6 +465,18 @@ describe('addEventAttendee', () => {
     expect(res.attendee?.userId).toBe('usr-attendee');
     expect(res.attendee?.checkedIn).toBe(false);
   });
+
+  it('rejects principal with events.update but no rescueId', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [eventRow()] });
+    await expect(
+      addEventAttendee(mocks.deps, STAFF_NO_RESCUE, {
+        eventId: EVENT_ID,
+        userId: 'usr-attendee',
+        name: 'Alice',
+        email: 'alice@example.com',
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
 });
 
 // ── CheckInAttendee ─────────────────────────────────────────────────────
@@ -455,6 +513,13 @@ describe('checkInAttendee', () => {
     });
     expect(res.attendee?.checkedIn).toBe(true);
   });
+
+  it('rejects principal with events.update but no rescueId', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [eventRow()] });
+    await expect(
+      checkInAttendee(mocks.deps, STAFF_NO_RESCUE, { eventId: EVENT_ID, userId: 'usr-attendee' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
 });
 
 // ── GetEventAnalytics ───────────────────────────────────────────────────
@@ -486,5 +551,12 @@ describe('getEventAnalytics', () => {
     expect(res.analytics?.eventId).toBe(EVENT_ID);
     expect(res.analytics?.totalRegistrations).toBe(40);
     expect(res.analytics?.actualAttendance).toBe(30);
+  });
+
+  it('rejects principal with events.read but no rescueId', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [eventRow()] });
+    await expect(
+      getEventAnalytics(mocks.deps, STAFF_NO_RESCUE, { eventId: EVENT_ID })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 });
