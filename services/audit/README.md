@@ -81,11 +81,11 @@ timing out / retrying stuck sagas, and exporting saga-state metrics. Schema:
 | `saved_reports` | User-created custom audit-report definitions. |
 | `report_templates` | Seed/migration-owned report template library. |
 
-Migrations: `services/audit/src/migrations/001`–`007`.
+Migrations: `services/audit/src/migrations/001`–`008`.
 
 ### gRPC RPCs
 
-`AuditService` — **read-only** (no write RPCs; writes happen via NATS
+`AuditQueryService` — **read-only** (no write RPCs; writes happen via NATS
 consumers). `super_admin` bypasses.
 
 | RPC | Permission |

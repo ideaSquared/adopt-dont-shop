@@ -16,19 +16,20 @@ Each backend service owns its own `vitest.config.ts` under
 
 ## E2E gating
 
-The Playwright job in `.github/workflows/ci.yml` is no longer
-`continue-on-error: true` (ADS-419) — broken integration tests now block
-PR merges. Add `test-e2e` as a required status check in branch
-protection once it has shipped.
+The Playwright `test-e2e` job in `.github/workflows/ci.yml` is opt-in per
+PR — it runs only when the PR carries the `run-e2e` label (or on `main`
+push / manual dispatch). When it runs it is a required check and blocks
+merge on failure; unlabelled PRs skip the job entirely to keep the
+default CI path fast. See CONTRIBUTING.md for the label workflow.
 
 ## Scope: payment / donation processing — out of scope
 
 A repo-wide search for `stripe`, `paypal`, `payment`, and `donation`
 returns no production code paths that handle money:
 
-- The single `payment` reference in `models/SupportTicket.ts` is the
-  enum value `PAYMENT_ISSUE` used to categorise support tickets — there
-  is no payment processing behind it.
+- The single `payment` reference in `packages/lib.support-tickets/src/schemas.ts`
+  is the enum value `'payment_issue'` used to categorise support tickets
+  — there is no payment processing behind it.
 - No service file touches a card processor SDK.
 - No frontend route renders a checkout/donation form.
 
@@ -49,8 +50,10 @@ The full ruleset lives in `.claude/CLAUDE.md`. The tactical reminders
 that come up most often:
 
 - No `as any`, no private-method spies, no implementation-detail tests.
-- Test through public APIs; for routes, that means supertest against
-  the Express router with `vi.mock()` on the service layer.
+- Test through public APIs; for gateway routes that means Fastify's
+  `inject()` with `vi.mock()` on the downstream gRPC clients; for gRPC
+  handlers, invoke the handler function directly with a synthetic
+  context.
 - 100% coverage of behaviour is the aspiration, but coverage thresholds
   (see `vitest.config.ts`) define the *enforced* floor.
 

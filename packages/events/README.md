@@ -36,7 +36,7 @@ import { subscribe } from '@adopt-dont-shop/events';
 
 subscribe<{ petId: string }>(
   nats,
-  { subject: 'pets.created', queue: 'notification-workers', onError: logger.warn },
+  { subject: 'pets.created', durable: 'notification-workers', onError: logger.warn },
   async (payload, { id }) => {
     // De-dupe on the event id — every handler should be idempotent.
     if (await alreadyProcessed(id)) return;
@@ -46,17 +46,33 @@ subscribe<{ petId: string }>(
 );
 ```
 
+The `durable` name is REQUIRED — it's the JetStream consumer identity.
+Two replicas that share a durable name load-share the subject's messages
+(the classic queue-group semantics); replicas that must each see every
+message (e.g. the gateway WS fan-out) use DISTINCT durable names. See
+`SubscribeOptions` in `src/subscribe.ts` for the full option surface,
+including the `deliverNew` flag for realtime consumers that must not
+replay backlog on reconnect.
+
 Errors thrown from the handler are reported via `onError` and the loop
 keeps draining. Malformed JSON is also a clean skip. Unknown id / wrong
 state / concurrency failures (the CAD list) are caller-side concerns —
 the handler should treat them as skip-not-throw.
 
-## What's NOT here yet
+## Other exports
 
-- **Durable consumers / replay-on-reconnect.** Current helpers use core
-  NATS (best-effort delivery). When a service ships JetStream durable
-  consumers, the API adds an `opts.durable` flag and the subscribe loop
-  switches to `JetStreamClient.consume(...)`. CAD's Phase 5+ backlog
-  item; not yet a blocker.
+Beyond `publish` / `subscribe`, this package also exposes:
+
+- `ensureStream`, `DOMAIN_STREAM`, `DOMAIN_SUBJECTS` — the shared
+  `DOMAIN_EVENTS` JetStream topology helpers.
+- `claimEvent` + `CONSUMER_REGISTRY` — the idempotent-consumer helper
+  (dedup by event id) used by every subscriber.
+- `GDPR_ERASURE_REQUESTED`, `GDPR_ERASURE_COMPLETED`,
+  `EXPECTED_GDPR_SERVICES`, `registerGdprSubscriber` — the GDPR erasure
+  saga primitives coordinated by service.audit.
+- `redactAuditPayload` — payload-side redaction for audit publishes.
+
+## Not here
+
 - **Connection management.** Callers own the `NatsConnection` lifecycle
   (`connect()` / `drain()`). The helpers expect a live connection.

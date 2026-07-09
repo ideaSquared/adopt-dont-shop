@@ -206,7 +206,7 @@ the gateway validates on every request. Schema: `auth`.
 | `user_privacy_prefs` | Per-user privacy preferences. |
 | `field_permissions` | Overrides to the default field-level access matrix. |
 
-Migrations: `services/auth/src/migrations/001`–`022`.
+Migrations: `services/auth/src/migrations/001`–`025`.
 
 ### gRPC RPCs
 
@@ -242,9 +242,13 @@ for others).
 **Emits** (publish-after-commit): `auth.userLoggedIn`, `auth.tokenRevoked`,
 `auth.tokenRefreshed`, `auth.roleAssigned`, `auth.userRegistered`,
 `auth.emailVerified`, `auth.passwordResetRequested`, `auth.passwordChanged`,
-`auth.sessionRevoked`, `auth.privacyPrefsReset`, `auth.userDeactivated`,
-`auth.userReactivated`, `auth.userUpdatedByAdmin`. Plus `gdpr.erasureCompleted`
-as a saga participant.
+`auth.sessionRevoked`, `auth.privacyPrefsReset`, `auth.userUpdatedByAdmin`,
+`auth.userInvited`, `auth.invitationRedeemed`, `auth.actionTaken` (feeds the
+audit stream), `auth.accountDeletionRequested`, `auth.accountLockedByAdmin`,
+`auth.accountUnlockedByAdmin`, `auth.allSessionsRevokedByAdmin`,
+`auth.sessionRevokedByAdmin`, `auth.passwordResetByAdmin`,
+`auth.ipRuleCreated`, `auth.ipRuleDeleted`. Plus `gdpr.erasureCompleted` as
+a saga participant.
 
 **Consumes:** `gdpr.erasureRequested` (durable `gdpr-auth`).
 

@@ -111,9 +111,9 @@ Two-factor:
 
 Token storage (local):
 
-- `getToken(): null` — kept for compatibility; always returns `null`. The access token lives in an httpOnly cookie managed by the backend and is not readable from JavaScript. HTTP requests send it automatically via `credentials: 'include'`; Socket.IO uses the same cookie on the WebSocket upgrade.
-- `setToken(token: string | null | undefined): void` — no-op for the same reason.
-- `clearTokens(): void`
+- `getToken(): string | null` — returns the stored access token from `localStorage`. `lib.api` calls this via its `getAuthToken` hook to attach `Authorization: Bearer <token>` to HTTP requests; the Socket.IO clients read it the same way.
+- `setToken(token: string | null | undefined): void` — writes (or clears) the access token in `localStorage`.
+- `clearTokens(): void` — removes both the access token and refresh token from `localStorage`. Called on logout after the gateway revokes the refresh token, and when a session is found to be invalid.
 
 ## useAuth hook
 

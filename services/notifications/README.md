@@ -148,14 +148,16 @@ permission. `super_admin` bypasses.
 ### NATS subjects
 
 **Emits** (publish-after-commit): `notifications.created` (Create),
-`notifications.dismissed` (Dismiss). Plus `gdpr.erasureCompleted` as a saga
-participant.
+`notifications.dismissed` (Dismiss), `notifications.deleted` (Delete),
+`notifications.allRead` (MarkAllRead), `notifications.prefsReset`
+(ResetPreferences), `notifications.broadcastSent` (Broadcast). Plus
+`gdpr.erasureCompleted` as a saga participant.
 
 **Consumes:** `applications.{submitted,approved,rejected,adopted,
-homeVisitScheduled,homeVisitCompleted}`, `auth.{roleAssigned,userLoggedIn}`,
+homeVisitScheduled,homeVisitCompleted}`, `auth.{roleAssigned,userLoggedIn,userInvited}`,
 `chat.messageCreated`, `pets.{statusChanged,deleted}`,
-`rescue.{verified,rejected,staffInvited}`, and `gdpr.erasureRequested` (durable
-`gdpr-notifications`).
+`rescue.{verified,rejected,staffInvited,staffInvitationCancelled}`, and
+`gdpr.erasureRequested` (durable `gdpr-notifications`).
 
 ### Dependencies
 

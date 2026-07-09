@@ -116,8 +116,9 @@ The microservice stack ships no data on a fresh boot. The dev/e2e seed recreates
 
 ```bash
 pnpm db:seed        # root orchestrator: docker compose exec into
-                       # service-auth → service-rescue → service-pets,
-                       # running each service's db:seed in dependency order
+                       # service-auth → service-rescue → service-pets →
+                       # service-applications → service-chat, running each
+                       # service's db:seed in dependency order
 ```
 
 `pnpm db:seed` is safe to re-run at any time. Per-service overrides are available too (`docker compose exec service-auth pnpm db:seed`).

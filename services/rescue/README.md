@@ -7,9 +7,9 @@ Invitation, FosterPlacement, ApplicationQuestion) and exposes
 `RescueService` over gRPC.
 
 Classical (no event sourcing — mostly CRUD with a few status
-transitions). Subscribes to `auth.userCreated` to maintain
-staff-member denormalisation (CAD-style cross-service maintained
-read model).
+transitions). The `staff_members` join row denormalises `user_id` +
+`rescue_id` without a cross-schema FK; see
+`migrations/003_create_staff_members.ts` for the ownership rationale.
 
 ## What's shipped so far
 
@@ -173,7 +173,7 @@ foster pet ownership via a gRPC call to service.pets. Schema: `rescue`.
 | `foster_placements` | Foster assignments — rescue, pet, foster user, dates, status. |
 | `application_questions` | Custom adoption-application questions a rescue defines. |
 
-Migrations: `services/rescue/src/migrations/001`–`008`.
+Migrations: `services/rescue/src/migrations/001`–`010`.
 
 ### gRPC RPCs
 

@@ -7,10 +7,12 @@ PetStatusTransition) and exposes `PetService` over gRPC.
 
 CAD Phase 3 equivalent — first service in the migration where event
 sourcing pays off. Pet status transitions
-(`available → reserved → adopted → unavailable`, plus `deceased`,
-`returned`) form a real state machine with multi-consumer audit needs
-(matching, notifications, moderation, applications). Pure `apply`/`fold`
-domain + publish-after-commit on `pets.statusChanged`.
+(`available` → `pending` → `adopted`, plus `foster`, `medical_hold`,
+`behavioral_hold`, `not_available`, `deceased` — see the `pet_status`
+enum in `migrations/002_create_pets.ts`) form a real state machine with
+multi-consumer audit needs (matching, notifications, moderation,
+applications). Pure `apply`/`fold` domain + publish-after-commit on
+`pets.statusChanged`.
 
 ## What's shipped so far
 
@@ -143,7 +145,7 @@ pnpm start
 
 Owns the pet listing catalogue: classical CRUD plus an event-sourced status
 state machine (`available` → `pending` → `adopted`, plus
-`foster`/`medical_hold`/`behavioral_hold`/`deceased`). Each status transition
+`foster`/`medical_hold`/`behavioral_hold`/`not_available`/`deceased`). Each status transition
 appends an audit row and publishes `pets.statusChanged`. Serves privilege-aware
 reads (internal notes + off-market statuses hidden from public readers),
 favourite/rating aggregates, and per-rescue stats. Schema: `pets`.

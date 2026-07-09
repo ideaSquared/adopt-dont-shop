@@ -40,9 +40,9 @@ If you want to see this in action, generate the graph and trace the inbound edge
 The CI workflows mirror the same layered ordering:
 
 ```
-build-libs  ->  (test-backend || test-frontend || test-libs)  ->  test-e2e
+build-libs  ->  (test-services || test-frontend || test-libs)  ->  test-e2e
 ```
 
 1. **build-libs** — compile every `lib.*` first so downstream jobs can consume the built artefacts.
-2. **test-backend / test-frontend / test-libs** — run in parallel once the libraries are built; none of them depend on each other.
+2. **test-services / test-frontend / test-libs** — run in parallel once the libraries are built; none of them depend on each other.
 3. **test-e2e** — runs last, after backend + frontend test jobs pass, since it exercises the full stack.

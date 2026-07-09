@@ -48,7 +48,7 @@ the full Playwright suite when:
 
 On any other PR `test-e2e` is **skipped**, which the `ci-required` aggregator
 treats as success — so E2E never blocks an in-progress PR. Unit/integration
-coverage still runs on every PR via `test-backend`, `test-frontend`, and
+coverage still runs on every PR via `test-services`, `test-frontend`, and
 `test-libs`. Tag a test with `@smoke` and run `pnpm test:e2e:smoke` locally for a
 quick critical-path subset.
 
@@ -83,7 +83,7 @@ quick critical-path subset.
 
 **Triggers**:
 
-- **Pull request**: only on changes to Dockerfiles, `docker-compose*.yml`, or `.dockerignore`. Source-only PRs are validated by `ci.yml` (`test-frontend`/`test-backend` run native `pnpm build`, and `test-e2e` brings the dev stack up via `docker compose up --build`).
+- **Pull request**: only on changes to Dockerfiles, `docker-compose*.yml`, or `.dockerignore`. Source-only PRs are validated by `ci.yml` (`test-frontend`/`test-services` run native `pnpm build`, and `test-e2e` brings the dev stack up via `docker compose up --build`).
 - **Push to main/develop**: triggers on the broader source path set so a regression that only manifests inside a container is caught before deploy. Production images and the Trivy scan run only on this branch — `deploy.yml` is the consumer.
 
 **Note**: the previous `test-compose` job (a container `/health` probe) was removed; `ci.yml`'s `test-e2e` brings up the full stack and is a strict superset of that signal.
@@ -128,7 +128,7 @@ GitHub Releases themselves are produced by `release-please.yml` from conventiona
 
 - **Concurrency Control**: Cancels old runs when new commits are pushed
 - **Matrix Builds**: Parallel execution for multiple projects
-- **Lib dist caching (ADS-390)**: The `build-libs` job caches compiled `lib.*/dist` artifacts across runs via `actions/cache@v4`. On a cache hit the build step is skipped entirely; on a miss the libs are compiled and the cache is saved for the next run. Within a single run, the compiled artifacts are shared to consumer jobs (`test-backend`, `test-frontend`, `test-libs`, `test-e2e`) via `upload-artifact`/`download-artifact`, eliminating redundant builds across the matrix.
+- **Lib dist caching (ADS-390)**: The `build-libs` job caches compiled `lib.*/dist` artifacts across runs via `actions/cache@v5.0.5` (pinned by SHA in `ci.yml`). On a cache hit the build step is skipped entirely; on a miss the libs are compiled and the cache is saved for the next run. Within a single run, the compiled artifacts are shared to consumer jobs (`test-services`, `test-frontend`, `test-libs`, `test-contracts`) via `upload-artifact`/`download-artifact`, eliminating redundant builds across the matrix. `test-e2e` builds its own images via `docker compose up --build` and does not consume the artifact.
 - **pnpm store caching**: the `setup-workspace` composite action installs pnpm via Corepack and caches the pnpm store (keyed on `pnpm-lock.yaml`) between runs
 - **Docker layer caching**: BuildKit layer cache in `docker.yml` for image rebuilds
 - **Path Filters**: Only runs when relevant files change
