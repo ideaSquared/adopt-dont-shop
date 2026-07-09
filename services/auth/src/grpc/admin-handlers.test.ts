@@ -287,6 +287,80 @@ describe('adminUpdateUser', () => {
     expect(res.user?.userId).toBe('usr-1');
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
   });
+
+  it('blocks a plain admin from elevating another user to admin', async () => {
+    await expect(
+      adminUpdateUser(mocks.deps, ADMIN, {
+        userId: 'usr-other',
+        userType: AuthV1.UserRole.USER_ROLE_ADMIN,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('blocks a plain admin from elevating another user to super_admin', async () => {
+    await expect(
+      adminUpdateUser(mocks.deps, ADMIN, {
+        userId: 'usr-other',
+        userType: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('blocks a plain admin from elevating another user to moderator', async () => {
+    await expect(
+      adminUpdateUser(mocks.deps, ADMIN, {
+        userId: 'usr-other',
+        userType: AuthV1.UserRole.USER_ROLE_MODERATOR,
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('blocks self-role-change via adminUpdateUser', async () => {
+    await expect(
+      adminUpdateUser(mocks.deps, ADMIN, {
+        userId: ADMIN.userId,
+        userType: AuthV1.UserRole.USER_ROLE_SUPER_ADMIN,
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('allows super_admin to assign an elevated role and records role change in audit event', async () => {
+    // SELECT previous role, then UPDATE returning new row
+    mocks.clientScript.push({ rows: [{ user_type: 'adopter' }] });
+    mocks.clientScript.push({ rows: [userRow({ user_type: 'admin' })] });
+
+    const res = await adminUpdateUser(mocks.deps, SUPER_ADMIN, {
+      userId: 'usr-1',
+      userType: AuthV1.UserRole.USER_ROLE_ADMIN,
+    });
+
+    expect(res.user?.userType).toBe(AuthV1.UserRole.USER_ROLE_ADMIN);
+    const publishCall = mocks.natsMock.publish.mock.calls[0] as [string, Uint8Array];
+    const event = JSON.parse(new TextDecoder().decode(publishCall[1])) as {
+      payload: { roleChange: { before: string; after: string } };
+    };
+    expect(event.payload.roleChange).toEqual({ before: 'adopter', after: 'admin' });
+  });
+
+  it('allows admin.users.update to change non-role fields without elevation guard', async () => {
+    mocks.clientScript.push({ rows: [userRow({ first_name: 'Bob' })] });
+
+    const res = await adminUpdateUser(mocks.deps, ADMIN, {
+      userId: 'usr-1',
+      firstName: 'Bob',
+    });
+
+    expect(res.user?.firstName).toBe('Bob');
+    // No SELECT for previous role should have been issued
+    const updateCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
+      ([sql]) => sql.includes('UPDATE auth.users')
+    );
+    expect(updateCall).toBeDefined();
+    const selectCall = (mocks.clientMock.query.mock.calls as Array<[string, unknown[]]>).find(
+      ([sql]) => sql.trim().startsWith('SELECT user_type')
+    );
+    expect(selectCall).toBeUndefined();
+  });
 });
 
 // --- deactivateUser / reactivateUser ---------------------------------
