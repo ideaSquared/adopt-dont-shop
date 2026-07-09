@@ -2,6 +2,12 @@
 # Eliminates unnecessary library services and uses pnpm workspace
 # Performance: 5-8 minutes instead of 60+ minutes
 
+# ⚠️ Most services below are behind `profiles:` gates.
+# `docker compose up` alone starts ONLY infrastructure (database, redis, nats,
+# lib-types-watcher) — no apps, no gateway, connection-refused on localhost:3000.
+# Use `pnpm docker:dev` (recommended) or `docker compose --profile full up`
+# for the full stack. See docs/DOCKER.md for the profile map.
+
 # ----------------------------------------------------------------------------
 # Extracted-microservices shared config (anchors). The CAD-style services
 # (services/*) run under the `services` / `full` profiles so the default
@@ -613,6 +619,33 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://localhost:5009/health/simple']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # ADS-898: this block was missing entirely — service-cms existed in the
+  # codebase (services/cms/), was wired into the gateway
+  # (config.ts's DEFAULT_CMS_GRPC_URL) and the deploy pipeline, but had no
+  # local dev container, so `pnpm docker:dev --profile full` never actually
+  # started it. Found while writing docs/infrastructure/new-microservice.md.
+  service-cms:
+    profiles: ['services', 'full']
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+      target: development
+      args:
+        SERVICE: '@adopt-dont-shop/service.cms'
+        SERVICE_DIR: services/cms
+    environment:
+      <<: *ms-env
+    ports:
+      - '127.0.0.1:5010:5010'
+    depends_on: *ms-deps
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:5010/health/simple']
       interval: 10s
       timeout: 5s
       retries: 5

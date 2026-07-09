@@ -1,8 +1,11 @@
 {
   "name": "@adopt-dont-shop/service.notifications",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
-  "description": "Notifications service — the first stateful extraction (Phase 1). Owns the notifications.* schema (Notification, DeviceToken, UserNotificationPrefs, EmailPreference, EmailQueue), exposes gRPC for create/list/dismiss, subscribes to NATS for fan-out, and feeds the gateway's WebSocket spine. Phase 1.1 commit is just the boot skeleton + health endpoint — schema, gRPC, NATS, and gateway wiring land in subsequent commits.",
+  "description": "Notifications service \u2014 the first stateful extraction (Phase 1). Owns the notifications.* schema (Notification, DeviceToken, UserNotificationPrefs, EmailPreference, EmailQueue), exposes gRPC for create/list/dismiss, subscribes to NATS for fan-out, and feeds the gateway's WebSocket spine. Phase 1.1 commit is just the boot skeleton + health endpoint \u2014 schema, gRPC, NATS, and gateway wiring land in subsequent commits.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

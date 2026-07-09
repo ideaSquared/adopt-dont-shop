@@ -1,8 +1,11 @@
 {
   "name": "@adopt-dont-shop/service.cms",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
-  "description": "CMS service — public content + admin CRUD + navigation menus. Owns the cms.* schema (cms_content, cms_navigation_menus). Public reads unauthenticated; admin writes gate on cms.content.* / cms.menu.* permissions; publish/unpublish/archive emit cms.* NATS events.",
+  "description": "CMS service \u2014 public content + admin CRUD + navigation menus. Owns the cms.* schema (cms_content, cms_navigation_menus). Public reads unauthenticated; admin writes gate on cms.content.* / cms.menu.* permissions; publish/unpublish/archive emit cms.* NATS events.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

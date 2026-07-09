@@ -1,6 +1,9 @@
 {
   "name": "@adopt-dont-shop/e2e",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
   "type": "module",
   "description": "End-to-end tests for adopt-dont-shop. Behaviour-focused journeys across app.client, app.rescue and app.admin driven by Playwright.",

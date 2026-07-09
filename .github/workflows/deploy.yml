@@ -455,6 +455,9 @@ jobs:
     # (separately-reviewed approval for runs that skip a safety check).
     environment: ${{ needs.preflight.outputs.deploy_environment }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
       # ADS-824: validate tag_overrides before touching the host.
       # Keys must match ^(SERVICE|APP)_[A-Z_]+_TAG$; values must be
       # alphanumeric with dots, dashes, and underscores — no shell-injection
@@ -485,6 +488,22 @@ jobs:
             fi
             echo "OK: $KEY=$VALUE"
           done
+
+      # ADS-900: the deploy host doesn't hold a full repo checkout — only the
+      # specific files it needs under /opt/ads/<env> (compose files, .env,
+      # secrets/). Copy the shared health-check script alongside them so the
+      # remote script below can call it, the same way backup.yml scp's its
+      # snapshot script.
+      - name: Copy wait-for-services.sh to server
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345  # v1.0.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: deploy
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
+          source: scripts/wait-for-services.sh
+          target: /opt/ads/${{ github.event.inputs.environment }}
+          overwrite: true
 
       # ADS-670: SSH host fingerprint pinned to prevent MitM during deploy.
       # Compute on the host and store as HETZNER_HOST_FINGERPRINT secret:
@@ -618,41 +637,21 @@ jobs:
             # ADS-824: wait for every service to report healthy, not just the
             # gateway. Ordered so infrastructure-layer services are checked
             # before the gateway, which depends on them.
-            # service-gateway: port 4000; all other services: 500x as mapped below.
-            declare -A SERVICE_PORTS=(
-              [service-notifications]=5001
-              [service-auth]=5002
-              [service-pets]=5003
-              [service-rescue]=5004
-              [service-applications]=5005
-              [service-chat]=5006
-              [service-moderation]=5007
-              [service-matching]=5008
-              [service-audit]=5009
-              [service-cms]=5010
-              [service-gateway]=4000
-            )
-            for svc in \
-              service-notifications service-auth service-pets service-rescue \
-              service-applications service-chat service-moderation service-matching \
-              service-audit service-cms service-gateway; do
-              port="${SERVICE_PORTS[$svc]}"
-              echo "Waiting for $svc (:$port/health/simple)..."
-              healthy=false
-              for i in $(seq 1 30); do
-                if docker compose -f $COMPOSE_FILE exec -T "$svc" \
-                     curl -fsS "http://localhost:${port}/health/simple" > /dev/null 2>&1; then
-                  echo "$svc healthy."
-                  healthy=true
-                  break
-                fi
-                sleep 2
-              done
-              if [ "$healthy" = "false" ]; then
-                echo "ERROR: $svc failed health check after 60s"
-                exit 1
-              fi
-            done
+            # ADS-900: shared loop (also used by rollback.yml) — see
+            # scripts/wait-for-services.sh for the retry/timeout contract.
+            chmod +x scripts/wait-for-services.sh
+            ./scripts/wait-for-services.sh "$COMPOSE_FILE" 30 2 \
+              service-notifications:5001 \
+              service-auth:5002 \
+              service-pets:5003 \
+              service-rescue:5004 \
+              service-applications:5005 \
+              service-chat:5006 \
+              service-moderation:5007 \
+              service-matching:5008 \
+              service-audit:5009 \
+              service-cms:5010 \
+              service-gateway:4000
 
             # Smoke-check that the gateway registered its /api/v1/* routes.
             # /api/v1/auth/login exists whenever the auth service client is

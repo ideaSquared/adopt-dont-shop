@@ -21,6 +21,10 @@
     "docker:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down",
     "docker:reset": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v",
     "docker:logs": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f",
+    "docker:logs:gateway": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-gateway",
+    "docker:logs:apps": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f app-client app-admin app-rescue",
+    "docker:logs:infra": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f database redis nats",
+    "docker:logs:services": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f service-auth service-pets service-rescue service-applications service-chat service-notifications service-moderation service-matching service-cms service-audit",
     "docker:ps": "docker compose ps",
     "docker:shell:db": "docker compose exec database sh -c 'psql -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\"'",
     "db:seed": "node scripts/seed.mjs",
@@ -137,14 +141,5 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0",
     "pnpm": ">=10.0.0"
-  },
-  "lint-staged": {
-    "**/*.{ts,tsx}": [
-      "prettier --write",
-      "eslint --fix --quiet"
-    ],
-    "**/*.{js,jsx,json,md,css}": [
-      "prettier --write"
-    ]
   }
 }

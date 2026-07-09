@@ -1,8 +1,11 @@
 {
   "name": "@adopt-dont-shop/authz",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "private": true,
-  "description": "Backend-side authorisation helpers that mirror adopt-dont-shop's existing permission-string model. Wraps the DB-driven Permission set (sourced via UserRole → Role → RolePermission) with hasPermission + requirePermission helpers plus optional rescue/owner scope checks. No new vocabulary, no CASL — same shape as lib.permissions, just usable from any extracted backend service.",
+  "description": "Backend-side authorisation helpers that mirror adopt-dont-shop's existing permission-string model. Wraps the DB-driven Permission set (sourced via UserRole \u2192 Role \u2192 RolePermission) with hasPermission + requirePermission helpers plus optional rescue/owner scope checks. No new vocabulary, no CASL \u2014 same shape as lib.permissions, just usable from any extracted backend service.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

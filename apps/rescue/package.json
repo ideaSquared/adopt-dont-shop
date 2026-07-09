@@ -1,6 +1,9 @@
 {
   "name": "@adopt-dont-shop/app.rescue",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "description": "Rescue organization management React application",
   "license": "MIT",
   "private": true,

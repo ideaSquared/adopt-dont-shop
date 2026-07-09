@@ -2,7 +2,7 @@
 
 ## Overview
 
-PostgreSQL 16 with the PostGIS extension and Sequelize 7. Each service owns its slice of the schema: models live under `services/<name>/src/models/` and are mirrored by migrations under `services/<name>/src/migrations/`. This document is a high-level reference — the source of truth is always the model file.
+PostgreSQL 16 with the PostGIS extension. Each microservice under `services/<name>/` owns its slice of the schema (its own Postgres schema, its own migrations under `services/<name>/src/migrations/`) and talks to it directly via `pg` — there is no Sequelize/ORM layer or shared model directory in the current architecture (that was the deleted `service.backend` monolith's approach; some of the table descriptions below may still reflect that era). This document is a high-level reference — the source of truth is always the migration files and the handler code that queries them.
 
 ## Entity Relationships
 
@@ -361,26 +361,23 @@ Most tables use soft delete (deleted_at timestamp) instead of hard delete for:
 
 ### Migration Management
 
-Each service keeps its migrations under `services/<name>/src/migrations/` as numbered TypeScript files (e.g. `00-baseline-001-users.ts`, `01-add-user-type-support-agent-super-admin.ts`) and runs them itself on startup — **`sequelize-cli` is not installed**. Create a new migration by adding the next sequential file in the owning service following the existing pattern.
+Each service keeps its migrations under `services/<name>/src/migrations/` as
+numbered TypeScript files (e.g. `001_create_users.ts`, `002_create_roles.ts`)
+using **node-pg-migrate** (not `sequelize-cli` — there's no Sequelize layer
+left) and runs them itself on startup via its own `pnpm db:migrate` script
+(`tsx ./src/db/migrate.ts`, wrapping `@adopt-dont-shop/db`'s runner).
 
-```bash
-# From the repo root, while the dev stack is running:
-pnpm db:migrate
-
-# Rollback / status (run inside the backend container):
-pnpm docker:shell:backend
-pnpm db:migrate:undo      # ts-node src/migrations/runner.ts down
-pnpm db:migrate:status    # ts-node src/migrations/runner.ts status
-```
-
-Each service's `package.json` exposes the migration scripts: `db:migrate`, `db:migrate:undo`, `db:migrate:status`.
+See [Writing migrations](./writing-migrations.md) for the full guide:
+numbering scheme, writing `up`/`down`, testing a migration (including
+rollback) locally, advisory-lock/partial-failure recovery, and what the
+`schema-equivalence` CI check verifies.
 
 ### Best Practices
 
-- Never modify existing migrations
-- Use transactions for complex migrations
-- Include rollback logic
-- Test migrations on staging first
+- Never modify a migration that has already run anywhere (including staging) — ship a new one instead
+- Write a real `down`, not a no-op, unless it's genuinely irreversible (and say why in a comment)
+- Test the migration against the dev stack (`pnpm docker:reset` + `pnpm docker:dev:detach`) before opening a PR
+- Two-phase destructive changes: add the replacement in this migration, drop the old column in a follow-up migration after a release cycle
 
 ## Security
 

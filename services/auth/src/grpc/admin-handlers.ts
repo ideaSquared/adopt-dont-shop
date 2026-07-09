@@ -252,7 +252,10 @@ export async function adminCreateUser(
     [req.email]
   );
   if (existing.rows.length > 0) {
-    throw new HandlerError('ALREADY_EXISTS', `a user with email ${req.email} already exists`);
+    // ADS-885: never echo the requested email back in the error — it turns
+    // this precheck into a user-existence oracle for anyone with
+    // admin/rescue-admin access.
+    throw new HandlerError('ALREADY_EXISTS', 'a user with that email already exists');
   }
 
   // Pending users carry no usable credential until they redeem the invite;

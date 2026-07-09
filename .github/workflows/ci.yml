@@ -99,6 +99,7 @@ jobs:
             backend:
               - 'services/**'
               - 'packages/**'
+              - 'pacts/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'tsconfig.json'
@@ -156,18 +157,14 @@ jobs:
       - name: Build shared libraries
         if: steps.cache-lib-dist.outputs.cache-hit != 'true'
         run: pnpm build:libs
-
-      # Bundle every packages/lib.*/dist (and matching package.json) into a
-      # single artifact that downstream jobs pick up via download-artifact.
-      # Wildcard expansion is handled by upload-artifact's tar layer.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-        with:
-          name: lib-dist
-          path: |
-            packages/lib.*/dist/**
-            packages/lib.*/package.json
-          retention-days: 1
-          if-no-files-found: error
+      # ADS-909: downstream jobs restore packages/lib.*/dist from this same
+      # actions/cache entry (see their "Restore pre-built libraries" step)
+      # rather than downloading an artifact from this job — `actions/cache`
+      # auto-saves on a miss via its post-job hook, so the cache is populated
+      # either way by the time a `needs: build-libs` job starts. That made
+      # the separate upload-artifact step (previously unconditional, wasting
+      # ~10s per run even on a cache hit) redundant; removed rather than
+      # just gated.
 
   # FRONTEND APPS — one runner per app, fail-fast disabled so all three report
   # ============================================================================
@@ -191,10 +188,14 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
       - uses: ./.github/actions/setup-workspace
 
-      - name: Download pre-built libraries
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+      - name: Restore pre-built libraries
+        # ADS-909: read the same actions/cache entry build-libs populated,
+        # instead of downloading its (conditionally-uploaded) artifact — see
+        # the comment on build-libs' upload-artifact step.
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
-          name: lib-dist
+          path: packages/lib.*/dist
+          key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'pnpm-lock.yaml') }}
 
       - name: Lint
         run: pnpm exec turbo run lint --filter='@adopt-dont-shop/app.${{ matrix.app }}'
@@ -240,10 +241,14 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
       - uses: ./.github/actions/setup-workspace
 
-      - name: Download pre-built libraries
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+      - name: Restore pre-built libraries
+        # ADS-909: read the same actions/cache entry build-libs populated,
+        # instead of downloading its (conditionally-uploaded) artifact — see
+        # the comment on build-libs' upload-artifact step.
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
-          name: lib-dist
+          path: packages/lib.*/dist
+          key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'pnpm-lock.yaml') }}
 
       - name: Lint, test and type-check all libraries
         run: pnpm exec turbo run lint test:coverage type-check --filter='@adopt-dont-shop/lib.*'
@@ -286,10 +291,14 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
       - uses: ./.github/actions/setup-workspace
 
-      - name: Download pre-built libraries
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+      - name: Restore pre-built libraries
+        # ADS-909: read the same actions/cache entry build-libs populated,
+        # instead of downloading its (conditionally-uploaded) artifact — see
+        # the comment on build-libs' upload-artifact step.
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
-          name: lib-dist
+          path: packages/lib.*/dist
+          key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'pnpm-lock.yaml') }}
 
       - name: Lint, test (with coverage) and type-check all services
         run: pnpm exec turbo run lint test:coverage type-check --filter='@adopt-dont-shop/service.*'
@@ -334,10 +343,14 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
       - uses: ./.github/actions/setup-workspace
 
-      - name: Download pre-built libraries
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+      - name: Restore pre-built libraries
+        # ADS-909: read the same actions/cache entry build-libs populated,
+        # instead of downloading its (conditionally-uploaded) artifact — see
+        # the comment on build-libs' upload-artifact step.
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
-          name: lib-dist
+          path: packages/lib.*/dist
+          key: lib-dist-${{ runner.os }}-${{ hashFiles('packages/lib.*/src/**', 'packages/lib.*/package.json', 'packages/lib.*/tsconfig*.json', 'pnpm-lock.yaml') }}
 
       # Phase 1 — consumers write pact files to pacts/
       - name: Contract tests — consumer phase
@@ -511,7 +524,13 @@ jobs:
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+          # ADS-901: this is a single-lockfile workspace (e2e/ has no lockfile
+          # of its own — pnpm-workspace.yaml includes it), so the root
+          # pnpm-lock.yaml hash is what actually changes when @playwright/test
+          # bumps. Without it, a patch bump that doesn't change `steps.pw`'s
+          # resolved version string could keep a stale cache and mismatch the
+          # installed browsers against the newer test runner.
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install Playwright browsers
         run: pnpm test:e2e:install

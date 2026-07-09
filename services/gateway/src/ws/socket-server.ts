@@ -115,6 +115,13 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
     // The same /socket.io path the existing app uses, so the React
     // clients don't need to rebind during the strangler overlap.
     path: '/socket.io',
+    // ADS-887: Socket.IO's default is 1 MB per message. Notification/chat
+    // payloads are tiny (JSON + short text) — a large explicit cap bounds
+    // the DoS surface (parse/dispatch CPU, in-flight buffer memory, and
+    // Redis-adapter fan-out amplification across every replica) without
+    // touching legitimate traffic. Large attachments go through the
+    // existing upload/storage path and are referenced, not emitted inline.
+    maxHttpBufferSize: 64_000, // 64 KB
   });
 
   // Multi-instance adapter (ADS-818). Binding the Redis adapter makes
