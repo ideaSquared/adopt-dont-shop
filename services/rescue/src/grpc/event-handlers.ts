@@ -695,12 +695,14 @@ export async function getEventAnalytics(
   }
   assertRescueAccess(principal, row.rescue_id, EVENTS_READ);
 
-  const countRes = await deps.pool.query<{ total: string }>(
-    `SELECT COUNT(*) AS total FROM rescue.event_attendees WHERE event_id = $1`,
+  const countRes = await deps.pool.query<{ total: string; checked_in: string }>(
+    `SELECT COUNT(*) AS total,
+            COUNT(*) FILTER (WHERE checked_in) AS checked_in
+       FROM rescue.event_attendees WHERE event_id = $1`,
     [req.eventId]
   );
   const totalRegistrations = parseInt(countRes.rows[0]?.total ?? '0', 10);
-  const actualAttendance = row.current_attendance;
+  const actualAttendance = parseInt(countRes.rows[0]?.checked_in ?? '0', 10);
   const attendanceRate = totalRegistrations > 0 ? (actualAttendance / totalRegistrations) * 100 : 0;
 
   const analytics: RescueEventAnalytics = {

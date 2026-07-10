@@ -543,14 +543,34 @@ describe('getEventAnalytics', () => {
     );
   });
 
-  it('returns computed analytics for an event', async () => {
+  it('returns 100% attendanceRate when all registrants checked in', async () => {
     mocks.poolMock.query
-      .mockResolvedValueOnce({ rows: [eventRow({ current_attendance: 30, status: 'completed' })] })
-      .mockResolvedValueOnce({ rows: [{ total: '40' }] });
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'completed' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '1', checked_in: '1' }] });
     const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
-    expect(res.analytics?.eventId).toBe(EVENT_ID);
-    expect(res.analytics?.totalRegistrations).toBe(40);
-    expect(res.analytics?.actualAttendance).toBe(30);
+    expect(res.analytics?.totalRegistrations).toBe(1);
+    expect(res.analytics?.actualAttendance).toBe(1);
+    expect(res.analytics?.attendanceRate).toBe(100);
+  });
+
+  it('returns 50% attendanceRate when half of registrants checked in', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow({ status: 'active' })] })
+      .mockResolvedValueOnce({ rows: [{ total: '2', checked_in: '1' }] });
+    const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
+    expect(res.analytics?.totalRegistrations).toBe(2);
+    expect(res.analytics?.actualAttendance).toBe(1);
+    expect(res.analytics?.attendanceRate).toBe(50);
+  });
+
+  it('returns 0% attendanceRate when no registrants', async () => {
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [eventRow()] })
+      .mockResolvedValueOnce({ rows: [{ total: '0', checked_in: '0' }] });
+    const res = await getEventAnalytics(mocks.deps, STAFF, { eventId: EVENT_ID });
+    expect(res.analytics?.totalRegistrations).toBe(0);
+    expect(res.analytics?.actualAttendance).toBe(0);
+    expect(res.analytics?.attendanceRate).toBe(0);
   });
 
   it('rejects principal with events.read but no rescueId', async () => {
