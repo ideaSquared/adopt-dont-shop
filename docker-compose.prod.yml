@@ -399,6 +399,18 @@ services:
     container_name: ads_prod_admin
     restart: always
     volumes: []  # No volumes in production
+    # ADS-924: read-only root FS, matching the x-service-common hardened tier.
+    # nginx (unprivileged, UID 101) only needs these writable at runtime — the
+    # custom nginx.conf baked into Dockerfile.app has no `pid`/temp-path
+    # directives of its own, so it falls back to nginx's compiled-in defaults:
+    #   /tmp             — general scratch space
+    #   /var/run         — nginx.pid (default pid path)
+    #   /var/cache/nginx — client_temp/proxy_temp/fastcgi_temp/uwsgi_temp/scgi_temp
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+      - /var/cache/nginx
     # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
       - "8080"
@@ -429,6 +441,18 @@ services:
     container_name: ads_prod_client
     restart: always
     volumes: []  # No volumes in production
+    # ADS-924: read-only root FS, matching the x-service-common hardened tier.
+    # nginx (unprivileged, UID 101) only needs these writable at runtime — the
+    # custom nginx.conf baked into Dockerfile.app has no `pid`/temp-path
+    # directives of its own, so it falls back to nginx's compiled-in defaults:
+    #   /tmp             — general scratch space
+    #   /var/run         — nginx.pid (default pid path)
+    #   /var/cache/nginx — client_temp/proxy_temp/fastcgi_temp/uwsgi_temp/scgi_temp
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+      - /var/cache/nginx
     # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
       - "8080"
@@ -459,6 +483,18 @@ services:
     container_name: ads_prod_rescue
     restart: always
     volumes: []  # No volumes in production
+    # ADS-924: read-only root FS, matching the x-service-common hardened tier.
+    # nginx (unprivileged, UID 101) only needs these writable at runtime — the
+    # custom nginx.conf baked into Dockerfile.app has no `pid`/temp-path
+    # directives of its own, so it falls back to nginx's compiled-in defaults:
+    #   /tmp             — general scratch space
+    #   /var/run         — nginx.pid (default pid path)
+    #   /var/cache/nginx — client_temp/proxy_temp/fastcgi_temp/uwsgi_temp/scgi_temp
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+      - /var/cache/nginx
     # ADS-701: nginx runs unprivileged and listens on 8080.
     expose:
       - "8080"
