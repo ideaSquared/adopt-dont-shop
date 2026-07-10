@@ -56,6 +56,17 @@ import type { SocketRegistry } from './socket-registry.js';
 // tests can supply a one-method stub, mirroring authenticate.ts.
 type SocketAuthClient = Pick<AuthClient, 'validateToken'>;
 
+// Per-user connection cap (ADS-888). Bounds how many concurrent sockets one
+// authenticated user can hold on THIS replica, closing an authenticated
+// socket-flood DoS: without a cap, a single compromised credential can open
+// unbounded connections, each holding a file descriptor, a Redis-adapter
+// room subscription, and multiplying fan-out volume for that user. A
+// legitimate user has at most a handful of tabs open; 10 is generous
+// headroom. Per-replica only (the registry is in-process) — see the module
+// comment on SocketRegistry for why a cross-replica Redis-backed cap isn't
+// worth the added complexity here.
+const MAX_SOCKETS_PER_USER = 10;
+
 // The slim Redis pub/sub surface the @socket.io/redis-adapter broadcast path
 // uses. Parameters are intentionally widened (ioredis' publish/subscribe carry
 // variadic + callback overloads) so both ioredis' Redis and a test double are
@@ -173,6 +184,19 @@ export const attachSocketServer = (opts: AttachSocketServerOptions): IOServer =>
       });
       socket.disconnect(true);
       return;
+    }
+
+    // Per-user connection cap (ADS-888): evict the oldest socket before
+    // registering this one so a legitimate reconnect after a network blip
+    // doesn't get the NEW socket killed and leave the user stuck on a stale
+    // one.
+    const existing = registry.socketsFor(userId);
+    if (existing.length >= MAX_SOCKETS_PER_USER) {
+      existing[0]?.disconnect(true);
+      logger.warn('socket cap exceeded — evicted oldest', {
+        userId,
+        cap: MAX_SOCKETS_PER_USER,
+      });
     }
 
     registry.add(userId, socket);
