@@ -180,10 +180,16 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // double-log on top of the OTel auto-instrumentation.
   const server = Fastify({
     logger: false,
-    // Trust the proxy chain in front of us (nginx) so request.ip is the
-    // real client, not the loopback. Required for any future rate
-    // limiting / IP-rule middleware to gate on the right address.
-    trustProxy: true,
+    // Trust exactly ONE hop of X-Forwarded-For — nginx, the only proxy
+    // between the public internet and this service (gateway:4000 is not
+    // published to the host; see docker-compose.prod.yml `expose`). request.ip
+    // then resolves to the value nginx itself sets on XFF (deploy/gateway/
+    // nginx.conf overwrites it with $remote_addr — see ADS-915), not
+    // whatever a client sends. `trustProxy: true` (trust the WHOLE header,
+    // unbounded) let a client-supplied XFF prefix pass straight through and
+    // rotate req.ip on every request, bypassing every per-IP rate limiter
+    // (login brute-force, GDPR spam) — ADS-915.
+    trustProxy: 1,
   });
 
   // Tag every error that escapes a route — the only winston call site
