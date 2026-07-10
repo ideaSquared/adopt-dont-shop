@@ -62,6 +62,19 @@ export type AuthRoutesOptions = {
   // @fastify/rate-limit cap. Optional so tests / dev that don't wire it keep
   // the per-IP-only behaviour.
   emailRateLimiter?: EmailRateLimiter;
+  // Stricter per-email rate limiter for the login route only (ADS-916).
+  // Mirrors the ADS-844 pattern but with a tighter cap/window, so a
+  // credential-stuffing attack spread across many source IPs (or a rotating
+  // X-Forwarded-For) is still capped per targeted account. Separate from
+  // emailRateLimiter because login's threshold (matching the auth-service
+  // soft-lock) is deliberately tighter than register/forgot-password's.
+  // Optional so tests / dev that don't wire it keep the per-IP-only
+  // behaviour.
+  loginEmailRateLimiter?: EmailRateLimiter;
+  // Called each time the login per-email cap trips. Lets the caller (server.ts)
+  // increment a Prometheus counter without this route module reaching into
+  // the metrics registry directly.
+  onLoginEmailRateLimitTrip?: () => void;
 };
 
 // Body shapes accepted by the REST surface. Kept narrow + explicit
@@ -128,17 +141,20 @@ export const registerAuthRoutes = async (
   app: FastifyInstance,
   opts: AuthRoutesOptions
 ): Promise<void> => {
-  const { client, emailRateLimiter } = opts;
+  const { client, emailRateLimiter, loginEmailRateLimiter, onLoginEmailRateLimitTrip } = opts;
 
   // Build a preHandler that caps attempts per normalized email (ADS-844).
   // `extractEmail` pulls the email out of the (already-parsed) body. When no
-  // limiter is wired, or the body carries no email, the handler is a no-op so
-  // behaviour is unchanged. A throttled request gets 429 before reaching the
-  // gRPC call.
+  // limiter is supplied (defaults to the shared emailRateLimiter), or the
+  // body carries no email, the handler is a no-op so behaviour is unchanged.
+  // A throttled request gets 429 before reaching the gRPC call. `onTrip` is
+  // an optional metrics hook (ADS-916) fired each time the cap trips.
   const emailRateLimit = (
-    extractEmail: (body: Record<string, unknown>) => unknown
+    extractEmail: (body: Record<string, unknown>) => unknown,
+    limiter: EmailRateLimiter | undefined = emailRateLimiter,
+    onTrip?: () => void
   ): RouteShorthandOptions['preHandler'] => {
-    if (!emailRateLimiter) {
+    if (!limiter) {
       return undefined;
     }
     return async (req: FastifyRequest, reply: FastifyReply) => {
@@ -146,8 +162,9 @@ export const registerAuthRoutes = async (
       if (email === undefined) {
         return;
       }
-      const allowed = await emailRateLimiter.consume(email);
+      const allowed = await limiter.consume(email);
       if (!allowed) {
+        onTrip?.();
         return reply.code(429).send({ error: 'Too many requests for this email' });
       }
     };
@@ -162,6 +179,10 @@ export const registerAuthRoutes = async (
     '/api/v1/auth/login',
     {
       config: { rateLimit: AUTH_RATE_LIMITS.login },
+      // Per-email cap layered on top of the per-IP limit above (ADS-916) —
+      // catches a credential-stuffing flood against one account spread
+      // across many source IPs, which the per-IP cap alone misses.
+      preHandler: emailRateLimit(b => b.email, loginEmailRateLimiter, onLoginEmailRateLimitTrip),
       schema: {
         tags: ['auth'],
         summary: 'Exchange email + password for an access token',

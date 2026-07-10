@@ -384,3 +384,69 @@ describe('maxHttpBufferSize (ADS-887)', () => {
     expect(registry.socketsFor('usr-normal')).toHaveLength(1);
   });
 });
+
+describe('per-user connection cap (ADS-888)', () => {
+  it('evicts the oldest socket when the same user opens an 11th connection', async () => {
+    const { url, registry } = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+    });
+
+    const flood: ClientSocket[] = [];
+    for (let i = 0; i < 10; i++) {
+      const client = connectClient(url, { auth: { userId: 'usr-flood' } });
+      expect(await awaitConnectOutcome(client)).toBe(true);
+      flood.push(client);
+    }
+    expect(registry.socketsFor('usr-flood')).toHaveLength(10);
+
+    const oldestDisconnected = new Promise<string>(resolve => {
+      flood[0].on('disconnect', reason => resolve(reason));
+    });
+
+    const eleventh = connectClient(url, { auth: { userId: 'usr-flood' } });
+    expect(await awaitConnectOutcome(eleventh)).toBe(true);
+
+    await expect(oldestDisconnected).resolves.toBeTruthy();
+
+    // Give the server a tick to process the evicted socket's disconnect
+    // event and remove it from the registry.
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(registry.socketsFor('usr-flood')).toHaveLength(10);
+  });
+
+  it('does not evict sockets belonging to a DIFFERENT user', async () => {
+    const { url, registry } = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+    });
+
+    for (let i = 0; i < 10; i++) {
+      const client = connectClient(url, { auth: { userId: 'usr-a' } });
+      expect(await awaitConnectOutcome(client)).toBe(true);
+    }
+
+    const other = connectClient(url, { auth: { userId: 'usr-b' } });
+    expect(await awaitConnectOutcome(other)).toBe(true);
+
+    expect(registry.socketsFor('usr-a')).toHaveLength(10);
+    expect(registry.socketsFor('usr-b')).toHaveLength(1);
+  });
+
+  it('allows a user to hold up to (and including) the cap without eviction', async () => {
+    const { url, registry } = await startServer({
+      logger: quietLogger(),
+      allowUnauthenticated: true,
+    });
+
+    const flood: ClientSocket[] = [];
+    for (let i = 0; i < 10; i++) {
+      const client = connectClient(url, { auth: { userId: 'usr-at-cap' } });
+      expect(await awaitConnectOutcome(client)).toBe(true);
+      flood.push(client);
+    }
+
+    expect(flood.every(c => c.connected)).toBe(true);
+    expect(registry.socketsFor('usr-at-cap')).toHaveLength(10);
+  });
+});

@@ -204,10 +204,12 @@ describe('createServer — global rate limit', () => {
   });
 });
 
-describe('createServer — per-route rate limit override (auth login)', () => {
-  let server: FastifyInstance;
-
-  const authClient = {
+// Minimal login-capable auth client stub, shared by every describe block
+// below that needs a real /api/v1/auth/login round trip through createServer
+// (as opposed to the domain-route-registration smoke tests further down,
+// which only need a single method wired).
+function makeLoginAuthClient(): Parameters<typeof createServer>[0]['authClient'] {
+  return {
     login: () =>
       Promise.resolve({
         user: {
@@ -273,6 +275,12 @@ describe('createServer — per-route rate limit override (auth login)', () => {
       }),
     close: () => undefined,
   } as unknown as Parameters<typeof createServer>[0]['authClient'];
+}
+
+describe('createServer — per-route rate limit override (auth login)', () => {
+  let server: FastifyInstance;
+
+  const authClient = makeLoginAuthClient();
 
   afterEach(async () => {
     await server?.close();
@@ -303,6 +311,51 @@ describe('createServer — per-route rate limit override (auth login)', () => {
       lastStatus = r.statusCode;
     }
     // The 11th request must have been rate-limited (login cap is 10/min).
+    expect(lastStatus).toBe(429);
+  });
+});
+
+// ADS-915: nginx now overwrites (not appends to) X-Forwarded-For at the
+// public edge, and the gateway trusts exactly one hop (trustProxy: 1) —
+// matching that single-nginx-hop topology. A client-supplied XFF entry
+// beyond that one trusted hop must NOT be able to rotate req.ip and reset
+// the per-IP login limiter.
+describe('createServer — X-Forwarded-For trust boundary (ADS-915)', () => {
+  let server: FastifyInstance;
+
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('does not let a rotating client-supplied XFF prefix bypass the per-IP login limiter', async () => {
+    server = await createServer({
+      config: {
+        ...baseConfig,
+        rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+      },
+      logger: quietLogger,
+      authClient: makeLoginAuthClient(),
+    });
+
+    // The rightmost entry (9.9.9.9) models what a correctly-configured nginx
+    // sets — constant across requests. The leftmost entry rotates per
+    // request, modelling an attacker who controls the client-supplied part
+    // of the header. With trustProxy bounded to 1 hop, only the rightmost
+    // entry may influence req.ip, so every request must resolve to the same
+    // client and the limiter must still trip at the 11th request.
+    const postLogin = (attackerClaimedIp: string) =>
+      server.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        headers: { 'x-forwarded-for': `${attackerClaimedIp}, 9.9.9.9` },
+        payload: { email: 'a@b.com', password: 'pw' },
+      });
+
+    let lastStatus = 0;
+    for (let i = 0; i < 11; i++) {
+      const r = await postLogin(`10.0.0.${i}`);
+      lastStatus = r.statusCode;
+    }
     expect(lastStatus).toBe(429);
   });
 });
@@ -350,6 +403,39 @@ describe('createServer — Prometheus rate-limit counter', () => {
 
       const metrics = await server.inject({ method: 'GET', url: '/metrics' });
       expect(metrics.body).toContain('gateway_rate_limit_hits_total');
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('exposes gateway_login_email_ratelimit_trips_total metric after a per-email login trip (ADS-916)', async () => {
+    const server = await createServer({
+      config: {
+        ...baseConfig,
+        rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+      },
+      logger: quietLogger,
+      authClient: makeLoginAuthClient(),
+    });
+    try {
+      const postLogin = (ip: string) =>
+        server.inject({
+          method: 'POST',
+          url: '/api/v1/auth/login',
+          headers: { 'x-forwarded-for': ip },
+          payload: { email: 'victim@example.com', password: 'guess' },
+        });
+
+      // The per-email login cap is 5/5min — spread across distinct IPs so
+      // the per-IP limiter (10/min) doesn't trip first.
+      for (let i = 0; i < 5; i++) {
+        await postLogin(`20.0.0.${i}`);
+      }
+      const sixth = await postLogin('20.0.0.99');
+      expect(sixth.statusCode).toBe(429);
+
+      const metrics = await server.inject({ method: 'GET', url: '/metrics' });
+      expect(metrics.body).toContain('gateway_login_email_ratelimit_trips_total');
     } finally {
       await server.close();
     }
