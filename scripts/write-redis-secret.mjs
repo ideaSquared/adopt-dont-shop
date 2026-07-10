@@ -7,7 +7,7 @@
 // `pnpm docker:dev` (via docker-dev.mjs's fuller preflight) and
 // `pnpm dev:services`, which calls `docker compose up -d database redis`
 // directly and so needs this step run first.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -24,8 +24,14 @@ export function writeRedisPasswordSecret() {
     throw new Error('.env missing a value for REDIS_PASSWORD. Run `pnpm secrets:generate`.');
   }
   const secretsDir = join(ROOT, 'secrets');
-  if (!existsSync(secretsDir)) mkdirSync(secretsDir);
-  writeFileSync(join(secretsDir, 'redis_password'), password);
+  if (!existsSync(secretsDir)) mkdirSync(secretsDir, { mode: 0o700 });
+  // Belt-and-braces: a dir left over from before this fix may still be 0755.
+  chmodSync(secretsDir, 0o700);
+  const secretPath = join(secretsDir, 'redis_password');
+  writeFileSync(secretPath, password, { mode: 0o600 });
+  // Belt-and-braces: writeFileSync's mode option is masked by umask on some
+  // filesystems, so explicitly chmod after write. [ADS-933]
+  chmodSync(secretPath, 0o600);
   return password;
 }
 
