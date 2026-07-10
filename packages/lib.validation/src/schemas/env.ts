@@ -95,6 +95,14 @@ export const envBaseSchema = z.object({
 
   // Optional in all envs
   REDIS_URL: z.string().url().optional(),
+  // ADS-886: Redis --requirepass value (docker-compose.yml, ADS-878/ADS-886
+  // file-mounted secrets). Optional — REDIS_URL alone is a valid connection
+  // method — but when set it must not be the .env.example placeholder.
+  // generate-secrets.mjs / bootstrap.mjs emit a 48-char hex value and
+  // docs/SECRETS-MANAGEMENT.md recommends `openssl rand -base64 32`, both
+  // well above the shared 32-char secret minimum, so optionalSecretField
+  // matches real setups.
+  REDIS_PASSWORD: optionalSecretField('REDIS_PASSWORD'),
   JWT_REPORT_SHARE_SECRET: optionalSecretField('JWT_REPORT_SHARE_SECRET'),
   WORKER_ENABLED: booleanString('WORKER_ENABLED').optional(),
   BCRYPT_ROUNDS: numericString('BCRYPT_ROUNDS').optional(),
