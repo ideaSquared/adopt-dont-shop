@@ -674,6 +674,31 @@ export async function refreshToken(
   );
   if (stored.rows.length === 0 || stored.rows[0].revoked_at !== null || stored.rows[0].is_revoked) {
     tokenRefreshCounter.inc({ outcome: 'token_revoked' });
+    // When a revoked token row exists, it was either already rotated (reuse
+    // attack) or explicitly revoked. Either way, revoking the entire family
+    // is safe: it kicks the attacker's live tokens and is a no-op if the
+    // family was already fully revoked at logout. (ADS-913)
+    if (stored.rows.length > 0) {
+      const reuseFamily = stored.rows[0].family_id;
+      await withTransaction(deps, async ({ client, publish }) => {
+        await client.query(
+          `UPDATE auth.refresh_tokens
+           SET is_revoked = true, revoked_at = now(), updated_at = now()
+           WHERE family_id = $1 AND is_revoked = false`,
+          [reuseFamily]
+        );
+        await client.query(
+          `UPDATE auth.users SET tokens_valid_from = now(), updated_at = now() WHERE user_id = $1`,
+          [claims.sub]
+        );
+        publish({
+          type: 'auth.tokenReuseDetected',
+          id: `auth.tokenReuseDetected.${claims.jti}`,
+          payload: { userId: claims.sub, familyId: reuseFamily, jti: claims.jti },
+        });
+      });
+      tokenRefreshCounter.inc({ outcome: 'family_revoked_on_reuse' });
+    }
     throw new HandlerError('UNAUTHENTICATED', 'refresh token revoked');
   }
   const familyId = stored.rows[0].family_id;
@@ -703,9 +728,26 @@ export async function refreshToken(
       [incomingTokenHash]
     );
     if (revoke.rowCount === 0) {
-      // The token was already rotated/revoked between our read and this
-      // write — concurrent reuse. Deny without issuing new tokens.
+      // The token was already rotated between our read and this write —
+      // concurrent reuse. Revoke the entire family so the attacker's branch
+      // cannot retain access with its fresh pair. (ADS-913)
+      await client.query(
+        `UPDATE auth.refresh_tokens
+         SET is_revoked = true, revoked_at = now(), updated_at = now()
+         WHERE family_id = $1 AND is_revoked = false`,
+        [familyId]
+      );
+      await client.query(
+        `UPDATE auth.users SET tokens_valid_from = now(), updated_at = now() WHERE user_id = $1`,
+        [claims.sub]
+      );
+      publish({
+        type: 'auth.tokenReuseDetected',
+        id: `auth.tokenReuseDetected.${claims.jti}`,
+        payload: { userId: claims.sub, familyId, jti: claims.jti },
+      });
       tokenRefreshCounter.inc({ outcome: 'concurrent_reuse' });
+      tokenRefreshCounter.inc({ outcome: 'family_revoked_on_reuse' });
       return false;
     }
 

@@ -24,7 +24,8 @@ export type TokenRefreshOutcome =
   | 'success'
   | 'invalid_token'
   | 'token_revoked'
-  | 'concurrent_reuse';
+  | 'concurrent_reuse'
+  | 'family_revoked_on_reuse';
 
 export type AuthMetrics = {
   loginCounter: InstanceType<typeof Counter<'outcome'>>;
