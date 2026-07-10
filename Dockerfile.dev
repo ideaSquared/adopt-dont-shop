@@ -20,8 +20,12 @@
 # entry script (scripts/docker-dev.mjs) pulls a prebuilt image from GHCR first
 # and only builds locally as a fallback, so most developers never run this.
 
+# Pinned by digest (matches node:22.15.1-slim at the time of pinning) so a
+# rebuild can't silently pull a different image. Renovate's docker manager
+# (pinDigests: true in renovate.json) keeps this current — bump NODE_VERSION
+# and the digest together when it opens a PR. [ADS-881]
 ARG NODE_VERSION=22.15.1
-FROM node:${NODE_VERSION}-slim AS development
+FROM node:${NODE_VERSION}-slim@sha256:ec318fe0dc46b56bcc1ca42a202738aeb4f3e347a7b4dd9f9f1df12ea7aa385a AS development
 
 # curl + wget: container healthchecks (services use curl, the app healthchecks
 # in the base compose use wget). dumb-init: clean signal forwarding for the watch
