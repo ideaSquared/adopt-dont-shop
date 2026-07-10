@@ -27,6 +27,7 @@ DEST="s3://${BACKUP_BUCKET}/uploads/${DAY}/"
 echo "[snapshot-uploads] syncing ${UPLOADS_PATH}/ -> ${DEST}"
 aws s3 sync "$UPLOADS_PATH/" "$DEST" \
   --region "$AWS_REGION" \
+  --sse AES256 \
   --metadata "Class=tier1,Retention=90d"
 
 echo "[snapshot-uploads] done"
