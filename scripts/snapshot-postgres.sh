@@ -42,6 +42,7 @@ fi
 echo "[snapshot-postgres] uploading ${DUMP_BYTES} bytes -> s3://${BACKUP_BUCKET}/${S3_KEY}"
 aws s3 cp "$TMPFILE" "s3://${BACKUP_BUCKET}/${S3_KEY}" \
   --region "$AWS_REGION" \
+  --sse AES256 \
   --metadata "Class=tier1,Retention=30d"
 
 echo "[snapshot-postgres] done"
