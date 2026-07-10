@@ -12,7 +12,12 @@
 export default {
   '**/*.{ts,tsx}': files => [
     `prettier --write ${files.map(f => JSON.stringify(f)).join(' ')}`,
-    'pnpm exec turbo run lint --filter="...[HEAD]" --continue',
+    // No surrounding quotes: lint-staged (string-argv + tinyexec) spawns this
+    // command without a shell, so quotes are never stripped and are passed
+    // to turbo literally (`--filter='"...[HEAD]"'`), breaking every
+    // pre-commit run. No shell also means no glob risk from `[HEAD]`, so the
+    // quotes were unnecessary as well as broken.
+    'pnpm exec turbo run lint --filter=...[HEAD] --continue',
   ],
   '**/*.{js,jsx,json,md,css}': ['prettier --write'],
 };
