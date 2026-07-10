@@ -407,6 +407,39 @@ describe('createServer — Prometheus rate-limit counter', () => {
       await server.close();
     }
   });
+
+  it('exposes gateway_login_email_ratelimit_trips_total metric after a per-email login trip (ADS-916)', async () => {
+    const server = await createServer({
+      config: {
+        ...baseConfig,
+        rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+      },
+      logger: quietLogger,
+      authClient: makeLoginAuthClient(),
+    });
+    try {
+      const postLogin = (ip: string) =>
+        server.inject({
+          method: 'POST',
+          url: '/api/v1/auth/login',
+          headers: { 'x-forwarded-for': ip },
+          payload: { email: 'victim@example.com', password: 'guess' },
+        });
+
+      // The per-email login cap is 5/5min — spread across distinct IPs so
+      // the per-IP limiter (10/min) doesn't trip first.
+      for (let i = 0; i < 5; i++) {
+        await postLogin(`20.0.0.${i}`);
+      }
+      const sixth = await postLogin('20.0.0.99');
+      expect(sixth.statusCode).toBe(429);
+
+      const metrics = await server.inject({ method: 'GET', url: '/metrics' });
+      expect(metrics.body).toContain('gateway_login_email_ratelimit_trips_total');
+    } finally {
+      await server.close();
+    }
+  });
 });
 
 // Domain routes register whenever their gRPC client is wired — there is

@@ -1276,6 +1276,115 @@ describe('auth rate limiting (ADS-844)', () => {
   });
 });
 
+describe('auth rate limiting — per-email login cap (ADS-916)', () => {
+  it('throttles a per-EMAIL login flood spread across many IPs', async () => {
+    const m = makeClient();
+    m.loginMock.mockResolvedValue(LOGIN_RES);
+    const app = Fastify({ logger: false, trustProxy: true });
+    const loginEmailRateLimiter = createEmailRateLimiter({ max: 5, windowMs: 5 * 60_000 });
+    // The per-IP @fastify/rate-limit plugin is intentionally NOT registered
+    // here — only the per-email preHandler can produce a 429, proving the
+    // cap holds even when every request comes from a distinct IP.
+    await registerAuthRoutes(app, { client: m.client, loginEmailRateLimiter });
+    try {
+      const hit = (ip: string) =>
+        app.inject({
+          method: 'POST',
+          url: '/api/v1/auth/login',
+          headers: { 'x-forwarded-for': ip },
+          payload: { email: 'victim@example.com', password: 'guess' },
+        });
+
+      const statuses: number[] = [];
+      for (let i = 0; i < 6; i += 1) {
+        statuses.push((await hit(`1.1.1.${i}`)).statusCode);
+      }
+
+      // First 5 (the cap) pass; the 6th — same email, different IP — is 429.
+      expect(statuses.slice(0, 5)).toEqual([200, 200, 200, 200, 200]);
+      expect(statuses[5]).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not throttle logins for a DIFFERENT email once one account trips the cap', async () => {
+    const m = makeClient();
+    m.loginMock.mockResolvedValue(LOGIN_RES);
+    const app = Fastify({ logger: false, trustProxy: true });
+    const loginEmailRateLimiter = createEmailRateLimiter({ max: 1, windowMs: 5 * 60_000 });
+    await registerAuthRoutes(app, { client: m.client, loginEmailRateLimiter });
+    try {
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { email: 'victim@example.com', password: 'guess' },
+      });
+      const tripped = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { email: 'victim@example.com', password: 'guess' },
+      });
+      const other = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { email: 'someone-else@example.com', password: 'guess' },
+      });
+
+      expect(tripped.statusCode).toBe(429);
+      expect(other.statusCode).toBe(200);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('calls onLoginEmailRateLimitTrip when the login per-email cap trips', async () => {
+    const m = makeClient();
+    m.loginMock.mockResolvedValue(LOGIN_RES);
+    const onLoginEmailRateLimitTrip = vi.fn();
+    const app = Fastify({ logger: false, trustProxy: true });
+    const loginEmailRateLimiter = createEmailRateLimiter({ max: 1, windowMs: 60_000 });
+    await registerAuthRoutes(app, {
+      client: m.client,
+      loginEmailRateLimiter,
+      onLoginEmailRateLimitTrip,
+    });
+    try {
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { email: 'victim2@example.com', password: 'guess' },
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { email: 'victim2@example.com', password: 'guess' },
+      });
+
+      expect(res.statusCode).toBe(429);
+      expect(onLoginEmailRateLimitTrip).toHaveBeenCalledTimes(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not throttle login when no loginEmailRateLimiter is wired', async () => {
+    const m = makeClient();
+    m.loginMock.mockResolvedValue(LOGIN_RES);
+    const app = await makeApp(m.client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { email: 'victim3@example.com', password: 'guess' },
+      });
+      expect(res.statusCode).toBe(200);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
 describe('two-factor routes', () => {
   it('POST /auth/2fa/setup returns the secret + otpauth URL', async () => {
     const m = makeClient();

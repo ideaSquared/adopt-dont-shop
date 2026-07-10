@@ -117,6 +117,26 @@ const getOrCreateRateLimitCounter = (): Counter<'route'> => {
   return counter;
 };
 
+// Login per-email rate-limit trip counter (ADS-916). Same lazily-created,
+// registry-change-aware singleton pattern as getOrCreateRateLimitCounter
+// above, so ops can distinguish a real credential-stuffing wave (many trips)
+// from noise.
+let _loginEmailCounterEntry: { registryRef: object; counter: Counter } | null = null;
+
+const getOrCreateLoginEmailRateLimitCounter = (): Counter => {
+  const reg = getMetricsRegistry();
+  if (_loginEmailCounterEntry && _loginEmailCounterEntry.registryRef === reg) {
+    return _loginEmailCounterEntry.counter;
+  }
+  const counter = new Counter({
+    name: 'gateway_login_email_ratelimit_trips_total',
+    help: 'Total number of login attempts rejected by the per-email rate limit (ADS-916).',
+    registers: [reg],
+  });
+  _loginEmailCounterEntry = { registryRef: reg, counter };
+  return counter;
+};
+
 export type CreateServerOptions = {
   config: GatewayConfig;
   // Optional logger injection — tests pass a quiet logger so the
@@ -417,8 +437,25 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     redis: rateLimitRedis,
   });
 
+  // Stricter per-email cap for login only (ADS-916). Separate limiter/window
+  // from emailRateLimiter above — login's threshold matches the auth-service
+  // soft-lock (5 attempts / 5 minutes), tighter than register/forgot-password's
+  // 5/minute, so a credential-stuffing attack spread across many IPs (or a
+  // rotating X-Forwarded-For) is still capped per targeted account.
+  const loginEmailRateLimiter = createEmailRateLimiter({
+    max: 5,
+    windowMs: 5 * 60_000,
+    redis: rateLimitRedis,
+  });
+  const loginEmailRateLimitTripsTotal = getOrCreateLoginEmailRateLimitCounter();
+
   if (opts.authClient) {
-    await registerAuthRoutes(server, { client: opts.authClient, emailRateLimiter });
+    await registerAuthRoutes(server, {
+      client: opts.authClient,
+      emailRateLimiter,
+      loginEmailRateLimiter,
+      onLoginEmailRateLimitTrip: () => loginEmailRateLimitTripsTotal.inc(),
+    });
     // /api/v1/sessions/* — list/revoke. Same auth client because it's the
     // same identity surface from the SPA's POV.
     await registerSessionsRoutes(server, { client: opts.authClient });
