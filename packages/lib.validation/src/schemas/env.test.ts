@@ -51,6 +51,27 @@ describe('envBaseSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects a placeholder REDIS_PASSWORD', () => {
+    const result = envBaseSchema.safeParse({
+      ...validBaseEnv,
+      REDIS_PASSWORD: 'CHANGE_THIS_SECURE_REDIS_PASSWORD',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts an unset REDIS_PASSWORD', () => {
+    const result = envBaseSchema.safeParse(validBaseEnv);
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a strong REDIS_PASSWORD', () => {
+    const result = envBaseSchema.safeParse({
+      ...validBaseEnv,
+      REDIS_PASSWORD: 'R'.repeat(40),
+    });
+    expect(result.success).toBe(true);
+  });
+
   it('rejects non-hex ENCRYPTION_KEY', () => {
     const result = envBaseSchema.safeParse({ ...validBaseEnv, ENCRYPTION_KEY: 'z'.repeat(64) });
     expect(result.success).toBe(false);
@@ -203,6 +224,29 @@ describe('validateEnv', () => {
       const result = validateEnv(env);
       expect(result.ok).toBe(false);
       expect(errorMessages(result)).toContain('must not use the default placeholder value');
+    });
+
+    it('flags a placeholder REDIS_PASSWORD as an error from the schema (ADS-886)', () => {
+      const env = validDevEnv();
+      env.REDIS_PASSWORD = 'CHANGE_THIS_SECURE_REDIS_PASSWORD';
+      const result = validateEnv(env);
+      expect(result.ok).toBe(false);
+      expect(errorPaths(result)).toContain('REDIS_PASSWORD');
+      expect(errorMessages(result)).toContain('must not use the default placeholder value');
+    });
+
+    it('stays valid when REDIS_PASSWORD is unset', () => {
+      const env = validDevEnv();
+      env.REDIS_PASSWORD = undefined;
+      const result = validateEnv(env);
+      expect(result.ok).toBe(true);
+    });
+
+    it('accepts a strong REDIS_PASSWORD', () => {
+      const env = validDevEnv();
+      env.REDIS_PASSWORD = 'R'.repeat(40);
+      const result = validateEnv(env);
+      expect(result.ok).toBe(true);
     });
 
     it('flags a non-hex ENCRYPTION_KEY as an error', () => {
