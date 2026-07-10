@@ -154,6 +154,37 @@ describe('openSupportTicket', () => {
     const publish = (deps as { _publish?: ReturnType<typeof vi.fn> })._publish!;
     expect(publish.mock.calls[0][0]).toMatchObject({ type: 'moderation.ticketOpened' });
   });
+
+  // ADS-917: a non-admin caller must never be able to stamp an
+  // arbitrary user_id onto the ticket row / audit event.
+  it('non-admin caller supplying a mismatched user_id → PERMISSION_DENIED', async () => {
+    const { deps } = makeDeps([]);
+    await expect(
+      openSupportTicket(deps, makePrincipal({ userId: 'alice', permissions: [] }), {
+        ...VALID_OPEN,
+        userId: 'bob',
+      } as OpenSupportTicketRequest)
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('non-admin caller supplying their own user_id is a no-op (allowed)', async () => {
+    const { deps, query } = makeDeps([{ rows: [ticketRow()] }]);
+    await openSupportTicket(deps, makePrincipal({ userId: 'alice', permissions: [] }), {
+      ...VALID_OPEN,
+      userId: 'alice',
+    } as OpenSupportTicketRequest);
+    expect(query.mock.calls[0][1][1]).toBe('alice');
+  });
+
+  it('staff holding moderation.tickets.manage can open a ticket on behalf of another user', async () => {
+    const { deps, query } = makeDeps([{ rows: [ticketRow()] }]);
+    await openSupportTicket(
+      deps,
+      makePrincipal({ userId: 'staff-1', permissions: ['moderation.tickets.manage'] }),
+      { ...VALID_OPEN, userId: 'bob' } as OpenSupportTicketRequest
+    );
+    expect(query.mock.calls[0][1][1]).toBe('bob');
+  });
 });
 
 describe('getSupportTicket', () => {
