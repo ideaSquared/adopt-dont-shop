@@ -12,8 +12,6 @@ interface PDFPreviewProps {
 
 export const PDFPreview: React.FC<PDFPreviewProps> = ({ url, filename, isOpen, onClose }) => {
   const [zoom, setZoom] = useState(1);
-  // Default to inline embed; fall back to Google Viewer only when the embed errors.
-  const [viewMethod, setViewMethod] = useState<'embed' | 'iframe' | 'google'>('embed');
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -64,46 +62,19 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ url, filename, isOpen, o
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 2));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
 
-  const renderPDFContent = () => {
-    if (viewMethod === 'google') {
-      const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-      return (
-        <iframe
-          className={styles.pdfIframe}
-          style={{ transform: `scale(${zoom})` }}
-          src={googleViewerUrl}
-          title={filename}
-          onError={() => {
-            // Google Viewer failed — fall back to a download prompt via
-            // the download link in the header.
-          }}
-        />
-      );
-    }
-
-    if (viewMethod === 'iframe') {
-      return (
-        <iframe
-          className={styles.pdfIframe}
-          style={{ transform: `scale(${zoom})` }}
-          src={`${url}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
-          title={filename}
-          onError={() => setViewMethod('google')}
-        />
-      );
-    }
-
-    // Default: inline <embed>. Falls back to Google Viewer on error.
-    return (
-      <embed
-        className={styles.pdfEmbed}
-        style={{ transform: `scale(${zoom})` }}
-        src={url}
-        type="application/pdf"
-        title={filename}
-      />
-    );
-  };
+  // Rendered with the browser's native PDF viewer (embed/pdf.js). We never
+  // hand the attachment URL — which for a signed-URL scheme carries the
+  // signature and expiry — to a third-party viewer such as Google Docs
+  // Viewer; there is no fallback path that does so.
+  const renderPDFContent = () => (
+    <embed
+      className={styles.pdfEmbed}
+      style={{ transform: `scale(${zoom})` }}
+      src={url}
+      type="application/pdf"
+      title={filename}
+    />
+  );
 
   return createPortal(
     <div
@@ -134,13 +105,6 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ url, filename, isOpen, o
             </button>
             <button className={styles.pdfButtonDefault} onClick={handleZoomIn} disabled={zoom >= 2}>
               <MdZoomIn size={18} />
-            </button>
-            <button
-              className={styles.pdfButtonDefault}
-              onClick={() => setViewMethod('google')}
-              title="Open with Google Viewer"
-            >
-              &#128196;
             </button>
             <a
               className={styles.pdfButtonPrimary}
