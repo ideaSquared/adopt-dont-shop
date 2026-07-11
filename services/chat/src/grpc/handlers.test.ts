@@ -57,6 +57,20 @@ const OTHER_RESCUE_STAFF_PRINCIPAL: Principal = {
   rescueId: 'rsc-other' as RescueId,
 };
 
+// Staff of the rescue the chatRowFixture below belongs to (null-UUID).
+const RESCUE_STAFF_PRINCIPAL: Principal = {
+  userId: 'usr-staff' as UserId,
+  roles: ['rescue_staff'],
+  permissions: ['chats.read' as Permission, 'chats.create' as Permission],
+  rescueId: '00000000-0000-0000-0000-000000000000' as RescueId,
+};
+
+const MODERATOR_PRINCIPAL: Principal = {
+  userId: 'usr-moderator' as UserId,
+  roles: ['moderator'],
+  permissions: ['chats.read' as Permission],
+};
+
 // --- Row fixtures ----------------------------------------------------
 
 const chatRowFixture = (overrides: Record<string, unknown> = {}) => ({
@@ -1124,23 +1138,41 @@ describe('deleteChat', () => {
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
-  it('returns NOT_FOUND (no enumeration) when caller is not a participant', async () => {
+  it('returns NOT_FOUND when the chat row is gone', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     await expect(
       deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('returns NOT_FOUND when the chat row is gone', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+  it('returns NOT_FOUND (no enumeration) when a non-privileged, non-participant caller tries to delete', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture()] }); // chat exists
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // not a participant
     await expect(
       deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  // ADS-923: an adopter participant must not be able to erase the whole
+  // chat, even though they hold chats.read and are a genuine participant.
+  it('rejects an adopter participant with PERMISSION_DENIED (cannot erase shared evidence)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture()] }); // chat exists
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] }); // is a participant
+    await expect(
+      deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects rescue staff from a different rescue than the chat (NOT_FOUND, non-participant)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture()] }); // chat exists
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // not a participant either
+    await expect(
+      deleteChat(mocks.deps, OTHER_RESCUE_STAFF_PRINCIPAL, { chatId: 'chat-1' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('is idempotent on an already-deleted chat (no write, no publish)', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] });
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ ...chatRowFixture(), deleted_at: new Date('2026-06-05T12:00:00Z') }],
     });
@@ -1150,14 +1182,13 @@ describe('deleteChat', () => {
     });
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
 
-    const res = await deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' });
+    const res = await deleteChat(mocks.deps, MODERATOR_PRINCIPAL, { chatId: 'chat-1' });
     expect(res.chat?.chatId).toBe('chat-1');
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
-  it('soft-deletes inside withTransaction and publishes chat.deleted', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] });
+  it('rescue staff of the chat’s own rescue can soft-delete and publish chat.deleted', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ ...chatRowFixture(), deleted_at: null }],
     });
@@ -1172,7 +1203,7 @@ describe('deleteChat', () => {
     });
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
 
-    const res = await deleteChat(mocks.deps, ADOPTER_PRINCIPAL, {
+    const res = await deleteChat(mocks.deps, RESCUE_STAFF_PRINCIPAL, {
       chatId: 'chat-1',
       reason: 'cleanup',
     });
@@ -1187,5 +1218,23 @@ describe('deleteChat', () => {
     };
     expect(envelope.payload.reason).toBe('cleanup');
     expect(envelope.payload.participantUserIds).toEqual(['usr-adopter', 'usr-rescue']);
+  });
+
+  it('a moderator can soft-delete a chat they are not a participant of', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ ...chatRowFixture(), deleted_at: null }],
+    });
+    mocks.clientScript.push({ rows: [chatRowFixture()] });
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await deleteChat(mocks.deps, MODERATOR_PRINCIPAL, { chatId: 'chat-1' });
+    expect(res.chat?.chatId).toBe('chat-1');
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
   });
 });

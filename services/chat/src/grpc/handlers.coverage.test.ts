@@ -379,13 +379,15 @@ describe('post-commit INTERNAL guards', () => {
   });
 
   it('deleteChat throws INTERNAL when the UPDATE returns no rows', async () => {
-    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] }); // participant
+    // Deleting is a staff/safety-team primitive (ADS-923) — use the
+    // super_admin fixture so the privilege gate passes without needing
+    // a participant-membership lookup.
     mocks.poolScript.push({ rows: [{ ...chatRowFixture(), deleted_at: null }] }); // existing
     mocks.clientScript.push({ rows: [] }); // UPDATE → no rows
     mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] }); // participants
 
     await expect(
-      deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
+      deleteChat(mocks.deps, SUPER_ADMIN_PRINCIPAL, { chatId: 'chat-1' })
     ).rejects.toMatchObject({ code: 'INTERNAL' });
   });
 });

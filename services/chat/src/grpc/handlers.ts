@@ -1153,13 +1153,9 @@ export async function deleteChat(
   if (!hasPermission(principal, CHAT_READ)) {
     throw new HandlerError('PERMISSION_DENIED', `'${CHAT_READ}' required`);
   }
-  // Participant-or-admin gate. Non-participants get NOT_FOUND posture
-  // so the row's existence isn't enumerable.
-  if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
-    throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
-  }
 
-  // Fetch the row to decide idempotent vs first-time delete.
+  // Fetch the row first — the rescue-staff privilege check below needs
+  // its rescue_id.
   const existing = await deps.pool.query<ChatRow & { deleted_at: Date | null }>(
     `SELECT * FROM chats WHERE chat_id = $1 LIMIT 1`,
     [req.chatId]
@@ -1168,6 +1164,32 @@ export async function deleteChat(
     throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
   }
   const row = existing.rows[0];
+
+  // ADS-923: chat-wide delete erases the thread for every participant —
+  // a plain adopter participant could use it to destroy adoption-workflow
+  // evidence the rescue relies on. Deleting is now a staff/safety-team
+  // primitive: super_admin, a moderator/admin, or rescue-staff whose home
+  // rescue matches this chat's rescue_id. A regular participant (e.g. the
+  // adopter) is denied even though they can otherwise read the chat.
+  const isPrivilegedDeleter =
+    principal.roles.includes('super_admin') ||
+    principal.roles.includes('moderator') ||
+    principal.roles.includes('admin') ||
+    (principal.roles.includes('rescue_staff') &&
+      principal.rescueId !== undefined &&
+      principal.rescueId === row.rescue_id);
+  if (!isPrivilegedDeleter) {
+    // Non-participants still get NOT_FOUND posture so the row's
+    // existence isn't enumerable; a participant who simply lacks the
+    // role learns the real reason.
+    if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
+      throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
+    }
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      'only rescue staff of this chat, or a moderator/admin, may delete a chat'
+    );
+  }
 
   // Idempotent — already deleted.
   if (row.deleted_at) {
