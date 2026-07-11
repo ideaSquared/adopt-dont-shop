@@ -355,6 +355,41 @@ describe('/api/v1/reports gateway routes', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('POST /execute returns 200 with per-widget status when one widget RPC fails', async () => {
+    petsMocks.getAdoptionTrend.mockResolvedValue({
+      points: [{ date: '2026-01-01', count: 5 }],
+    });
+    applicationsMocks.getStats.mockRejectedValue(new Error('service unavailable'));
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/execute',
+      headers: ADMIN_HEADERS,
+      payload: {
+        config: {
+          filters: {},
+          widgets: [
+            { id: 'w-ok', metric: 'adoption', chartType: 'line', options: {} },
+            { id: 'w-fail', metric: 'application', chartType: 'bar', options: {} },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      data: {
+        widgets: Array<{ id: string; status: string; data: unknown[]; error?: string }>;
+      };
+    };
+    const [ok, failed] = body.data.widgets;
+    expect(ok.id).toBe('w-ok');
+    expect(ok.status).toBe('ok');
+    expect(ok.data).toEqual([{ date: '2026-01-01', count: 5 }]);
+    expect(failed.id).toBe('w-fail');
+    expect(failed.status).toBe('error');
+    expect(failed.error).toBe('service unavailable');
+    expect(failed.data).toEqual([]);
+  });
+
   // ── execute (saved) ──────────────────────────────────────────────────
 
   it('POST /:id/execute loads the saved config and computes widgets', async () => {

@@ -308,11 +308,12 @@ async function computeWidgetData(
 async function executeConfig(
   config: ReportConfigInput,
   clients: AggregationClients,
-  metadata: Metadata
+  metadata: Metadata,
+  log: { error: (obj: Record<string, unknown>, msg: string) => void }
 ): Promise<Record<string, unknown>> {
   const filters = config.filters ?? {};
   const widgets = config.widgets ?? [];
-  const widgetResults = await Promise.all(
+  const settled = await Promise.allSettled(
     widgets.map(async widget => ({
       id: typeof widget.id === 'string' ? widget.id : '',
       data: await computeWidgetData(widget, filters, clients, metadata),
@@ -323,6 +324,28 @@ async function executeConfig(
       },
     }))
   );
+  const widgetResults = settled.map((result, i) => {
+    if (result.status === 'fulfilled') {
+      return { ...result.value, status: 'ok' };
+    }
+    const widget = widgets[i];
+    const widgetId = typeof widget?.id === 'string' ? widget.id : '';
+    const metric = typeof widget?.metric === 'string' ? widget.metric : '';
+    const errorMessage =
+      result.reason instanceof Error ? result.reason.message : String(result.reason ?? 'unknown');
+    log.error({ widgetId, metric, error: errorMessage }, 'Widget aggregation failed');
+    return {
+      id: widgetId,
+      data: [],
+      meta: {
+        metric,
+        chartType: typeof widget?.chartType === 'string' ? widget.chartType : '',
+        computedAt: new Date().toISOString(),
+      },
+      status: 'error',
+      error: errorMessage,
+    };
+  });
   return {
     widgets: widgetResults,
     filters,
@@ -710,7 +733,8 @@ export const registerReportsRoutes = async (
         const result = await executeConfig(
           config as ReportConfigInput,
           aggregationClients,
-          buildMetadata(req)
+          buildMetadata(req),
+          req.log
         );
         return reply.send({ success: true, data: result });
       } catch (err) {
@@ -749,7 +773,7 @@ export const registerReportsRoutes = async (
           return reply.code(404).send({ success: false, error: 'not found' });
         }
         const config = parseConfig(res.report.configJson);
-        const result = await executeConfig(config, aggregationClients, metadata);
+        const result = await executeConfig(config, aggregationClients, metadata, req.log);
         return reply.send({ success: true, data: result });
       } catch (err) {
         return handleGrpcError(err, reply);
