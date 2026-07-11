@@ -359,6 +359,41 @@ describe('openChat', () => {
       code: 'PERMISSION_DENIED',
     });
   });
+
+  it('maps any other applications-service failure to INTERNAL', async () => {
+    stubs.getApplication.mockRejectedValueOnce({ code: 14 });
+    await expect(openChat(mocks.deps, ADOPTER_PRINCIPAL, BASE_OPEN)).rejects.toMatchObject({
+      code: 'INTERNAL',
+    });
+  });
+
+  it('treats a response without an application as INVALID_ARGUMENT', async () => {
+    stubs.getApplication.mockResolvedValueOnce({ application: undefined, timeline: [] });
+    await expect(openChat(mocks.deps, ADOPTER_PRINCIPAL, BASE_OPEN)).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('lets super_admin open a chat without an adopter/staff relationship', async () => {
+    const root: Principal = {
+      userId: 'usr-root' as UserId,
+      roles: ['super_admin'],
+      permissions: [],
+    };
+    mocks.poolScript.push({ rows: [] });
+    mocks.clientScript.push({
+      rows: [chatRowFixture({ chat_id: 'new-chat', rescue_id: APP_RESCUE_ID })],
+    });
+    mocks.clientScript.push({ rows: [] });
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-root' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+
+    const res = await openChat(mocks.deps, root, { ...BASE_OPEN, otherUserId: 'usr-anyone' });
+    expect(res.created).toBe(true);
+    expect(stubs.listStaffMembers).not.toHaveBeenCalled();
+  });
 });
 
 // --- SendMessage ----------------------------------------------------
