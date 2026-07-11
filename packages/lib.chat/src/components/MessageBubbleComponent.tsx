@@ -64,6 +64,7 @@ export function MessageBubbleComponent({
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState('');
   const [pdfPreviewFilename, setPdfPreviewFilename] = useState('');
+  const [pdfPreviewMimeType, setPdfPreviewMimeType] = useState('');
 
   const imageAttachments = message.attachments?.filter((att) => isImageFile(att.mimeType)) || [];
 
@@ -84,6 +85,7 @@ export function MessageBubbleComponent({
     if (resolvedUrl) {
       setPdfPreviewUrl(resolvedUrl);
       setPdfPreviewFilename(attachment.filename);
+      setPdfPreviewMimeType(attachment.mimeType);
       setPdfPreviewOpen(true);
 
       logEvent('pdf_viewer_opened', 1, {
@@ -280,6 +282,7 @@ export function MessageBubbleComponent({
       <PDFPreview
         url={pdfPreviewUrl}
         filename={pdfPreviewFilename}
+        mimeType={pdfPreviewMimeType}
         isOpen={pdfPreviewOpen}
         onClose={() => setPdfPreviewOpen(false)}
       />
