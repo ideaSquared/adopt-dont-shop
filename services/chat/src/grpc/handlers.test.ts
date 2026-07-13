@@ -3,22 +3,26 @@ import type { Pool, PoolClient } from 'pg';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Principal } from '@adopt-dont-shop/authz';
-import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
-import type {
-  ListChatsRequest,
-  ListMessagesRequest,
-  MarkReadRequest,
-  OpenChatRequest,
-  ReactRequest,
-  SendMessageRequest,
+import type { Permission, RescueId, UserId } from '@adopt-dont-shop/lib.types';
+import {
+  ApplicationsV1,
+  RescueV1,
+  type ListChatsRequest,
+  type ListMessagesRequest,
+  type MarkReadRequest,
+  type OpenChatRequest,
+  type ReactRequest,
+  type SendMessageRequest,
 } from '@adopt-dont-shop/proto';
 
+import type { ApplicationsClient } from './applications-client.js';
+import type { RescueClient } from './rescue-client.js';
 import {
   HandlerError,
   listChats,
   listMessages,
+  makeOpenChat,
   markRead,
-  openChat,
   react,
   deleteChat,
   deleteMessage,
@@ -44,6 +48,27 @@ const UNPRIVILEGED_PRINCIPAL: Principal = {
   userId: 'usr-noperm' as UserId,
   roles: ['adopter'],
   permissions: [],
+};
+
+const OTHER_RESCUE_STAFF_PRINCIPAL: Principal = {
+  userId: 'usr-other-staff' as UserId,
+  roles: ['rescue_staff'],
+  permissions: ['chats.read' as Permission, 'chats.create' as Permission],
+  rescueId: 'rsc-other' as RescueId,
+};
+
+// Staff of the rescue the chatRowFixture below belongs to (null-UUID).
+const RESCUE_STAFF_PRINCIPAL: Principal = {
+  userId: 'usr-staff' as UserId,
+  roles: ['rescue_staff'],
+  permissions: ['chats.read' as Permission, 'chats.create' as Permission],
+  rescueId: '00000000-0000-0000-0000-000000000000' as RescueId,
+};
+
+const MODERATOR_PRINCIPAL: Principal = {
+  userId: 'usr-moderator' as UserId,
+  roles: ['moderator'],
+  permissions: ['chats.read' as Permission],
 };
 
 // --- Row fixtures ----------------------------------------------------
@@ -125,10 +150,40 @@ const BASE_OPEN: OpenChatRequest = {
   otherUserId: 'usr-rescue',
 };
 
+// The rescue that owns application app-1 in the stubbed cross-service
+// world below. usr-adopter is its adopter; usr-rescue is on its staff.
+const APP_RESCUE_ID = 'rsc-1';
+
+// Stub the two cross-service clients OpenChat consults (ADS-918):
+// service.applications resolves app-1 → {usr-adopter, rsc-1} and
+// service.rescue lists rsc-1's staff (just usr-rescue).
+function makeCrossServiceStubs() {
+  const getApplication = vi.fn().mockResolvedValue({
+    application: ApplicationsV1.Application.fromPartial({
+      applicationId: 'app-1',
+      adopterId: 'usr-adopter',
+      rescueId: APP_RESCUE_ID,
+    }),
+    timeline: [],
+  });
+  const listStaffMembers = vi.fn().mockResolvedValue({
+    staffMembers: [
+      RescueV1.StaffMember.fromPartial({ userId: 'usr-rescue', rescueId: APP_RESCUE_ID }),
+    ],
+  });
+  const applicationsClient: ApplicationsClient = { getApplication, close: vi.fn() };
+  const rescueClient: RescueClient = { listStaffMembers, close: vi.fn() };
+  return { applicationsClient, rescueClient, getApplication, listStaffMembers };
+}
+
 describe('openChat', () => {
   let mocks: ReturnType<typeof makeMocks>;
+  let stubs: ReturnType<typeof makeCrossServiceStubs>;
+  let openChat: ReturnType<typeof makeOpenChat>;
   beforeEach(() => {
     mocks = makeMocks();
+    stubs = makeCrossServiceStubs();
+    openChat = makeOpenChat(stubs.applicationsClient, stubs.rescueClient);
   });
   afterEach(() => {
     vi.resetAllMocks();
@@ -202,10 +257,12 @@ describe('openChat', () => {
     return call[1];
   };
 
-  it('persists the rescueId from the request on the new chat row', async () => {
+  // ADS-918: rescue_id always comes from the resolved application — a
+  // request-supplied rescueId (cross-tenant pollution vector) is ignored.
+  it('stamps the application’s rescue_id on the new chat, ignoring a mismatched request rescueId', async () => {
     mocks.poolScript.push({ rows: [] });
     mocks.clientScript.push({
-      rows: [chatRowFixture({ chat_id: 'new-chat', rescue_id: 'rsc-1' })],
+      rows: [chatRowFixture({ chat_id: 'new-chat', rescue_id: APP_RESCUE_ID })],
     });
     mocks.clientScript.push({ rows: [] });
     mocks.poolScript.push({
@@ -213,23 +270,129 @@ describe('openChat', () => {
     });
     mocks.poolScript.push({ rows: [] });
 
-    await openChat(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE_OPEN, rescueId: 'rsc-1' });
+    await openChat(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE_OPEN, rescueId: 'rsc-victim' });
 
-    expect(insertChatParams(mocks)).toContain('rsc-1');
+    expect(insertChatParams(mocks)).toContain(APP_RESCUE_ID);
+    expect(insertChatParams(mocks)).not.toContain('rsc-victim');
   });
 
-  it('falls back to the null-UUID placeholder when no rescueId is supplied', async () => {
+  // ADS-918: an adopter may only open a chat with staff of the rescue
+  // that owns their application — any other user id is rejected before
+  // any DB write happens.
+  it('rejects an adopter whose other_user_id is not on the rescue’s staff list', async () => {
+    await expect(
+      openChat(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE_OPEN, otherUserId: 'usr-random' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects a caller who is neither the application adopter nor staff of its rescue', async () => {
+    const stranger: Principal = {
+      userId: 'usr-stranger' as UserId,
+      roles: ['adopter'],
+      permissions: ['chats.create' as Permission, 'chats.read' as Permission],
+    };
+    await expect(openChat(mocks.deps, stranger, BASE_OPEN)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('lets staff of the application’s rescue open a chat with the adopter', async () => {
+    const staff: Principal = {
+      userId: 'usr-rescue' as UserId,
+      roles: ['rescue_staff'],
+      permissions: ['chats.create' as Permission, 'chats.read' as Permission],
+      rescueId: APP_RESCUE_ID as RescueId,
+    };
     mocks.poolScript.push({ rows: [] });
-    mocks.clientScript.push({ rows: [chatRowFixture({ chat_id: 'new-chat' })] });
+    mocks.clientScript.push({
+      rows: [chatRowFixture({ chat_id: 'new-chat', rescue_id: APP_RESCUE_ID })],
+    });
     mocks.clientScript.push({ rows: [] });
     mocks.poolScript.push({
-      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+      rows: [{ participant_id: 'usr-rescue' }, { participant_id: 'usr-adopter' }],
     });
     mocks.poolScript.push({ rows: [] });
 
-    await openChat(mocks.deps, ADOPTER_PRINCIPAL, { ...BASE_OPEN, rescueId: '' });
+    const res = await openChat(mocks.deps, staff, { ...BASE_OPEN, otherUserId: 'usr-adopter' });
+    expect(res.created).toBe(true);
+    // Staff never need the staff-list lookup — the adopter check is
+    // against the resolved application directly.
+    expect(stubs.listStaffMembers).not.toHaveBeenCalled();
+  });
 
-    expect(insertChatParams(mocks)).toContain('00000000-0000-0000-0000-000000000000');
+  it('rejects staff opening a chat with someone other than the application adopter', async () => {
+    const staff: Principal = {
+      userId: 'usr-rescue' as UserId,
+      roles: ['rescue_staff'],
+      permissions: ['chats.create' as Permission, 'chats.read' as Permission],
+      rescueId: APP_RESCUE_ID as RescueId,
+    };
+    await expect(
+      openChat(mocks.deps, staff, { ...BASE_OPEN, otherUserId: 'usr-unrelated' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects staff of a different rescue than the application’s', async () => {
+    await expect(
+      openChat(mocks.deps, OTHER_RESCUE_STAFF_PRINCIPAL, {
+        ...BASE_OPEN,
+        otherUserId: 'usr-adopter',
+      })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  });
+
+  it('maps an application NOT_FOUND to INVALID_ARGUMENT', async () => {
+    stubs.getApplication.mockRejectedValueOnce({ code: 5 });
+    await expect(openChat(mocks.deps, ADOPTER_PRINCIPAL, BASE_OPEN)).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('propagates a PERMISSION_DENIED from the applications service', async () => {
+    stubs.getApplication.mockRejectedValueOnce({ code: 7 });
+    await expect(openChat(mocks.deps, ADOPTER_PRINCIPAL, BASE_OPEN)).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+  });
+
+  it('maps any other applications-service failure to INTERNAL', async () => {
+    stubs.getApplication.mockRejectedValueOnce({ code: 14 });
+    await expect(openChat(mocks.deps, ADOPTER_PRINCIPAL, BASE_OPEN)).rejects.toMatchObject({
+      code: 'INTERNAL',
+    });
+  });
+
+  it('treats a response without an application as INVALID_ARGUMENT', async () => {
+    stubs.getApplication.mockResolvedValueOnce({ application: undefined, timeline: [] });
+    await expect(openChat(mocks.deps, ADOPTER_PRINCIPAL, BASE_OPEN)).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
+  });
+
+  it('lets super_admin open a chat without an adopter/staff relationship', async () => {
+    const root: Principal = {
+      userId: 'usr-root' as UserId,
+      roles: ['super_admin'],
+      permissions: [],
+    };
+    mocks.poolScript.push({ rows: [] });
+    mocks.clientScript.push({
+      rows: [chatRowFixture({ chat_id: 'new-chat', rescue_id: APP_RESCUE_ID })],
+    });
+    mocks.clientScript.push({ rows: [] });
+    mocks.poolScript.push({
+      rows: [{ participant_id: 'usr-root' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolScript.push({ rows: [] });
+
+    const res = await openChat(mocks.deps, root, { ...BASE_OPEN, otherUserId: 'usr-anyone' });
+    expect(res.created).toBe(true);
+    expect(stubs.listStaffMembers).not.toHaveBeenCalled();
   });
 });
 
@@ -1010,23 +1173,41 @@ describe('deleteChat', () => {
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
   });
 
-  it('returns NOT_FOUND (no enumeration) when caller is not a participant', async () => {
+  it('returns NOT_FOUND when the chat row is gone', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
     await expect(
       deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('returns NOT_FOUND when the chat row is gone', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+  it('returns NOT_FOUND (no enumeration) when a non-privileged, non-participant caller tries to delete', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture()] }); // chat exists
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // not a participant
     await expect(
       deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  // ADS-923: an adopter participant must not be able to erase the whole
+  // chat, even though they hold chats.read and are a genuine participant.
+  it('rejects an adopter participant with PERMISSION_DENIED (cannot erase shared evidence)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture()] }); // chat exists
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] }); // is a participant
+    await expect(
+      deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
+    ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects rescue staff from a different rescue than the chat (NOT_FOUND, non-participant)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [chatRowFixture()] }); // chat exists
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] }); // not a participant either
+    await expect(
+      deleteChat(mocks.deps, OTHER_RESCUE_STAFF_PRINCIPAL, { chatId: 'chat-1' })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it('is idempotent on an already-deleted chat (no write, no publish)', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] });
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ ...chatRowFixture(), deleted_at: new Date('2026-06-05T12:00:00Z') }],
     });
@@ -1036,14 +1217,13 @@ describe('deleteChat', () => {
     });
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
 
-    const res = await deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' });
+    const res = await deleteChat(mocks.deps, MODERATOR_PRINCIPAL, { chatId: 'chat-1' });
     expect(res.chat?.chatId).toBe('chat-1');
     expect(mocks.clientMock.query).not.toHaveBeenCalled();
     expect(mocks.natsMock.publish).not.toHaveBeenCalled();
   });
 
-  it('soft-deletes inside withTransaction and publishes chat.deleted', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ chat_participant_id: 'p-1' }] });
+  it('rescue staff of the chat’s own rescue can soft-delete and publish chat.deleted', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ ...chatRowFixture(), deleted_at: null }],
     });
@@ -1058,7 +1238,7 @@ describe('deleteChat', () => {
     });
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
 
-    const res = await deleteChat(mocks.deps, ADOPTER_PRINCIPAL, {
+    const res = await deleteChat(mocks.deps, RESCUE_STAFF_PRINCIPAL, {
       chatId: 'chat-1',
       reason: 'cleanup',
     });
@@ -1073,5 +1253,23 @@ describe('deleteChat', () => {
     };
     expect(envelope.payload.reason).toBe('cleanup');
     expect(envelope.payload.participantUserIds).toEqual(['usr-adopter', 'usr-rescue']);
+  });
+
+  it('a moderator can soft-delete a chat they are not a participant of', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ ...chatRowFixture(), deleted_at: null }],
+    });
+    mocks.clientScript.push({ rows: [chatRowFixture()] });
+    mocks.clientScript.push({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ participant_id: 'usr-adopter' }, { participant_id: 'usr-rescue' }],
+    });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await deleteChat(mocks.deps, MODERATOR_PRINCIPAL, { chatId: 'chat-1' });
+    expect(res.chat?.chatId).toBe('chat-1');
+    expect(mocks.natsMock.publish).toHaveBeenCalledTimes(1);
   });
 });

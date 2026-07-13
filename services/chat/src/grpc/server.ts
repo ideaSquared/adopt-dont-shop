@@ -18,6 +18,8 @@ import { ChatV1 } from '@adopt-dont-shop/proto';
 import type { ChatConfig } from '../config.js';
 
 import { adapt } from './adapter.js';
+import { createApplicationsClient, type ApplicationsClient } from './applications-client.js';
+import { createRescueClient, type RescueClient } from './rescue-client.js';
 import {
   deleteChat,
   deleteMessage,
@@ -25,8 +27,8 @@ import {
   getChatUnreadCount,
   listChats,
   listMessages,
+  makeOpenChat,
   markRead,
-  openChat,
   react,
   searchChats,
   sendMessage,
@@ -37,6 +39,12 @@ export type CreateGrpcServerOptions = {
   pool: Pool;
   nats: NatsConnection;
   logger: Logger;
+  // Injected for OpenChat's application/staff relationship checks
+  // (ADS-918). Optional: when omitted (createGrpcServer called directly,
+  // e.g. in tests) lazy clients are built from config. startGrpcServer
+  // always builds + owns them so it can close them on shutdown.
+  applicationsClient?: ApplicationsClient;
+  rescueClient?: RescueClient;
 };
 
 export type { RunningGrpcServer };
@@ -45,9 +53,12 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, logger } = opts;
   const server = new Server();
   const deps = { pool, nats };
+  const applicationsClient =
+    opts.applicationsClient ?? createApplicationsClient({ address: config.applicationsGrpcUrl });
+  const rescueClient = opts.rescueClient ?? createRescueClient({ address: config.rescueGrpcUrl });
 
   server.addService(ChatV1.ChatServiceService, {
-    openChat: adapt(openChat, { deps, logger }),
+    openChat: adapt(makeOpenChat(applicationsClient, rescueClient), { deps, logger }),
     sendMessage: adapt(sendMessage, { deps, logger }),
     listMessages: adapt(listMessages, { deps, logger }),
     listChats: adapt(listChats, { deps, logger }),
@@ -84,6 +95,30 @@ export const startGrpcServer = async (
   opts: CreateGrpcServerOptions
 ): Promise<RunningGrpcServer> => {
   const { config, logger } = opts;
-  const server = createGrpcServer(opts);
-  return startGrpcServerShared(server, config, logger);
+  // Build + own the cross-service clients here so they're closed on
+  // shutdown (mirrors services/applications/src/grpc/server.ts).
+  const applicationsClient =
+    opts.applicationsClient ?? createApplicationsClient({ address: config.applicationsGrpcUrl });
+  const rescueClient = opts.rescueClient ?? createRescueClient({ address: config.rescueGrpcUrl });
+  const server = createGrpcServer({ ...opts, applicationsClient, rescueClient });
+  const running = await startGrpcServerShared(server, config, logger);
+
+  return {
+    ...running,
+    shutdown: () =>
+      new Promise<void>(resolve => {
+        server.tryShutdown(err => {
+          if (err) {
+            logger.error('gRPC server shutdown error', { err });
+          }
+          try {
+            applicationsClient.close();
+            rescueClient.close();
+          } catch (closeErr) {
+            logger.error('cross-service client close error', { err: closeErr });
+          }
+          resolve();
+        });
+      }),
+  };
 };

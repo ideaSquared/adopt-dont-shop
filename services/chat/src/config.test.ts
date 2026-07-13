@@ -16,6 +16,8 @@ describe('loadConfig', () => {
     expect(config.databaseUrl).toBe(REQUIRED.DATABASE_URL);
     expect(config.schema).toBe('chat');
     expect(config.natsUrl).toBe('nats://nats:4222');
+    expect(config.applicationsGrpcUrl).toBe('service-applications:6005');
+    expect(config.rescueGrpcUrl).toBe('service-rescue:6004');
   });
 
   it('honours all env overrides when set', () => {
@@ -27,6 +29,8 @@ describe('loadConfig', () => {
       NODE_ENV: 'production',
       DATABASE_URL: 'postgres://prod:secret@db.example.com:5432/chat',
       NATS_URL: 'nats://nats.internal:4222',
+      APPLICATIONS_GRPC_URL: 'service-applications.internal:6005',
+      RESCUE_GRPC_URL: 'service-rescue.internal:6004',
     });
 
     expect(config.port).toBe(5500);
@@ -36,6 +40,8 @@ describe('loadConfig', () => {
     expect(config.schema).toBe('chat_test');
     expect(config.databaseUrl).toBe('postgres://prod:secret@db.example.com:5432/chat');
     expect(config.natsUrl).toBe('nats://nats.internal:4222');
+    expect(config.applicationsGrpcUrl).toBe('service-applications.internal:6005');
+    expect(config.rescueGrpcUrl).toBe('service-rescue.internal:6004');
   });
 
   it('rejects a non-numeric CHAT_PORT', () => {

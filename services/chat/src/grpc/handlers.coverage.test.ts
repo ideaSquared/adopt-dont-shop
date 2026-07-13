@@ -4,25 +4,53 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { Permission, UserId } from '@adopt-dont-shop/lib.types';
-import type {
-  ListChatsRequest,
-  ListMessagesRequest,
-  MarkReadRequest,
-  OpenChatRequest,
-  ReactRequest,
-  SendMessageRequest,
+import {
+  ApplicationsV1,
+  RescueV1,
+  type ListChatsRequest,
+  type ListMessagesRequest,
+  type MarkReadRequest,
+  type OpenChatRequest,
+  type ReactRequest,
+  type SendMessageRequest,
 } from '@adopt-dont-shop/proto';
 
+import type { ApplicationsClient } from './applications-client.js';
+import type { RescueClient } from './rescue-client.js';
 import {
   deleteChat,
   deleteMessage,
   listChats,
   listMessages,
+  makeOpenChat,
   markRead,
-  openChat,
   react,
   sendMessage,
 } from './handlers.js';
+
+// Stubbed cross-service clients for makeOpenChat (ADS-918): app-1
+// belongs to usr-adopter at rescue rsc-1, whose staff list contains
+// usr-rescue. Mirrors handlers.test.ts.
+const makeOpenChatWithStubs = (): ReturnType<typeof makeOpenChat> => {
+  const applicationsClient: ApplicationsClient = {
+    getApplication: vi.fn().mockResolvedValue({
+      application: ApplicationsV1.Application.fromPartial({
+        applicationId: 'app-1',
+        adopterId: 'usr-adopter',
+        rescueId: 'rsc-1',
+      }),
+      timeline: [],
+    }),
+    close: vi.fn(),
+  };
+  const rescueClient: RescueClient = {
+    listStaffMembers: vi.fn().mockResolvedValue({
+      staffMembers: [RescueV1.StaffMember.fromPartial({ userId: 'usr-rescue', rescueId: 'rsc-1' })],
+    }),
+    close: vi.fn(),
+  };
+  return makeOpenChat(applicationsClient, rescueClient);
+};
 
 // Additional behavioural coverage for the gRPC handlers — focused on the
 // branches the primary handlers.test.ts leaves open: missing-argument
@@ -127,9 +155,11 @@ describe('handler argument validation', () => {
 
   it('openChat rejects a missing other_user_id', async () => {
     const req: OpenChatRequest = { applicationId: 'app-1', otherUserId: '' };
-    await expect(openChat(mocks.deps, ADOPTER_PRINCIPAL, req)).rejects.toMatchObject({
-      code: 'INVALID_ARGUMENT',
-    });
+    await expect(makeOpenChatWithStubs()(mocks.deps, ADOPTER_PRINCIPAL, req)).rejects.toMatchObject(
+      {
+        code: 'INVALID_ARGUMENT',
+      }
+    );
   });
 
   it('sendMessage rejects a missing chat_id', async () => {
@@ -349,13 +379,15 @@ describe('post-commit INTERNAL guards', () => {
   });
 
   it('deleteChat throws INTERNAL when the UPDATE returns no rows', async () => {
-    mocks.poolScript.push({ rows: [{ chat_participant_id: 'p-1' }] }); // participant
+    // Deleting is a staff/safety-team primitive (ADS-923) — use the
+    // super_admin fixture so the privilege gate passes without needing
+    // a participant-membership lookup.
     mocks.poolScript.push({ rows: [{ ...chatRowFixture(), deleted_at: null }] }); // existing
     mocks.clientScript.push({ rows: [] }); // UPDATE → no rows
     mocks.clientScript.push({ rows: [{ participant_id: 'usr-adopter' }] }); // participants
 
     await expect(
-      deleteChat(mocks.deps, ADOPTER_PRINCIPAL, { chatId: 'chat-1' })
+      deleteChat(mocks.deps, SUPER_ADMIN_PRINCIPAL, { chatId: 'chat-1' })
     ).rejects.toMatchObject({ code: 'INTERNAL' });
   });
 });
@@ -377,7 +409,10 @@ describe('openChat insert guard', () => {
     mocks.clientScript.push({ rows: [] }); // INSERT participants
 
     await expect(
-      openChat(mocks.deps, ADOPTER_PRINCIPAL, { applicationId: 'app-1', otherUserId: 'usr-rescue' })
+      makeOpenChatWithStubs()(mocks.deps, ADOPTER_PRINCIPAL, {
+        applicationId: 'app-1',
+        otherUserId: 'usr-rescue',
+      })
     ).rejects.toMatchObject({ code: 'INTERNAL' });
   });
 });

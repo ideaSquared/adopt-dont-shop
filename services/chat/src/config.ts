@@ -25,6 +25,13 @@ export type ChatConfig = {
   // WS subscriber fans these out to connected Socket.IO clients so
   // open chats receive messages in real time.
   natsUrl: string;
+  // ADS-918: OpenChat resolves applicationId → {adopterId, rescueId} via
+  // service.applications before creating a chat, so a caller can't stamp
+  // an arbitrary rescueId or DM someone unrelated to the application.
+  applicationsGrpcUrl: string;
+  // ADS-918: OpenChat verifies otherUserId is actually rescue staff (the
+  // adopter-initiates-chat direction) via service.rescue's staff list.
+  rescueGrpcUrl: string;
 };
 
 const DEFAULT_PORT = 5006;
@@ -32,6 +39,8 @@ const DEFAULT_GRPC_PORT = 6006;
 const DEFAULT_HOST = '0.0.0.0';
 const DEFAULT_SCHEMA = 'chat';
 const DEFAULT_NATS_URL = 'nats://nats:4222';
+const DEFAULT_APPLICATIONS_GRPC_URL = 'service-applications:6005';
+const DEFAULT_RESCUE_GRPC_URL = 'service-rescue:6004';
 
 export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ChatConfig => {
   const port = parsePort(env.CHAT_PORT, DEFAULT_PORT, 'CHAT_PORT');
@@ -47,5 +56,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): ChatConfig => 
     databaseUrl,
     schema: env.CHAT_SCHEMA?.trim() || DEFAULT_SCHEMA,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
+    applicationsGrpcUrl: env.APPLICATIONS_GRPC_URL?.trim() || DEFAULT_APPLICATIONS_GRPC_URL,
+    rescueGrpcUrl: env.RESCUE_GRPC_URL?.trim() || DEFAULT_RESCUE_GRPC_URL,
   };
 };

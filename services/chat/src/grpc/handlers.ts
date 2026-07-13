@@ -13,15 +13,23 @@
 //     remove is idempotent (no row → no-op).
 //   - MarkRead: idempotent — repeated calls just re-stamp read_at.
 //
-// Cross-schema reads (auth.users for sender name lookups, applications
-// for app validation) live in the gateway / consumers. This service
-// validates participant membership inside its own schema only.
+// Cross-schema reads (auth.users for sender name lookups) live in the
+// gateway / consumers. Everything else validates participant membership
+// inside its own schema only — EXCEPT OpenChat (ADS-918), which resolves
+// the applicationId → {adopterId, rescueId} relationship via a
+// service.applications gRPC call (+ service.rescue for the
+// adopter-initiates-chat direction) before creating a chat, because
+// nothing in this schema can otherwise confirm the caller and
+// other_user_id actually belong together.
 
 import { randomUUID } from 'node:crypto';
 
 import { hasPermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Permission } from '@adopt-dont-shop/lib.types';
+import { principalToMetadata } from '@adopt-dont-shop/service-bootstrap';
+import type { ApplicationsClient } from './applications-client.js';
+import type { RescueClient } from './rescue-client.js';
 import type {
   Chat,
   DeleteChatRequest,
@@ -269,96 +277,170 @@ const messageRowToProto = (row: MessageRow, reactions: MessageReaction[]): Messa
 
 // --- OpenChat --------------------------------------------------------
 
-export async function openChat(
-  deps: HandlerDeps,
-  principal: Principal,
-  req: OpenChatRequest
-): Promise<OpenChatResponse> {
-  if (!req.applicationId) {
-    throw new HandlerError('INVALID_ARGUMENT', 'application_id is required');
-  }
-  if (!req.otherUserId) {
-    throw new HandlerError('INVALID_ARGUMENT', 'other_user_id is required');
-  }
-  if (req.otherUserId === principal.userId) {
-    throw new HandlerError('INVALID_ARGUMENT', 'cannot open a chat with yourself');
-  }
-  if (!hasPermission(principal, CHAT_CREATE)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${CHAT_CREATE}' required`);
-  }
+// gRPC numeric status codes surfaced by the cross-service calls below —
+// mapped onto our own HandlerError codes the same way
+// services/applications/src/grpc/handlers.ts maps service.pets errors.
+const CROSS_SERVICE_GRPC_NOT_FOUND = 5;
+const CROSS_SERVICE_GRPC_PERMISSION_DENIED = 7;
 
-  // Idempotency: look up an existing chat for this application + pair.
-  const existing = await deps.pool.query<ChatRow>(
-    `
-    SELECT c.*
-    FROM chats c
-    WHERE c.application_id = $1
-      AND c.deleted_at IS NULL
-      AND EXISTS (
-        SELECT 1 FROM chat_participants p1
-        WHERE p1.chat_id = c.chat_id AND p1.participant_id = $2 AND p1.deleted_at IS NULL
-      )
-      AND EXISTS (
-        SELECT 1 FROM chat_participants p2
-        WHERE p2.chat_id = c.chat_id AND p2.participant_id = $3 AND p2.deleted_at IS NULL
-      )
-    LIMIT 1
-    `,
-    [req.applicationId, principal.userId, req.otherUserId]
-  );
-  if (existing.rows[0]) {
-    const chat = await chatRowToProto(deps, existing.rows[0]);
-    return { chat, created: false };
-  }
+export function makeOpenChat(
+  applicationsClient: ApplicationsClient,
+  rescueClient: RescueClient
+): (deps: HandlerDeps, principal: Principal, req: OpenChatRequest) => Promise<OpenChatResponse> {
+  return async (deps, principal, req) => {
+    if (!req.applicationId) {
+      throw new HandlerError('INVALID_ARGUMENT', 'application_id is required');
+    }
+    if (!req.otherUserId) {
+      throw new HandlerError('INVALID_ARGUMENT', 'other_user_id is required');
+    }
+    if (req.otherUserId === principal.userId) {
+      throw new HandlerError('INVALID_ARGUMENT', 'cannot open a chat with yourself');
+    }
+    if (!hasPermission(principal, CHAT_CREATE)) {
+      throw new HandlerError('PERMISSION_DENIED', `'${CHAT_CREATE}' required`);
+    }
 
-  const chatId = randomUUID();
-  let inserted: ChatRow | undefined;
-  await withTransaction(deps, async ({ client, publish }) => {
-    // rescue_id is required (NOT NULL) by the schema. The gateway resolves
-    // it from the caller's rescue context and threads it on the request so
-    // the chat row records its owning rescue — rescue-scoped chat search
-    // then matches gRPC-created chats. When the caller has no rescue
-    // context (e.g. an adopter), fall back to the NULL-UUID placeholder so
-    // the NOT NULL constraint still holds.
-    const placeholderRescue = '00000000-0000-0000-0000-000000000000';
-    const rescueId = req.rescueId || placeholderRescue;
-    const inserted0 = await client.query<ChatRow>(
-      `
-      INSERT INTO chats (chat_id, application_id, rescue_id, created_at, updated_at)
-      VALUES ($1, $2, $3, now(), now())
-      RETURNING *
-      `,
-      [chatId, req.applicationId, rescueId]
-    );
-    inserted = inserted0.rows[0];
-
-    // Two participant rows. Roles default to 'member' — the gateway/
-    // service.rescue can promote a rescue-staff participant via a
-    // future update.
-    await client.query(
-      `
-      INSERT INTO chat_participants (chat_participant_id, chat_id, participant_id, role)
-      VALUES ($1, $2, $3, 'member'), ($4, $2, $5, 'member')
-      `,
-      [randomUUID(), chatId, principal.userId, randomUUID(), req.otherUserId]
+    // ADS-918: never trust applicationId/otherUserId/rescueId verbatim.
+    // Resolve the real application and derive rescue_id from it —
+    // req.rescueId is ignored entirely — and verify other_user_id is the
+    // legitimate other party (rescue staff for an adopter caller, the
+    // adopter for a rescue-staff caller).
+    const rescueId = await resolveOpenChatRescueId(
+      applicationsClient,
+      rescueClient,
+      principal,
+      req.applicationId,
+      req.otherUserId
     );
 
-    publish({
-      type: 'chat.created',
-      id: `chat.created.${chatId}`,
-      payload: {
-        chatId,
-        applicationId: req.applicationId,
-        participantUserIds: [principal.userId, req.otherUserId],
-      },
+    // Idempotency: look up an existing chat for this application + pair.
+    const existing = await deps.pool.query<ChatRow>(
+      `
+      SELECT c.*
+      FROM chats c
+      WHERE c.application_id = $1
+        AND c.deleted_at IS NULL
+        AND EXISTS (
+          SELECT 1 FROM chat_participants p1
+          WHERE p1.chat_id = c.chat_id AND p1.participant_id = $2 AND p1.deleted_at IS NULL
+        )
+        AND EXISTS (
+          SELECT 1 FROM chat_participants p2
+          WHERE p2.chat_id = c.chat_id AND p2.participant_id = $3 AND p2.deleted_at IS NULL
+        )
+      LIMIT 1
+      `,
+      [req.applicationId, principal.userId, req.otherUserId]
+    );
+    if (existing.rows[0]) {
+      const chat = await chatRowToProto(deps, existing.rows[0]);
+      return { chat, created: false };
+    }
+
+    const chatId = randomUUID();
+    let inserted: ChatRow | undefined;
+    await withTransaction(deps, async ({ client, publish }) => {
+      const inserted0 = await client.query<ChatRow>(
+        `
+        INSERT INTO chats (chat_id, application_id, rescue_id, created_at, updated_at)
+        VALUES ($1, $2, $3, now(), now())
+        RETURNING *
+        `,
+        [chatId, req.applicationId, rescueId]
+      );
+      inserted = inserted0.rows[0];
+
+      // Two participant rows. Roles default to 'member' — the gateway/
+      // service.rescue can promote a rescue-staff participant via a
+      // future update.
+      await client.query(
+        `
+        INSERT INTO chat_participants (chat_participant_id, chat_id, participant_id, role)
+        VALUES ($1, $2, $3, 'member'), ($4, $2, $5, 'member')
+        `,
+        [randomUUID(), chatId, principal.userId, randomUUID(), req.otherUserId]
+      );
+
+      publish({
+        type: 'chat.created',
+        id: `chat.created.${chatId}`,
+        payload: {
+          chatId,
+          applicationId: req.applicationId,
+          participantUserIds: [principal.userId, req.otherUserId],
+        },
+      });
     });
-  });
 
-  if (!inserted) {
-    throw new HandlerError('INTERNAL', 'insert returned no rows');
+    if (!inserted) {
+      throw new HandlerError('INTERNAL', 'insert returned no rows');
+    }
+    const chat = await chatRowToProto(deps, inserted);
+    return { chat, created: true };
+  };
+}
+
+// Resolves the application referenced by OpenChatRequest and validates
+// that other_user_id is the legitimate other party:
+//   - Caller is the application's adopter → other_user_id MUST be a
+//     staff member of the application's rescue.
+//   - Caller is staff of the application's rescue → other_user_id MUST
+//     be the application's adopter.
+//   - Caller is super_admin → trusted bypass (still pins rescue_id).
+// GetApplication's own authz (adopter-owns OR rescue-staff-of-rescue OR
+// super_admin) rejects everyone else before we get here, so the final
+// throw below is defence in depth, not the primary gate.
+async function resolveOpenChatRescueId(
+  applicationsClient: ApplicationsClient,
+  rescueClient: RescueClient,
+  principal: Principal,
+  applicationId: string,
+  otherUserId: string
+): Promise<string> {
+  let res;
+  try {
+    res = await applicationsClient.getApplication(
+      { applicationId, includeTimeline: false },
+      principalToMetadata(principal)
+    );
+  } catch (err) {
+    const code = (err as { code?: number }).code;
+    if (code === CROSS_SERVICE_GRPC_NOT_FOUND) {
+      throw new HandlerError('INVALID_ARGUMENT', `application ${applicationId} not found`);
+    }
+    if (code === CROSS_SERVICE_GRPC_PERMISSION_DENIED) {
+      throw new HandlerError('PERMISSION_DENIED', 'not authorized for this application');
+    }
+    throw new HandlerError('INTERNAL', 'failed to resolve application');
   }
-  const chat = await chatRowToProto(deps, inserted);
-  return { chat, created: true };
+
+  const app = res.application;
+  if (!app) {
+    throw new HandlerError('INVALID_ARGUMENT', `application ${applicationId} not found`);
+  }
+
+  if (principal.userId === app.adopterId) {
+    const staff = await rescueClient.listStaffMembers({ rescueId: app.rescueId });
+    const isStaff = staff.staffMembers.some(member => member.userId === otherUserId);
+    if (!isStaff) {
+      throw new HandlerError('INVALID_ARGUMENT', 'other_user_id must be rescue staff');
+    }
+    return app.rescueId;
+  }
+
+  if (principal.rescueId !== undefined && principal.rescueId === app.rescueId) {
+    if (otherUserId !== app.adopterId) {
+      throw new HandlerError('INVALID_ARGUMENT', 'other_user_id must be the application adopter');
+    }
+    return app.rescueId;
+  }
+
+  if (principal.roles.includes('super_admin')) {
+    return app.rescueId;
+  }
+
+  throw new HandlerError('PERMISSION_DENIED', 'not authorized to open a chat for this application');
 }
 
 // --- SendMessage -----------------------------------------------------
@@ -1071,13 +1153,9 @@ export async function deleteChat(
   if (!hasPermission(principal, CHAT_READ)) {
     throw new HandlerError('PERMISSION_DENIED', `'${CHAT_READ}' required`);
   }
-  // Participant-or-admin gate. Non-participants get NOT_FOUND posture
-  // so the row's existence isn't enumerable.
-  if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
-    throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
-  }
 
-  // Fetch the row to decide idempotent vs first-time delete.
+  // Fetch the row first — the rescue-staff privilege check below needs
+  // its rescue_id.
   const existing = await deps.pool.query<ChatRow & { deleted_at: Date | null }>(
     `SELECT * FROM chats WHERE chat_id = $1 LIMIT 1`,
     [req.chatId]
@@ -1086,6 +1164,32 @@ export async function deleteChat(
     throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
   }
   const row = existing.rows[0];
+
+  // ADS-923: chat-wide delete erases the thread for every participant —
+  // a plain adopter participant could use it to destroy adoption-workflow
+  // evidence the rescue relies on. Deleting is now a staff/safety-team
+  // primitive: super_admin, a moderator/admin, or rescue-staff whose home
+  // rescue matches this chat's rescue_id. A regular participant (e.g. the
+  // adopter) is denied even though they can otherwise read the chat.
+  const isPrivilegedDeleter =
+    principal.roles.includes('super_admin') ||
+    principal.roles.includes('moderator') ||
+    principal.roles.includes('admin') ||
+    (principal.roles.includes('rescue_staff') &&
+      principal.rescueId !== undefined &&
+      principal.rescueId === row.rescue_id);
+  if (!isPrivilegedDeleter) {
+    // Non-participants still get NOT_FOUND posture so the row's
+    // existence isn't enumerable; a participant who simply lacks the
+    // role learns the real reason.
+    if (!(await isParticipantOrAdmin(deps, principal, req.chatId))) {
+      throw new HandlerError('NOT_FOUND', `chat ${req.chatId} not found`);
+    }
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      'only rescue staff of this chat, or a moderator/admin, may delete a chat'
+    );
+  }
 
   // Idempotent — already deleted.
   if (row.deleted_at) {

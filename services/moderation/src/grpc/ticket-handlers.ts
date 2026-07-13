@@ -93,10 +93,29 @@ export async function openSupportTicket(
 
   const priorityDb = ticketPriorityToDb(req.priority);
   const categoryDb = ticketCategoryToDb(req.category);
-  // Prefer the request's explicit user_id; fall back to the
-  // principal. Unauthenticated opens pass neither — column is
-  // nullable.
-  const userId = req.userId !== undefined && req.userId !== '' ? req.userId : principal.userId;
+  // Identity is always derived from the authenticated principal — a
+  // caller-supplied user_id is trusted ONLY when the caller holds
+  // MODERATION_TICKETS_MANAGE (staff opening a ticket on a user's
+  // behalf during support-agent-assisted intake). Anyone else passing
+  // a user_id that doesn't match their own is rejected outright rather
+  // than silently overridden, so the caller finds out immediately
+  // instead of assuming the impersonation succeeded. (ADS-917: a
+  // caller-supplied user_id previously won unconditionally, letting
+  // any authenticated user forge another user's identity onto the
+  // ticket row and the moderation.ticketOpened audit event.)
+  const canProxy = requirePermission(principal, MODERATION_TICKETS_MANAGE);
+  if (
+    !canProxy &&
+    req.userId !== undefined &&
+    req.userId !== '' &&
+    req.userId !== principal.userId
+  ) {
+    throw new HandlerError(
+      'PERMISSION_DENIED',
+      `'${MODERATION_TICKETS_MANAGE}' required to open a ticket on behalf of another user`
+    );
+  }
+  const userId = canProxy && req.userId ? req.userId : principal.userId;
   const tags = req.tags ?? [];
 
   return withTransaction(deps, async ({ client, publish }) => {
