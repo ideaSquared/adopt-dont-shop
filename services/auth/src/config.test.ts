@@ -5,11 +5,14 @@ import { loadConfig } from './config.js';
 // Signing secrets must be >= 32 bytes (enforced at boot).
 const VALID_ACCESS_SECRET = 'access-signing-secret-at-least-32-bytes';
 const VALID_REFRESH_SECRET = 'refresh-signing-secret-at-least-32-bytes';
+// ENCRYPTION_KEY must be exactly 64 hex chars (32 bytes) — AES-256-GCM key.
+const VALID_ENCRYPTION_KEY = 'a'.repeat(64);
 
 const REQUIRED = {
   DATABASE_URL: 'postgres://test:test@localhost:5432/test',
   JWT_SECRET: VALID_ACCESS_SECRET,
   JWT_REFRESH_SECRET: VALID_REFRESH_SECRET,
+  ENCRYPTION_KEY: VALID_ENCRYPTION_KEY,
 };
 
 describe('loadConfig', () => {
@@ -24,6 +27,7 @@ describe('loadConfig', () => {
     expect(config.natsUrl).toBe('nats://nats:4222');
     expect(config.jwtSecret).toBe(REQUIRED.JWT_SECRET);
     expect(config.jwtRefreshSecret).toBe(REQUIRED.JWT_REFRESH_SECRET);
+    expect(config.encryptionKey).toBe(REQUIRED.ENCRYPTION_KEY);
   });
 
   it('honours all env overrides when set', () => {
@@ -37,6 +41,7 @@ describe('loadConfig', () => {
       NATS_URL: 'nats://nats.internal:4222',
       JWT_SECRET: VALID_ACCESS_SECRET,
       JWT_REFRESH_SECRET: VALID_REFRESH_SECRET,
+      ENCRYPTION_KEY: VALID_ENCRYPTION_KEY,
     });
 
     expect(config.port).toBe(5500);
@@ -48,6 +53,7 @@ describe('loadConfig', () => {
     expect(config.natsUrl).toBe('nats://nats.internal:4222');
     expect(config.jwtSecret).toBe(VALID_ACCESS_SECRET);
     expect(config.jwtRefreshSecret).toBe(VALID_REFRESH_SECRET);
+    expect(config.encryptionKey).toBe(VALID_ENCRYPTION_KEY);
   });
 
   it('rejects a non-numeric AUTH_PORT', () => {
@@ -97,6 +103,25 @@ describe('loadConfig', () => {
         JWT_REFRESH_SECRET: VALID_REFRESH_SECRET,
       })
     ).toThrow(/JWT_SECRET must be at least 32 bytes/);
+  });
+
+  it('rejects an unset ENCRYPTION_KEY — auth refuses to boot without a TOTP-secret encryption key', () => {
+    expect(() =>
+      loadConfig({
+        DATABASE_URL: REQUIRED.DATABASE_URL,
+        JWT_SECRET: VALID_ACCESS_SECRET,
+        JWT_REFRESH_SECRET: VALID_REFRESH_SECRET,
+      })
+    ).toThrow(/ENCRYPTION_KEY is required/);
+  });
+
+  it('rejects an ENCRYPTION_KEY that is not 64 hex chars', () => {
+    expect(() =>
+      loadConfig({
+        ...REQUIRED,
+        ENCRYPTION_KEY: 'not-hex',
+      })
+    ).toThrow(/ENCRYPTION_KEY does not match the required format/);
   });
 
   it('trims surrounding whitespace from string env values', () => {

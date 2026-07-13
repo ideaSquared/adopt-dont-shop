@@ -27,6 +27,7 @@ const config: AuthConfig = {
   natsUrl: 'nats://localhost:4222',
   jwtSecret: 'access-secret',
   jwtRefreshSecret: 'refresh-secret',
+  encryptionKey: 'a'.repeat(64),
 };
 
 const pool = {} as unknown as Pool;

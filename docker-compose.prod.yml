@@ -240,12 +240,16 @@ services:
       <<: *service-env
       JWT_SECRET_FILE: /run/secrets/jwt_secret
       JWT_REFRESH_SECRET_FILE: /run/secrets/jwt_refresh_secret
-    # Auth needs the JWT signing secrets on top of the common DB/Redis ones.
+      # ADS-914: AES-256-GCM key for encrypting TOTP 2FA secrets at rest.
+      ENCRYPTION_KEY_FILE: /run/secrets/encryption_key
+    # Auth needs the JWT signing secrets + the TOTP encryption key on top of
+    # the common DB/Redis ones.
     secrets:
       - database_url
       - redis_url
       - jwt_secret
       - jwt_refresh_secret
+      - encryption_key
       - principal_signing_key
     expose:
       - "5002"
@@ -616,6 +620,8 @@ secrets:
     file: ./secrets/jwt_secret
   jwt_refresh_secret:
     file: ./secrets/jwt_refresh_secret
+  encryption_key:
+    file: ./secrets/encryption_key
   upload_signing_secret:
     file: ./secrets/upload_signing_secret
   principal_signing_key:

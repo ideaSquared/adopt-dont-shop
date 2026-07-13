@@ -463,6 +463,8 @@ services:
       <<: *ms-env
       JWT_SECRET: '${JWT_SECRET:?Error: JWT_SECRET required}'
       JWT_REFRESH_SECRET: '${JWT_REFRESH_SECRET:?Error: JWT_REFRESH_SECRET required}'
+      # ADS-914: AES-256-GCM key for encrypting TOTP 2FA secrets at rest.
+      ENCRYPTION_KEY: '${ENCRYPTION_KEY:?Error: ENCRYPTION_KEY required}'
     ports:
       - '127.0.0.1:5002:5002'
     depends_on: *ms-deps

@@ -54,6 +54,11 @@ jobs:
       # path; dummy values are fine — migrations never read them.
       JWT_SECRET: ci-dummy-jwt-secret-not-used-by-migrations
       JWT_REFRESH_SECRET: ci-dummy-jwt-refresh-secret-not-used-by-migrations
+      # ADS-914: loadConfig() now also requires ENCRYPTION_KEY (TOTP secret
+      # encryption). A fresh CI DB has no rows to re-wrap, so the dummy 64-hex
+      # key is never used — it only satisfies config validation on the migrate
+      # path.
+      ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0

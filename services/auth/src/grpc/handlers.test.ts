@@ -19,8 +19,11 @@ import {
   type HandlerDeps,
   type MintedTokens,
 } from './handlers.js';
+import { encryptTotpSecret } from './totp-crypto.js';
 
 // --- Fixtures --------------------------------------------------------
+
+const ENCRYPTION_KEY = 'a'.repeat(64);
 
 const ADOPTER_PRINCIPAL: Principal = {
   userId: 'usr-adopter' as UserId,
@@ -50,6 +53,8 @@ function userRowFixture(overrides: Record<string, unknown> = {}) {
     email_verified: true,
     phone_verified: false,
     two_factor_enabled: false,
+    two_factor_secret: null,
+    two_factor_last_step: null,
     status: 'active',
     user_type: 'adopter',
     profile_image_url: null,
@@ -112,6 +117,7 @@ function makeMocks() {
     nats: nats as unknown as NatsConnection,
     passwordHasher,
     tokenIssuer,
+    encryptionKey: ENCRYPTION_KEY,
   };
   return {
     deps,
@@ -401,7 +407,12 @@ describe('login', () => {
   it('asks for the second factor (no tokens) when 2FA is on and no code is given', async () => {
     const secret = generateSecret();
     mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [userRowFixture({ two_factor_enabled: true, two_factor_secret: secret })],
+      rows: [
+        userRowFixture({
+          two_factor_enabled: true,
+          two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, secret),
+        }),
+      ],
     });
     mocks.hasherMock.compare.mockResolvedValueOnce(true);
 
@@ -417,7 +428,12 @@ describe('login', () => {
   it('rejects a wrong 2FA code with UNAUTHENTICATED', async () => {
     const secret = generateSecret();
     mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [userRowFixture({ two_factor_enabled: true, two_factor_secret: secret })],
+      rows: [
+        userRowFixture({
+          two_factor_enabled: true,
+          two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, secret),
+        }),
+      ],
     });
     mocks.hasherMock.compare.mockResolvedValueOnce(true);
 
@@ -437,12 +453,19 @@ describe('login', () => {
     const secret = generateSecret();
     const code = generateSync({ secret });
     mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [userRowFixture({ two_factor_enabled: true, two_factor_secret: secret })],
+      rows: [
+        userRowFixture({
+          two_factor_enabled: true,
+          two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, secret),
+        }),
+      ],
     });
     mocks.hasherMock.compare.mockResolvedValueOnce(true);
     mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
     mocks.clientMock.query.mockResolvedValue({ rows: [] });
     mocks.poolMock.query
+      // Replay-guard UPDATE (two_factor_last_step) fired by verifyAndConsumeTotp.
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
@@ -452,6 +475,39 @@ describe('login', () => {
     expect(res.twoFactorRequired).toBe(false);
     expect(res.tokens?.accessToken).toBe('access.jwt.token');
     expect(mocks.issuerMock.mint).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a replayed 2FA code on a second login attempt (ADS-914c)', async () => {
+    // Pin the clock so the code's time step and the "already accepted"
+    // step below can't drift apart at a 30s window boundary (flake guard).
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    try {
+      const secret = generateSecret();
+      const code = generateSync({ secret });
+      const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
+      const timeStep = Math.floor(Date.now() / 1000 / 30);
+
+      mocks.poolMock.query.mockResolvedValueOnce({
+        rows: [
+          userRowFixture({
+            two_factor_enabled: true,
+            two_factor_secret: encryptedSecret,
+            // Simulate the code having already been accepted at the current
+            // time step (e.g. by an attacker who captured it first).
+            two_factor_last_step: timeStep,
+          }),
+        ],
+      });
+      mocks.hasherMock.compare.mockResolvedValueOnce(true);
+
+      await expect(
+        login(mocks.deps, null, { ...BASE_LOGIN_REQ, twoFactorToken: code })
+      ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
+      expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   // --- Email-verification enforcement --------------------------------
@@ -480,7 +536,7 @@ describe('login', () => {
         userRowFixture({
           email_verified: false,
           two_factor_enabled: true,
-          two_factor_secret: secret,
+          two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, secret),
         }),
       ],
     });

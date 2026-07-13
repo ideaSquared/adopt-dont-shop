@@ -92,7 +92,13 @@ export type { RunningGrpcServer };
 
 export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
   const { config, pool, nats, passwordHasher, tokenIssuer, logger } = opts;
-  const deps: HandlerDeps = { pool, nats, passwordHasher, tokenIssuer };
+  const deps: HandlerDeps = {
+    pool,
+    nats,
+    passwordHasher,
+    tokenIssuer,
+    encryptionKey: config.encryptionKey,
+  };
   const server = new Server();
 
   server.addService(AuthV1.AuthServiceService, {
