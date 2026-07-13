@@ -1,3 +1,4 @@
+import { Metadata } from '@grpc/grpc-js';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -154,6 +155,38 @@ describe('startSession', () => {
     await startSession(deps, makePrincipal(), { filtersJson: '' } as StartSessionRequest);
     const insertCall = deps.pool.query as unknown as ReturnType<typeof vi.fn>;
     expect(insertCall.mock.calls[1][1][2]).toBe('{}');
+  });
+
+  // ADS-931: ip_address / user_agent are forensic columns. They must come
+  // from the gateway-stamped call metadata (connection origin), never from
+  // the caller-controlled request body — otherwise any adopter can forge
+  // the abuse-investigation signal.
+  it('ignores caller-supplied ipAddress/userAgent in the request body', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }, { rows: [sessionRow()] }]);
+    await startSession(deps, makePrincipal(), {
+      ipAddress: '1.2.3.4',
+      userAgent: 'forged-agent',
+    } as StartSessionRequest);
+    const insertParams = query.mock.calls[1][1] as unknown[];
+    // INSERT params: session_id, user_id, filters, ip_address, user_agent, device_type
+    expect(insertParams[3]).toBeNull();
+    expect(insertParams[4]).toBeNull();
+  });
+
+  it('persists ip/user-agent from gateway-stamped call metadata', async () => {
+    const { deps, query } = makeDeps([{ rows: [] }, { rows: [sessionRow()] }]);
+    const metadata = new Metadata();
+    metadata.set('x-client-ip', '203.0.113.9');
+    metadata.set('x-client-user-agent', 'Mozilla/5.0 (real)');
+    await startSession(
+      deps,
+      makePrincipal(),
+      { ipAddress: '1.2.3.4', userAgent: 'forged-agent' } as StartSessionRequest,
+      metadata
+    );
+    const insertParams = query.mock.calls[1][1] as unknown[];
+    expect(insertParams[3]).toBe('203.0.113.9');
+    expect(insertParams[4]).toBe('Mozilla/5.0 (real)');
   });
 });
 

@@ -9,7 +9,7 @@ import {
 
 import type { WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Principal } from '@adopt-dont-shop/authz';
-import type { ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
+import type { Metadata, ServerUnaryCall, sendUnaryData } from '@grpc/grpc-js';
 import type { Logger } from 'winston';
 
 const SERVICE_NAME = 'service.matching';
@@ -19,8 +19,11 @@ export type HandlerDeps = WithTransactionDeps;
 export type { HandlerErrorCode };
 export { HandlerError };
 
+// Handlers may declare a fourth `metadata` parameter to read
+// gateway-stamped call metadata (ADS-931 — startSession's forensic
+// ip/user-agent columns). Three-parameter handlers remain assignable.
 export function adapt<Req, Res>(
-  handler: (deps: HandlerDeps, principal: Principal, req: Req) => Promise<Res>,
+  handler: (deps: HandlerDeps, principal: Principal, req: Req, metadata: Metadata) => Promise<Res>,
   opts: { deps: HandlerDeps; logger: Logger }
 ): (call: ServerUnaryCall<Req, Res>, callback: sendUnaryData<Res>) => void {
   return adaptShared<HandlerDeps, Req, Res>(SERVICE_NAME, handler, opts);

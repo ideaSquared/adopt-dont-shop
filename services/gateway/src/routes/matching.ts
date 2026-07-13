@@ -66,11 +66,13 @@ const MATCHING_RATE_LIMITS = {
   topPicks: { max: 60, timeWindow: '1 minute' },
 } as const;
 
+// userAgent / ipAddress are deliberately NOT accepted from the body:
+// they are forensic columns, stamped from the gateway's own connection
+// context via buildMetadata's x-client-ip / x-client-user-agent
+// (ADS-931). The matching handler ignores the proto body fields too.
 type StartSessionBody = {
   filtersJson?: string;
   deviceType?: string;
-  userAgent?: string;
-  ipAddress?: string;
 };
 
 type RecordSwipeBody = {
@@ -100,8 +102,6 @@ export const registerMatchingRoutes = async (
           properties: {
             filtersJson: { type: 'string' },
             deviceType: { type: 'string' },
-            userAgent: { type: 'string' },
-            ipAddress: { type: 'string' },
           },
         },
         response: {
@@ -115,8 +115,6 @@ export const registerMatchingRoutes = async (
       const grpcReq: StartSessionRequest = {
         filtersJson: body.filtersJson ?? '',
         deviceType: parseDeviceType(body.deviceType),
-        userAgent: body.userAgent,
-        ipAddress: body.ipAddress,
       };
       try {
         const res = await client.startSession(grpcReq, buildMetadata(req));
@@ -697,13 +695,13 @@ function parseTopPicksLimit(raw: string | undefined): number {
 
 // Implicit-session helper: when the SPA doesn't carry a sessionId on
 // /discovery/queue, mint one via StartSession (web device by default).
+// ip / user-agent flow via buildMetadata's x-client-ip /
+// x-client-user-agent, not the request body (ADS-931).
 async function openSession(
   client: MatchingClient,
   req: FastifyRequest,
   filtersJson: string
 ): Promise<string> {
-  const headers = req.headers as Record<string, string | string[] | undefined>;
-  const ua = typeof headers['user-agent'] === 'string' ? headers['user-agent'] : undefined;
   const res = await client.startSession(
     {
       filtersJson,
@@ -711,8 +709,6 @@ async function openSession(
       // bucket the proto offers (no DEVICE_TYPE_WEB exists). Caller can
       // override by calling /matching/sessions explicitly with `deviceType`.
       deviceType: MatchingV1.DeviceType.DEVICE_TYPE_DESKTOP,
-      userAgent: ua,
-      ipAddress: req.ip,
     },
     buildMetadata(req)
   );
