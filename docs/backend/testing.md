@@ -41,9 +41,6 @@ pnpm test
 # Watch mode
 pnpm test:watch
 
-# Vitest UI
-pnpm test:ui
-
 # Coverage report
 pnpm test:coverage
 

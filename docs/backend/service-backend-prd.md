@@ -43,8 +43,8 @@ The Backend Service is the core API and data management layer that powers all ap
 - Complete user profile management
 - Account verification and activation
 - Notification, privacy, and consent preferences
-- Data export (GDPR Art. 20) via `/api/v1/privacy/me/export`
-- Account deletion (GDPR Art. 17) via `/api/v1/privacy/me/delete` with 30-day grace + retention worker anonymization
+- Data export (GDPR Art. 20) via `POST /api/v1/privacy/admin/users/:userId/export` (admin-driven; there is no self-service `/me/export` route)
+- Account deletion (GDPR Art. 17) via `POST /api/v1/privacy/admin/users/:userId/delete-request` with 30-day grace + retention worker anonymization
 - Field-level access restrictions via `FieldPermission` model + `middleware/field-permissions.ts`
 
 *Out of scope (not implemented):* OAuth / social login / external-account linking. Defer to roadmap.
@@ -82,9 +82,10 @@ The Backend Service is the core API and data management layer that powers all ap
 
 **Application status model (current, authoritative):**
 
-`ApplicationStatus = SUBMITTED | APPROVED | REJECTED | WITHDRAWN`
+`ApplicationStatus = DRAFT | SUBMITTED | UNDER_REVIEW | HOME_VISIT_SCHEDULED | HOME_VISIT_COMPLETED | APPROVED | REJECTED | WITHDRAWN | ADOPTED`
+(source: `services/applications/src/migrations/002_create_applications.ts:28`)
 
-Frontend `ApplicationStage` (PENDING / REVIEWING / VISITING / DECIDING / RESOLVED) is a UI-only presentation layer derived from status + home-visit + reference data via `app.rescue/src/services/applicationService.ts:mapStatusToStage`. It does not exist as a backend column. Allowed status transitions: `SUBMITTED → {APPROVED, REJECTED, WITHDRAWN}`; terminal statuses cannot transition.
+The typical happy path is `DRAFT → SUBMITTED → UNDER_REVIEW → HOME_VISIT_SCHEDULED → HOME_VISIT_COMPLETED → APPROVED → ADOPTED`; `WITHDRAWN` / `REJECTED` can be reached from any earlier state. The frontend `ApplicationStage` (PENDING / REVIEWING / VISITING / DECIDING / RESOLVED) is a UI-only presentation layer derived from status + home-visit data via `app.rescue/src/services/applicationService.ts:mapStatusToStage`.
 
 ### 6. Communication System
 

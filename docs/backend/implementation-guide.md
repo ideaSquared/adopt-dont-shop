@@ -83,7 +83,7 @@ DEV_DB_NAME=adopt_dont_shop_dev
 
 # JWT
 JWT_SECRET=your-development-jwt-secret
-JWT_EXPIRES_IN=15m
+JWT_EXPIRES_IN=1h
 JWT_REFRESH_EXPIRES_IN=7d
 
 # Email — one of: console | ethereal | resend (see Email Service Setup)
@@ -236,14 +236,11 @@ pnpm test
 # Watch mode
 pnpm test:watch
 
-# Vitest UI
-pnpm test:ui
-
 # Coverage report
 pnpm test:coverage
 
-# Specific test file
-pnpm test -- src/__tests__/services/user.service.test.ts
+# Specific test file (Vitest takes a substring filter; tests are colocated as `*.test.ts` next to source)
+pnpm test user.service.test.ts
 ```
 
 Load-testing and performance-profiling scripts are not yet set up.
@@ -280,14 +277,16 @@ docker compose logs -f service-auth # one service
 ### Production
 
 ```bash
-# Build a service's production image (multi-stage target; each service ships its own Dockerfile)
+# Build a service's production image (single parameterised Dockerfile at repo root; pass SERVICE/SERVICE_DIR)
 docker build \
   --target production \
+  --build-arg SERVICE=gateway \
+  --build-arg SERVICE_DIR=services/gateway \
   -t adoptdontshop/gateway:latest \
-  -f services/gateway/Dockerfile .
+  -f Dockerfile.service .
 
-# Run production container
-docker run -p 5000:5000 \
+# Run production container (gateway listens on 4000)
+docker run -p 4000:4000 \
   --env-file .env.production \
   adoptdontshop/gateway:latest
 ```

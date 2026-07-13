@@ -34,11 +34,10 @@ The Adopt Don't Shop Backend API provides RESTful endpoints for managing users, 
 | POST   | `/api/v1/auth/verify-email`           | Verify email address (token in body)   | No                  |
 | POST   | `/api/v1/auth/resend-verification`    | Resend verification email              | No                  |
 | GET    | `/api/v1/auth/me`                     | Get current user profile               | Yes                 |
-| PUT    | `/api/v1/auth/me`                     | Update current user profile            | Yes                 |
+| PATCH  | `/api/v1/users/account`               | Update current user's account fields   | Yes                 |
 | POST   | `/api/v1/auth/2fa/setup`              | Begin two-factor enrolment             | Yes                 |
 | POST   | `/api/v1/auth/2fa/enable`             | Enable two-factor (verify OTP)         | Yes                 |
 | POST   | `/api/v1/auth/2fa/disable`            | Disable two-factor                     | Yes                 |
-| POST   | `/api/v1/auth/2fa/backup-codes`       | Regenerate backup codes                | Yes                 |
 
 ## Core Resources
 
@@ -46,50 +45,72 @@ The Adopt Don't Shop Backend API provides RESTful endpoints for managing users, 
 
 User listing lives under [Admin Endpoints](#admin-endpoints) (`GET /api/v1/admin/users`); the `/api/v1/users` mount is for the current user's own resources.
 
-| Method | Endpoint                       | Description                                          |
-| ------ | ------------------------------ | ---------------------------------------------------- |
-| GET    | `/api/v1/users/profile`        | Get current user profile                             |
-| PUT    | `/api/v1/users/profile`        | Update current user profile                          |
-| GET    | `/api/v1/users/preferences`    | Get current user's preferences                       |
-| PUT    | `/api/v1/users/preferences`    | Update current user's preferences                    |
+| Method | Endpoint                          | Description                                       |
+| ------ | --------------------------------- | ------------------------------------------------- |
+| GET    | `/api/v1/users/profile`           | Get current user profile                          |
+| PUT    | `/api/v1/users/profile`           | Update current user profile                       |
+| GET    | `/api/v1/users/preferences`       | Get current user's preferences                    |
+| PUT    | `/api/v1/users/preferences`       | Update current user's preferences                 |
 | POST   | `/api/v1/users/preferences/reset` | Reset preferences to defaults                     |
-| DELETE | `/api/v1/users/account`        | Delete own account (soft delete; rate-limited)       |
-| GET    | `/api/v1/users/:userId`        | Get another user's public profile                    |
+| GET    | `/api/v1/users/account`           | Get current user's account record                 |
+| PATCH  | `/api/v1/users/account`           | Update current user's account fields              |
+| GET    | `/api/v1/users/:userId`           | Get another user's public profile                 |
 
 ### Pets
 
-| Method | Endpoint                              | Description                                         |
-| ------ | ------------------------------------- | --------------------------------------------------- |
-| GET    | `/api/v1/pets`                        | Search/browse pets (supports filtering, pagination) |
-| POST   | `/api/v1/pets`                        | Create new pet (rescue staff only)                  |
-| GET    | `/api/v1/pets/:petId`                 | Get pet details                                     |
-| PUT    | `/api/v1/pets/:petId`                 | Update pet information                              |
-| DELETE | `/api/v1/pets/:petId`                 | Delete pet (soft delete)                            |
-| POST   | `/api/v1/pets/:petId/images`          | Upload / replace pet images                         |
-| DELETE | `/api/v1/pets/:petId/images`          | Delete pet image (identifier in body)               |
-| PATCH  | `/api/v1/pets/:petId/status`          | Update pet availability status                      |
-| POST   | `/api/v1/pets/:petId/favorite`        | Add to favorites                                    |
-| DELETE | `/api/v1/pets/:petId/favorite`        | Remove from favorites                               |
+Route params use `:id` (not `:petId`). Image upload lives under [Uploads](#uploads).
+
+| Method | Endpoint                       | Description                                         |
+| ------ | ------------------------------ | --------------------------------------------------- |
+| GET    | `/api/v1/pets`                 | Search/browse pets (supports filtering, pagination) |
+| GET    | `/api/v1/pets/stats`           | Get pet stats (rescue staff)                        |
+| GET    | `/api/v1/pets/favorites/user`  | List current user's favorited pets                  |
+| GET    | `/api/v1/pets/:id`             | Get pet details                                     |
+| POST   | `/api/v1/pets`                 | Create new pet (rescue staff only)                  |
+| PATCH  | `/api/v1/pets/:id`             | Update pet information                              |
+| DELETE | `/api/v1/pets/:id`             | Delete pet (soft delete)                            |
+| POST   | `/api/v1/pets/:id/status`      | Update pet availability status                      |
+| POST   | `/api/v1/pets/bulk-update`     | Bulk status/field update                            |
+| GET    | `/api/v1/pets/:id/favorite/status` | Whether the current user has favorited this pet |
+| POST   | `/api/v1/pets/:id/favorite`    | Add to favorites                                    |
+| DELETE | `/api/v1/pets/:id/favorite`    | Remove from favorites                               |
 
 ### Discovery (Swipe Interface)
 
-| Method | Endpoint                                | Description                                |
-| ------ | --------------------------------------- | ------------------------------------------ |
-| GET    | `/api/v1/discovery/pets`                | Get personalized pet queue for swiping     |
-| POST   | `/api/v1/discovery/swipe/action`        | Record swipe action (like/pass/super-like) |
-| GET    | `/api/v1/discovery/swipe/stats/:userId` | Get user swipe analytics                   |
-| POST   | `/api/v1/discovery/pets/more`           | Load more pets for infinite scroll         |
+| Method | Endpoint                                       | Description                                |
+| ------ | ---------------------------------------------- | ------------------------------------------ |
+| POST   | `/api/v1/discovery/queue`                      | Get personalized pet queue for swiping     |
+| POST   | `/api/v1/discovery/pets/more`                  | Load more pets for infinite scroll         |
+| POST   | `/api/v1/discovery/swipe/action`               | Record swipe action (like/pass/super-like) |
+| GET    | `/api/v1/discovery/swipe/stats/:userId`        | Get user swipe analytics                   |
+| GET    | `/api/v1/discovery/swipe/session/:sessionId`   | Get session-level swipe metrics            |
 
 ### Applications
 
-| Method | Endpoint                                      | Description                          |
-| ------ | --------------------------------------------- | ------------------------------------ |
-| GET    | `/api/v1/applications`                        | List applications (filtered by role) |
-| POST   | `/api/v1/applications`                        | Submit new application               |
-| GET    | `/api/v1/applications/:applicationId`         | Get application details              |
-| PATCH  | `/api/v1/applications/:applicationId/status`  | Update application status            |
-| POST   | `/api/v1/applications/:applicationId/withdraw`| Withdraw application                 |
-| GET    | `/api/v1/applications/:applicationId/history` | Get status history                   |
+Route params use `:id` (not `:applicationId`). Draft/review/approval/rejection all have dedicated sub-routes.
+
+| Method | Endpoint                                          | Description                          |
+| ------ | ------------------------------------------------- | ------------------------------------ |
+| GET    | `/api/v1/applications`                            | List applications (filtered by role) |
+| POST   | `/api/v1/applications`                            | Create new application               |
+| GET    | `/api/v1/applications/stats`                      | Application aggregate stats          |
+| GET    | `/api/v1/applications/:id`                        | Get application details              |
+| PATCH  | `/api/v1/applications/:id/status`                 | Update application status            |
+| PATCH  | `/api/v1/applications/:id/answers`                | Save draft answers                   |
+| POST   | `/api/v1/applications/:id/submit`                 | Submit for review                    |
+| POST   | `/api/v1/applications/:id/review`                 | Start review (rescue staff)          |
+| POST   | `/api/v1/applications/:id/approve`                | Approve                              |
+| POST   | `/api/v1/applications/:id/reject`                 | Reject                               |
+| POST   | `/api/v1/applications/:id/adopt`                  | Mark adopted                         |
+| PUT    | `/api/v1/applications/:id/withdraw`               | Withdraw application                 |
+| POST   | `/api/v1/applications/:id/home-visit/schedule`    | Schedule a home visit                |
+| POST   | `/api/v1/applications/:id/home-visit/complete`    | Record home visit outcome            |
+| POST   | `/api/v1/applications/bulk-update`                | Bulk field update                    |
+| GET    | `/api/v1/applications/drafts/:petId`              | Get current user's draft for a pet   |
+| PUT    | `/api/v1/applications/drafts/:petId`              | Save/replace draft                   |
+| DELETE | `/api/v1/applications/drafts/:petId`              | Delete draft                         |
+| GET    | `/api/v1/profile/application-defaults`            | Get user's application defaults      |
+| PUT    | `/api/v1/profile/application-defaults`            | Update application defaults          |
 
 ### Rescues
 
@@ -114,21 +135,14 @@ Chat routes are mounted at `/api/v1/chats` (canonical). `/api/v1/conversations` 
 | GET    | `/api/v1/chats`                                     | List user's chats                      |
 | POST   | `/api/v1/chats`                                     | Create new chat                        |
 | GET    | `/api/v1/chats/search`                              | Search chats                           |
-| GET    | `/api/v1/chats/analytics`                           | Chat analytics (rescue staff / admin)  |
+| GET    | `/api/v1/chats/unread-count`                        | Total unread across all chats          |
 | GET    | `/api/v1/chats/:chatId`                             | Get chat details                       |
-| PUT    | `/api/v1/chats/:chatId`                             | Update chat metadata                   |
-| PATCH  | `/api/v1/chats/:chatId`                             | Lock/unlock or change status           |
 | DELETE | `/api/v1/chats/:chatId`                             | Archive/delete chat                    |
 | GET    | `/api/v1/chats/:chatId/messages`                    | Get messages (paginated)               |
 | POST   | `/api/v1/chats/:chatId/messages`                    | Send message                           |
 | DELETE | `/api/v1/chats/:chatId/messages/:messageId`         | Delete message                         |
 | POST   | `/api/v1/chats/:chatId/read`                        | Mark messages as read                  |
-| GET    | `/api/v1/chats/:chatId/unread-count`                | Get unread message count               |
-| POST   | `/api/v1/chats/:chatId/participants`                | Add participant                        |
-| DELETE | `/api/v1/chats/:chatId/participants/:userId`        | Remove participant                     |
-| POST   | `/api/v1/chats/messages/:messageId/reactions`       | Add reaction to a message              |
-| DELETE | `/api/v1/chats/messages/:messageId/reactions`       | Remove reaction                        |
-| POST   | `/api/v1/chats/:chatId/attachments/upload`          | Upload chat attachment                 |
+| POST   | `/api/v1/messages/:messageId/reactions`             | Add / remove reaction to a message     |
 
 ### Notifications
 
@@ -149,14 +163,17 @@ Mounted at `/api/v1/admin`. Moderation routes live under the separate `/api/v1/a
 | Method | Endpoint                                             | Description                                                            |
 | ------ | ---------------------------------------------------- | ---------------------------------------------------------------------- |
 | GET    | `/api/v1/admin/users`                                | List all users (with filtering)                                        |
+| POST   | `/api/v1/admin/users`                                | Create a user                                                          |
 | PATCH  | `/api/v1/admin/users/:userId`                        | Update a user record                                                   |
-| PATCH  | `/api/v1/admin/users/:userId/action`                 | Perform an admin action (suspend, restore, force-logout, etc.)         |
-| GET    | `/api/v1/admin/rescues`                              | List all rescues                                                       |
-| PATCH  | `/api/v1/admin/rescues/:rescueId/moderate`           | Verify / reject a rescue (sets `verification_status`)                  |
+| POST   | `/api/v1/admin/users/:userId/action`                 | Perform an admin action (suspend, restore, force-logout, etc.)         |
+| POST   | `/api/v1/admin/users/:userId/reset-password`         | Admin-triggered password reset                                         |
+| POST   | `/api/v1/rescues/:rescueId/verify`                   | Approve rescue verification                                            |
+| POST   | `/api/v1/rescues/:rescueId/reject`                   | Reject rescue verification                                             |
 | PATCH  | `/api/v1/admin/rescues/:rescueId/plan`               | Change rescue subscription plan                                        |
 | GET    | `/api/v1/admin/moderation/reports`                   | Get content reports                                                    |
-| POST   | `/api/v1/admin/moderation/reports/:reportId/actions` | Take moderation action                                                 |
-| GET    | `/api/v1/admin/system/health`                        | System health status                                                   |
+| PATCH  | `/api/v1/admin/moderation/reports/:id/status`        | Update report status                                                   |
+| POST   | `/api/v1/admin/moderation/actions`                   | Take moderation action                                                 |
+| GET    | `/api/v1/admin/metrics`                              | Admin dashboard metrics                                                |
 | GET    | `/api/v1/admin/analytics/dashboard`                  | Admin dashboard analytics                                              |
 
 ## Common Patterns
@@ -215,7 +232,7 @@ Common HTTP status codes:
 
 ## Interactive API Documentation
 
-**Swagger UI**: Available at `/api/docs` (e.g. http://localhost:4000/api/docs in dev).
+**Swagger UI**: Available at `/docs` (e.g. http://localhost:4000/docs in dev). The OpenAPI JSON is served at `/openapi.json`.
 
 - Full endpoint documentation with request/response schemas
 - Interactive testing interface

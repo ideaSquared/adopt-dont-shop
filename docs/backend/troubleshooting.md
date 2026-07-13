@@ -22,14 +22,11 @@ LOG_LEVEL=debug pnpm dev
 ### Health Check Diagnostics
 
 ```bash
-# Basic health check
-curl http://localhost:5000/health
+# Gateway liveness (only HTTP health endpoint; docker-compose healthchecks hit this)
+curl http://localhost:4000/health/simple
 
-# Detailed health check with service status
-curl http://localhost:5000/health/detailed
-
-# Database health check
-curl http://localhost:5000/health/db
+# Backing services publish structured health over gRPC + Prometheus metrics
+# — there is no aggregated HTTP `/health` route. See docs/observability/tracing.md.
 ```
 
 ## Database Issues
@@ -119,11 +116,9 @@ echo $DB_HOST $DB_PORT $DB_NAME $DB_USER
 **Diagnostics:**
 
 ```bash
-# Check migration status (via custom Umzug runner)
-pnpm db:migrate:status
-
-# View migration history
-SELECT * FROM "SequelizeMeta";
+# View migration history (each service tracks its own `pgmigrations` bookkeeping table
+# in its own schema)
+psql "$DATABASE_URL" -c 'SELECT * FROM pgmigrations ORDER BY run_on'
 
 # Check current database schema
 \d+ users
@@ -135,27 +130,27 @@ SELECT * FROM "SequelizeMeta";
 1. **Failed migration:**
 
    ```bash
-   # Rollback last migration
-   pnpm db:migrate:undo
-
-   # Fix migration file and re-run
-   pnpm db:migrate
+   # Fix the migration file and re-run inside the affected service's container
+   docker compose exec service-<name> pnpm db:migrate
    ```
 
-2. **Out of sync migrations:**
+   There is no `db:migrate:status` / `db:migrate:undo` script yet — to unpick a partial
+   migration, delete the failing row from `pgmigrations` and hand-fix DDL, or reset the
+   dev DB volume (see the next item).
+
+2. **Out of sync migrations (dev only):**
 
    ```bash
-   # Reset database (development only — run inside backend container)
+   # Wipe the Postgres volume and let each service re-migrate on container start
    pnpm docker:reset
    pnpm docker:dev:detach
-   pnpm db:migrate
    ```
 
 3. **Manual migration fix:**
 
    ```sql
    -- Remove migration record
-   DELETE FROM "SequelizeMeta" WHERE name = 'problematic-migration.js';
+   DELETE FROM pgmigrations WHERE name = 'problematic-migration.js';
 
    -- Fix database manually
    ALTER TABLE users ADD COLUMN new_column VARCHAR(255);
@@ -235,7 +230,7 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 echo "eyJhbGciOiJIUzI1NiIs..." | base64 -d
 
 # Test token with curl
-curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/v1/users/me
+curl -H "Authorization: Bearer $TOKEN" http://localhost:4000/api/v1/users/me
 
 # Check JWT secret
 echo $JWT_SECRET | wc -c  # Should be 32+ characters
@@ -336,17 +331,17 @@ console.log('Stored hash:', user.passwordHash);
 
 ```bash
 # Test endpoint availability
-curl -I http://localhost:5000/api/v1/pets
+curl -I http://localhost:4000/api/v1/pets
 
 # Check CORS headers
 curl -H "Origin: http://localhost:3000" \
      -H "Access-Control-Request-Method: POST" \
      -H "Access-Control-Request-Headers: X-Requested-With" \
      -X OPTIONS \
-     http://localhost:5000/api/v1/pets
+     http://localhost:4000/api/v1/pets
 
 # Test with verbose output
-curl -v http://localhost:5000/api/v1/pets
+curl -v http://localhost:4000/api/v1/pets
 ```
 
 **Solutions:**
@@ -453,7 +448,7 @@ telnet smtp.sendgrid.net 587
 SELECT * FROM email_queue WHERE status = 'failed';
 
 # Test email service
-curl -X POST http://localhost:5000/api/v1/email/test \
+curl -X POST http://localhost:4000/api/v1/email/test \
      -H "Content-Type: application/json" \
      -d '{"to": "test@example.com"}'
 ```
@@ -520,7 +515,7 @@ ls -la uploads/
 touch uploads/test.txt && rm uploads/test.txt
 
 # Check file size limits
-curl -F "file=@large-file.jpg" http://localhost:5000/api/v1/upload
+curl -F "file=@large-file.jpg" http://localhost:4000/api/v1/upload
 ```
 
 **Solutions:**
@@ -801,7 +796,7 @@ grep "response_time.*[5-9][0-9][0-9][0-9]" logs/app.log
 #!/bin/bash
 # health-monitor.sh
 
-ENDPOINT="http://localhost:5000/health"
+ENDPOINT="http://localhost:4000/health"
 SLACK_WEBHOOK="your-slack-webhook-url"
 
 response=$(curl -s -o /dev/null -w "%{http_code}" $ENDPOINT)
@@ -846,33 +841,28 @@ When reporting issues, include:
 4. **Network information:**
    ```bash
    netstat -tulpn
-   curl -I http://localhost:5000/health
+   curl -I http://localhost:4000/health
    ```
 
 ### Common Commands Reference
 
 ```bash
-# Application management
-pnpm start                    # Start application
-pnpm dev                  # Start in development mode
-pnpm test                     # Run tests
-pnpm build               # Build for production
+# Repo-wide workspace tasks (Turbo pipes ordering across packages)
+pnpm dev                   # Turbo dev across all apps + services
+pnpm build                 # Build every package (libs → apps/services)
+pnpm test                  # Run Vitest across every package
+pnpm lint                  # ESLint across every package
 
-# Database management
-pnpm db:migrate          # Run migrations
-pnpm db:seed            # Seed database
-pnpm db:reset           # Reset database
+# Seed data (each service has its own `db:seed`, orchestrated at the root)
+pnpm db:seed               # Runs SEED_TARGETS across auth, rescue, pets, applications, chat
+docker compose exec service-<name> pnpm db:migrate  # Manual per-service migration
 
-# Docker management
-docker compose up -d        # Start services
-docker compose logs -f      # View logs
-docker compose down         # Stop services
-
-# Process management
-pm2 start app.js           # Start with PM2
-pm2 restart app            # Restart application
-pm2 logs                   # View logs
-pm2 monit                  # Monitor processes
+# Docker dev stack (preferred)
+pnpm docker:dev            # Preflight + start all containers (foreground)
+pnpm docker:dev:detach     # …in background
+pnpm docker:logs           # Follow all logs
+pnpm docker:down           # Stop containers
+pnpm docker:reset          # Stop + wipe volumes (incl. DB)
 ```
 
 ---

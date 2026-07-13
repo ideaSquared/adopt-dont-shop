@@ -112,7 +112,7 @@ erDiagram
 | user_id            | UUID (FK) | Applicant                                                                         |
 | pet_id             | UUID (FK) | Applied pet                                                                       |
 | rescue_id          | UUID (FK) | Rescue org                                                                        |
-| status             | ENUM      | `submitted`, `approved`, `rejected`, `withdrawn` (simplified outcome)             |
+| status             | ENUM      | `draft`, `submitted`, `under_review`, `home_visit_scheduled`, `home_visit_completed`, `approved`, `rejected`, `withdrawn`, `adopted` |
 | priority           | ENUM      | `low`, `normal`, `high`, `urgent`                                                 |
 | stage              | ENUM      | `pending`, `reviewing`, `visiting`, `deciding`, `resolved`, `withdrawn`           |
 | final_outcome      | ENUM      | `approved`, `rejected`, `withdrawn` (set when `stage = resolved`)                 |
@@ -267,18 +267,20 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 
 **Purpose**: Staff invitation management
 
-| Field         | Type         | Description                |
-| ------------- | ------------ | -------------------------- |
-| invitation_id | UUID (PK)    | Primary identifier         |
-| rescue_id     | UUID (FK)    | Inviting rescue            |
-| email         | VARCHAR      | Invitee email              |
-| role          | ENUM         | Intended role              |
-| token         | VARCHAR (UK) | Invitation token           |
-| status        | ENUM         | PENDING, ACCEPTED, EXPIRED |
-| expires_at    | TIMESTAMP    | Expiration time            |
-| created_at    | TIMESTAMP    | Invitation date            |
+| Field         | Type         | Description                                        |
+| ------------- | ------------ | -------------------------------------------------- |
+| invitation_id | UUID (PK)    | Primary identifier                                 |
+| rescue_id     | UUID (FK)    | Inviting rescue                                    |
+| email         | VARCHAR(255) | Invitee email                                      |
+| token         | VARCHAR(255) UK | Invitation token (also owns a `_unique_idx`)    |
+| user_id       | UUID         | Filled in once the invitee registers               |
+| title         | VARCHAR(100) | Intended staff-title/role at the rescue            |
+| invited_by    | UUID         | Inviter's user_id (cross-schema, FK-free)          |
+| expiration    | TIMESTAMPTZ  | Expiration time                                    |
+| used          | BOOLEAN      | True after the invitation has been redeemed        |
+| created_at    | TIMESTAMPTZ  | Invitation date                                    |
 
-**Indexes**: token, email, rescue_id, status
+**Indexes**: token (unique + explicit `_unique_idx`), email, rescue_id, user_id, invited_by, created_by, updated_by. There is no `role` / `status` / `expires_at` column — the schema uses `title` + `used` + `expiration`.
 
 ### Application Timeline
 
@@ -304,7 +306,7 @@ Read receipts are tracked in a separate `MessageRead` table; reactions in `Messa
 | Field             | Type      | Description                                          |
 | ----------------- | --------- | ---------------------------------------------------- |
 | email_id          | UUID (PK) | Primary identifier                                   |
-| template_id       | VARCHAR   | Email template                                       |
+| template_id       | UUID      | Email template reference                             |
 | from_email / from_name | VARCHAR | Sender envelope                                    |
 | to_email          | VARCHAR   | Recipient (column is `to_email`, not `recipient_email`) |
 | to_name           | VARCHAR   | Recipient display name                               |

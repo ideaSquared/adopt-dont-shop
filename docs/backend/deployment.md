@@ -106,10 +106,8 @@ For destructive or long migrations see [`docs/migrations/schema-equivalence-runb
 
 ## Health and observability
 
-- `GET /health` — basic liveness probe.
-- `GET /health/simple` — minimal probe (no DB touch).
-- `GET /health/ready` — readiness; checks DB + Redis.
-- Swagger UI at `/api/docs`.
+- `GET /health/simple` — the only HTTP liveness probe on the gateway; docker-compose healthchecks hit this. Backing services expose no HTTP surface — they publish structured health over gRPC.
+- Swagger UI at `/docs`. Machine-readable spec at `/openapi.json`.
 - Sentry init via `lib.observability` when `SENTRY_DSN` is set.
 - Logs are structured JSON (Winston). Aggregate via your platform of choice.
 
