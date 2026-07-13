@@ -35,6 +35,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget dumb-init git \
     && rm -rf /var/lib/apt/lists/*
 
+# Non-root dev user [ADS-881]. Created with a default uid/gid (matching the
+# common first-user uid on Linux); scripts/docker-dev-entrypoint.sh renumbers
+# it at container start to match the host developer's real uid/gid (passed in
+# via HOST_UID/HOST_GID from scripts/docker-dev.mjs), then drops root before
+# running the dev command. See that script for the full rationale — in short,
+# the baked node_modules (installed as root below) are re-exposed at runtime
+# through anonymous volumes, and the bind-mounted host source needs a
+# matching uid to stay writable (e.g. lib.types' `tsc --watch` dist/ output),
+# so a single fixed uid baked at build time can't work across every host.
+RUN groupadd -g 1000 devgroup && \
+    useradd -m -u 1000 -g devgroup devuser
+
 WORKDIR /app
 
 ENV HUSKY=0
@@ -49,4 +61,10 @@ COPY . .
 RUN --mount=type=cache,id=pnpm-dev-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline --store-dir=/pnpm/store
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+# dumb-init (PID 1, signal forwarding) -> our entrypoint script (still root:
+# renumbers devuser to the host uid/gid, chowns the anon-volume node_modules
+# paths, then setpriv-execs the real command as devuser). Invoked via `sh`
+# rather than relying on the executable bit, since at runtime this path
+# resolves through the `.:/app` bind mount to the HOST's copy of the file
+# [ADS-881].
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "/bin/sh", "/app/scripts/docker-dev-entrypoint.sh"]
