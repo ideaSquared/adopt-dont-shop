@@ -62,6 +62,13 @@ const ADMIN_HEADERS = {
   'x-user-permissions': 'reports.read,reports.create,reports.update,reports.delete',
 };
 
+const RESCUE_HEADERS = {
+  'x-user-id': 'usr-rescue-staff',
+  'x-user-roles': 'rescue_staff',
+  'x-user-permissions': 'reports.read,reports.create',
+  'x-rescue-id': 'rescue-1',
+};
+
 const REPORT_FIXTURE = {
   savedReportId: 'rep-1',
   userId: 'usr-1',
@@ -343,6 +350,61 @@ describe('/api/v1/reports gateway routes', () => {
         { status: 'approved', count: 3 },
       ])
     );
+  });
+
+  it('POST /execute returns the platform-wide count for a platform-admin principal', async () => {
+    authMocks.getUserStatistics.mockResolvedValue({
+      total: 10,
+      verified: 8,
+      newThisMonth: 1,
+      byStatus: [{ status: AuthV1.UserStatus.USER_STATUS_ACTIVE, count: 7 }],
+      byType: [],
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/execute',
+      headers: ADMIN_HEADERS,
+      payload: {
+        config: {
+          filters: {},
+          widgets: [
+            { id: 'w1', metric: 'user', chartType: 'metric-card', options: { valueKey: 'active' } },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { widgets: Array<{ data: unknown[] }> } };
+    expect(body.data.widgets[0].data).toEqual([{ active: 7 }]);
+    expect(authMocks.getUserStatistics).toHaveBeenCalled();
+  });
+
+  it('POST /execute drops the user-metric widget for a rescue-scoped principal instead of leaking platform counts', async () => {
+    authMocks.getUserStatistics.mockResolvedValue({
+      total: 10,
+      verified: 8,
+      newThisMonth: 1,
+      byStatus: [{ status: AuthV1.UserStatus.USER_STATUS_ACTIVE, count: 7 }],
+      byType: [],
+    });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/execute',
+      headers: RESCUE_HEADERS,
+      payload: {
+        config: {
+          filters: {},
+          widgets: [
+            { id: 'w1', metric: 'user', chartType: 'metric-card', options: { valueKey: 'active' } },
+          ],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { widgets: Array<{ data: unknown[]; status: string }> } };
+    expect(body.data.widgets[0].data).toEqual([]);
+    expect(body.data.widgets[0].status).toBe('ok');
+    expect(authMocks.getUserStatistics).not.toHaveBeenCalled();
   });
 
   it('POST /execute returns 400 when config is missing', async () => {
