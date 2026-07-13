@@ -286,6 +286,11 @@ message Rescue {
   string plan = 27;
   // Optional ISO-8601 plan expiry. Unset = no expiry.
   optional string plan_expires_at = 28;
+  // Optimistic-concurrency version — bumped on every Update. Optional
+  // (rather than a plain scalar) so existing callers that construct a
+  // Rescue without it — fixtures, stub servers — keep working; only
+  // fetchRescue's real row-to-proto mapping is expected to set it.
+  optional uint32 version = 29;
 }
 
 // Invitation mirrors the rescue.invitations row — the pending-staff
@@ -387,6 +392,11 @@ message UpdateRescueRequest {
   optional string contact_phone = 15;
   // Replaces the settings JSON blob wholesale when present.
   optional string settings_json = 16;
+  // Optimistic-concurrency guard — the caller's last-known version.
+  // The service rejects with FAILED_PRECONDITION when the row has
+  // moved beyond this version. Unset = no check (last-write-wins,
+  // the pre-existing behaviour).
+  optional uint32 expected_version = 17;
 }
 
 message UpdateRescueResponse {
