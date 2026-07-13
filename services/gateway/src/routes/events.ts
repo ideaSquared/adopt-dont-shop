@@ -11,6 +11,15 @@ import { RescueV1, type CreateEventRequest, type UpdateEventRequest } from '@ado
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
+import {
+  toValidationFailure,
+  CreateEventBodySchema,
+  normalizeCreateEventBody,
+  UpdateEventBodySchema,
+  normalizeUpdateEventBody,
+  AddAttendeeBodySchema,
+  PatchStatusBodySchema,
+} from './events.schemas.js';
 
 export type EventRoutesOptions = {
   client: RescueClient;
@@ -219,33 +228,25 @@ export const registerEventRoutes = async (
       },
     },
     async (req, reply) => {
-      const body = (req.body ?? {}) as {
-        name?: string;
-        description?: string;
-        type?: string;
-        start_date?: string;
-        end_date?: string;
-        location?: RescueV1.EventLocation;
-        capacity?: number;
-        registration_required?: boolean;
-        featured_pets?: string[];
-        assigned_staff?: string[];
-        is_public?: boolean;
-        image_url?: string;
-      };
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = CreateEventBodySchema.safeParse(normalizeCreateEventBody(b));
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
+      const body = parsed.data;
       const grpcReq: CreateEventRequest = {
-        name: body.name ?? '',
-        description: body.description ?? '',
+        name: body.name,
+        description: body.description,
         type: eventTypeFromString(body.type),
-        startDate: body.start_date ?? '',
-        endDate: body.end_date ?? '',
+        startDate: body.startDate,
+        endDate: body.endDate,
         location: body.location,
         capacity: body.capacity,
-        registrationRequired: body.registration_required ?? false,
-        featuredPets: body.featured_pets ?? [],
-        assignedStaff: body.assigned_staff ?? [],
-        isPublic: body.is_public ?? true,
-        imageUrl: body.image_url,
+        registrationRequired: body.registrationRequired,
+        featuredPets: body.featuredPets,
+        assignedStaff: body.assignedStaff,
+        isPublic: body.isPublic,
+        imageUrl: body.imageUrl,
       };
       try {
         const res = await client.createEvent(grpcReq, buildMetadata(req));
@@ -278,37 +279,28 @@ export const registerEventRoutes = async (
       },
     },
     async (req, reply) => {
-      const body = (req.body ?? {}) as {
-        name?: string;
-        description?: string;
-        type?: string;
-        start_date?: string;
-        end_date?: string;
-        location?: RescueV1.EventLocation;
-        capacity?: number;
-        registration_required?: boolean;
-        featured_pets?: string[];
-        assigned_staff?: string[];
-        is_public?: boolean;
-        image_url?: string;
-        status?: string;
-      };
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = UpdateEventBodySchema.safeParse(normalizeUpdateEventBody(b));
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
+      const body = parsed.data;
       const grpcReq: UpdateEventRequest = {
         id: req.params.id,
         name: body.name,
         description: body.description,
         type: body.type !== undefined ? eventTypeFromString(body.type) : undefined,
-        startDate: body.start_date,
-        endDate: body.end_date,
+        startDate: body.startDate,
+        endDate: body.endDate,
         location: body.location,
         capacity: body.capacity,
-        registrationRequired: body.registration_required,
-        featuredPets: body.featured_pets ?? [],
-        hasFeaturedPets: body.featured_pets !== undefined,
-        assignedStaff: body.assigned_staff ?? [],
-        hasAssignedStaff: body.assigned_staff !== undefined,
-        isPublic: body.is_public,
-        imageUrl: body.image_url,
+        registrationRequired: body.registrationRequired,
+        featuredPets: body.featuredPets ?? [],
+        hasFeaturedPets: body.featuredPets !== undefined,
+        assignedStaff: body.assignedStaff ?? [],
+        hasAssignedStaff: body.assignedStaff !== undefined,
+        isPublic: body.isPublic,
+        imageUrl: body.imageUrl,
         status: body.status !== undefined ? eventStatusFromString(body.status) : undefined,
       };
       try {
@@ -364,14 +356,18 @@ export const registerEventRoutes = async (
       },
     },
     async (req, reply) => {
-      const body = (req.body ?? {}) as { status?: string };
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = PatchStatusBodySchema.safeParse(b);
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
       const grpcReq: UpdateEventRequest = {
         id: req.params.id,
         featuredPets: [],
         hasFeaturedPets: false,
         assignedStaff: [],
         hasAssignedStaff: false,
-        status: eventStatusFromString(body.status),
+        status: eventStatusFromString(parsed.data.status),
       };
       try {
         const res = await client.updateEvent(grpcReq, buildMetadata(req));
@@ -440,19 +436,19 @@ export const registerEventRoutes = async (
       },
     },
     async (req, reply) => {
-      const body = (req.body ?? {}) as {
-        userId?: string;
-        name?: string;
-        email?: string;
-        notes?: string;
-      };
+      const b = (req.body ?? {}) as Record<string, unknown>;
+      const parsed = AddAttendeeBodySchema.safeParse(b);
+      if (!parsed.success) {
+        return reply.code(400).send(toValidationFailure(parsed.error));
+      }
+      const body = parsed.data;
       try {
         const res = await client.addEventAttendee(
           {
             eventId: req.params.id,
-            userId: body.userId ?? '',
-            name: body.name ?? '',
-            email: body.email ?? '',
+            userId: body.userId,
+            name: body.name,
+            email: body.email,
             notes: body.notes,
           },
           buildMetadata(req)

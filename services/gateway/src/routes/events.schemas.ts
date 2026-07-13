@@ -1,0 +1,122 @@
+// Zod schemas for the event CRUD routes (ADS-938).
+// Follows the same pattern as auth.schemas.ts: accept both camelCase and
+// snake_case keys via normalize helpers, validate with safeParse, return
+// toValidationFailure on failure.
+
+import { z } from 'zod';
+
+export type ValidationFailure = {
+  error: string;
+  details: { path: string; message: string }[];
+};
+
+export const toValidationFailure = (error: z.ZodError): ValidationFailure => ({
+  error: 'Invalid request body',
+  details: error.issues.map(issue => ({ path: issue.path.join('.'), message: issue.message })),
+});
+
+const pickRaw = (body: Record<string, unknown>, keys: readonly string[]): unknown => {
+  for (const key of keys) {
+    if (body[key] !== undefined && body[key] !== null) {
+      return body[key];
+    }
+  }
+  return undefined;
+};
+
+const EventTypeEnum = z.enum(['adoption', 'fundraising', 'volunteer', 'community']);
+const EventStatusEnum = z.enum(['draft', 'published', 'in_progress', 'completed', 'cancelled']);
+
+const EventLocationSchema = z.object({
+  type: z.string().min(1),
+  address: z.string().max(500).optional(),
+  city: z.string().max(100).optional(),
+  postcode: z.string().max(16).optional(),
+  virtualLink: z.string().max(2048).optional(),
+  venue: z.string().max(256).optional(),
+});
+
+export const CreateEventBodySchema = z.object({
+  name: z.string().trim().min(1, 'name is required').max(256),
+  description: z.string().trim().max(4000).default(''),
+  type: EventTypeEnum.optional().default('community'),
+  startDate: z.string().trim().min(1, 'startDate is required'),
+  endDate: z.string().trim().min(1, 'endDate is required'),
+  location: EventLocationSchema.optional(),
+  capacity: z.number().int().positive().optional(),
+  registrationRequired: z.boolean().default(false),
+  featuredPets: z.array(z.string().uuid()).default([]),
+  assignedStaff: z.array(z.string().uuid()).default([]),
+  isPublic: z.boolean().default(true),
+  imageUrl: z.string().max(2048).optional(),
+});
+
+export type CreateEventBody = z.infer<typeof CreateEventBodySchema>;
+
+export const normalizeCreateEventBody = (
+  body: Record<string, unknown>
+): Record<string, unknown> => ({
+  name: body.name,
+  description: body.description,
+  type: body.type,
+  startDate: pickRaw(body, ['startDate', 'start_date']),
+  endDate: pickRaw(body, ['endDate', 'end_date']),
+  location: body.location,
+  capacity: body.capacity,
+  registrationRequired: pickRaw(body, ['registrationRequired', 'registration_required']),
+  featuredPets: pickRaw(body, ['featuredPets', 'featured_pets']),
+  assignedStaff: pickRaw(body, ['assignedStaff', 'assigned_staff']),
+  isPublic: pickRaw(body, ['isPublic', 'is_public']),
+  imageUrl: pickRaw(body, ['imageUrl', 'image_url']),
+});
+
+export const UpdateEventBodySchema = z.object({
+  name: z.string().trim().min(1).max(256).optional(),
+  description: z.string().trim().max(4000).optional(),
+  type: EventTypeEnum.optional(),
+  startDate: z.string().trim().min(1).optional(),
+  endDate: z.string().trim().min(1).optional(),
+  location: EventLocationSchema.optional(),
+  capacity: z.number().int().positive().optional(),
+  registrationRequired: z.boolean().optional(),
+  featuredPets: z.array(z.string().uuid()).optional(),
+  assignedStaff: z.array(z.string().uuid()).optional(),
+  isPublic: z.boolean().optional(),
+  imageUrl: z.string().max(2048).optional(),
+  status: EventStatusEnum.optional(),
+});
+
+export type UpdateEventBody = z.infer<typeof UpdateEventBodySchema>;
+
+export const normalizeUpdateEventBody = (
+  body: Record<string, unknown>
+): Record<string, unknown> => ({
+  name: body.name,
+  description: body.description,
+  type: body.type,
+  startDate: pickRaw(body, ['startDate', 'start_date']),
+  endDate: pickRaw(body, ['endDate', 'end_date']),
+  location: body.location,
+  capacity: body.capacity,
+  registrationRequired: pickRaw(body, ['registrationRequired', 'registration_required']),
+  featuredPets: pickRaw(body, ['featuredPets', 'featured_pets']),
+  assignedStaff: pickRaw(body, ['assignedStaff', 'assigned_staff']),
+  isPublic: pickRaw(body, ['isPublic', 'is_public']),
+  imageUrl: pickRaw(body, ['imageUrl', 'image_url']),
+  status: body.status,
+});
+
+export const AddAttendeeBodySchema = z.object({
+  userId: z.string().uuid('userId must be a valid UUID'),
+  name: z.string().trim().min(1, 'name is required').max(256),
+  email: z.string().trim().min(1, 'email is required').max(254).email('email must be valid'),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export type AddAttendeeBody = z.infer<typeof AddAttendeeBodySchema>;
+
+export const PatchStatusBodySchema = z.object({
+  status: EventStatusEnum,
+});
+
+export type PatchStatusBody = z.infer<typeof PatchStatusBodySchema>;
