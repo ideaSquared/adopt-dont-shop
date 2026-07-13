@@ -102,6 +102,49 @@ function assertOwnerOrRescue(principal: Principal, owner: OwnerRow, permission: 
   }
 }
 
+// Document URLs must reference either same-origin local storage (a
+// relative path — how STORAGE_PROVIDER=local, the dev/CI default, serves
+// uploads: packages/storage's local provider returns `${publicPath}/...`)
+// or the platform's own storage / CDN host — never an arbitrary scheme
+// (`javascript:`, `data:`, ...) or an attacker-controlled https host that
+// would turn a "document link" in the reviewer UI into a phishing / XSS
+// vector (ADS-930). The host allowlist tracks the same env vars
+// packages/storage's S3 provider uses to build public URLs, so it stays
+// correct as storage config changes without a second source of truth.
+function allowedDocumentHosts(env: NodeJS.ProcessEnv = process.env): Set<string> {
+  const hosts = new Set<string>();
+  const cloudFrontDomain = env.CLOUDFRONT_DOMAIN?.trim();
+  if (cloudFrontDomain) {
+    hosts.add(cloudFrontDomain);
+  }
+  const bucket = env.S3_BUCKET_NAME?.trim();
+  if (bucket) {
+    const region = env.S3_REGION?.trim() || 'us-east-1';
+    hosts.add(`${bucket}.s3.${region}.amazonaws.com`);
+  }
+  return hosts;
+}
+
+function assertValidDocumentUrl(url: string): void {
+  // `//host/...` is protocol-relative — browsers resolve it off-origin, so
+  // it's excluded from the same-origin relative-path allowance below.
+  if (url.startsWith('/') && !url.startsWith('//')) {
+    return;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new HandlerError('INVALID_ARGUMENT', 'url must be https or a platform-relative path');
+  }
+  if (parsed.protocol !== 'https:') {
+    throw new HandlerError('INVALID_ARGUMENT', 'url must be https or a platform-relative path');
+  }
+  if (!allowedDocumentHosts().has(parsed.host)) {
+    throw new HandlerError('INVALID_ARGUMENT', 'url must point to platform storage');
+  }
+}
+
 // --- AddDocument -----------------------------------------------------
 
 export async function addDocument(
@@ -112,6 +155,7 @@ export async function addDocument(
   if (req.applicationId === '') {
     throw new HandlerError('INVALID_ARGUMENT', 'application_id is required');
   }
+  assertValidDocumentUrl(req.url);
   const owner = await loadOwnerOrThrow(deps, req.applicationId);
   assertOwnerOrRescue(principal, owner, APPLICATIONS_UPDATE);
 

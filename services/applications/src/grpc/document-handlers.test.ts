@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HandlerError, type HandlerDeps } from './adapter.js';
 import { addDocument, listDocuments, removeDocument } from './document-handlers.js';
@@ -36,7 +36,7 @@ const documentRow = {
   application_id: 'app-1',
   type: 'reference',
   filename: 'ref.pdf',
-  url: 'https://files/ref.pdf',
+  url: '/uploads/documents/ref.pdf',
   size: 2048,
   mime_type: 'application/pdf',
   created_at: new Date('2026-06-06T10:00:00.000Z'),
@@ -51,7 +51,7 @@ describe('addDocument', () => {
         applicationId: 'app-1',
         type: 'reference',
         filename: 'ref.pdf',
-        url: 'https://files/ref.pdf',
+        url: '/uploads/documents/ref.pdf',
       })
     ).rejects.toBeInstanceOf(HandlerError);
   });
@@ -63,7 +63,7 @@ describe('addDocument', () => {
         applicationId: '',
         type: 'reference',
         filename: 'ref.pdf',
-        url: 'https://files/ref.pdf',
+        url: '/uploads/documents/ref.pdf',
       })
     ).rejects.toBeInstanceOf(HandlerError);
     expect(query).not.toHaveBeenCalled();
@@ -77,7 +77,7 @@ describe('addDocument', () => {
         applicationId: 'missing',
         type: 'reference',
         filename: 'ref.pdf',
-        url: 'https://files/ref.pdf',
+        url: '/uploads/documents/ref.pdf',
       })
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     // Never reaches the INSERT.
@@ -92,7 +92,7 @@ describe('addDocument', () => {
         applicationId: 'app-1',
         type: 'reference',
         filename: 'ref.pdf',
-        url: 'https://files/ref.pdf',
+        url: '/uploads/documents/ref.pdf',
       })
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
     expect(query).toHaveBeenCalledTimes(1);
@@ -109,7 +109,7 @@ describe('addDocument', () => {
           applicationId: 'app-1',
           type: 'reference',
           filename: 'ref.pdf',
-          url: 'https://files/ref.pdf',
+          url: '/uploads/documents/ref.pdf',
         }
       )
     ).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
@@ -126,7 +126,7 @@ describe('addDocument', () => {
       applicationId: 'app-1',
       type: 'reference',
       filename: 'ref.pdf',
-      url: 'https://files/ref.pdf',
+      url: '/uploads/documents/ref.pdf',
       size: 2048,
       mimeType: 'application/pdf',
     });
@@ -137,7 +137,7 @@ describe('addDocument', () => {
       'app-1',
       'reference',
       'ref.pdf',
-      'https://files/ref.pdf',
+      '/uploads/documents/ref.pdf',
       2048,
       'application/pdf',
       'usr-9',
@@ -147,7 +147,7 @@ describe('addDocument', () => {
       applicationId: 'app-1',
       type: 'reference',
       filename: 'ref.pdf',
-      url: 'https://files/ref.pdf',
+      url: '/uploads/documents/ref.pdf',
       size: 2048,
       mimeType: 'application/pdf',
       uploadedAt: '2026-06-06T10:00:00.000Z',
@@ -167,7 +167,7 @@ describe('addDocument', () => {
         applicationId: 'app-1',
         type: 'reference',
         filename: 'ref.pdf',
-        url: 'https://files/ref.pdf',
+        url: '/uploads/documents/ref.pdf',
       }
     );
 
@@ -184,7 +184,7 @@ describe('addDocument', () => {
       applicationId: 'app-1',
       type: 'reference',
       filename: 'ref.pdf',
-      url: 'https://files/ref.pdf',
+      url: '/uploads/documents/ref.pdf',
     });
 
     const params = query.mock.calls[1][1] as unknown[];
@@ -192,6 +192,147 @@ describe('addDocument', () => {
     expect(params[6]).toBeNull();
     expect(res.document?.size).toBeUndefined();
     expect(res.document?.mimeType).toBeUndefined();
+  });
+});
+
+describe('addDocument — url validation (ADS-930)', () => {
+  afterEach(() => {
+    delete process.env.CLOUDFRONT_DOMAIN;
+    delete process.env.S3_BUCKET_NAME;
+    delete process.env.S3_REGION;
+  });
+
+  it('rejects a javascript: url without touching the database', async () => {
+    const { deps, query } = makeDeps();
+    await expect(
+      addDocument(deps, makePrincipal(), {
+        applicationId: 'app-1',
+        type: 'reference',
+        filename: 'ref.pdf',
+        url: 'javascript:alert(1)',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it('rejects a data: url', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      addDocument(deps, makePrincipal(), {
+        applicationId: 'app-1',
+        type: 'reference',
+        filename: 'ref.pdf',
+        url: 'data:text/html,<script>alert(1)</script>',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a plain http url (not https)', async () => {
+    process.env.CLOUDFRONT_DOMAIN = 'cdn.adoptdontshop.com';
+    const { deps } = makeDeps();
+    await expect(
+      addDocument(deps, makePrincipal(), {
+        applicationId: 'app-1',
+        type: 'reference',
+        filename: 'ref.pdf',
+        url: 'http://cdn.adoptdontshop.com/apps/aa/ref.pdf',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects an attacker-controlled https host', async () => {
+    process.env.CLOUDFRONT_DOMAIN = 'cdn.adoptdontshop.com';
+    const { deps } = makeDeps();
+    await expect(
+      addDocument(deps, makePrincipal(), {
+        applicationId: 'app-1',
+        type: 'reference',
+        filename: 'ref.pdf',
+        url: 'https://evil.example/x',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a protocol-relative url (off-origin in disguise)', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      addDocument(deps, makePrincipal(), {
+        applicationId: 'app-1',
+        type: 'reference',
+        filename: 'ref.pdf',
+        url: '//evil.example/x',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects any absolute https url when no storage host is configured', async () => {
+    const { deps } = makeDeps();
+    await expect(
+      addDocument(deps, makePrincipal(), {
+        applicationId: 'app-1',
+        type: 'reference',
+        filename: 'ref.pdf',
+        url: 'https://storage.adoptdontshop.com/apps/aa/ref.pdf',
+      })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('accepts an https url on the configured CDN host', async () => {
+    process.env.CLOUDFRONT_DOMAIN = 'storage.adoptdontshop.com';
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1' })] }).mockResolvedValueOnce({
+      rows: [{ ...documentRow, url: 'https://storage.adoptdontshop.com/apps/aa/ref.pdf' }],
+    });
+
+    const res = await addDocument(deps, makePrincipal(), {
+      applicationId: 'app-1',
+      type: 'reference',
+      filename: 'ref.pdf',
+      url: 'https://storage.adoptdontshop.com/apps/aa/ref.pdf',
+    });
+
+    expect(res.document?.url).toBe('https://storage.adoptdontshop.com/apps/aa/ref.pdf');
+  });
+
+  it('accepts an https url on the configured S3 bucket host', async () => {
+    process.env.S3_BUCKET_NAME = 'adoptdontshop-uploads';
+    process.env.S3_REGION = 'us-east-1';
+    const { deps, query } = makeDeps();
+    query.mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1' })] }).mockResolvedValueOnce({
+      rows: [
+        {
+          ...documentRow,
+          url: 'https://adoptdontshop-uploads.s3.us-east-1.amazonaws.com/apps/aa/ref.pdf',
+        },
+      ],
+    });
+
+    const res = await addDocument(deps, makePrincipal(), {
+      applicationId: 'app-1',
+      type: 'reference',
+      filename: 'ref.pdf',
+      url: 'https://adoptdontshop-uploads.s3.us-east-1.amazonaws.com/apps/aa/ref.pdf',
+    });
+
+    expect(res.document?.url).toBe(
+      'https://adoptdontshop-uploads.s3.us-east-1.amazonaws.com/apps/aa/ref.pdf'
+    );
+  });
+
+  it('accepts a same-origin relative path (local storage default)', async () => {
+    const { deps, query } = makeDeps();
+    query
+      .mockResolvedValueOnce({ rows: [ownerRow({ user_id: 'usr-1' })] })
+      .mockResolvedValueOnce({ rows: [documentRow] });
+
+    const res = await addDocument(deps, makePrincipal(), {
+      applicationId: 'app-1',
+      type: 'reference',
+      filename: 'ref.pdf',
+      url: '/uploads/documents/ref.pdf',
+    });
+
+    expect(res.document?.url).toBe('/uploads/documents/ref.pdf');
   });
 });
 

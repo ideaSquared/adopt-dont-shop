@@ -63,6 +63,29 @@ describe('adapt — happy path', () => {
   });
 });
 
+describe('adapt — call metadata forwarding (ADS-931)', () => {
+  it('passes the call metadata as the fourth handler argument', async () => {
+    const handler = vi.fn(
+      async (_d: HandlerDeps, _principal: unknown, _req: unknown, metadata: Metadata) => ({
+        clientIp: metadata.get('x-client-ip')[0] ?? null,
+      })
+    );
+    const { logger } = makeLogger();
+    const wrapped = adapt('service.test', handler, { deps, logger });
+
+    const callback = vi.fn() as unknown as sendUnaryData<unknown>;
+    wrapped(
+      makeCall({}, buildMetadata({ ...VALID_HEADERS, 'x-client-ip': '203.0.113.9' })),
+      callback
+    );
+    await new Promise(r => setImmediate(r));
+
+    const [err, res] = vi.mocked(callback).mock.calls[0];
+    expect(err).toBeNull();
+    expect(res).toEqual({ clientIp: '203.0.113.9' });
+  });
+});
+
 describe('adapt — error code mapping (canonical CODE_TO_GRPC table)', () => {
   it('UNAUTHENTICATED when principal headers are missing', async () => {
     const handler = vi.fn();

@@ -20,9 +20,11 @@ import {
 export type CreatePetsClientOptions = {
   address: string;
   // System principal metadata — PetService.ListFavoriters gates on
-  // `pets.read`. The notifications service runs as `svc-notifications`;
-  // stamping the permission here means the fan-out handler doesn't thread
-  // metadata through.
+  // `pets.favoriters.list:any` (ADS-922), a permission no user-facing role
+  // holds; only this service's signed system principal carries it. The
+  // notifications service runs as `svc-notifications`; stamping the
+  // permission here means the fan-out handler doesn't thread metadata
+  // through.
   systemUserId?: string;
   systemRoles?: string;
   systemPermissions?: string;
@@ -69,9 +71,11 @@ export function createPetsClient(opts: CreatePetsClientOptions): PetsFavoritersC
   const systemPrincipal = {
     userId: opts.systemUserId ?? 'svc-notifications',
     roles: splitList(opts.systemRoles ?? 'admin'),
-    // pets.read → ListFavoriters (recipient discovery for the
-    // pets.statusChanged fan-out).
-    permissions: splitList(opts.systemPermissions ?? 'pets.read'),
+    // pets.favoriters.list:any → ListFavoriters (recipient discovery for
+    // the pets.statusChanged fan-out). ADS-922: this permission is
+    // deliberately not granted to any user-facing role, so only this
+    // signed system principal can call ListFavoriters.
+    permissions: splitList(opts.systemPermissions ?? 'pets.favoriters.list:any'),
   };
 
   // Built per attempt — the signed x-principal-token (ADS-800) carries a

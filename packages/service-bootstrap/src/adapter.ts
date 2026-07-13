@@ -80,10 +80,15 @@ const CODE_TO_GRPC: Record<HandlerErrorCode, number> = {
   INTERNAL: status.INTERNAL,
 };
 
+// Handlers may declare a fourth `metadata` parameter to read
+// gateway-stamped call metadata (e.g. x-client-ip / x-client-user-agent
+// for forensic columns — ADS-931). Three-parameter handlers remain
+// assignable, so existing services are unaffected.
 export type UnaryHandler<Deps, Req, Res> = (
   deps: Deps,
   principal: Principal,
-  req: Req
+  req: Req,
+  metadata: Metadata
 ) => Promise<Res>;
 
 export type UnaryHandlerUnauth<Deps, Req, Res> = (
@@ -125,7 +130,7 @@ export function adapt<Deps, Req, Res>(
     void runWithRequestId(requestId, async () => {
       try {
         const principal = extractPrincipal(call.metadata, verification);
-        const response = await handler(deps, principal, call.request);
+        const response = await handler(deps, principal, call.request, call.metadata);
         stop(status.OK);
         callback(null, response);
       } catch (err) {

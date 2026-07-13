@@ -177,7 +177,7 @@ bypass the scope.
 | `UpdateStatus` | `pets.update` (scoped; appends a status transition) |
 | `Delete` | `pets.delete` (scoped; soft-delete) |
 | `GetStats` | `pets.read` (self-scoped; `pets.read:any` to override rescue filter) |
-| `ListFavoriters` | `pets.read` (service-to-service read) |
+| `ListFavoriters` | `pets.favoriters.list:any` (system-principal-only service-to-service read; no user role holds it — ADS-922) |
 
 ### NATS subjects
 

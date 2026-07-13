@@ -4,9 +4,12 @@ import type { FastifyRequest } from 'fastify';
 
 import { buildMetadata } from './metadata.js';
 
-// buildMetadata only reads req.headers — a plain object is enough.
-function makeRequest(headers: Record<string, string | string[] | undefined>): FastifyRequest {
-  return { headers } as unknown as FastifyRequest;
+// buildMetadata reads req.headers + req.ip — a plain object is enough.
+function makeRequest(
+  headers: Record<string, string | string[] | undefined>,
+  ip?: string
+): FastifyRequest {
+  return { headers, ip } as unknown as FastifyRequest;
 }
 
 describe('buildMetadata', () => {
@@ -41,5 +44,28 @@ describe('buildMetadata', () => {
     const m = buildMetadata(makeRequest({ authorization: 'Bearer secret', cookie: 'a=b' }));
     expect(m.get('authorization')).toHaveLength(0);
     expect(m.get('cookie')).toHaveLength(0);
+  });
+
+  // ADS-931: the gateway stamps the connection-derived client context so
+  // backend services can persist forensic ip/user-agent columns without
+  // trusting the request body.
+  it('stamps x-client-ip from the connection ip and x-client-user-agent from the UA header', () => {
+    const m = buildMetadata(makeRequest({ 'user-agent': 'Mozilla/5.0 (real)' }, '203.0.113.9'));
+    expect(m.get('x-client-ip')).toEqual(['203.0.113.9']);
+    expect(m.get('x-client-user-agent')).toEqual(['Mozilla/5.0 (real)']);
+  });
+
+  it('derives x-client-ip from the gateway, ignoring a client-sent x-client-ip header', () => {
+    const m = buildMetadata(
+      makeRequest({ 'x-client-ip': '1.2.3.4', 'x-client-user-agent': 'forged' }, '203.0.113.9')
+    );
+    expect(m.get('x-client-ip')).toEqual(['203.0.113.9']);
+    expect(m.get('x-client-user-agent')).toHaveLength(0);
+  });
+
+  it('omits client context when the connection carries none', () => {
+    const m = buildMetadata(makeRequest({}));
+    expect(m.get('x-client-ip')).toHaveLength(0);
+    expect(m.get('x-client-user-agent')).toHaveLength(0);
   });
 });

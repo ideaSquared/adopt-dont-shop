@@ -17,6 +17,8 @@
 
 import { randomUUID } from 'node:crypto';
 
+import type { Metadata } from '@grpc/grpc-js';
+
 import { hasPermission, requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction } from '@adopt-dont-shop/events';
 import { PETS_VIEW } from '@adopt-dont-shop/lib.types';
@@ -52,12 +54,33 @@ function ensureSwipePermission(principal: Principal): void {
   }
 }
 
+// ip_address / user_agent are forensic columns (abuse investigation,
+// fraud review). They must reflect the connection origin, so they are
+// read from the metadata the GATEWAY stamps at the edge (x-client-ip /
+// x-client-user-agent, from its own connection context in
+// buildMetadata) — never from the caller-controlled request body, which
+// any adopter could forge (ADS-931). Absent metadata → NULL, not a body
+// fallback. The proto's ip_address / user_agent fields are deliberately
+// ignored.
+const CLIENT_IP_HEADER = 'x-client-ip';
+const CLIENT_USER_AGENT_HEADER = 'x-client-user-agent';
+
+function metadataHeader(metadata: Metadata | undefined, key: string): string | null {
+  const values = metadata?.get(key) ?? [];
+  if (values.length === 0) {
+    return null;
+  }
+  const first = values[0];
+  return typeof first === 'string' ? first : first.toString();
+}
+
 // --- StartSession ----------------------------------------------------
 
 export async function startSession(
   deps: HandlerDeps,
   principal: Principal,
-  req: StartSessionRequest
+  req: StartSessionRequest,
+  metadata?: Metadata
 ): Promise<StartSessionResponse> {
   ensureSwipePermission(principal);
 
@@ -104,8 +127,8 @@ export async function startSession(
         sessionId,
         principal.userId,
         filtersJson,
-        req.ipAddress ?? null,
-        req.userAgent ?? null,
+        metadataHeader(metadata, CLIENT_IP_HEADER),
+        metadataHeader(metadata, CLIENT_USER_AGENT_HEADER),
         deviceTypeDb,
       ]
     );

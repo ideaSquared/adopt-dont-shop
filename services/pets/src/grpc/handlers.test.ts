@@ -59,6 +59,16 @@ const ADOPTER: Principal = {
   permissions: ['pets.read' as Permission],
 };
 
+// The notifications service's signed system principal (see
+// services/notifications/src/grpc/pets-client.ts) — the only caller
+// meant to reach listFavoriters (ADS-922). Not a super_admin or plain
+// admin grant: pets.favoriters.list:any is held by this principal alone.
+const SERVICE_NOTIFICATIONS: Principal = {
+  userId: 'svc-notifications' as UserId,
+  roles: ['admin'],
+  permissions: ['pets.favoriters.list:any' as Permission],
+};
+
 const SUPER_ADMIN: Principal = {
   userId: 'usr-super' as UserId,
   roles: ['super_admin'],
@@ -1095,7 +1105,7 @@ describe('listFavoriters', () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [{ user_id: 'usr-1' }, { user_id: 'usr-2' }],
     });
-    const res = await listFavoriters(mocks.deps, ADOPTER, { petId: 'pet-1' });
+    const res = await listFavoriters(mocks.deps, SERVICE_NOTIFICATIONS, { petId: 'pet-1' });
     expect(res.userIds).toEqual(['usr-1', 'usr-2']);
 
     const [sql, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
@@ -1108,17 +1118,19 @@ describe('listFavoriters', () => {
 
   it('returns an empty list when the pet has no favouriters', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [] });
-    const res = await listFavoriters(mocks.deps, ADOPTER, { petId: 'pet-1' });
+    const res = await listFavoriters(mocks.deps, SERVICE_NOTIFICATIONS, { petId: 'pet-1' });
     expect(res.userIds).toEqual([]);
   });
 
   it('INVALID_ARGUMENT when pet_id is missing', async () => {
-    await expect(listFavoriters(mocks.deps, ADOPTER, { petId: '' })).rejects.toMatchObject({
+    await expect(
+      listFavoriters(mocks.deps, SERVICE_NOTIFICATIONS, { petId: '' })
+    ).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
     });
   });
 
-  it('PERMISSION_DENIED for a principal without pets.read', async () => {
+  it('PERMISSION_DENIED for a principal without pets.favoriters.list:any', async () => {
     const noPerms: Principal = {
       userId: 'usr-noperms' as UserId,
       roles: ['adopter'],
@@ -1127,6 +1139,16 @@ describe('listFavoriters', () => {
     await expect(listFavoriters(mocks.deps, noPerms, { petId: 'pet-1' })).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
     });
+  });
+
+  // ADS-922 regression: an ordinary adopter holds plain pets.read (every
+  // adopter does — see the ADOPTER fixture) but must NOT be able to
+  // enumerate who else favourited a pet.
+  it('PERMISSION_DENIED for an adopter with only pets.read', async () => {
+    await expect(listFavoriters(mocks.deps, ADOPTER, { petId: 'pet-1' })).rejects.toMatchObject({
+      code: 'PERMISSION_DENIED',
+    });
+    expect(mocks.poolMock.query).not.toHaveBeenCalled();
   });
 });
 
