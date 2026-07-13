@@ -22,8 +22,6 @@
 
 import { createHash, randomUUID } from 'node:crypto';
 
-import { verifySync } from 'otplib';
-
 import { requirePermission, type Principal } from '@adopt-dont-shop/authz';
 import { withTransaction, type WithTransactionDeps } from '@adopt-dont-shop/events';
 import type { Permission, UserId, UserRole } from '@adopt-dont-shop/lib.types';
@@ -55,6 +53,7 @@ import {
   type UserStatusDb,
 } from './enum-map.js';
 import { createAuthMetrics } from './auth-metrics.js';
+import { verifyAndConsumeTotp } from './totp-verification.js';
 
 // --- Errors ----------------------------------------------------------
 
@@ -125,6 +124,9 @@ export type MintedTokens = {
 export type HandlerDeps = WithTransactionDeps & {
   passwordHasher: PasswordHasher;
   tokenIssuer: TokenIssuer;
+  // AES-256-GCM key (hex) for encrypting/decrypting TOTP secrets at rest
+  // (ADS-914a). See ./totp-crypto.ts and ./totp-verification.ts.
+  encryptionKey: string;
 };
 
 // --- Row types -------------------------------------------------------
@@ -139,6 +141,9 @@ export type UserRow = {
   phone_verified: boolean;
   two_factor_enabled: boolean;
   two_factor_secret: string | null;
+  // Last accepted TOTP RFC 6238 time step (ADS-914c replay guard). Null
+  // until the first successful 2FA verification.
+  two_factor_last_step: number | null;
   status: UserStatusDb;
   user_type: UserRoleDb;
   profile_image_url: string | null;
@@ -310,10 +315,6 @@ function rolesToProto(roles: UserRole[]): AuthV1.UserRole[] {
 // to spend an equivalent amount of CPU when the email is unknown, so login
 // latency doesn't reveal whether an account exists.
 const DUMMY_PASSWORD_HASH = '$2a$12$0000000000000000000000000000000000000000000000000000u';
-
-// Verify a TOTP code against a stored base32 secret. Wraps otplib's
-// VerifyResult ({ valid, ... }) down to a boolean.
-const verifyTotp = (token: string, secret: string): boolean => verifySync({ token, secret }).valid;
 
 // Progressive login throttle. Rather than a hard lockout (which lets an
 // attacker deny a victim access by deliberately failing logins), failed
@@ -504,7 +505,16 @@ export async function login(
     if (!req.twoFactorToken) {
       return { permissions: [], twoFactorRequired: true, emailVerificationRequired: false };
     }
-    if (!user.two_factor_secret || !verifyTotp(req.twoFactorToken, user.two_factor_secret)) {
+    const twoFactorOk = await verifyAndConsumeTotp(
+      deps,
+      {
+        userId: user.user_id,
+        encryptedSecret: user.two_factor_secret,
+        lastStep: user.two_factor_last_step,
+      },
+      req.twoFactorToken
+    );
+    if (!twoFactorOk) {
       loginCounter.inc({ outcome: 'invalid_credentials' });
       await publishLoginActionTaken(deps, {
         outcome: 'denied',

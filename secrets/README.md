@@ -18,6 +18,7 @@ before `docker compose up -d`; the deploy workflow
 | `redis_url`                   | every domain service            | `redis://:pass@redis:6379`                                     |
 | `jwt_secret`                  | `service-auth`                  | access-token signing secret                                    |
 | `jwt_refresh_secret`          | `service-auth`                  | refresh-token signing secret                                   |
+| `encryption_key`              | `service-auth`                  | AES-256-GCM key (64 hex chars / 32 bytes) for TOTP 2FA secrets at rest (ADS-914) |
 | `upload_signing_secret`       | `service-gateway`               | HMAC secret for `/uploads-signed` URLs                         |
 | `principal_signing_key`       | `service-gateway` + every domain service | HMAC key for the signed `x-principal-token` gRPC metadata (ADS-800) |
 | `db_password`                 | `database` container (staging + production) | Postgres superuser password (read via `POSTGRES_PASSWORD_FILE`) |

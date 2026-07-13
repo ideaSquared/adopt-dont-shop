@@ -1,4 +1,4 @@
-import { parsePort, requireSecret } from '@adopt-dont-shop/config-secrets';
+import { parsePort, requireHexSecret, requireSecret } from '@adopt-dont-shop/config-secrets';
 
 export type AuthConfig = {
   // HTTP port for the boot-readiness surface (/health/simple). Distinct
@@ -29,6 +29,9 @@ export type AuthConfig = {
   // JWT signing secret for refresh tokens. Distinct from jwtSecret so
   // a leaked access-token secret doesn't compromise refresh either.
   jwtRefreshSecret: string;
+  // AES-256-GCM key (64 hex chars / 32 bytes) used to encrypt TOTP secrets
+  // at rest (ADS-914a) — a DB read alone must not yield usable 2FA secrets.
+  encryptionKey: string;
 };
 
 const DEFAULT_PORT = 5002;
@@ -53,6 +56,9 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuthConfig => 
     'refresh-token signing secret',
     { minBytes: 32 }
   );
+  const encryptionKey = requireHexSecret('ENCRYPTION_KEY', env, {
+    description: 'AES-256-GCM key for encrypting TOTP secrets at rest',
+  });
 
   return {
     port,
@@ -64,5 +70,6 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): AuthConfig => 
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     jwtSecret,
     jwtRefreshSecret,
+    encryptionKey,
   };
 };

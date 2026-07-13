@@ -34,6 +34,7 @@ export async function eraseAuth(
             address_line_2 = NULL,
             postal_code = NULL,
             two_factor_secret = NULL,
+            two_factor_last_step = NULL,
             backup_codes = NULL,
             reset_token_hash = NULL,
             reset_token_expiration = NULL,

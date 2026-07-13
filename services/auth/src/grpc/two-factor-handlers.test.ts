@@ -8,6 +8,7 @@ import type { Principal } from '@adopt-dont-shop/authz';
 import type { UserId } from '@adopt-dont-shop/lib.types';
 
 import type { HandlerDeps } from './handlers.js';
+import { decryptTotpSecret, encryptTotpSecret } from './totp-crypto.js';
 import { disableTwoFactor, enableTwoFactor, setupTwoFactor } from './two-factor-handlers.js';
 
 const PRINCIPAL: Principal = {
@@ -16,12 +17,15 @@ const PRINCIPAL: Principal = {
   permissions: [],
 };
 
+const ENCRYPTION_KEY = 'a'.repeat(64);
+
 function makeMocks() {
   const pool = { query: vi.fn() };
   pool.query.mockResolvedValue({ rows: [], rowCount: 0 });
   const deps: HandlerDeps = {
     pool: pool as unknown as Pool,
     nats: {} as unknown as NatsConnection,
+    encryptionKey: ENCRYPTION_KEY,
   };
   return { deps, poolMock: pool };
 }
@@ -66,7 +70,7 @@ describe('enableTwoFactor', () => {
     mocks = makeMocks();
   });
 
-  it('persists the secret + flips the flag when the code verifies', async () => {
+  it('persists the ENCRYPTED secret + flips the flag when the code verifies', async () => {
     const secret = generateSecret();
     const token = generateSync({ secret });
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 1 });
@@ -75,7 +79,9 @@ describe('enableTwoFactor', () => {
     const [sql, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
     expect(sql).toMatch(/two_factor_enabled = true/);
     expect(sql).toMatch(/two_factor_enabled = false/); // the guard
-    expect(params[0]).toBe(secret);
+    // The secret is encrypted at rest (ADS-914a) — never write the plaintext.
+    expect(params[0]).not.toBe(secret);
+    expect(decryptTotpSecret(ENCRYPTION_KEY, params[0] as string)).toBe(secret);
   });
 
   it('rejects an invalid code without writing', async () => {
@@ -105,18 +111,29 @@ describe('disableTwoFactor', () => {
   it('clears the secret + flag when the code verifies', async () => {
     const secret = generateSecret();
     const token = generateSync({ secret });
+    const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
     mocks.poolMock.query
-      .mockResolvedValueOnce({ rows: [{ two_factor_enabled: true, two_factor_secret: secret }] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            two_factor_enabled: true,
+            two_factor_secret: encryptedSecret,
+            two_factor_last_step: null,
+          },
+        ],
+      })
+      // Replay-guard UPDATE (two_factor_last_step) fired by verifyAndConsumeTotp.
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [], rowCount: 1 });
     const res = await disableTwoFactor(mocks.deps, PRINCIPAL, { token });
     expect(res.disabled).toBe(true);
-    const [sql] = mocks.poolMock.query.mock.calls[1] as [string];
+    const [sql] = mocks.poolMock.query.mock.calls[2] as [string];
     expect(sql).toMatch(/two_factor_secret = NULL/);
   });
 
   it('rejects when 2FA is not enabled', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [{ two_factor_enabled: false, two_factor_secret: null }],
+      rows: [{ two_factor_enabled: false, two_factor_secret: null, two_factor_last_step: null }],
     });
     await expect(
       disableTwoFactor(mocks.deps, PRINCIPAL, { token: '123456' })
@@ -125,13 +142,46 @@ describe('disableTwoFactor', () => {
 
   it('rejects a wrong code (does not clear the secret)', async () => {
     const secret = generateSecret();
+    const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
     mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [{ two_factor_enabled: true, two_factor_secret: secret }],
+      rows: [
+        {
+          two_factor_enabled: true,
+          two_factor_secret: encryptedSecret,
+          two_factor_last_step: null,
+        },
+      ],
     });
     await expect(
       disableTwoFactor(mocks.deps, PRINCIPAL, { token: '000000' })
     ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
-    // Only the SELECT ran — no clearing UPDATE.
+    // Only the SELECT ran — no replay-guard update, no clearing UPDATE.
     expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a replayed code that was already accepted (ADS-914c)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    try {
+      const secret = generateSecret();
+      const token = generateSync({ secret });
+      const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
+      const timeStep = Math.floor(Date.now() / 1000 / 30);
+      mocks.poolMock.query.mockResolvedValueOnce({
+        rows: [
+          {
+            two_factor_enabled: true,
+            two_factor_secret: encryptedSecret,
+            two_factor_last_step: timeStep,
+          },
+        ],
+      });
+      await expect(disableTwoFactor(mocks.deps, PRINCIPAL, { token })).rejects.toMatchObject({
+        code: 'INVALID_ARGUMENT',
+      });
+      expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
