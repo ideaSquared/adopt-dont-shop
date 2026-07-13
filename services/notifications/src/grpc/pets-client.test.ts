@@ -143,7 +143,7 @@ describe('createPetsClient — signed system principal (ADS-800)', () => {
     return { port, captured };
   };
 
-  it('stamps a verifiable x-principal-token carrying pets.read', async () => {
+  it('stamps a verifiable x-principal-token carrying pets.favoriters.list:any', async () => {
     process.env.PRINCIPAL_SIGNING_KEY = SIGNING_KEY;
     resetDefaultPrincipalSigningKeyForTests();
 
@@ -155,7 +155,7 @@ describe('createPetsClient — signed system principal (ADS-800)', () => {
       const token = String(captured[0].get(PRINCIPAL_TOKEN_HEADER)[0]);
       const principal = verifyPrincipalToken(token, SIGNING_KEY);
       expect(principal.userId).toBe('svc-notifications');
-      expect(principal.permissions).toEqual(['pets.read']);
+      expect(principal.permissions).toEqual(['pets.favoriters.list:any']);
     } finally {
       client.close();
     }

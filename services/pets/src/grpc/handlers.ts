@@ -1162,11 +1162,19 @@ export async function getTopBreedsByAdoptions(
 // --- ListFavoriters --------------------------------------------------
 
 // Recipient-discovery read for service.notifications: the user_ids of
-// every adopter with an ACTIVE favourite on the pet. Gated on plain
-// pets.read (same as Get / List) — no rescue scope, because favouriters
-// are cross-rescue and the caller is a trusted system principal fanning
-// out a pets.statusChanged event. A missing/soft-deleted pet just yields
-// an empty list (no NOT_FOUND): the caller only cares about recipients.
+// every adopter with an ACTIVE favourite on the pet. This enumerates
+// OTHER users' favourite activity — a cross-tenant PII / stalking-vector
+// read (ADS-922) — so it does NOT reuse plain pets.read (every adopter
+// holds that). It's gated on pets.favoriters.list:any, a permission no
+// user-facing role is ever granted (seeded to no role by migration 026);
+// only the notifications service's signed system principal carries it
+// (services/notifications/src/grpc/pets-client.ts). No rescue scope,
+// because favouriters are cross-rescue and the caller fans out a
+// pets.statusChanged event platform-wide. A missing/soft-deleted pet
+// just yields an empty list (no NOT_FOUND): the caller only cares about
+// recipients.
+const PETS_FAVORITERS_LIST_ANY: Permission = 'pets.favoriters.list:any' as Permission;
+
 export async function listFavoriters(
   deps: HandlerDeps,
   principal: Principal,
@@ -1175,8 +1183,8 @@ export async function listFavoriters(
   if (!req.petId) {
     throw new HandlerError('INVALID_ARGUMENT', 'pet_id is required');
   }
-  if (!hasPermission(principal, PETS_READ)) {
-    throw new HandlerError('PERMISSION_DENIED', `'${PETS_READ}' required`);
+  if (!hasPermission(principal, PETS_FAVORITERS_LIST_ANY)) {
+    throw new HandlerError('PERMISSION_DENIED', `'${PETS_FAVORITERS_LIST_ANY}' required`);
   }
 
   const result = await deps.pool.query<{ user_id: string }>(
