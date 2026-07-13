@@ -661,7 +661,12 @@ describe('refreshToken', () => {
     });
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [] }) // not denylisted
-      .mockResolvedValueOnce({ rows: [{ token: 'tok', revoked_at: new Date() }] });
+      .mockResolvedValueOnce({
+        rows: [
+          { token: 'tok', revoked_at: new Date(), is_revoked: true, family_id: 'fam-revoked' },
+        ],
+      });
+    mocks.clientMock.query.mockResolvedValue({ rows: [], rowCount: 1 });
     await expect(refreshToken(mocks.deps, null, { refreshToken: 'tok' })).rejects.toMatchObject({
       code: 'UNAUTHENTICATED',
     });
@@ -682,11 +687,12 @@ describe('refreshToken', () => {
       .mockResolvedValueOnce({
         rows: [{ token: 'tok', user_id: 'u', revoked_at: null, is_revoked: true, family_id: 'f' }],
       });
+    mocks.clientMock.query.mockResolvedValue({ rows: [], rowCount: 1 });
     await expect(refreshToken(mocks.deps, null, { refreshToken: 'tok' })).rejects.toMatchObject({
       code: 'UNAUTHENTICATED',
     });
-    // No rotation transaction is opened.
-    expect(mocks.clientMock.query).not.toHaveBeenCalled();
+    // Family revocation transaction runs but no new tokens are minted.
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
   });
 
   it('UNAUTHENTICATED when the user has been deactivated — refresh cannot extend access', async () => {
@@ -829,7 +835,17 @@ describe('refreshToken', () => {
     // modelling the loser of a rotation race.
     mocks.poolMock.query
       .mockResolvedValueOnce({ rows: [] }) // not denylisted
-      .mockResolvedValueOnce({ rows: [{ token: 'tok', user_id: 'usr-1', revoked_at: null }] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            token: 'tok',
+            user_id: 'usr-1',
+            revoked_at: null,
+            is_revoked: false,
+            family_id: 'fam-race',
+          },
+        ],
+      })
       .mockResolvedValueOnce({ rows: [{ status: 'active' }] }); // status guard
     mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
 
@@ -848,9 +864,158 @@ describe('refreshToken', () => {
       code: 'UNAUTHENTICATED',
     });
 
-    // Critically: NO new refresh row is inserted and NO event is published.
+    // No new refresh row is inserted.
     expect(sqls).not.toContain('INSERT');
-    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+    // auth.tokenReuseDetected is published after the transaction commits (ADS-913).
+    expect(mocks.natsMock.publish).toHaveBeenCalledWith(
+      'auth.tokenReuseDetected',
+      expect.any(Uint8Array),
+      expect.any(Object)
+    );
+  });
+
+  // --- ADS-913: token-family revocation on reuse detection ---------------
+
+  it('ADS-913: revokes whole family and stamps tokens_valid_from when pre-rotated token presented (path 1)', async () => {
+    mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
+      sub: 'usr-attacker-victim',
+      jti: 'old-jti',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    // Token was already rotated (attacker used it first)
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            token_hash: 'h',
+            user_id: 'usr-attacker-victim',
+            revoked_at: new Date(),
+            is_revoked: true,
+            family_id: 'fam-stolen',
+          },
+        ],
+      });
+
+    const clientCalls: Array<{ sql: string; params: unknown[] }> = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[] = []) => {
+      clientCalls.push({ sql, params });
+      return { rows: [], rowCount: 1 };
+    });
+
+    await expect(
+      refreshToken(mocks.deps, null, { refreshToken: 'stolen-tok' })
+    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
+
+    // Family-wide revoke UPDATE fires
+    const familyRevoke = clientCalls.find(
+      c => c.sql.includes('family_id') && c.sql.includes('is_revoked = false')
+    );
+    expect(familyRevoke).toBeDefined();
+    expect(familyRevoke?.params).toContain('fam-stolen');
+
+    // tokens_valid_from watermark stamped on the user
+    const watermark = clientCalls.find(c => c.sql.includes('tokens_valid_from'));
+    expect(watermark).toBeDefined();
+    expect(watermark?.params).toContain('usr-attacker-victim');
+
+    // No new tokens minted
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+  });
+
+  it('ADS-913: publishes auth.tokenReuseDetected when pre-rotated token presented (path 1)', async () => {
+    mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
+      sub: 'usr-victim',
+      jti: 'stolen-jti',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            token_hash: 'h',
+            user_id: 'usr-victim',
+            revoked_at: new Date(),
+            is_revoked: true,
+            family_id: 'fam-reuse-event',
+          },
+        ],
+      });
+    mocks.clientMock.query.mockResolvedValue({ rows: [], rowCount: 1 });
+
+    await expect(refreshToken(mocks.deps, null, { refreshToken: 'tok' })).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+
+    expect(mocks.natsMock.publish).toHaveBeenCalledWith(
+      'auth.tokenReuseDetected',
+      expect.any(Uint8Array),
+      expect.any(Object)
+    );
+    const envelope = JSON.parse(
+      new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+    );
+    expect(envelope.payload).toMatchObject({
+      userId: 'usr-victim',
+      familyId: 'fam-reuse-event',
+      jti: 'stolen-jti',
+    });
+  });
+
+  it('ADS-913: revokes family and stamps tokens_valid_from on concurrent reuse (path 2)', async () => {
+    mocks.issuerMock.verifyRefresh.mockResolvedValueOnce({
+      sub: 'usr-conc',
+      jti: 'conc-jti',
+      iat: 0,
+      exp: 9_000_000_000,
+    });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] }) // not denylisted
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            token: 'tok',
+            user_id: 'usr-conc',
+            revoked_at: null,
+            is_revoked: false,
+            family_id: 'fam-conc-steal',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ status: 'active' }] }); // status guard
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+
+    const clientCalls: Array<{ sql: string; params: unknown[] }> = [];
+    mocks.clientMock.query.mockImplementation(async (sql: string, params: unknown[] = []) => {
+      const verb = sql.trim().split(/\s+/)[0];
+      clientCalls.push({ sql, params });
+      // First UPDATE is the rotation gate; return 0 rows to trigger concurrent-reuse path.
+      const updateCount = clientCalls.filter(c => c.sql.trim().startsWith('UPDATE')).length;
+      if (verb === 'UPDATE' && updateCount === 1) {
+        return { rows: [], rowCount: 0 };
+      }
+      return { rows: [], rowCount: 1 };
+    });
+
+    await expect(refreshToken(mocks.deps, null, { refreshToken: 'tok' })).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+
+    // Family revoke fired for the concurrent-reuse path
+    const familyRevoke = clientCalls.find(
+      c => c.sql.includes('family_id') && c.sql.includes('is_revoked = false')
+    );
+    expect(familyRevoke?.params).toContain('fam-conc-steal');
+
+    // tokens_valid_from stamped
+    const watermark = clientCalls.find(c => c.sql.includes('tokens_valid_from'));
+    expect(watermark?.params).toContain('usr-conc');
+
+    // No new refresh row
+    expect(clientCalls.map(c => c.sql.trim().split(/\s+/)[0])).not.toContain('INSERT');
   });
 });
 
