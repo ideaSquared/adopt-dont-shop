@@ -29,6 +29,7 @@ import {
   registerMetrics,
   registerRequestId,
 } from '@adopt-dont-shop/observability';
+import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -48,6 +49,7 @@ import type { NotificationsClient } from './grpc-clients/notifications-client.js
 import type { PetsClient } from './grpc-clients/pets-client.js';
 import type { RescueClient } from './grpc-clients/rescue-client.js';
 import { registerAuthenticate } from './middleware/authenticate.js';
+import { registerCsrfProtection } from './middleware/csrf.js';
 import { createEmailRateLimiter } from './routes/email-rate-limiter.js';
 import { registerApplicationDocumentsRoutes } from './routes/application-documents.js';
 import { registerAnalyticsRoutes } from './routes/analytics.js';
@@ -59,6 +61,7 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerChatRoutes } from './routes/chat.js';
 import { registerCmsRoutes } from './routes/cms.js';
 import { registerConfigRoutes } from './routes/config.js';
+import { registerCsrfRoutes } from './routes/csrf.js';
 import { registerDashboardRoutes } from './routes/dashboard.js';
 import { registerDevicesRoutes } from './routes/devices.js';
 import { registerBroadcastRoutes } from './routes/broadcast.js';
@@ -239,6 +242,14 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
+  // Cookie support (ADS-919 Phase 0). No signing secret — the CSRF
+  // double-submit cookie doesn't need one (its security comes from
+  // same-origin JS being the only thing that can read a non-HttpOnly
+  // cookie AND set a custom header in the same request), and nothing
+  // else sets cookies yet. A later phase that adds HttpOnly auth cookies
+  // can register signed cookies with a secret at that point.
+  await server.register(cookie);
+
   // Request-id middleware runs FIRST so the id is on req for every
   // hook after it (including the metrics onResponse hook + the
   // authenticate hook, which forwards it on downstream gRPC metadata).
@@ -417,6 +428,18 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
       }
     });
   }
+
+  // CSRF double-submit-cookie protection (ADS-919 Phase 0). Registered
+  // unconditionally (no gRPC client dependency) and safe to add globally:
+  // see middleware/csrf.ts's module comment for the enforcement scope —
+  // it only rejects a state-changing request that already carries the
+  // csrfToken cookie, so no existing route or test that doesn't fetch
+  // GET /api/v1/csrf-token first is affected.
+  registerCsrfProtection(server, { logger });
+
+  // GET /api/v1/csrf-token — issues the double-submit cookie. Public,
+  // gateway-folded (no upstream service), same shape as /api/v1/config.
+  await registerCsrfRoutes(server);
 
   // Service-specific routes register at /api/v1/<domain> BEFORE the
   // unmatched-route 404 handler — Fastify's first-registered-wins prefix
