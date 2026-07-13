@@ -114,15 +114,6 @@ export const pdfContent = style({
   overflow: 'hidden',
 });
 
-export const pdfEmbed = style({
-  width: '100%',
-  height: '100%',
-  border: 'none',
-  borderRadius: '8px',
-  transformOrigin: 'center',
-  transition: 'transform 0.2s ease',
-});
-
 export const pdfIframe = style({
   width: '100%',
   height: '100%',

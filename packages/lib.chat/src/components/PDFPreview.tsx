@@ -6,14 +6,26 @@ import * as styles from './PDFPreview.css';
 interface PDFPreviewProps {
   url: string;
   filename: string;
+  mimeType: string;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const PDFPreview: React.FC<PDFPreviewProps> = ({ url, filename, isOpen, onClose }) => {
+// The "is this a PDF?" mimeType is client-declared (set by whoever created
+// the message record), not verified against the served bytes. Only render
+// an inline preview for a strict allowlist, and treat everything else as
+// download-only — never trust an unverified mimeType to pick an embedded
+// renderer.
+const PREVIEWABLE_MIME_TYPES: readonly string[] = ['application/pdf'];
+
+export const PDFPreview: React.FC<PDFPreviewProps> = ({
+  url,
+  filename,
+  mimeType,
+  isOpen,
+  onClose,
+}) => {
   const [zoom, setZoom] = useState(1);
-  // Default to inline embed; fall back to Google Viewer only when the embed errors.
-  const [viewMethod, setViewMethod] = useState<'embed' | 'iframe' | 'google'>('embed');
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -64,43 +76,34 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ url, filename, isOpen, o
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 2));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
 
+  const canPreviewInline = PREVIEWABLE_MIME_TYPES.includes(mimeType);
+
+  // Rendered with the browser's native PDF viewer. We never hand the
+  // attachment URL — which for a signed-URL scheme carries the signature
+  // and expiry — to a third-party viewer such as Google Docs Viewer; there
+  // is no fallback path that does so.
+  //
+  // The frame is sandboxed without allow-scripts/allow-same-origin: if the
+  // server ever serves bytes that don't match the declared mimeType (e.g.
+  // an HTML file registered as application/pdf), any script it contains
+  // cannot execute or read this origin's cookies/DOM. The URL itself is
+  // passed through untouched — no string-concatenated fragment.
   const renderPDFContent = () => {
-    if (viewMethod === 'google') {
-      const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+    if (!canPreviewInline) {
       return (
-        <iframe
-          className={styles.pdfIframe}
-          style={{ transform: `scale(${zoom})` }}
-          src={googleViewerUrl}
-          title={filename}
-          onError={() => {
-            // Google Viewer failed — fall back to a download prompt via
-            // the download link in the header.
-          }}
-        />
+        <div className={styles.pdfError}>
+          <p>Preview isn&apos;t available for this file type. Use the download button above.</p>
+        </div>
       );
     }
 
-    if (viewMethod === 'iframe') {
-      return (
-        <iframe
-          className={styles.pdfIframe}
-          style={{ transform: `scale(${zoom})` }}
-          src={`${url}#toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
-          title={filename}
-          onError={() => setViewMethod('google')}
-        />
-      );
-    }
-
-    // Default: inline <embed>. Falls back to Google Viewer on error.
     return (
-      <embed
-        className={styles.pdfEmbed}
+      <iframe
+        className={styles.pdfIframe}
         style={{ transform: `scale(${zoom})` }}
         src={url}
-        type="application/pdf"
         title={filename}
+        sandbox=""
       />
     );
   };
@@ -125,23 +128,24 @@ export const PDFPreview: React.FC<PDFPreviewProps> = ({ url, filename, isOpen, o
         <div className={styles.pdfHeader}>
           <h3 className={styles.pdfTitle}>{filename}</h3>
           <div className={styles.pdfControls}>
-            <button
-              className={styles.pdfButtonDefault}
-              onClick={handleZoomOut}
-              disabled={zoom <= 0.5}
-            >
-              <MdZoomOut size={18} />
-            </button>
-            <button className={styles.pdfButtonDefault} onClick={handleZoomIn} disabled={zoom >= 2}>
-              <MdZoomIn size={18} />
-            </button>
-            <button
-              className={styles.pdfButtonDefault}
-              onClick={() => setViewMethod('google')}
-              title="Open with Google Viewer"
-            >
-              &#128196;
-            </button>
+            {canPreviewInline && (
+              <>
+                <button
+                  className={styles.pdfButtonDefault}
+                  onClick={handleZoomOut}
+                  disabled={zoom <= 0.5}
+                >
+                  <MdZoomOut size={18} />
+                </button>
+                <button
+                  className={styles.pdfButtonDefault}
+                  onClick={handleZoomIn}
+                  disabled={zoom >= 2}
+                >
+                  <MdZoomIn size={18} />
+                </button>
+              </>
+            )}
             <a
               className={styles.pdfButtonPrimary}
               href={url}
