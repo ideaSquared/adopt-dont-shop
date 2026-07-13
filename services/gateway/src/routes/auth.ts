@@ -538,9 +538,6 @@ export const registerAuthRoutes = async (
         const json = AuthV1.RegisterResponse.toJSON(res) as Record<string, unknown>;
         return reply.code(201).send(withApiUser(json, res.user));
       } catch (err) {
-        if (err instanceof BadRequestError) {
-          return reply.code(400).send({ error: err.message });
-        }
         return handleGrpcError(err, reply);
       }
     }
@@ -1103,12 +1100,6 @@ export const registerAuthRoutes = async (
 };
 
 // --- Helpers ---------------------------------------------------------
-
-// Thrown when a present field carries the wrong type. Caught in the /register
-// handler and mapped to a 400 — a non-string smuggled into a string proto field
-// is a client error, not a downstream INTERNAL. (The other routes now use Zod
-// schemas instead of pickString, so they no longer throw this.)
-class BadRequestError extends Error {}
 
 // Accept the canonical DB role string (`adopter`, `rescue_staff`, …)
 // OR the SCREAMING proto form (`USER_ROLE_ADOPTER`). The handler's

@@ -315,6 +315,63 @@ describe('updateRescue', () => {
     await updateRescue(mocks.deps, STAFF, { rescueId: 'rsc-1', name: 'Pawsome 2' } as never);
     expect(msgID).toBe('rescue.updated.rsc-1:3');
   });
+
+  // --- ADS-936: optimistic concurrency guard on settings read-merge-write ---
+
+  it('adds a version guard to the WHERE clause when expectedVersion is supplied', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ version: 5 })] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ version: 6 })] });
+
+    await updateRescue(mocks.deps, STAFF, {
+      rescueId: 'rsc-1',
+      settingsJson: '{"adoptionPolicies":{"minAge":1}}',
+      expectedVersion: 5,
+    } as never);
+
+    const sql = mocks.clientMock.query.mock.calls[1][0] as string;
+    const params = mocks.clientMock.query.mock.calls[1][1] as unknown[];
+    expect(sql).toMatch(/AND version = \$\d+/);
+    expect(params).toContain(5);
+  });
+
+  it('FAILED_PRECONDITION when the row moved past expectedVersion (concurrent write lost the race)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ version: 5 })] });
+    // The UPDATE's WHERE ... AND version = $expectedVersion matches nothing
+    // because another writer already bumped the version.
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+    await expect(
+      updateRescue(mocks.deps, STAFF, {
+        rescueId: 'rsc-1',
+        settingsJson: '{"adoptionPolicies":{"minAge":1}}',
+        expectedVersion: 5,
+      } as never)
+    ).rejects.toMatchObject({ code: 'FAILED_PRECONDITION' });
+  });
+
+  it('does not publish rescue.updated when the version-guarded UPDATE matches no rows', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ version: 5 })] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+    await expect(
+      updateRescue(mocks.deps, STAFF, {
+        rescueId: 'rsc-1',
+        settingsJson: '{}',
+        expectedVersion: 5,
+      } as never)
+    ).rejects.toMatchObject({ code: 'FAILED_PRECONDITION' });
+    expect(mocks.natsMock.publish).not.toHaveBeenCalled();
+  });
+
+  it('omits the version guard (last-write-wins) when expectedVersion is not supplied', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [rescueRow({ version: 5 })] });
+    mocks.clientMock.query.mockResolvedValue({ rows: [rescueRow({ version: 6 })] });
+
+    await updateRescue(mocks.deps, STAFF, { rescueId: 'rsc-1', name: 'Pawsome 2' } as never);
+
+    const sql = mocks.clientMock.query.mock.calls[1][0] as string;
+    expect(sql).not.toMatch(/AND version/);
+  });
 });
 
 // --- verifyRescue ----------------------------------------------------

@@ -416,6 +416,13 @@ export interface Rescue {
   plan: string;
   /** Optional ISO-8601 plan expiry. Unset = no expiry. */
   planExpiresAt?: string | undefined;
+  /**
+   * Optimistic-concurrency version — bumped on every Update. Optional
+   * (rather than a plain scalar) so existing callers that construct a
+   * Rescue without it — fixtures, stub servers — keep working; only
+   * fetchRescue's real row-to-proto mapping is expected to set it.
+   */
+  version?: number | undefined;
 }
 
 /**
@@ -517,6 +524,13 @@ export interface UpdateRescueRequest {
   contactPhone?: string | undefined;
   /** Replaces the settings JSON blob wholesale when present. */
   settingsJson?: string | undefined;
+  /**
+   * Optimistic-concurrency guard — the caller's last-known version.
+   * The service rejects with FAILED_PRECONDITION when the row has
+   * moved beyond this version. Unset = no check (last-write-wins,
+   * the pre-existing behaviour).
+   */
+  expectedVersion?: number | undefined;
 }
 
 export interface UpdateRescueResponse {
@@ -1043,6 +1057,7 @@ function createBaseRescue(): Rescue {
     updatedAt: '',
     plan: '',
     planExpiresAt: undefined,
+    version: undefined,
   };
 }
 
@@ -1131,6 +1146,9 @@ export const Rescue: MessageFns<Rescue> = {
     }
     if (message.planExpiresAt !== undefined) {
       writer.uint32(226).string(message.planExpiresAt);
+    }
+    if (message.version !== undefined) {
+      writer.uint32(232).uint32(message.version);
     }
     return writer;
   },
@@ -1366,6 +1384,14 @@ export const Rescue: MessageFns<Rescue> = {
           message.planExpiresAt = reader.string();
           continue;
         }
+        case 29: {
+          if (tag !== 232) {
+            break;
+          }
+
+          message.version = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1465,6 +1491,7 @@ export const Rescue: MessageFns<Rescue> = {
         : isSet(object.plan_expires_at)
           ? globalThis.String(object.plan_expires_at)
           : undefined,
+      version: isSet(object.version) ? globalThis.Number(object.version) : undefined,
     };
   },
 
@@ -1554,6 +1581,9 @@ export const Rescue: MessageFns<Rescue> = {
     if (message.planExpiresAt !== undefined) {
       obj.planExpiresAt = message.planExpiresAt;
     }
+    if (message.version !== undefined) {
+      obj.version = Math.round(message.version);
+    }
     return obj;
   },
 
@@ -1590,6 +1620,7 @@ export const Rescue: MessageFns<Rescue> = {
     message.updatedAt = object.updatedAt ?? '';
     message.plan = object.plan ?? '';
     message.planExpiresAt = object.planExpiresAt ?? undefined;
+    message.version = object.version ?? undefined;
     return message;
   },
 };
@@ -2655,6 +2686,7 @@ function createBaseUpdateRescueRequest(): UpdateRescueRequest {
     contactEmail: undefined,
     contactPhone: undefined,
     settingsJson: undefined,
+    expectedVersion: undefined,
   };
 }
 
@@ -2707,6 +2739,9 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
     }
     if (message.settingsJson !== undefined) {
       writer.uint32(130).string(message.settingsJson);
+    }
+    if (message.expectedVersion !== undefined) {
+      writer.uint32(136).uint32(message.expectedVersion);
     }
     return writer;
   },
@@ -2846,6 +2881,14 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
           message.settingsJson = reader.string();
           continue;
         }
+        case 17: {
+          if (tag !== 136) {
+            break;
+          }
+
+          message.expectedVersion = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2896,6 +2939,11 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
         ? globalThis.String(object.settingsJson)
         : isSet(object.settings_json)
           ? globalThis.String(object.settings_json)
+          : undefined,
+      expectedVersion: isSet(object.expectedVersion)
+        ? globalThis.Number(object.expectedVersion)
+        : isSet(object.expected_version)
+          ? globalThis.Number(object.expected_version)
           : undefined,
     };
   },
@@ -2950,6 +2998,9 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
     if (message.settingsJson !== undefined) {
       obj.settingsJson = message.settingsJson;
     }
+    if (message.expectedVersion !== undefined) {
+      obj.expectedVersion = Math.round(message.expectedVersion);
+    }
     return obj;
   },
 
@@ -2976,6 +3027,7 @@ export const UpdateRescueRequest: MessageFns<UpdateRescueRequest> = {
     message.contactEmail = object.contactEmail ?? undefined;
     message.contactPhone = object.contactPhone ?? undefined;
     message.settingsJson = object.settingsJson ?? undefined;
+    message.expectedVersion = object.expectedVersion ?? undefined;
     return message;
   },
 };

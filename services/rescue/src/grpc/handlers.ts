@@ -159,6 +159,7 @@ function rowToProto(row: RescueRow): Rescue {
     updatedAt: row.updated_at.toISOString(),
     plan: row.plan,
     planExpiresAt: row.plan_expires_at?.toISOString(),
+    version: row.version,
   };
 }
 
@@ -467,24 +468,44 @@ export async function updateRescue(
   sets.push('updated_at = now()');
   sets.push('version = version + 1');
 
+  // Optimistic-concurrency guard: when the caller supplies expected_version,
+  // the UPDATE only matches the row still at that version. A concurrent
+  // writer that already bumped the version makes this a no-op UPDATE
+  // (0 rows), which we surface below as FAILED_PRECONDITION instead of
+  // silently clobbering their write (ADS-936).
+  let whereClause = `rescue_id = $${n}`;
+  const whereParams = [...params, req.rescueId];
+  if (req.expectedVersion !== undefined) {
+    whereParams.push(req.expectedVersion);
+    whereClause += ` AND version = $${n + 1}`;
+  }
+
   let updated: RescueRow | undefined;
   await withTransaction(deps, async ({ client, publish }) => {
     const result = await client.query<RescueRow>(
-      `UPDATE rescue.rescues SET ${sets.join(', ')} WHERE rescue_id = $${n} RETURNING ${RESCUES_SELECT}`,
-      [...params, req.rescueId]
+      `UPDATE rescue.rescues SET ${sets.join(', ')} WHERE ${whereClause} RETURNING ${RESCUES_SELECT}`,
+      whereParams
     );
     updated = result.rows[0];
-    // Deterministic idempotency key: aggregateId:version. The UPDATE just
-    // bumped version, so each committed update maps to exactly one id and
-    // a replay de-dups in JetStream instead of minting a fresh id.
-    publish({
-      type: 'rescue.updated',
-      id: `rescue.updated.${req.rescueId}:${updated?.version}`,
-      payload: { rescueId: req.rescueId },
-    });
+    if (updated) {
+      // Deterministic idempotency key: aggregateId:version. The UPDATE just
+      // bumped version, so each committed update maps to exactly one id and
+      // a replay de-dups in JetStream instead of minting a fresh id.
+      publish({
+        type: 'rescue.updated',
+        id: `rescue.updated.${req.rescueId}:${updated.version}`,
+        payload: { rescueId: req.rescueId },
+      });
+    }
   });
 
   if (!updated) {
+    if (req.expectedVersion !== undefined) {
+      throw new HandlerError(
+        'FAILED_PRECONDITION',
+        `rescue ${req.rescueId} was modified concurrently (expected version ${req.expectedVersion}); reload and retry`
+      );
+    }
     throw new HandlerError('INTERNAL', 'update returned no rows');
   }
   return { rescue: rowToProto(updated) };

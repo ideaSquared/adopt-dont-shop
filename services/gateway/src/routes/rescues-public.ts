@@ -587,6 +587,14 @@ export const registerRescuesPublicRoutes = async (
   // PUT /api/v1/rescues/:id/adoption-policies — replace the adoptionPolicies
   // key in settings, preserving the rest of the settings blob. UpdateRescue's
   // settingsJson field replaces the whole blob, so we read-merge-write.
+  //
+  // The read and the write are two separate RPCs, so a naive read-merge-write
+  // is racy: two concurrent PUTs can both read version N and the second
+  // writer silently clobbers the first's update (ADS-936). We close that
+  // window with optimistic concurrency — pass the version we just read as
+  // expectedVersion; UpdateRescue rejects with FAILED_PRECONDITION if the
+  // row moved on, which handleGrpcError maps to a 409 the SPA can retry
+  // from a fresh read.
   app.put<{ Params: { id: string } }>(
     '/api/v1/rescues/:id/adoption-policies',
     {
@@ -616,6 +624,12 @@ export const registerRescuesPublicRoutes = async (
               error: { type: 'string' },
             },
           },
+          409: {
+            type: 'object',
+            properties: {
+              error: { type: 'string' },
+            },
+          },
         },
       },
     },
@@ -628,7 +642,11 @@ export const registerRescuesPublicRoutes = async (
         const settings = parseSettings(current.rescue.settingsJson);
         const merged = { ...settings, adoptionPolicies: req.body ?? {} };
         const res = await client.update(
-          { rescueId: req.params.id, settingsJson: JSON.stringify(merged) },
+          {
+            rescueId: req.params.id,
+            settingsJson: JSON.stringify(merged),
+            expectedVersion: current.rescue.version,
+          },
           buildMetadata(req)
         );
         if (res.rescue === undefined) {

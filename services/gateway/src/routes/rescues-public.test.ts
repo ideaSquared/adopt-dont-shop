@@ -1,3 +1,4 @@
+import { status as grpcStatus } from '@grpc/grpc-js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -38,6 +39,7 @@ const RESCUE = {
   settingsJson: '{}',
   createdAt: '2026-06-01T00:00:00.000Z',
   updatedAt: '2026-06-02T00:00:00.000Z',
+  version: 7,
 };
 
 describe('rescues public routes', () => {
@@ -222,7 +224,11 @@ describe('rescues public routes', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ success: true, data: policy });
-    const updateArg = mocks.update.mock.calls[0][0] as { rescueId: string; settingsJson: string };
+    const updateArg = mocks.update.mock.calls[0][0] as {
+      rescueId: string;
+      settingsJson: string;
+      expectedVersion: number;
+    };
     expect(updateArg.rescueId).toBe('rsc-1');
     expect(JSON.parse(updateArg.settingsJson)).toEqual({ theme: 'dark', adoptionPolicies: policy });
   });
@@ -235,5 +241,35 @@ describe('rescues public routes', () => {
       payload: {},
     });
     expect(res.statusCode).toBe(404);
+  });
+
+  // --- ADS-936: lost-update race on the settings read-merge-write ---
+
+  it('PUT /api/v1/rescues/:id/adoption-policies passes the just-read version as expectedVersion', async () => {
+    mocks.get.mockResolvedValueOnce({
+      rescue: { ...RESCUE, settingsJson: '{}', version: 7 },
+    });
+    mocks.update.mockResolvedValueOnce({ rescue: RESCUE });
+    await app.inject({
+      method: 'PUT',
+      url: '/api/v1/rescues/rsc-1/adoption-policies',
+      payload: { requireHomeVisit: true },
+    });
+    const updateArg = mocks.update.mock.calls[0][0] as { expectedVersion: number };
+    expect(updateArg.expectedVersion).toBe(7);
+  });
+
+  it('PUT /api/v1/rescues/:id/adoption-policies surfaces a 409 when a concurrent writer already moved the version', async () => {
+    mocks.get.mockResolvedValueOnce({ rescue: { ...RESCUE, settingsJson: '{}', version: 7 } });
+    mocks.update.mockRejectedValueOnce({
+      code: grpcStatus.FAILED_PRECONDITION,
+      details: 'rescue rsc-1 was modified concurrently (expected version 7); reload and retry',
+    });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/rescues/rsc-1/adoption-policies',
+      payload: { requireHomeVisit: true },
+    });
+    expect(res.statusCode).toBe(409);
   });
 });
