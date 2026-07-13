@@ -14,6 +14,14 @@
 // Any other metric/chartType combination (custom widgets outside the
 // 5 presets) returns an empty data array rather than erroring.
 //
+// ADS-939: GetUserStatistics has no rescue filter (the RPC returns
+// platform-wide counts only), unlike the pets/applications aggregations
+// above which all accept `rescueIdFilter`. Rather than adding a filter
+// to the auth service (option 1 in the ticket), we take the interim
+// gateway-side drop (option 2): a non-platform-admin principal gets the
+// empty-array default instead of the RPC's platform totals, logged at
+// INFO so the drop is visible. See callerIsPlatformAdmin below.
+//
 // Known gaps (no backing RPC exists yet, so these are intentionally
 // unimplemented rather than half-built):
 //   - rescue-leaderboard rows expose {rescueId, adoptions} only — there
@@ -211,13 +219,31 @@ type AggregationClients = {
   authClient: AuthClient;
 };
 
+// Same shape as dashboard.ts's ADMIN_ROLES/callerIsAdmin — x-user-roles is
+// stamped by the gateway's authenticate middleware from the validated
+// principal (see middleware/authenticate.ts SPOOFABLE_HEADERS), so it
+// can't be forged by the client.
+const PLATFORM_ADMIN_ROLES = new Set(['admin', 'super_admin']);
+
+function callerIsPlatformAdmin(metadata: Metadata): boolean {
+  const raw = metadata.get('x-user-roles');
+  const value = typeof raw[0] === 'string' ? raw[0] : '';
+  return value
+    .split(',')
+    .map(r => r.trim())
+    .some(r => PLATFORM_ADMIN_ROLES.has(r));
+}
+
+type WidgetLogger = { info: (obj: Record<string, unknown>, msg: string) => void };
+
 // Widget → aggregation RPC dispatch. See the file-header comment for the
 // full metric/chartType → RPC mapping table.
 async function computeWidgetData(
   widget: ReportWidgetInput,
   filters: ReportFiltersInput,
   clients: AggregationClients,
-  metadata: Metadata
+  metadata: Metadata,
+  log: WidgetLogger
 ): Promise<unknown[]> {
   const metric = typeof widget.metric === 'string' ? widget.metric : '';
   const chartType = typeof widget.chartType === 'string' ? widget.chartType : '';
@@ -293,6 +319,13 @@ async function computeWidgetData(
   }
 
   if (metric === 'user' && chartType === 'metric-card') {
+    if (!callerIsPlatformAdmin(metadata)) {
+      log.info(
+        { widgetId: typeof widget.id === 'string' ? widget.id : '' },
+        'Dropping user-statistics widget for non-platform-admin principal (ADS-939)'
+      );
+      return [];
+    }
     const res = await clients.authClient.getUserStatistics({}, metadata);
     const valueKey = sanitizeKey(
       typeof options.valueKey === 'string' ? options.valueKey : 'value',
@@ -309,14 +342,14 @@ async function executeConfig(
   config: ReportConfigInput,
   clients: AggregationClients,
   metadata: Metadata,
-  log: { error: (obj: Record<string, unknown>, msg: string) => void }
+  log: WidgetLogger & { error: (obj: Record<string, unknown>, msg: string) => void }
 ): Promise<Record<string, unknown>> {
   const filters = config.filters ?? {};
   const widgets = config.widgets ?? [];
   const settled = await Promise.allSettled(
     widgets.map(async widget => ({
       id: typeof widget.id === 'string' ? widget.id : '',
-      data: await computeWidgetData(widget, filters, clients, metadata),
+      data: await computeWidgetData(widget, filters, clients, metadata, log),
       meta: {
         metric: typeof widget.metric === 'string' ? widget.metric : '',
         chartType: typeof widget.chartType === 'string' ? widget.chartType : '',
