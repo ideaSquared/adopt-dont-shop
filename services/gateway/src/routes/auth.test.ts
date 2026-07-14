@@ -34,6 +34,7 @@ function makeClient(): {
   setupTwoFactorMock: ReturnType<typeof vi.fn>;
   enableTwoFactorMock: ReturnType<typeof vi.fn>;
   disableTwoFactorMock: ReturnType<typeof vi.fn>;
+  regenerateBackupCodesMock: ReturnType<typeof vi.fn>;
   updateAccountMock: ReturnType<typeof vi.fn>;
 } {
   const loginMock = vi.fn();
@@ -52,6 +53,7 @@ function makeClient(): {
   const setupTwoFactorMock = vi.fn();
   const enableTwoFactorMock = vi.fn();
   const disableTwoFactorMock = vi.fn();
+  const regenerateBackupCodesMock = vi.fn();
   const updateAccountMock = vi.fn();
   const client: AuthClient = {
     login: loginMock,
@@ -70,6 +72,7 @@ function makeClient(): {
     setupTwoFactor: setupTwoFactorMock,
     enableTwoFactor: enableTwoFactorMock,
     disableTwoFactor: disableTwoFactorMock,
+    regenerateBackupCodes: regenerateBackupCodesMock,
     updateAccount: updateAccountMock,
     close: vi.fn(),
   };
@@ -91,6 +94,7 @@ function makeClient(): {
     setupTwoFactorMock,
     enableTwoFactorMock,
     disableTwoFactorMock,
+    regenerateBackupCodesMock,
     updateAccountMock,
   };
 }
@@ -1448,6 +1452,28 @@ describe('two-factor routes', () => {
     }
   });
 
+  it('POST /auth/2fa/enable surfaces the backup codes returned by the service (ADS-914b)', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.enableTwoFactorMock.mockResolvedValueOnce({
+        enabled: true,
+        backupCodes: ['AAAA-BBBB-CCCC-DDDD', 'EEEE-FFFF-GGGG-HHHH'],
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/2fa/enable',
+        headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+        payload: { secret: 'S', token: '123456' },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { backupCodes?: string[] };
+      expect(body.backupCodes).toEqual(['AAAA-BBBB-CCCC-DDDD', 'EEEE-FFFF-GGGG-HHHH']);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('POST /auth/2fa/disable threads the token', async () => {
     const m = makeClient();
     const app = await makeApp(m.client);
@@ -1462,6 +1488,68 @@ describe('two-factor routes', () => {
       expect(res.statusCode).toBe(200);
       const [grpcReq] = m.disableTwoFactorMock.mock.calls[0] as [{ token: string }];
       expect(grpcReq.token).toBe('654321');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/2fa/backup-codes/regenerate threads the token and returns the fresh codes', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.regenerateBackupCodesMock.mockResolvedValueOnce({
+        backupCodes: ['ZZZZ-ZZZZ-ZZZZ-ZZZZ'],
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/2fa/backup-codes/regenerate',
+        headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+        payload: { token: '999999' },
+      });
+      expect(res.statusCode).toBe(200);
+      const [grpcReq] = m.regenerateBackupCodesMock.mock.calls[0] as [{ token: string }];
+      expect(grpcReq.token).toBe('999999');
+      const body = res.json() as { backupCodes?: string[] };
+      expect(body.backupCodes).toEqual(['ZZZZ-ZZZZ-ZZZZ-ZZZZ']);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /auth/2fa/backup-codes/regenerate maps an invalid-code 400', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.regenerateBackupCodesMock.mockRejectedValueOnce({
+        code: grpcStatus.INVALID_ARGUMENT,
+        details: 'invalid two-factor code',
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/2fa/backup-codes/regenerate',
+        headers: { 'x-user-id': 'usr-1', 'content-type': 'application/json' },
+        payload: { token: '000000' },
+      });
+      expect(res.statusCode).toBe(400);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('login threads a backup code in place of the TOTP token', async () => {
+    const m = makeClient();
+    const app = await makeApp(m.client);
+    try {
+      m.loginMock.mockResolvedValueOnce({ permissions: [], twoFactorRequired: false });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        headers: { 'content-type': 'application/json' },
+        payload: { email: 'a@b.com', password: 'pw', backupCode: 'AAAA-BBBB-CCCC-DDDD' },
+      });
+      expect(res.statusCode).toBe(200);
+      const [grpcReq] = m.loginMock.mock.calls[0] as [{ backupCode?: string }];
+      expect(grpcReq.backupCode).toBe('AAAA-BBBB-CCCC-DDDD');
     } finally {
       await app.close();
     }

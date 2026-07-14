@@ -510,6 +510,107 @@ describe('login', () => {
     }
   });
 
+  // --- Backup/recovery codes (ADS-914b) -------------------------------
+
+  it('completes the login with a valid backup code and consumes only that code (single-use)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        userRowFixture({
+          two_factor_enabled: true,
+          two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, generateSecret()),
+          backup_codes: ['hash-a', 'hash-b'],
+        }),
+      ],
+    });
+    mocks.hasherMock.compare
+      .mockResolvedValueOnce(true) // password check
+      .mockResolvedValueOnce(false) // backup code vs hash-a — no match
+      .mockResolvedValueOnce(true); // backup code vs hash-b — match
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.poolMock.query
+      // The backup_codes UPDATE removing the consumed hash.
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
+
+    const res = await login(mocks.deps, null, { ...BASE_LOGIN_REQ, backupCode: 'ZZZZ-ZZZZ' });
+
+    expect(res.twoFactorRequired).toBe(false);
+    expect(res.tokens?.accessToken).toBe('access.jwt.token');
+    expect(res.backupCodesExhausted).toBe(false);
+    const updateCall = mocks.poolMock.query.mock.calls.find(c =>
+      (c[0] as string).includes('backup_codes = $2')
+    );
+    // Only the matched hash ("hash-b") was removed — "hash-a" survives.
+    expect(updateCall?.[1]).toEqual(['usr-adopter', ['hash-a']]);
+  });
+
+  it('signals backupCodesExhausted when the LAST backup code is consumed', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        userRowFixture({
+          two_factor_enabled: true,
+          two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, generateSecret()),
+          backup_codes: ['hash-only'],
+        }),
+      ],
+    });
+    mocks.hasherMock.compare
+      .mockResolvedValueOnce(true) // password check
+      .mockResolvedValueOnce(true); // backup code vs hash-only — match
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
+
+    const res = await login(mocks.deps, null, { ...BASE_LOGIN_REQ, backupCode: 'AAAA-BBBB' });
+
+    expect(res.backupCodesExhausted).toBe(true);
+  });
+
+  it('rejects an unrecognised backup code with UNAUTHENTICATED (no token minted)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        userRowFixture({
+          two_factor_enabled: true,
+          two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, generateSecret()),
+          backup_codes: ['hash-a'],
+        }),
+      ],
+    });
+    mocks.hasherMock.compare
+      .mockResolvedValueOnce(true) // password check
+      .mockResolvedValueOnce(false); // backup code vs hash-a — no match
+
+    await expect(
+      login(mocks.deps, null, { ...BASE_LOGIN_REQ, backupCode: 'WRONG-CODE' })
+    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+  });
+
+  it('rejects a backup code when none remain', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        userRowFixture({
+          two_factor_enabled: true,
+          two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, generateSecret()),
+          backup_codes: [],
+        }),
+      ],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true); // password check
+
+    await expect(
+      login(mocks.deps, null, { ...BASE_LOGIN_REQ, backupCode: 'ANY-CODE' })
+    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+  });
+
   // --- Email-verification enforcement --------------------------------
 
   it('blocks login (no tokens) when the email is not verified', async () => {

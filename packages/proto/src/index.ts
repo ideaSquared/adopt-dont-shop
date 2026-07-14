@@ -128,6 +128,8 @@ export type {
   EnableTwoFactorResponse,
   DisableTwoFactorRequest,
   DisableTwoFactorResponse,
+  RegenerateBackupCodesRequest,
+  RegenerateBackupCodesResponse,
   UpdateAccountRequest,
   UpdateAccountResponse,
   Session as AuthSession,

@@ -25,6 +25,8 @@ import {
   type ExportUserDataResponse,
   type ForgotPasswordRequest,
   type ForgotPasswordResponse,
+  type RegenerateBackupCodesRequest,
+  type RegenerateBackupCodesResponse,
   type RequestAccountDeletionRequest,
   type RequestAccountDeletionResponse,
   type SetupTwoFactorRequest,
@@ -152,6 +154,10 @@ export type AuthClient = {
     req: DisableTwoFactorRequest,
     metadata: Metadata
   ): Promise<DisableTwoFactorResponse>;
+  regenerateBackupCodes(
+    req: RegenerateBackupCodesRequest,
+    metadata: Metadata
+  ): Promise<RegenerateBackupCodesResponse>;
   updateAccount(req: UpdateAccountRequest, metadata: Metadata): Promise<UpdateAccountResponse>;
   listSessions(req: ListSessionsRequest, metadata: Metadata): Promise<ListSessionsResponse>;
   revokeSession(req: RevokeSessionRequest, metadata: Metadata): Promise<RevokeSessionResponse>;
@@ -329,6 +335,8 @@ export const createAuthClient = (opts: CreateAuthClientOptions): AuthClient => {
     setupTwoFactor: (req, metadata) => callUnary(stub.setupTwoFactor, req, metadata, false),
     enableTwoFactor: (req, metadata) => callUnary(stub.enableTwoFactor, req, metadata, false),
     disableTwoFactor: (req, metadata) => callUnary(stub.disableTwoFactor, req, metadata, false),
+    regenerateBackupCodes: (req, metadata) =>
+      callUnary(stub.regenerateBackupCodes, req, metadata, false),
     updateAccount: (req, metadata) => callUnary(stub.updateAccount, req, metadata, false),
     revokeSession: (req, metadata) => callUnary(stub.revokeSession, req, metadata, false),
     adminRevokeSession: (req, metadata) => callUnary(stub.adminRevokeSession, req, metadata, false),

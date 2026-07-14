@@ -28,7 +28,12 @@ import {
   updateAccount,
   verifyEmail,
 } from './account-handlers.js';
-import { disableTwoFactor, enableTwoFactor, setupTwoFactor } from './two-factor-handlers.js';
+import {
+  disableTwoFactor,
+  enableTwoFactor,
+  regenerateBackupCodes,
+  setupTwoFactor,
+} from './two-factor-handlers.js';
 import {
   assignRole,
   getMe,
@@ -125,6 +130,7 @@ export const createGrpcServer = (opts: CreateGrpcServerOptions): Server => {
     setupTwoFactor: adapt(setupTwoFactor, { deps, logger }),
     enableTwoFactor: adapt(enableTwoFactor, { deps, logger }),
     disableTwoFactor: adapt(disableTwoFactor, { deps, logger }),
+    regenerateBackupCodes: adapt(regenerateBackupCodes, { deps, logger }),
     updateAccount: adapt(updateAccount, { deps, logger }),
     // Session management — list active refresh-token chains + revoke.
     listSessions: adapt(listSessions, { deps, logger }),

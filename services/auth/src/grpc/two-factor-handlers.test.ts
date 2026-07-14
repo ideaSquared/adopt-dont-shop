@@ -7,9 +7,15 @@ import { generateSecret, generateSync } from 'otplib';
 import type { Principal } from '@adopt-dont-shop/authz';
 import type { UserId } from '@adopt-dont-shop/lib.types';
 
+import { normalizeBackupCode } from './backup-codes.js';
 import type { HandlerDeps } from './handlers.js';
 import { decryptTotpSecret, encryptTotpSecret } from './totp-crypto.js';
-import { disableTwoFactor, enableTwoFactor, setupTwoFactor } from './two-factor-handlers.js';
+import {
+  disableTwoFactor,
+  enableTwoFactor,
+  regenerateBackupCodes,
+  setupTwoFactor,
+} from './two-factor-handlers.js';
 
 const PRINCIPAL: Principal = {
   userId: 'usr-1' as UserId,
@@ -22,9 +28,22 @@ const ENCRYPTION_KEY = 'a'.repeat(64);
 function makeMocks() {
   const pool = { query: vi.fn() };
   pool.query.mockResolvedValue({ rows: [], rowCount: 0 });
+  // Real bcryptjs compare/hash — cheap enough at test scale (10 codes) and
+  // lets the backup-code assertions exercise the real hash/compare pair
+  // instead of a stub that can't tell a match from a miss.
+  const passwordHasher = {
+    hash: (value: string) => Promise.resolve(`hashed:${value}`),
+    compare: (value: string, hash: string) => Promise.resolve(hash === `hashed:${value}`),
+  };
   const deps: HandlerDeps = {
     pool: pool as unknown as Pool,
     nats: {} as unknown as NatsConnection,
+    passwordHasher,
+    tokenIssuer: {
+      mint: vi.fn(),
+      verifyAccess: vi.fn(),
+      verifyRefresh: vi.fn(),
+    },
     encryptionKey: ENCRYPTION_KEY,
   };
   return { deps, poolMock: pool };
@@ -82,6 +101,30 @@ describe('enableTwoFactor', () => {
     // The secret is encrypted at rest (ADS-914a) — never write the plaintext.
     expect(params[0]).not.toBe(secret);
     expect(decryptTotpSecret(ENCRYPTION_KEY, params[0] as string)).toBe(secret);
+  });
+
+  it('returns 10 unique backup codes and stores only their hashes (ADS-914b)', async () => {
+    const secret = generateSecret();
+    const token = generateSync({ secret });
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+    const res = await enableTwoFactor(mocks.deps, PRINCIPAL, { secret, token });
+
+    expect(res.backupCodes).toHaveLength(10);
+    expect(new Set(res.backupCodes).size).toBe(10);
+    // Human-friendly hyphenated format.
+    for (const code of res.backupCodes) {
+      expect(code).toMatch(/^[A-Z2-7]{4}(-[A-Z2-7]{4}){3}$/);
+    }
+
+    const [sql, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toMatch(/backup_codes = \$2/);
+    const storedHashes = params[1] as string[];
+    expect(storedHashes).toHaveLength(10);
+    // Never the plaintext codes.
+    for (const [i, code] of res.backupCodes.entries()) {
+      expect(storedHashes[i]).not.toBe(code);
+      expect(storedHashes[i]).toBe(`hashed:${normalizeBackupCode(code)}`);
+    }
   });
 
   it('rejects an invalid code without writing', async () => {
@@ -183,5 +226,77 @@ describe('disableTwoFactor', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('regenerateBackupCodes', () => {
+  let mocks: ReturnType<typeof makeMocks>;
+  beforeEach(() => {
+    mocks = makeMocks();
+  });
+
+  it('mints a fresh set of 10 codes and overwrites the stored hashes', async () => {
+    const secret = generateSecret();
+    const token = generateSync({ secret });
+    const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
+    mocks.poolMock.query
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            two_factor_enabled: true,
+            two_factor_secret: encryptedSecret,
+            two_factor_last_step: null,
+          },
+        ],
+      })
+      // Replay-guard UPDATE fired by verifyAndConsumeTotp.
+      .mockResolvedValueOnce({ rows: [] })
+      // The backup_codes overwrite.
+      .mockResolvedValueOnce({ rows: [] });
+
+    const res = await regenerateBackupCodes(mocks.deps, PRINCIPAL, { token });
+
+    expect(res.backupCodes).toHaveLength(10);
+    const [sql, params] = mocks.poolMock.query.mock.calls[2] as [string, unknown[]];
+    expect(sql).toMatch(/backup_codes = \$2/);
+    const storedHashes = params[1] as string[];
+    expect(storedHashes).toHaveLength(10);
+    for (const [i, code] of res.backupCodes.entries()) {
+      expect(storedHashes[i]).not.toBe(code);
+    }
+  });
+
+  it('rejects when 2FA is not enabled', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [{ two_factor_enabled: false, two_factor_secret: null, two_factor_last_step: null }],
+    });
+    await expect(
+      regenerateBackupCodes(mocks.deps, PRINCIPAL, { token: '123456' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('rejects a wrong code without regenerating', async () => {
+    const secret = generateSecret();
+    const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        {
+          two_factor_enabled: true,
+          two_factor_secret: encryptedSecret,
+          two_factor_last_step: null,
+        },
+      ],
+    });
+    await expect(
+      regenerateBackupCodes(mocks.deps, PRINCIPAL, { token: '000000' })
+    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+    // Only the SELECT ran — no replay-guard update, no regeneration.
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('requires authentication', async () => {
+    await expect(
+      regenerateBackupCodes(mocks.deps, null, { token: '123456' })
+    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
   });
 });

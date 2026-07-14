@@ -88,6 +88,10 @@ type LoginBody = {
   twoFactorToken?: string;
   two_factor_token?: string;
   token?: string;
+  // A single-use backup/recovery code (ADS-914b), accepted in place of the
+  // TOTP code on the second login call.
+  backupCode?: string;
+  backup_code?: string;
 };
 
 type LogoutBody = {
@@ -201,6 +205,7 @@ export const registerAuthRoutes = async (
             email: { type: 'string' },
             password: { type: 'string' },
             twoFactorToken: { type: 'string' },
+            backupCode: { type: 'string' },
           },
         },
         response: {
@@ -230,6 +235,7 @@ export const registerAuthRoutes = async (
               permissions: { type: 'array', items: { type: 'string' } },
               twoFactorRequired: { type: 'boolean' },
               emailVerificationRequired: { type: 'boolean' },
+              backupCodesExhausted: { type: 'boolean' },
             },
           },
           400: {
@@ -250,6 +256,7 @@ export const registerAuthRoutes = async (
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'],
         twoFactorToken: body.twoFactorToken ?? body.two_factor_token ?? body.token,
+        backupCode: body.backupCode ?? body.backup_code,
       };
 
       try {
@@ -925,6 +932,9 @@ export const registerAuthRoutes = async (
             type: 'object',
             properties: {
               success: { type: 'boolean' },
+              // 10 single-use backup/recovery codes (ADS-914b), returned in
+              // plaintext exactly once — show these to the user now.
+              backupCodes: { type: 'array', items: { type: 'string' } },
             },
           },
           400: {
@@ -987,6 +997,53 @@ export const registerAuthRoutes = async (
       try {
         const res = await client.disableTwoFactor({ token: b.token ?? '' }, buildMetadata(req));
         return reply.send(AuthV1.DisableTwoFactorResponse.toJSON(res));
+      } catch (err) {
+        return handleGrpcError(err, reply);
+      }
+    }
+  );
+
+  app.post(
+    '/api/v1/auth/2fa/backup-codes/regenerate',
+    {
+      config: { rateLimit: AUTH_RATE_LIMITS.twoFactor },
+      schema: {
+        tags: ['auth'],
+        summary: 'Mint a fresh set of 2FA backup/recovery codes, invalidating the old ones',
+        body: {
+          type: 'object',
+          properties: {
+            token: { type: 'string' },
+          },
+          required: ['token'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              // The fresh set of 10 plaintext backup codes, returned exactly
+              // once — show these to the user now.
+              backupCodes: { type: 'array', items: { type: 'string' } },
+            },
+          },
+          400: {
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: { type: 'string' },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const b = (req.body ?? {}) as { token?: string };
+      try {
+        const res = await client.regenerateBackupCodes(
+          { token: b.token ?? '' },
+          buildMetadata(req)
+        );
+        return reply.send(AuthV1.RegenerateBackupCodesResponse.toJSON(res));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
