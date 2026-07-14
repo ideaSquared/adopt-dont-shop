@@ -1,7 +1,33 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { seedApplications, type QueryFn } from './seed.js';
+import { assertNotProduction, seedApplications, type QueryFn } from './seed.js';
 import { SEED_APPLICATIONS } from './seed-data.js';
+
+describe('production guard', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('throws when NODE_ENV is production and ALLOW_PROD_SEED is not set', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('ALLOW_PROD_SEED', '');
+
+    expect(() => assertNotProduction()).toThrowError(
+      'Refusing to run db:seed in production. Set ALLOW_PROD_SEED=true to override.'
+    );
+  });
+
+  it('permits seeding when NODE_ENV is production and ALLOW_PROD_SEED=true', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('ALLOW_PROD_SEED', 'true');
+
+    expect(() => assertNotProduction()).not.toThrow();
+  });
+
+  it('permits seeding in non-production environments', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+
+    expect(() => assertNotProduction()).not.toThrow();
+  });
+});
 
 function recordingQuery(): { query: QueryFn; calls: Array<{ text: string; values: unknown[] }> } {
   const calls: Array<{ text: string; values: unknown[] }> = [];

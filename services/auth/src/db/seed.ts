@@ -74,7 +74,14 @@ const paramsFor = (user: SeedUser, passwordHash: string): readonly unknown[] => 
   user.userType,
 ];
 
+export const assertNotProduction = (): void => {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_PROD_SEED !== 'true') {
+    throw new Error('Refusing to run db:seed in production. Set ALLOW_PROD_SEED=true to override.');
+  }
+};
+
 const main = async (): Promise<void> => {
+  assertNotProduction();
   const logger = createLogger({ serviceName: 'service.auth.seed' });
   const config = loadConfig();
   const pool = createDbClient({ connectionString: config.databaseUrl, schema: config.schema });
