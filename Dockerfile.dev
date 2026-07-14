@@ -35,6 +35,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget dumb-init git \
     && rm -rf /var/lib/apt/lists/*
 
+# Non-root dev user [ADS-881]. The base node image already ships a `node`
+# user/group at uid/gid 1000, so we reuse it rather than creating our own
+# (a `groupadd -g 1000` would collide with the baked `node` group and fail
+# the build). scripts/docker-dev-entrypoint.sh renumbers `node` at container
+# start to match the host developer's real uid/gid (passed via
+# HOST_UID/HOST_GID from scripts/docker-dev.mjs), then drops root before
+# running the dev command. See that script for the full rationale — in short,
+# the baked node_modules (installed as root below) are re-exposed at runtime
+# through anonymous volumes, and the bind-mounted host source needs a
+# matching uid to stay writable (e.g. lib.types' `tsc --watch` dist/ output),
+# so a single fixed uid baked at build time can't work across every host.
+
 WORKDIR /app
 
 ENV HUSKY=0
@@ -49,4 +61,10 @@ COPY . .
 RUN --mount=type=cache,id=pnpm-dev-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline --store-dir=/pnpm/store
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+# dumb-init (PID 1, signal forwarding) -> our entrypoint script (still root:
+# renumbers the `node` user to the host uid/gid, chowns the anon-volume
+# node_modules paths, then setpriv-execs the real command as `node`). Invoked
+# via `sh` rather than relying on the executable bit, since at runtime this
+# path resolves through the `.:/app` bind mount to the HOST's copy of the file
+# [ADS-881].
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "/bin/sh", "/app/scripts/docker-dev-entrypoint.sh"]

@@ -99,6 +99,19 @@ function promptYesNo(question, defaultYes) {
   });
 }
 
+// --- 0. Host uid/gid for the dev image's non-root step-down (ADS-881) ------
+// Dockerfile.dev's entrypoint (scripts/docker-dev-entrypoint.sh) renumbers
+// its baked dev user to HOST_UID/HOST_GID before dropping root, so the
+// container's writes into the bind-mounted source (`.:/app`) behave exactly
+// like the host developer's own. process.getuid/getgid are POSIX-only
+// (undefined on Windows) — leaving them unset there falls back to the
+// compose file's default of 1000, which matches the image's baked dev user.
+function setHostUidGid() {
+  if (typeof process.getuid !== 'function') return;
+  process.env.HOST_UID = String(process.getuid());
+  process.env.HOST_GID = String(process.getgid());
+}
+
 // --- 1. Docker daemon ------------------------------------------------------
 function checkDocker() {
   step('Checking Docker daemon');
@@ -323,6 +336,7 @@ function up() {
   log('');
   log(`${BOLD}Adopt Don't Shop — dev stack${RESET}`);
   log('');
+  setHostUidGid();
   checkDocker();
   checkEnv();
   step('Writing secrets/redis_password from .env');

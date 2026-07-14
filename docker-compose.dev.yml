@@ -37,6 +37,16 @@ x-dev-build: &dev-build
 x-dev-env: &dev-env
   COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
   HUSKY: '0'
+  # ADS-881: non-root step-down target for Dockerfile.dev's entrypoint
+  # (scripts/docker-dev-entrypoint.sh). scripts/docker-dev.mjs sets these
+  # from the developer's real uid/gid so the container's dev user matches the
+  # host user that owns the bind-mounted source — without that match, writes
+  # into the bind mount (e.g. lib.types' `tsc --watch` dist/ output) fail
+  # once the container drops root. Defaults to 1000 (the image's baked dev
+  # user) when unset, e.g. on Windows where docker-dev.mjs can't compute a
+  # POSIX uid.
+  HOST_UID: ${HOST_UID:-1000}
+  HOST_GID: ${HOST_GID:-1000}
 
 # Every dev container shares this exact mount set:
 #   * .:/app             — host source for HMR
