@@ -2,7 +2,7 @@ import { act, render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { STORAGE_KEYS, type AuthResponse, type LoginRequest, type User } from '../types';
+import { type AuthResponse, type LoginRequest, type User } from '../types';
 
 // Module-level mock state lets each test stub out auth-service behaviour
 // before mounting AuthProvider. Using vi.hoisted because vi.mock factories
@@ -326,14 +326,10 @@ describe('AuthProvider onLogout callback', () => {
     expect(mockedApiService.clearCsrfToken).toHaveBeenCalled();
   });
 
-  it('clears the dev mock tokens (stored under the __dev_* keys) on logout', async () => {
+  it('clears the dev_user marker key on logout (ADS-919: no mock token to clean up)', async () => {
     vi.stubEnv('DEV', true);
     const devUser = { userId: 'dev-1', email: 'dev@example.com' };
     window.localStorage.setItem('dev_user', JSON.stringify(devUser));
-    // The setters write the mock token under STORAGE_KEYS.* — cleanup must
-    // read/remove the SAME keys, not the bare 'accessToken'/'authToken'.
-    window.localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, 'dev-token-dev-1-123');
-    window.localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, 'dev-token-dev-1-123');
 
     let triggerLogout: (() => Promise<void>) | undefined;
     render(
@@ -354,8 +350,7 @@ describe('AuthProvider onLogout callback', () => {
       await triggerLogout?.();
     });
 
-    expect(window.localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)).toBeNull();
-    expect(window.localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)).toBeNull();
+    expect(window.localStorage.getItem('dev_user')).toBeNull();
   });
 
   it('invokes onLogout even when the backend logout call fails', async () => {

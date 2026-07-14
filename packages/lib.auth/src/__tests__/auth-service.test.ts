@@ -40,17 +40,17 @@ describe('AuthService', () => {
     updatedAt: '2023-01-01T00:00:00Z',
   };
 
-  // Gateway login/refresh return a Bearer token pair in the JSON body.
-  const mockTokens = {
-    accessToken: 'access.jwt',
-    refreshToken: 'refresh.jwt',
-    accessExpiresAt: '2026-01-01T01:00:00Z',
-    refreshExpiresAt: '2026-02-01T00:00:00Z',
-  };
+  // ADS-919: the gateway sets the access + refresh token pair as HttpOnly
+  // cookies — the JSON body no longer carries them.
   const mockAuthResponse: AuthResponse = {
     user: mockUser,
-    tokens: mockTokens,
     permissions: ['pets.read'],
+  };
+
+  // Clears the `hasSession` cookie between tests so isAuthenticated() tests
+  // aren't polluted by a previous test's cookie write.
+  const clearSessionCookie = () => {
+    document.cookie = 'hasSession=; Max-Age=0; path=/';
   };
 
   beforeEach(() => {
@@ -63,22 +63,15 @@ describe('AuthService', () => {
     mockLocalStorage.getItem.mockReset();
     mockLocalStorage.setItem.mockClear();
     mockLocalStorage.removeItem.mockClear();
+    clearSessionCookie();
   });
 
-  describe('initialization', () => {
-    it('should configure API service with getAuthToken callback on construction', () => {
-      vi.clearAllMocks();
-
-      new AuthService();
-
-      expect(apiService.updateConfig).toHaveBeenCalledWith({
-        getAuthToken: expect.any(Function),
-      });
-    });
+  afterEach(() => {
+    clearSessionCookie();
   });
 
   describe('login', () => {
-    it('should login, store the user and the Bearer token pair', async () => {
+    it('should log in, store only the user profile, and never touch a token storage key', async () => {
       const credentials: LoginRequest = {
         email: 'test@example.com',
         password: 'password123',
@@ -93,15 +86,9 @@ describe('AuthService', () => {
         STORAGE_KEYS.USER,
         JSON.stringify(mockUser)
       );
-      // Access + refresh tokens persisted so requests carry a Bearer header.
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        STORAGE_KEYS.ACCESS_TOKEN,
-        mockTokens.accessToken
-      );
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        STORAGE_KEYS.REFRESH_TOKEN,
-        mockTokens.refreshToken
-      );
+      // Only ever ONE localStorage write (the user profile) — the token
+      // pair rides home as HttpOnly cookies, never written here.
+      expect(mockLocalStorage.setItem).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockAuthResponse);
     });
 
@@ -144,42 +131,29 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
-    it('should revoke the stored refresh token and clear the session', async () => {
-      mockLocalStorage.getItem.mockImplementation((key: string) =>
-        key === STORAGE_KEYS.REFRESH_TOKEN ? 'refresh.jwt' : null
-      );
+    it('posts an empty body (the refresh token rides in its HttpOnly cookie) and clears the session', async () => {
       (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue({});
-
-      await authService.logout();
-
-      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/logout', {
-        refreshToken: 'refresh.jwt',
-      });
-      // User + both tokens removed from localStorage.
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.REFRESH_TOKEN);
-    });
-
-    it('should post an empty body when no refresh token is stored', async () => {
-      mockLocalStorage.getItem.mockReturnValue(null);
-      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue({});
+      document.cookie = 'hasSession=1';
 
       await authService.logout();
 
       expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/logout', {});
+      // User profile removed from localStorage; the session marker cookie
+      // cleared client-side (the real cookies are cleared server-side).
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
+      expect(document.cookie).not.toContain('hasSession=1');
     });
 
     it('should clear storage even if API call fails', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockLocalStorage.getItem.mockReturnValue(null);
       (apiService.post as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network error'));
+      document.cookie = 'hasSession=1';
 
       await authService.logout();
 
       expect(consoleSpy).toHaveBeenCalledWith('Logout API call failed:', expect.any(Error));
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.USER);
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
+      expect(document.cookie).not.toContain('hasSession=1');
 
       consoleSpy.mockRestore();
     });
@@ -235,109 +209,49 @@ describe('AuthService', () => {
   });
 
   describe('isAuthenticated', () => {
-    it('should return true when both user data and an access token exist', () => {
-      mockLocalStorage.getItem.mockImplementation((key: string) => {
-        if (key === STORAGE_KEYS.USER) return JSON.stringify(mockUser);
-        if (key === STORAGE_KEYS.ACCESS_TOKEN) return 'access.jwt';
-        return null;
-      });
+    it('returns true when both a stored user and the hasSession marker cookie are present', () => {
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(mockUser));
+      document.cookie = 'hasSession=1';
 
       expect(authService.isAuthenticated()).toBe(true);
     });
 
-    it('should return false when an access token is present but no user', () => {
-      mockLocalStorage.getItem.mockImplementation((key: string) =>
-        key === STORAGE_KEYS.ACCESS_TOKEN ? 'access.jwt' : null
-      );
-
-      expect(authService.isAuthenticated()).toBe(false);
-    });
-
-    it('should return false when a user is present but no access token', () => {
-      mockLocalStorage.getItem.mockImplementation((key: string) =>
-        key === STORAGE_KEYS.USER ? JSON.stringify(mockUser) : null
-      );
-
-      expect(authService.isAuthenticated()).toBe(false);
-    });
-  });
-
-  describe('getToken', () => {
-    it('should return the stored access token', () => {
-      mockLocalStorage.getItem.mockImplementation((key: string) =>
-        key === STORAGE_KEYS.ACCESS_TOKEN ? 'access.jwt' : null
-      );
-
-      expect(authService.getToken()).toBe('access.jwt');
-      expect(mockLocalStorage.getItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
-    });
-
-    it('should return null when no access token is stored', () => {
+    it('returns false when the session cookie is present but no user is stored', () => {
       mockLocalStorage.getItem.mockReturnValue(null);
+      document.cookie = 'hasSession=1';
 
-      expect(authService.getToken()).toBeNull();
-    });
-  });
-
-  describe('setToken', () => {
-    it('should store the access token when given a value', () => {
-      authService.setToken('access.jwt');
-
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        STORAGE_KEYS.ACCESS_TOKEN,
-        'access.jwt'
-      );
+      expect(authService.isAuthenticated()).toBe(false);
     });
 
-    it('should remove the access token when given a falsy value', () => {
-      authService.setToken(null);
+    it('returns false when a user is stored but the session cookie is absent', () => {
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(mockUser));
 
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
+      expect(authService.isAuthenticated()).toBe(false);
     });
-  });
 
-  describe('clearTokens', () => {
-    it('should remove both the access and refresh tokens', () => {
+    it('returns false once the session cookie has been cleared, even with a stale stored user', () => {
+      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(mockUser));
+      document.cookie = 'hasSession=1';
+      expect(authService.isAuthenticated()).toBe(true);
+
       authService.clearTokens();
 
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.ACCESS_TOKEN);
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEYS.REFRESH_TOKEN);
+      expect(authService.isAuthenticated()).toBe(false);
     });
   });
 
   describe('refreshToken', () => {
-    it('should send the stored refresh token, persist the rotated pair, and return the new access token', async () => {
-      mockLocalStorage.getItem.mockImplementation((key: string) =>
-        key === STORAGE_KEYS.REFRESH_TOKEN ? 'refresh.jwt' : null
-      );
-      const refreshResponse = {
-        tokens: {
-          accessToken: 'new.access.jwt',
-          refreshToken: 'new.refresh.jwt',
-          accessExpiresAt: '2026-01-01T02:00:00Z',
-          refreshExpiresAt: '2026-02-01T00:00:00Z',
-        },
-      };
-      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(refreshResponse);
+    it('posts an empty body (the refresh token rides in its HttpOnly cookie) and resolves on success', async () => {
+      (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
 
-      const newToken = await authService.refreshToken();
+      await expect(authService.refreshToken()).resolves.toBeUndefined();
 
-      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/refresh-token', {
-        refreshToken: 'refresh.jwt',
-      });
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        STORAGE_KEYS.ACCESS_TOKEN,
-        'new.access.jwt'
-      );
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        STORAGE_KEYS.REFRESH_TOKEN,
-        'new.refresh.jwt'
-      );
-      expect(newToken).toBe('new.access.jwt');
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/refresh-token', {});
+      // Nothing to persist — the rotated pair rides home as cookies.
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
     });
 
     it('should propagate error if refresh API call fails', async () => {
-      mockLocalStorage.getItem.mockReturnValue(null);
       (apiService.post as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Unauthorized'));
 
       await expect(authService.refreshToken()).rejects.toThrow('Unauthorized');
