@@ -417,6 +417,12 @@ export interface LoginRequest {
    * answers with two_factor_required).
    */
   twoFactorToken?: string | undefined;
+  /**
+   * A single-use backup/recovery code, accepted in place of
+   * two_factor_token on the second login call. Mutually exclusive with
+   * two_factor_token in practice (the service tries whichever is set).
+   */
+  backupCode?: string | undefined;
 }
 
 export interface LoginResponse {
@@ -441,6 +447,12 @@ export interface LoginResponse {
    * before login can complete.
    */
   emailVerificationRequired: boolean;
+  /**
+   * Set when this login just consumed the LAST remaining backup code. The
+   * client should prompt the user to call RegenerateBackupCodes before they
+   * lose their self-service recovery path entirely.
+   */
+  backupCodesExhausted: boolean;
 }
 
 export interface LogoutRequest {
@@ -654,6 +666,13 @@ export interface EnableTwoFactorRequest {
 
 export interface EnableTwoFactorResponse {
   enabled: boolean;
+  /**
+   * 10 single-use backup/recovery codes, returned in plaintext exactly
+   * once. Only their hashes are persisted — the client must show these to
+   * the user now with "save these now" copy; they cannot be retrieved
+   * again (only regenerated, which invalidates these).
+   */
+  backupCodes: string[];
 }
 
 export interface DisableTwoFactorRequest {
@@ -666,6 +685,19 @@ export interface DisableTwoFactorRequest {
 
 export interface DisableTwoFactorResponse {
   disabled: boolean;
+}
+
+export interface RegenerateBackupCodesRequest {
+  /** A current TOTP code, verified against the stored secret. */
+  token: string;
+}
+
+export interface RegenerateBackupCodesResponse {
+  /**
+   * The fresh set of 10 plaintext backup codes, returned exactly once.
+   * Any codes from a prior enrolment/regeneration are invalidated.
+   */
+  backupCodes: string[];
 }
 
 export interface UpdateAccountRequest {
@@ -1839,6 +1871,7 @@ function createBaseLoginRequest(): LoginRequest {
     ipAddress: undefined,
     userAgent: undefined,
     twoFactorToken: undefined,
+    backupCode: undefined,
   };
 }
 
@@ -1858,6 +1891,9 @@ export const LoginRequest: MessageFns<LoginRequest> = {
     }
     if (message.twoFactorToken !== undefined) {
       writer.uint32(42).string(message.twoFactorToken);
+    }
+    if (message.backupCode !== undefined) {
+      writer.uint32(50).string(message.backupCode);
     }
     return writer;
   },
@@ -1909,6 +1945,14 @@ export const LoginRequest: MessageFns<LoginRequest> = {
           message.twoFactorToken = reader.string();
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.backupCode = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1937,6 +1981,11 @@ export const LoginRequest: MessageFns<LoginRequest> = {
         : isSet(object.two_factor_token)
           ? globalThis.String(object.two_factor_token)
           : undefined,
+      backupCode: isSet(object.backupCode)
+        ? globalThis.String(object.backupCode)
+        : isSet(object.backup_code)
+          ? globalThis.String(object.backup_code)
+          : undefined,
     };
   },
 
@@ -1957,6 +2006,9 @@ export const LoginRequest: MessageFns<LoginRequest> = {
     if (message.twoFactorToken !== undefined) {
       obj.twoFactorToken = message.twoFactorToken;
     }
+    if (message.backupCode !== undefined) {
+      obj.backupCode = message.backupCode;
+    }
     return obj;
   },
 
@@ -1970,6 +2022,7 @@ export const LoginRequest: MessageFns<LoginRequest> = {
     message.ipAddress = object.ipAddress ?? undefined;
     message.userAgent = object.userAgent ?? undefined;
     message.twoFactorToken = object.twoFactorToken ?? undefined;
+    message.backupCode = object.backupCode ?? undefined;
     return message;
   },
 };
@@ -1981,6 +2034,7 @@ function createBaseLoginResponse(): LoginResponse {
     permissions: [],
     twoFactorRequired: false,
     emailVerificationRequired: false,
+    backupCodesExhausted: false,
   };
 }
 
@@ -2000,6 +2054,9 @@ export const LoginResponse: MessageFns<LoginResponse> = {
     }
     if (message.emailVerificationRequired !== false) {
       writer.uint32(40).bool(message.emailVerificationRequired);
+    }
+    if (message.backupCodesExhausted !== false) {
+      writer.uint32(48).bool(message.backupCodesExhausted);
     }
     return writer;
   },
@@ -2051,6 +2108,14 @@ export const LoginResponse: MessageFns<LoginResponse> = {
           message.emailVerificationRequired = reader.bool();
           continue;
         }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.backupCodesExhausted = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -2077,6 +2142,11 @@ export const LoginResponse: MessageFns<LoginResponse> = {
         : isSet(object.email_verification_required)
           ? globalThis.Boolean(object.email_verification_required)
           : false,
+      backupCodesExhausted: isSet(object.backupCodesExhausted)
+        ? globalThis.Boolean(object.backupCodesExhausted)
+        : isSet(object.backup_codes_exhausted)
+          ? globalThis.Boolean(object.backup_codes_exhausted)
+          : false,
     };
   },
 
@@ -2097,6 +2167,9 @@ export const LoginResponse: MessageFns<LoginResponse> = {
     if (message.emailVerificationRequired !== false) {
       obj.emailVerificationRequired = message.emailVerificationRequired;
     }
+    if (message.backupCodesExhausted !== false) {
+      obj.backupCodesExhausted = message.backupCodesExhausted;
+    }
     return obj;
   },
 
@@ -2114,6 +2187,7 @@ export const LoginResponse: MessageFns<LoginResponse> = {
     message.permissions = object.permissions?.map(e => e) || [];
     message.twoFactorRequired = object.twoFactorRequired ?? false;
     message.emailVerificationRequired = object.emailVerificationRequired ?? false;
+    message.backupCodesExhausted = object.backupCodesExhausted ?? false;
     return message;
   },
 };
@@ -4450,7 +4524,7 @@ export const EnableTwoFactorRequest: MessageFns<EnableTwoFactorRequest> = {
 };
 
 function createBaseEnableTwoFactorResponse(): EnableTwoFactorResponse {
-  return { enabled: false };
+  return { enabled: false, backupCodes: [] };
 }
 
 export const EnableTwoFactorResponse: MessageFns<EnableTwoFactorResponse> = {
@@ -4460,6 +4534,9 @@ export const EnableTwoFactorResponse: MessageFns<EnableTwoFactorResponse> = {
   ): BinaryWriter {
     if (message.enabled !== false) {
       writer.uint32(8).bool(message.enabled);
+    }
+    for (const v of message.backupCodes) {
+      writer.uint32(18).string(v!);
     }
     return writer;
   },
@@ -4479,6 +4556,14 @@ export const EnableTwoFactorResponse: MessageFns<EnableTwoFactorResponse> = {
           message.enabled = reader.bool();
           continue;
         }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.backupCodes.push(reader.string());
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -4489,13 +4574,23 @@ export const EnableTwoFactorResponse: MessageFns<EnableTwoFactorResponse> = {
   },
 
   fromJSON(object: any): EnableTwoFactorResponse {
-    return { enabled: isSet(object.enabled) ? globalThis.Boolean(object.enabled) : false };
+    return {
+      enabled: isSet(object.enabled) ? globalThis.Boolean(object.enabled) : false,
+      backupCodes: globalThis.Array.isArray(object?.backupCodes)
+        ? object.backupCodes.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.backup_codes)
+          ? object.backup_codes.map((e: any) => globalThis.String(e))
+          : [],
+    };
   },
 
   toJSON(message: EnableTwoFactorResponse): unknown {
     const obj: any = {};
     if (message.enabled !== false) {
       obj.enabled = message.enabled;
+    }
+    if (message.backupCodes?.length) {
+      obj.backupCodes = message.backupCodes;
     }
     return obj;
   },
@@ -4510,6 +4605,7 @@ export const EnableTwoFactorResponse: MessageFns<EnableTwoFactorResponse> = {
   ): EnableTwoFactorResponse {
     const message = createBaseEnableTwoFactorResponse();
     message.enabled = object.enabled ?? false;
+    message.backupCodes = object.backupCodes?.map(e => e) || [];
     return message;
   },
 };
@@ -4640,6 +4736,142 @@ export const DisableTwoFactorResponse: MessageFns<DisableTwoFactorResponse> = {
   ): DisableTwoFactorResponse {
     const message = createBaseDisableTwoFactorResponse();
     message.disabled = object.disabled ?? false;
+    return message;
+  },
+};
+
+function createBaseRegenerateBackupCodesRequest(): RegenerateBackupCodesRequest {
+  return { token: '' };
+}
+
+export const RegenerateBackupCodesRequest: MessageFns<RegenerateBackupCodesRequest> = {
+  encode(
+    message: RegenerateBackupCodesRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.token !== '') {
+      writer.uint32(10).string(message.token);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegenerateBackupCodesRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegenerateBackupCodesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.token = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegenerateBackupCodesRequest {
+    return { token: isSet(object.token) ? globalThis.String(object.token) : '' };
+  },
+
+  toJSON(message: RegenerateBackupCodesRequest): unknown {
+    const obj: any = {};
+    if (message.token !== '') {
+      obj.token = message.token;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegenerateBackupCodesRequest>, I>>(
+    base?: I
+  ): RegenerateBackupCodesRequest {
+    return RegenerateBackupCodesRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegenerateBackupCodesRequest>, I>>(
+    object: I
+  ): RegenerateBackupCodesRequest {
+    const message = createBaseRegenerateBackupCodesRequest();
+    message.token = object.token ?? '';
+    return message;
+  },
+};
+
+function createBaseRegenerateBackupCodesResponse(): RegenerateBackupCodesResponse {
+  return { backupCodes: [] };
+}
+
+export const RegenerateBackupCodesResponse: MessageFns<RegenerateBackupCodesResponse> = {
+  encode(
+    message: RegenerateBackupCodesResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.backupCodes) {
+      writer.uint32(10).string(v!);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RegenerateBackupCodesResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseRegenerateBackupCodesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.backupCodes.push(reader.string());
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): RegenerateBackupCodesResponse {
+    return {
+      backupCodes: globalThis.Array.isArray(object?.backupCodes)
+        ? object.backupCodes.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.backup_codes)
+          ? object.backup_codes.map((e: any) => globalThis.String(e))
+          : [],
+    };
+  },
+
+  toJSON(message: RegenerateBackupCodesResponse): unknown {
+    const obj: any = {};
+    if (message.backupCodes?.length) {
+      obj.backupCodes = message.backupCodes;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<RegenerateBackupCodesResponse>, I>>(
+    base?: I
+  ): RegenerateBackupCodesResponse {
+    return RegenerateBackupCodesResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<RegenerateBackupCodesResponse>, I>>(
+    object: I
+  ): RegenerateBackupCodesResponse {
+    const message = createBaseRegenerateBackupCodesResponse();
+    message.backupCodes = object.backupCodes?.map(e => e) || [];
     return message;
   },
 };
@@ -12172,6 +12404,26 @@ export const AuthServiceService = {
       DisableTwoFactorResponse.decode(value),
   },
   /**
+   * Mint a fresh set of 10 backup/recovery codes, invalidating any
+   * still-unused codes from a prior enrolment or regeneration. Requires a
+   * current TOTP code (proves possession of the authenticator, same bar as
+   * DisableTwoFactor) and 2FA must already be enabled. The plaintext codes
+   * are returned exactly once — only their hashes are persisted.
+   */
+  regenerateBackupCodes: {
+    path: '/adopt_dont_shop.auth.v1.AuthService/RegenerateBackupCodes' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: RegenerateBackupCodesRequest): Buffer =>
+      Buffer.from(RegenerateBackupCodesRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): RegenerateBackupCodesRequest =>
+      RegenerateBackupCodesRequest.decode(value),
+    responseSerialize: (value: RegenerateBackupCodesResponse): Buffer =>
+      Buffer.from(RegenerateBackupCodesResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): RegenerateBackupCodesResponse =>
+      RegenerateBackupCodesResponse.decode(value),
+  },
+  /**
    * Authenticated profile edit (first_name, last_name, phone_number,
    * bio, timezone, language, country, city, address). Email changes go
    * through a dedicated re-verification flow (deferred).
@@ -12830,6 +13082,17 @@ export interface AuthServiceServer extends UntypedServiceImplementation {
   enableTwoFactor: handleUnaryCall<EnableTwoFactorRequest, EnableTwoFactorResponse>;
   disableTwoFactor: handleUnaryCall<DisableTwoFactorRequest, DisableTwoFactorResponse>;
   /**
+   * Mint a fresh set of 10 backup/recovery codes, invalidating any
+   * still-unused codes from a prior enrolment or regeneration. Requires a
+   * current TOTP code (proves possession of the authenticator, same bar as
+   * DisableTwoFactor) and 2FA must already be enabled. The plaintext codes
+   * are returned exactly once — only their hashes are persisted.
+   */
+  regenerateBackupCodes: handleUnaryCall<
+    RegenerateBackupCodesRequest,
+    RegenerateBackupCodesResponse
+  >;
+  /**
    * Authenticated profile edit (first_name, last_name, phone_number,
    * bio, timezone, language, country, city, address). Email changes go
    * through a dedicated re-verification flow (deferred).
@@ -13362,6 +13625,28 @@ export interface AuthServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: DisableTwoFactorResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Mint a fresh set of 10 backup/recovery codes, invalidating any
+   * still-unused codes from a prior enrolment or regeneration. Requires a
+   * current TOTP code (proves possession of the authenticator, same bar as
+   * DisableTwoFactor) and 2FA must already be enabled. The plaintext codes
+   * are returned exactly once — only their hashes are persisted.
+   */
+  regenerateBackupCodes(
+    request: RegenerateBackupCodesRequest,
+    callback: (error: ServiceError | null, response: RegenerateBackupCodesResponse) => void
+  ): ClientUnaryCall;
+  regenerateBackupCodes(
+    request: RegenerateBackupCodesRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: RegenerateBackupCodesResponse) => void
+  ): ClientUnaryCall;
+  regenerateBackupCodes(
+    request: RegenerateBackupCodesRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: RegenerateBackupCodesResponse) => void
   ): ClientUnaryCall;
   /**
    * Authenticated profile edit (first_name, last_name, phone_number,

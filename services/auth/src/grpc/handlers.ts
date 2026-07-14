@@ -52,6 +52,7 @@ import {
   type UserRoleDb,
   type UserStatusDb,
 } from './enum-map.js';
+import { consumeBackupCode } from './backup-codes.js';
 import { createAuthMetrics } from './auth-metrics.js';
 import { verifyAndConsumeTotp } from './totp-verification.js';
 
@@ -144,6 +145,9 @@ export type UserRow = {
   // Last accepted TOTP RFC 6238 time step (ADS-914c replay guard). Null
   // until the first successful 2FA verification.
   two_factor_last_step: number | null;
+  // Bcrypt hashes of the unused backup/recovery codes (ADS-914b). Null (or
+  // empty) when 2FA is off or every code has been consumed.
+  backup_codes: string[] | null;
   status: UserStatusDb;
   user_type: UserRoleDb;
   profile_image_url: string | null;
@@ -370,6 +374,43 @@ async function publishLoginActionTaken(
   });
 }
 
+// Verifies the second factor supplied on a Login call — either a TOTP code
+// or a single-use backup code (ADS-914b). A backup code, when present,
+// takes priority (mutually exclusive in practice — see LoginRequest.
+// backup_code). Consuming a backup code persists its removal from
+// auth.users.backup_codes immediately, same "no I/O in the pure verifier"
+// split as totp-verification.ts / backup-codes.ts.
+type SecondFactorOutcome = { ok: boolean; backupCodesExhausted: boolean };
+
+async function verifySecondFactor(
+  deps: HandlerDeps,
+  user: UserRow,
+  req: LoginRequest
+): Promise<SecondFactorOutcome> {
+  if (req.backupCode) {
+    const result = await consumeBackupCode(deps.passwordHasher, user.backup_codes, req.backupCode);
+    if (!result.ok) {
+      return { ok: false, backupCodesExhausted: false };
+    }
+    await deps.pool.query(
+      `UPDATE auth.users SET backup_codes = $2, updated_at = now() WHERE user_id = $1`,
+      [user.user_id, result.remaining]
+    );
+    return { ok: true, backupCodesExhausted: result.remaining.length === 0 };
+  }
+
+  const ok = await verifyAndConsumeTotp(
+    deps,
+    {
+      userId: user.user_id,
+      encryptedSecret: user.two_factor_secret,
+      lastStep: user.two_factor_last_step,
+    },
+    req.twoFactorToken ?? ''
+  );
+  return { ok, backupCodesExhausted: false };
+}
+
 export async function login(
   deps: HandlerDeps,
   _principal: Principal | null,
@@ -494,27 +535,31 @@ export async function login(
   // re-attempting login.
   if (!user.email_verified) {
     loginCounter.inc({ outcome: 'email_unverified' });
-    return { permissions: [], twoFactorRequired: false, emailVerificationRequired: true };
+    return {
+      permissions: [],
+      twoFactorRequired: false,
+      emailVerificationRequired: true,
+      backupCodesExhausted: false,
+    };
   }
 
   // Second factor. The password is correct; if the account has 2FA on we
-  // require a valid TOTP code before minting any tokens. A first login
-  // call (no code) is answered with two_factor_required so the client can
-  // prompt and re-submit; a wrong code is an auth failure.
+  // require a valid TOTP code (or a single-use backup code, ADS-914b)
+  // before minting any tokens. A first login call (no code) is answered
+  // with two_factor_required so the client can prompt and re-submit; a
+  // wrong code is an auth failure.
+  let backupCodesExhausted = false;
   if (user.two_factor_enabled) {
-    if (!req.twoFactorToken) {
-      return { permissions: [], twoFactorRequired: true, emailVerificationRequired: false };
+    if (!req.twoFactorToken && !req.backupCode) {
+      return {
+        permissions: [],
+        twoFactorRequired: true,
+        emailVerificationRequired: false,
+        backupCodesExhausted: false,
+      };
     }
-    const twoFactorOk = await verifyAndConsumeTotp(
-      deps,
-      {
-        userId: user.user_id,
-        encryptedSecret: user.two_factor_secret,
-        lastStep: user.two_factor_last_step,
-      },
-      req.twoFactorToken
-    );
-    if (!twoFactorOk) {
+    const secondFactor = await verifySecondFactor(deps, user, req);
+    if (!secondFactor.ok) {
       loginCounter.inc({ outcome: 'invalid_credentials' });
       await publishLoginActionTaken(deps, {
         outcome: 'denied',
@@ -526,6 +571,7 @@ export async function login(
       });
       throw new HandlerError('UNAUTHENTICATED', 'invalid two-factor code');
     }
+    backupCodesExhausted = secondFactor.backupCodesExhausted;
   }
 
   const minted = await deps.tokenIssuer.mint(user.user_id);
@@ -583,6 +629,7 @@ export async function login(
     permissions: principal.permissions,
     twoFactorRequired: false,
     emailVerificationRequired: false,
+    backupCodesExhausted,
   };
 }
 
