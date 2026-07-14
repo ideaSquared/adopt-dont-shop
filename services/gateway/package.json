@@ -43,6 +43,7 @@
     "@adopt-dont-shop/proto": "workspace:*",
     "@adopt-dont-shop/service-bootstrap": "workspace:*",
     "@adopt-dont-shop/storage": "workspace:*",
+    "@fastify/cookie": "^11.1.1",
     "@fastify/cors": "^11.2.0",
     "@fastify/helmet": "^13.0.2",
     "@fastify/multipart": "^10.0.0",
