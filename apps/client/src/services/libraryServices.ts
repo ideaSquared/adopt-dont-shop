@@ -58,7 +58,10 @@ export const authService = new AuthService();
 export const apiService = globalApiService;
 export const api = globalApiService;
 
-// ✅ Configure chatService with authentication headers and Socket.IO URL.
+// ✅ Configure chatService with the Socket.IO URL. ADS-919: no Authorization
+// header is built here anymore — auth rides along automatically on both the
+// WS handshake and chatService's REST calls via the HttpOnly accessToken
+// cookie (credentials: 'include'), so there's no JS-readable token to read.
 // Socket.IO can't use a relative/empty URL (it would default to window.location.origin,
 // which is the Vite dev server on port 3000). The docker-compose dev config sets
 // VITE_WS_BASE_URL specifically for this; in prod, fall back to the REST base URL
@@ -67,12 +70,6 @@ const wsBaseUrl = (import.meta.env.VITE_WS_BASE_URL as string | undefined) || ba
 export const chatService = new ChatService({
   ...serviceConfig,
   socketUrl: wsBaseUrl,
-  headers: {
-    Authorization: () => {
-      const token = authService.getToken();
-      return token ? `Bearer ${token}` : '';
-    },
-  },
   // Share the global apiService's CSRF token cache so chatService's
   // mutating requests (send message, mark-as-read, reactions, etc.) pass
   // the double-submit-cookie check in the backend middleware.
