@@ -1,3 +1,4 @@
+import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -24,12 +25,15 @@ type ValidatedHeaders = {
   'x-rescue-id'?: string;
 };
 
-function makeApp(
+async function makeApp(
   authClient: AuthClient,
   principalSigningKey?: string,
   rescueClient?: RescueClient
 ): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
+  // Cookie parsing (ADS-919) — the middleware falls back to the
+  // `accessToken` cookie when no Authorization header is present.
+  await app.register(cookie);
   // Echo endpoint that returns the headers the middleware left on
   // the request. Anything spoofable that survives is a failure.
   app.get('/api/echo', async req => {
@@ -45,12 +49,13 @@ function makeApp(
   app.get('/health/simple', async () => ({ ok: true }));
   app.post('/api/v1/auth/login', async () => ({ logged: 'in' }));
   app.post('/api/v1/auth/refresh-token', async () => ({ refreshed: true }));
-  return registerAuthenticate(app, {
+  await registerAuthenticate(app, {
     authClient,
     logger: quietLogger,
     principalSigningKey,
     rescueClient,
-  }).then(() => app);
+  });
+  return app;
 }
 
 // Minimal RescueClient stub — the enrichment only ever calls
@@ -143,6 +148,72 @@ describe('registerAuthenticate — header spoofing', () => {
     expect(body.roles).toBe('rescue_staff,admin');
     expect(body.permissions).toBe('pets.read,pets.update');
     expect(body.rescueId).toBe('rsc-1');
+  });
+});
+
+describe('registerAuthenticate — accessToken cookie fallback (ADS-919)', () => {
+  let app: FastifyInstance;
+  let validateMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    const m = makeAuthClient();
+    validateMock = m.validateMock;
+    app = await makeApp(m.client);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('authenticates via the httpOnly accessToken cookie when no Authorization header is present', async () => {
+    validateMock.mockResolvedValueOnce(VALIDATED_RES);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/echo',
+      headers: { cookie: 'accessToken=cookie.jwt' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(validateMock).toHaveBeenCalledWith({ accessToken: 'cookie.jwt' }, expect.anything());
+    const body = res.json() as { userId: string | null };
+    expect(body.userId).toBe('usr-1');
+  });
+
+  it('prefers the Authorization header over the accessToken cookie when both are present', async () => {
+    validateMock.mockResolvedValueOnce(VALIDATED_RES);
+
+    await app.inject({
+      method: 'GET',
+      url: '/api/echo',
+      headers: {
+        authorization: 'Bearer header.jwt',
+        cookie: 'accessToken=cookie.jwt',
+      },
+    });
+
+    expect(validateMock).toHaveBeenCalledWith({ accessToken: 'header.jwt' }, expect.anything());
+  });
+
+  it('401s a protected path with an invalid accessToken cookie', async () => {
+    validateMock.mockRejectedValueOnce(Object.assign(new Error('bad token'), { code: 16 }));
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/echo',
+      headers: { cookie: 'accessToken=expired.jwt' },
+    });
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('passes through with no principal when neither an Authorization header nor a cookie is present', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/echo' });
+
+    expect(res.statusCode).toBe(200);
+    expect(validateMock).not.toHaveBeenCalled();
+    const body = res.json() as { userId: string | null };
+    expect(body.userId).toBeNull();
   });
 });
 

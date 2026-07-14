@@ -19,6 +19,13 @@
 // principal — Logout, GetMe, AssignRole. Login + RefreshToken don't
 // need them (they mint a fresh principal); the middleware passes
 // requests with no Authorization header through to the route.
+//
+// ADS-919: Login and RefreshToken set the access + refresh token pair as
+// httpOnly cookies (see ../middleware/auth-cookies.ts) instead of
+// returning them in the JSON body — the SPA never sees the raw tokens.
+// Logout and RefreshToken read the refresh token from its httpOnly cookie
+// (falling back to the request body for non-browser callers), and Logout
+// clears all three auth cookies regardless of the upstream RPC outcome.
 
 import type { FastifyInstance, FastifyReply, FastifyRequest, RouteShorthandOptions } from 'fastify';
 
@@ -33,6 +40,11 @@ import {
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
+import {
+  clearAuthCookies,
+  extractRefreshTokenFromCookie,
+  setAuthCookies,
+} from '../middleware/auth-cookies.js';
 
 import { normalizeEmail, type EmailRateLimiter } from './email-rate-limiter.js';
 import { rolesToApi, withApiUser } from './auth-user-json.js';
@@ -212,15 +224,6 @@ export const registerAuthRoutes = async (
           200: {
             type: 'object',
             properties: {
-              tokens: {
-                type: 'object',
-                properties: {
-                  accessToken: { type: 'string' },
-                  refreshToken: { type: 'string' },
-                  accessExpiresAt: { type: 'string' },
-                  refreshExpiresAt: { type: 'string' },
-                },
-              },
               user: {
                 type: 'object',
                 properties: {
@@ -261,8 +264,18 @@ export const registerAuthRoutes = async (
 
       try {
         const res = await client.login(grpcReq, buildMetadata(req));
-        const json = AuthV1.LoginResponse.toJSON(res) as Record<string, unknown>;
-        return reply.send(withApiUser(json, res.user));
+        // ADS-919: the token pair rides home as httpOnly cookies, never in
+        // the JSON body — an XSS that can read the fetch response could
+        // otherwise exfiltrate it even with HttpOnly cookies also set.
+        if (res.tokens) {
+          setAuthCookies(req, reply, res.tokens);
+        }
+        const json = AuthV1.LoginResponse.toJSON(res) as Record<string, unknown> & {
+          tokens?: unknown;
+        };
+        const { tokens, ...jsonWithoutTokens } = json;
+        void tokens;
+        return reply.send(withApiUser(jsonWithoutTokens, res.user));
       } catch (err) {
         return handleGrpcError(err, reply);
       }
@@ -301,12 +314,20 @@ export const registerAuthRoutes = async (
     },
     async (req, reply) => {
       const body = (req.body ?? {}) as LogoutBody;
-      const grpcReq: LogoutRequest = { refreshToken: body.refreshToken ?? '' };
+      // ADS-919: the refresh token normally rides in its httpOnly cookie;
+      // the body field stays as a fallback for non-browser callers.
+      const refreshToken = extractRefreshTokenFromCookie(req) ?? body.refreshToken ?? '';
+      const grpcReq: LogoutRequest = { refreshToken };
 
+      // Cookies are cleared on EITHER outcome — logout must always look
+      // like a logout client-side, even if the upstream revoke call fails
+      // (e.g. the refresh token was already expired/revoked).
       try {
         const res = await client.logout(grpcReq, buildMetadata(req));
+        clearAuthCookies(req, reply);
         return reply.send(AuthV1.LogoutResponse.toJSON(res));
       } catch (err) {
+        clearAuthCookies(req, reply);
         return handleGrpcError(err, reply);
       }
     }
@@ -329,15 +350,7 @@ export const registerAuthRoutes = async (
           200: {
             type: 'object',
             properties: {
-              tokens: {
-                type: 'object',
-                properties: {
-                  accessToken: { type: 'string' },
-                  refreshToken: { type: 'string' },
-                  accessExpiresAt: { type: 'string' },
-                  refreshExpiresAt: { type: 'string' },
-                },
-              },
+              success: { type: 'boolean' },
             },
           },
           400: {
@@ -352,11 +365,18 @@ export const registerAuthRoutes = async (
     },
     async (req, reply) => {
       const body = (req.body ?? {}) as RefreshTokenBody;
-      const grpcReq: RefreshTokenRequest = { refreshToken: body.refreshToken ?? '' };
+      // ADS-919: the refresh token normally rides in its httpOnly cookie;
+      // the body field stays as a fallback for non-browser callers.
+      const refreshToken = extractRefreshTokenFromCookie(req) ?? body.refreshToken ?? '';
+      const grpcReq: RefreshTokenRequest = { refreshToken };
 
       try {
         const res = await client.refreshToken(grpcReq, buildMetadata(req));
-        return reply.send(AuthV1.RefreshTokenResponse.toJSON(res));
+        // The rotated pair rides home as httpOnly cookies, never in the body.
+        if (res.tokens) {
+          setAuthCookies(req, reply, res.tokens);
+        }
+        return reply.send({ success: true });
       } catch (err) {
         return handleGrpcError(err, reply);
       }

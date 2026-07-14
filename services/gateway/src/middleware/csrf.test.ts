@@ -110,6 +110,66 @@ describe('CSRF protection — opportunistic double-submit enforcement (ADS-919 P
   );
 });
 
+// ADS-919: once auth rides along on cookies, the CSRF check must not depend
+// on the browser having already fetched the CSRF cookie — an authenticated
+// (accessToken-cookie-carrying) request has to be protected outright.
+describe('CSRF protection — enforced when an accessToken session cookie is present (ADS-919)', () => {
+  let app: FastifyInstance;
+
+  beforeEach(async () => {
+    app = await makeApp();
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('rejects a state-changing request that carries an accessToken cookie but no CSRF cookie/header', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/things',
+      headers: { cookie: 'accessToken=session.jwt' },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'invalid csrf token' });
+  });
+
+  it('rejects when the accessToken cookie is present and the CSRF header is missing', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/things',
+      headers: { cookie: 'accessToken=session.jwt; csrfToken=matching-token-123' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('accepts an authenticated mutation when the CSRF header matches the cookie', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/things',
+      headers: {
+        cookie: 'accessToken=session.jwt; csrfToken=matching-token-123',
+        'x-csrf-token': 'matching-token-123',
+      },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('does not enforce GET requests even with an accessToken cookie present', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/things',
+      headers: { cookie: 'accessToken=session.jwt' },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('leaves an unauthenticated mutation (no accessToken, no csrfToken cookie) unenforced', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/v1/things' });
+    expect(res.statusCode).toBe(200);
+  });
+});
+
 describe('verifyCsrfToken', () => {
   let app: FastifyInstance;
 

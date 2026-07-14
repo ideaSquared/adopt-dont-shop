@@ -1,4 +1,5 @@
 import { status as grpcStatus } from '@grpc/grpc-js';
+import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -101,6 +102,7 @@ function makeClient(): {
 
 async function makeApp(client: AuthClient): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
+  await app.register(cookie);
   await registerAuthRoutes(app, { client });
   return app;
 }
@@ -152,20 +154,58 @@ describe('POST /api/v1/auth/login', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json() as {
       user: { email: string; userType: string; status: string };
-      tokens: { accessToken: string };
+      tokens?: { accessToken: string };
     };
     expect(body.user.email).toBe('alex@example.com');
     // The SPA speaks the canonical DB strings, not the SCREAMING proto enum
     // names — the gateway must normalise these in the body (auth contract).
     expect(body.user.userType).toBe('adopter');
     expect(body.user.status).toBe('active');
-    expect(body.tokens.accessToken).toBe('a.jwt');
+    // ADS-919: the token pair is never returned in the JSON body — only as
+    // httpOnly cookies (asserted below) — so an XSS reading the fetch
+    // response can't exfiltrate it.
+    expect(body.tokens).toBeUndefined();
 
     const [req] = loginMock.mock.calls[0];
     expect(req.email).toBe('alex@example.com');
     expect(req.password).toBe('hunter2');
     expect(req.userAgent).toBe('vitest');
     expect(req.ipAddress).toBeDefined();
+  });
+
+  it('sets the access + refresh token pair as httpOnly cookies plus a JS-readable session marker (ADS-919)', async () => {
+    loginMock.mockResolvedValueOnce(LOGIN_RES);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'alex@example.com', password: 'hunter2' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const byName = Object.fromEntries(res.cookies.map(c => [c.name, c]));
+
+    expect(byName.accessToken?.value).toBe('a.jwt');
+    expect(byName.accessToken?.httpOnly).toBe(true);
+    expect(byName.accessToken?.path).toBe('/');
+
+    expect(byName.refreshToken?.value).toBe('r.jwt');
+    expect(byName.refreshToken?.httpOnly).toBe(true);
+    expect(byName.refreshToken?.path).toBe('/api/v1/auth');
+
+    expect(byName.hasSession?.value).toBe('1');
+    expect(byName.hasSession?.httpOnly).toBeFalsy();
+  });
+
+  it('does not set auth cookies when 2FA is required (no tokens minted yet)', async () => {
+    loginMock.mockResolvedValueOnce({ twoFactorRequired: true, permissions: [] });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'alex@example.com', password: 'hunter2' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.cookies.find(c => c.name === 'accessToken')).toBeUndefined();
   });
 
   it('maps UNAUTHENTICATED → 401', async () => {
@@ -232,10 +272,58 @@ describe('POST /api/v1/auth/logout', () => {
     expect(req.refreshToken).toBe('r.jwt');
     expect(metadata.get('x-user-id')[0]).toBe('usr-1');
   });
+
+  it('prefers the refreshToken cookie over the body field (ADS-919)', async () => {
+    logoutMock.mockResolvedValueOnce({ revoked: true });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: { cookie: 'refreshToken=cookie.jwt' },
+      payload: { refreshToken: 'body.jwt' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const [req] = logoutMock.mock.calls[0];
+    expect(req.refreshToken).toBe('cookie.jwt');
+  });
+
+  it('clears all three auth cookies on a successful logout (ADS-919)', async () => {
+    logoutMock.mockResolvedValueOnce({ revoked: true });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: { cookie: 'accessToken=a.jwt; refreshToken=r.jwt; hasSession=1' },
+      payload: {},
+    });
+
+    const byName = Object.fromEntries(res.cookies.map(c => [c.name, c]));
+    expect(byName.accessToken?.value).toBe('');
+    expect(byName.refreshToken?.value).toBe('');
+    expect(byName.hasSession?.value).toBe('');
+  });
+
+  it('still clears auth cookies when the upstream revoke call fails (ADS-919)', async () => {
+    logoutMock.mockRejectedValueOnce(
+      Object.assign(new Error('invalid refresh token'), { code: grpcStatus.INVALID_ARGUMENT })
+    );
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers: { cookie: 'accessToken=a.jwt; refreshToken=r.jwt; hasSession=1' },
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(400);
+    const byName = Object.fromEntries(res.cookies.map(c => [c.name, c]));
+    expect(byName.accessToken?.value).toBe('');
+  });
 });
 
 describe('POST /api/v1/auth/refresh-token', () => {
-  it('forwards the refreshToken and returns the rotated TokenPair', async () => {
+  it('forwards the refreshToken and rotates the cookie pair (ADS-919)', async () => {
     const { client, refreshMock } = makeClient();
     const app = await makeApp(client);
     try {
@@ -256,8 +344,38 @@ describe('POST /api/v1/auth/refresh-token', () => {
       });
 
       expect(res.statusCode).toBe(200);
-      const body = res.json() as { tokens: { accessToken: string } };
-      expect(body.tokens.accessToken).toBe('a2.jwt');
+      // No token pair in the body — only the rotated cookies.
+      expect(res.json()).toEqual({ success: true });
+      const byName = Object.fromEntries(res.cookies.map(c => [c.name, c]));
+      expect(byName.accessToken?.value).toBe('a2.jwt');
+      expect(byName.refreshToken?.value).toBe('r2.jwt');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('prefers the refreshToken cookie over the body field (ADS-919)', async () => {
+    const { client, refreshMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      refreshMock.mockResolvedValueOnce({
+        tokens: {
+          accessToken: 'a2.jwt',
+          refreshToken: 'r2.jwt',
+          accessExpiresAt: '2026-06-05T19:00:00Z',
+          refreshExpiresAt: '2026-07-05T19:00:00Z',
+        },
+      });
+
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/refresh-token',
+        headers: { cookie: 'refreshToken=cookie.jwt' },
+        payload: { refreshToken: 'body.jwt' },
+      });
+
+      const [req] = refreshMock.mock.calls[0];
+      expect(req.refreshToken).toBe('cookie.jwt');
     } finally {
       await app.close();
     }
@@ -1285,6 +1403,7 @@ describe('auth rate limiting — per-email login cap (ADS-916)', () => {
     const m = makeClient();
     m.loginMock.mockResolvedValue(LOGIN_RES);
     const app = Fastify({ logger: false, trustProxy: true });
+    await app.register(cookie);
     const loginEmailRateLimiter = createEmailRateLimiter({ max: 5, windowMs: 5 * 60_000 });
     // The per-IP @fastify/rate-limit plugin is intentionally NOT registered
     // here — only the per-email preHandler can produce a 429, proving the
@@ -1316,6 +1435,7 @@ describe('auth rate limiting — per-email login cap (ADS-916)', () => {
     const m = makeClient();
     m.loginMock.mockResolvedValue(LOGIN_RES);
     const app = Fastify({ logger: false, trustProxy: true });
+    await app.register(cookie);
     const loginEmailRateLimiter = createEmailRateLimiter({ max: 1, windowMs: 5 * 60_000 });
     await registerAuthRoutes(app, { client: m.client, loginEmailRateLimiter });
     try {
@@ -1347,6 +1467,7 @@ describe('auth rate limiting — per-email login cap (ADS-916)', () => {
     m.loginMock.mockResolvedValue(LOGIN_RES);
     const onLoginEmailRateLimitTrip = vi.fn();
     const app = Fastify({ logger: false, trustProxy: true });
+    await app.register(cookie);
     const loginEmailRateLimiter = createEmailRateLimiter({ max: 1, windowMs: 60_000 });
     await registerAuthRoutes(app, {
       client: m.client,

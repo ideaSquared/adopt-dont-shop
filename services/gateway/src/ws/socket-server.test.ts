@@ -255,6 +255,71 @@ describe('attachSocketServer — handshake authentication', () => {
     expect(connected).toBe(true);
     expect(registry.socketsFor('usr-dev')).toHaveLength(1);
   });
+
+  // ADS-919: the web frontend no longer sends handshake.auth.token — the
+  // httpOnly accessToken cookie rides along on the upgrade request instead,
+  // and this fallback (previously unreachable — nothing ever set the
+  // cookie) is now the real path browser clients use.
+  it('authenticates via the accessToken httpOnly cookie when handshake.auth carries no token', async () => {
+    const validateMock = vi.fn().mockResolvedValue(VALID_RES);
+    const { url, registry } = await startServer({
+      logger: quietLogger(),
+      authClient: makeAuthClient(validateMock),
+    });
+
+    const client = ioClient(url, {
+      path: '/socket.io',
+      transports: ['websocket'],
+      reconnection: false,
+      extraHeaders: { Cookie: 'accessToken=cookie.jwt' },
+    });
+    clients.push(client);
+    const connected = await awaitConnectOutcome(client);
+
+    expect(connected).toBe(true);
+    expect(validateMock).toHaveBeenCalledWith({ accessToken: 'cookie.jwt' }, expect.anything());
+    expect(registry.socketsFor('usr-from-principal')).toHaveLength(1);
+  });
+
+  it('prefers handshake.auth.token over the accessToken cookie when both are present', async () => {
+    const validateMock = vi.fn().mockResolvedValue(VALID_RES);
+    const { url } = await startServer({
+      logger: quietLogger(),
+      authClient: makeAuthClient(validateMock),
+    });
+
+    const client = ioClient(url, {
+      path: '/socket.io',
+      transports: ['websocket'],
+      reconnection: false,
+      auth: { token: 'auth.jwt' },
+      extraHeaders: { Cookie: 'accessToken=cookie.jwt' },
+    });
+    clients.push(client);
+    await awaitConnectOutcome(client);
+
+    expect(validateMock).toHaveBeenCalledWith({ accessToken: 'auth.jwt' }, expect.anything());
+  });
+
+  it('rejects a handshake whose accessToken cookie the auth service rejects', async () => {
+    const validateMock = vi.fn().mockRejectedValue(new Error('invalid token'));
+    const { url, registry } = await startServer({
+      logger: quietLogger(),
+      authClient: makeAuthClient(validateMock),
+    });
+
+    const client = ioClient(url, {
+      path: '/socket.io',
+      transports: ['websocket'],
+      reconnection: false,
+      extraHeaders: { Cookie: 'accessToken=bad.jwt' },
+    });
+    clients.push(client);
+    const connected = await awaitConnectOutcome(client);
+
+    expect(connected).toBe(false);
+    expect(registry.size()).toBe(0);
+  });
 });
 
 describe('attachSocketServer — origin allowlist (ADS-843)', () => {
