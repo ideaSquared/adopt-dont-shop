@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   consumeBackupCode,
+  findMatchingBackupCodeHash,
   generateBackupCodes,
   hashBackupCodes,
   normalizeBackupCode,
@@ -43,6 +44,58 @@ describe('hashBackupCodes', () => {
     const codes = ['abcd-efgh-ijkl-mnop'];
     const hashes = await hashBackupCodes(testHasher, codes);
     expect(hashes).toEqual(['hashed:ABCDEFGHIJKLMNOP']);
+  });
+});
+
+describe('findMatchingBackupCodeHash', () => {
+  it('returns the stored hash that matches the candidate code', async () => {
+    const codes = generateBackupCodes(3);
+    const hashes = await hashBackupCodes(testHasher, codes);
+
+    const result = await findMatchingBackupCodeHash(testHasher, hashes, codes[1]);
+
+    expect(result).toBe(hashes[1]);
+  });
+
+  it('accepts the code with or without hyphens', async () => {
+    const codes = generateBackupCodes(1);
+    const hashes = await hashBackupCodes(testHasher, codes);
+
+    const result = await findMatchingBackupCodeHash(
+      testHasher,
+      hashes,
+      codes[0].replace(/-/g, '').toLowerCase()
+    );
+
+    expect(result).toBe(hashes[0]);
+  });
+
+  it('returns null when no hash matches', async () => {
+    const codes = generateBackupCodes(2);
+    const hashes = await hashBackupCodes(testHasher, codes);
+
+    expect(await findMatchingBackupCodeHash(testHasher, hashes, 'ZZZZ-ZZZZ-ZZZZ-ZZZZ')).toBeNull();
+  });
+
+  it('returns null when storedHashes is null or empty', async () => {
+    expect(await findMatchingBackupCodeHash(testHasher, null, 'ABCD-EFGH-IJKL-MNOP')).toBeNull();
+    expect(await findMatchingBackupCodeHash(testHasher, [], 'ABCD-EFGH-IJKL-MNOP')).toBeNull();
+  });
+
+  it('returns null when the candidate is empty', async () => {
+    const codes = generateBackupCodes(1);
+    const hashes = await hashBackupCodes(testHasher, codes);
+    expect(await findMatchingBackupCodeHash(testHasher, hashes, '')).toBeNull();
+  });
+
+  it('does not modify the stored hash list', async () => {
+    const codes = generateBackupCodes(2);
+    const hashes = await hashBackupCodes(testHasher, codes);
+    const hashesSnapshot = [...hashes];
+
+    await findMatchingBackupCodeHash(testHasher, hashes, codes[0]);
+
+    expect(hashes).toEqual(hashesSnapshot);
   });
 });
 

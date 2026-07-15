@@ -52,7 +52,7 @@ import {
   type UserRoleDb,
   type UserStatusDb,
 } from './enum-map.js';
-import { consumeBackupCode } from './backup-codes.js';
+import { findMatchingBackupCodeHash } from './backup-codes.js';
 import { createAuthMetrics } from './auth-metrics.js';
 import { verifyAndConsumeTotp } from './totp-verification.js';
 
@@ -388,15 +388,28 @@ async function verifySecondFactor(
   req: LoginRequest
 ): Promise<SecondFactorOutcome> {
   if (req.backupCode) {
-    const result = await consumeBackupCode(deps.passwordHasher, user.backup_codes, req.backupCode);
-    if (!result.ok) {
+    const matchedHash = await findMatchingBackupCodeHash(
+      deps.passwordHasher,
+      user.backup_codes,
+      req.backupCode
+    );
+    if (!matchedHash) {
       return { ok: false, backupCodesExhausted: false };
     }
-    await deps.pool.query(
-      `UPDATE auth.users SET backup_codes = $2, updated_at = now() WHERE user_id = $1`,
-      [user.user_id, result.remaining]
+    // Atomic conditional removal: only removes the hash if it is still present.
+    // If a concurrent login consumed the same hash first, rowCount is 0 and we
+    // treat it as a failed attempt — the code was already spent (ADS-975).
+    const res = await deps.pool.query<{ remaining: string[] }>(
+      `UPDATE auth.users
+          SET backup_codes = array_remove(backup_codes, $2), updated_at = now()
+        WHERE user_id = $1 AND $2 = ANY(backup_codes)
+        RETURNING backup_codes AS remaining`,
+      [user.user_id, matchedHash]
     );
-    return { ok: true, backupCodesExhausted: result.remaining.length === 0 };
+    if (res.rowCount === 0) {
+      return { ok: false, backupCodesExhausted: false };
+    }
+    return { ok: true, backupCodesExhausted: res.rows[0].remaining.length === 0 };
   }
 
   const ok = await verifyAndConsumeTotp(

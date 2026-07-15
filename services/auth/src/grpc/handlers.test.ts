@@ -529,8 +529,8 @@ describe('login', () => {
     mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
     mocks.clientMock.query.mockResolvedValue({ rows: [] });
     mocks.poolMock.query
-      // The backup_codes UPDATE removing the consumed hash.
-      .mockResolvedValueOnce({ rows: [] })
+      // Atomic conditional array_remove UPDATE — RETURNING the remaining hashes.
+      .mockResolvedValueOnce({ rows: [{ remaining: ['hash-a'] }], rowCount: 1 })
       .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
@@ -541,10 +541,10 @@ describe('login', () => {
     expect(res.tokens?.accessToken).toBe('access.jwt.token');
     expect(res.backupCodesExhausted).toBe(false);
     const updateCall = mocks.poolMock.query.mock.calls.find(c =>
-      (c[0] as string).includes('backup_codes = $2')
+      (c[0] as string).includes('array_remove')
     );
-    // Only the matched hash ("hash-b") was removed — "hash-a" survives.
-    expect(updateCall?.[1]).toEqual(['usr-adopter', ['hash-a']]);
+    // The matched hash ("hash-b") is passed as the conditional predicate — not the remaining list.
+    expect(updateCall?.[1]).toEqual(['usr-adopter', 'hash-b']);
   });
 
   it('signals backupCodesExhausted when the LAST backup code is consumed', async () => {
@@ -563,7 +563,8 @@ describe('login', () => {
     mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
     mocks.clientMock.query.mockResolvedValue({ rows: [] });
     mocks.poolMock.query
-      .mockResolvedValueOnce({ rows: [] })
+      // RETURNING shows empty remaining array — all codes spent.
+      .mockResolvedValueOnce({ rows: [{ remaining: [] }], rowCount: 1 })
       .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
@@ -571,6 +572,73 @@ describe('login', () => {
     const res = await login(mocks.deps, null, { ...BASE_LOGIN_REQ, backupCode: 'AAAA-BBBB' });
 
     expect(res.backupCodesExhausted).toBe(true);
+  });
+
+  it('rejects when the DB UPDATE predicate fails — concurrent login already consumed the code (ADS-975)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        userRowFixture({
+          two_factor_enabled: true,
+          two_factor_secret: encryptTotpSecret(ENCRYPTION_KEY, generateSecret()),
+          backup_codes: ['hash-only'],
+        }),
+      ],
+    });
+    mocks.hasherMock.compare
+      .mockResolvedValueOnce(true) // password check
+      .mockResolvedValueOnce(true); // backup code matches client-side
+    // The DB UPDATE finds the hash already removed (rowCount 0) — concurrent login won the race.
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
+    await expect(
+      login(mocks.deps, null, { ...BASE_LOGIN_REQ, backupCode: 'AAAA-BBBB' })
+    ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
+    expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
+  });
+
+  it('concurrent logins with the same backup code: exactly one succeeds, the other is rejected (ADS-975)', async () => {
+    const twoFactorSecret = encryptTotpSecret(ENCRYPTION_KEY, generateSecret());
+    const userRow = userRowFixture({
+      two_factor_enabled: true,
+      two_factor_secret: twoFactorSecret,
+      backup_codes: ['hash-only'],
+    });
+
+    // Both logins SELECT the same stale user row (before either UPDATE commits).
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [userRow] })
+      .mockResolvedValueOnce({ rows: [userRow] });
+
+    mocks.hasherMock.compare
+      .mockResolvedValueOnce(true) // login A: password check
+      .mockResolvedValueOnce(true) // login B: password check
+      .mockResolvedValueOnce(true) // login A: backup code vs hash-only — match
+      .mockResolvedValueOnce(true); // login B: backup code vs hash-only — match (stale read)
+
+    mocks.issuerMock.mint.mockResolvedValueOnce(mintedFixture());
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [{ remaining: [] }], rowCount: 1 }) // A wins the DB race
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 }) // B loses — hash already removed
+      // loadPrincipal for the successful login only
+      .mockResolvedValueOnce({ rows: [{ user_type: 'adopter' }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ name: 'pets.read' }] });
+
+    const [resA, resB] = await Promise.allSettled([
+      login(mocks.deps, null, { ...BASE_LOGIN_REQ, backupCode: 'AAAA-BBBB' }),
+      login(mocks.deps, null, { ...BASE_LOGIN_REQ, backupCode: 'AAAA-BBBB' }),
+    ]);
+
+    const successes = [resA, resB].filter(r => r.status === 'fulfilled');
+    const failures = [resA, resB].filter(r => r.status === 'rejected');
+    expect(successes).toHaveLength(1);
+    expect(failures).toHaveLength(1);
+    expect((failures[0] as PromiseRejectedResult).reason).toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+    expect(mocks.issuerMock.mint).toHaveBeenCalledTimes(1);
   });
 
   it('rejects an unrecognised backup code with UNAUTHENTICATED (no token minted)', async () => {
