@@ -184,27 +184,30 @@ export interface RegisterRequest {
 }
 
 /**
- * Token pair returned by the gateway in the JSON body.
+ * Token pair the gateway issues on login/refresh.
  *
- * Phase 11 follow-up: the Fastify gateway replaced the monolith's
- * httpOnly-cookie + CSRF model with Bearer tokens carried in the response
- * body (see services/gateway/src/routes/auth.ts and the `TokenPair` proto
- * message in packages/proto). The access token is attached to subsequent
- * requests as `Authorization: Bearer <token>` via lib.api's `getAuthToken`
- * hook; the refresh token is replayed to `/auth/refresh-token`.
+ * ADS-919: the gateway sets these as HttpOnly cookies (see
+ * services/gateway/src/middleware/auth-cookies.ts) — it no longer returns
+ * them in the JSON response body, so this type describes the gateway's
+ * internal `TokenPair` proto message shape, not anything the SPA reads.
+ * Kept here only because `AuthResponse.tokens` is typed against it for
+ * backward-compat call sites that may still narrow on it; AuthService
+ * itself never reads `response.tokens`.
  */
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
-  // RFC 3339 expiry timestamps (optional — present on the gateway contract,
-  // but the SPA only needs the token strings to authenticate).
+  // RFC 3339 expiry timestamps.
   accessExpiresAt?: string;
   refreshExpiresAt?: string;
 }
 
 export interface AuthResponse {
   user: User;
-  tokens: TokenPair;
+  // ADS-919: no longer present on the wire — the token pair rides home as
+  // HttpOnly cookies instead (see TokenPair's doc comment). Optional so the
+  // type still reflects what the gateway actually sends.
+  tokens?: TokenPair;
   // Flattened permission snapshot at login time (gateway LoginResponse).
   permissions?: string[];
   // Set when the password was correct but the account has 2FA enabled and
@@ -228,8 +231,11 @@ export interface RefreshTokenRequest {
   refreshToken?: string;
 }
 
+// ADS-919: the gateway's refresh-token response no longer carries the
+// rotated token pair — it's set as HttpOnly cookies instead. The body is
+// just an acknowledgement.
 export interface RefreshTokenResponse {
-  tokens: TokenPair;
+  success: boolean;
 }
 
 export interface PasswordResetRequest {
@@ -264,11 +270,15 @@ export interface TokenData {
   expiresIn: number;
 }
 
-// Storage keys constants
+// Storage keys constants.
+//
+// ADS-919: the access + refresh tokens are no longer persisted here (or
+// anywhere JS-readable) — they live in HttpOnly cookies the gateway sets
+// (see services/gateway/src/middleware/auth-cookies.ts) and
+// AuthService.isAuthenticated() reads a non-secret session-presence marker
+// cookie instead (see services/session-cookie.ts). Only the non-sensitive
+// user profile is kept in localStorage.
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: '__dev_authToken',
-  ACCESS_TOKEN: '__dev_accessToken',
-  REFRESH_TOKEN: '__dev_refreshToken',
   USER: 'user',
 } as const;
 

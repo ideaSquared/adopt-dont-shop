@@ -100,15 +100,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           if (devUser) {
             const parsedUser = JSON.parse(devUser);
 
-            // Ensure dev user has a mock token (namespaced to avoid
-            // colliding with prod cleanup paths that watch STORAGE_KEYS).
-            const existingToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-            if (!existingToken || !existingToken.startsWith('dev-token-')) {
-              const mockToken = `dev-token-${parsedUser.userId}-${Date.now()}`;
-              localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, mockToken);
-              localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, mockToken);
-            }
-
+            // ADS-919: dev-mock auth state is driven entirely by the
+            // presence of the `dev_user` key — there's no longer a mock
+            // access token to mint. Real sessions authenticate via HttpOnly
+            // cookies the gateway sets, which nothing in this dev path can
+            // (or needs to) forge.
             setUser(parsedUser);
             initializeForAuthenticatedUser(parsedUser);
             setIsLoading(false);
@@ -188,18 +184,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   // Cross-tab logout sync: when another tab removes the persisted user
   // record (logout, account deletion), drop local auth state here too
   // so this tab doesn't keep rendering the authenticated UI until its
-  // next API call fails with 401. Only react to the user/token keys —
-  // unrelated storage writes (theme, feature flags, etc.) must not
-  // trigger a logout. We don't navigate from here; route-level guards
-  // pick up the user === null transition.
+  // next API call fails with 401. Only react to the user key — unrelated
+  // storage writes (theme, feature flags, etc.) must not trigger a logout.
+  // We don't navigate from here; route-level guards pick up the
+  // user === null transition.
+  //
+  // ADS-919: there's no longer a token storage key to watch — the tokens
+  // live in HttpOnly cookies, which don't fire `storage` events at all.
   useEffect(() => {
     const onStorageEvent = (e: StorageEvent) => {
-      const isUserKey = e.key === STORAGE_KEYS.USER;
-      const isTokenKey = e.key === STORAGE_KEYS.AUTH_TOKEN || e.key === STORAGE_KEYS.ACCESS_TOKEN;
-      if (!isUserKey && !isTokenKey) {
-        return;
-      }
-      if (e.newValue !== null) {
+      if (e.key !== STORAGE_KEYS.USER || e.newValue !== null) {
         return;
       }
       authService.clearTokens();
@@ -335,12 +329,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       // Clear dev user data in development mode
       if (import.meta.env?.DEV) {
         localStorage.removeItem('dev_user');
-        // Clear mock tokens for dev users
-        const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-        if (token?.startsWith('dev-token-')) {
-          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-        }
       }
     } catch (error) {
       if (import.meta.env?.DEV) {
@@ -358,12 +346,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       setUser(null);
       if (import.meta.env?.DEV) {
         localStorage.removeItem('dev_user');
-        // Clear mock tokens for dev users
-        const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-        if (token?.startsWith('dev-token-')) {
-          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-        }
       }
     } finally {
       // Clear the per-session CSRF token cache so the next signed-in
@@ -391,14 +373,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     }
 
     // In development mode, handle dev users differently
-    if (import.meta.env?.DEV) {
-      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      if (token?.startsWith('dev-token-')) {
-        const updatedUser = { ...user, ...profileData };
-        setUser(updatedUser);
-        localStorage.setItem('dev_user', JSON.stringify(updatedUser));
-        return;
-      }
+    if (import.meta.env?.DEV && localStorage.getItem('dev_user')) {
+      const updatedUser = { ...user, ...profileData };
+      setUser(updatedUser);
+      localStorage.setItem('dev_user', JSON.stringify(updatedUser));
+      return;
     }
 
     const updatedUser = await authService.updateProfile(profileData);
@@ -440,13 +419,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     if (import.meta.env?.DEV) {
       setUser(devUser);
       // Store dev user in localStorage for persistence across refreshes.
-      // Tokens use the __dev_* namespace so prod cleanup code (which
-      // watches STORAGE_KEYS.AUTH_TOKEN / STORAGE_KEYS.ACCESS_TOKEN)
-      // handles them correctly without touching real prod entries.
+      // ADS-919: no mock token to mint — dev auth state is driven entirely
+      // by the presence of this key (see initializeAuth/refreshUser above).
       localStorage.setItem('dev_user', JSON.stringify(devUser));
-      const mockToken = `dev-token-${devUser.userId}-${Date.now()}`;
-      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, mockToken);
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, mockToken);
     }
   };
 

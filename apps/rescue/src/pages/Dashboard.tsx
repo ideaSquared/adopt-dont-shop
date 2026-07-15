@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Container, Heading, Text } from '@adopt-dont-shop/lib.components';
-import { useAuth, STORAGE_KEYS } from '@adopt-dont-shop/lib.auth';
+import { useAuth, authService, STORAGE_KEYS } from '@adopt-dont-shop/lib.auth';
 import { useDashboardData } from '../hooks';
 import { UnreadMessagesPanel } from '../components/dashboard/UnreadMessagesPanel';
 import { DashboardSkeleton } from '../components/skeletons';
@@ -43,11 +43,14 @@ const Dashboard: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  // Clear only auth-related keys rather than all localStorage,
-                  // to avoid wiping unrelated user preferences (theme, etc.).
+                  // Clear only auth-related client state rather than all
+                  // localStorage, to avoid wiping unrelated user preferences
+                  // (theme, etc.). The access/refresh tokens themselves are
+                  // HttpOnly cookies and can't be cleared from here — this
+                  // drops the JS-visible session marker + cached user/CSRF
+                  // state so a stale session doesn't keep rendering.
                   localStorage.removeItem(STORAGE_KEYS.USER);
-                  localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-                  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+                  authService.clearTokens();
                   apiService.clearCsrfToken();
                   window.location.reload();
                 }}

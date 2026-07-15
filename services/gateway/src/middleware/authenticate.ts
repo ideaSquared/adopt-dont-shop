@@ -8,8 +8,11 @@
 //      NEVER let a client forge those, so we delete them unconditionally
 //      before potentially restamping with the validated principal.
 //
-//   2. **Best-effort token validation.** When an `Authorization:
-//      Bearer <token>` header is present, call
+//   2. **Best-effort token validation.** The access token is read from
+//      an `Authorization: Bearer <token>` header if present, otherwise
+//      from the httpOnly `accessToken` cookie the gateway sets on
+//      login/refresh (ADS-919) — the header wins so a non-browser API
+//      caller can still authenticate explicitly. Either way, call
 //      `service.auth.ValidateToken`. On success, stamp the principal
 //      onto the request headers so downstream code (routes/notifications,
 //      catch-all proxy) forwards them as gRPC/HTTP metadata. On failure
@@ -36,6 +39,8 @@ import { signPrincipalToken } from '@adopt-dont-shop/service-bootstrap';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
+
+import { extractAccessTokenFromCookie } from './auth-cookies.js';
 
 export type AuthMiddlewareOptions = {
   authClient: AuthClient;
@@ -150,7 +155,7 @@ export const registerAuthenticate = async (
       delete (req.headers as Record<string, unknown>)[key];
     }
 
-    const token = extractBearerToken(req);
+    const token = extractBearerToken(req) ?? extractAccessTokenFromCookie(req);
 
     // No token + public path → pass through. No token + non-public
     // path → still pass through (the downstream handler / catch-all

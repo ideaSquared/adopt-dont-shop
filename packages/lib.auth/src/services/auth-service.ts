@@ -6,7 +6,6 @@ import {
   User,
   ChangePasswordRequest,
   RefreshTokenResponse,
-  TokenPair,
   TwoFactorSetupResponse,
   TwoFactorEnableResponse,
   TwoFactorDisableResponse,
@@ -14,6 +13,7 @@ import {
   STORAGE_KEYS,
   StoredUserSchema,
 } from '../types';
+import { clearSessionCookie, hasSessionCookie } from './session-cookie';
 
 // ✅ INDUSTRY STANDARD: Centralized API path constants
 const AUTH_ENDPOINTS = {
@@ -46,22 +46,17 @@ export const EMAIL_VERIFICATION_REQUIRED_MESSAGE = 'Email verification required'
 /**
  * AuthService - Authentication and user management service
  *
- * Phase 11 follow-up: the Fastify gateway replaced the deleted monolith's
- * httpOnly-cookie + CSRF model with Bearer tokens. Login / refresh return
- * `{ user, tokens: { accessToken, refreshToken } }` in the JSON body; the
- * access token is stored here and attached to every authenticated request
- * as `Authorization: Bearer <token>` via lib.api's `getAuthToken` hook
- * (wired in the constructor). The refresh token is replayed to
- * `/auth/refresh-token` to rotate the pair.
+ * ADS-919: the access + refresh tokens live in HttpOnly cookies the gateway
+ * sets on login/refresh and clears on logout (see
+ * services/gateway/src/middleware/auth-cookies.ts) — this class never reads
+ * or writes them, and lib.api attaches no `Authorization` header (no
+ * `getAuthToken` is wired below). `credentials: 'include'` (already set by
+ * lib.api) carries the cookies on every request automatically. The only
+ * things persisted client-side are the non-sensitive user profile
+ * (STORAGE_KEYS.USER) and a JS-readable `hasSession` marker cookie the
+ * gateway sets alongside the HttpOnly ones — see isAuthenticated() below.
  */
 export class AuthService {
-  constructor() {
-    // Configure the API service to get auth tokens from this service
-    apiService.updateConfig({
-      getAuthToken: () => this.getToken(),
-    });
-  }
-
   /**
    * Login user with credentials
    */
@@ -83,11 +78,10 @@ export class AuthService {
       throw new Error(EMAIL_VERIFICATION_REQUIRED_MESSAGE);
     }
 
-    // Persist the user + the Bearer token pair the gateway returned in the
-    // body. getToken() then feeds the access token to lib.api so subsequent
-    // requests are authenticated.
+    // The gateway set the access + refresh token pair as HttpOnly cookies on
+    // this response (never in the body) — only the user profile is
+    // persisted client-side.
     this.setUser(response.user);
-    this.setTokens(response.tokens);
 
     return response;
   }
@@ -110,11 +104,12 @@ export class AuthService {
    * Logout user and clear all stored data
    */
   async logout(): Promise<void> {
-    // The gateway revokes the supplied refresh token (idempotent — an
-    // already-revoked/expired token still returns OK).
-    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    // The refresh token rides along as an HttpOnly cookie — the gateway
+    // reads it server-side to revoke the session (idempotent — an
+    // already-revoked/expired token still returns OK) and clears all three
+    // auth cookies on the response.
     try {
-      await apiService.post(AUTH_ENDPOINTS.LOGOUT, refreshToken ? { refreshToken } : {});
+      await apiService.post(AUTH_ENDPOINTS.LOGOUT, {});
     } catch (error) {
       console.error('Logout API call failed:', error);
     } finally {
@@ -157,26 +152,24 @@ export class AuthService {
   }
 
   /**
-   * Check if user is authenticated. Both the stored user record and the
-   * access token must be present — the user drives UI gating while the
-   * token is what actually authenticates API calls.
+   * Check if a session is present. Both the stored user record and the
+   * gateway's non-secret `hasSession` marker cookie must be present — the
+   * user drives UI gating, while the cookie reflects whether the gateway
+   * currently considers this browser logged in (set on login/refresh,
+   * cleared on logout). Neither the real access nor refresh token is ever
+   * JS-readable, so this is the closest synchronous equivalent.
    */
   isAuthenticated(): boolean {
-    return !!this.getCurrentUser() && !!this.getToken();
+    return !!this.getCurrentUser() && hasSessionCookie();
   }
 
   /**
-   * Refresh the access token. Sends the stored refresh token to the gateway,
-   * persists the rotated pair, and returns the new access token.
+   * Refresh the access token. The refresh token rides along as an HttpOnly
+   * cookie — the gateway reads it server-side and rotates the cookie pair
+   * on success. Nothing to persist client-side.
    */
-  async refreshToken(): Promise<string> {
-    const stored = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-    const response = await apiService.post<RefreshTokenResponse>(
-      AUTH_ENDPOINTS.REFRESH,
-      stored ? { refreshToken: stored } : {}
-    );
-    this.setTokens(response.tokens);
-    return response.tokens.accessToken;
+  async refreshToken(): Promise<void> {
+    await apiService.post<RefreshTokenResponse>(AUTH_ENDPOINTS.REFRESH, {});
   }
 
   /**
@@ -324,44 +317,19 @@ export class AuthService {
   }
 
   /**
-   * Returns the stored access token (or null). lib.api calls this via the
-   * `getAuthToken` hook to attach `Authorization: Bearer <token>`; the
-   * Socket.IO clients read it the same way.
-   */
-  getToken(): string | null {
-    return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-  }
-
-  /**
-   * Store (or clear) the access token. Passing a falsy value removes it.
-   */
-  setToken(token: string | null | undefined): void {
-    if (token) {
-      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
-      return;
-    }
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-  }
-
-  /**
-   * Clears the stored Bearer token pair. Called on logout (after the gateway
-   * revokes the refresh token) and when a session is found to be invalid.
+   * Clears the JS-visible session marker. Called on logout (after the
+   * gateway revokes the refresh token) and when a session is found to be
+   * invalid (401) — flips isAuthenticated() to false immediately without
+   * waiting on a network round trip. The real HttpOnly access/refresh
+   * cookies can only be cleared server-side (Set-Cookie on /auth/logout).
    */
   clearTokens(): void {
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    clearSessionCookie();
   }
 
   // Private helper methods
   private setUser(user: User): void {
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-  }
-
-  private setTokens(tokens: TokenPair): void {
-    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken);
-    if (tokens.refreshToken) {
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken);
-    }
   }
 
   private clearStorage(): void {
