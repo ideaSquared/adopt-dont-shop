@@ -337,5 +337,30 @@ export class AuthService {
   }
 }
 
+// ADS-919 follow-up: one-time purge of the legacy plaintext token keys the
+// pre-cookie AuthService wrote to localStorage (`__dev_authToken` /
+// `__dev_accessToken` / `__dev_refreshToken`). After the httpOnly-cookie
+// migration nothing reads them, but a token pair lingering in a user's
+// localStorage is a residual exfiltration artifact, so we actively remove
+// them on first load post-deploy rather than leaving them as dead weight.
+// Idempotent and safe when the keys are absent or localStorage is unavailable
+// (SSR / non-browser test envs).
+const LEGACY_TOKEN_STORAGE_KEYS = [
+  '__dev_authToken',
+  '__dev_accessToken',
+  '__dev_refreshToken',
+] as const;
+
+export const purgeLegacyTokenStorage = (): void => {
+  if (typeof localStorage === 'undefined') {
+    return;
+  }
+  for (const key of LEGACY_TOKEN_STORAGE_KEYS) {
+    localStorage.removeItem(key);
+  }
+};
+
+purgeLegacyTokenStorage();
+
 // Export singleton instance
 export const authService = new AuthService();
