@@ -1,4 +1,4 @@
-import { AuthService } from '../services/auth-service';
+import { AuthService, purgeLegacyTokenStorage } from '../services/auth-service';
 import { apiService } from '@adopt-dont-shop/lib.api';
 import { AuthResponse, LoginRequest, RegisterRequest, User, STORAGE_KEYS } from '../types';
 
@@ -561,6 +561,24 @@ describe('AuthService', () => {
 
       await expect(authService.deleteAccount('wrong')).rejects.toThrow('Incorrect password');
       expect(mockLocalStorage.removeItem).not.toHaveBeenCalled();
+    });
+  });
+
+  // ADS-919 follow-up: legacy plaintext token keys from the pre-cookie era are
+  // actively purged from localStorage, not just ignored.
+  describe('purgeLegacyTokenStorage', () => {
+    it('removes the legacy __dev_* token keys', () => {
+      purgeLegacyTokenStorage();
+
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('__dev_authToken');
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('__dev_accessToken');
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('__dev_refreshToken');
+    });
+
+    it('does not touch the stored user profile', () => {
+      purgeLegacyTokenStorage();
+
+      expect(mockLocalStorage.removeItem).not.toHaveBeenCalledWith(STORAGE_KEYS.USER);
     });
   });
 });
