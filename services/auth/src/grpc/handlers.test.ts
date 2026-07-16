@@ -681,24 +681,70 @@ describe('login', () => {
 
   // --- Email-verification enforcement --------------------------------
 
-  it('blocks login (no tokens) when the email is not verified', async () => {
+  // ADS-964: a correct password on an unverified account must be treated
+  // identically to a wrong password so the response cannot act as a
+  // password-check oracle. The fix increments login_attempts (same DB path
+  // as the wrong-password branch) and returns the same UNAUTHENTICATED error.
+
+  it('rejects with UNAUTHENTICATED (not emailVerificationRequired) on correct password + unverified account', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [userRowFixture({ email_verified: false })],
     });
     mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
 
-    const res = await login(mocks.deps, null, BASE_LOGIN_REQ);
-
-    expect(res.emailVerificationRequired).toBe(true);
-    expect(res.tokens).toBeUndefined();
-    expect(res.user).toBeUndefined();
-    // No token was minted — the login is not complete until the email is verified.
+    await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+      message: 'invalid credentials',
+    });
     expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
   });
 
-  it('gates email verification BEFORE the second factor', async () => {
-    // An unverified account with 2FA on is still blocked on verification
-    // first — we never reach the TOTP check, so no code is requested.
+  it('increments login_attempts on correct password + unverified account (same as wrong password)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRowFixture({ email_verified: false })],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+    await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+
+    const bumpCall = mocks.clientMock.query.mock.calls
+      .map(c => c[0] as string)
+      .find(sql => /login_attempts = login_attempts \+ 1/.test(sql));
+    expect(bumpCall).toBeDefined();
+  });
+
+  it('publishes a denied audit event on correct password + unverified account', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRowFixture({ email_verified: false })],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+
+    await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
+
+    expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');
+    const envelope = JSON.parse(
+      new TextDecoder().decode(mocks.natsMock.publish.mock.calls[0][1] as Uint8Array)
+    );
+    expect(envelope.payload).toMatchObject({
+      action: 'login',
+      outcome: 'denied',
+      actorUserId: 'usr-adopter',
+      actorEmailSnapshot: 'alex@example.com',
+    });
+  });
+
+  it('gates email verification BEFORE the second factor — still returns UNAUTHENTICATED', async () => {
+    // An unverified account with 2FA on hits the unverified gate first.
+    // We never reach the TOTP check, and the response is UNAUTHENTICATED —
+    // not twoFactorRequired — so the attacker cannot learn whether 2FA is
+    // enabled on an unverified account whose password they just guessed.
     const secret = generateSecret();
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [
@@ -710,11 +756,11 @@ describe('login', () => {
       ],
     });
     mocks.hasherMock.compare.mockResolvedValueOnce(true);
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
 
-    const res = await login(mocks.deps, null, BASE_LOGIN_REQ);
-
-    expect(res.emailVerificationRequired).toBe(true);
-    expect(res.twoFactorRequired).toBe(false);
+    await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+    });
     expect(mocks.issuerMock.mint).not.toHaveBeenCalled();
   });
 

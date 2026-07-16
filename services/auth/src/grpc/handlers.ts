@@ -541,19 +541,53 @@ export async function login(
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
 
-  // Email verification gate. The password is correct, but an account whose
-  // email has not been verified cannot log in. We answer with
-  // email_verification_required (no tokens minted) so the client can prompt
-  // the user to verify — and resend the verification email — before
-  // re-attempting login.
+  // Email verification gate. A correct password on an unverified account must
+  // NOT reveal that the password was right — doing so turns the response into
+  // a password-check oracle (ADS-964). We increment login_attempts exactly as
+  // the wrong-password path does and throw the same UNAUTHENTICATED shape so
+  // the two cases are indistinguishable to the caller. The user must trigger a
+  // "resend verification email" flow separately; the client should surface that
+  // option alongside any invalid-credentials error.
   if (!user.email_verified) {
+    await withTransaction(deps, async ({ client, publish }) => {
+      await client.query(
+        `UPDATE auth.users
+            SET login_attempts = login_attempts + 1,
+                locked_until = CASE
+                  WHEN login_attempts + 1 >= $2
+                  THEN now() + make_interval(
+                    secs => LEAST(
+                      $3::double precision * power(2, login_attempts + 1 - $2),
+                      $4::double precision
+                    )
+                  )
+                  ELSE locked_until
+                END,
+                updated_at = now()
+          WHERE user_id = $1`,
+        [user.user_id, LOGIN_LOCK_THRESHOLD, LOGIN_LOCK_BASE_SECONDS, LOGIN_LOCK_MAX_SECONDS]
+      );
+      publish({
+        type: 'auth.actionTaken',
+        id: `auth.actionTaken.${randomUUID()}`,
+        payload: {
+          eventId: randomUUID(),
+          service: 'service.auth',
+          subject: 'auth.actionTaken',
+          aggregateType: 'user',
+          aggregateId: user.user_id,
+          actorUserId: user.user_id,
+          actorEmailSnapshot: user.email,
+          action: 'login',
+          outcome: 'denied',
+          occurredAt: new Date().toISOString(),
+          ipAddress: req.ipAddress,
+          userAgent: req.userAgent,
+        },
+      });
+    });
     loginCounter.inc({ outcome: 'email_unverified' });
-    return {
-      permissions: [],
-      twoFactorRequired: false,
-      emailVerificationRequired: true,
-      backupCodesExhausted: false,
-    };
+    throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
   }
 
   // Second factor. The password is correct; if the account has 2FA on we
