@@ -50,6 +50,24 @@ export type BackupCodeConsumeResult = {
   remaining: string[];
 };
 
+// Returns the stored bcrypt hash that matches the candidate, or null if none
+// matches. Does not modify the hash list — callers use the returned hash as the
+// predicate in an atomic conditional SQL UPDATE (ADS-975).
+export async function findMatchingBackupCodeHash(
+  hasher: PasswordHasher,
+  storedHashes: readonly string[] | null,
+  candidate: string
+): Promise<string | null> {
+  const hashes = storedHashes ?? [];
+  const normalized = normalizeBackupCode(candidate);
+  if (!normalized || hashes.length === 0) return null;
+
+  for (const hash of hashes) {
+    if (await hasher.compare(normalized, hash)) return hash;
+  }
+  return null;
+}
+
 export async function consumeBackupCode(
   hasher: PasswordHasher,
   storedHashes: readonly string[] | null,
