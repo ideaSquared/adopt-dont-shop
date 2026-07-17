@@ -418,6 +418,12 @@ export async function resetPassword(
           locked_until = NULL,
           login_attempts = 0,
           tokens_valid_from = now(),
+          two_factor_secret = NULL,
+          two_factor_enabled = false,
+          two_factor_last_step = NULL,
+          two_factor_secret_pending = NULL,
+          two_factor_pending_expires_at = NULL,
+          backup_codes = NULL,
           updated_at = now()
       WHERE reset_token_hash = $2
         AND (reset_token_expiration IS NULL OR reset_token_expiration > now())
