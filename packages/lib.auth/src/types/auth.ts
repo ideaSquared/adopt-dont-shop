@@ -223,6 +223,11 @@ export interface AuthResponse {
   // user to verify their email (and can resend it). auth-service turns this
   // into the EMAIL_VERIFICATION_REQUIRED_MESSAGE error the LoginForm prompts on.
   emailVerificationRequired?: boolean;
+  // ADS-914 follow-up: set when this login just consumed the LAST remaining
+  // backup code (see services/auth/src/grpc/handlers.ts). The client should
+  // prompt the user to regenerate backup codes before they lose their
+  // self-service recovery path entirely.
+  backupCodesExhausted?: boolean;
 }
 
 export interface ChangePasswordRequest {

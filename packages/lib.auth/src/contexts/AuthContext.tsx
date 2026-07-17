@@ -6,6 +6,14 @@ import { LoginRequest, RegisterRequest, User, STORAGE_KEYS } from '../types';
 
 const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please log in again.';
 
+// ADS-914 follow-up: shown when a login just consumed the last remaining
+// backup code (AuthResponse.backupCodesExhausted). Kept visible until the
+// user dismisses it — losing self-service recovery access is worth
+// interrupting them for, and a normal auto-dismissing toast could easily
+// be missed right after signing in.
+export const BACKUP_CODES_EXHAUSTED_MESSAGE =
+  "You just used your last backup code to sign in. Regenerate backup codes in your security settings so you don't lose access to your account.";
+
 export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -252,6 +260,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         user_type: response.user.userType,
         email: response.user.email,
       });
+
+      // Surface the exhaustion signal now, while we have it — it's only
+      // present on this one login response, not on the persisted user.
+      if (response.backupCodesExhausted) {
+        toast.warning(BACKUP_CODES_EXHAUSTED_MESSAGE, { duration: Infinity });
+      }
 
       initializeForAuthenticatedUser(response.user);
     } catch (error) {
