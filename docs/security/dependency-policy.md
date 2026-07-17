@@ -6,15 +6,21 @@ blocking anything.
 
 ## Blocking: `security.yml` (Dependency Audit)
 
-`pnpm audit --audit-level high` runs on every push/PR touching a workspace
+`node scripts/audit-bulk.mjs` runs on every push/PR touching a workspace
 package plus a weekly scheduled run. **`high` and `critical` severity
 vulnerabilities fail the job** — no `continue-on-error`. A red
 `security-audit` check must be resolved (patch, upgrade, or an explicit
 accepted-risk note in the PR) before merge.
 
-`low` and `moderate` findings do not fail the job — `pnpm audit`'s own exit
-code only trips at or above `--audit-level`. They're still visible in the
-job log for anyone who looks.
+`low` and `moderate` findings do not fail the job. They are still written to
+the run's job summary (`GITHUB_STEP_SUMMARY`) so they're visible on the
+workflow run page for anyone who looks.
+
+> **Why not `pnpm audit`?** npm retired the quick-audit endpoint `pnpm audit`
+> calls (it now returns HTTP 410), so the command fails on every run
+> regardless of the dependency tree. `scripts/audit-bulk.mjs` queries npm's
+> supported *bulk advisory* endpoint directly against the versions resolved in
+> `pnpm-lock.yaml` — same npm advisory data, same `high`/`critical` gate.
 
 ## Advisory: `quality.yml` (Dependency Check)
 
