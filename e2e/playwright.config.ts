@@ -102,6 +102,16 @@ const UNPARKED: Record<'client' | 'rescue' | 'admin', string[]> = {
     '**/api-auth-contract.spec.ts',
     '**/logout-flow.spec.ts',
     '**/rate-limit-application-submission.spec.ts',
+    // ADS-919 follow-up: the two full-stack specs the acceptance criteria
+    // called for (httpOnly-cookie token storage + CSRF double-submit
+    // enforcement), deferred when #1218/#1215 shipped the backend/frontend
+    // halves. Both drive a real browser session against the live gateway —
+    // cookie-auth-token-exfiltration proves the access/refresh tokens are
+    // unreachable from in-page JS after a real login and survive a reload;
+    // csrf-enforcement proves a state-changing request needs a valid
+    // x-csrf-token header once the session cookie is present.
+    '**/cookie-auth-token-exfiltration.spec.ts',
+    '**/csrf-enforcement.spec.ts',
     // ADS-801 (Batch C / ADS-868): profile-update-persistence was re-parked
     // because authService.updateProfile called PUT /api/v1/auth/me, a route
     // that does not exist in the gateway (the real route is
