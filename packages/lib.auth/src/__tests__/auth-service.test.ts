@@ -342,16 +342,17 @@ describe('AuthService', () => {
   });
 
   describe('twoFactorRegenerateBackupCodes', () => {
-    it('should regenerate backup codes', async () => {
+    it('should regenerate backup codes, gated on a current TOTP code', async () => {
       const mockResponse = {
-        success: true,
         backupCodes: ['new1', 'new2', 'new3'],
       };
       (apiService.post as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
 
-      const result = await authService.twoFactorRegenerateBackupCodes();
+      const result = await authService.twoFactorRegenerateBackupCodes('123456');
 
-      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/2fa/backup-codes');
+      expect(apiService.post).toHaveBeenCalledWith('/api/v1/auth/2fa/backup-codes/regenerate', {
+        token: '123456',
+      });
       expect(result).toEqual(mockResponse);
     });
   });

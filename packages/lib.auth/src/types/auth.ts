@@ -167,8 +167,11 @@ export interface TwoFactorDisableResponse {
   message: string;
 }
 
+// ADS-914 follow-up: the gateway's regenerate response carries only the
+// fresh codes (see services/gateway/src/routes/auth.ts POST
+// /api/v1/auth/2fa/backup-codes/regenerate) — there's no `success` field on
+// the wire.
 export interface TwoFactorBackupCodesResponse {
-  success: boolean;
   backupCodes: string[];
 }
 
