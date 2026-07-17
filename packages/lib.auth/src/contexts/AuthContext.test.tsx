@@ -40,12 +40,14 @@ vi.mock('@adopt-dont-shop/lib.api', () => ({
 // C2-5: stub the toast bridge so the session-expired notification is
 // observable without dragging in sonner's real toast machinery.
 const mockToastError = vi.hoisted(() => vi.fn());
+// ADS-914 follow-up: same idea for the backup-codes-exhausted warning.
+const mockToastWarning = vi.hoisted(() => vi.fn());
 vi.mock('@adopt-dont-shop/lib.components', () => ({
-  toast: { error: mockToastError },
+  toast: { error: mockToastError, warning: mockToastWarning },
 }));
 
 // Imported AFTER vi.mock so the mocks are wired in.
-import { AuthProvider } from './AuthContext';
+import { AuthProvider, BACKUP_CODES_EXHAUSTED_MESSAGE } from './AuthContext';
 import { useAuth } from '../hooks/useAuth';
 import { apiService as mockedApiService } from '@adopt-dont-shop/lib.api';
 
@@ -669,6 +671,77 @@ describe('AuthProvider login app-type enforcement', () => {
       'auth_login_failed',
       expect.objectContaining({ email: adopterUser.email, error_message: 'Invalid credentials' })
     );
+  });
+});
+
+// ADS-914 follow-up: a login that consumes the last backup code sets
+// backupCodesExhausted on the response — the provider should prompt the
+// user to regenerate rather than let their recovery path silently run out.
+describe('AuthProvider backup codes exhausted prompt [ADS-914 follow-up]', () => {
+  beforeEach(() => {
+    mockAuthService.getCurrentUser.mockReturnValue(null);
+    mockAuthService.isAuthenticated.mockReturnValue(false);
+    mockAuthService.getProfile.mockResolvedValue(null);
+    mockAuthService.logout.mockResolvedValue(undefined);
+    mockToastWarning.mockClear();
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('shows a persistent warning toast when the login response signals backupCodesExhausted', async () => {
+    mockAuthService.login.mockResolvedValue({
+      ...buildAuthResponse(adopterUser),
+      backupCodesExhausted: true,
+    });
+
+    let triggerLogin: (() => Promise<void>) | undefined;
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <LoginTrigger
+          credentials={{ email: adopterUser.email, password: 'pw' }}
+          onReady={(fn) => {
+            triggerLogin = fn;
+          }}
+        />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(triggerLogin).toBeDefined());
+
+    await act(async () => {
+      await triggerLogin?.();
+    });
+
+    expect(mockToastWarning).toHaveBeenCalledWith(BACKUP_CODES_EXHAUSTED_MESSAGE, {
+      duration: Infinity,
+    });
+  });
+
+  it('does not show the toast on an ordinary login', async () => {
+    mockAuthService.login.mockResolvedValue(buildAuthResponse(adopterUser));
+
+    let triggerLogin: (() => Promise<void>) | undefined;
+    render(
+      <AuthProvider allowedUserTypes={ALLOWED_ADOPTER} appType="client">
+        <LoginTrigger
+          credentials={{ email: adopterUser.email, password: 'pw' }}
+          onReady={(fn) => {
+            triggerLogin = fn;
+          }}
+        />
+      </AuthProvider>
+    );
+
+    await waitFor(() => expect(triggerLogin).toBeDefined());
+
+    await act(async () => {
+      await triggerLogin?.();
+    });
+
+    expect(mockToastWarning).not.toHaveBeenCalled();
   });
 });
 

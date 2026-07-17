@@ -167,8 +167,11 @@ export interface TwoFactorDisableResponse {
   message: string;
 }
 
+// ADS-914 follow-up: the gateway's regenerate response carries only the
+// fresh codes (see services/gateway/src/routes/auth.ts POST
+// /api/v1/auth/2fa/backup-codes/regenerate) — there's no `success` field on
+// the wire.
 export interface TwoFactorBackupCodesResponse {
-  success: boolean;
   backupCodes: string[];
 }
 
@@ -220,6 +223,11 @@ export interface AuthResponse {
   // user to verify their email (and can resend it). auth-service turns this
   // into the EMAIL_VERIFICATION_REQUIRED_MESSAGE error the LoginForm prompts on.
   emailVerificationRequired?: boolean;
+  // ADS-914 follow-up: set when this login just consumed the LAST remaining
+  // backup code (see services/auth/src/grpc/handlers.ts). The client should
+  // prompt the user to regenerate backup codes before they lose their
+  // self-service recovery path entirely.
+  backupCodesExhausted?: boolean;
 }
 
 export interface ChangePasswordRequest {

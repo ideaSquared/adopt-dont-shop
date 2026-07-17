@@ -36,6 +36,8 @@ export { SocialSignInButtons } from './components/SocialSignInButtons';
 export type { SocialSignInButtonsProps, SocialProvider } from './components/SocialSignInButtons';
 export { TwoFactorSettings } from './components/TwoFactorSettings';
 export type { TwoFactorSettingsProps } from './components/TwoFactorSettings';
+export { BackupCodesReveal } from './components/BackupCodesReveal';
+export type { BackupCodesRevealProps } from './components/BackupCodesReveal';
 
 // Types
 export * from './types';

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Alert, Button } from '@adopt-dont-shop/lib.components';
 import { authService } from '../services/auth-service';
 import { useAuth } from '../hooks/useAuth';
+import { BackupCodesReveal } from './BackupCodesReveal';
 import * as styles from './TwoFactorSettings.css';
 
 // --- Component Types ---
@@ -12,6 +13,9 @@ export interface TwoFactorSettingsProps {
 
 type SetupPhase = 'idle' | 'scanning' | 'verifying' | 'backup-codes';
 type DisablePhase = 'idle' | 'confirming';
+// ADS-914 follow-up: regenerating backup codes is gated on a current TOTP
+// code, same pattern as disabling 2FA.
+type RegeneratePhase = 'idle' | 'confirming';
 
 // --- Component ---
 
@@ -25,10 +29,17 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [verifyToken, setVerifyToken] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  // Distinguishes the enable-2FA reveal from the regenerate reveal so
+  // BackupCodesReveal can show the right heading for each.
+  const [backupCodesHeading, setBackupCodesHeading] = useState('Save your backup codes');
 
   // Disable state
   const [disablePhase, setDisablePhase] = useState<DisablePhase>('idle');
   const [disableToken, setDisableToken] = useState('');
+
+  // Regenerate backup codes state
+  const [regeneratePhase, setRegeneratePhase] = useState<RegeneratePhase>('idle');
+  const [regenerateToken, setRegenerateToken] = useState('');
 
   // Shared state
   const [isLoading, setIsLoading] = useState(false);
@@ -60,6 +71,7 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
     try {
       const response = await authService.twoFactorEnable(secret, verifyToken);
       setBackupCodes(response.backupCodes);
+      setBackupCodesHeading('Save your backup codes');
       setSetupPhase('backup-codes');
       await refreshUser();
       onStatusChange?.(true);
@@ -70,7 +82,10 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
     }
   };
 
-  const handleFinishSetup = () => {
+  // Dismisses the backup-codes reveal panel, whether it was shown after
+  // enrolment or after a regeneration. Clears the plaintext codes from
+  // state — nothing about them is persisted after this point.
+  const handleFinishBackupCodesReveal = () => {
     setSetupPhase('idle');
     setSecret('');
     setQrCodeDataUrl('');
@@ -99,18 +114,39 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
     }
   };
 
-  const handleRegenerateBackupCodes = async () => {
+  // Starts the regenerate flow — a current TOTP code is required before the
+  // server will mint a fresh set (ADS-914 follow-up).
+  const handleStartRegenerate = () => {
+    setError(null);
+    setRegeneratePhase('confirming');
+  };
+
+  const handleConfirmRegenerate = async () => {
+    if (regenerateToken.length !== 6) {
+      setError('Please enter a 6-digit code');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
-      const response = await authService.twoFactorRegenerateBackupCodes();
+      const response = await authService.twoFactorRegenerateBackupCodes(regenerateToken);
       setBackupCodes(response.backupCodes);
+      setBackupCodesHeading('Your new backup codes');
+      setRegeneratePhase('idle');
+      setRegenerateToken('');
       setSetupPhase('backup-codes');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to regenerate backup codes');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCancelRegenerate = () => {
+    setRegeneratePhase('idle');
+    setRegenerateToken('');
+    setError(null);
   };
 
   const handleCancelSetup = () => {
@@ -128,7 +164,12 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
   };
 
   // --- Render: 2FA Enabled State ---
-  if (isEnabled && disablePhase === 'idle' && setupPhase !== 'backup-codes') {
+  if (
+    isEnabled &&
+    disablePhase === 'idle' &&
+    regeneratePhase === 'idle' &&
+    setupPhase !== 'backup-codes'
+  ) {
     return (
       <div className={styles.container}>
         <div>
@@ -140,11 +181,49 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
         </p>
         {error && <Alert variant="error">{error}</Alert>}
         <div className={styles.buttonRow}>
-          <Button variant="secondary" onClick={handleRegenerateBackupCodes} disabled={isLoading}>
-            {isLoading ? 'Generating...' : 'Regenerate Backup Codes'}
+          <Button variant="secondary" onClick={handleStartRegenerate} disabled={isLoading}>
+            Regenerate Backup Codes
           </Button>
           <Button variant="secondary" onClick={() => setDisablePhase('confirming')}>
             Disable 2FA
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Render: Regenerate Backup Codes Confirmation ---
+  if (regeneratePhase === 'confirming') {
+    return (
+      <div className={styles.container}>
+        <p className={styles.description}>
+          Enter a code from your authenticator app to confirm regenerating your backup codes. Your
+          existing backup codes will stop working immediately.
+        </p>
+        {error && <Alert variant="error">{error}</Alert>}
+        <label className={styles.description} htmlFor="regenerate-backup-codes-token">
+          Verification code
+        </label>
+        <input
+          id="regenerate-backup-codes-token"
+          className={styles.tokenInput}
+          type="text"
+          inputMode="numeric"
+          maxLength={6}
+          placeholder="000000"
+          value={regenerateToken}
+          onChange={(e) => setRegenerateToken(e.target.value.replace(/\D/g, ''))}
+          autoFocus
+        />
+        <div className={styles.buttonRow}>
+          <Button
+            onClick={handleConfirmRegenerate}
+            disabled={isLoading || regenerateToken.length !== 6}
+          >
+            {isLoading ? 'Regenerating...' : 'Confirm Regenerate'}
+          </Button>
+          <Button variant="secondary" onClick={handleCancelRegenerate} disabled={isLoading}>
+            Cancel
           </Button>
         </div>
       </div>
@@ -181,7 +260,7 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
     );
   }
 
-  // --- Render: Backup Codes Display ---
+  // --- Render: Backup Codes Reveal (shown once after enable or regenerate) ---
   if (setupPhase === 'backup-codes') {
     return (
       <div className={styles.container}>
@@ -190,18 +269,11 @@ export const TwoFactorSettings: React.FC<TwoFactorSettingsProps> = ({ onStatusCh
             <span className={styles.statusBadge({ enabled: true })}>Enabled</span>
           </div>
         )}
-        <div className={styles.warningBox}>
-          Save these backup codes in a safe place. Each code can only be used once. If you lose
-          access to your authenticator app, you can use one of these codes to sign in.
-        </div>
-        <div className={styles.backupCodesGrid}>
-          {backupCodes.map((code) => (
-            <code className={styles.backupCode} key={code}>
-              {code}
-            </code>
-          ))}
-        </div>
-        <Button onClick={handleFinishSetup}>I have saved my backup codes</Button>
+        <BackupCodesReveal
+          codes={backupCodes}
+          heading={backupCodesHeading}
+          onDismiss={handleFinishBackupCodesReveal}
+        />
       </div>
     );
   }

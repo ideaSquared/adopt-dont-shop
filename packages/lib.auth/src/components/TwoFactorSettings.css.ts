@@ -101,23 +101,6 @@ export const tokenInput = style({
   },
 });
 
-export const backupCodesGrid = style({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, 1fr)',
-  gap: vars.spacing['2'],
-  maxWidth: '320px',
-});
-
-export const backupCode = style({
-  padding: `${vars.spacing['2']} ${vars.spacing['2']}`,
-  background: vars.background.surface,
-  border: `1px solid ${vars.border.color.default}`,
-  borderRadius: vars.border.radius.sm,
-  fontSize: vars.typography.size.sm,
-  textAlign: 'center',
-  letterSpacing: vars.typography.letterSpacing.wide,
-});
-
 export const description = style({
   fontSize: vars.typography.size.sm,
   color: vars.text.secondary,
@@ -129,13 +112,4 @@ export const buttonRow = style({
   display: 'flex',
   gap: vars.spacing['2'],
   flexWrap: 'wrap',
-});
-
-export const warningBox = style({
-  padding: vars.spacing['3'],
-  background: vars.colors.warningBgSubtle,
-  border: `1px solid ${vars.colors.warningBorderSubtle}`,
-  borderRadius: vars.border.radius.base,
-  fontSize: vars.typography.size.sm,
-  color: vars.colors.warningTextEmphasis,
 });

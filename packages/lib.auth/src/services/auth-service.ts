@@ -30,7 +30,9 @@ const AUTH_ENDPOINTS = {
   TWO_FACTOR_SETUP: '/api/v1/auth/2fa/setup',
   TWO_FACTOR_ENABLE: '/api/v1/auth/2fa/enable',
   TWO_FACTOR_DISABLE: '/api/v1/auth/2fa/disable',
-  TWO_FACTOR_BACKUP_CODES: '/api/v1/auth/2fa/backup-codes',
+  // ADS-914 follow-up: regeneration is gated on a current TOTP code — see
+  // services/gateway/src/routes/auth.ts.
+  TWO_FACTOR_BACKUP_CODES_REGENERATE: '/api/v1/auth/2fa/backup-codes/regenerate',
 } as const;
 
 // The login flow signals "password OK, now I need your TOTP code" by
@@ -288,10 +290,14 @@ export class AuthService {
   }
 
   /**
-   * Regenerate backup codes
+   * Regenerate backup codes. Gated on a current TOTP code so a stolen
+   * session alone can't mint a fresh recovery path (ADS-914 follow-up).
    */
-  async twoFactorRegenerateBackupCodes(): Promise<TwoFactorBackupCodesResponse> {
-    return apiService.post<TwoFactorBackupCodesResponse>(AUTH_ENDPOINTS.TWO_FACTOR_BACKUP_CODES);
+  async twoFactorRegenerateBackupCodes(token: string): Promise<TwoFactorBackupCodesResponse> {
+    return apiService.post<TwoFactorBackupCodesResponse>(
+      AUTH_ENDPOINTS.TWO_FACTOR_BACKUP_CODES_REGENERATE,
+      { token }
+    );
   }
 
   /**

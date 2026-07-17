@@ -154,7 +154,23 @@ describe('TwoFactorSettings', () => {
       ).toBeInTheDocument();
     });
 
-    it('dismisses the backup codes screen once the user confirms they saved them', async () => {
+    it('shows the reveal-once panel with the enrolment heading', async () => {
+      (authService.twoFactorEnable as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: true,
+        backupCodes: ['code-a'],
+      });
+      renderSettings(buildAuthValue({ user: { ...baseUser, twoFactorEnabled: false } }));
+
+      await startSetup();
+      await userEvent.type(screen.getByPlaceholderText('000000'), '123456');
+      await userEvent.click(screen.getByRole('button', { name: /verify and enable/i }));
+
+      expect(
+        await screen.findByRole('heading', { name: /save your backup codes/i })
+      ).toBeInTheDocument();
+    });
+
+    it('keeps the backup codes panel open until the user confirms they saved them, then returns to idle', async () => {
       (authService.twoFactorEnable as ReturnType<typeof vi.fn>).mockResolvedValue({
         success: true,
         backupCodes: ['code-a'],
@@ -166,7 +182,11 @@ describe('TwoFactorSettings', () => {
       await userEvent.click(screen.getByRole('button', { name: /verify and enable/i }));
       await screen.findByText('code-a');
 
-      await userEvent.click(screen.getByRole('button', { name: /i have saved my backup codes/i }));
+      const doneButton = screen.getByRole('button', { name: /done/i });
+      expect(doneButton).toBeDisabled();
+
+      await userEvent.click(screen.getByLabelText(/i've saved these backup codes somewhere safe/i));
+      await userEvent.click(doneButton);
 
       expect(
         screen.getByRole('button', { name: /set up two-factor authentication/i })
@@ -186,17 +206,38 @@ describe('TwoFactorSettings', () => {
       expect(screen.getByRole('button', { name: /disable 2fa/i })).toBeInTheDocument();
     });
 
-    it('regenerates and displays new backup codes', async () => {
+    it('asks for a current TOTP code before regenerating, then reveals the new codes once', async () => {
       (authService.twoFactorRegenerateBackupCodes as ReturnType<typeof vi.fn>).mockResolvedValue({
-        success: true,
         backupCodes: ['new-1', 'new-2'],
       });
       renderSettings(enabledValue());
 
       await userEvent.click(screen.getByRole('button', { name: /regenerate backup codes/i }));
 
-      expect(await screen.findByText('new-1')).toBeInTheDocument();
+      // The service must not be called until a code is confirmed.
+      expect(authService.twoFactorRegenerateBackupCodes).not.toHaveBeenCalled();
+      const confirmButton = screen.getByRole('button', { name: /confirm regenerate/i });
+      expect(confirmButton).toBeDisabled();
+
+      await userEvent.type(screen.getByPlaceholderText('000000'), '654321');
+      await userEvent.click(confirmButton);
+
+      expect(authService.twoFactorRegenerateBackupCodes).toHaveBeenCalledWith('654321');
+      expect(
+        await screen.findByRole('heading', { name: /your new backup codes/i })
+      ).toBeInTheDocument();
+      expect(screen.getByText('new-1')).toBeInTheDocument();
       expect(screen.getByText('new-2')).toBeInTheDocument();
+    });
+
+    it('returns to the enabled screen when the regenerate confirmation is cancelled', async () => {
+      renderSettings(enabledValue());
+
+      await userEvent.click(screen.getByRole('button', { name: /regenerate backup codes/i }));
+      await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+      expect(screen.getByRole('button', { name: /regenerate backup codes/i })).toBeInTheDocument();
+      expect(authService.twoFactorRegenerateBackupCodes).not.toHaveBeenCalled();
     });
 
     it('shows an error when backup code regeneration fails', async () => {
@@ -206,6 +247,8 @@ describe('TwoFactorSettings', () => {
       renderSettings(enabledValue());
 
       await userEvent.click(screen.getByRole('button', { name: /regenerate backup codes/i }));
+      await userEvent.type(screen.getByPlaceholderText('000000'), '654321');
+      await userEvent.click(screen.getByRole('button', { name: /confirm regenerate/i }));
 
       expect(await screen.findByText('Regenerate failed')).toBeInTheDocument();
     });
