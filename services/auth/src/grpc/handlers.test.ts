@@ -206,12 +206,21 @@ describe('login', () => {
     );
   });
 
-  it('returns PERMISSION_DENIED when account is locked', async () => {
+  // --- Account-state disclosure (ADS-966) -----------------------------
+  //
+  // Locked/suspended/deactivated state must only be revealed AFTER the
+  // submitted password is verified correct. A wrong password against any
+  // of these accounts must be indistinguishable from a wrong password
+  // against a normal or unknown account.
+
+  it('returns PERMISSION_DENIED when account is locked AND the password is correct', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [userRowFixture({ locked_until: new Date(Date.now() + 60_000) })],
     });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
     await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
+      message: 'account is temporarily locked',
     });
 
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');
@@ -226,12 +235,14 @@ describe('login', () => {
     });
   });
 
-  it('returns PERMISSION_DENIED when account is suspended', async () => {
+  it('returns PERMISSION_DENIED when account is suspended AND the password is correct', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
       rows: [userRowFixture({ status: 'suspended' })],
     });
+    mocks.hasherMock.compare.mockResolvedValueOnce(true);
     await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
       code: 'PERMISSION_DENIED',
+      message: 'account is suspended',
     });
 
     expect(mocks.natsMock.publish.mock.calls[0][0]).toBe('auth.actionTaken');
@@ -244,6 +255,69 @@ describe('login', () => {
       actorUserId: 'usr-adopter',
       actorEmailSnapshot: BASE_LOGIN_REQ.email,
     });
+  });
+
+  it('returns UNAUTHENTICATED "invalid credentials" (not PERMISSION_DENIED) when a locked account gets a wrong password', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRowFixture({ locked_until: new Date(Date.now() + 60_000) })],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(false);
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+      message: 'invalid credentials',
+    });
+  });
+
+  it('returns UNAUTHENTICATED "invalid credentials" (not PERMISSION_DENIED) when a suspended account gets a wrong password', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRowFixture({ status: 'suspended' })],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(false);
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+      message: 'invalid credentials',
+    });
+  });
+
+  it('returns UNAUTHENTICATED "invalid credentials" (not PERMISSION_DENIED) when a deactivated account gets a wrong password', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [userRowFixture({ status: 'deactivated' })],
+    });
+    mocks.hasherMock.compare.mockResolvedValueOnce(false);
+    mocks.clientMock.query.mockResolvedValue({ rows: [] });
+    await expect(login(mocks.deps, null, BASE_LOGIN_REQ)).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
+      message: 'invalid credentials',
+    });
+  });
+
+  it('the four wrong-password branches (unknown/locked/suspended/deactivated) return an identical error', async () => {
+    const scenarios: Array<{ name: string; rows: unknown[] }> = [
+      { name: 'unknown', rows: [] },
+      { name: 'locked', rows: [userRowFixture({ locked_until: new Date(Date.now() + 60_000) })] },
+      { name: 'suspended', rows: [userRowFixture({ status: 'suspended' })] },
+      { name: 'deactivated', rows: [userRowFixture({ status: 'deactivated' })] },
+    ];
+
+    const errors: unknown[] = [];
+    for (const scenario of scenarios) {
+      const m = makeMocks();
+      m.poolMock.query.mockResolvedValueOnce({ rows: scenario.rows });
+      m.hasherMock.compare.mockResolvedValueOnce(false);
+      m.clientMock.query.mockResolvedValue({ rows: [] });
+      try {
+        await login(m.deps, null, BASE_LOGIN_REQ);
+        throw new Error(`expected login to reject for scenario ${scenario.name}`);
+      } catch (err) {
+        errors.push(err);
+      }
+    }
+
+    for (const err of errors) {
+      expect(err).toMatchObject({ code: 'UNAUTHENTICATED', message: 'invalid credentials' });
+    }
   });
 
   it('returns UNAUTHENTICATED on wrong password and increments login_attempts', async () => {

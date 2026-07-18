@@ -466,33 +466,12 @@ export async function login(
   }
   const user = userRes.rows[0];
 
-  // Block locked accounts BEFORE comparing the password — even a
-  // correct password shouldn't reveal the account is back online.
-  if (user.locked_until && user.locked_until > new Date()) {
-    loginCounter.inc({ outcome: 'account_locked' });
-    await publishLoginActionTaken(deps, {
-      outcome: 'denied',
-      aggregateId: user.user_id,
-      actorUserId: user.user_id,
-      actorEmailSnapshot: user.email,
-      ipAddress: req.ipAddress,
-      userAgent: req.userAgent,
-    });
-    throw new HandlerError('PERMISSION_DENIED', 'account is temporarily locked');
-  }
-  if (user.status === 'suspended' || user.status === 'deactivated') {
-    loginCounter.inc({ outcome: 'account_suspended' });
-    await publishLoginActionTaken(deps, {
-      outcome: 'denied',
-      aggregateId: user.user_id,
-      actorUserId: user.user_id,
-      actorEmailSnapshot: user.email,
-      ipAddress: req.ipAddress,
-      userAgent: req.userAgent,
-    });
-    throw new HandlerError('PERMISSION_DENIED', `account is ${user.status}`);
-  }
-
+  // Compare the password BEFORE revealing anything about account state
+  // (ADS-966) — checking locked/suspended/deactivated first turned those
+  // branches into an email-enumeration oracle, since any password (even a
+  // wrong one) reached them. A wrong password now falls straight through
+  // to the generic invalid-credentials branch below regardless of the
+  // account's state.
   const ok = await deps.passwordHasher.compare(req.password, user.password);
   if (!ok) {
     // Count the failure and, once past the threshold, apply a short
@@ -539,6 +518,35 @@ export async function login(
     });
     loginCounter.inc({ outcome: 'invalid_credentials' });
     throw new HandlerError('UNAUTHENTICATED', 'invalid credentials');
+  }
+
+  // The password is correct — only now is it safe to reveal account state
+  // (ADS-966). A locked/suspended/deactivated account still can't log in,
+  // but the distinct message is reserved for someone who has already
+  // proven they know the password.
+  if (user.locked_until && user.locked_until > new Date()) {
+    loginCounter.inc({ outcome: 'account_locked' });
+    await publishLoginActionTaken(deps, {
+      outcome: 'denied',
+      aggregateId: user.user_id,
+      actorUserId: user.user_id,
+      actorEmailSnapshot: user.email,
+      ipAddress: req.ipAddress,
+      userAgent: req.userAgent,
+    });
+    throw new HandlerError('PERMISSION_DENIED', 'account is temporarily locked');
+  }
+  if (user.status === 'suspended' || user.status === 'deactivated') {
+    loginCounter.inc({ outcome: 'account_suspended' });
+    await publishLoginActionTaken(deps, {
+      outcome: 'denied',
+      aggregateId: user.user_id,
+      actorUserId: user.user_id,
+      actorEmailSnapshot: user.email,
+      ipAddress: req.ipAddress,
+      userAgent: req.userAgent,
+    });
+    throw new HandlerError('PERMISSION_DENIED', `account is ${user.status}`);
   }
 
   // Email verification gate. A correct password on an unverified account must
