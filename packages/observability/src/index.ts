@@ -7,7 +7,7 @@ export type { SentryOptions } from './sentry.js';
 export { createLogger } from './logger.js';
 export type { LoggerOptions } from './logger.js';
 
-export { redactSecretFields, REDACTED, SECRET_KEY_PATTERN } from './redact.js';
+export { redactSecretFields, redactUrl, REDACTED, SECRET_KEY_PATTERN } from './redact.js';
 
 export {
   Counter,

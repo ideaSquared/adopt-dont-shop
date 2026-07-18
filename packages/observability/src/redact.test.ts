@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { redactSecretFields, REDACTED } from './redact.js';
+import { redactSecretFields, redactUrl, REDACTED } from './redact.js';
 
 describe('redactSecretFields', () => {
   it('redacts secret-shaped top-level keys regardless of casing or affixes', () => {
@@ -56,5 +56,31 @@ describe('redactSecretFields', () => {
     expect(redactSecretFields(42)).toBe(42);
     expect(redactSecretFields(null)).toBeNull();
     expect(redactSecretFields(undefined)).toBeUndefined();
+  });
+});
+
+describe('redactUrl', () => {
+  it('strips the query string', () => {
+    expect(redactUrl('/api/v1/pets?resetToken=abc123&apiKey=xyz')).toBe('/api/v1/pets');
+  });
+
+  it('leaves a URL with no query string unchanged', () => {
+    expect(redactUrl('/api/v1/pets/123')).toBe('/api/v1/pets/123');
+  });
+
+  it('redacts the secret in a signed-upload-serve path', () => {
+    expect(redactUrl('/uploads-signed/1700000000/abc123signature/foo/bar.png')).toBe(
+      `/uploads-signed/${REDACTED}`
+    );
+  });
+
+  it('redacts a signed-upload path even when it also carries a query string', () => {
+    expect(redactUrl('/uploads-signed/1700000000/abc123signature/foo.png?x=1')).toBe(
+      `/uploads-signed/${REDACTED}`
+    );
+  });
+
+  it('handles a bare path with no leading slash oddities gracefully', () => {
+    expect(redactUrl('/health/simple')).toBe('/health/simple');
   });
 });
