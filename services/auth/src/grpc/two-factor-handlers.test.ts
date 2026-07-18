@@ -8,7 +8,7 @@ import type { Principal } from '@adopt-dont-shop/authz';
 import type { UserId } from '@adopt-dont-shop/lib.types';
 
 import { normalizeBackupCode } from './backup-codes.js';
-import type { HandlerDeps } from './handlers.js';
+import { login, type HandlerDeps } from './handlers.js';
 import { decryptTotpSecret, encryptTotpSecret } from './totp-crypto.js';
 import {
   disableTwoFactor,
@@ -130,6 +130,28 @@ describe('enableTwoFactor', () => {
     expect(updateSql).toMatch(/two_factor_secret_pending = NULL/);
   });
 
+  it('persists the accepted confirmation step (not NULL) so the code cannot be replayed on Login (ADS-976)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    try {
+      const secret = generateSecret();
+      const token = generateSync({ secret });
+
+      mocks.poolMock.query
+        .mockResolvedValueOnce({ rows: [makePendingRow(secret)], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+      await enableTwoFactor(mocks.deps, PRINCIPAL, { token });
+
+      const [updateSql, updateParams] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+      expect(updateSql).not.toMatch(/two_factor_last_step = NULL/);
+      expect(updateSql).toMatch(/two_factor_last_step = \$1/);
+      expect(updateParams[0]).toBe(Math.floor(Date.now() / 1000 / 30));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('ignores req.secret entirely — attacker-supplied secret does not enable 2FA', async () => {
     // Attack scenario from ADS-963: attacker has a token but no server-stored pending secret.
     // They supply their own secret + a valid TOTP for it. Must be rejected.
@@ -234,7 +256,7 @@ describe('enableTwoFactor', () => {
     }
 
     const [, updateParams] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
-    const storedHashes = updateParams[0] as string[];
+    const storedHashes = updateParams[1] as string[];
     expect(storedHashes).toHaveLength(10);
     for (const [i, code] of res.backupCodes.entries()) {
       expect(storedHashes[i]).not.toBe(code);
@@ -262,6 +284,101 @@ describe('enableTwoFactor', () => {
     await expect(enableTwoFactor(mocks.deps, null, { token: '123456' })).rejects.toMatchObject({
       code: 'UNAUTHENTICATED',
     });
+  });
+});
+
+// ADS-976: reproduces the reported replay attack end-to-end — the exact
+// 6-digit code used to confirm enrolment must not also be accepted by
+// Login within the same 30s window, because verifyAndConsumeTotp's
+// afterTimeStep replay guard is keyed on the persisted two_factor_last_step.
+describe('enableTwoFactor confirmation-code replay (ADS-976)', () => {
+  it('rejects an immediate Login that replays the code used to confirm enrolment', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    try {
+      const secret = generateSecret();
+      const token = generateSync({ secret });
+      const enableMocks = makeMocks();
+
+      const encrypted = encryptTotpSecret(ENCRYPTION_KEY, secret);
+      enableMocks.poolMock.query
+        // SELECT pending secret
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              two_factor_enabled: false,
+              two_factor_secret_pending: encrypted,
+              two_factor_pending_expires_at: new Date(Date.now() + 9 * 60_000),
+            },
+          ],
+          rowCount: 1,
+        })
+        // UPDATE promote pending→active
+        .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+      await enableTwoFactor(enableMocks.deps, PRINCIPAL, { token });
+
+      const [, updateParams] = enableMocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+      const persistedStep = updateParams[0] as number;
+
+      // Login as if the very next call, within the same 30s window, supplies
+      // the identical code — using the step just persisted by enableTwoFactor.
+      const client = { query: vi.fn().mockResolvedValue({ rows: [] }), release: vi.fn() };
+      const natsPublish = vi.fn();
+      const loginPool = {
+        connect: vi.fn().mockResolvedValue(client),
+        query: vi.fn().mockResolvedValueOnce({
+          rows: [
+            {
+              user_id: 'usr-1',
+              email: 'alex@example.com',
+              password: 'hashed:hunter2',
+              first_name: null,
+              last_name: null,
+              email_verified: true,
+              phone_verified: false,
+              two_factor_enabled: true,
+              two_factor_secret: encrypted,
+              two_factor_last_step: persistedStep,
+              backup_codes: null,
+              status: 'active',
+              user_type: 'adopter',
+              profile_image_url: null,
+              bio: null,
+              timezone: null,
+              language: null,
+              country: null,
+              city: null,
+              last_login_at: null,
+              locked_until: null,
+              login_attempts: 0,
+              created_at: new Date('2026-01-01T00:00:00Z'),
+              updated_at: new Date('2026-01-01T00:00:00Z'),
+            },
+          ],
+        }),
+      };
+      const loginDeps: HandlerDeps = {
+        pool: loginPool as unknown as HandlerDeps['pool'],
+        nats: {
+          publish: natsPublish,
+          jetstream: () => ({ publish: natsPublish }),
+        } as unknown as HandlerDeps['nats'],
+        passwordHasher: enableMocks.deps.passwordHasher,
+        tokenIssuer: enableMocks.deps.tokenIssuer,
+        encryptionKey: ENCRYPTION_KEY,
+      };
+
+      await expect(
+        login(loginDeps, null, {
+          email: 'alex@example.com',
+          password: 'hunter2',
+          twoFactorToken: token,
+        })
+      ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -420,5 +537,39 @@ describe('regenerateBackupCodes', () => {
     await expect(
       regenerateBackupCodes(mocks.deps, null, { token: '123456' })
     ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' });
+  });
+
+  // ADS-976 AC: "RegenerateBackupCodes behaves the same way (its own TOTP
+  // code is not replayable on the next Login)." Unlike enableTwoFactor,
+  // this handler already verifies via verifyAndConsumeTotp (see the
+  // "mints a fresh set" test above — call 2 is its replay-guard UPDATE),
+  // which persists the accepted step. This test documents that the guard
+  // is live: a code already accepted at the current step is rejected here
+  // too, same as disableTwoFactor / Login.
+  it('rejects a replayed code that was already accepted (ADS-914c/976)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    try {
+      const secret = generateSecret();
+      const token = generateSync({ secret });
+      const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
+      const timeStep = Math.floor(Date.now() / 1000 / 30);
+      mocks.poolMock.query.mockResolvedValueOnce({
+        rows: [
+          {
+            two_factor_enabled: true,
+            two_factor_secret: encryptedSecret,
+            two_factor_last_step: timeStep,
+          },
+        ],
+      });
+      await expect(regenerateBackupCodes(mocks.deps, PRINCIPAL, { token })).rejects.toMatchObject({
+        code: 'INVALID_ARGUMENT',
+      });
+      // Only the SELECT ran — no replay-guard update, no regeneration.
+      expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
