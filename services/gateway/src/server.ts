@@ -235,7 +235,11 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
 
   // CORS — explicit allowed-origins list from config. nginx also handles
   // CORS at the edge; this layer protects direct-gateway scenarios
-  // (internal load balancer, debug runs without nginx, etc.).
+  // (internal load balancer, debug runs without nginx, etc.). loadConfig
+  // fails closed in production/staging when CORS_ORIGIN is unset (ADS-967),
+  // so logging the effective allowlist here lets operators confirm at
+  // boot that it isn't the localhost dev fallback.
+  logger.info('cors allowlist configured', { origins: config.cors?.origins ?? [] });
   await server.register(cors, {
     origin: config.cors?.origins ?? [],
     credentials: true,
