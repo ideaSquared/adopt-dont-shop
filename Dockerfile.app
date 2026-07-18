@@ -13,7 +13,13 @@
 # not depend on. Adding a new lib now requires zero Dockerfile edits.
 
 ARG NODE_VERSION=22.15.1
-FROM node:${NODE_VERSION}-slim AS base
+# Pinned by digest (matches node:22.15.1-slim at the time of pinning) so a
+# rebuild can't silently pull a different image. Renovate's docker manager
+# (pinDigests: true in renovate.json) keeps this current — bump NODE_VERSION
+# and the digest together when it opens a PR. If NODE_VERSION is overridden
+# without updating the digest, the build fails closed on a manifest mismatch
+# rather than silently resolving an unpinned image. [ADS-960]
+FROM node:${NODE_VERSION}-slim@sha256:ec318fe0dc46b56bcc1ca42a202738aeb4f3e347a7b4dd9f9f1df12ea7aa385a AS base
 
 WORKDIR /app
 
