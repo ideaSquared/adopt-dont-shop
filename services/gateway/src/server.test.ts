@@ -277,6 +277,26 @@ function makeLoginAuthClient(): Parameters<typeof createServer>[0]['authClient']
   } as unknown as Parameters<typeof createServer>[0]['authClient'];
 }
 
+// Minimal invitation-accept-capable client stubs (ADS-961) — only the
+// methods registerInvitationAcceptRoutes actually calls on a happy path.
+function makeInvitationAcceptClients(): {
+  authClient: Parameters<typeof createServer>[0]['authClient'];
+  rescueClient: Parameters<typeof createServer>[0]['rescueClient'];
+} {
+  const authClient = {
+    provisionInvitedUser: () => Promise.resolve({ user: { userId: 'usr-invited' } }),
+    close: () => undefined,
+  } as unknown as Parameters<typeof createServer>[0]['authClient'];
+  const rescueClient = {
+    getInvitationByToken: () =>
+      Promise.resolve({ invitation: { email: 'invitee@example.com', rescueId: 'rsc-1' } }),
+    acceptInvitation: () =>
+      Promise.resolve({ staffMember: { userId: 'usr-invited', rescueId: 'rsc-1' } }),
+    close: () => undefined,
+  } as unknown as Parameters<typeof createServer>[0]['rescueClient'];
+  return { authClient, rescueClient };
+}
+
 describe('createServer — per-route rate limit override (auth login)', () => {
   let server: FastifyInstance;
 
@@ -436,6 +456,46 @@ describe('createServer — Prometheus rate-limit counter', () => {
 
       const metrics = await server.inject({ method: 'GET', url: '/metrics' });
       expect(metrics.body).toContain('gateway_login_email_ratelimit_trips_total');
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('exposes gateway_invitation_accept_ratelimit_trips_total metric after a per-token trip (ADS-961)', async () => {
+    const { authClient, rescueClient } = makeInvitationAcceptClients();
+    const server = await createServer({
+      config: {
+        ...baseConfig,
+        rateLimit: { redisUrl: undefined, max: 100, timeWindow: '1 minute' },
+      },
+      logger: quietLogger,
+      authClient,
+      rescueClient,
+    });
+    try {
+      const postAccept = (ip: string) =>
+        server.inject({
+          method: 'POST',
+          url: '/api/v1/invitations/accept',
+          headers: { 'x-forwarded-for': ip },
+          payload: {
+            token: 'shared-guessed-token',
+            password: 'hunter22',
+            firstName: 'Jo',
+            lastName: 'Bloggs',
+          },
+        });
+
+      // The per-token cap is 5/5min — spread across distinct IPs so the
+      // per-IP limiter (10/min) doesn't trip first.
+      for (let i = 0; i < 5; i++) {
+        await postAccept(`21.0.0.${i}`);
+      }
+      const sixth = await postAccept('21.0.0.99');
+      expect(sixth.statusCode).toBe(429);
+
+      const metrics = await server.inject({ method: 'GET', url: '/metrics' });
+      expect(metrics.body).toContain('gateway_invitation_accept_ratelimit_trips_total');
     } finally {
       await server.close();
     }

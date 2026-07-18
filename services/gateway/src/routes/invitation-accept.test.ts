@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 
+import { createEmailRateLimiter } from './email-rate-limiter.js';
 import { registerInvitationAcceptRoutes } from './invitation-accept.js';
 
 function makeClients() {
@@ -34,10 +35,11 @@ function makeClients() {
 
 async function makeApp(
   authClient: AuthClient,
-  rescueClient: RescueClient
+  rescueClient: RescueClient,
+  extraOpts: Partial<Parameters<typeof registerInvitationAcceptRoutes>[1]> = {}
 ): Promise<FastifyInstance> {
-  const app = Fastify({ logger: false });
-  await registerInvitationAcceptRoutes(app, { authClient, rescueClient });
+  const app = Fastify({ logger: false, trustProxy: true });
+  await registerInvitationAcceptRoutes(app, { authClient, rescueClient, ...extraOpts });
   return app;
 }
 
@@ -181,5 +183,156 @@ describe('POST /api/v1/invitations/accept', () => {
     });
 
     expect(res.statusCode).toBe(404);
+  });
+});
+
+// ADS-961: the route provisions an auth user + attaches rescue-staff
+// membership from nothing but a bearer token, so a brute-forced token is a
+// full account-hijack primitive. Both a per-IP cap (route config.rateLimit)
+// and a per-token cap (preHandler, same shape as the login per-email
+// limiter in auth.ts/email-rate-limiter.ts) must hold.
+describe('POST /api/v1/invitations/accept rate limiting (ADS-961)', () => {
+  const successMocks = (m: ReturnType<typeof makeClients>) => {
+    m.getInvitationByTokenMock.mockResolvedValue({
+      invitation: { email: 'invitee@example.com', rescueId: 'rsc-1' },
+    });
+    m.provisionInvitedUserMock.mockResolvedValue({ user: { userId: 'usr-new' } });
+    m.acceptInvitationMock.mockResolvedValue({ staffMember: { userId: 'usr-new' } });
+  };
+
+  it('throttles a per-IP flood (more than 10/min/IP returns 429)', async () => {
+    const m = makeClients();
+    successMocks(m);
+    const app = Fastify({ logger: false, trustProxy: true });
+    const { default: rateLimit } = await import('@fastify/rate-limit');
+    await app.register(rateLimit, {
+      global: true,
+      max: 100,
+      timeWindow: '1 minute',
+      keyGenerator: req => req.ip,
+    });
+    await registerInvitationAcceptRoutes(app, {
+      authClient: m.authClient,
+      rescueClient: m.rescueClient,
+    });
+    try {
+      const sameIp = { 'x-forwarded-for': '9.9.9.9' };
+      const statuses: number[] = [];
+      // Vary the token each call so it's unambiguously the per-IP cap firing.
+      for (let i = 0; i < 11; i += 1) {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/api/v1/invitations/accept',
+          headers: sameIp,
+          payload: { ...VALID_BODY, token: `tok-${i}` },
+        });
+        statuses.push(res.statusCode);
+      }
+      // 10 within the per-IP cap pass; the 11th from the same IP is 429.
+      expect(statuses.slice(0, 10)).toEqual(new Array(10).fill(201));
+      expect(statuses[10]).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('throttles a per-TOKEN flood spread across many IPs (more than 5/5min returns 429)', async () => {
+    const m = makeClients();
+    successMocks(m);
+    const tokenRateLimiter = createEmailRateLimiter({ max: 5, windowMs: 5 * 60_000 });
+    const app = await makeApp(m.authClient, m.rescueClient, { tokenRateLimiter });
+    try {
+      const hit = (ip: string) =>
+        app.inject({
+          method: 'POST',
+          url: '/api/v1/invitations/accept',
+          headers: { 'x-forwarded-for': ip },
+          payload: { ...VALID_BODY, token: 'shared-guessed-token' },
+        });
+
+      const statuses: number[] = [];
+      for (let i = 0; i < 6; i += 1) {
+        statuses.push((await hit(`1.1.1.${i}`)).statusCode);
+      }
+
+      // First 5 (the cap) pass; the 6th — same token, different IP — is 429.
+      expect(statuses.slice(0, 5)).toEqual(new Array(5).fill(201));
+      expect(statuses[5]).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not throttle a DIFFERENT token once one trips the per-token cap', async () => {
+    const m = makeClients();
+    successMocks(m);
+    const tokenRateLimiter = createEmailRateLimiter({ max: 1, windowMs: 5 * 60_000 });
+    const app = await makeApp(m.authClient, m.rescueClient, { tokenRateLimiter });
+    try {
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/invitations/accept',
+        payload: { ...VALID_BODY, token: 'token-a' },
+      });
+      const tripped = await app.inject({
+        method: 'POST',
+        url: '/api/v1/invitations/accept',
+        payload: { ...VALID_BODY, token: 'token-a' },
+      });
+      const other = await app.inject({
+        method: 'POST',
+        url: '/api/v1/invitations/accept',
+        payload: { ...VALID_BODY, token: 'token-b' },
+      });
+
+      expect(tripped.statusCode).toBe(429);
+      expect(other.statusCode).toBe(201);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('calls onTokenRateLimitTrip when the per-token cap trips', async () => {
+    const m = makeClients();
+    successMocks(m);
+    const onTokenRateLimitTrip = vi.fn();
+    const tokenRateLimiter = createEmailRateLimiter({ max: 1, windowMs: 60_000 });
+    const app = await makeApp(m.authClient, m.rescueClient, {
+      tokenRateLimiter,
+      onTokenRateLimitTrip,
+    });
+    try {
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/invitations/accept',
+        payload: { ...VALID_BODY, token: 'token-c' },
+      });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/invitations/accept',
+        payload: { ...VALID_BODY, token: 'token-c' },
+      });
+
+      expect(res.statusCode).toBe(429);
+      expect(onTokenRateLimitTrip).toHaveBeenCalledTimes(1);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not throttle when no tokenRateLimiter is wired', async () => {
+    const m = makeClients();
+    successMocks(m);
+    const app = await makeApp(m.authClient, m.rescueClient);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/invitations/accept',
+        payload: { ...VALID_BODY, token: 'token-d' },
+      });
+      expect(res.statusCode).toBe(201);
+    } finally {
+      await app.close();
+    }
   });
 });
