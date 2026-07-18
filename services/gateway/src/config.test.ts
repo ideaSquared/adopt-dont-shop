@@ -17,6 +17,9 @@ describe('loadConfig', () => {
       GATEWAY_HOST: '127.0.0.1',
       NODE_ENV: 'production',
       NATS_URL: 'nats://nats.internal:4222',
+      // ADS-967: production fails closed without CORS_ORIGIN — irrelevant to
+      // what this test asserts, so set it to isolate the behaviour under test.
+      CORS_ORIGIN: 'https://app.example.com',
     });
 
     expect(config.port).toBe(4321);
@@ -182,7 +185,11 @@ describe('loadConfig — test-token-peek seam (ADS-871)', () => {
   });
 
   it('does not throw in production when the flag is off', () => {
-    expect(() => loadConfig({ NODE_ENV: 'production' })).not.toThrow();
+    // ADS-967: production also requires CORS_ORIGIN — set it here so this
+    // test isolates the test-token-peek behaviour it actually asserts.
+    expect(() =>
+      loadConfig({ NODE_ENV: 'production', CORS_ORIGIN: 'https://app.example.com' })
+    ).not.toThrow();
   });
 });
 
@@ -217,5 +224,35 @@ describe('loadConfig — CORS origins (ADS-809)', () => {
   it('falls back to defaults when CORS_ORIGIN is an empty string', () => {
     const config = loadConfig({ CORS_ORIGIN: '' });
     expect(config.cors.origins).toContain('http://localhost:3000');
+  });
+});
+
+describe('loadConfig — CORS fail-closed in production/staging (ADS-967)', () => {
+  it('refuses to boot under NODE_ENV=production when CORS_ORIGIN is unset', () => {
+    expect(() => loadConfig({ NODE_ENV: 'production' })).toThrow(/CORS_ORIGIN must be set/);
+  });
+
+  it('refuses to boot under NODE_ENV=production when CORS_ORIGIN is an empty string', () => {
+    expect(() => loadConfig({ NODE_ENV: 'production', CORS_ORIGIN: '' })).toThrow(
+      /CORS_ORIGIN must be set/
+    );
+  });
+
+  it('refuses to boot under NODE_ENV=staging when CORS_ORIGIN is unset', () => {
+    expect(() => loadConfig({ NODE_ENV: 'staging' })).toThrow(/CORS_ORIGIN must be set/);
+  });
+
+  it('boots fine under NODE_ENV=production when CORS_ORIGIN is set', () => {
+    const config = loadConfig({
+      NODE_ENV: 'production',
+      CORS_ORIGIN: 'https://adoptdontshop.com',
+    });
+    expect(config.cors.origins).toEqual(['https://adoptdontshop.com']);
+  });
+
+  it('still falls back to localhost dev origins outside production/staging', () => {
+    expect(() => loadConfig({ NODE_ENV: 'development' })).not.toThrow();
+    expect(() => loadConfig({ NODE_ENV: 'test' })).not.toThrow();
+    expect(() => loadConfig({})).not.toThrow();
   });
 });

@@ -147,11 +147,12 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
   if (Number.isNaN(port) || port <= 0) {
     throw new Error(`GATEWAY_PORT must be a positive integer, got "${portRaw}"`);
   }
+  const environment = env.NODE_ENV?.trim() || 'development';
 
   return {
     port,
     host: env.GATEWAY_HOST?.trim() || DEFAULT_HOST,
-    environment: env.NODE_ENV?.trim() || 'development',
+    environment,
     natsUrl: env.NATS_URL?.trim() || DEFAULT_NATS_URL,
     notificationsGrpcUrl: env.NOTIFICATIONS_GRPC_URL?.trim() || DEFAULT_NOTIFICATIONS_GRPC_URL,
     authGrpcUrl: env.AUTH_GRPC_URL?.trim() || DEFAULT_AUTH_GRPC_URL,
@@ -173,7 +174,7 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
     },
     principalSigningKey: readOptionalSecret('PRINCIPAL_SIGNING_KEY', env, 32),
     testTokenPeek: buildTestTokenPeekConfig(env),
-    cors: buildCorsConfig(env),
+    cors: buildCorsConfig(env, environment),
     rateLimit: buildRateLimitConfig(env),
   };
 };
@@ -181,15 +182,20 @@ export const loadConfig = (env: NodeJS.ProcessEnv = process.env): GatewayConfig 
 // Build the CORS config block. CORS_ORIGIN is a comma-separated list
 // of allowed origins (e.g. "http://localhost:3000,http://localhost:3001").
 // Defaults to localhost dev origins when unset so local dev works without
-// extra config; production must set this explicitly.
-function buildCorsConfig(env: NodeJS.ProcessEnv): GatewayConfig['cors'] {
+// extra config. production/staging FAIL CLOSED instead: booting with the
+// localhost allowlist + credentials:true (see server.ts) would let any
+// page on *.localhost issue credentialed cross-origin requests against a
+// real prod/staging deploy (ADS-967).
+function buildCorsConfig(env: NodeJS.ProcessEnv, environment: string): GatewayConfig['cors'] {
   const raw = env.CORS_ORIGIN?.trim() || '';
-  const origins = raw
-    ? raw
-        .split(',')
-        .map(o => o.trim())
-        .filter(Boolean)
-    : [
+  if (!raw) {
+    if (environment === 'production' || environment === 'staging') {
+      throw new Error(
+        `CORS_ORIGIN must be set when NODE_ENV=${environment} — refusing to fall back to the localhost dev allowlist`
+      );
+    }
+    return {
+      origins: [
         'http://localhost:3000',
         'http://localhost:3001',
         'http://localhost:3002',
@@ -197,7 +203,13 @@ function buildCorsConfig(env: NodeJS.ProcessEnv): GatewayConfig['cors'] {
         'http://admin.localhost',
         'http://rescue.localhost',
         'http://api.localhost',
-      ];
+      ],
+    };
+  }
+  const origins = raw
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
   return { origins };
 }
 
