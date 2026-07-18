@@ -222,7 +222,9 @@ describe('POST /api/v1/auth/login', () => {
       payload: { email: 'alex@example.com', password: 'wrong' },
     });
     expect(res.statusCode).toBe(401);
-    expect(res.json()).toEqual({ error: 'invalid credentials' });
+    // ADS-973: UNAUTHENTICATED gets a generic message, not the forwarded
+    // upstream detail — it may echo internal auth-service policy text.
+    expect(res.json()).toEqual({ error: 'unauthenticated' });
   });
 
   it('maps INVALID_ARGUMENT → 400 on missing email', async () => {
@@ -489,7 +491,9 @@ describe('POST /api/v1/auth/assign-role', () => {
       payload: { targetUserId: 'usr-1', role: 'admin' },
     });
     expect(res.statusCode).toBe(403);
-    expect(res.json()).toEqual({ error: 'admin.security.manage required' });
+    // ADS-973: PERMISSION_DENIED gets a generic message, not the forwarded
+    // upstream detail — it may echo internal permission-name detail.
+    expect(res.json()).toEqual({ error: 'forbidden' });
   });
 });
 

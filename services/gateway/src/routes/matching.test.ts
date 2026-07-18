@@ -183,11 +183,11 @@ describe('POST /api/v1/matching/sessions', () => {
   });
 
   it.each([
-    [grpcStatus.INVALID_ARGUMENT, 400],
-    [grpcStatus.UNAUTHENTICATED, 401],
-    [grpcStatus.PERMISSION_DENIED, 403],
-    [grpcStatus.INTERNAL, 500],
-  ])('maps gRPC code %i to HTTP %i', async (gCode, httpCode) => {
+    [grpcStatus.INVALID_ARGUMENT, 400, 'oops'],
+    [grpcStatus.UNAUTHENTICATED, 401, 'unauthenticated'],
+    [grpcStatus.PERMISSION_DENIED, 403, 'forbidden'],
+    [grpcStatus.INTERNAL, 500, 'internal_error'],
+  ])('maps gRPC code %i to HTTP %i', async (gCode, httpCode, expectedError) => {
     startSessionMock.mockRejectedValue({ code: gCode, details: 'oops' });
 
     const httpRes = await app.inject({
@@ -198,11 +198,11 @@ describe('POST /api/v1/matching/sessions', () => {
     });
 
     expect(httpRes.statusCode).toBe(httpCode);
-    // 4xx codes echo the upstream detail; 5xx are sanitised so internal
-    // text never reaches the client.
-    expect(httpRes.json()).toMatchObject({
-      error: httpCode >= 500 ? 'internal_error' : 'oops',
-    });
+    // INVALID_ARGUMENT echoes the upstream detail (validation error, meant
+    // for the caller); PERMISSION_DENIED/UNAUTHENTICATED get a generic
+    // message (ADS-973) and 5xx are sanitised — internal text never
+    // reaches the client either way.
+    expect(httpRes.json()).toMatchObject({ error: expectedError });
   });
 });
 

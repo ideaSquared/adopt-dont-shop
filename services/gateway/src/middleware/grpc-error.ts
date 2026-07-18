@@ -48,6 +48,22 @@ const GENERIC_5XX_MESSAGE: Record<number, string> = {
   504: 'gateway_timeout',
 };
 
+// ADS-973: forwarding upstream `details`/`message` verbatim for every 4xx
+// assumed every downstream service is disciplined about what it puts in a
+// 4xx message — no test enforced that, and some services echo untrusted
+// input into error strings. Per-code allowlist instead:
+//   INVALID_ARGUMENT, NOT_FOUND, ALREADY_EXISTS — validation / business-logic
+//   errors that are meant for the caller, so the upstream text is forwarded.
+//   PERMISSION_DENIED, FAILED_PRECONDITION, UNAUTHENTICATED — may echo
+//   internal identifiers or policy detail, so a generic message is sent
+//   instead; the upstream text is still available server-side (whatever
+//   logged the original error), never in the HTTP response.
+const GENERIC_4XX_MESSAGE: Record<number, string> = {
+  [status.PERMISSION_DENIED]: 'forbidden',
+  [status.FAILED_PRECONDITION]: 'precondition failed',
+  [status.UNAUTHENTICATED]: 'unauthenticated',
+};
+
 export const handleGrpcError = (err: unknown, reply: FastifyReply): FastifyReply => {
   const grpcErr = err as GrpcError;
   const httpStatus = (grpcErr?.code !== undefined && GRPC_TO_HTTP[grpcErr.code]) || 500;
@@ -55,6 +71,11 @@ export const handleGrpcError = (err: unknown, reply: FastifyReply): FastifyReply
     return reply
       .code(httpStatus)
       .send({ error: GENERIC_5XX_MESSAGE[httpStatus] ?? 'internal_error' });
+  }
+  const genericMessage =
+    grpcErr?.code !== undefined ? GENERIC_4XX_MESSAGE[grpcErr.code] : undefined;
+  if (genericMessage) {
+    return reply.code(httpStatus).send({ error: genericMessage });
   }
   return reply.code(httpStatus).send({
     error: grpcErr?.details ?? grpcErr?.message ?? 'internal_error',

@@ -180,6 +180,52 @@ describe('handleGrpcError', () => {
     expect(reply.send).toHaveBeenCalledWith({ error: 'details text' });
   });
 
+  // ── ADS-973: per-code allowlist for 4xx — some codes get a generic
+  // message instead of the forwarded upstream text, because that text can
+  // carry internal identifiers or policy detail not meant for the caller.
+
+  it('sends a generic message for PERMISSION_DENIED, not the upstream details', () => {
+    handleGrpcError(
+      { code: status.PERMISSION_DENIED, details: 'user usr-123 lacks role admin on rescue rsc-9' },
+      reply
+    );
+    expect(reply.code).toHaveBeenCalledWith(403);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'forbidden' });
+  });
+
+  it('sends a generic message for FAILED_PRECONDITION, not the upstream details', () => {
+    handleGrpcError(
+      { code: status.FAILED_PRECONDITION, details: 'row version 4 conflicts with row version 7' },
+      reply
+    );
+    expect(reply.code).toHaveBeenCalledWith(409);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'precondition failed' });
+  });
+
+  it('sends a generic message for UNAUTHENTICATED, not the upstream details', () => {
+    handleGrpcError(
+      { code: status.UNAUTHENTICATED, details: 'signing key rotated at 2026-07-18T00:00:00Z' },
+      reply
+    );
+    expect(reply.code).toHaveBeenCalledWith(401);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'unauthenticated' });
+  });
+
+  it('still forwards detailed messages for INVALID_ARGUMENT', () => {
+    handleGrpcError({ code: status.INVALID_ARGUMENT, details: 'email is required' }, reply);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'email is required' });
+  });
+
+  it('still forwards detailed messages for NOT_FOUND', () => {
+    handleGrpcError({ code: status.NOT_FOUND, details: 'pet pet-42 not found' }, reply);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'pet pet-42 not found' });
+  });
+
+  it('still forwards detailed messages for ALREADY_EXISTS', () => {
+    handleGrpcError({ code: status.ALREADY_EXISTS, details: 'email already registered' }, reply);
+    expect(reply.send).toHaveBeenCalledWith({ error: 'email already registered' });
+  });
+
   // ── Return value ───────────────────────────────────────────────────────────
 
   it('returns the FastifyReply instance', () => {
