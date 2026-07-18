@@ -17,7 +17,6 @@ export function generateSecretsBlock() {
     `JWT_SECRET=${b64()}`,
     `JWT_REFRESH_SECRET=${b64()}`,
     `SESSION_SECRET=${b64()}`,
-    `CSRF_SECRET=${b64()}`,
     `ENCRYPTION_KEY=${randomBytes(32).toString('hex')}`,
     `UPLOAD_SIGNING_SECRET=${b64()}`,
     `JWT_REPORT_SHARE_SECRET=${b64()}`,
@@ -25,6 +24,9 @@ export function generateSecretsBlock() {
     '# use hex (URL-safe) rather than base64. Regenerate if leaked:',
     `POSTGRES_PASSWORD=${hex(24)}`,
     `REDIS_PASSWORD=${hex(24)}`,
+    // ADS-968: Grafana (docker-compose.yml `full`/`observability` profiles)
+    // refuses to start without this — no more admin/admin default.
+    `GF_SECURITY_ADMIN_PASSWORD=${hex(24)}`,
   ].join('\n');
 }
 

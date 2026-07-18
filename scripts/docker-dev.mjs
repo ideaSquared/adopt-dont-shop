@@ -133,7 +133,10 @@ function checkEnv() {
     process.exit(1);
   }
   const contents = readFileSync(envPath, 'utf8');
-  const required = ['POSTGRES_PASSWORD', 'REDIS_PASSWORD', 'JWT_SECRET'];
+  // ADS-968: GF_SECURITY_ADMIN_PASSWORD is required because the default
+  // `full` profile starts Grafana, and docker-compose.yml refuses to
+  // interpolate it unset — check it here too for a friendlier error.
+  const required = ['POSTGRES_PASSWORD', 'REDIS_PASSWORD', 'JWT_SECRET', 'GF_SECURITY_ADMIN_PASSWORD'];
   const missing = required.filter(k => {
     const m = contents.match(new RegExp(`^${k}=(.*)$`, 'm'));
     return !m || m[1].trim() === '';
