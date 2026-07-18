@@ -16,7 +16,6 @@ import {
 const STRONG_SECRET = 'A'.repeat(40);
 const STRONG_SECRET_B = 'B'.repeat(40);
 const STRONG_SECRET_C = 'C'.repeat(40);
-const STRONG_SECRET_D = 'D'.repeat(40);
 const ENCRYPTION_KEY = '0123456789abcdef'.repeat(4); // 64 hex chars
 
 const validBaseEnv = {
@@ -28,7 +27,6 @@ const validBaseEnv = {
   JWT_SECRET: STRONG_SECRET,
   JWT_REFRESH_SECRET: STRONG_SECRET_B,
   SESSION_SECRET: STRONG_SECRET_C,
-  CSRF_SECRET: STRONG_SECRET_D,
   ENCRYPTION_KEY,
 };
 
@@ -116,7 +114,7 @@ describe('DISTINCT_SECRET_PAIRS', () => {
   it('covers every signing/encryption secret pairing', () => {
     // Pin the pairing list so a future change to the shared schema does
     // not silently drop a distinctness rule.
-    expect(DISTINCT_SECRET_PAIRS.length).toBe(12);
+    expect(DISTINCT_SECRET_PAIRS.length).toBe(8);
   });
 
   it('always involves at least one signing/encryption secret per pair', () => {
@@ -124,7 +122,6 @@ describe('DISTINCT_SECRET_PAIRS', () => {
       'JWT_SECRET',
       'JWT_REFRESH_SECRET',
       'SESSION_SECRET',
-      'CSRF_SECRET',
       'UPLOAD_SIGNING_SECRET',
       'ENCRYPTION_KEY',
       'JWT_REPORT_SHARE_SECRET',
@@ -154,7 +151,6 @@ const validProdEnv = (): Record<string, string | undefined> => ({
   JWT_SECRET: STRONG_SECRET,
   JWT_REFRESH_SECRET: STRONG_SECRET_B,
   SESSION_SECRET: STRONG_SECRET_C,
-  CSRF_SECRET: STRONG_SECRET_D,
   ENCRYPTION_KEY,
   UPLOAD_SIGNING_SECRET: UPLOAD_SECRET,
   CORS_ORIGIN: 'https://app.example.com',
@@ -173,7 +169,6 @@ const validDevEnv = (): Record<string, string | undefined> => ({
   JWT_SECRET: STRONG_SECRET,
   JWT_REFRESH_SECRET: STRONG_SECRET_B,
   SESSION_SECRET: STRONG_SECRET_C,
-  CSRF_SECRET: STRONG_SECRET_D,
   ENCRYPTION_KEY,
 });
 

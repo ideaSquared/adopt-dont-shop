@@ -39,14 +39,13 @@ pnpm secrets:generate
 Copy the output into your production `.env` (or secrets manager). Each run produces
 cryptographically random values — **do not re-use values from staging or development**.
 
-The six application secrets that must be rotated for every new environment:
+The five application secrets that must be rotated for every new environment:
 
 | Variable | Purpose |
 |---|---|
 | `JWT_SECRET` | Signs short-lived access tokens |
 | `JWT_REFRESH_SECRET` | Signs long-lived refresh tokens |
 | `SESSION_SECRET` | Encrypts server-side sessions |
-| `CSRF_SECRET` | Signs CSRF tokens |
 | `ENCRYPTION_KEY` | AES-256-GCM key for PII fields (must be 64 hex chars / 32 bytes) |
 | `UPLOAD_SIGNING_SECRET` | Signs upload URLs |
 
@@ -78,8 +77,8 @@ verify that no production secret shares a value with your staging env file:
 ```bash
 # Any output here means a secret is shared between staging and prod — must fix.
 comm -12 \
-  <(grep -E '^(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|CSRF_SECRET|ENCRYPTION_KEY|UPLOAD_SIGNING_SECRET)=' .env.staging | sort) \
-  <(grep -E '^(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|CSRF_SECRET|ENCRYPTION_KEY|UPLOAD_SIGNING_SECRET)=' .env.prod    | sort)
+  <(grep -E '^(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|ENCRYPTION_KEY|UPLOAD_SIGNING_SECRET)=' .env.staging | sort) \
+  <(grep -E '^(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|ENCRYPTION_KEY|UPLOAD_SIGNING_SECRET)=' .env.prod    | sort)
 ```
 
 Expected output: (empty — no shared values).

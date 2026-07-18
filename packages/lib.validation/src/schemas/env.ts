@@ -78,7 +78,6 @@ export const envBaseSchema = z.object({
   JWT_SECRET: secretField('JWT_SECRET'),
   JWT_REFRESH_SECRET: secretField('JWT_REFRESH_SECRET'),
   SESSION_SECRET: secretField('SESSION_SECRET'),
-  CSRF_SECRET: secretField('CSRF_SECRET'),
   ENCRYPTION_KEY: z
     .string({ error: 'ENCRYPTION_KEY is required' })
     .length(ENCRYPTION_KEY_HEX_LEN, {
@@ -141,17 +140,13 @@ export type EnvVars = z.infer<typeof envBaseSchema>;
 export const DISTINCT_SECRET_PAIRS: ReadonlyArray<readonly [string, string]> = [
   ['JWT_SECRET', 'JWT_REFRESH_SECRET'],
   ['JWT_SECRET', 'SESSION_SECRET'],
-  ['JWT_SECRET', 'CSRF_SECRET'],
   ['JWT_REFRESH_SECRET', 'SESSION_SECRET'],
-  ['JWT_REFRESH_SECRET', 'CSRF_SECRET'],
-  ['SESSION_SECRET', 'CSRF_SECRET'],
   // ADS-542: UPLOAD_SIGNING_SECRET must be distinct from every other
   // signing/encryption secret so a single disclosure does not compromise
-  // both upload signatures and JWT/session/CSRF/encryption material.
+  // both upload signatures and JWT/session/encryption material.
   ['UPLOAD_SIGNING_SECRET', 'JWT_SECRET'],
   ['UPLOAD_SIGNING_SECRET', 'JWT_REFRESH_SECRET'],
   ['UPLOAD_SIGNING_SECRET', 'SESSION_SECRET'],
-  ['UPLOAD_SIGNING_SECRET', 'CSRF_SECRET'],
   ['UPLOAD_SIGNING_SECRET', 'ENCRYPTION_KEY'],
   ['UPLOAD_SIGNING_SECRET', 'JWT_REPORT_SHARE_SECRET'],
 ] as const;

@@ -204,6 +204,7 @@ jobs:
       - name: Verify CI passed on this commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SKIP_CI_CHECK: ${{ github.event.inputs.skip_ci_check }}
         run: |
           set -euo pipefail
           SHA="${{ github.sha }}"
@@ -219,7 +220,7 @@ jobs:
             jq '[.check_suites[] | select(.app.slug == "github-actions" and .status == "completed")]')
           total=$(echo "$completed" | jq 'length')
           if [ "$total" -eq 0 ]; then
-            if [ "${{ github.event.inputs.skip_ci_check }}" = "true" ]; then
+            if [ "$SKIP_CI_CHECK" = "true" ]; then
               echo "WARNING: No completed GitHub Actions check-suites found for $SHA — skip_ci_check=true, proceeding."
             else
               echo "ERROR: No completed GitHub Actions check-suites found for $SHA. CI may not have run yet."
@@ -255,6 +256,8 @@ jobs:
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
 
       - name: Build and push gateway + services
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
           # ADS-rollback: :latest is only updated for production deploys.
           # The SHA tag is always pushed so every build is individually
@@ -265,7 +268,11 @@ jobs:
           # Fastify gateway + the 10 extracted gRPC services from the shared,
           # parameterised Dockerfile.service (SERVICE = workspace package,
           # SERVICE_DIR = path under the repo). Image name is service-<name>.
-          PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
+          if [ "$ENVIRONMENT" = "production" ]; then
+            PUSH_LATEST=true
+          else
+            PUSH_LATEST=false
+          fi
           # "<image-name> <workspace-package> <service-dir>"
           SERVICES=(
             "service-gateway       @adopt-dont-shop/service.gateway       services/gateway"
@@ -305,8 +312,14 @@ jobs:
           done
 
       - name: Build and push app.client
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
-          PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
+          if [ "$ENVIRONMENT" = "production" ]; then
+            PUSH_LATEST=true
+          else
+            PUSH_LATEST=false
+          fi
           docker build \
             -f Dockerfile.app \
             --target production \
@@ -332,8 +345,14 @@ jobs:
           cosign sign --yes "$IMAGE_PREFIX/app-client@$DIGEST"
 
       - name: Build and push app.admin
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
-          PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
+          if [ "$ENVIRONMENT" = "production" ]; then
+            PUSH_LATEST=true
+          else
+            PUSH_LATEST=false
+          fi
           docker build \
             -f Dockerfile.app \
             --target production \
@@ -359,8 +378,14 @@ jobs:
           cosign sign --yes "$IMAGE_PREFIX/app-admin@$DIGEST"
 
       - name: Build and push app.rescue
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
-          PUSH_LATEST=${{ github.event.inputs.environment == 'production' }}
+          if [ "$ENVIRONMENT" = "production" ]; then
+            PUSH_LATEST=true
+          else
+            PUSH_LATEST=false
+          fi
           docker build \
             -f Dockerfile.app \
             --target production \
@@ -526,16 +551,17 @@ jobs:
           # Forwarded via `envs:` so the server script reads it as a shell
           # variable — never interpolated into the script text (injection-safe).
           TAG_OVERRIDES: ${{ github.event.inputs.tag_overrides }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2  # v1.2.5
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: deploy
           key: ${{ secrets.HETZNER_SSH_KEY }}
           fingerprint: ${{ secrets.HETZNER_HOST_FINGERPRINT }}
-          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,TAG_OVERRIDES
+          envs: GHCR_TOKEN,SECRET_JWT_SECRET,SECRET_JWT_REFRESH_SECRET,SECRET_ENCRYPTION_KEY,SECRET_UPLOAD_SIGNING_SECRET,SECRET_DB_PASSWORD,SECRET_PRINCIPAL_SIGNING_KEY,TAG_OVERRIDES,ENVIRONMENT
           script: |
             set -euo pipefail
-            ENV="${{ github.event.inputs.environment }}"
+            ENV="$ENVIRONMENT"
             SHA="${{ github.sha }}"
             IMAGE_PREFIX="ghcr.io/ideasquared/adopt-dont-shop"
 

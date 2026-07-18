@@ -17,7 +17,13 @@ ARG NODE_VERSION=22.15.1
 # ---------------------------------------------------------------------------
 # base — shared foundation
 # ---------------------------------------------------------------------------
-FROM node:${NODE_VERSION}-alpine AS base
+# Pinned by digest (matches node:22.15.1-alpine at the time of pinning) so a
+# rebuild can't silently pull a different image. Renovate's docker manager
+# (pinDigests: true in renovate.json) keeps this current — bump NODE_VERSION
+# and the digest together when it opens a PR. If NODE_VERSION is overridden
+# without updating the digest, the build fails closed on a manifest mismatch
+# rather than silently resolving an unpinned image. [ADS-960]
+FROM node:${NODE_VERSION}-alpine@sha256:152270cd4bd094d216a84cbc3c5eb1791afb05af00b811e2f0f04bdc6c473602 AS base
 # hadolint ignore=DL3018
 RUN apk update && apk upgrade && apk add --no-cache \
     curl \
