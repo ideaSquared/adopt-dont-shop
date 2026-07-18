@@ -161,7 +161,6 @@ REDIS_PASSWORD=<generated>
 JWT_SECRET=<generated-64-hex>
 JWT_REFRESH_SECRET=<generated-64-hex>
 SESSION_SECRET=<generated-64-hex>
-CSRF_SECRET=<generated-64-hex>
 ENCRYPTION_KEY=<generated-64-hex>
 API_URL=https://api.adoptdontshop.com
 FRONTEND_URL=https://adoptdontshop.com

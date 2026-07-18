@@ -550,7 +550,6 @@ jobs:
             echo "JWT_SECRET=$(openssl rand -base64 32)"
             echo "JWT_REFRESH_SECRET=$(openssl rand -base64 32)"
             echo "SESSION_SECRET=$(openssl rand -base64 32)"
-            echo "CSRF_SECRET=$(openssl rand -base64 32)"
             echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
             # HMAC key for the service-to-service principal tokens minted
             # and verified by packages/service-bootstrap (read via

@@ -11,7 +11,7 @@
  *  3. Diffs the active env against root /.env.example so missing or stale
  *     keys surface before deploy.
  *  4. Exits non-zero on any error so it can run as a CI gate.
- *  5. Optional --staging-env=PATH: fails if any of the six application secrets
+ *  5. Optional --staging-env=PATH: fails if any of the five application secrets
  *     share a value with the staging env (prevents staging→prod secret reuse,
  *     ADS-659).
  *
@@ -106,13 +106,12 @@ function diffAgainstExample(
 
 // ---------------------------------------------------------------------------
 // Staging-reuse check (ADS-659)
-// Fails if any of the six application secrets share a value with a staging env.
+// Fails if any of the five application secrets share a value with a staging env.
 // ---------------------------------------------------------------------------
 const SECRET_VARS = [
   'JWT_SECRET',
   'JWT_REFRESH_SECRET',
   'SESSION_SECRET',
-  'CSRF_SECRET',
   'ENCRYPTION_KEY',
   'UPLOAD_SIGNING_SECRET',
 ] as const;

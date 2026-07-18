@@ -204,7 +204,6 @@ POSTGRES_DB=...                      # required
 JWT_SECRET=...                       # required
 JWT_REFRESH_SECRET=...               # required
 SESSION_SECRET=...                   # required
-CSRF_SECRET=...                      # required
 REDIS_PASSWORD=...                   # required in prod
 VITE_API_BASE_URL=https://api.your-domain.com
 VITE_WS_BASE_URL=wss://api.your-domain.com

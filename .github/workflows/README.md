@@ -167,7 +167,7 @@ HETZNER_HOST_FINGERPRINT=ssh-host-key-fingerprint  # computed via `ssh-keyscan -
 GHCR_TOKEN=read-only-personal-access-token         # scope: read:packages
 ```
 
-`deploy.yml` and `rollback.yml` also pass through application secrets (`SECRET_JWT_SECRET`, `SECRET_JWT_REFRESH_SECRET`, `SECRET_SESSION_SECRET`, `SECRET_CSRF_SECRET`, `SECRET_ENCRYPTION_KEY`, `SECRET_UPLOAD_SIGNING_SECRET`, `SECRET_DB_PASSWORD`, `SECRET_REDIS_PASSWORD`) — these must be configured per environment.
+`deploy.yml` and `rollback.yml` also pass through application secrets (`SECRET_JWT_SECRET`, `SECRET_JWT_REFRESH_SECRET`, `SECRET_SESSION_SECRET`, `SECRET_ENCRYPTION_KEY`, `SECRET_UPLOAD_SIGNING_SECRET`, `SECRET_DB_PASSWORD`, `SECRET_REDIS_PASSWORD`) — these must be configured per environment.
 
 ### Branch Protection
 

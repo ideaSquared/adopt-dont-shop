@@ -50,7 +50,6 @@ Edit `.env` and replace all `CHANGE_THIS_*` placeholders with the generated secr
 - `JWT_SECRET` - JWT token signing key
 - `JWT_REFRESH_SECRET` - Refresh token signing key
 - `SESSION_SECRET` - Session encryption key
-- `CSRF_SECRET` - CSRF token secret
 - `ENCRYPTION_KEY` - Data encryption key
 
 ## Environment Variables
@@ -99,7 +98,6 @@ ENCRYPTION_KEY=64_CHAR_HEX_STRING_FOR_ENCRYPTION
 |--------|---------|----------------|
 | `JWT_REFRESH_SECRET` | Sign refresh tokens | `openssl rand -base64 32` |
 | `SESSION_SECRET` | Encrypt sessions | `openssl rand -base64 32` |
-| `CSRF_SECRET` | CSRF protection | `openssl rand -base64 32` |
 | `ENCRYPTION_KEY` | Encrypt sensitive data | `openssl rand -hex 32` |
 | `REDIS_PASSWORD` | Redis authentication | `openssl rand -base64 32` |
 
