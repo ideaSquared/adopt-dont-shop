@@ -649,7 +649,7 @@ export interface ChangePasswordResponse {
 export interface SetupTwoFactorRequest {}
 
 export interface SetupTwoFactorResponse {
-  /** Base32 TOTP secret the client shows (and re-submits to EnableTwoFactor). */
+  /** Base32 TOTP secret the client shows to the user for QR / manual entry. */
   secret: string;
   /** otpauth:// provisioning URI for QR rendering. */
   otpauthUrl: string;
@@ -657,10 +657,12 @@ export interface SetupTwoFactorResponse {
 
 export interface EnableTwoFactorRequest {
   /**
-   * The secret returned by SetupTwoFactor and the current TOTP code that
-   * proves the user scanned it correctly.
+   * @deprecated Ignored by the server (ADS-963). The server reads the pending
+   * secret stored during SetupTwoFactor instead of trusting a client-supplied
+   * value. Kept for wire compatibility only.
    */
-  secret: string;
+  secret?: string | undefined;
+  /** The current TOTP code proving the user has their authenticator app set up. */
   token: string;
 }
 
@@ -4444,12 +4446,12 @@ export const SetupTwoFactorResponse: MessageFns<SetupTwoFactorResponse> = {
 };
 
 function createBaseEnableTwoFactorRequest(): EnableTwoFactorRequest {
-  return { secret: '', token: '' };
+  return { token: '' };
 }
 
 export const EnableTwoFactorRequest: MessageFns<EnableTwoFactorRequest> = {
   encode(message: EnableTwoFactorRequest, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.secret !== '') {
+    if (message.secret !== undefined && message.secret !== '') {
       writer.uint32(10).string(message.secret);
     }
     if (message.token !== '') {
@@ -4492,14 +4494,14 @@ export const EnableTwoFactorRequest: MessageFns<EnableTwoFactorRequest> = {
 
   fromJSON(object: any): EnableTwoFactorRequest {
     return {
-      secret: isSet(object.secret) ? globalThis.String(object.secret) : '',
+      secret: isSet(object.secret) ? globalThis.String(object.secret) : undefined,
       token: isSet(object.token) ? globalThis.String(object.token) : '',
     };
   },
 
   toJSON(message: EnableTwoFactorRequest): unknown {
     const obj: any = {};
-    if (message.secret !== '') {
+    if (message.secret !== undefined && message.secret !== '') {
       obj.secret = message.secret;
     }
     if (message.token !== '') {
@@ -4517,7 +4519,7 @@ export const EnableTwoFactorRequest: MessageFns<EnableTwoFactorRequest> = {
     object: I
   ): EnableTwoFactorRequest {
     const message = createBaseEnableTwoFactorRequest();
-    message.secret = object.secret ?? '';
+    message.secret = object.secret ?? undefined;
     message.token = object.token ?? '';
     return message;
   },

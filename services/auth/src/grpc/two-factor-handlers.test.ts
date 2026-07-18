@@ -28,9 +28,6 @@ const ENCRYPTION_KEY = 'a'.repeat(64);
 function makeMocks() {
   const pool = { query: vi.fn() };
   pool.query.mockResolvedValue({ rows: [], rowCount: 0 });
-  // Real bcryptjs compare/hash — cheap enough at test scale (10 codes) and
-  // lets the backup-code assertions exercise the real hash/compare pair
-  // instead of a stub that can't tell a match from a miss.
   const passwordHasher = {
     hash: (value: string) => Promise.resolve(`hashed:${value}`),
     compare: (value: string, hash: string) => Promise.resolve(hash === `hashed:${value}`),
@@ -55,20 +52,32 @@ describe('setupTwoFactor', () => {
     mocks = makeMocks();
   });
 
-  it('returns a secret + otpauth URL for a user without 2FA', async () => {
-    mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [{ email: 'a@b.com', two_factor_enabled: false, two_factor_secret: null }],
-    });
+  it('returns a secret + otpauth URL and persists an encrypted pending secret', async () => {
+    mocks.poolMock.query
+      // SELECT
+      .mockResolvedValueOnce({ rows: [{ email: 'a@b.com', two_factor_enabled: false }] })
+      // UPDATE (persist pending secret)
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
     const res = await setupTwoFactor(mocks.deps, PRINCIPAL, {});
+
     expect(res.secret).toMatch(/^[A-Z2-7]+$/); // base32
     expect(res.otpauthUrl).toContain('otpauth://totp/');
-    // A code generated from the returned secret is a valid 6-digit TOTP.
     expect(generateSync({ secret: res.secret })).toMatch(/^\d{6}$/);
+
+    // Second call is the UPDATE that stores the pending secret.
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(2);
+    const [updateSql, updateParams] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    expect(updateSql).toMatch(/two_factor_secret_pending/);
+    expect(updateSql).toMatch(/two_factor_pending_expires_at/);
+    // The stored value is encrypted — NOT the plaintext secret.
+    expect(updateParams[0]).not.toBe(res.secret);
+    expect(decryptTotpSecret(ENCRYPTION_KEY, updateParams[0] as string)).toBe(res.secret);
   });
 
-  it('rejects when 2FA is already enabled (400 already enabled)', async () => {
+  it('rejects when 2FA is already enabled', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({
-      rows: [{ email: 'a@b.com', two_factor_enabled: true, two_factor_secret: 'X' }],
+      rows: [{ email: 'a@b.com', two_factor_enabled: true }],
     });
     await expect(setupTwoFactor(mocks.deps, PRINCIPAL, {})).rejects.toMatchObject({
       code: 'INVALID_ARGUMENT',
@@ -89,58 +98,169 @@ describe('enableTwoFactor', () => {
     mocks = makeMocks();
   });
 
-  it('persists the ENCRYPTED secret + flips the flag when the code verifies', async () => {
+  function makePendingRow(secret: string, expiredMinutesAgo?: number) {
+    const encrypted = encryptTotpSecret(ENCRYPTION_KEY, secret);
+    const expires = new Date(
+      Date.now() + (expiredMinutesAgo !== undefined ? -expiredMinutesAgo : 9) * 60_000
+    );
+    return {
+      two_factor_enabled: false,
+      two_factor_secret_pending: encrypted,
+      two_factor_pending_expires_at: expires,
+    };
+  }
+
+  it('enables 2FA when the token verifies against the server-stored pending secret', async () => {
     const secret = generateSecret();
     const token = generateSync({ secret });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 1 });
-    const res = await enableTwoFactor(mocks.deps, PRINCIPAL, { secret, token });
+
+    mocks.poolMock.query
+      // SELECT pending secret
+      .mockResolvedValueOnce({ rows: [makePendingRow(secret)], rowCount: 1 })
+      // UPDATE promote pending→active
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const res = await enableTwoFactor(mocks.deps, PRINCIPAL, { token });
+
     expect(res.enabled).toBe(true);
-    const [sql, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
-    expect(sql).toMatch(/two_factor_enabled = true/);
-    expect(sql).toMatch(/two_factor_enabled = false/); // the guard
-    // The secret is encrypted at rest (ADS-914a) — never write the plaintext.
-    expect(params[0]).not.toBe(secret);
-    expect(decryptTotpSecret(ENCRYPTION_KEY, params[0] as string)).toBe(secret);
+
+    const [updateSql] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    expect(updateSql).toMatch(/two_factor_secret = two_factor_secret_pending/);
+    expect(updateSql).toMatch(/two_factor_enabled = true/);
+    expect(updateSql).toMatch(/two_factor_secret_pending = NULL/);
+  });
+
+  it('ignores req.secret entirely — attacker-supplied secret does not enable 2FA', async () => {
+    // Attack scenario from ADS-963: attacker has a token but no server-stored pending secret.
+    // They supply their own secret + a valid TOTP for it. Must be rejected.
+    const attackerSecret = generateSecret();
+    const attackerToken = generateSync({ secret: attackerSecret });
+
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        {
+          two_factor_enabled: false,
+          two_factor_secret_pending: null,
+          two_factor_pending_expires_at: null,
+        },
+      ],
+      rowCount: 1,
+    });
+
+    await expect(
+      enableTwoFactor(mocks.deps, PRINCIPAL, { secret: attackerSecret, token: attackerToken })
+    ).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+      message: expect.stringMatching(/setup.*required|setup first/i),
+    });
+
+    // No UPDATE must have run.
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects when no prior setupTwoFactor ran (no pending secret in DB)', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        {
+          two_factor_enabled: false,
+          two_factor_secret_pending: null,
+          two_factor_pending_expires_at: null,
+        },
+      ],
+      rowCount: 1,
+    });
+    await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token: '123456' })).rejects.toMatchObject(
+      {
+        code: 'INVALID_ARGUMENT',
+        message: expect.stringMatching(/setup.*required|setup first/i),
+      }
+    );
+  });
+
+  it('rejects an expired pending secret', async () => {
+    const secret = generateSecret();
+    const token = generateSync({ secret });
+
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [makePendingRow(secret, 1)], // expired 1 minute ago
+      rowCount: 1,
+    });
+
+    await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+      message: expect.stringMatching(/expired/i),
+    });
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects an invalid TOTP code without writing', async () => {
+    const secret = generateSecret();
+
+    mocks.poolMock.query.mockResolvedValueOnce({ rows: [makePendingRow(secret)], rowCount: 1 });
+
+    await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token: '000000' })).rejects.toMatchObject(
+      { code: 'INVALID_ARGUMENT' }
+    );
+    expect(mocks.poolMock.query).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces a no-op UPDATE (already enabled race) as 400', async () => {
+    const secret = generateSecret();
+    const token = generateSync({ secret });
+
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [makePendingRow(secret)], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [], rowCount: 0 }); // UPDATE matched 0 rows
+
+    await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+    });
   });
 
   it('returns 10 unique backup codes and stores only their hashes (ADS-914b)', async () => {
     const secret = generateSecret();
     const token = generateSync({ secret });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 1 });
-    const res = await enableTwoFactor(mocks.deps, PRINCIPAL, { secret, token });
+
+    mocks.poolMock.query
+      .mockResolvedValueOnce({ rows: [makePendingRow(secret)], rowCount: 1 })
+      .mockResolvedValueOnce({ rows: [], rowCount: 1 });
+
+    const res = await enableTwoFactor(mocks.deps, PRINCIPAL, { token });
 
     expect(res.backupCodes).toHaveLength(10);
     expect(new Set(res.backupCodes).size).toBe(10);
-    // Human-friendly hyphenated format.
     for (const code of res.backupCodes) {
       expect(code).toMatch(/^[A-Z2-7]{4}(-[A-Z2-7]{4}){3}$/);
     }
 
-    const [sql, params] = mocks.poolMock.query.mock.calls[0] as [string, unknown[]];
-    expect(sql).toMatch(/backup_codes = \$2/);
-    const storedHashes = params[1] as string[];
+    const [, updateParams] = mocks.poolMock.query.mock.calls[1] as [string, unknown[]];
+    const storedHashes = updateParams[0] as string[];
     expect(storedHashes).toHaveLength(10);
-    // Never the plaintext codes.
     for (const [i, code] of res.backupCodes.entries()) {
       expect(storedHashes[i]).not.toBe(code);
       expect(storedHashes[i]).toBe(`hashed:${normalizeBackupCode(code)}`);
     }
   });
 
-  it('rejects an invalid code without writing', async () => {
-    const secret = generateSecret();
-    await expect(
-      enableTwoFactor(mocks.deps, PRINCIPAL, { secret, token: '000000' })
-    ).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
-    expect(mocks.poolMock.query).not.toHaveBeenCalled();
+  it('rejects when 2FA is already enabled', async () => {
+    mocks.poolMock.query.mockResolvedValueOnce({
+      rows: [
+        {
+          two_factor_enabled: true,
+          two_factor_secret_pending: null,
+          two_factor_pending_expires_at: null,
+        },
+      ],
+      rowCount: 1,
+    });
+    await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { token: '123456' })).rejects.toMatchObject(
+      { code: 'INVALID_ARGUMENT', message: expect.stringMatching(/already enabled/) }
+    );
   });
 
-  it('surfaces a no-op UPDATE (already enabled) as 400', async () => {
-    const secret = generateSecret();
-    const token = generateSync({ secret });
-    mocks.poolMock.query.mockResolvedValueOnce({ rows: [], rowCount: 0 });
-    await expect(enableTwoFactor(mocks.deps, PRINCIPAL, { secret, token })).rejects.toMatchObject({
-      code: 'INVALID_ARGUMENT',
+  it('requires authentication', async () => {
+    await expect(enableTwoFactor(mocks.deps, null, { token: '123456' })).rejects.toMatchObject({
+      code: 'UNAUTHENTICATED',
     });
   });
 });
@@ -151,7 +271,7 @@ describe('disableTwoFactor', () => {
     mocks = makeMocks();
   });
 
-  it('clears the secret + flag when the code verifies', async () => {
+  it('clears the secret, flag, and pending columns when the code verifies', async () => {
     const secret = generateSecret();
     const token = generateSync({ secret });
     const encryptedSecret = encryptTotpSecret(ENCRYPTION_KEY, secret);
@@ -172,6 +292,8 @@ describe('disableTwoFactor', () => {
     expect(res.disabled).toBe(true);
     const [sql] = mocks.poolMock.query.mock.calls[2] as [string];
     expect(sql).toMatch(/two_factor_secret = NULL/);
+    expect(sql).toMatch(/two_factor_secret_pending = NULL/);
+    expect(sql).toMatch(/two_factor_pending_expires_at = NULL/);
   });
 
   it('rejects when 2FA is not enabled', async () => {

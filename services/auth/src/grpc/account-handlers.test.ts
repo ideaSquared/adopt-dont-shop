@@ -416,7 +416,7 @@ describe('resetPassword', () => {
     expect(params[1]).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('revokes all of the user’s refresh tokens (sessions) on reset', async () => {
+  it("revokes all of the user's refresh tokens (sessions) on reset", async () => {
     mocks.hasherMock.hash.mockResolvedValueOnce('hash');
     mocks.clientScript([userRowFixture()]);
     await resetPassword(mocks.deps, null, { resetToken: 'tok', newPassword: 'longenough' });
@@ -425,6 +425,19 @@ describe('resetPassword', () => {
     );
     expect(revoke).toBeDefined();
     expect(revoke?.[1]).toContain('usr-1');
+  });
+
+  it('clears 2FA state on reset — a password reset is a compromise-recovery flow (ADS-963)', async () => {
+    mocks.hasherMock.hash.mockResolvedValueOnce('hash');
+    mocks.clientScript([userRowFixture()]);
+    await resetPassword(mocks.deps, null, { resetToken: 'tok', newPassword: 'longenough' });
+    const sql = realQueries(mocks.clientMock.query)[0][0] as string;
+    expect(sql).toContain('two_factor_secret = NULL');
+    expect(sql).toContain('two_factor_enabled = false');
+    expect(sql).toContain('two_factor_last_step = NULL');
+    expect(sql).toContain('two_factor_secret_pending = NULL');
+    expect(sql).toContain('two_factor_pending_expires_at = NULL');
+    expect(sql).toContain('backup_codes = NULL');
   });
 });
 
@@ -527,7 +540,7 @@ describe('changePassword', () => {
     );
   });
 
-  it('revokes all of the user’s refresh tokens (sessions) on change', async () => {
+  it("revokes all of the user's refresh tokens (sessions) on change", async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [{ password: 'existing-hash' }] });
     mocks.hasherMock.compare.mockResolvedValueOnce(true);
     mocks.hasherMock.hash.mockResolvedValueOnce('new-hash');

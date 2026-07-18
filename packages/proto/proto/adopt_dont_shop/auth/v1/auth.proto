@@ -616,16 +616,20 @@ message ChangePasswordResponse {
 message SetupTwoFactorRequest {}
 
 message SetupTwoFactorResponse {
-  // Base32 TOTP secret the client shows (and re-submits to EnableTwoFactor).
+  // Base32 TOTP secret the client shows to the user (for QR / manual entry).
+  // The server now persists this server-side; the client does NOT re-submit it
+  // to EnableTwoFactor (ADS-963).
   string secret = 1;
   // otpauth:// provisioning URI for QR rendering.
   string otpauth_url = 2;
 }
 
 message EnableTwoFactorRequest {
-  // The secret returned by SetupTwoFactor and the current TOTP code that
-  // proves the user scanned it correctly.
-  string secret = 1;
+  // DEPRECATED (ADS-963): this field is ignored by the server. The server
+  // reads the pending secret it stored during SetupTwoFactor instead of
+  // trusting a client-supplied value. Kept for wire compatibility.
+  string secret = 1 [deprecated = true];
+  // The current TOTP code proving the user has their authenticator app set up.
   string token = 2;
 }
 
