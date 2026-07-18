@@ -448,8 +448,36 @@ describe('/api/v1/reports gateway routes', () => {
     expect(ok.data).toEqual([{ date: '2026-01-01', count: 5 }]);
     expect(failed.id).toBe('w-fail');
     expect(failed.status).toBe('error');
-    expect(failed.error).toBe('service unavailable');
+    // ADS-977: the client only ever sees a fixed, caller-safe string — the
+    // raw downstream error message stays server-side (in the log).
+    expect(failed.error).toBe('Aggregation unavailable');
     expect(failed.data).toEqual([]);
+  });
+
+  it('POST /execute never leaks a raw downstream error message to the client', async () => {
+    petsMocks.getAdoptionTrend.mockResolvedValue({
+      points: [{ date: '2026-01-01', count: 5 }],
+    });
+    applicationsMocks.getStats.mockRejectedValue(
+      new Error('13 INTERNAL: relation "public.users" does not exist')
+    );
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/reports/execute',
+      headers: ADMIN_HEADERS,
+      payload: {
+        config: {
+          filters: {},
+          widgets: [{ id: 'w-fail', metric: 'application', chartType: 'bar', options: {} }],
+        },
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).not.toContain('relation');
+    expect(res.body).not.toContain('public.users');
+    const body = res.json() as { data: { widgets: Array<{ status: string; error?: string }> } };
+    expect(body.data.widgets[0].status).toBe('error');
+    expect(body.data.widgets[0].error).toBe('Aggregation unavailable');
   });
 
   // ── execute (saved) ──────────────────────────────────────────────────

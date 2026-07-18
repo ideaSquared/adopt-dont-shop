@@ -366,6 +366,11 @@ async function executeConfig(
     const metric = typeof widget?.metric === 'string' ? widget.metric : '';
     const errorMessage =
       result.reason instanceof Error ? result.reason.message : String(result.reason ?? 'unknown');
+    // ADS-977: the full message (which can carry SQL fragments, table/DNS
+    // names, or gRPC status text) stays server-side in the log, correlated
+    // by widgetId/metric. The client only ever sees a fixed, caller-safe
+    // string — the SPA treats status:'error' as the render trigger, so the
+    // text itself is cosmetic and doesn't need to be specific.
     log.error({ widgetId, metric, error: errorMessage }, 'Widget aggregation failed');
     return {
       id: widgetId,
@@ -376,7 +381,7 @@ async function executeConfig(
         computedAt: new Date().toISOString(),
       },
       status: 'error',
-      error: errorMessage,
+      error: 'Aggregation unavailable',
     };
   });
   return {

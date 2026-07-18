@@ -1,5 +1,5 @@
 import { type FastifyInstance } from 'fastify';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { GatewayConfig } from './config.js';
 import { createServer } from './server.js';
@@ -101,6 +101,64 @@ describe('createServer — /api/* fallback', () => {
     const res = await server.inject({ method: 'GET', url: '/health/simple' });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({ service: 'service.gateway' });
+  });
+
+  // ADS-972: the unmatched-route warn log must not carry a query string —
+  // future routes could put a token/signature there, and redactSecretFields
+  // only redacts by object key, not by scanning string values.
+  it('logs the unmatched-route warn without the query string', async () => {
+    const warn = vi.fn();
+    server = await createServer({
+      config: baseConfig,
+      logger: { ...quietLogger, warn } as unknown as typeof quietLogger,
+    });
+    await server.inject({
+      method: 'GET',
+      url: '/api/some/unknown/path?resetToken=super-secret',
+    });
+    expect(warn).toHaveBeenCalledWith(
+      'unmatched API route',
+      expect.objectContaining({ url: '/api/some/unknown/path' })
+    );
+    // warn.mock.calls[0] isn't necessarily this call — boot logs its own
+    // warnings (e.g. "REDIS_URL not set") before any request is injected.
+    const call = warn.mock.calls.find(c => c[0] === 'unmatched API route') as [
+      string,
+      { url: string },
+    ];
+    expect(call[1].url).not.toContain('super-secret');
+  });
+});
+
+// ADS-972: the global error handler's 'request failed' log must not carry a
+// query string either — same reasoning as the unmatched-route warn above.
+describe('createServer — error handler URL logging', () => {
+  let server: FastifyInstance;
+  afterEach(async () => {
+    await server?.close();
+  });
+
+  it('logs the request-failed error without the query string', async () => {
+    const error = vi.fn();
+    server = await createServer({
+      config: baseConfig,
+      logger: { ...quietLogger, error } as unknown as typeof quietLogger,
+    });
+    // Malformed JSON body triggers Fastify's default JSON body parser to
+    // throw before the route handler runs, which lands in setErrorHandler.
+    const res = await server.inject({
+      method: 'POST',
+      url: '/api/some/path?resetToken=super-secret',
+      headers: { 'content-type': 'application/json' },
+      payload: 'not-json',
+    });
+    expect(res.statusCode).toBe(400);
+    expect(error).toHaveBeenCalledWith(
+      'request failed',
+      expect.objectContaining({ url: '/api/some/path' })
+    );
+    const [, meta] = error.mock.calls[0] as [string, { url: string }];
+    expect(meta.url).not.toContain('super-secret');
   });
 });
 
@@ -684,6 +742,18 @@ describe('createServer — security headers (Helmet)', () => {
   it('sets x-frame-options on responses', async () => {
     const res = await server.inject({ method: 'GET', url: '/health/simple' });
     expect(res.headers['x-frame-options']).toBeDefined();
+  });
+
+  // ADS-974: Helmet's HSTS default (180 days) conflicts with prod nginx's
+  // 2-year preload-eligible value — since nginx's `add_header ... always`
+  // merges with rather than replaces an upstream HSTS header, a gateway-
+  // direct response must already carry the same value nginx sends, so the
+  // two never disagree.
+  it('sets a single HSTS header matching nginx (2y, includeSubDomains, preload)', async () => {
+    const res = await server.inject({ method: 'GET', url: '/health/simple' });
+    expect(res.headers['strict-transport-security']).toBe(
+      'max-age=63072000; includeSubDomains; preload'
+    );
   });
 });
 

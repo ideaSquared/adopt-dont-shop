@@ -26,6 +26,7 @@
 import {
   createLogger,
   getMetricsRegistry,
+  redactUrl,
   registerMetrics,
   registerRequestId,
 } from '@adopt-dont-shop/observability';
@@ -238,9 +239,13 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // in this thin pass-through phase. Per-route logging arrives when
   // we add real routes in Phase 1+.
   server.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
+    // ADS-972: log only the path, not the full req.url — a query string or
+    // signed-URL path segment (e.g. /uploads-signed/*) can carry a secret,
+    // and redactSecretFields only redacts by object key, not by scanning
+    // string values for embedded tokens.
     logger.error('request failed', {
       method: req.method,
-      url: req.url,
+      url: redactUrl(req.url),
       message: err.message,
     });
     void reply.status(err.statusCode ?? 500).send({ error: 'internal_error' });
@@ -250,7 +255,20 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // here because nginx enforces a strict policy at the edge and Swagger
   // UI requires 'unsafe-inline' relaxation that would weaken that policy
   // for gateway-direct callers. All other Helmet defaults are applied.
-  await server.register(helmet, { contentSecurityPolicy: false });
+  //
+  // ADS-974: Helmet's HSTS default is max-age=15552000 (180 days), but
+  // prod nginx (deploy/gateway/nginx.conf) sends max-age=63072000 (2y)
+  // with includeSubDomains + preload. nginx's `add_header ... always`
+  // merges with — does not replace — an upstream header of the same
+  // name, so a browser behind nginx would see two conflicting HSTS
+  // headers. Matching nginx's value here means the header is still
+  // correct on any path that bypasses nginx (internal LB, gateway-direct
+  // debug runs), and a browser hitting nginx sees a single, consistent
+  // value either way (both headers now agree).
+  await server.register(helmet, {
+    contentSecurityPolicy: false,
+    strictTransportSecurity: { maxAge: 63072000, includeSubDomains: true, preload: true },
+  });
 
   // CORS — explicit allowed-origins list from config. nginx also handles
   // CORS at the edge; this layer protects direct-gateway scenarios
@@ -744,7 +762,9 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // calling a path that doesn't exist. Without this line the failure is
   // invisible in the logs (Fastify's own request logging is disabled).
   const apiNotFound = async (req: FastifyRequest, reply: FastifyReply) => {
-    logger.warn('unmatched API route', { method: req.method, url: req.url });
+    // ADS-972: strip query string / signed-URL secrets before logging — see
+    // the setErrorHandler comment above for why req.url isn't safe verbatim.
+    logger.warn('unmatched API route', { method: req.method, url: redactUrl(req.url) });
     return reply.code(404).send({ error: 'not_found' });
   };
   server.get('/api/*', apiNotFound);

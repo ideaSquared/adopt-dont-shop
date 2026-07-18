@@ -153,7 +153,7 @@ describe('POST /api/v1/events', () => {
           featured_pets: [],
           assigned_staff: [],
           is_public: false,
-          image_url: 'https://example.com/img.png',
+          image_url: '/uploads/events/img.png',
         },
       });
       expect(res.statusCode).toBe(201);
@@ -163,7 +163,140 @@ describe('POST /api/v1/events', () => {
       expect(grpcArg.endDate).toBe('2026-09-01T15:00:00Z');
       expect(grpcArg.registrationRequired).toBe(false);
       expect(grpcArg.isPublic).toBe(false);
-      expect(grpcArg.imageUrl).toBe('https://example.com/img.png');
+      expect(grpcArg.imageUrl).toBe('/uploads/events/img.png');
+    } finally {
+      await app.close();
+    }
+  });
+
+  // ADS-979: imageUrl/virtualLink previously accepted any string up to
+  // 2048 chars, including javascript:/data: schemes. They now run through
+  // the same URL-boundary validation ADS-930 added for document URLs.
+  it('rejects a javascript: imageUrl with 400 and does not call gRPC', async () => {
+    const { client, createEventMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/events',
+        payload: {
+          name: 'Test',
+          startDate: '2026-08-01T10:00:00Z',
+          endDate: '2026-08-01T16:00:00Z',
+          imageUrl: 'javascript:alert(1)',
+        },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(createEventMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects a javascript: virtualLink with 400 and does not call gRPC', async () => {
+    const { client, createEventMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/events',
+        payload: {
+          name: 'Test',
+          startDate: '2026-08-01T10:00:00Z',
+          endDate: '2026-08-01T16:00:00Z',
+          location: { type: 'virtual', virtualLink: "javascript:fetch('https://x/y')" },
+        },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(createEventMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects a plain http:// imageUrl on an allowlisted host with 400 (https only)', async () => {
+    const { client, createEventMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/events',
+        payload: {
+          name: 'Test',
+          startDate: '2026-08-01T10:00:00Z',
+          endDate: '2026-08-01T16:00:00Z',
+          imageUrl: 'http://cdn.example.com/img.png',
+        },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(createEventMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects an imageUrl on a non-allowlisted https host with 400', async () => {
+    const { client, createEventMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/events',
+        payload: {
+          name: 'Test',
+          startDate: '2026-08-01T10:00:00Z',
+          endDate: '2026-08-01T16:00:00Z',
+          imageUrl: 'https://attacker.example/img.png',
+        },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(createEventMock).not.toHaveBeenCalled();
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('accepts a same-origin relative imageUrl', async () => {
+    const { client, createEventMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/events',
+        payload: {
+          name: 'Test',
+          startDate: '2026-08-01T10:00:00Z',
+          endDate: '2026-08-01T16:00:00Z',
+          imageUrl: '/uploads/events/foo.jpg',
+        },
+      });
+      expect(res.statusCode).toBe(201);
+      expect(createEventMock).toHaveBeenCalledOnce();
+      expect(createEventMock.mock.calls[0][0].imageUrl).toBe('/uploads/events/foo.jpg');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('accepts an https:// virtualLink to a third-party meeting host (not restricted to the storage allowlist)', async () => {
+    const { client, createEventMock } = makeClient();
+    const app = await makeApp(client);
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/events',
+        payload: {
+          name: 'Test',
+          startDate: '2026-08-01T10:00:00Z',
+          endDate: '2026-08-01T16:00:00Z',
+          location: { type: 'virtual', virtualLink: 'https://zoom.us/j/123456789' },
+        },
+      });
+      expect(res.statusCode).toBe(201);
+      expect(createEventMock).toHaveBeenCalledOnce();
+      expect(createEventMock.mock.calls[0][0].location.virtualLink).toBe(
+        'https://zoom.us/j/123456789'
+      );
     } finally {
       await app.close();
     }
