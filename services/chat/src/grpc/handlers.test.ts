@@ -367,6 +367,30 @@ describe('openChat', () => {
     });
   });
 
+  // ADS-978: resolveOpenChatRescueId's adopter-initiated branch wraps
+  // listStaffMembers the same way getApplication above is wrapped, so a
+  // downstream failure never surfaces as an opaque INTERNAL with the raw
+  // @grpc/grpc-js message attached.
+  it('maps an UNAVAILABLE from listStaffMembers to a stable INTERNAL message', async () => {
+    stubs.listStaffMembers.mockRejectedValueOnce(
+      Object.assign(new Error('14 UNAVAILABLE: no connection established'), { code: 14 })
+    );
+    await expect(openChat(mocks.deps, ADOPTER_PRINCIPAL, BASE_OPEN)).rejects.toMatchObject({
+      code: 'INTERNAL',
+      message: 'failed to resolve rescue staff',
+    });
+  });
+
+  it('maps a PERMISSION_DENIED from listStaffMembers to a distinct, stable INTERNAL message', async () => {
+    stubs.listStaffMembers.mockRejectedValueOnce(
+      Object.assign(new Error('7 PERMISSION_DENIED: x-principal-token rejected'), { code: 7 })
+    );
+    await expect(openChat(mocks.deps, ADOPTER_PRINCIPAL, BASE_OPEN)).rejects.toMatchObject({
+      code: 'INTERNAL',
+      message: 'failed to resolve rescue staff (auth)',
+    });
+  });
+
   it('treats a response without an application as INVALID_ARGUMENT', async () => {
     stubs.getApplication.mockResolvedValueOnce({ application: undefined, timeline: [] });
     await expect(openChat(mocks.deps, ADOPTER_PRINCIPAL, BASE_OPEN)).rejects.toMatchObject({

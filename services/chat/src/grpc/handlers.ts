@@ -421,7 +421,24 @@ async function resolveOpenChatRescueId(
   }
 
   if (principal.userId === app.adopterId) {
-    const staff = await rescueClient.listStaffMembers({ rescueId: app.rescueId });
+    let staff;
+    try {
+      staff = await rescueClient.listStaffMembers({ rescueId: app.rescueId });
+    } catch (err) {
+      // ADS-978: mirror the getApplication mapping above — an unmapped
+      // failure here (DEADLINE_EXCEEDED under load, UNAVAILABLE, a
+      // signing-key-rotation PERMISSION_DENIED on svc-chat's system
+      // principal) would otherwise surface as an opaque INTERNAL with the
+      // raw @grpc/grpc-js message attached. Both branches stay INTERNAL —
+      // this is an infra fault, not a user-input error — but the message
+      // is stable and distinguishes an auth-token rejection from a plain
+      // availability blip for on-call.
+      const code = (err as { code?: number }).code;
+      if (code === CROSS_SERVICE_GRPC_PERMISSION_DENIED) {
+        throw new HandlerError('INTERNAL', 'failed to resolve rescue staff (auth)');
+      }
+      throw new HandlerError('INTERNAL', 'failed to resolve rescue staff');
+    }
     const isStaff = staff.staffMembers.some(member => member.userId === otherUserId);
     if (!isStaff) {
       throw new HandlerError('INVALID_ARGUMENT', 'other_user_id must be rescue staff');
