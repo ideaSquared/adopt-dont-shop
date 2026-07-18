@@ -140,6 +140,25 @@ const getOrCreateLoginEmailRateLimitCounter = (): Counter => {
   return counter;
 };
 
+// Per-token invitation-accept rate-limit trip counter (ADS-961). Same
+// lazily-created, registry-change-aware singleton pattern as the login
+// counter above.
+let _invitationAcceptCounterEntry: { registryRef: object; counter: Counter } | null = null;
+
+const getOrCreateInvitationAcceptRateLimitCounter = (): Counter => {
+  const reg = getMetricsRegistry();
+  if (_invitationAcceptCounterEntry && _invitationAcceptCounterEntry.registryRef === reg) {
+    return _invitationAcceptCounterEntry.counter;
+  }
+  const counter = new Counter({
+    name: 'gateway_invitation_accept_ratelimit_trips_total',
+    help: 'Total number of invitation-accept attempts rejected by the per-token rate limit (ADS-961).',
+    registers: [reg],
+  });
+  _invitationAcceptCounterEntry = { registryRef: reg, counter };
+  return counter;
+};
+
 export type CreateServerOptions = {
   config: GatewayConfig;
   // Optional logger injection — tests pass a quiet logger so the
@@ -550,9 +569,20 @@ export const createServer = async (opts: CreateServerOptions): Promise<FastifyIn
   // auth (provision the invited user) + rescue (consume the invitation +
   // attach staff membership), so it needs BOTH clients wired.
   if (opts.authClient && opts.rescueClient) {
+    // Per-token cap (ADS-961) — an invitation token IS the credential, so a
+    // token brute-force spread across rotating IPs must still be capped.
+    // 5 attempts / 5 minutes, same window shape as the login per-email cap.
+    const invitationAcceptTokenRateLimiter = createEmailRateLimiter({
+      max: 5,
+      windowMs: 5 * 60_000,
+      redis: rateLimitRedis,
+    });
+    const invitationAcceptRateLimitTripsTotal = getOrCreateInvitationAcceptRateLimitCounter();
     await registerInvitationAcceptRoutes(server, {
       authClient: opts.authClient,
       rescueClient: opts.rescueClient,
+      tokenRateLimiter: invitationAcceptTokenRateLimiter,
+      onTokenRateLimitTrip: () => invitationAcceptRateLimitTripsTotal.inc(),
     });
   }
   if (opts.auditClient) {

@@ -152,9 +152,11 @@ describe('auth_logins_total counter', () => {
     expect(await readCounter('auth_logins_total', { outcome: 'invalid_credentials' })).toBe(1);
   });
 
-  it('increments account_locked when locked_until is in the future', async () => {
+  it('increments account_locked when locked_until is in the future and the password is correct', async () => {
     const locked_until = new Date(Date.now() + 60_000);
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture({ locked_until })] });
+    // Account state (ADS-966) is only revealed once the password checks out.
+    mocks.hasherMock.compare.mockResolvedValue(true);
 
     await expect(
       login(mocks.deps, null, { email: 'test@example.com', password: 'pw' })
@@ -163,8 +165,9 @@ describe('auth_logins_total counter', () => {
     expect(await readCounter('auth_logins_total', { outcome: 'account_locked' })).toBe(1);
   });
 
-  it('increments account_suspended for a suspended account', async () => {
+  it('increments account_suspended for a suspended account with a correct password', async () => {
     mocks.poolMock.query.mockResolvedValueOnce({ rows: [userRowFixture({ status: 'suspended' })] });
+    mocks.hasherMock.compare.mockResolvedValue(true);
 
     await expect(
       login(mocks.deps, null, { email: 'test@example.com', password: 'pw' })

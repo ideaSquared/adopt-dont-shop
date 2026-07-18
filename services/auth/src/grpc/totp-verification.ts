@@ -18,7 +18,10 @@ import { decryptTotpSecret } from './totp-crypto.js';
 
 // RFC 6238 defaults otplib uses: 30-second period, t0 = 0. The accepted
 // time step for a given epoch is therefore floor(epoch / TOTP_PERIOD).
-const TOTP_PERIOD_SECONDS = 30;
+// Exported so two-factor-handlers.ts can compute the same step when it
+// verifies a code directly against a not-yet-persisted secret (enrolment)
+// instead of going through verifyAndConsumeTotp (ADS-976).
+export const TOTP_PERIOD_SECONDS = 30;
 
 export type TotpVerificationDeps = {
   pool: Pick<Pool, 'query'>;

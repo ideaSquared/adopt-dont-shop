@@ -38,7 +38,7 @@ import type {
 import { generateBackupCodes, hashBackupCodes } from './backup-codes.js';
 import { HandlerError, type HandlerDeps } from './handlers.js';
 import { decryptTotpSecret, encryptTotpSecret } from './totp-crypto.js';
-import { verifyAndConsumeTotp } from './totp-verification.js';
+import { TOTP_PERIOD_SECONDS, verifyAndConsumeTotp } from './totp-verification.js';
 
 const TOTP_ISSUER = 'Adopt Dont Shop';
 const PENDING_SECRET_TTL_MINUTES = 10;
@@ -141,9 +141,18 @@ export async function enableTwoFactor(
   }
 
   const pendingSecret = decryptTotpSecret(deps.encryptionKey, row.two_factor_secret_pending);
-  if (!verifySync({ token: req.token, secret: pendingSecret }).valid) {
+  // Pin the epoch so the accepted step we persist below matches the epoch
+  // verifySync used (no window-boundary race between verify and compute) —
+  // mirrors totp-verification.ts's verifyAndConsumeTotp.
+  const epoch = Math.floor(Date.now() / 1000);
+  if (!verifySync({ token: req.token, secret: pendingSecret, epoch }).valid) {
     throw new HandlerError('INVALID_ARGUMENT', 'invalid two-factor code');
   }
+  // The confirmation code just accepted proves possession of the
+  // authenticator, exactly like a code checked via verifyAndConsumeTotp —
+  // persist its time step so it can't also be replayed on the very next
+  // Login within the same 30s window (ADS-976).
+  const acceptedStep = Math.floor(epoch / TOTP_PERIOD_SECONDS);
 
   // Mint the backup/recovery codes (ADS-914b) now, before the write, so a
   // failed UPDATE (already-enabled race) doesn't leave us having hashed
@@ -159,16 +168,16 @@ export async function enableTwoFactor(
     `UPDATE auth.users
         SET two_factor_secret = two_factor_secret_pending,
             two_factor_enabled = true,
-            two_factor_last_step = NULL,
+            two_factor_last_step = $1,
             two_factor_secret_pending = NULL,
             two_factor_pending_expires_at = NULL,
-            backup_codes = $1,
+            backup_codes = $2,
             updated_at = now()
-      WHERE user_id = $2 AND deleted_at IS NULL
+      WHERE user_id = $3 AND deleted_at IS NULL
         AND two_factor_enabled = false
         AND two_factor_secret_pending IS NOT NULL
         AND two_factor_pending_expires_at > now()`,
-    [backupCodeHashes, me.userId]
+    [acceptedStep, backupCodeHashes, me.userId]
   );
   if (updateRes.rowCount === 0) {
     throw new HandlerError('INVALID_ARGUMENT', 'two-factor authentication is already enabled');

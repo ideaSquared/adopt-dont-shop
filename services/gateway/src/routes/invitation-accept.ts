@@ -16,16 +16,34 @@
 //
 // Public — the invitation token IS the credential; no principal required.
 
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { AuthClient } from '../grpc-clients/auth-client.js';
 import type { RescueClient } from '../grpc-clients/rescue-client.js';
 import { buildMetadata } from '../middleware/metadata.js';
 import { handleGrpcError } from '../middleware/grpc-error.js';
 
+import type { EmailRateLimiter } from './email-rate-limiter.js';
+
+// Per-IP cap (ADS-961) — mirrors AUTH_RATE_LIMITS.redeemInvitation in
+// auth.ts, which carries identical account-provisioning weight.
+const IP_RATE_LIMIT = { max: 10, timeWindow: '1 minute' } as const;
+
 export type InvitationAcceptRoutesOptions = {
   authClient: AuthClient;
   rescueClient: RescueClient;
+  // Per-token rate limiter (ADS-961), keyed on body.token instead of an
+  // email — reuses the createEmailRateLimiter shape from
+  // email-rate-limiter.ts since it's just a generic string-keyed counter.
+  // Layered on top of the per-IP cap above so a token brute-force spread
+  // across rotating IPs (or a rotating X-Forwarded-For) is still capped.
+  // Optional so tests / dev that don't wire it keep the per-IP-only
+  // behaviour.
+  tokenRateLimiter?: EmailRateLimiter;
+  // Called each time the per-token cap trips. Lets the caller (server.ts)
+  // increment a Prometheus counter without this route module reaching into
+  // the metrics registry directly.
+  onTokenRateLimitTrip?: () => void;
 };
 
 type AcceptBody = {
@@ -41,11 +59,29 @@ export const registerInvitationAcceptRoutes = async (
   app: FastifyInstance,
   opts: InvitationAcceptRoutesOptions
 ): Promise<void> => {
-  const { authClient, rescueClient } = opts;
+  const { authClient, rescueClient, tokenRateLimiter, onTokenRateLimitTrip } = opts;
+
+  // Per-token cap preHandler (ADS-961) — a no-op when no limiter is wired,
+  // same pattern as auth.ts's emailRateLimit helper.
+  const tokenRateLimit = tokenRateLimiter
+    ? async (req: FastifyRequest, reply: FastifyReply) => {
+        const token = (req.body as { token?: string } | undefined)?.token;
+        if (!token) {
+          return;
+        }
+        const allowed = await tokenRateLimiter.consume(token);
+        if (!allowed) {
+          onTokenRateLimitTrip?.();
+          return reply.code(429).send({ error: 'Too many requests for this invitation' });
+        }
+      }
+    : undefined;
 
   app.post(
     '/api/v1/invitations/accept',
     {
+      config: { rateLimit: IP_RATE_LIMIT },
+      preHandler: tokenRateLimit,
       schema: {
         tags: ['invitations'],
         summary: 'Accept a rescue staff invitation and provision the user account',
