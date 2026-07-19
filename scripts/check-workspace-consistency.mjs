@@ -30,7 +30,7 @@
  *
  * Mirrors the pattern of scripts/check-lib-tests.mjs.
  */
-import { readdirSync, readFileSync, statSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join, dirname, relative } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -99,6 +99,13 @@ function listApps() {
   return readdirSync(join(ROOT, 'apps'), { withFileTypes: true })
     .filter(e => e.isDirectory())
     .map(e => `app.${e.name}`)
+    .sort();
+}
+
+function listServices() {
+  return readdirSync(join(ROOT, 'services'), { withFileTypes: true })
+    .filter(e => e.isDirectory())
+    .map(e => e.name)
     .sort();
 }
 
@@ -354,9 +361,43 @@ function findStrayTests(workspaces) {
   return stray;
 }
 
+// ADS-981: every service must have src/instrumentation.ts and preload it via
+// --import in both its dev and start scripts.
+function checkServiceInstrumentation(services) {
+  const failures = [];
+  for (const svc of services) {
+    const svcDir = join(ROOT, 'services', svc);
+    const instrFile = join(svcDir, 'src', 'instrumentation.ts');
+    if (!existsSync(instrFile)) {
+      failures.push(
+        `[services/${svc}] missing src/instrumentation.ts — add OTel bootstrap (ADS-981)`
+      );
+    }
+    let pkg;
+    try {
+      pkg = JSON.parse(readFileSync(join(svcDir, 'package.json'), 'utf8'));
+    } catch {
+      continue;
+    }
+    const scripts = pkg.scripts || {};
+    if (scripts.dev && !scripts.dev.includes('--import ./src/instrumentation.ts')) {
+      failures.push(
+        `[services/${svc}] 'dev' script missing '--import ./src/instrumentation.ts' (ADS-981): ${scripts.dev}`
+      );
+    }
+    if (scripts.start && !scripts.start.includes('--import ./dist/instrumentation.js')) {
+      failures.push(
+        `[services/${svc}] 'start' script missing '--import ./dist/instrumentation.js' (ADS-981): ${scripts.start}`
+      );
+    }
+  }
+  return failures;
+}
+
 function main() {
   const libs = listLibs();
   const apps = listApps();
+  const services = listServices();
 
   const failures = [];
   const warnings = [];
@@ -441,7 +482,11 @@ function main() {
     );
   }
 
-  // 7. Hoisted devDependencies must not reappear in lib.* packages (ADS-730)
+  // 7. Service instrumentation — every service must ship src/instrumentation.ts
+  //    and preload it via --import in dev and start scripts (ADS-981)
+  failures.push(...checkServiceInstrumentation(services));
+
+  // 8. Hoisted devDependencies must not reappear in lib.* packages (ADS-730)
   const HOISTED_DEVDEPS = [
     '@typescript-eslint/eslint-plugin',
     '@typescript-eslint/parser',
