@@ -65,45 +65,45 @@ const renderWithRoute = (initialRoute: string) =>
 
 const waitForTabsToLoad = () =>
   waitFor(() => {
-    expect(screen.getByRole('button', { name: /rescue profile/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /rescue profile/i })).toBeInTheDocument();
   });
 
 describe('RescueSettings tab persistence via URL hash', () => {
   it('defaults to profile tab when no hash is present', async () => {
     renderWithRoute('/settings');
     await waitForTabsToLoad();
-    const profileButton = screen.getByRole('button', { name: /rescue profile/i });
-    expect(profileButton.className).toContain('tabActive');
+    const profileButton = screen.getByRole('tab', { name: /rescue profile/i });
+    expect(profileButton).toHaveAttribute('aria-selected', 'true');
   });
 
   it('restores the security tab from #security hash', async () => {
     renderWithRoute('/settings#security');
     await waitForTabsToLoad();
-    const securityButton = screen.getByRole('button', { name: /^security$/i });
-    expect(securityButton.className).toContain('tabActive');
+    const securityButton = screen.getByRole('tab', { name: /^security$/i });
+    expect(securityButton).toHaveAttribute('aria-selected', 'true');
   });
 
   it('restores the appearance tab from #appearance hash', async () => {
     renderWithRoute('/settings#appearance');
     await waitForTabsToLoad();
-    const appearanceButton = screen.getByRole('button', { name: /appearance/i });
-    expect(appearanceButton.className).toContain('tabActive');
+    const appearanceButton = screen.getByRole('tab', { name: /appearance/i });
+    expect(appearanceButton).toHaveAttribute('aria-selected', 'true');
   });
 
   it('falls back to profile for invalid hash values', async () => {
     renderWithRoute('/settings#nonexistent');
     await waitForTabsToLoad();
-    const profileButton = screen.getByRole('button', { name: /rescue profile/i });
-    expect(profileButton.className).toContain('tabActive');
+    const profileButton = screen.getByRole('tab', { name: /rescue profile/i });
+    expect(profileButton).toHaveAttribute('aria-selected', 'true');
   });
 
   it('switches tab when a tab button is clicked', async () => {
     renderWithRoute('/settings');
     await waitForTabsToLoad();
-    fireEvent.click(screen.getByRole('button', { name: /adoption policies/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /adoption policies/i }));
     // Navigate triggers re-render; wait for tabs to re-appear
     await waitForTabsToLoad();
-    const policiesButton = screen.getByRole('button', { name: /adoption policies/i });
-    expect(policiesButton.className).toContain('tabActive');
+    const policiesButton = screen.getByRole('tab', { name: /adoption policies/i });
+    expect(policiesButton).toHaveAttribute('aria-selected', 'true');
   });
 });

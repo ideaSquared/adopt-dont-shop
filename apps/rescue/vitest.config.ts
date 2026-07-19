@@ -1,8 +1,7 @@
-import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vitest/config';
-import { getLibraryAliases } from '../../vite.shared.config';
+import { getLibraryAliases, veCssMock } from '../../vite.shared.config';
 
 export default defineConfig({
   plugins: [
@@ -11,7 +10,7 @@ export default defineConfig({
         plugins: [['babel-plugin-react-compiler', { compilationMode: 'annotation' }]],
       },
     }),
-    vanillaExtractPlugin(),
+    veCssMock,
   ],
   test: {
     globals: true,

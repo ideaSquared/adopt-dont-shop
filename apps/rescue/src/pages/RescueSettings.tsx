@@ -214,39 +214,51 @@ const RescueSettings: React.FC = () => {
       </div>
 
       <div className={styles.tabContainer}>
-        <div className={styles.tabList}>
+        <div className={styles.tabList} role="tablist">
           <button
             className={clsx(styles.tab, activeTab === 'profile' && styles.tabActive)}
+            role="tab"
+            aria-selected={activeTab === 'profile'}
             onClick={() => setActiveTab('profile')}
           >
             Rescue Profile
           </button>
           <button
             className={clsx(styles.tab, activeTab === 'policies' && styles.tabActive)}
+            role="tab"
+            aria-selected={activeTab === 'policies'}
             onClick={() => setActiveTab('policies')}
           >
             Adoption Policies
           </button>
           <button
             className={clsx(styles.tab, activeTab === 'questions' && styles.tabActive)}
+            role="tab"
+            aria-selected={activeTab === 'questions'}
             onClick={() => setActiveTab('questions')}
           >
             Application Questions
           </button>
           <button
             className={clsx(styles.tab, activeTab === 'preferences' && styles.tabActive)}
+            role="tab"
+            aria-selected={activeTab === 'preferences'}
             onClick={() => setActiveTab('preferences')}
           >
             Preferences
           </button>
           <button
             className={clsx(styles.tab, activeTab === 'security' && styles.tabActive)}
+            role="tab"
+            aria-selected={activeTab === 'security'}
             onClick={() => setActiveTab('security')}
           >
             Security
           </button>
           <button
             className={clsx(styles.tab, activeTab === 'appearance' && styles.tabActive)}
+            role="tab"
+            aria-selected={activeTab === 'appearance'}
             onClick={() => setActiveTab('appearance')}
           >
             Appearance
