@@ -112,6 +112,11 @@ adopt-dont-shop/
 
 ## Common Commands
 
+The root `package.json` defines ~70 scripts. `pnpm run help` prints all of
+them, grouped by category with a one-line description — the fastest way to
+discover a command you don't already know (`pnpm run tasks` / `docs/tasks.md`
+has the full command bodies and per-package scripts too).
+
 ```bash
 # Dev (Docker)
 pnpm docker:dev               # start full stack (gateway + services + apps)

@@ -73,6 +73,7 @@
     "ratchet:stories-coverage": "node scripts/check-storybook-coverage.mjs --ratchet",
     "generate:dependency-docs": "node scripts/generate-dependency-docs.mjs",
     "test:scripts": "vitest run --config vitest.scripts.config.ts",
+    "help": "node scripts/generate-task-index.mjs --help",
     "tasks": "node scripts/generate-task-index.mjs --print",
     "tasks:write": "node scripts/generate-task-index.mjs",
     "hooks:enable": "touch .husky/.prepush-enabled && echo 'pre-push hook enabled (runs ci:local:quick on git push)'",
