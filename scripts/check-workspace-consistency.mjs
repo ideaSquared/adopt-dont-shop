@@ -44,7 +44,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join, dirname, relative } from 'path';
 import { fileURLToPath } from 'url';
-import semver from 'semver';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -524,6 +523,13 @@ export function rootAuthoritativeRange(rootPkg, depName) {
   return rootPkg.dependencies?.[depName] ?? rootPkg.devDependencies?.[depName] ?? null;
 }
 
+// First integer in a range string ('^19.2.7' → 19, '>=10 <11' → 10). Null
+// when the range carries no leading number (workspace:*, latest, git URLs).
+function majorOf(range) {
+  const match = String(range).match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
 // Compare every tracked dependency a template package.json declares against
 // the workspace root's authoritative range. Returns human-readable failure
 // strings; an empty array means this template has no drift.
@@ -535,13 +541,15 @@ export function checkTemplateDepDrift(templateFile, templatePkg, rootPkg) {
     if (!templateRange) continue;
     const rootRange = rootAuthoritativeRange(rootPkg, dep);
     if (!rootRange) continue;
-    let overlaps;
-    try {
-      overlaps = semver.intersects(templateRange, rootRange);
-    } catch {
-      // Non-standard range on either side (rare) — fall back to exact match.
-      overlaps = templateRange === rootRange;
-    }
+    // Dependency-free on purpose: CI's workspace-drift job runs this script
+    // without node_modules, so the semver package isn't available. Major-
+    // version equality catches the drift class this guard exists for
+    // (templates stuck on an old major); exact string equality covers
+    // ranges with no leading number.
+    const templateMajor = majorOf(templateRange);
+    const overlaps =
+      templateRange === rootRange ||
+      (templateMajor !== null && templateMajor === majorOf(rootRange));
     if (!overlaps) {
       failures.push(
         `[${templateFile}] '${dep}': '${templateRange}' does not overlap the workspace root's ` +
