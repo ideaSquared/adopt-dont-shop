@@ -123,3 +123,27 @@ export function defineLibConfig(overrides: UserConfig = {}): UserConfig {
   const withName = mergeConfig(sharedConfig, defineConfig({ test: { name } }));
   return mergeConfig(withName, overrides);
 }
+
+/**
+ * Shared Vitest configuration for all services/* packages (Node, not jsdom —
+ * services have no DOM). Each service extends this and overrides only what
+ * it needs (typically `test.coverage`).
+ */
+const sharedServiceConfig = defineConfig({
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+    testTimeout: 10_000,
+  },
+});
+
+/**
+ * ADS-985: helper that removes the per-service mergeConfig + imports
+ * boilerplate — mirrors `defineLibConfig` above. Every service's
+ * `vitest.config.ts` collapses to `export default defineServiceConfig()`,
+ * or `defineServiceConfig({ ...overrides })` for services that need coverage
+ * overrides (e.g. `test.coverage`).
+ */
+export function defineServiceConfig(overrides: UserConfig = {}): UserConfig {
+  return mergeConfig(sharedServiceConfig, overrides);
+}

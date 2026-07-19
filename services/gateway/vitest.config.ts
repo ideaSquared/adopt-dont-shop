@@ -1,11 +1,5 @@
-import { defineConfig } from 'vitest/config';
+import { defineServiceConfig } from '../../vitest.shared.config';
 
-export default defineConfig({
-  test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
-    // Server tests bind real ports and spin up upstream stubs — give them
-    // some headroom over the 5s default but keep them tight.
-    testTimeout: 10_000,
-  },
-});
+// Server tests bind real ports and spin up upstream stubs — give them some
+// headroom over the 5s default but keep them tight (see shared testTimeout).
+export default defineServiceConfig();
