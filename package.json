@@ -68,6 +68,7 @@
     "check:docs-script-refs": "node scripts/check-docs-script-references.mjs",
     "check:docs-freshness": "node scripts/check-docs-freshness.mjs",
     "check:stories": "node scripts/check-storybook-coverage.mjs",
+    "check:readmes": "node scripts/check-readmes.mjs",
     "ratchet:coverage": "node scripts/ratchet-coverage.mjs",
     "ratchet:stories-coverage": "node scripts/check-storybook-coverage.mjs --ratchet",
     "generate:dependency-docs": "node scripts/generate-dependency-docs.mjs",

@@ -1,5 +1,7 @@
 # service.matching
 
+## Purpose
+
 Matching vertical — Phase 9 of the microservices migration.
 
 Stateless recommender (CAD `service.dispatch` shape) — given a user,
@@ -7,6 +9,25 @@ queries `service.pets` for candidates over gRPC, ranks by stored
 preferences + match-profile, returns top-K. Owns the `matching.*`
 schema (`SwipeSession`, `SwipeAction`). Absorbs the monolith's
 discovery + search + swipe modules.
+
+## Location in the architecture
+
+See [docs/infrastructure/MICROSERVICES-STANDARDS.md](../../docs/infrastructure/MICROSERVICES-STANDARDS.md)
+for the shared service boundaries model. Calls **service.pets**
+(`PETS_GRPC_URL`) over gRPC to fetch candidate pets — see "Dependencies"
+below. The gateway proxies `/api/matching/*` (and the legacy
+`/api/discovery/*` / `/api/search/*`) to this service once Phase 9.5 lands.
+
+## Scripts
+
+```bash
+pnpm dev          # tsx watch — starts the HTTP + gRPC servers
+pnpm build        # tsc build
+pnpm test         # Vitest (run mode)
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript type-check
+pnpm db:migrate   # run pending migrations (node-pg-migrate)
+```
 
 ## What's shipped so far
 
@@ -33,7 +54,10 @@ discovery + search + swipe modules.
   legacy `/api/discovery/*`, `/api/search/*`).
 - **Phase 9.6** — Cutover.
 
-## Configuration
+## Environment variables consumed
+
+Full reference: [docs/env-reference.md](../../docs/env-reference.md). This
+service's own vars:
 
 | Env var              | Default            | Required | Purpose                         |
 | -------------------- | ------------------ | -------- | ------------------------------- |
@@ -44,6 +68,24 @@ discovery + search + swipe modules.
 | `DATABASE_URL`       | —                  | ✅       | Postgres connection string.     |
 | `NATS_URL`           | `nats://nats:4222` |          | NATS bus URL.                   |
 | `NODE_ENV`           | `development`      |          | Surfaces in health + logs.      |
+
+## REST / gRPC contract
+
+HTTP surface: `/health/simple` on `MATCHING_PORT`. gRPC surface:
+`MatchingService` — see the "gRPC RPCs" table under "Canonical reference"
+below for the full RPC → permission map.
+
+## Testing notes
+
+Vitest. The scoring/ranking function is pure and tested directly against
+fixture candidates; handlers are tested with pool + NATS (+ a stub pets
+client) injected — see "Testing strategy" under "Canonical reference"
+below for the full picture.
+
+## Ownership
+
+See [.github/CODEOWNERS](../../.github/CODEOWNERS) for the current owner
+of `/services/`.
 
 ---
 

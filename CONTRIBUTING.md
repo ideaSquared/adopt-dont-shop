@@ -27,6 +27,14 @@ Before making a breaking change to a `lib.*` package's public API, **check its c
 
 See the [README Project Structure](./README.md#project-structure) for the full tree and [docs/infrastructure/MICROSERVICES-STANDARDS.md](./docs/infrastructure/MICROSERVICES-STANDARDS.md) for service boundaries and gRPC/NATS ownership.
 
+### New package READMEs
+
+Every new `apps/*`, `services/*`, or `packages/*` package needs a README
+following the canonical template for its family:
+[app](./docs/templates/README.app.md), [service](./docs/templates/README.service.md),
+[lib](./docs/templates/README.lib.md). `pnpm check:readmes` reports (warn-only
+today) any workspace README missing one of the template's required sections.
+
 ## Development workflow
 
 ### Branch naming

@@ -42,6 +42,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [.github README](../.github/README.md) — GitHub configuration and workflows overview
 - [.github workflows README](../.github/workflows/README.md) — CI pipeline reference
 - [Pull request template](../.github/pull_request_template.md) — required PR sections
+- README templates — [app](./templates/README.app.md), [service](./templates/README.service.md), [lib](./templates/README.lib.md) — canonical section order for a new `apps/*`, `services/*`, or `packages/*` README (`pnpm check:readmes` checks existing ones against it)
 
 ## Architecture
 
