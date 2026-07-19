@@ -1,0 +1,38 @@
+name: Docs Freshness
+
+# Nightly docs-freshness report (ADS-954). `check-docs-index.mjs` only
+# verifies every docs/**/*.md is linked from docs/README.md — nothing tracks
+# staleness or broken cross-links. This workflow runs
+# scripts/check-docs-freshness.mjs and posts the report (broken internal
+# links + docs not touched in 12+ months) to the job summary. It is
+# informational only and never fails the run.
+#
+# fetch-depth: 0 on checkout is required — the script uses
+# `git log -1 --format=%cs -- <file>` per doc to find its last-touched date,
+# which needs full history, not the default shallow clone.
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-freshness
+  cancel-in-progress: false
+
+jobs:
+  docs-freshness:
+    name: Docs freshness report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          fetch-depth: 0
+      - name: Setup workspace (Node + pnpm)
+        uses: ./.github/actions/setup-workspace
+      - name: Run docs freshness report
+        run: node scripts/check-docs-freshness.mjs --check-external

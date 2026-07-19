@@ -15,13 +15,15 @@ Follow the Quick Start in [README.md](./README.md#quick-start) to get the stack 
 This monorepo has four workspace families. New code belongs in exactly one of them — use this decision tree to pick:
 
 1. **Cross-service contract / DTO** (a type shared between a service and an app, or between two services) → **`packages/lib.types`**. Zero-dependency shared types and constants live here so every consumer agrees on the same shape.
-2. **Reusable React UI primitive** (a button, input, layout, or any other presentational component) → **`packages/lib.components`**. Styled with vanilla-extract; consumed by `app.client` / `app.admin` / `app.rescue`.
+2. **Reusable React UI primitive** (a button, input, layout, or any other presentational component) → **`packages/lib.components`**. Styled with vanilla-extract; consumed by `app.client` / `app.admin` / `app.rescue`. New components under `src/components/ui/` should ship a `*.stories.tsx` alongside the `*.tsx` / `*.test.tsx` — `pnpm run check:stories` reports stories coverage for that directory (nightly job summary in `.github/workflows/storybook.yml`), and a persisted floor in `stories-coverage-threshold.json` only ever ratchets upward.
 3. **Runtime helper shared across workspaces** (no UI) — pick by who consumes it:
    - Consumed by the **React apps** (HTTP client, hooks, formatters, domain services) → **`packages/lib.<domain>`** (e.g. `lib.api`, `lib.auth`, `lib.utils`). These are the frontend-consumable libraries.
    - Consumed only by the **services** (gRPC stubs, event schemas, DB access, infra plumbing) → **`packages/<shared>`** (e.g. `proto`, `events`, `authz`, `db`, `storage`, `observability`). These are service-only and are **not** imported by any `app.*`.
 4. **Service-specific business logic** (logic that belongs to one domain service and is not shared) → **`services/<svc>/src`** (e.g. `services/pets`, `services/applications`). Follow the Controllers → Services → Models layering in [.claude/CLAUDE.md](./.claude/CLAUDE.md).
 
 The key distinction is **`lib.*` vs `packages/<shared>`**: both live under `packages/`, but `lib.*` packages are frontend-consumable (imported by the apps) while the bare `packages/*` packages (`proto`, `events`, `authz`, `db`, `storage`, `observability`, …) are service-only. When in doubt, prefer the narrowest home — promote code to a shared package only once a second consumer actually needs it.
+
+Before making a breaking change to a `lib.*` package's public API, **check its consumer list** (`docs/libraries/<lib>-consumers.md`, linked from that package's README's "Consumers" section) — it's auto-generated from the workspace `package.json` files by `scripts/generate-dependency-docs.mjs`, so it always reflects who actually imports the package.
 
 See the [README Project Structure](./README.md#project-structure) for the full tree and [docs/infrastructure/MICROSERVICES-STANDARDS.md](./docs/infrastructure/MICROSERVICES-STANDARDS.md) for service boundaries and gRPC/NATS ownership.
 
