@@ -35,6 +35,9 @@
  *     overlap the workspace root's own pinned range/override (ADS-980).
  *  11. .tool-versions (asdf/mise) must declare the same Node major and pnpm
  *     version as .nvmrc / package.json "packageManager" (ADS-943).
+ *  12. Every services/*.vitest.config.ts imports defineServiceConfig from
+ *     vitest.shared.config.ts — no ad-hoc defineConfig at service scope
+ *     (ADS-985).
  *
  * Common script bodies (lint = 'eslint .'|'eslint src', type-check =
  * 'tsc --noEmit', test = 'vitest run') drift produces a warning, not failure.
@@ -560,6 +563,31 @@ export function checkTemplateDepDrift(templateFile, templatePkg, rootPkg) {
   return failures;
 }
 
+// ADS-985: every services/*/vitest.config.ts must import defineServiceConfig
+// from the shared vitest.shared.config.ts helper — no ad-hoc defineConfig()
+// at service scope, so a Vitest upgrade or coverage-exclusion change stays a
+// single-file edit.
+function checkServiceVitestConfig(services) {
+  const failures = [];
+  for (const svc of services) {
+    const cfgPath = join(ROOT, 'services', svc, 'vitest.config.ts');
+    let contents;
+    try {
+      contents = readFileSync(cfgPath, 'utf8');
+    } catch {
+      continue;
+    }
+    const importsSharedHelper = /from ['"]\.\.\/\.\.\/vitest\.shared\.config['"]/.test(contents);
+    if (!importsSharedHelper) {
+      failures.push(
+        `[services/${svc}/vitest.config.ts] must import 'defineServiceConfig' from '../../vitest.shared.config' ` +
+          `(ADS-985) — no ad-hoc defineConfig() at service scope`
+      );
+    }
+  }
+  return failures;
+}
+
 function findTemplatePackageJsonFiles() {
   const templatesDir = join(ROOT, 'scripts', 'templates');
   const found = [];
@@ -766,6 +794,9 @@ function main() {
   // 11. .tool-versions must agree with .nvmrc / package.json packageManager
   //     (ADS-943)
   failures.push(...checkToolVersions(rootPkg));
+
+  // 12. Every service vitest.config.ts must import the shared helper (ADS-985)
+  failures.push(...checkServiceVitestConfig(services));
 
   if (warnings.length > 0) {
     console.warn('Warnings (non-fatal — script body drift):');

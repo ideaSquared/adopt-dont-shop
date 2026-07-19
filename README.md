@@ -130,6 +130,8 @@ pnpm build                    # build everything (Turbo handles ordering)
 pnpm build:libs               # libraries only
 pnpm build:apps               # apps only
 pnpm test                     # all tests
+pnpm test:watch               # Vitest watch mode (pass --filter for one package)
+pnpm test:changed             # Vitest --changed mode against your git diff
 pnpm lint / lint:fix
 pnpm type-check
 pnpm format / format:check

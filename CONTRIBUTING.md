@@ -193,6 +193,8 @@ A repo-root `.editorconfig` enforces 2-space indent, LF line endings, UTF-8, fin
 
 Every package uses **Vitest** (`vitest run`). The React apps and `lib.components` add React Testing Library on top. Use the `pnpm test` / `pnpm test:watch` / `pnpm test:coverage` scripts defined in each package.
 
+The tightest inner loop is `pnpm --filter <pkg> test:watch` — run it from the repo root, scoped to the package you're editing (e.g. `pnpm --filter @adopt-dont-shop/lib.api test:watch`). The root `pnpm test:watch` / `pnpm test:changed` scripts (ADS-944) exist for discoverability and repo-wide use, but for a single package `--filter` is still preferred.
+
 Tests must cover **behaviour**, not implementation. 100% coverage is expected but tests must always be grounded in business requirements, not internal structure.
 
 ### Test layout
@@ -252,6 +254,11 @@ A scheduled/`main` CI job can then re-run the ratchet and open a follow-up PR.
 **Exemptions:** a package that cannot meet the shared floor sets a lower
 `thresholds` block in its own `vitest.config.ts` with a comment linking the
 tracking ticket. The override always wins over the shared baseline.
+
+**Cache invalidation (ADS-908):** `turbo.json` lists `coverage-thresholds.json`
+as an input for the `test` and `test:coverage` tasks, so committing a ratcheted
+threshold busts the Turbo cache for every package on the next run — a warm
+cache from before the bump can't hide a newly-failing threshold.
 
 ## Reporting bugs / proposing features
 

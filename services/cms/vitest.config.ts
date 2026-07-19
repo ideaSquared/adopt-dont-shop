@@ -1,10 +1,7 @@
-import { defineConfig } from 'vitest/config';
+import { defineServiceConfig } from '../../vitest.shared.config';
 
-export default defineConfig({
+export default defineServiceConfig({
   test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
-    testTimeout: 10_000,
     coverage: {
       provider: 'v8',
       all: true,

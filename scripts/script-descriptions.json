@@ -27,6 +27,8 @@
   "build:libs": "Build only the lib.* packages.",
   "build:apps": "Build only the three frontend apps.",
   "test": "Run tests for every workspace package via Turbo (no coverage thresholds — see test:coverage tier in CONTRIBUTING.md).",
+  "test:watch": "Vitest watch mode at the workspace root — reruns affected tests on save; pass a path/pattern to filter (ADS-944).",
+  "test:changed": "Run only tests affected by files changed since origin/main (Vitest --changed; ADS-944).",
   "test:e2e": "Run the full Playwright suite against a running Docker stack.",
   "test:e2e:single": "Alias of test:e2e (kept for muscle-memory / CI script parity).",
   "test:e2e:smoke": "Run only the @smoke-tagged Playwright specs.",

@@ -11,7 +11,10 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "vitest.workspaceConfig": "./vitest.workspace.ts",
-  "vitest.maximumConfigs": 30,
+  // ADS-986: workspace now globs lib.* + app.* + services/* (24 + 3 + 11 = 38
+  // configs) — raised from 30 so the Vitest extension doesn't silently drop
+  // packages past its default cap.
+  "vitest.maximumConfigs": 40,
   "eslint.workingDirectories": [
     { "pattern": "apps/*" },
     { "pattern": "packages/*" },
