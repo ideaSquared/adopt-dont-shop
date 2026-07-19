@@ -56,8 +56,10 @@ jobs:
           fi
 
       # ADS-622: structural consistency guard — required scripts per workspace,
-      # vitest.workspace.ts coverage, vite alias map coverage, nested lockfiles
-      # and stale jest references. See scripts/check-workspace-consistency.mjs.
+      # vitest.workspace.ts coverage, vite alias map coverage, nested lockfiles,
+      # stale jest references, and (ADS-987) docker-compose.dev.yml's
+      # x-dev-volumes anchor mounting node_modules for every current workspace.
+      # See scripts/check-workspace-consistency.mjs.
       - name: Verify workspace consistency
         run: node scripts/check-workspace-consistency.mjs
 

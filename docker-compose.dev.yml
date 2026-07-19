@@ -56,6 +56,11 @@ x-dev-env: &dev-env
 #     with the host's (absolute-path, container-invalid) pnpm symlink farm.
 # Anon volumes initialise from the image's contents at that path, so the baked
 # (correct, Linux-native) node_modules is what every container sees.
+#
+# ADS-987: adding a new apps/*, packages/*, or services/* directory? Add its
+# `/app/<path>/node_modules` line below too — `pnpm check:workspaces`
+# (scripts/check-workspace-consistency.mjs) fails CI if this list drifts from
+# the filesystem, but the actionable fix is here.
 x-dev-volumes: &dev-volumes
   - .:/app
   - /app/node_modules
@@ -99,6 +104,7 @@ x-dev-volumes: &dev-volumes
   - /app/packages/seed-faker/node_modules
   - /app/packages/service-bootstrap/node_modules
   - /app/packages/storage/node_modules
+  - /app/packages/test-utils/node_modules
   - /app/services/applications/node_modules
   - /app/services/audit/node_modules
   - /app/services/auth/node_modules
