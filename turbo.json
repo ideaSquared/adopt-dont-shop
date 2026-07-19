@@ -28,7 +28,8 @@
         "vitest.config.ts",
         "package.json",
         "$TURBO_ROOT$/vitest.shared.config.ts",
-        "$TURBO_ROOT$/tsconfig.base.json"
+        "$TURBO_ROOT$/tsconfig.base.json",
+        "$TURBO_ROOT$/coverage-thresholds.json"
       ]
     },
     "test:coverage": {
@@ -40,7 +41,8 @@
         "test/**/*.ts",
         "test/**/*.tsx",
         "$TURBO_ROOT$/vitest.shared.config.ts",
-        "$TURBO_ROOT$/tsconfig.base.json"
+        "$TURBO_ROOT$/tsconfig.base.json",
+        "$TURBO_ROOT$/coverage-thresholds.json"
       ]
     },
     "lint": {

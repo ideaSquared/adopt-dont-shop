@@ -253,6 +253,11 @@ A scheduled/`main` CI job can then re-run the ratchet and open a follow-up PR.
 `thresholds` block in its own `vitest.config.ts` with a comment linking the
 tracking ticket. The override always wins over the shared baseline.
 
+**Cache invalidation (ADS-908):** `turbo.json` lists `coverage-thresholds.json`
+as an input for the `test` and `test:coverage` tasks, so committing a ratcheted
+threshold busts the Turbo cache for every package on the next run — a warm
+cache from before the bump can't hide a newly-failing threshold.
+
 ## Reporting bugs / proposing features
 
 Use the issue templates in [`.github/ISSUE_TEMPLATE/`](./.github/ISSUE_TEMPLATE/):
