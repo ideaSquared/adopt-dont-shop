@@ -176,6 +176,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Service level objectives & alerting](./slo.md) — per-service SLOs, error budgets, and the Prometheus rules under `infra/prometheus/rules/`
 - [Observability and alerting](./observability-alerting.md) — metrics, logs, alert routing (legacy — superseded by `slo.md`)
 - [Runbooks index](./runbooks/README.md) — runbook catalogue
+- [Dev stack troubleshooting runbook](./runbooks/dev-stack-troubleshooting.md) — symptom → diagnosis → fix for local `pnpm docker:dev` failures
 - [5xx spike runbook](./runbooks/5xx-spike.md) — diagnose elevated server errors
 - [Applications cutover runbook](./runbooks/applications-cutover.md) — _obsolete_: the per-domain cutover mechanism has been removed
 - [DB pool exhaustion runbook](./runbooks/db-pool-exhaustion.md) — recover from connection saturation

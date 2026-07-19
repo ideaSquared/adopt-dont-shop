@@ -150,7 +150,7 @@ pnpm exec turbo test --filter=@adopt-dont-shop/service.gateway
 
 The Docker dev stack is configured for HMR on Windows/macOS/Linux:
 
-- **Frontend apps** — Vite HMR with polling (`CHOKIDAR_USEPOLLING=true`). Edits to `apps/*/src/**` and `packages/lib.*/src/**` reload in the browser within ~1-2 seconds.
+- **Frontend apps** — Vite HMR, native inotify on Linux; polling (`CHOKIDAR_USEPOLLING=true`) on macOS/Windows only, set automatically by `pnpm run setup` since [ADS-766](https://linear.app/ideasquared/issue/ADS-766). Edits to `apps/*/src/**` and `packages/lib.*/src/**` reload in the browser within ~1-2 seconds.
 - **Gateway + services** — `tsx watch` reloads each on edits to its `services/<name>/src/**` within ~1 second.
 - **lib.types** — the `lib-types-watcher` sidecar runs `tsc --watch` and writes to `dist/` continuously; the services pick up changes automatically via the workspace symlink.
 - **Other libraries** (`lib.api`, `lib.auth`, etc.) — Vite aliases point at their `src/` folders, so HMR picks up changes automatically.
@@ -231,8 +231,10 @@ pnpm docker:dev:build         # rebuild images from scratch
 Common issues:
 
 - **Port conflict** — check 3000-3002 (apps), 4000 (gateway), 5001-5009 (services), 5432 (Postgres), 6379 (Redis), 4222/8222 (NATS) are free
-- **HMR not firing** — verify `CHOKIDAR_USEPOLLING=true` is set in container env (it is by default in `docker-compose.yml`)
+- **HMR not firing** — on macOS/Windows, verify `CHOKIDAR_USEPOLLING=true` is set in container env (`pnpm run setup` writes it per-host since [ADS-766](https://linear.app/ideasquared/issue/ADS-766) — it is **not** set on Linux, which uses native inotify instead)
 - **Slow builds** — ensure BuildKit is on: `export DOCKER_BUILDKIT=1`
+
+For everything else — migration failures, NATS startup races, nginx 502s, stale dev images, and more — see the [dev stack troubleshooting runbook](./docs/runbooks/dev-stack-troubleshooting.md).
 
 ## Contributing
 
