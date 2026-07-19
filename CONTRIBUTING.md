@@ -6,6 +6,10 @@ Thanks for contributing! This guide covers everything you need to open a good PR
 
 Follow the Quick Start in [README.md](./README.md#quick-start) to get the stack running locally. This repo uses pnpm, provided via Corepack — run `corepack enable` once and the version pinned by `package.json` `"packageManager"` is used automatically.
 
+### Onboarding health
+
+`.github/workflows/onboarding-smoke.yml` runs nightly (and on manual dispatch) to catch regressions in the onboarding path above before a new contributor hits them: it checks out a clean copy of the repo (no restored caches) and runs the bootstrap script non-interactively, asserting `.env` gets created, secrets get generated, and `pnpm validate:env` passes. It does not boot the docker dev stack — see the workflow file's header comment for the scope rationale (ADS-951).
+
 ## Where does my code go?
 
 This monorepo has four workspace families. New code belongs in exactly one of them — use this decision tree to pick:

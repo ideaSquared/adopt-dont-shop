@@ -1,0 +1,119 @@
+name: Onboarding Smoke Test
+
+# ADS-951: nothing in CI validated that the documented single-command
+# onboarding path (`pnpm setup` -> scripts/bootstrap.mjs) still works. Any
+# change to bootstrap.mjs, .env.example, or workspace globs could silently
+# break a new contributor's first run, and we'd only find out when someone
+# got stuck.
+#
+# Scope: this job exercises the bootstrap-only slice of onboarding — Node
+# check, .env creation, secret generation, `pnpm install`, `pnpm build:libs`,
+# and `pnpm validate:env` — on a genuinely clean checkout (no restored
+# caches, mirroring a brand-new contributor's machine). It deliberately does
+# NOT start the docker dev stack (`pnpm docker:dev:detach` + a
+# localhost/health poll): that's a materially more expensive slice (image
+# build + full container boot) that duplicates the docker-compose stack
+# already brought up and health-checked by ci.yml's `test-e2e` job on every
+# push to main. If bootstrap itself never breaks but the docker stack does,
+# test-e2e already catches that. Extending this job to also boot the stack
+# is a reasonable follow-up if bootstrap-only coverage proves insufficient.
+#
+# Not yet implemented: failure notification to a #dev-onboarding channel —
+# no Slack (or equivalent) webhook is currently configured anywhere in this
+# repo's workflows for this to hook into. The job summary below is the
+# interim signal; wire up a notify step once a webhook secret exists.
+on:
+  schedule:
+    # 03:17 UTC daily — an arbitrary off-peak minute, avoiding the top-of-hour
+    # thundering herd other scheduled Actions jobs pile onto.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  onboarding-smoke:
+    name: First-run onboarding smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Intentionally NOT using ./.github/actions/setup-workspace here — that
+      # composite action restores pnpm-store and node_modules caches, which
+      # would mask exactly the "cold clean-machine" scenario this job exists
+      # to catch (see ADS-951 header comment above).
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
+        with:
+          node-version-file: '.nvmrc'
+
+      # Mirrors the documented Quick Start (README.md): `corepack enable` so
+      # a bare `pnpm` resolves, then `pnpm setup`. bootstrap.mjs also
+      # re-asserts corepack itself (ADS-894) as a defensive step for
+      # contributors who skip this.
+      - name: Enable Corepack (pnpm version pinned by package.json "packageManager")
+        run: corepack enable
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
+      - name: Run pnpm setup non-interactively
+        # `pnpm run setup`, not `pnpm setup`: pnpm reserves `setup` as a
+        # built-in CLI command (`pnpm help setup` — configures PNPM_HOME), so
+        # the bare form silently runs that instead of the package.json
+        # script and never touches .env. This job's whole purpose is
+        # catching onboarding breakage, so it must invoke the actual
+        # bootstrap script — see the PR description for why the
+        # widely-documented `pnpm setup` invocation itself is a pre-existing
+        # bug out of scope for this change.
+        #
+        # --skip-playwright: the ~200MB browser download is exercised by
+        # ci.yml's test-e2e job already; re-downloading it here just adds
+        # wall-clock time without new signal.
+        # --no-start: keep this job to the bootstrap-only slice (see header
+        # comment) — never boots the docker dev stack.
+        run: pnpm run setup -- --skip-playwright --no-start
+
+      - name: Assert .env was created and is non-empty
+        run: |
+          if [ ! -s .env ]; then
+            echo "::error::pnpm setup did not create a non-empty .env file"
+            exit 1
+          fi
+          echo "OK — .env created ($(wc -l < .env | tr -d ' ') lines)"
+
+      - name: Assert secrets were generated (no placeholder values remain)
+        # Mirrors bootstrap.mjs's own isPlaceholder() check — every SECRET_KEY
+        # bootstrap.mjs manages should now hold a generated value, not the
+        # CHANGE_ME / your-* / change-me / replace-me placeholder text
+        # .env.example ships with.
+        run: |
+          if grep -E '^(JWT_SECRET|JWT_REFRESH_SECRET|SESSION_SECRET|ENCRYPTION_KEY|UPLOAD_SIGNING_SECRET|JWT_REPORT_SHARE_SECRET|POSTGRES_PASSWORD|REDIS_PASSWORD|GF_SECURITY_ADMIN_PASSWORD)=(CHANGE|your-|change-me|replace-me)' .env; then
+            echo "::error::bootstrap.mjs left a placeholder secret value in .env — see scripts/bootstrap.mjs SECRET_KEYS"
+            exit 1
+          fi
+          echo "OK — no placeholder secret values remain in .env"
+
+      - name: Assert validate:env passes
+        # bootstrap.mjs's own validate:env step (step 5) is non-fatal by
+        # design (a fresh contributor may still need to add optional
+        # third-party API keys), so re-run it here as a hard gate — this job
+        # only cares that the required-variable set bootstrap generated is
+        # actually valid.
+        run: pnpm validate:env
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo '## Onboarding smoke test (ADS-951)'
+            echo ''
+            echo '| Step | Result |'
+            echo '| --- | --- |'
+            echo "| \`pnpm setup -- --skip-playwright --no-start\` | ${{ job.status }} |"
+            echo '| .env created + non-empty | checked |'
+            echo '| secrets generated (no placeholders) | checked |'
+            echo '| `pnpm validate:env` | checked |'
+            echo ''
+            echo '_Bootstrap-only slice — does not boot the docker dev stack. See the workflow file header for scope rationale._'
+          } >> "$GITHUB_STEP_SUMMARY"
