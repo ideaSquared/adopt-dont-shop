@@ -65,6 +65,7 @@
     "check:workflow-paths": "node scripts/check-workflow-paths.mjs",
     "check:docker-pinning": "node scripts/check-docker-pinning.mjs",
     "check:docs-script-refs": "node scripts/check-docs-script-references.mjs",
+    "check:docs-freshness": "node scripts/check-docs-freshness.mjs",
     "ratchet:coverage": "node scripts/ratchet-coverage.mjs",
     "test:scripts": "vitest run --config vitest.scripts.config.ts",
     "tasks": "node scripts/generate-task-index.mjs --print",

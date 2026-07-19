@@ -215,6 +215,11 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Internal gRPC trust model](./security/internal-grpc-trust.md) — service-to-service authentication
 - [Webhook replay protection](./security/webhook-replay-protection.md) — email-delivery webhook signature checks
 
+## Doc maintenance
+
+- **Freshness report** — `.github/workflows/docs-freshness.yml` runs nightly (and on `workflow_dispatch`) via `scripts/check-docs-freshness.mjs`: it scans `docs/**/*.md` plus the root markdown files for broken relative links/anchors and flags any doc not touched in 12+ months as "review needed" (sorted by `git log -1 --format=%cs`). The report is posted to the job summary — it does not block merges. Run it locally with `pnpm run check:docs-freshness`.
+- **Index coverage** — `scripts/check-docs-index.mjs` (run in CI) fails when a `docs/**/*.md` file isn't linked from this index.
+
 ## Documentation conventions
 
 - **Lib references** live in each `lib.*/README.md` (canonical, code-verified). The libraries index just points to them.
