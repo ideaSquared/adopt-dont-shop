@@ -29,6 +29,12 @@
  *     hand-enumerated list in sync with the filesystem — a new package added
  *     without a matching mount line gets silently shadowed by the host bind
  *     mount's (container-invalid) node_modules symlink farm.
+ *  10. scripts/templates/**\/package.json (the pnpm new-app / new-lib
+ *     scaffolds) must not declare a version of a tracked cross-cutting
+ *     dependency (react, typescript, eslint, vitest, ...) that doesn't
+ *     overlap the workspace root's own pinned range/override (ADS-980).
+ *  11. .tool-versions (asdf/mise) must declare the same Node major and pnpm
+ *     version as .nvmrc / package.json "packageManager" (ADS-943).
  *
  * Common script bodies (lint = 'eslint .'|'eslint src', type-check =
  * 'tsc --noEmit', test = 'vitest run') drift produces a warning, not failure.
@@ -38,6 +44,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join, dirname, relative } from 'path';
 import { fileURLToPath } from 'url';
+import semver from 'semver';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -481,11 +488,153 @@ function checkDevVolumesDrift(apps, packages, services) {
   return failures;
 }
 
+// ADS-980: cross-cutting dependencies that scripts/templates/**/package.json
+// (the pnpm new-app / new-lib scaffolds) must keep in step with the
+// workspace root, so a freshly generated package doesn't immediately violate
+// pnpm's overrides or ship a version nothing else in the repo uses.
+const TEMPLATE_TRACKED_DEPS = [
+  'react',
+  'react-dom',
+  'react-router-dom',
+  'typescript',
+  'eslint',
+  'vitest',
+  '@vitest/coverage-v8',
+  '@vitest/ui',
+  '@typescript-eslint/eslint-plugin',
+  '@typescript-eslint/parser',
+  '@vitejs/plugin-react',
+  'vite',
+  '@testing-library/react',
+  '@testing-library/jest-dom',
+  '@testing-library/user-event',
+  '@tanstack/react-query',
+  'eslint-plugin-react-hooks',
+  'eslint-plugin-react-refresh',
+];
+
+// The version range the workspace root actually resolves `depName` to: an
+// explicit pnpm.overrides entry wins (that's what every install gets,
+// regardless of what a consumer declares), otherwise fall back to root
+// package.json's own dependencies/devDependencies. Returns null when the
+// root doesn't pin the dependency at all — nothing to compare against.
+export function rootAuthoritativeRange(rootPkg, depName) {
+  const override = rootPkg.pnpm?.overrides?.[depName];
+  if (typeof override === 'string') return override;
+  return rootPkg.dependencies?.[depName] ?? rootPkg.devDependencies?.[depName] ?? null;
+}
+
+// Compare every tracked dependency a template package.json declares against
+// the workspace root's authoritative range. Returns human-readable failure
+// strings; an empty array means this template has no drift.
+export function checkTemplateDepDrift(templateFile, templatePkg, rootPkg) {
+  const failures = [];
+  const declared = { ...(templatePkg.dependencies || {}), ...(templatePkg.devDependencies || {}) };
+  for (const dep of TEMPLATE_TRACKED_DEPS) {
+    const templateRange = declared[dep];
+    if (!templateRange) continue;
+    const rootRange = rootAuthoritativeRange(rootPkg, dep);
+    if (!rootRange) continue;
+    let overlaps;
+    try {
+      overlaps = semver.intersects(templateRange, rootRange);
+    } catch {
+      // Non-standard range on either side (rare) — fall back to exact match.
+      overlaps = templateRange === rootRange;
+    }
+    if (!overlaps) {
+      failures.push(
+        `[${templateFile}] '${dep}': '${templateRange}' does not overlap the workspace root's ` +
+          `'${rootRange}' (ADS-980) — update the template to the current pinned version.`
+      );
+    }
+  }
+  return failures;
+}
+
+function findTemplatePackageJsonFiles() {
+  const templatesDir = join(ROOT, 'scripts', 'templates');
+  const found = [];
+  function walk(dir) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules') continue;
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (entry.name === 'package.json') found.push(full);
+    }
+  }
+  walk(templatesDir);
+  return found;
+}
+
+function checkTemplateDepsDrift(rootPkg) {
+  const failures = [];
+  for (const file of findTemplatePackageJsonFiles()) {
+    const pkg = JSON.parse(readFileSync(file, 'utf8'));
+    failures.push(...checkTemplateDepDrift(relative(ROOT, file), pkg, rootPkg));
+  }
+  return failures;
+}
+
+// ADS-943: .tool-versions (asdf/mise) must agree with .nvmrc and package.json
+// "packageManager" on Node major and pnpm version — otherwise asdf/mise
+// contributors silently provision a different toolchain than nvm/Corepack
+// users on the same checkout.
+export function checkToolVersionsDrift(nvmrcContents, packageManagerField, toolVersionsContents) {
+  const failures = [];
+  const lines = toolVersionsContents.split('\n');
+  const nodeLine = lines.find(l => l.trim().startsWith('nodejs '));
+  const pnpmLine = lines.find(l => l.trim().startsWith('pnpm '));
+
+  if (!nodeLine) {
+    failures.push("[.tool-versions] missing a 'nodejs <version>' line (ADS-943).");
+  } else {
+    const toolNodeVersion = nodeLine.trim().split(/\s+/)[1];
+    const nvmrcVersion = nvmrcContents.trim();
+    if (toolNodeVersion?.split('.')[0] !== nvmrcVersion.split('.')[0]) {
+      failures.push(
+        `[.tool-versions] nodejs '${toolNodeVersion}' major version doesn't match .nvmrc '${nvmrcVersion}' (ADS-943).`
+      );
+    }
+  }
+
+  if (!pnpmLine) {
+    failures.push("[.tool-versions] missing a 'pnpm <version>' line (ADS-943).");
+  } else {
+    const toolPnpmVersion = pnpmLine.trim().split(/\s+/)[1];
+    const pinnedPnpmVersion = packageManagerField?.replace(/^pnpm@/, '');
+    if (toolPnpmVersion !== pinnedPnpmVersion) {
+      failures.push(
+        `[.tool-versions] pnpm '${toolPnpmVersion}' doesn't match package.json "packageManager" ` +
+          `'${packageManagerField}' (ADS-943).`
+      );
+    }
+  }
+
+  return failures;
+}
+
+function checkToolVersions(rootPkg) {
+  const toolVersionsPath = join(ROOT, '.tool-versions');
+  if (!existsSync(toolVersionsPath)) {
+    return [
+      '[.tool-versions] file missing at repo root — add nodejs/pnpm pins for asdf/mise contributors (ADS-943).',
+    ];
+  }
+  const nvmrc = readFileSync(join(ROOT, '.nvmrc'), 'utf8');
+  const toolVersions = readFileSync(toolVersionsPath, 'utf8');
+  return checkToolVersionsDrift(nvmrc, rootPkg.packageManager, toolVersions);
+}
+
 function main() {
   const libs = listLibs();
   const apps = listApps();
   const services = listServices();
   const packages = listAllPackages();
+  const rootPkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 
   const failures = [];
   const warnings = [];
@@ -601,6 +750,14 @@ function main() {
   // 9. docker-compose.dev.yml's x-dev-volumes anchor must mount node_modules
   //    for every current app/e2e/package/service workspace (ADS-987)
   failures.push(...checkDevVolumesDrift(apps, packages, services));
+
+  // 10. scripts/templates/**/package.json must not drift from the workspace
+  //     root's pinned versions for cross-cutting deps (ADS-980)
+  failures.push(...checkTemplateDepsDrift(rootPkg));
+
+  // 11. .tool-versions must agree with .nvmrc / package.json packageManager
+  //     (ADS-943)
+  failures.push(...checkToolVersions(rootPkg));
 
   if (warnings.length > 0) {
     console.warn('Warnings (non-fatal — script body drift):');
