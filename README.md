@@ -163,7 +163,10 @@ The Docker dev stack is configured for HMR on Windows/macOS/Linux:
 
 ## Environment Configuration
 
-Required in `.env` (copy from `.env.example`):
+Required in `.env` (copy from `.env.example`). `.env.example` only carries
+the essentials — every other variable (SMTP/SES, S3, Statsig, Sentry, cron
+schedules, and more) is documented, grouped by domain, in
+[docs/env-reference.md](./docs/env-reference.md):
 
 ```env
 POSTGRES_USER=adopt_user
