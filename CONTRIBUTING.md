@@ -193,6 +193,8 @@ A repo-root `.editorconfig` enforces 2-space indent, LF line endings, UTF-8, fin
 
 Every package uses **Vitest** (`vitest run`). The React apps and `lib.components` add React Testing Library on top. Use the `pnpm test` / `pnpm test:watch` / `pnpm test:coverage` scripts defined in each package.
 
+The tightest inner loop is `pnpm --filter <pkg> test:watch` — run it from the repo root, scoped to the package you're editing (e.g. `pnpm --filter @adopt-dont-shop/lib.api test:watch`). The root `pnpm test:watch` / `pnpm test:changed` scripts (ADS-944) exist for discoverability and repo-wide use, but for a single package `--filter` is still preferred.
+
 Tests must cover **behaviour**, not implementation. 100% coverage is expected but tests must always be grounded in business requirements, not internal structure.
 
 ### Test layout

@@ -33,6 +33,8 @@
     "build:libs": "turbo run build --filter='@adopt-dont-shop/lib.*'",
     "build:apps": "turbo run build --filter='@adopt-dont-shop/app.*'",
     "test": "turbo run test",
+    "test:watch": "turbo run test:watch --parallel --concurrency=1",
+    "test:changed": "turbo run test -- --changed",
     "test:e2e": "pnpm --filter @adopt-dont-shop/e2e test",
     "test:e2e:single": "pnpm --filter @adopt-dont-shop/e2e test",
     "test:e2e:smoke": "pnpm --filter @adopt-dont-shop/e2e test:smoke",

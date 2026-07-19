@@ -32,6 +32,11 @@
         "$TURBO_ROOT$/coverage-thresholds.json"
       ]
     },
+    "test:watch": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": []
+    },
     "test:coverage": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"],
