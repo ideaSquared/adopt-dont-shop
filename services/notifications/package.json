@@ -5,7 +5,7 @@
     "node": ">=22.0.0"
   },
   "private": true,
-  "description": "Notifications service \u2014 the first stateful extraction (Phase 1). Owns the notifications.* schema (Notification, DeviceToken, UserNotificationPrefs, EmailPreference, EmailQueue), exposes gRPC for create/list/dismiss, subscribes to NATS for fan-out, and feeds the gateway's WebSocket spine. Phase 1.1 commit is just the boot skeleton + health endpoint \u2014 schema, gRPC, NATS, and gateway wiring land in subsequent commits.",
+  "description": "Notifications service — the first stateful extraction (Phase 1). Owns the notifications.* schema (Notification, DeviceToken, UserNotificationPrefs, EmailPreference, EmailQueue), exposes gRPC for create/list/dismiss, subscribes to NATS for fan-out, and feeds the gateway's WebSocket spine. Phase 1.1 commit is just the boot skeleton + health endpoint — schema, gRPC, NATS, and gateway wiring land in subsequent commits.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -57,6 +57,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-node": "workspace:*",
     "@adopt-dont-shop/test-utils": "workspace:*",
     "@pact-foundation/pact": "^17.0.0",
     "@types/nodemailer": "^8.0.0",

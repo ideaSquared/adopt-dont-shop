@@ -5,7 +5,7 @@
     "node": ">=22.0.0"
   },
   "private": true,
-  "description": "Applications service \u2014 Phase 5 extraction. Owns the applications.* schema (Application, ApplicationDraft, ApplicationAnswer, ApplicationTimelineEntry, HomeVisit, Reference) and exposes gRPC ApplicationService over a status state machine (draft \u2192 submitted \u2192 under_review \u2192 home_visit_scheduled \u2192 home_visit_completed \u2192 approved | rejected | withdrawn \u2192 adopted). This is the EVENT-SOURCED vertical \u2014 clear state machine + multi-consumer audit needs; pure apply/fold domain + Postgres event store + publish-after-commit on applications.* events. CAD Phase 2 equivalent (deepest extraction). Phase 5.1 commit is just the boot skeleton; the event-sourced domain, persistence, gRPC, NATS, and gateway land in later phases.",
+  "description": "Applications service — Phase 5 extraction. Owns the applications.* schema (Application, ApplicationDraft, ApplicationAnswer, ApplicationTimelineEntry, HomeVisit, Reference) and exposes gRPC ApplicationService over a status state machine (draft → submitted → under_review → home_visit_scheduled → home_visit_completed → approved | rejected | withdrawn → adopted). This is the EVENT-SOURCED vertical — clear state machine + multi-consumer audit needs; pure apply/fold domain + Postgres event store + publish-after-commit on applications.* events. CAD Phase 2 equivalent (deepest extraction). Phase 5.1 commit is just the boot skeleton; the event-sourced domain, persistence, gRPC, NATS, and gateway land in later phases.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -56,6 +56,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-node": "workspace:*",
     "@pact-foundation/pact": "^17.0.0",
     "@types/pg": "^8.15.5"
   }

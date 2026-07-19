@@ -5,7 +5,7 @@
     "node": ">=22.0.0"
   },
   "private": true,
-  "description": "Chat service \u2014 Phase 6 extraction. Owns the chat.* schema (Chat, ChatParticipant, Message, MessageReaction, MessageRead) and exposes gRPC ChatService for send/list/markRead. WS-heavy \u2014 the gateway terminates Socket.IO and this service publishes chat.messageCreated etc. on NATS for fan-out via the gateway's existing Phase 1.5 WS subscriber. Phase 6.1 commit is just the boot skeleton; schema/gRPC/NATS/gateway land in later phases.",
+  "description": "Chat service — Phase 6 extraction. Owns the chat.* schema (Chat, ChatParticipant, Message, MessageReaction, MessageRead) and exposes gRPC ChatService for send/list/markRead. WS-heavy — the gateway terminates Socket.IO and this service publishes chat.messageCreated etc. on NATS for fan-out via the gateway's existing Phase 1.5 WS subscriber. Phase 6.1 commit is just the boot skeleton; schema/gRPC/NATS/gateway land in later phases.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -55,6 +55,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-node": "workspace:*",
     "@types/pg": "^8.15.5"
   }
 }
