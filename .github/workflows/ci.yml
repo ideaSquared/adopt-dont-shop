@@ -56,8 +56,10 @@ jobs:
           fi
 
       # ADS-622: structural consistency guard — required scripts per workspace,
-      # vitest.workspace.ts coverage, vite alias map coverage, nested lockfiles
-      # and stale jest references. See scripts/check-workspace-consistency.mjs.
+      # vitest.workspace.ts coverage, vite alias map coverage, nested lockfiles,
+      # stale jest references, and (ADS-987) docker-compose.dev.yml's
+      # x-dev-volumes anchor mounting node_modules for every current workspace.
+      # See scripts/check-workspace-consistency.mjs.
       - name: Verify workspace consistency
         run: node scripts/check-workspace-consistency.mjs
 
@@ -78,6 +80,19 @@ jobs:
       # must declare its own CSP.
       - name: Verify CSP headers
         run: node scripts/check-csp-headers.mjs
+
+      # ADS-984: these three drift guards previously only ran via `pnpm
+      # ci:local`, so nothing in GitHub CI caught a required env var missing
+      # from `.env.example`, a docs/*.md file not linked from docs/README.md,
+      # or a doc referencing a renamed/removed pnpm script.
+      - name: Verify .env.example documents all required vars
+        run: node scripts/check-env-example.mjs
+
+      - name: Verify every docs/*.md is linked from docs/README.md
+        run: node scripts/check-docs-index.mjs
+
+      - name: Verify docs reference only real pnpm scripts
+        run: node scripts/check-docs-script-references.mjs
 
   # ============================================================================
   # CHANGE DETECTION — gate all downstream jobs on relevant path changes

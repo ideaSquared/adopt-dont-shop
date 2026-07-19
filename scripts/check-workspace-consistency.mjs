@@ -24,6 +24,11 @@
  *     Vitest `include` glob only picks up tests under src/, so files elsewhere
  *     are silently skipped. Existing offenders are tracked in
  *     TEST_LAYOUT_ALLOWLIST and migrated by separate tickets.
+ *  9. docker-compose.dev.yml's `x-dev-volumes` anchor mounts an anonymous
+ *     node_modules volume per workspace package (ADS-987). Nothing kept that
+ *     hand-enumerated list in sync with the filesystem — a new package added
+ *     without a matching mount line gets silently shadowed by the host bind
+ *     mount's (container-invalid) node_modules symlink farm.
  *
  * Common script bodies (lint = 'eslint .'|'eslint src', type-check =
  * 'tsc --noEmit', test = 'vitest run') drift produces a warning, not failure.
@@ -104,6 +109,18 @@ function listApps() {
 
 function listServices() {
   return readdirSync(join(ROOT, 'services'), { withFileTypes: true })
+    .filter(e => e.isDirectory())
+    .map(e => e.name)
+    .sort();
+}
+
+// Every directory under packages/ — not just lib.* — has its own node_modules
+// (authz, config-secrets, db, eslint-config-*, events, observability, proto,
+// seed-faker, service-bootstrap, storage, plus every lib.*). Used by the
+// dev-volumes drift guard (ADS-987), which mirrors every workspace package's
+// node_modules, not just the lib.* subset `listLibs()` returns.
+function listAllPackages() {
+  return readdirSync(join(ROOT, 'packages'), { withFileTypes: true })
     .filter(e => e.isDirectory())
     .map(e => e.name)
     .sort();
@@ -394,10 +411,81 @@ function checkServiceInstrumentation(services) {
   return failures;
 }
 
+// ADS-987: parse the `x-dev-volumes` anchor block out of docker-compose.dev.yml
+// without pulling in a YAML dependency — mirrors the hand-rolled parser in
+// scripts/check-workflow-paths.mjs. Returns the raw mount target for each
+// `- <target>` list item between the anchor's `x-dev-volumes:` line and the
+// next top-level (unindented) key, or null if the anchor isn't found.
+export function parseDevVolumesAnchor(composeYaml) {
+  const lines = composeYaml.split('\n');
+  const startIdx = lines.findIndex(l => l.trim().startsWith('x-dev-volumes:'));
+  if (startIdx === -1) return null;
+
+  const mounts = [];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.length > 0 && /^\S/.test(line)) break; // dedent = next top-level key
+    const match = line.match(/^\s+-\s+(\S+)\s*$/);
+    if (match) mounts.push(match[1]);
+  }
+  return mounts;
+}
+
+// The node_modules mounts every dev container needs: the root, one per app,
+// one for e2e, one per packages/* directory, and one per service. Mirrors the
+// `/app/<workspace>/node_modules` convention already used in
+// docker-compose.dev.yml's x-dev-volumes anchor.
+export function computeExpectedDevVolumeMounts(apps, packages, services) {
+  const appNames = apps.map(app => app.slice('app.'.length));
+  return [
+    '/app/node_modules',
+    ...appNames.map(name => `/app/apps/${name}/node_modules`),
+    '/app/e2e/node_modules',
+    ...packages.map(name => `/app/packages/${name}/node_modules`),
+    ...services.map(name => `/app/services/${name}/node_modules`),
+  ];
+}
+
+function checkDevVolumesDrift(apps, packages, services) {
+  const composePath = join(ROOT, 'docker-compose.dev.yml');
+  const contents = readFileSync(composePath, 'utf8');
+  const actualMounts = parseDevVolumesAnchor(contents);
+  if (actualMounts === null) {
+    return [
+      "[docker-compose.dev.yml] could not find the 'x-dev-volumes' anchor — expected a top-level 'x-dev-volumes:' key (ADS-987).",
+    ];
+  }
+
+  const actualSet = new Set(actualMounts.filter(mount => mount !== '.:/app'));
+  const expected = computeExpectedDevVolumeMounts(apps, packages, services);
+  const expectedSet = new Set(expected);
+  const failures = [];
+
+  const missing = expected.filter(mount => !actualSet.has(mount));
+  if (missing.length > 0) {
+    failures.push(
+      `[docker-compose.dev.yml] 'x-dev-volumes' anchor is missing node_modules mount(s) for: ${missing.join(', ')}. ` +
+        `Add these lines under the x-dev-volumes anchor — without them the host bind mount shadows the ` +
+        `image's baked node_modules for these workspaces (ADS-987).`
+    );
+  }
+
+  const stale = [...actualSet].filter(mount => mount !== '/app/node_modules' && !expectedSet.has(mount)).sort();
+  if (stale.length > 0) {
+    failures.push(
+      `[docker-compose.dev.yml] 'x-dev-volumes' anchor mounts node_modules for workspace(s) that no longer exist: ` +
+        `${stale.join(', ')}. Remove these stale lines (ADS-987).`
+    );
+  }
+
+  return failures;
+}
+
 function main() {
   const libs = listLibs();
   const apps = listApps();
   const services = listServices();
+  const packages = listAllPackages();
 
   const failures = [];
   const warnings = [];
@@ -509,6 +597,10 @@ function main() {
       );
     }
   }
+
+  // 9. docker-compose.dev.yml's x-dev-volumes anchor must mount node_modules
+  //    for every current app/e2e/package/service workspace (ADS-987)
+  failures.push(...checkDevVolumesDrift(apps, packages, services));
 
   if (warnings.length > 0) {
     console.warn('Warnings (non-fatal — script body drift):');

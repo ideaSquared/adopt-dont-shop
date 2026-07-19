@@ -29,6 +29,13 @@ runs:
     # every (ephemeral) runner, which dominates the ~15-20s cost regardless of
     # a store hit. Caching node_modules itself, keyed on the same lockfile
     # hash, lets an unchanged-lockfile run skip the install step entirely.
+    #
+    # ADS-983: this path list must cover every top-level workspace glob in
+    # ../../../pnpm-workspace.yaml (apps/*, packages/*, services/*, e2e) — on
+    # a cache hit the install step below is skipped entirely, so a workspace
+    # missing here gets no node_modules at all. e2e was missing until
+    # ADS-983; if pnpm-workspace.yaml grows a new top-level workspace, add its
+    # node_modules path here too.
     - name: Cache workspace node_modules
       id: node-modules-cache
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
@@ -38,6 +45,7 @@ runs:
           apps/*/node_modules
           services/*/node_modules
           packages/*/node_modules
+          e2e/node_modules
         key: node-modules-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
     - name: Install workspace dependencies
       if: steps.node-modules-cache.outputs.cache-hit != 'true'
