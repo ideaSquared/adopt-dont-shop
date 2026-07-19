@@ -16,7 +16,7 @@ Utility scripts referenced from the root `package.json` or mounted into containe
 | `snapshot-postgres.sh` | cron on production host | Daily `pg_dump` of the prod database to S3. See `docs/operations/snapshot-policy.md`. Bash — Linux/macOS only. |
 | `snapshot-uploads.sh` | cron on production host | Daily rsync of the `uploads` Docker volume to S3. See `docs/operations/snapshot-policy.md`. Bash — Linux/macOS only. |
 | `check-workspace-consistency.mjs` | `pnpm check:workspaces` | Workspace structural-drift guard (ADS-622). Verifies required scripts per `lib.*`/`app.*` package, `vitest.workspace.ts` coverage, `vite.shared.config.ts` `getLibraryAliases()` coverage, absence of nested `pnpm-lock.yaml`, and absence of stale Jest references. Wired into the `workspace-drift` CI job. |
-| `check-docs-index.mjs` | invoked from CI / manually | Fails CI when a markdown file under `docs/` is not linked from `docs/README.md` (ADS-716). Allowlists `docs/README.md` itself and `docs/legal/**`. |
+| `check-docs-index.mjs` | `pnpm check:docs-index` | Fails CI when a markdown file under `docs/` is not linked from `docs/README.md` (ADS-716). Allowlists `docs/README.md` itself and `docs/legal/**`. Wired into the `workspace-drift` CI job (ADS-984). |
 | `init-postgis.sql` | mounted into `database` container at `/docker-entrypoint-initdb.d/` | Enables the PostGIS extension on first DB init. Runs automatically — do not invoke manually. |
 
 Helpers live in two subdirectories:
