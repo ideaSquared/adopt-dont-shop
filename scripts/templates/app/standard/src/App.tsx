@@ -8,16 +8,15 @@ function App() {
   return (
     <AnalyticsProvider>
       <div className="app">
-  <main>
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-    </Routes>
-  </main>
-  <DevLoginPanel />
-  <Footer />
-</div>
-  </div>
-</AnalyticsProvider>
+        <main>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+          </Routes>
+        </main>
+        <DevLoginPanel />
+        <Footer />
+      </div>
+    </AnalyticsProvider>
   );
 }
 

@@ -64,6 +64,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-node": "workspace:*",
     "@adopt-dont-shop/test-utils": "workspace:*",
     "@pact-foundation/pact": "^17.0.0",
     "@types/pg": "^8.15.5",

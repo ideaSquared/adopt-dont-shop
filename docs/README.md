@@ -57,6 +57,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Backend deployment](./backend/deployment.md) — how the backend is built and shipped
 - [Microservices standards](./infrastructure/MICROSERVICES-STANDARDS.md) — boundaries, contracts, ownership
 - [Dependency graph](./dependency-graph.md) — Turbo build/dependency graph reference
+- [tsconfig layout](./tsconfig-layout.md) — base/lib/service tsconfig tiers and what belongs where
 - [Data standards](./DATA-STANDARDS.md) — naming, identifiers, timestamp / locale conventions
 - [Backbone infra review](./backbone-infra-review.md) — audit of the shared backend substrate (`packages/{db,events,proto,storage,observability,authz}`, `services/gateway`, `service-bootstrap`)
 - [Frontend libs quality review](./frontend-libs-quality-review.md) — audit of the frontend `lib.*` packages

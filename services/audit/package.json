@@ -5,7 +5,7 @@
     "node": ">=22.0.0"
   },
   "private": true,
-  "description": "Audit service \u2014 Phase 10 extraction. Append-only event store consuming *.actionTaken NATS topics; idempotent on event_id; row-level trigger rejects UPDATE/DELETE. Owns the audit.* schema (AuditEvent). gRPC AuditQueryService.{Query, GetByTarget} with base64-JSON keyset cursors. Gateway gates GET /api/audit/* on the `view Audit` ability. Phase 10.1 commit is just the boot skeleton.",
+  "description": "Audit service — Phase 10 extraction. Append-only event store consuming *.actionTaken NATS topics; idempotent on event_id; row-level trigger rejects UPDATE/DELETE. Owns the audit.* schema (AuditEvent). gRPC AuditQueryService.{Query, GetByTarget} with base64-JSON keyset cursors. Gateway gates GET /api/audit/* on the `view Audit` ability. Phase 10.1 commit is just the boot skeleton.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -53,6 +53,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-node": "workspace:*",
     "@types/pg": "^8.15.5"
   }
 }

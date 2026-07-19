@@ -1,10 +1,8 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.service.base.json",
   "compilerOptions": {
-    "target": "ES2022",
     "outDir": "./dist",
     "rootDir": "./src",
-    "noEmit": false,
     "incremental": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "types": ["node"]

@@ -1,9 +1,11 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.service.base.json",
   "compilerOptions": {
-    "target": "ES2022",
     "outDir": "./dist",
     "rootDir": "./src",
+    // Intentional override: this package is type-only test helpers, never
+    // built to dist — noEmit:true overrides tsconfig.service.base.json's
+    // noEmit:false.
     "noEmit": true,
     "types": ["node", "vitest/globals"]
   },

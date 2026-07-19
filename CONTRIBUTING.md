@@ -4,7 +4,7 @@ Thanks for contributing! This guide covers everything you need to open a good PR
 
 ## Getting started
 
-Follow the Quick Start in [README.md](./README.md#quick-start) to get the stack running locally. This repo uses pnpm, provided via Corepack — run `corepack enable` once and the version pinned by `package.json` `"packageManager"` is used automatically.
+Follow the Quick Start in [README.md](./README.md#quick-start) to get the stack running locally. This repo uses pnpm, provided via Corepack — run `corepack enable` once and the version pinned by `package.json` `"packageManager"` is used automatically. Prefer [asdf](https://asdf-vm.com/) or [mise](https://mise.jdx.dev/) over nvm/Corepack? The root [`.tool-versions`](./.tool-versions) pins the same Node and pnpm versions as `.nvmrc` / `package.json` — `asdf install` or `mise install` provisions both.
 
 ### Onboarding health
 

@@ -18,6 +18,7 @@ For full local control (faster HMR, native Docker performance) follow the prereq
 
 - [Node.js](https://nodejs.org/) v22 — the exact version is pinned in [`.nvmrc`](./.nvmrc) (install via `nvm use`); `package.json` `engines` requires `>=22 <23`
 - [pnpm](https://pnpm.io/) — provided via Corepack. `pnpm setup` enables Corepack for you (ADS-894); if you'd rather do it yourself first, run `corepack enable` and the pinned version (`package.json` `"packageManager"`) is used automatically
+- Prefer [asdf](https://asdf-vm.com/) or [mise](https://mise.jdx.dev/) instead of nvm/Corepack? The repo also ships a root [`.tool-versions`](./.tool-versions) pinning the same Node and pnpm versions as `.nvmrc` / `package.json` — run `asdf install` or `mise install` and both tools are provisioned automatically
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose v2)
 - [Git](https://git-scm.com/)
 

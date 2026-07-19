@@ -1,15 +1,16 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.lib.base.json",
   "compilerOptions": {
-    "target": "ES2020",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
+    // Intentional override: this lib ships source for Storybook/vite-plugin-dts
+    // consumption rather than a tsc build — noEmit:true overrides
+    // tsconfig.lib.base.json's noEmit:false.
     "noEmit": true,
     "outDir": "./dist",
-    "allowSyntheticDefaultImports": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true

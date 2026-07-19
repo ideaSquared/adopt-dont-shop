@@ -5,7 +5,7 @@
     "node": ">=22.0.0"
   },
   "private": true,
-  "description": "Rescue service \u2014 Phase 4 extraction. Owns the rescue.* schema (Rescue, RescueSettings, StaffMember, Invitation, FosterPlacement, ApplicationQuestion) and exposes gRPC RescueService over classical CRUD + a few status transitions. Subscribes to auth.userCreated to maintain staff-member denormalisation. Phase 4.1 commit is just the boot skeleton; schema/gRPC/NATS/gateway land in later phases.",
+  "description": "Rescue service — Phase 4 extraction. Owns the rescue.* schema (Rescue, RescueSettings, StaffMember, Invitation, FosterPlacement, ApplicationQuestion) and exposes gRPC RescueService over classical CRUD + a few status transitions. Subscribes to auth.userCreated to maintain staff-member denormalisation. Phase 4.1 commit is just the boot skeleton; schema/gRPC/NATS/gateway land in later phases.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -55,6 +55,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-node": "workspace:*",
     "@types/pg": "^8.15.5"
   }
 }

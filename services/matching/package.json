@@ -5,7 +5,7 @@
     "node": ">=22.0.0"
   },
   "private": true,
-  "description": "Matching service \u2014 Phase 9 extraction. Stateless recommender \u2014 given a user, queries service.pets for candidates over gRPC, ranks by stored preferences + match-profile, returns top-K. Owns the matching.* schema (SwipeSession, SwipeAction). Absorbs the monolith's discovery + search + swipe modules. CAD service.dispatch shape. Phase 9.1 commit is just the boot skeleton.",
+  "description": "Matching service — Phase 9 extraction. Stateless recommender — given a user, queries service.pets for candidates over gRPC, ranks by stored preferences + match-profile, returns top-K. Owns the matching.* schema (SwipeSession, SwipeAction). Absorbs the monolith's discovery + search + swipe modules. CAD service.dispatch shape. Phase 9.1 commit is just the boot skeleton.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -52,6 +52,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
+    "@adopt-dont-shop/eslint-config-node": "workspace:*",
     "@types/pg": "^8.15.5"
   }
 }

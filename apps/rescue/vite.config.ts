@@ -10,8 +10,11 @@ export default defineConfig(({ mode }) => {
   // The gateway fronts /api, /health and /monitoring. In Docker it's reachable
   // by its compose service name; natively it runs on localhost. (Replaces the
   // deleted service-backend monolith — gateway listens on 4000.)
+  // Use the 127.0.0.1 literal rather than 'localhost': the gateway binds
+  // 0.0.0.0 (IPv4-only) by default, so on IPv6-first hosts 'localhost'
+  // resolving to ::1 first would ECONNREFUSED (see docs/DOCKER.md).
   const isDocker = process.env.DOCKER_ENV === 'true' || process.env.NODE_ENV === 'production';
-  const backendHost = isDocker ? 'service-gateway' : 'localhost';
+  const backendHost = isDocker ? 'service-gateway' : '127.0.0.1';
   const backendPort = 4000;
 
   // Development aliases for all libraries to use source files directly
