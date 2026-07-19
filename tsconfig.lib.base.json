@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // Frontend lib.* packages compile to ES2020, not the base ES2022 —
+    // they're bundled by Vite for browser consumption across all three
+    // apps, and every lib.* package already used this value. Backend
+    // packages use tsconfig.service.base.json instead. See
+    // docs/tsconfig-layout.md.
+    "target": "ES2020",
+    "allowSyntheticDefaultImports": true,
+    "noEmit": false
+  }
+}

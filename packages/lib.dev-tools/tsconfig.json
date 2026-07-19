@@ -1,16 +1,13 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.lib.base.json",
   "compilerOptions": {
-    "target": "ES2020",
     "lib": ["DOM", "DOM.Iterable", "ES2020"],
     "types": ["node"],
     "jsx": "react-jsx",
     "allowJs": false,
     "outDir": "./dist",
     "rootDir": "./src",
-    "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
-    "noEmit": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,

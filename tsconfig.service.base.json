@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // Backend packages (services/* and the Node-only shared packages under
+    // packages/) compile at the base target (ES2022) — no override needed
+    // here. See docs/tsconfig-layout.md.
+    "noEmit": false
+  }
+}
