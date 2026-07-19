@@ -153,12 +153,30 @@ field's purpose / retention here, update PRIVACY.md too.
 
 ## Sub-processors
 
-To be filled in as integrations are added. Required fields per processor:
-name, purpose, location, transfer mechanism (SCCs / adequacy), DPA link.
+Required fields per processor: name, purpose, location, transfer mechanism
+(SCCs / adequacy), DPA link. Derived from the active provider wiring in
+`services/notifications/src/config.ts` and `packages/storage/src` —
+re-verify this section whenever a provider changes.
 
-- **Email delivery:** _TBD — populate when provider is finalised_
-- **SMS delivery:** _TBD_
-- **File storage:** _TBD_
+- **Email delivery:** Resend (transactional email API). `services/notifications`
+  selects the provider via `EMAIL_PROVIDER`; production permits only `resend`
+  (`console` and `ethereal` are dev/test-only sinks and are refused at boot in
+  production — ADS-549). Location / transfer mechanism / DPA link: _pending —
+  see ADS-992_. The `SMTP_HOST`, `SENDGRID_API_KEY`, and AWS SES variables in
+  `.env.example` are reserved for a possible future provider switch and are
+  **not** wired into any code path today — they are not sub-processors.
+- **SMS delivery:** Not implemented. `lib.validation` accepts an
+  `SMS_PROVIDER=console|twilio` value for forward compatibility, but no SMS
+  sending code exists anywhere in the codebase (no Twilio client, no SMS
+  channel adapter in `services/notifications`). No SMS-related personal data
+  is processed today; this entry must be populated with a real sub-processor
+  before SMS is enabled in production.
+- **File storage:** AWS S3 via `@adopt-dont-shop/storage`'s `S3StorageProvider`,
+  optionally fronted by an Amazon CloudFront distribution
+  (`CLOUDFRONT_DOMAIN`). Selected with `STORAGE_PROVIDER=s3` (`S3_BUCKET_NAME`,
+  `S3_REGION`, default `us-east-1`). Location / transfer mechanism / DPA link:
+  _pending — see ADS-992_. Local disk storage (`STORAGE_PROVIDER=local`, the
+  dev/test default) involves no third-party sub-processor.
 
 ## Review log
 

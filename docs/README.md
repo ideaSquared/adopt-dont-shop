@@ -167,6 +167,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 
 - [Operations — deploy](./operations/deploy.md) — release procedures
 - [Operations — snapshot policy](./operations/snapshot-policy.md) — DB snapshot cadence and retention
+- [Operations — restore procedure](./operations/restore.md) — restoring Postgres and uploads from a snapshot
 - [Operations — dependency updates (Renovate)](./operations/dependency-updates.md) — automated dependency upgrades
 - [Operations — pet CSV import](./operations/pet-csv-import.md) — bulk-loading pet records
 - [Per-service rollback](./deploy/per-service-rollback.md) — hotfix and rollback a single service
