@@ -269,6 +269,12 @@ This runs the same dev-mode images and bind mounts as `pnpm docker:dev` — CI d
 
 ## Troubleshooting
 
+For a symptom → diagnosis → fix runbook covering the full range of dev-stack
+failures (migration failures, NATS startup races, nginx 502s, stale images,
+and more), see
+[`docs/runbooks/dev-stack-troubleshooting.md`](./runbooks/dev-stack-troubleshooting.md).
+The sections below cover the handful of Docker-specific issues in more depth.
+
 ### Tailing logs for one tier instead of everything
 
 `pnpm docker:logs` tails all ~14 containers at once, which is noisy when

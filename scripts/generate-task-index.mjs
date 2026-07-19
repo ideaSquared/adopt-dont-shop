@@ -1,14 +1,22 @@
 #!/usr/bin/env node
 /**
- * Task index generator (ADS-795).
+ * Task index generator (ADS-795, ADS-949).
  *
  * Reads the root package.json and every workspace package.json
  * (apps/*, packages/*, services/*, e2e) and emits a categorized Markdown
  * reference of every runnable script to `docs/tasks.md`.
  *
  * Usage:
- *   node scripts/generate-task-index.mjs            # write docs/tasks.md
- *   node scripts/generate-task-index.mjs --print    # print to stdout, write nothing
+ *   node scripts/generate-task-index.mjs                # write docs/tasks.md
+ *   node scripts/generate-task-index.mjs --print         # print the same Markdown to stdout (`pnpm run tasks`)
+ *   node scripts/generate-task-index.mjs --help           # print a terminal-friendly categorised list with
+ *                                                          # one-line descriptions, no file write (`pnpm run help`)
+ *
+ * The one-line descriptions used by --help live in one place —
+ * scripts/script-descriptions.json — so there's a single source of truth
+ * instead of duplicating them in comments per script. `checkDescriptionsCoverage`
+ * (exported for scripts/check-docs-script-references.mjs) fails if a root
+ * script has no matching entry.
  *
  * Mirrors the no-dependency, single-file style of scripts/check-*.mjs.
  */
@@ -18,12 +26,16 @@ import { fileURLToPath } from 'url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = join(ROOT, 'docs', 'tasks.md');
+const DESCRIPTIONS_PATH = join(ROOT, 'scripts', 'script-descriptions.json');
 
 // Categories in display order. Each entry's matcher decides which root scripts
 // land in that section; the first matching category wins, and anything left
 // over falls into "Misc".
 const CATEGORIES = [
-  { name: 'Setup', match: name => /^(setup|prepare|secrets:|validate:|new-app|new-lib|generate:)/.test(name) },
+  {
+    name: 'Setup',
+    match: name => /^(setup|prepare|secrets:|validate:|new-app|new-lib|generate:)/.test(name),
+  },
   { name: 'Dev', match: name => /^dev(:|$)/.test(name) },
   { name: 'Build', match: name => /^build(:|$)/.test(name) },
   { name: 'Test', match: name => /^test(:|$)/.test(name) },
@@ -126,6 +138,46 @@ function buildWorkspaceSection(workspaceDirs) {
   return lines;
 }
 
+function readDescriptions() {
+  return JSON.parse(readFileSync(DESCRIPTIONS_PATH, 'utf8'));
+}
+
+// Exported for scripts/check-docs-script-references.mjs: every root script
+// must have a one-line description, so `pnpm run help` is never missing an
+// entry. Returns the list of undocumented script names (empty = OK).
+export function checkDescriptionsCoverage() {
+  const rootPkg = readPkg(join(ROOT, 'package.json'));
+  const descriptions = readDescriptions();
+  return Object.keys(rootPkg.scripts || {}).filter(name => !descriptions[name]);
+}
+
+// Terminal-friendly categorised list with descriptions — what `pnpm run help` prints.
+function renderHelp() {
+  const rootPkg = readPkg(join(ROOT, 'package.json'));
+  const descriptions = readDescriptions();
+  const grouped = new Map();
+  for (const name of Object.keys(rootPkg.scripts || {})) {
+    const category = categorize(name);
+    if (!grouped.has(category)) grouped.set(category, []);
+    grouped.get(category).push(name);
+  }
+  const order = [...CATEGORIES.map(c => c.name), 'Misc'];
+  const lines = ["Adopt Don't Shop — root scripts (pnpm run <script>)", ''];
+  for (const category of order) {
+    const names = grouped.get(category);
+    if (!names || names.length === 0) continue;
+    lines.push(`${category}:`);
+    for (const name of names.sort()) {
+      const description =
+        descriptions[name] || '(no description — add one to scripts/script-descriptions.json)';
+      lines.push(`  ${name.padEnd(24)} ${description}`);
+    }
+    lines.push('');
+  }
+  lines.push('Full command bodies + per-package scripts: pnpm run tasks (or see docs/tasks.md).');
+  return lines.join('\n').replace(/\n+$/, '') + '\n';
+}
+
 function render() {
   const rootPkg = readPkg(join(ROOT, 'package.json'));
   const workspaceDirs = listWorkspaceDirs();
@@ -148,9 +200,12 @@ function render() {
 }
 
 function main() {
-  const print = process.argv.includes('--print');
+  if (process.argv.includes('--help')) {
+    process.stdout.write(renderHelp());
+    return;
+  }
   const content = render();
-  if (print) {
+  if (process.argv.includes('--print')) {
     process.stdout.write(content);
     return;
   }
@@ -158,4 +213,7 @@ function main() {
   console.log(`Wrote ${relative(ROOT, OUTPUT)} (${content.split('\n').length} lines).`);
 }
 
-main();
+// Only run when executed directly (not when imported by check-docs-script-references.mjs).
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}

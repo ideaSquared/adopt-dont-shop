@@ -5,10 +5,16 @@ on-call engineer who has shell access on the prod host but no context.
 Each runbook is symptom → diagnosis → mitigation, ordered so you can
 decide in 10 seconds whether to escalate.
 
+Not looking for prod on-call help? See
+[`dev-stack-troubleshooting.md`](./dev-stack-troubleshooting.md) for local
+Docker dev stack failures instead — different audience, same symptom →
+diagnosis → fix format.
+
 ## Index
 
 | Runbook                                          | When to open it                                          |
 | ------------------------------------------------ | -------------------------------------------------------- |
+| [`dev-stack-troubleshooting.md`](./dev-stack-troubleshooting.md) | Local `pnpm docker:dev` failures (not prod on-call) |
 | [`5xx-spike.md`](./5xx-spike.md)                 | `HighFiveHundredRate` page; 5xx ratio >1% over 5m        |
 | [`redis-outage.md`](./redis-outage.md)           | `redis` container unhealthy; rate-limiters misbehaving   |
 | [`db-pool-exhaustion.md`](./db-pool-exhaustion.md) | `acquire timeout` errors; p95 latency climbs in lockstep |

@@ -15,11 +15,17 @@
  * positives across docs this guard does not own. The `run` keyword is the
  * unambiguous signal that an actual package script is being invoked.
  *
+ * Also fails (ADS-949) if any root package.json script has no entry in
+ * scripts/script-descriptions.json — that map is the single source of
+ * truth `pnpm run help` reads, so an undocumented script would silently
+ * fall out of the discoverable list.
+ *
  * Mirrors the no-dependency single-file style of scripts/check-*.mjs.
  */
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join, dirname, relative } from 'path';
 import { fileURLToPath } from 'url';
+import { checkDescriptionsCoverage } from './generate-task-index.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -116,19 +122,32 @@ function main() {
   for (const file of docsToScan) {
     const bad = findBadRefs(file, known);
     for (const { pm, name } of bad) {
-      failures.push(`${relative(ROOT, file)}: references '${pm} run ${name}' but no package defines a '${name}' script`);
+      failures.push(
+        `${relative(ROOT, file)}: references '${pm} run ${name}' but no package defines a '${name}' script`
+      );
     }
   }
 
+  const undocumented = checkDescriptionsCoverage();
+  for (const name of undocumented) {
+    failures.push(
+      `scripts/script-descriptions.json: missing a description for root script '${name}' (pnpm run help would omit it)`
+    );
+  }
+
   if (failures.length === 0) {
-    console.log('OK — every documented pnpm script reference resolves to a real script.');
+    console.log(
+      'OK — every documented pnpm script reference resolves to a real script, and every root script has a help description.'
+    );
     return;
   }
 
-  console.error('Docs reference scripts that do not exist:');
+  console.error('Docs / script-description drift found:');
   for (const f of failures) console.error(`  - ${f}`);
   console.error('');
-  console.error('Fix the doc (rename/remove the stale reference) or add the missing script.');
+  console.error(
+    'Fix the doc (rename/remove the stale reference), add the missing script, or add a description to scripts/script-descriptions.json.'
+  );
   process.exit(1);
 }
 

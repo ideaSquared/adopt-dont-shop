@@ -64,7 +64,7 @@ hook re-issues certs at next nginx restart.
 
 ## Restore procedure
 
-See `docs/operations/restore.md` (TODO — out of scope for ADS-500). The
+See [docs/operations/restore.md](./restore.md) for the full runbook. The
 short version:
 
 ```bash
