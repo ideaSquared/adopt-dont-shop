@@ -15,7 +15,7 @@ const TEMPLATES = {
   minimal: {
     name: 'Minimal',
     description: 'Basic React app with auth and routing',
-    features: ['DevLogin', 'Basic Routing', 'Styled Components'],
+    features: ['DevLogin', 'Basic Routing', 'Vanilla Extract'],
   },
   standard: {
     name: 'Standard',
