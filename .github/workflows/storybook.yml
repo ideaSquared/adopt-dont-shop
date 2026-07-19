@@ -8,6 +8,12 @@ on:
   pull_request:
     paths:
       - 'packages/lib.components/**'
+  schedule:
+    # Nightly stories-coverage report (ADS-956). Only the stories-coverage
+    # job below runs on this trigger — build-storybook / deploy-storybook
+    # stay scoped to push/pull_request/workflow_dispatch so a schedule tick
+    # doesn't rebuild or redeploy the Storybook site.
+    - cron: '0 4 * * *'
   workflow_dispatch:
 
 permissions:
@@ -18,10 +24,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  stories-coverage:
+    name: Stories coverage report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - name: Setup workspace (Node + pnpm)
+        uses: ./.github/actions/setup-workspace
+      - name: Run stories coverage report
+        run: node scripts/check-storybook-coverage.mjs
+
   build-storybook:
     name: Build Storybook
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: github.event_name != 'schedule'
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
       - name: Setup workspace (Node + pnpm)
