@@ -214,6 +214,7 @@ Documentation for the adopt-don't-shop monorepo, organized by audience. The root
 - [Container image signing](./security/image-signing.md) — Cosign / Sigstore image-signing pipeline
 - [Internal gRPC trust model](./security/internal-grpc-trust.md) — service-to-service authentication
 - [Webhook replay protection](./security/webhook-replay-protection.md) — email-delivery webhook signature checks
+- [Token storage migration plan (ADS-919)](./security/ADS-919-token-storage-plan.md) — localStorage → httpOnly-cookie scoping doc for the JWT storage migration
 
 ## Documentation conventions
 

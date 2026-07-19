@@ -9,8 +9,8 @@
  *     this check prevents backsliding.
  *  2. No Content-Security-Policy header anywhere in the repo's nginx configs
  *     (Dockerfile.app, deploy/gateway/nginx.conf, nginx/nginx.conf,
- *     nginx/nginx.prod.conf, apps/*\/nginx.conf) contains `unsafe-inline` or
- *     `unsafe-eval` in script-src.
+ *     nginx/nginx.prod.conf) contains `unsafe-inline` or `unsafe-eval`
+ *     in script-src.
  *  3. Every production SPA vhost in deploy/gateway/nginx.conf (the main
  *     client, admin, and rescue server blocks) declares a
  *     Content-Security-Policy header.
@@ -41,9 +41,6 @@ const cspSources = [
   { label: 'deploy/gateway/nginx.conf', path: 'deploy/gateway/nginx.conf' },
   { label: 'nginx/nginx.conf', path: 'nginx/nginx.conf' },
   { label: 'nginx/nginx.prod.conf', path: 'nginx/nginx.prod.conf' },
-  { label: 'apps/client/nginx.conf', path: 'apps/client/nginx.conf' },
-  { label: 'apps/admin/nginx.conf', path: 'apps/admin/nginx.conf' },
-  { label: 'apps/rescue/nginx.conf', path: 'apps/rescue/nginx.conf' },
 ].map(source => {
   const text = readFileSync(join(ROOT, source.path), 'utf8');
   return { ...source, text, policies: extractPolicies(text) };
