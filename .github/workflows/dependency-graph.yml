@@ -1,0 +1,65 @@
+name: Dependency Graph
+
+# Publishes docs/dependency-graph.html and the per-lib.* "who consumes me"
+# docs (ADS-957). docs/dependency-graph.md previously documented `pnpm graph`
+# as a local-only, git-ignored render — this workflow regenerates both
+# artefacts on every push to main and commits them, so they're always
+# current without anyone having to run the commands by hand.
+#
+# Choice made here (see PR description for the full option comparison):
+# committing the regenerated files straight to `main` via the default
+# GITHUB_TOKEN, rather than standing up a second GitHub Pages deployment
+# (a repo can only have one Pages site, and it's already claimed by
+# storybook.yml, which this batch of work must not touch) or opening a PR
+# on every push (heavier than the ticket's acceptance criteria call for).
+# This assumes the default GITHUB_TOKEN has push access to `main`; if branch
+# protection blocks that, switch the final step to
+# peter-evans/create-pull-request instead.
+#
+# The commit message carries `[skip ci]` so the push this workflow makes
+# doesn't retrigger itself (or any other push-triggered workflow) — without
+# it, committing to packages/lib.*/README.md would match this workflow's own
+# `packages/**` path filter and fire again.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'services/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dependency-graph-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-dependency-graph:
+    name: Regenerate dependency graph + consumer docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - name: Setup workspace (Node + pnpm)
+        uses: ./.github/actions/setup-workspace
+      - name: Regenerate Turbo dependency graph
+        run: pnpm graph
+      - name: Regenerate per-library consumer docs
+        run: node scripts/generate-dependency-docs.mjs
+      - name: Commit regenerated artefacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/dependency-graph.html docs/libraries docs/README.md packages/lib.*/README.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(docs): regenerate dependency graph + consumer lists [skip ci]"
+          git push

@@ -1,5 +1,7 @@
 # Dependency Graph
 
+[![Dependency graph](https://img.shields.io/badge/dependency--graph-auto--generated-informational)](./dependency-graph.html)
+
 This monorepo is wired together by Turborepo. The dependency graph captures every workspace package (apps, libraries, the `services/*` backend services) and the `^build` edges between them — i.e. which packages must finish building before a consumer can start. Generating and reading it is the fastest way to understand the blast radius of a change and to debug Turbo cache or ordering surprises.
 
 ## Generate the graph
@@ -9,7 +11,11 @@ pnpm graph         # renders docs/dependency-graph.html (open in a browser)
 pnpm graph:tasks   # prints the task graph to stdout (no file written)
 ```
 
-`pnpm graph` shells out to `turbo run build --graph=docs/dependency-graph.html`. The generated HTML is git-ignored — regenerate it locally whenever you need an up-to-date picture.
+`pnpm graph` shells out to `turbo run build --graph=docs/dependency-graph.html`. The `.github/workflows/dependency-graph.yml` workflow (ADS-957) regenerates this file on every push to `main` and commits it, so `docs/dependency-graph.html` in the repo is always current — open it directly (or clone and open locally) rather than generating it by hand. Run `pnpm graph` yourself only when you need an up-to-date picture on a branch before it merges.
+
+## Who consumes a library?
+
+Every `lib.*` package has an auto-generated consumer list at [`docs/libraries/<lib>-consumers.md`](./libraries/README.md), linked from that package's own README and from the ["Library consumer lists"](./README.md#library-consumer-lists) section of the docs index. Check it before making a breaking change to a `lib.*` package's public API — `scripts/generate-dependency-docs.mjs` (also run by the same workflow) parses every workspace `package.json` to build the list, so it never drifts from the actual dependency graph.
 
 ## Layered architecture
 

@@ -69,6 +69,7 @@
     "check:stories": "node scripts/check-storybook-coverage.mjs",
     "ratchet:coverage": "node scripts/ratchet-coverage.mjs",
     "ratchet:stories-coverage": "node scripts/check-storybook-coverage.mjs --ratchet",
+    "generate:dependency-docs": "node scripts/generate-dependency-docs.mjs",
     "test:scripts": "vitest run --config vitest.scripts.config.ts",
     "tasks": "node scripts/generate-task-index.mjs --print",
     "tasks:write": "node scripts/generate-task-index.mjs",

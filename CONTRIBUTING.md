@@ -19,6 +19,8 @@ This monorepo has four workspace families. New code belongs in exactly one of th
 
 The key distinction is **`lib.*` vs `packages/<shared>`**: both live under `packages/`, but `lib.*` packages are frontend-consumable (imported by the apps) while the bare `packages/*` packages (`proto`, `events`, `authz`, `db`, `storage`, `observability`, …) are service-only. When in doubt, prefer the narrowest home — promote code to a shared package only once a second consumer actually needs it.
 
+Before making a breaking change to a `lib.*` package's public API, **check its consumer list** (`docs/libraries/<lib>-consumers.md`, linked from that package's README's "Consumers" section) — it's auto-generated from the workspace `package.json` files by `scripts/generate-dependency-docs.mjs`, so it always reflects who actually imports the package.
+
 See the [README Project Structure](./README.md#project-structure) for the full tree and [docs/infrastructure/MICROSERVICES-STANDARDS.md](./docs/infrastructure/MICROSERVICES-STANDARDS.md) for service boundaries and gRPC/NATS ownership.
 
 ## Development workflow
