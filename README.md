@@ -218,6 +218,7 @@ The full operator-side runbook (secret rotation, approval gates, migration recov
 - [docs/libraries/](./docs/libraries/) — per-library reference
 - [services/gateway/README.md](./services/gateway/README.md) — API gateway
 - [packages/lib.components/README.md](./packages/lib.components/README.md) — UI components
+- [Component library on Storybook](https://ideasquared.github.io/adopt-dont-shop/) — browse the deployed component catalogue (`pnpm storybook` to run it locally, see [packages/lib.components/README.md](./packages/lib.components/README.md#component-library--storybook))
 
 ## Troubleshooting
 

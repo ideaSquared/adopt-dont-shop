@@ -65,6 +65,26 @@ pnpm storybook         # storybook dev server on :6006
 pnpm build-storybook   # static storybook build
 ```
 
+## Component library / Storybook
+
+Browse the deployed component catalogue at
+**[ideasquared.github.io/adopt-dont-shop](https://ideasquared.github.io/adopt-dont-shop/)**
+— published to GitHub Pages on every push to `main` that touches this
+package (see [`.github/workflows/storybook.yml`](../../.github/workflows/storybook.yml)).
+
+To run it locally instead:
+
+```bash
+pnpm storybook          # dev server, live-reloads on :6006
+pnpm build-storybook    # static build → storybook-static/ (what CI deploys)
+```
+
+Stories live next to the component they document — `Button.tsx` +
+`Button.stories.tsx` — so a story is easy to find and easy to keep in sync.
+Not every component has one yet (see [ADS-956](https://linear.app/ideasquared/issue/ADS-956/nightly-storybook-stories-coverage-report-for-libcomponents)
+for the tracked coverage gap); adding a `*.stories.tsx` alongside any new
+`src/components/ui/` primitive is the convention going forward.
+
 ## Conventions
 
 - Each component owns its directory with `*.tsx`, `*.css.ts`, `*.test.tsx`, and (where present) `*.stories.tsx`.
