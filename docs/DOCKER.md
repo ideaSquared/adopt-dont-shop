@@ -320,6 +320,18 @@ services:
       - "4001:4000"
 ```
 
+### Native Dev: ECONNREFUSED Proxying to the Gateway (IPv6-first hosts)
+
+`apps/*/vite.config.ts` proxy `/api`, `/health` and `/monitoring` to the
+gateway using the `127.0.0.1` literal (not `localhost`) when running
+natively (outside Docker). This is deliberate: the gateway binds
+`0.0.0.0` by default, which is IPv4-only. On IPv6-first hosts (recent
+macOS, some Linux resolver configs) `localhost` can resolve to `::1`
+first, and a Vite proxy pointed at `localhost` would then ECONNREFUSED
+against a gateway that isn't listening on `::1`. If you see this locally,
+confirm the gateway is actually up on `127.0.0.1:4000` (`curl
+http://127.0.0.1:4000/health`) rather than chasing an IPv6 config change.
+
 ### Stale Build Cache
 
 ```bash
