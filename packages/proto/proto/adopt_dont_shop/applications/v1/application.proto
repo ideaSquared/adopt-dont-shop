@@ -92,6 +92,17 @@ service ApplicationService {
   // counts — the gateway collapses them to the SPA's 4-state shape.
   rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
 
+  // Read-side: cross-service attribution count (ADS-941). Given a
+  // caller-supplied set of adopter user ids (e.g. an event's
+  // registrants, resolved by the calling service), returns how many of
+  // them have at least one application that reached APPROVED or
+  // ADOPTED status with created_at inside [created_after,
+  // created_before]. Deliberately narrow: the caller already knows the
+  // adopter_ids (it resolved them itself); the response reveals only
+  // the count, never which ids matched or which rescue/pet was
+  // involved. Caller MUST hold applications.read.
+  rpc CountAdoptedAdopters(CountAdoptedAdoptersRequest) returns (CountAdoptedAdoptersResponse);
+
   // Document metadata — append a row referencing an already-stored
   // file URL. The gateway owns the multipart upload + object storage;
   // this surface only persists the METADATA. Caller MUST hold
@@ -389,6 +400,26 @@ message GetStatsResponse {
   uint32 rejected = 8;
   uint32 withdrawn = 9;
   uint32 adopted = 10;
+}
+
+// --- CountAdoptedAdopters ---------------------------------------------
+
+message CountAdoptedAdoptersRequest {
+  // Candidate adopter user ids to check — e.g. an event's registrant
+  // list, resolved by the calling service. No filter/scope semantics;
+  // the caller decides which ids are in play.
+  repeated string adopter_ids = 1;
+  // Inclusive lower bound (RFC3339) on the application's created_at.
+  string created_after = 2;
+  // Inclusive upper bound (RFC3339) on the application's created_at.
+  string created_before = 3;
+}
+
+message CountAdoptedAdoptersResponse {
+  // Distinct count of adopter_ids (from the request) with at least one
+  // non-deleted application whose status is APPROVED or ADOPTED and
+  // whose created_at falls in [created_after, created_before].
+  uint32 count = 1;
 }
 
 // --- Documents -------------------------------------------------------

@@ -377,6 +377,28 @@ export interface GetStatsResponse {
   adopted: number;
 }
 
+export interface CountAdoptedAdoptersRequest {
+  /**
+   * Candidate adopter user ids to check — e.g. an event's registrant
+   * list, resolved by the calling service. No filter/scope semantics;
+   * the caller decides which ids are in play.
+   */
+  adopterIds: string[];
+  /** Inclusive lower bound (RFC3339) on the application's created_at. */
+  createdAfter: string;
+  /** Inclusive upper bound (RFC3339) on the application's created_at. */
+  createdBefore: string;
+}
+
+export interface CountAdoptedAdoptersResponse {
+  /**
+   * Distinct count of adopter_ids (from the request) with at least one
+   * non-deleted application whose status is APPROVED or ADOPTED and
+   * whose created_at falls in [created_after, created_before].
+   */
+  count: number;
+}
+
 /**
  * Document — metadata for a file attached to an application. The file
  * bytes live in object storage (owned by the gateway); this row only
@@ -3464,6 +3486,182 @@ export const GetStatsResponse: MessageFns<GetStatsResponse> = {
   },
 };
 
+function createBaseCountAdoptedAdoptersRequest(): CountAdoptedAdoptersRequest {
+  return { adopterIds: [], createdAfter: '', createdBefore: '' };
+}
+
+export const CountAdoptedAdoptersRequest: MessageFns<CountAdoptedAdoptersRequest> = {
+  encode(
+    message: CountAdoptedAdoptersRequest,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    for (const v of message.adopterIds) {
+      writer.uint32(10).string(v!);
+    }
+    if (message.createdAfter !== '') {
+      writer.uint32(18).string(message.createdAfter);
+    }
+    if (message.createdBefore !== '') {
+      writer.uint32(26).string(message.createdBefore);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CountAdoptedAdoptersRequest {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCountAdoptedAdoptersRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.adopterIds.push(reader.string());
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.createdAfter = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 26) {
+            break;
+          }
+
+          message.createdBefore = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CountAdoptedAdoptersRequest {
+    return {
+      adopterIds: globalThis.Array.isArray(object?.adopterIds)
+        ? object.adopterIds.map((e: any) => globalThis.String(e))
+        : globalThis.Array.isArray(object?.adopter_ids)
+          ? object.adopter_ids.map((e: any) => globalThis.String(e))
+          : [],
+      createdAfter: isSet(object.createdAfter)
+        ? globalThis.String(object.createdAfter)
+        : isSet(object.created_after)
+          ? globalThis.String(object.created_after)
+          : '',
+      createdBefore: isSet(object.createdBefore)
+        ? globalThis.String(object.createdBefore)
+        : isSet(object.created_before)
+          ? globalThis.String(object.created_before)
+          : '',
+    };
+  },
+
+  toJSON(message: CountAdoptedAdoptersRequest): unknown {
+    const obj: any = {};
+    if (message.adopterIds?.length) {
+      obj.adopterIds = message.adopterIds;
+    }
+    if (message.createdAfter !== '') {
+      obj.createdAfter = message.createdAfter;
+    }
+    if (message.createdBefore !== '') {
+      obj.createdBefore = message.createdBefore;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CountAdoptedAdoptersRequest>, I>>(
+    base?: I
+  ): CountAdoptedAdoptersRequest {
+    return CountAdoptedAdoptersRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CountAdoptedAdoptersRequest>, I>>(
+    object: I
+  ): CountAdoptedAdoptersRequest {
+    const message = createBaseCountAdoptedAdoptersRequest();
+    message.adopterIds = object.adopterIds?.map(e => e) || [];
+    message.createdAfter = object.createdAfter ?? '';
+    message.createdBefore = object.createdBefore ?? '';
+    return message;
+  },
+};
+
+function createBaseCountAdoptedAdoptersResponse(): CountAdoptedAdoptersResponse {
+  return { count: 0 };
+}
+
+export const CountAdoptedAdoptersResponse: MessageFns<CountAdoptedAdoptersResponse> = {
+  encode(
+    message: CountAdoptedAdoptersResponse,
+    writer: BinaryWriter = new BinaryWriter()
+  ): BinaryWriter {
+    if (message.count !== 0) {
+      writer.uint32(8).uint32(message.count);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): CountAdoptedAdoptersResponse {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseCountAdoptedAdoptersResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.count = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): CountAdoptedAdoptersResponse {
+    return { count: isSet(object.count) ? globalThis.Number(object.count) : 0 };
+  },
+
+  toJSON(message: CountAdoptedAdoptersResponse): unknown {
+    const obj: any = {};
+    if (message.count !== 0) {
+      obj.count = Math.round(message.count);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<CountAdoptedAdoptersResponse>, I>>(
+    base?: I
+  ): CountAdoptedAdoptersResponse {
+    return CountAdoptedAdoptersResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<CountAdoptedAdoptersResponse>, I>>(
+    object: I
+  ): CountAdoptedAdoptersResponse {
+    const message = createBaseCountAdoptedAdoptersResponse();
+    message.count = object.count ?? 0;
+    return message;
+  },
+};
+
 function createBaseDocument(): Document {
   return {
     documentId: '',
@@ -5173,6 +5371,30 @@ export const ApplicationServiceService = {
     responseDeserialize: (value: Buffer): GetStatsResponse => GetStatsResponse.decode(value),
   },
   /**
+   * Read-side: cross-service attribution count (ADS-941). Given a
+   * caller-supplied set of adopter user ids (e.g. an event's
+   * registrants, resolved by the calling service), returns how many of
+   * them have at least one application that reached APPROVED or
+   * ADOPTED status with created_at inside [created_after,
+   * created_before]. Deliberately narrow: the caller already knows the
+   * adopter_ids (it resolved them itself); the response reveals only
+   * the count, never which ids matched or which rescue/pet was
+   * involved. Caller MUST hold applications.read.
+   */
+  countAdoptedAdopters: {
+    path: '/adopt_dont_shop.applications.v1.ApplicationService/CountAdoptedAdopters' as const,
+    requestStream: false as const,
+    responseStream: false as const,
+    requestSerialize: (value: CountAdoptedAdoptersRequest): Buffer =>
+      Buffer.from(CountAdoptedAdoptersRequest.encode(value).finish()),
+    requestDeserialize: (value: Buffer): CountAdoptedAdoptersRequest =>
+      CountAdoptedAdoptersRequest.decode(value),
+    responseSerialize: (value: CountAdoptedAdoptersResponse): Buffer =>
+      Buffer.from(CountAdoptedAdoptersResponse.encode(value).finish()),
+    responseDeserialize: (value: Buffer): CountAdoptedAdoptersResponse =>
+      CountAdoptedAdoptersResponse.decode(value),
+  },
+  /**
    * Document metadata — append a row referencing an already-stored
    * file URL. The gateway owns the multipart upload + object storage;
    * this surface only persists the METADATA. Caller MUST hold
@@ -5399,6 +5621,18 @@ export interface ApplicationServiceServer extends UntypedServiceImplementation {
    * counts — the gateway collapses them to the SPA's 4-state shape.
    */
   getStats: handleUnaryCall<GetStatsRequest, GetStatsResponse>;
+  /**
+   * Read-side: cross-service attribution count (ADS-941). Given a
+   * caller-supplied set of adopter user ids (e.g. an event's
+   * registrants, resolved by the calling service), returns how many of
+   * them have at least one application that reached APPROVED or
+   * ADOPTED status with created_at inside [created_after,
+   * created_before]. Deliberately narrow: the caller already knows the
+   * adopter_ids (it resolved them itself); the response reveals only
+   * the count, never which ids matched or which rescue/pet was
+   * involved. Caller MUST hold applications.read.
+   */
+  countAdoptedAdopters: handleUnaryCall<CountAdoptedAdoptersRequest, CountAdoptedAdoptersResponse>;
   /**
    * Document metadata — append a row referencing an already-stored
    * file URL. The gateway owns the multipart upload + object storage;
@@ -5723,6 +5957,32 @@ export interface ApplicationServiceClient extends Client {
     metadata: Metadata,
     options: Partial<CallOptions>,
     callback: (error: ServiceError | null, response: GetStatsResponse) => void
+  ): ClientUnaryCall;
+  /**
+   * Read-side: cross-service attribution count (ADS-941). Given a
+   * caller-supplied set of adopter user ids (e.g. an event's
+   * registrants, resolved by the calling service), returns how many of
+   * them have at least one application that reached APPROVED or
+   * ADOPTED status with created_at inside [created_after,
+   * created_before]. Deliberately narrow: the caller already knows the
+   * adopter_ids (it resolved them itself); the response reveals only
+   * the count, never which ids matched or which rescue/pet was
+   * involved. Caller MUST hold applications.read.
+   */
+  countAdoptedAdopters(
+    request: CountAdoptedAdoptersRequest,
+    callback: (error: ServiceError | null, response: CountAdoptedAdoptersResponse) => void
+  ): ClientUnaryCall;
+  countAdoptedAdopters(
+    request: CountAdoptedAdoptersRequest,
+    metadata: Metadata,
+    callback: (error: ServiceError | null, response: CountAdoptedAdoptersResponse) => void
+  ): ClientUnaryCall;
+  countAdoptedAdopters(
+    request: CountAdoptedAdoptersRequest,
+    metadata: Metadata,
+    options: Partial<CallOptions>,
+    callback: (error: ServiceError | null, response: CountAdoptedAdoptersResponse) => void
   ): ClientUnaryCall;
   /**
    * Document metadata — append a row referencing an already-stored
