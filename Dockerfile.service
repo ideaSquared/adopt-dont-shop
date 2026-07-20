@@ -68,9 +68,10 @@ RUN --mount=type=cache,id=pnpm-${SERVICE},target=/pnpm/store \
 # Pruned source — only the workspaces this service depends on.
 COPY --from=pruner /app/out/full/ ./
 # turbo prune --docker doesn't copy root-level config files into out/full/.
-# Workspace tsconfigs extend ../tsconfig.base.json (ESM build) and lib.types
-# additionally extends ../tsconfig.cjs.base.json for its dual ESM+CJS build.
-COPY tsconfig.base.json tsconfig.cjs.base.json ./
+# Workspace tsconfigs extend the root tier files (ADS-988: tsconfig.base.json
+# plus the lib/service tier bases; lib.types additionally extends
+# ../tsconfig.cjs.base.json for its dual ESM+CJS build).
+COPY tsconfig.base.json tsconfig.cjs.base.json tsconfig.lib.base.json tsconfig.service.base.json ./
 # `^build` ordering means turbo builds the workspace deps (proto, events, …)
 # before the service itself.
 RUN --mount=type=cache,id=turbo-${SERVICE},target=/app/.turbo \
